@@ -524,8 +524,8 @@
         },
         "java-rule-lava_movement:minecraft:strider": {
             "kind": "defect",
-            "reason": "A strider walks across a lava pool on its surface as it walks on land. Observed: it covers 0.03 blocks of lava in a second, where Java walks it across.",
-            "reference": "Java Strider.canStandOnFluid (lava) and StriderPathNavigation, which paths over lava"
+            "reason": "A strider walks across a lava pool on its surface as it walks on land, and wanders about on it by its own goals, since Java floats it from Strider.tick rather than from a goal that holds it still. Observed: left on the lava for 600 ticks it wanders 0.00 blocks, where Java's RandomStrollGoal walks it about.",
+            "reference": "Java Strider.canStandOnFluid (lava), StriderPathNavigation, which paths over lava, Strider.floatStrider, called from Strider.tick, and the RandomStrollGoal Strider.registerGoals adds"
         },
         "jump-apex:minecraft:dolphin": {
             "kind": "intentional",
@@ -592,11 +592,6 @@
             "reason": "Java's Phantom.updatePhantomSizeInfo sets the attack damage to 6 plus the phantom's size, so the dumped 2 is the monster default. Bedrock writes the 6 of a size-0 phantom.",
             "reference": "Java Mob.doHurtTarget (the attack_damage attribute), IronGolem.doHurtTarget and HoglinBase.hurtAndThrowTarget (damage / 2 + nextInt(damage)), CaveSpider, Bee, WitherSkeleton and Husk doHurtTarget; docs/adr/0001-entity-stat-authority.md"
         },
-        "move-control-turn:minecraft:villager": {
-            "kind": "defect",
-            "reason": "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached. Observed: the server pins no Java navigation for minecraft:villager_v2.",
-            "reference": "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json; issue #3140"
-        },
         "not-pickable-from-inside:minecraft:creaking": {
             "kind": "intentional",
             "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
@@ -606,16 +601,6 @@
             "kind": "intentional",
             "reason": "Input handling (category 2 of docs/data-driven/parity.md): which entity a crosshair inside a box picks follows the player's device, not the server. Java decides it only in the client: Entity.canBePickedFromInside is read by ProjectileUtil.getEntityHitResult(Entity, Vec3, Vec3, AABB, Predicate, double), which no class of the pinned 26.3 server jar calls (the client's GameRenderer.pick does), and the server takes a blow from a player standing inside the box at reach 0 either way.",
             "reference": "Java Entity.canBePickedFromInside and SulfurCube.canBePickedFromInside (!hasBodyItem), read only by ProjectileUtil.getEntityHitResult(..., double), whose caller is the client GameRenderer.pick; ServerGamePacketListenerImpl.handleInteract measures reach to the bounding box"
-        },
-        "path-through:minecraft:navigation.hover/minecraft:happy_ghast": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server will not route it through water, which Java's navigator enters; the server will not route it through an open door, which Java's navigator enters.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3140 and #3181"
-        },
-        "path-through:minecraft:navigation.walk/minecraft:villager": {
-            "kind": "defect",
-            "reason": "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can. Observed: the server pins no Java navigation for minecraft:villager_v2.",
-            "reference": "Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json; issues #3140 and #3181"
         },
         "schedules:minecraft:fox": {
             "kind": "intentional",

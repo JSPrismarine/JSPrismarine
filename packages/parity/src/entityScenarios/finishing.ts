@@ -367,6 +367,149 @@ const compareDragonBar = (subject: EntitySubject): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/**
+ * Whether an enderman that rides a minecart, or one that stands beside it, leaves its spot when an
+ * arrow hits it, which Java's `Enderman.hurtServer` answers with up to 64 teleports.
+ */
+const endermanDodges = (bedrock: string, riding: boolean): boolean | string =>
+    // Every draw at 0.75 aims a teleport 16 blocks away on each axis.
+    withProbe(bedrock, { keep: [], random: [0.75] }, (probe) => {
+        const cart = probe.spawn('minecraft:minecart', 0, 0, 0);
+        if (riding) {
+            const seat = probe.runtime.mobById(cart.id);
+            if (seat !== undefined) probe.runtime.mount(probe.entity.body, seat);
+            if (probe.runtime.vehicleOf(probe.entity.body)?.id !== cart.id)
+                return 'it cannot ride a minecart to be tested';
+        }
+        const start = { ...probe.entity.position };
+        const arrow = probe.spawn('minecraft:arrow', -3, 1.5, 0);
+        arrow.body.velocity = { x: 1.5, y: 0, z: 0 };
+        probe.tick(10);
+        const at = probe.entity.position;
+        return Math.hypot(at.x - start.x, at.z - start.z) > 2;
+    });
+
+/** A riding enderman against Java's: `Enderman.teleport(x, y, z)` refuses a passenger before anything else. */
+const compareEndermanRiding = (subject: EntitySubject): string | undefined => {
+    const teleport = pinnedJavaClass(javaEntityClassName(subject.javaId)).find(
+        (method) => method.name === 'teleport' && method.descriptor === '(DDD)Z'
+    );
+    if (teleport === undefined || teleport.calls[0]?.endsWith('.isPassenger') !== true)
+        return "Java's enderman no longer refuses to teleport a passenger first";
+    const free = endermanDodges(subject.bedrock, false);
+    if (typeof free === 'string') return free;
+    if (!free)
+        return 'an enderman on its feet never dodges the arrow in the probe, so a riding one cannot be told apart';
+    const riding = endermanDodges(subject.bedrock, true);
+    if (typeof riding === 'string') return riding;
+    return riding
+        ? 'an enderman riding a minecart teleports out of it from an arrow, where Java keeps a passenger in its seat'
+        : undefined;
+};
+
+/** Whether a Java class's own code calls a method whose name ends with `member`, in any of its methods. */
+const javaClassCalls = (className: string, member: string): boolean =>
+    pinnedJavaClass(className).some((method) => method.calls.some((call) => call.endsWith(member)));
+
+/**
+ * A trader llama off its trader's lead against Java's `TraderLlama`: neither it nor
+ * `WanderingTraderSpawner` ever tames one, so it stays wild until a player tames it.
+ */
+const compareFreedTraderLlama = (subject: EntitySubject): string | undefined => {
+    const spawner = 'net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner';
+    if (javaClassCalls(javaEntityClassName(subject.javaId), '.setTamed') || javaClassCalls(spawner, '.setTamed'))
+        return "Java's trader llama is now tamed by its own code";
+    // As `minecraft:from_wandering_trader` spawns one beside its trader, here with no lead on it.
+    const groups = ['minecraft:llama_wandering_trader', 'minecraft:llama_persistence'];
+    return withProbe(subject.bedrock, { keep: [], groups }, (probe) => {
+        probe.tick(20);
+        return probe.entity.instance.hasComponent('minecraft:is_tamed')
+            ? 'a trader llama with no lead on it tames itself, where Java keeps it wild for a player to tame'
+            : undefined;
+    });
+};
+
+/**
+ * Whether a player can put a lead on a mount, with the component groups given added and with a
+ * mob riding it or not, as the server's lead attaches one.
+ */
+const mountTakesLead = (bedrock: string, groups: readonly string[], rider: string | undefined): boolean | string =>
+    withProbe(bedrock, { keep: [], groups }, (probe) => {
+        if (rider !== undefined) {
+            const mob = probe.spawn(rider, 0, 0, 0);
+            const mount = probe.runtime.mobById(probe.entity.id);
+            if (mount !== undefined) probe.runtime.mount(mob.body, mount);
+            if (probe.runtime.vehicleOf(mob.body)?.id !== probe.entity.id)
+                return `a ${rider} cannot ride it to be tested`;
+        }
+        probe.tick(5);
+        const player = probe.player(1, 0, 0);
+        return probe.runtime.attachLead(player, probe.entity.id);
+    });
+
+/**
+ * A zombie horse's lead against Java's `ZombieHorse.canBeLeashed`: a tamed one always takes a
+ * lead, and a wild one only while no mob rides it (`isMobControlled`).
+ */
+const compareZombieHorseLead = (subject: EntitySubject): string | undefined => {
+    const className = javaEntityClassName(subject.javaId);
+    const canBeLeashed = javaMethodOf(className, 'canBeLeashed');
+    const controlled = javaMethodOf(className, 'isMobControlled');
+    if (
+        canBeLeashed?.owner !== 'ZombieHorse' ||
+        !canBeLeashed.method.calls.some((call) => call.endsWith('.isTamed')) ||
+        !canBeLeashed.method.calls.some((call) => call.endsWith('.isMobControlled')) ||
+        !controlled?.method.instructions.some((instruction) => instruction.type === 'net/minecraft/world/entity/Mob')
+    )
+        return "Java's zombie horse no longer takes a lead by its tameness and its mob rider";
+    const differences: string[] = [];
+    for (const [tamed, ridden] of [
+        [false, false],
+        [false, true],
+        [true, true]
+    ] as const) {
+        const java = tamed || !ridden;
+        const server = mountTakesLead(
+            subject.bedrock,
+            tamed ? ['minecraft:horse_tamed'] : [],
+            ridden ? 'minecraft:zombie' : undefined
+        );
+        if (typeof server === 'string') return server;
+        if (server !== java)
+            differences.push(
+                `a ${tamed ? 'tamed' : 'wild'} one ${ridden ? 'a zombie rides' : 'with no rider'} ${server ? 'takes' : 'refuses'} a lead, where Java's ${java ? 'takes' : 'refuses'} one`
+            );
+    }
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
+/**
+ * A camel husk's lead against Java's `CamelHusk.canBeLeashed`: it takes a lead only while no mob
+ * rides it (`isMobControlled`), whichever way the rider got on.
+ */
+const compareCamelHuskLead = (subject: EntitySubject): string | undefined => {
+    const className = javaEntityClassName(subject.javaId);
+    const canBeLeashed = javaMethodOf(className, 'canBeLeashed');
+    const controlled = javaMethodOf(className, 'isMobControlled');
+    if (
+        canBeLeashed?.owner !== 'CamelHusk' ||
+        !canBeLeashed.method.calls.some((call) => call.endsWith('.isMobControlled')) ||
+        !controlled?.method.instructions.some((instruction) => instruction.type === 'net/minecraft/world/entity/Mob')
+    )
+        return "Java's camel husk no longer takes a lead by its mob rider";
+    const differences: string[] = [];
+    for (const rider of [undefined, 'minecraft:husk'] as const) {
+        const java = rider === undefined;
+        const server = mountTakesLead(subject.bedrock, [], rider);
+        if (typeof server === 'string') return server;
+        if (server !== java)
+            differences.push(
+                `one ${rider === undefined ? 'with no rider' : 'a husk climbed onto'} ${server ? 'takes' : 'refuses'} a lead, where Java's ${java ? 'takes' : 'refuses'} one`
+            );
+    }
+    return differences.length === 0 ? undefined : differences.join('; ');
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -400,5 +543,56 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         aspects: () => ['minecraft:boss'],
         run: (subject) =>
             subject.javaId === 'minecraft:ender_dragon' ? compareDragonBar(subject) : compareWitherBar(subject)
+    },
+    {
+        name: 'riding-enderman-stays',
+        java: "An enderman riding something never teleports, since Java's Enderman.teleport(x, y, z) refuses a passenger; the pack's riding sensor takes its teleport away for the ride.",
+        reference: 'Java Enderman.teleport(DDD) (isPassenger) and repeatedlyTryToTeleport, read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter(
+                (subject) => subject.javaId === 'minecraft:enderman'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareEndermanRiding
+    },
+    {
+        name: 'freed-trader-llama-stays-wild',
+        java: "A trader llama off its trader's lead stays wild for a player to tame, since Java's TraderLlama never tames itself.",
+        reference:
+            'Java TraderLlama (maybeDespawn, canDespawn, doPlayerRide) and WanderingTraderSpawner.tryToSpawnLlamaFor (setLeashedTo), which never call setTamed, read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter(
+                (subject) => subject.javaId === 'minecraft:trader_llama'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareFreedTraderLlama
+    },
+    {
+        name: 'zombie-horse-lead',
+        java: "A zombie horse takes a lead when it is tamed or when no mob rides it, as Java's ZombieHorse.canBeLeashed decides.",
+        reference:
+            'Java ZombieHorse.canBeLeashed (isTamed, isMobControlled: getFirstPassenger instanceof Mob), read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter(
+                (subject) => subject.javaId === 'minecraft:zombie_horse'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareZombieHorseLead
+    },
+    {
+        name: 'camel-husk-lead',
+        java: "A camel husk takes a lead only while no mob rides it, as Java's CamelHusk.canBeLeashed decides.",
+        reference:
+            'Java CamelHusk.canBeLeashed and isMobControlled (getFirstPassenger instanceof Mob), read from the pinned jar',
+        subjects: () =>
+            entitiesDeclaring('minecraft:environment_sensor').filter(
+                (subject) => subject.javaId === 'minecraft:camel_husk'
+            ),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:environment_sensor'],
+        run: compareCamelHuskLead
     }
 ];
