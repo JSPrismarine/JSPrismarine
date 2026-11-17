@@ -116,12 +116,54 @@ const PLANT_SUPPORT_TAGS: Readonly<Record<string, string>> = {
     wither_rose: 'minecraft:supports_wither_rose'
 };
 
+/** The two small mushrooms, which Java's `MushroomBlock` holds up by light rather than by soil. */
+const MUSHROOM_NAMES: ReadonlySet<string> = new Set(['brown_mushroom', 'red_mushroom']);
+
+/** The ground that holds a mushroom up in any light. */
+const MUSHROOM_LIGHT_OVERRIDE_TAG = 'minecraft:overrides_mushroom_light_requirement';
+
+/** The tag's four members, for a host that answers no tags. */
+const MUSHROOM_LIGHT_OVERRIDE_FALLBACK_NAMES: ReadonlySet<string> = new Set([
+    'mycelium',
+    'podzol',
+    'crimson_nylium',
+    'warped_nylium'
+]);
+
+/**
+ * The light a mushroom stands in from which only {@link MUSHROOM_LIGHT_OVERRIDE_TAG} ground holds
+ * it up. Java's `MushroomBlock.canSurvive` compares `getRawBrightness` against 13.
+ */
+const MUSHROOM_MAX_LIGHT = 12;
+
+/** The top of `minecraft:light_dampening`'s range: a block that lets no light through. */
+const OPAQUE_LIGHT_DAMPENING = 15;
+
+/**
+ * Java's `MushroomBlock.canSurvive`: mycelium, podzol and nylium hold a mushroom up in any light,
+ * and any other block whose faces render solid holds one up in the dark.
+ *
+ * Solid render reads as a full cube that lets no light through, since this world reports
+ * collision shapes and light dampening but not occlusion shapes.
+ */
+const mushroomHasSupport = (world: WorldActions, block: HookBlock, below: HookBlock): boolean => {
+    const overrides =
+        world.hasBlockTag?.(below, MUSHROOM_LIGHT_OVERRIDE_TAG) ??
+        MUSHROOM_LIGHT_OVERRIDE_FALLBACK_NAMES.has(bareName(below.identifier));
+    if (overrides) return true;
+    if (world.lightLevel(block.position) > MUSHROOM_MAX_LIGHT) return false;
+
+    const fullCube = world.isFullCube?.(below) ?? isSolidSupport(world, below.position);
+    return fullCube && (world.lightDampeningOf?.(below) ?? OPAQUE_LIGHT_DAMPENING) >= OPAQUE_LIGHT_DAMPENING;
+};
+
 /** Whether a block is a valid substrate for the plant at `block`. */
 const hasPlantSupport = (world: WorldActions, block: HookBlock): boolean => {
     const below = world.getBlock(offset(block.position, 'down'));
     if (below === undefined) return false;
 
     const name = bareName(block.identifier);
+    if (MUSHROOM_NAMES.has(name)) return mushroomHasSupport(world, block, below);
     const tag = PLANT_SUPPORT_TAGS[name] ?? 'minecraft:supports_vegetation';
     const tagged = world.hasBlockTag?.(below, tag);
     if (tagged !== undefined) return tagged;

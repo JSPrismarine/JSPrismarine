@@ -407,6 +407,44 @@ describe('floraFamily', () => {
         expect(harness.dimension.identifierAt(plant)).toBe(AIR);
     });
 
+    it('keeps a mushroom on stone in the dark and pops it in daylight', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:brown_mushroom');
+        harness.dimension.set(ground, 'minecraft:stone');
+        harness.dimension.set(plant, 'minecraft:brown_mushroom');
+        harness.dimension.setLight(plant, 12);
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:brown_mushroom');
+
+        harness.dimension.setLight(plant, 13);
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
+    it('keeps a mushroom on mycelium in daylight', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:red_mushroom');
+        harness.dimension.set(ground, 'minecraft:mycelium');
+        harness.dimension.set(plant, 'minecraft:red_mushroom');
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:red_mushroom');
+    });
+
+    it('pops a mushroom in the dark from a block light passes through', () => {
+        const harness = bindFamily(floraFamily, 'minecraft:brown_mushroom');
+        harness.dimension.defineLightDampening('minecraft:glass', 0);
+        harness.dimension.set(ground, 'minecraft:glass');
+        harness.dimension.set(plant, 'minecraft:brown_mushroom');
+        harness.dimension.setLight(plant, 0);
+
+        harness.neighborChanged(plant, 'down');
+
+        expect(harness.dimension.identifierAt(plant)).toBe(AIR);
+    });
+
     it('keeps a dead bush on sand when a nearby block changes', () => {
         const harness = bindFamily(floraFamily, 'minecraft:deadbush');
         harness.dimension.set(ground, 'minecraft:sand');
