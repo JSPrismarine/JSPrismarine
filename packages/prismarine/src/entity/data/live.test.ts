@@ -3286,6 +3286,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 { timeout: 180_000 },
                 async () => {
                     useVanillaContent();
+                    // A zombie in daylight burns, and a burnt one leaves the crowd it is measured in.
+                    startAtNight();
                     const player = addPlayer(14, 1);
                     player.getPlayer().gamemode = Gametype.SURVIVAL;
                     const positions = [0.5, 5.5].flatMap((originX) =>
@@ -3331,10 +3333,12 @@ describe('the data-driven entity runtime over a live world', () => {
                         throw new Error('no crowd samples were taken');
 
                     expect(
-                        samples.every(
-                            ({ targets, jumping, airborne, stuck }) =>
-                                targets === zombies.length && jumping === 0 && airborne === 0 && stuck === 0
-                        )
+                        samples.every(({ jumping, airborne, stuck }) => jumping === 0 && airborne === 0 && stuck === 0)
+                    ).toBe(true);
+                    // Java's target goal scans on one selector tick in five, so a crowd of 30 can
+                    // still hold a zombie that has not looked by tick 20. By tick 40 every one has.
+                    expect(
+                        samples.filter(({ tick }) => tick >= 40).every(({ targets }) => targets === zombies.length)
                     ).toBe(true);
                     expect(firstSample.moved).toBeGreaterThanOrEqual(24);
                     expect(lastSample.moved).toBe(zombies.length);
