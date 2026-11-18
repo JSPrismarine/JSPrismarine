@@ -15,9 +15,15 @@ import { configFilePath } from '../config/Config';
 import { ConfigBuilder } from '../config/ConfigBuilder';
 import { CONFIG_KEY_ORDER } from '../config/JsonConfigTypes';
 import type { ContentConfigKey } from '../config/JsonConfigTypes';
+import { DEFAULT_PROTOCOL_SETTINGS } from '../network/codec/ProtocolPolicy';
+import type { ProtocolSettings } from '../network/codec/ProtocolPolicy';
 
 /** What each key means, written above it the first time the server adds it to the file. */
 const COMMENTS = {
+    'protocol-window':
+        'How many Bedrock releases to accept, counted back from the newest this server supports. 1 accepts the newest only. Upgrading the server moves the window with it.',
+    'protocol-content':
+        "Which release in protocol-window the world's blocks, items and mobs come from: newest, or oldest so every accepted client has all of them. With newest and a wider window, older clients see a placeholder for what their release lacks.",
     'content-strict': 'Whether a pack that reports an error stops the server instead of loading short.',
     'content-world-packs': 'Extra behavior pack directories this world loads, after the vanilla ones.',
     'content-datapacks': 'Java datapack directories this world loads, after the vanilla one.'
@@ -31,6 +37,8 @@ export interface ContentSettings {
     readonly worldPacks: readonly string[];
     /** Java datapack directories the world adds to the stack. */
     readonly datapacks: readonly string[];
+    /** Which protocols to accept and which release's content the world holds. */
+    readonly protocols: ProtocolSettings;
 }
 
 /** Reads the content settings, writing any key the file lacks. */
@@ -41,6 +49,12 @@ export const readContentSettings = (): ContentSettings => {
     return {
         strict: read('content-strict', false),
         worldPacks: read<string[]>('content-world-packs', []),
-        datapacks: read<string[]>('content-datapacks', [])
+        datapacks: read<string[]>('content-datapacks', []),
+        protocols: {
+            window: read('protocol-window', DEFAULT_PROTOCOL_SETTINGS.window),
+            // Anything but `oldest` is the default, so a misspelling never hides content.
+            content:
+                read<string>('protocol-content', DEFAULT_PROTOCOL_SETTINGS.content) === 'oldest' ? 'oldest' : 'newest'
+        }
     };
 };

@@ -7,7 +7,7 @@ import {
     SctpRecoveryProfile
 } from '@jsprismarine/protocol';
 import type { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
-import { advertisedCodec, codecForProtocol, latestCodec, registeredCodecs } from '../codec/CodecRegistry';
+import { advertisedCodec } from '../codec/CodecRegistry';
 import type ClientConnection from '../ClientConnection';
 import type { ConnectionContext, ConnectionHandler } from './ConnectionContext';
 import type { HandlerLog } from './HandlerContext';
@@ -20,16 +20,16 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
 
     public async handle(
         packet: RequestNetworkSettingsPacket,
-        { connection, log, config }: ConnectionContext
+        { connection, log, config, protocols }: ConnectionContext
     ): Promise<void> {
         const request = packet.getPacketData();
         if (request === null) throw new PrismarineNetworkErrors.NetworkSettingsRequestNotDecoded();
 
         // The one negotiation point: the client's first packet names its protocol version,
-        // and either the registry has a codec for it or the connection ends here.
-        const codec = codecForProtocol(request.protocolVersion);
+        // and either the protocol window accepts it or the connection ends here.
+        const codec = protocols.codecFor(request.protocolVersion);
         if (codec === undefined) {
-            await RequestNetworkSettingsHandler.refuseProtocol(request.protocolVersion, log, connection);
+            await RequestNetworkSettingsHandler.refuseProtocol(request.protocolVersion, protocols, log, connection);
             return;
         }
 
@@ -61,7 +61,8 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
      * Tells a client on the wrong protocol which side is behind, then hangs up.
      *
      * This is the first packet a client sends, so a mismatch is caught here and never reaches
-     * `LoginHandler`. A bare disconnect at this point shows "Disconnected from Server" and
+     * `LoginHandler`. A client older than the newest accepted release is outdated, including one
+     * this build has a codec for that the protocol window leaves out. A bare disconnect at this point shows "Disconnected from Server" and
      * nothing else (#1586). The client renders a failed `PlayStatus` as "Outdated client" or
      * "Outdated server", so it goes first, and the disconnect that follows carries the message
      * and the matching `OutdatedClient` or `OutdatedServer` code.
@@ -71,13 +72,14 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
      */
     private static async refuseProtocol(
         protocol: number,
+        protocols: ConnectionContext['protocols'],
         log: HandlerLog,
         connection: ClientConnection
     ): Promise<void> {
-        const outdatedClient = protocol < latestCodec.protocolVersion;
+        const outdatedClient = protocol < protocols.accepted[0]!.protocolVersion;
 
         log.info(
-            `Refused a client on protocol ${protocol}: this server speaks ${registeredCodecs.map((codec) => codec.protocolVersion).join(', ')}`,
+            `Refused a client on protocol ${protocol}: this server accepts ${protocols.accepted.map((codec) => codec.protocolVersion).join(', ')}`,
             'RequestNetworkSettingsHandler/handle'
         );
 

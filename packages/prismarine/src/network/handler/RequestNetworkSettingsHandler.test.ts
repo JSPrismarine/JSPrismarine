@@ -17,6 +17,7 @@ import { ConnectionContexts } from '../connectionContexts';
 import Codec2193 from '../codec/Codec2193';
 import Codec2225 from '../codec/Codec2225';
 import { advertisedCodec, latestCodec } from '../codec/CodecRegistry';
+import { resolveProtocolPolicy } from '../codec/ProtocolPolicy';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
@@ -55,9 +56,15 @@ const request = (protocolVersion: number): RequestNetworkSettingsPacket =>
 const contextOf = (server: Server, connection: ClientConnection) => ConnectionContexts.of(server).contextOf(connection);
 describe('RequestNetworkSettingsHandler', () => {
     const info = vi.fn();
-    const serverFor = (algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB, threshold = 256) =>
+    // A window of two, so both releases this build has are accepted.
+    const serverFor = (
+        algorithm: PacketCompressionAlgorithm = PacketCompressionAlgorithm.ZLIB,
+        threshold = 256,
+        policy = resolveProtocolPolicy({ window: 2, content: 'newest' })
+    ) =>
         stub<Server>({
             getLogger: () => stub<Logger>({ info }),
+            getProtocolPolicy: () => policy,
             getConfig: () =>
                 stub<Config>({
                     getPacketCompressionAlgorithm: () => algorithm,
@@ -165,6 +172,38 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
+    });
+
+    it('refuses a release this build speaks when the protocol window leaves it out', async () => {
+        // The default window accepts the newest release only, as a Bedrock Dedicated Server does.
+        const { sent, disconnect, connection } = fakeConnection();
+
+        await new RequestNetworkSettingsHandler().handle(
+            request(Codec2193.protocolVersion),
+            contextOf(serverFor(undefined, undefined, resolveProtocolPolicy()), connection)
+        );
+
+        expect(sent[0]!.packet.getPacketData()).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
+        expect(disconnect).toHaveBeenCalledWith(
+            `Outdated client! Please use ${advertisedCodec.minecraftVersions.at(-1)}`,
+            false,
+            DisconnectReason.OUTDATED_CLIENT
+        );
+        expect(connection.codec).toBeUndefined();
+    });
+
+    it('negotiates a preview outside the window', async () => {
+        const preview = latestCodec;
+        expect(preview.preview).toBe(true);
+        const { connection, disconnect } = fakeConnection();
+
+        await new RequestNetworkSettingsHandler().handle(
+            request(preview.protocolVersion),
+            contextOf(serverFor(undefined, undefined, resolveProtocolPolicy()), connection)
+        );
+
+        expect(connection.codec).toBe(preview);
+        expect(disconnect).not.toHaveBeenCalled();
     });
 
     it('logs both protocol numbers when it refuses one', async () => {

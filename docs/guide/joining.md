@@ -32,10 +32,15 @@ your own at <!-- fact:demo.sponsorLink -->[rspwn.click/jsprismarine](https://rsp
 
 ## Which versions connect
 
-The server speaks Bedrock protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->, so
-Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> through
-<!-- fact:minecraft.newest -->1.26.62<!-- /fact --> can join. The server list shows the newest of
-these. <!-- fact:minecraft.previewNote -->It also accepts Minecraft Preview 1.26.70.24 on protocol 2259, which the server list does not show.<!-- /fact --> A client outside that range sees Minecraft's **Outdated client** or **Outdated server**
+The server speaks Bedrock protocols <!-- fact:protocol.list -->2225 and 2193<!-- /fact -->, which
+cover Minecraft <!-- fact:minecraft.oldest -->1.26.50<!-- /fact --> through
+<!-- fact:minecraft.newest -->1.26.62<!-- /fact -->. By default it accepts only the newest release,
+Minecraft <!-- fact:minecraft.newestRelease -->1.26.60 through 1.26.62<!-- /fact -->, as a Bedrock Dedicated Server
+does. To let older clients join, the host raises `protocol-window` in `config.json`, which counts
+releases back from the newest, so a server upgrade needs no change to it. `protocol-content` then
+decides whether the world holds the newest release's blocks, items and mobs, which older clients
+see as a placeholder block, or only what the oldest accepted release has.
+[Running a server](running.md) lists both settings. The server list shows the newest release. <!-- fact:minecraft.previewNote -->It also accepts Minecraft Preview 1.26.70.24 on protocol 2259, which the server list does not show.<!-- /fact --> A client outside that range sees Minecraft's **Outdated client** or **Outdated server**
 screen: update the game, or ask the host to update the server.
 
 ## Signing in
