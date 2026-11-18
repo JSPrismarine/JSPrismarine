@@ -20,6 +20,8 @@ const write = process.argv.includes('--write');
 
 /** Package pages outside the docs tree that quote values the code owns. */
 const packagePages = [
+    'packages/bedrock-data/README.md',
+    'packages/commands/README.md',
     'packages/leveldb/README.md',
     'packages/parity/README.md',
     'packages/prismarine/src/content/README.md',

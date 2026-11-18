@@ -53,7 +53,7 @@ gated on `format_version`, and using one below its version loads anyway with a r
 event `filters` need 1.19.20, `queue_command` needs 1.20.60, `emit_particle` and `play_sound` need
 1.21.50, and `entity_version` with `upgrades` needs 1.26.20.
 
-The composed vanilla behavior pack of Bedrock Dedicated Server <!-- fact:bds.version -->1.26.51.1<!-- /fact --> holds <!-- fact:bedrock.entities -->129<!-- /fact --> entity
+The composed vanilla behavior pack of Bedrock Dedicated Server <!-- fact:bds.version -->1.26.60.6<!-- /fact --> holds <!-- fact:bedrock.entities -->129<!-- /fact --> entity
 definitions, and all <!-- fact:bedrock.entities -->129<!-- /fact --> parse without an error.
 
 ## A chicken, traced

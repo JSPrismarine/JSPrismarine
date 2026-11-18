@@ -60,7 +60,7 @@ about an unrecognized app; choose **More info**, then **Run anyway**.
 The first start needs a network connection and takes a minute. The server unpacks the data it
 carries (Mojang's Java Edition world generation data and this project's packs) into
 `node_modules/.cache/jsprismarine/` in the folder it starts in. It then downloads the vanilla
-behavior pack from Mojang's Bedrock Dedicated Server (about <!-- fact:bds.size -->95 MB<!-- /fact -->), checking its digest, because
+behavior pack from Mojang's Bedrock Dedicated Server (about <!-- fact:bds.size -->98 MB<!-- /fact -->), checking its digest, because
 Mojang's license does not allow shipping that pack inside the executable. The pack goes to your
 user cache directory: <!-- fact:cache.windows -->`%LOCALAPPDATA%\JSPrismarine\Cache`<!-- /fact --> on Windows,
 <!-- fact:cache.macos -->`~/Library/Caches/JSPrismarine`<!-- /fact --> on macOS and <!-- fact:cache.xdg -->`$XDG_CACHE_HOME/jsprismarine`<!-- /fact --> (or
