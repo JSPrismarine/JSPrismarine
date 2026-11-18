@@ -1,6 +1,7 @@
 import type { Module } from '@jsprismarine/kernel';
 import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/ClientboundCloseFormPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
+import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 
@@ -60,11 +61,27 @@ export const scriptsModule = (server: Server): Module => ({
                                 session.released(
                                     session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
                                 ),
-                            closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({})))
+                            closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({}))),
+                            transfer: (target) => {
+                                // A NetherNet transfer's packet is not captured yet, so only an address moves the player.
+                                if (!('hostname' in target)) return;
+                                session.released(
+                                    session.send(
+                                        new TransferPacket({
+                                            address: target.hostname,
+                                            port: target.port,
+                                            reloadWorld: false,
+                                            gatheringsConfig: null,
+                                            transferSettings: null
+                                        })
+                                    )
+                                );
+                            }
                         })),
                 weather: level.getWeather(),
                 chat: server.getChatManager(),
                 clock: () => server.getAdmittedClock(),
+                http: server.getScriptHttp(),
                 access: { ...levelScriptAccess(server, level), simulatedPlayers: levelSimulatedPlayers(server, level) },
                 onPlayerLeaving: (listener) =>
                     server

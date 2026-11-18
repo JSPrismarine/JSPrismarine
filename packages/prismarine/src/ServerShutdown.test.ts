@@ -8,6 +8,7 @@ import type { Networking } from './modules/network';
 import type { ServerTicker } from './modules/ticker';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
 import type PlayerSession from './network/PlayerSession';
+import type { ScriptHttpInputs } from './scripting/ScriptHttpInputs';
 import type { World } from './world/World';
 import { WorldMessages } from './world/WorldMessages';
 import { stub } from './testing/stub.test.helper';
@@ -44,6 +45,7 @@ const shutdownServer = (fields: Record<string, unknown> = {}): Server =>
         console: undefined,
         networking: stub<Networking>({ admitInputs: () => 0, kill: () => {} }),
         worldMessages: new WorldMessages(() => {}),
+        scriptHttp: stub<ScriptHttpInputs>({ close: () => {} }),
         sessionManager: stub<SessionManager>({ getSessions: () => [] }),
         ticker: stub<ServerTicker>({ stop: () => {} }),
         disable: async () => {},
