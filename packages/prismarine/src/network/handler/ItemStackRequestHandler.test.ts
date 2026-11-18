@@ -32,7 +32,7 @@ import ItemStackResponsePacket, {
     ItemStackResponseResult
 } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
-import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
+import { ContainerUiId, ItemStackRequestActionType, newestRelease } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testContent } from '../../testing/entityServer';
 
@@ -147,7 +147,13 @@ const run = async (
     });
 
     const { context, settled } = serverInputContext(server, session);
-    new ItemStackRequestHandler().handle(Object.assign(new ItemStackRequestPacket(), { requests }), context);
+    // Stamped the way a session's codec stamps it: the client speaks the release the server
+    // targets, whose numbering the content build below defaults to.
+    const packet = Object.assign(new ItemStackRequestPacket(), {
+        requests,
+        codecProtocol: newestRelease.protocolVersion
+    });
+    new ItemStackRequestHandler().handle(packet, context);
     await settled();
 
     const response = sent.find((pk): pk is ItemStackResponsePacket => pk instanceof ItemStackResponsePacket);

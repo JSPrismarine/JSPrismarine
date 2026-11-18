@@ -21,7 +21,7 @@ import {
 } from './contentPayloads';
 import { itemAsStack } from './payloadAdapters';
 
-import { itemData2193, itemData2225 } from './codec/itemData';
+import { canonicalItemData, itemData2193 } from './codec/itemData';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ContentPayloadOptions, ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
@@ -229,13 +229,13 @@ describe('network', () => {
 
         it('builds again for another protocol version, since the numbering is version-specific', () => {
             const content = contentWith();
-            const at2193 = networkContentPayloads(content, { clientPalette: client() });
-            const at2225 = networkContentPayloads(content, { clientPalette: client(), itemData: itemData2225 });
+            const at2225 = networkContentPayloads(content, { clientPalette: client() });
+            const at2193 = networkContentPayloads(content, { clientPalette: client(), itemData: itemData2193 });
 
-            expect(at2225).not.toBe(at2193);
+            expect(at2193).not.toBe(at2225);
             // And each is still built once.
-            expect(networkContentPayloads(content, { itemData: itemData2225 })).toBe(at2225);
-            expect(networkContentPayloads(content)).toBe(at2193);
+            expect(networkContentPayloads(content, { itemData: itemData2193 })).toBe(at2193);
+            expect(networkContentPayloads(content)).toBe(at2225);
         });
     });
 
@@ -247,15 +247,15 @@ describe('network', () => {
      * build reading the wrong one cannot pass.
      */
     describe('the item numbering a build uses', () => {
-        /** 2193's table with `minecraft:stone` moved somewhere nothing else sits. */
+        /** The canonical table with `minecraft:stone` moved somewhere nothing else sits. */
         const renumbered: ProtocolItemData = {
             protocolVersion: 9999,
             table: {
-                ...itemData2193.table,
+                ...canonicalItemData.table,
                 'minecraft:stone': { runtime_id: 31337, component_based: false, version: 2 }
             },
-            components: itemData2193.components,
-            nameOf: (runtimeId) => (runtimeId === 31337 ? 'minecraft:stone' : itemData2193.nameOf(runtimeId))
+            components: canonicalItemData.components,
+            nameOf: (runtimeId) => (runtimeId === 31337 ? 'minecraft:stone' : canonicalItemData.nameOf(runtimeId))
         };
 
         const idsOf = (options: ContentPayloadOptions) =>
@@ -266,7 +266,7 @@ describe('network', () => {
             );
 
         it('numbers the item registry out of the table it was given', () => {
-            expect(idsOf({}).get('minecraft:stone')).toBe(itemData2193.table['minecraft:stone']!.runtime_id);
+            expect(idsOf({}).get('minecraft:stone')).toBe(canonicalItemData.table['minecraft:stone']!.runtime_id);
             expect(idsOf({ itemData: renumbered }).get('minecraft:stone')).toBe(31337);
         });
 

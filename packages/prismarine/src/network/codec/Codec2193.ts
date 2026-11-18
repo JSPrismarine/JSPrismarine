@@ -3,7 +3,7 @@ import {
     block_definitions,
     entity_identifiers,
     jigsaw_structure_data
-} from '@jsprismarine/bedrock-data';
+} from '@jsprismarine/bedrock-data/v2193';
 import { createProtocolCodec, ProtocolVersions } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
+import { bedrockSamplesCacheFolder, defaultBdsCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 import { reportProgress } from '../../../../.test/reportProgress';
@@ -73,6 +74,40 @@ describe('resolvePackStack', () => {
         const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
 
         expect(stack).toEqual([{ kind: 'directory', path: overlayPackPath() }]);
+    });
+
+    it('reads the pinned versions out of a cache that holds older ones too', () => {
+        // A cache keeps every version it fetched, so a moved pin leaves the old server and
+        // samples beside the new ones, and which folder a directory listing names first is up
+        // to the file system.
+        const project = mkdtempSync(join(tmpdir(), 'jsp-pack-cache-'));
+        temporaryDirs.push(project);
+        const cache = join(project, 'node_modules', '.cache', 'jsprismarine');
+        const behaviorPacks = (version: string) => join(cache, 'bds', version, 'unpacked', 'behavior_packs');
+        const samplesPack = (version: string) =>
+            join(cache, 'bedrock-samples', version, 'unpacked', 'checkout', 'behavior_pack');
+        for (const version of ['v1', defaultBdsCacheFolder, 'v99999'])
+            mkdirSync(behaviorPacks(version), { recursive: true });
+        for (const version of ['v0.0.0', bedrockSamplesCacheFolder, 'v99.0.0'])
+            mkdirSync(join(samplesPack(version), 'entities'), { recursive: true });
+        vi.spyOn(process, 'cwd').mockReturnValue(project);
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '');
+        vi.stubEnv(PACK_STACK_ENV.bedrockSamples, '');
+
+        try {
+            const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+
+            expect(stack).toEqual([
+                { kind: 'directory', path: samplesPack(bedrockSamplesCacheFolder) },
+                {
+                    kind: 'brarchiveLayers',
+                    path: behaviorPacks(defaultBdsCacheFolder),
+                    uuids: [VANILLA_BEHAVIOR_PACK_UUID]
+                }
+            ]);
+        } finally {
+            vi.mocked(process.cwd).mockRestore();
+        }
     });
 
     describe('over a folder of BDS layers', () => {
