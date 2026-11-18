@@ -55,7 +55,7 @@ export default class ClientPacketRegistry {
      * Creates a registry that decodes version-gated packets for one negotiated protocol.
      * @param protocolVersion - The protocol version used by the connection.
      */
-    public constructor(private readonly protocolVersion: number = v2193.protocolVersion) {}
+    public constructor(public readonly protocolVersion: number = v2193.protocolVersion) {}
 
     /**
      * Registers a packet class under its default network id.

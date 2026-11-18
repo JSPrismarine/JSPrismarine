@@ -151,8 +151,10 @@ export default class ClientSession extends EventEmitter {
     public async send(packet: NetworkPacket<any>, priority: SendPriority = SendPriority.NORMAL): Promise<void> {
         // A field packet keeps its body in fields rather than a typed payload, so it writes
         // itself through `encodeTransient`. The bytes are a view over the packet's own buffer,
-        // which the codec copies into the batch before this call yields.
-        const encoded = packet.encodeTransient();
+        // which the codec copies into the batch before this call yields. The context stamps the
+        // negotiated version on the packet: one left at its default writes 2193's layout, and
+        // a 2225 server reading 2193's `AnimatePacket`, which lacks the hand, drops the swing.
+        const encoded = packet.encodeTransient({ protocolVersion: this.registry.protocolVersion });
 
         const sending = this.codec.encodeAsync([encoded]).then((batch) => {
             this.transport.send(this.encryption?.encrypt(batch) ?? batch, priority);

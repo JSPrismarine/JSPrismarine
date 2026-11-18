@@ -11,6 +11,7 @@ import {
     TextPacketType
 } from '@jsprismarine/protocol';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
+import { AnimateHand } from '@jsprismarine/protocol/wire/definitions/animate';
 import { describe, expect, it, vi } from 'vitest';
 import { ShowCreditsPacket } from '../Credits';
 import { FakeTransport } from '../testing/fakeTransport.test.helper';
@@ -129,6 +130,25 @@ describe('ClientSession sending', () => {
         read.decode();
         expect(read.action).toBe(AnimateAction.Swing);
         expect(read.runtimeEntityId).toBe(7n);
+    });
+
+    it('writes a packet in the layout of the protocol the session speaks', async () => {
+        // 2225 added a trailing hand byte to Animate. Written at the default 2193 layout, the
+        // swing reached a 2225 server one byte short and was dropped.
+        const transport = new FakeTransport();
+        const session = new ClientSession(transport, new ClientPacketRegistry(2225), logger);
+        const swing = new AnimatePacket();
+        swing.action = AnimateAction.Swing;
+        swing.runtimeEntityId = 7n;
+        swing.hand = AnimateHand.Offhand;
+
+        await session.send(swing);
+
+        const [sent] = BatchCodec.uncompressed().decode(transport.sent[0]!);
+        const read = new AnimatePacket(sent);
+        read.decode({ protocolVersion: 2225 });
+        expect(read.hand).toBe(AnimateHand.Offhand);
+        expect(read.feof()).toBe(true);
     });
 });
 
