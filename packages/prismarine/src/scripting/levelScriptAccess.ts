@@ -20,6 +20,7 @@ import type {
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
 import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
+import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import type { ContentItemDrop } from '../content/world/adapter';
@@ -42,19 +43,24 @@ import {
     dynamicPropertiesToNbt,
     withPropertyWrites
 } from '../world/dynamicProperties';
+import { blockContainerAt } from '../command/host/containers';
+import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
 import { scriptScoreboard } from './scriptScoreboard';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
-const scriptItemOf = (item: Item | null): ScriptItem | null => {
+export const scriptItemOf = (item: Item | null): ScriptItem | null => {
     if (item === null || item.getName() === 'minecraft:air' || item.getAmount() <= 0) return null;
     const nameTag = item.getCustomName();
     const lore = item.getLore();
+    const most = item.getMaxDurability();
+    const damage = most > 0 ? Math.max(0, most - item.getDurability()) : 0;
     return {
         typeId: item.getName(),
         amount: item.getAmount(),
         ...(nameTag === undefined ? {} : { nameTag }),
-        ...(lore.length === 0 ? {} : { lore })
+        ...(lore.length === 0 ? {} : { lore }),
+        ...(damage > 0 ? { damage } : {})
     };
 };
 
@@ -65,7 +71,8 @@ const scriptItemOfDrop = (drop: ContentItemDrop | undefined): ScriptItem | null 
         typeId: drop.identifier,
         amount: drop.count,
         ...(drop.customName === undefined ? {} : { nameTag: drop.customName }),
-        ...(drop.lore === undefined || drop.lore.length === 0 ? {} : { lore: drop.lore })
+        ...(drop.lore === undefined || drop.lore.length === 0 ? {} : { lore: drop.lore }),
+        ...(drop.damage === undefined || drop.damage <= 0 ? {} : { damage: drop.damage })
     };
 };
 
@@ -75,13 +82,19 @@ const scriptItemOfDrop = (drop: ContentItemDrop | undefined): ScriptItem | null 
  * name changed.
  */
 const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): ContentItemDrop => {
-    const { customName: _name, lore: _lore, ...kept } = held?.identifier === item.typeId ? held : { identifier: '' };
+    const {
+        customName: _name,
+        lore: _lore,
+        damage: _damage,
+        ...kept
+    } = held?.identifier === item.typeId ? held : { identifier: '' };
     return {
         ...kept,
         identifier: item.typeId,
         count: item.amount,
         ...(item.nameTag === undefined ? {} : { customName: item.nameTag }),
-        ...(item.lore === undefined || item.lore.length === 0 ? {} : { lore: item.lore })
+        ...(item.lore === undefined || item.lore.length === 0 ? {} : { lore: item.lore }),
+        ...(item.damage === undefined || item.damage <= 0 ? {} : { damage: item.damage })
     };
 };
 
@@ -247,7 +260,9 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             else {
                 const stack = itemFromContent(item.typeId, server.getContent());
                 if (stack === null) return;
-                const written = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
+                const shown = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
+                const most = shown.getMaxDurability();
+                const written = most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
                 inventory.setItem(slot, new ContainerEntry({ item: written, count: item.amount }));
             }
             session.released(session.sendInventory());
@@ -278,10 +293,73 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             );
         },
         resolveBlock: (typeId, states) => resolveBlock(server, typeId, states),
-        itemType: (typeId) =>
-            server.getContent().items.types.has(typeId)
-                ? { typeId, maxStackSize: maxStackSizeOf(typeId, server.getContent()) }
-                : undefined,
+        itemType: (typeId) => {
+            const content = server.getContent();
+            if (!content.items.types.has(typeId)) return undefined;
+            const maxDurability = itemFromContent(typeId, content)?.getMaxDurability() ?? 0;
+            return {
+                typeId,
+                maxStackSize: maxStackSizeOf(typeId, content),
+                ...(maxDurability > 0 ? { maxDurability } : {})
+            };
+        },
+        setSneaking: (id, sneaking) => {
+            const session = sessionOf(id);
+            if (session === undefined) return;
+            session.inputs().setPlayerSneaking(session.getPlayer(), sneaking);
+        },
+        showTitle: (id, title) => {
+            const actor = actorOf(id);
+            if (actor !== undefined) host().server.sendTitle([refOf(actor)], title);
+        },
+        playSound: ({ sound, dimension, location, volume, pitch, player }) => {
+            const listener = player === undefined ? undefined : actorOf(player);
+            const listeners =
+                player === undefined
+                    ? (worldOf(dimension)?.getActors() ?? []).filter((actor) => actor.getType() === 'minecraft:player')
+                    : listener === undefined
+                      ? []
+                      : [listener];
+            host().world.playSound(sound, listeners.map(refOf), location, volume, pitch);
+        },
+        spawnParticle: (dimension, effect, location, molangVariables) => {
+            host().world.particle(effect, location, javaDimension(dimension), molangVariables);
+        },
+        isEffectType: (typeId) => bedrockMobEffectId(normalizeStatusEffectId(typeId)) !== undefined,
+        effects: (id) =>
+            actorOf(id)
+                ?.getStatusEffects()
+                .map(({ id: typeId, amplifier, durationTicks }) => ({ typeId, amplifier, duration: durationTicks })),
+        addEffect: (id, { typeId, amplifier, duration, showParticles }) => {
+            actorOf(id)?.addStatusEffect({
+                id: typeId,
+                amplifier,
+                durationTicks: duration,
+                showParticles,
+                showIcon: showParticles
+            });
+        },
+        removeEffect: (id, typeId) => actorOf(id)?.removeStatusEffect(typeId) ?? false,
+        blockInventory: (dimension, location) => {
+            const world = worldOf(dimension);
+            const container =
+                world === undefined
+                    ? undefined
+                    : blockContainerAt(server, world, new Vector3(location.x, location.y, location.z));
+            return container === undefined
+                ? undefined
+                : Array.from({ length: container.size }, (_, slot) => scriptItemOfDrop(container.get(slot)));
+        },
+        setBlockInventoryItem: (dimension, location, slot, item) => {
+            const world = worldOf(dimension);
+            const container =
+                world === undefined
+                    ? undefined
+                    : blockContainerAt(server, world, new Vector3(location.x, location.y, location.z));
+            if (container === undefined) return;
+            container.set(slot, item === undefined ? undefined : dropOfScriptItem(item, container.get(slot)));
+            container.commit();
+        },
         placeStructure: (dimension, location, structure) => {
             const world = worldOf(dimension);
             if (world === undefined) return;
