@@ -8,8 +8,8 @@
     "family": "scripting.entities",
     "scenario": "entity-members",
     "server": {
-        "protocolVersion": 2193,
-        "serverVersion": "1.26.51.1"
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
     },
     "observations": [
         {

@@ -8,8 +8,8 @@
     "family": "scripting.components",
     "scenario": "custom-components",
     "server": {
-        "protocolVersion": 2193,
-        "serverVersion": "1.26.51.1"
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
     },
     "observations": [
         {
@@ -160,8 +160,8 @@
                 "dimension": "minecraft:overworld",
                 "previousBlock": "minecraft:air",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -181,8 +181,8 @@
                 "dimension": "minecraft:overworld",
                 "previousBlock": "minecraft:air",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -238,8 +238,8 @@
                 "dimension": "minecraft:overworld",
                 "previousBlock": "minecraft:air",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -258,8 +258,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -278,8 +278,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -298,8 +298,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -318,8 +318,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -338,8 +338,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -358,8 +358,8 @@
                 },
                 "dimension": "minecraft:overworld",
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -422,8 +422,8 @@
                 "entitySource": null,
                 "blockDestructionSource": null,
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -445,8 +445,8 @@
                 "entitySource": null,
                 "blockDestructionSource": null,
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         },
@@ -468,8 +468,8 @@
                 "entitySource": null,
                 "blockDestructionSource": null,
                 "params": {
-                    "label": "ticker",
-                    "power": 3
+                    "power": 3,
+                    "label": "ticker"
                 }
             }
         }

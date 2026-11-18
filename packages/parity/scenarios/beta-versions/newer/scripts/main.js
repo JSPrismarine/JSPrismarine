@@ -1,5 +1,5 @@
 /**
- * The `newer` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.12.0-beta, a newer beta than the pinned server ships, as Canopy does. BDS refuses it, so it records nothing, and the content log says why.
+ * The `newer` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.13.0-beta, a newer beta than the pinned server ships, as Canopy does. BDS refuses it, so it records nothing, and the content log says why.
  *
  * `packages/parity/src/scripting/record.ts` defines the format.
  */
