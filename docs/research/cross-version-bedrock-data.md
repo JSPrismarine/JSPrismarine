@@ -29,6 +29,11 @@ move:
 Items 1 to 3 are tracked as [#3255](https://github.com/JSPrismarine/JSPrismarine/issues/3255) and
 [#3256](https://github.com/JSPrismarine/JSPrismarine/issues/3256).
 
+[ADR 0025](../adr/0025-older-protocols-are-a-window-relative-to-the-newest-release.md) later
+decided against translating every difference for every server. A server accepts a window of
+releases counted back from the newest, and the setting `protocol-content` decides whether content
+an older release lacks is left out of the world or sent to its players as a placeholder.
+
 Recommendation: keep the world on the target release and add a per-protocol downgrade, owned by
 the server's codec configuration and handed to serializers through `ProtocolContext`. Derive the
 block downgrade mechanically from the two captured palettes. Keep a short, hand-written
