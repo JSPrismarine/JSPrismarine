@@ -85,8 +85,8 @@ export class PlayerPersistence {
             this.options.logger().error(error);
         }
 
-        const file = await this.existingRecordFile(key);
-        if (file === undefined) return null;
+        const file = this.recordFile(key);
+        if (!fs.existsSync(file)) return null;
 
         // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
         const data: unknown = (await readJsonFile(file, '{}')).get([]);
@@ -180,20 +180,6 @@ export class PlayerPersistence {
 
             const file = this.recordFile(key);
             await fs.promises.mkdir(path.dirname(file), { recursive: true });
-            // Another key's record still under its old name, which is this key's name now, moves
-            // to its owner's new name first, so this save neither reads nor overwrites it.
-            const owner = await this.foreignOwnerOf(key, file);
-            if (owner !== undefined) {
-                const ownersFile = this.recordFile(owner);
-                if (fs.existsSync(ownersFile)) {
-                    throw new PrismarineWorldErrors.DuplicatePlayerRecord({ file, owner, ownersFile });
-                }
-                await fs.promises.rename(file, ownersFile);
-            }
-            // A record still under the name it had before names were escaped moves to the new
-            // one, so the save extends it rather than starting the player over.
-            const legacy = await this.legacyRecordFile(key);
-            if (legacy !== undefined && !fs.existsSync(file)) await fs.promises.rename(legacy, file);
             const document = await readJsonFile(file, '{}');
             for (const [field, value] of Object.entries(record)) document.set([field], value);
             await writeJsonFile(file, document);
@@ -216,61 +202,5 @@ export class PlayerPersistence {
         if (path.dirname(file) !== folder)
             throw new PrismarineWorldErrors.PlayerDataPathEscapes({ key: JSON.stringify(key), folder });
         return file;
-    }
-
-    /**
-     * The fallback JSON a key was stored in before {@link playerDataFileName} escaped names, when
-     * that differs from today's name, is a regular file directly in the player data folder, and
-     * holds this key's record. A name that pointed anywhere else, or at a link, is never read.
-     *
-     * The name alone does not say whose record it is: `100%25.json` is both where key `100%25`
-     * used to live and where key `100%` lives now. Only a key with a character that is now
-     * escaped can have a legacy file, and a key like that is a player name, so the record's
-     * `username` has to be the key. A key holding NUL never had a file, since no file name can.
-     */
-    private async legacyRecordFile(key: string): Promise<string | undefined> {
-        if (key.includes('\0')) return undefined;
-
-        const folder = path.resolve(this.options.folder, PLAYER_DATA_FOLDER);
-        const legacy = path.resolve(folder, `${key}.json`);
-        if (path.dirname(legacy) !== folder || legacy === this.recordFile(key)) return undefined;
-        if (!fs.lstatSync(legacy, { throwIfNoEntry: false })?.isFile()) return undefined;
-
-        try {
-            return (await readJsonFile(legacy, '{}')).get(['username']) === key ? legacy : undefined;
-        } catch {
-            return undefined;
-        }
-    }
-
-    /**
-     * The key whose record sits in `file`, today's name for `key`, when it is not `key`'s own.
-     *
-     * Only an escaped key's name can be another key's legacy name: `100%25.json` is where key
-     * `100%` lives now and where key `100%25` lived before. An escaped key is a player name, and
-     * every record stores the player's `username`, so the file is another key's exactly when its
-     * `username` differs from `key` and names the file the way the old scheme did.
-     */
-    private async foreignOwnerOf(key: string, file: string): Promise<string | undefined> {
-        if (playerDataFileName(key) === `${key}.json` || !fs.existsSync(file)) return undefined;
-
-        try {
-            const username = (await readJsonFile(file, '{}')).get(['username']);
-            return typeof username === 'string' && username !== key && `${username}.json` === path.basename(file)
-                ? username
-                : undefined;
-        } catch {
-            return undefined;
-        }
-    }
-
-    /**
-     * The file a key's fallback record is in now: today's name first, unless it holds another
-     * key's legacy record, else its own legacy name.
-     */
-    private async existingRecordFile(key: string): Promise<string | undefined> {
-        const file = this.recordFile(key);
-        if (fs.existsSync(file) && (await this.foreignOwnerOf(key, file)) === undefined) return file;
-        return this.legacyRecordFile(key);
     }
 }

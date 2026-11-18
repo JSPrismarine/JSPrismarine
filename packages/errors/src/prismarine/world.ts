@@ -187,11 +187,6 @@ export const PrismarineWorldErrors = defineErrors('prismarine', {
         base: RangeError
     },
     /**
-     * Two player data files hold the same player, so one was copied or renamed by hand. Remove the
-     * stale one.
-     */
-    DuplicatePlayerRecord: "{file} holds {owner}'s record, which also has {ownersFile}",
-    /**
      * Biome data holds an impossible number of biomes. The world on disk is damaged, or was written
      * by a tool that writes the format differently; open it in the game to let it repair what it
      * can, or restore a backup.

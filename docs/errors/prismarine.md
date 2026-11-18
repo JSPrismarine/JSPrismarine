@@ -2592,15 +2592,6 @@ Thrown as `PrismarineWorldErrors.DuplicateGeneratorFactory`, which extends `Erro
 
 Two world generators were registered under the same kind.
 
-### `PRISMARINE_DUPLICATE_PLAYER_RECORD`
-
-`{file} holds {owner}'s record, which also has {ownersFile}`
-
-Thrown as `PrismarineWorldErrors.DuplicatePlayerRecord`, which extends `Error`.
-
-Two player data files hold the same player, so one was copied or renamed by hand. Remove the
-stale one.
-
 ### `PRISMARINE_EMPTY_SINGLE_BLOCK_STORAGE`
 
 `A zero-bit storage needs its runtime id`
