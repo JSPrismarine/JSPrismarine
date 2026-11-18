@@ -59,11 +59,15 @@ const PRIVILEGE_NAMES: Readonly<Record<Privilege, string>> = {
     restricted_execution: 'restricted execution'
 };
 
-/** How BDS names a member in a privilege error, such as `Native function [World::getDimension]`. */
+/**
+ * How BDS names a member in a privilege error, such as `Native function [World::getDimension]`, or
+ * `Native constructor for [HttpRequest]` for a constructor.
+ */
 const nativeName = (entry: MemberEntry): string => {
     const name = entry.owner === '' ? entry.member : `${entry.owner}::${entry.member}`;
     if (entry.access === 'get') return `Native property getter [${name}]`;
     if (entry.access === 'set') return `Native property setter [${name}]`;
+    if (entry.access === 'construct') return `Native constructor for [${entry.owner}]`;
     return `Native function [${name}]`;
 };
 
@@ -264,8 +268,15 @@ export class ScriptApiContext {
     private bindDependency(module: string, version: string): void {
         if (this.bound.has(module)) return;
         const history = this.histories[module];
-        const major = parseVersion(version)?.major;
-        const served = major === undefined ? undefined : history?.resolves[String(major)];
+        const parsed = parseVersion(version);
+        // A beta dependency, such as `@minecraft/server-net`'s on `@minecraft/server-admin`
+        // 1.0.0-beta, is served as the one beta the history has, as a pack's own is.
+        const served =
+            parsed === undefined || history === undefined
+                ? undefined
+                : parsed.tag === undefined
+                  ? history.resolves[String(parsed.major)]
+                  : history.versions.find((entry) => entry.version === version && entry.stability === 'beta')?.version;
         if (history === undefined || served === undefined) {
             throw new ScriptHostErrors.DependencyHasNoShape({ module, version });
         }

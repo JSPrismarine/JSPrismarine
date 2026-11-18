@@ -10,6 +10,7 @@ import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
+import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { MemoryWorld } from '../testing/memoryWorld.test.helper';
 
@@ -887,6 +888,113 @@ system.run(() => {
             expect(world.commands).toEqual([
                 'minecraft:overworld: scriptevent jsp:hello hi there',
                 'minecraft:overworld: jspnothing'
+            ]);
+        });
+
+        it('finds an entity by id, and reads its rotation, head and view', () => {
+            const world = new MemoryWorld();
+            const { printed } = run(
+                `
+                const overworld = world.getDimension('overworld');
+                const stand = overworld.spawnEntity('armor_stand', { x: 0.5, y: -60, z: 0.5 });
+                show('getEntity', () => [world.getEntity(stand.id) === stand, world.getEntity('-5'), world.getEntity('x1')]);
+                show('getPlayers', () => overworld.getPlayers().length);
+                show('look', () => [stand.getRotation(), stand.getHeadLocation(), stand.getViewDirection(), stand.isSneaking]);
+                globalThis.stand = stand;`,
+                world
+            );
+
+            expect(printed).toEqual([
+                `getEntity "Error: Entity id 'x1' is invalid."`,
+                'getPlayers 0',
+                'look [{"x":0,"y":0},{"x":0.5,"y":-58.5,"z":0.5},{"x":0,"y":0,"z":1},false]'
+            ]);
+        });
+
+        it('turns a rotation into the direction BDS gives', () => {
+            const near = (vector: { x: number; y: number; z: number }) =>
+                [vector.x, vector.y, vector.z].map((part) => Math.round(part * 1000) / 1000);
+            expect(near(viewDirection({ x: 0, y: 90 }))).toEqual([-1, 0, 0]);
+            expect(near(viewDirection({ x: -90, y: 0 }))).toEqual([0, 1, 0]);
+            expect(near(viewDirection({ x: 0, y: 180 }))).toEqual([-0, 0, -1]);
+        });
+
+        it('adds items onto matching stacks first, then into empty slots, and hands back the rest', () => {
+            const { printed } = run(`
+                const cart = world.getDimension('overworld').spawnEntity('chest_minecart', { x: 0, y: -60, z: 0 });
+                const container = cart.getComponent('inventory').container;
+                const slot = (index) => { const item = container.getItem(index); return item && [item.typeId, item.amount, item.nameTag]; };
+                container.setItem(2, new ItemStack('apple', 60));
+                show('merge', () => [container.addItem(new ItemStack('apple', 10)), slot(0), slot(2)]);
+                const named = new ItemStack('apple', 2);
+                named.nameTag = 'Shiny';
+                container.addItem(named);
+                show('named', () => [slot(0), slot(1)]);
+                for (let index = 0; index < 27; index++) container.setItem(index, new ItemStack('stone', 64));
+                container.setItem(26, new ItemStack('stone', 60));
+                show('full', () => { const left = container.addItem(new ItemStack('stone', 10)); return [left.typeId, left.amount, slot(26)]; });
+                cart.remove();
+                show('gone', () => container.addItem(new ItemStack('apple')));`);
+
+            expect(printed).toEqual([
+                'merge [null,["minecraft:apple",6,null],["minecraft:apple",64,null]]',
+                'named [["minecraft:apple",6,null],["minecraft:apple",2,"Shiny"]]',
+                'full ["minecraft:stone",6,["minecraft:stone",64,null]]',
+                `gone "Error: Failed to call function 'addItem'."`
+            ]);
+        });
+
+        it("reads and sets a player's game mode and hotbar slot", () => {
+            const world = new MemoryWorld();
+            const { scripts, log } = start(
+                [
+                    writePack(`import { world } from '@minecraft/server';
+                        world.afterEvents.playerSpawn.subscribe(({ player }) => {
+                            console.warn(player.getGameMode(), player.selectedSlotIndex);
+                            player.setGameMode('Creative');
+                            player.selectedSlotIndex = 4;
+                            console.warn(player.getGameMode(), player.selectedSlotIndex);
+                            try { player.selectedSlotIndex = 9; } catch (error) { console.warn(String(error)); }
+                            console.warn(player.dimension.getPlayers().map((each) => each.name).join());
+                        });`)
+                ],
+                { world }
+            );
+            world.join('Alex');
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'Survival 0',
+                'Creative 4',
+                'PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: selectedSlot, Value: 9, Property bounds: [0, 8]',
+                'Alex'
+            ]);
+        });
+
+        it('sends entitySpawn, entityHurt and entityDie with the damage source', () => {
+            const { printed } = run(`
+                const name = (entity) => entity === undefined ? 'none' : entity.typeId;
+                const source = ({ cause, damagingEntity, damagingProjectile }) => [cause, name(damagingEntity), name(damagingProjectile)].join(' ');
+                world.afterEvents.entitySpawn.subscribe((event) => console.warn('spawn', event.entity.typeId, event.cause));
+                world.afterEvents.entityHurt.subscribe((event) => console.warn('hurt', event.hurtEntity.typeId, event.damage, source(event.damageSource)));
+                world.afterEvents.entityDie.subscribe((event) => console.warn('die', event.deadEntity.typeId, event.deadEntity.isValid, source(event.damageSource)));
+                const overworld = world.getDimension('overworld');
+                const stand = overworld.spawnEntity('armor_stand', { x: 0, y: -60, z: 0 });
+                const pig = overworld.spawnEntity('pig', { x: 2, y: -60, z: 0 });
+                show('hurt', () => [pig.applyDamage(3), pig.applyDamage(0), pig.applyDamage(2, { cause: 'entityAttack', damagingEntity: stand })]);
+                show('fatal', () => [pig.applyDamage(50, { cause: 'fall' }), pig.isValid]);
+                show('dead', () => pig.applyDamage(1));`);
+
+            expect(printed).toEqual([
+                'hurt [true,false,true]',
+                'fatal [true,false]',
+                `dead "InvalidEntityError: Failed to call function 'applyDamage' due to Entity being invalid (has the Entity been removed?)."`,
+                'spawn minecraft:armor_stand Spawned',
+                'spawn minecraft:pig Spawned',
+                'hurt minecraft:pig 3 none none none',
+                'hurt minecraft:pig 2 entityAttack minecraft:armor_stand none',
+                'hurt minecraft:pig 50 fall none none',
+                'die minecraft:pig false fall none none'
             ]);
         });
 

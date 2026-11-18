@@ -334,6 +334,28 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3211](https://github.com/JSPrismarine/JSPrismarine/issues/3211)); the
       `script-teleport` client-e2e scenario has not passed locally, where the client stayed on
       the loading screen of a server skipping ticks.
+    - Batch 2 (2026-11-18): `World.getEntity`, `Dimension.getPlayers`, `Entity.getRotation`,
+      `getHeadLocation`, `getViewDirection`, `isSneaking` and `applyDamage`, `Player.getGameMode`
+      and `selectedSlotIndex`, `Container.addItem`, an inventory for any entity whose
+      `minecraft:inventory` declares a container, `world.afterEvents.entitySpawn`, `entityHurt`
+      and `entityDie`, and `/scriptevent` from the console and from a player. The corpus's share
+      of member uses with behavior went from 68.6% to 74.2%. The `entities` scenario now matches
+      BDS, chest minecart included, and the new `entity-members`, `players`, `entity-events` and
+      `script-event-console` scenarios hold the rest; `entity-members` and `players` match.
+    - Learned: `Container.addItem` tops up matching stacks in slot order, then fills empty slots in
+      slot order, leaves its argument alone and returns what did not fit. `applyDamage` inside the
+      grace period of a stronger blow returns true and raises nothing, and a stronger one deals
+      the difference (97 after 3). BDS sends a flush's entity events as every spawn, then every
+      blow, then every death; `kill()` on a pig is a `selfDestruct` blow of its whole health, and
+      on an armor stand raises neither. A dying mob stays valid through its death animation. A
+      gone entity's `nameTag` read throws the "set property" error, and the
+      `selectedSlotIndex` bounds error names the property `selectedSlot`.
+    - Left: a dying mob leaves JSPrismarine's script world at once, an armor stand's `kill()`
+      raises hurt and die events, and the console trims the end of a `/scriptevent` message
+      (`scripting.events` and `scripting.world` gaps). The entity events ignore
+      `EntityEventOptions`. Next by corpus use: `Player.onScreenDisplay`, `MolangVariableMap`,
+      `world.beforeEvents.playerBreakBlock` and `itemUse`, `Player.playSound`, `System.runJob`,
+      `Entity.addEffect`, `ItemStack.getComponent` and block inventories.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
