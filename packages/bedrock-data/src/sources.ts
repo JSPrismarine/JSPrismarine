@@ -14,3 +14,9 @@ export const defaultBdsCacheFolder: string = `v${sources.bds.defaultProtocolVers
 
 /** The `bedrock-samples/` cache folder of the pinned `Mojang/bedrock-samples` release. */
 export const bedrockSamplesCacheFolder: string = sources.bedrockSamples.tag;
+
+/**
+ * The Java Edition release `sources.json` pins, such as `26.3`, which names its folder under
+ * `java-server/`, `vanilla-datapack/` and `java-reports/`.
+ */
+export const javaServerCacheFolder: string = sources.javaServer.version;
