@@ -277,6 +277,8 @@ pull request for it is closed with the note attached to the tracking issue.
 
 ## 8. Decisions for the maintainer
 
+All five were accepted as recommended on 2026-11-19.
+
 1. **Key by release id.** Directories, manifest entries and parity families are keyed by the
    piston-meta id (`26.3`, `26.4-snapshot-8`). Gates compare the format major. The alternative,
    keying everything by format, breaks when one release cycle passes through six formats.
