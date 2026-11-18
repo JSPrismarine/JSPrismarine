@@ -1,6 +1,7 @@
 import { LOG_LEVELS } from '@jsprismarine/logger';
 import type { ColorInput } from '@opentui/core';
 import { RGBA } from '@opentui/core';
+import { BRAND_PALETTE, TERMINAL_SHADES, mixHex } from './brand';
 import type { AnsiColorName, ChatPalette } from './minecraftColors';
 import { ANSI_COLOR_NAMES, chatPaletteFrom } from './minecraftColors';
 
@@ -57,31 +58,36 @@ export function ansiColor(name: AnsiColorName): RGBA {
     return RGBA.fromIndex(ANSI_COLOR_NAMES.indexOf(name));
 }
 
+const { accent, deep, forest, ink, mint, signal, warning } = BRAND_PALETTE;
+
 /**
- * Truecolor theme for dark terminals. Only level tokens, the namespace, and
- * status tones carry color; message text stays in the terminal's foreground.
+ * Truecolor theme for dark terminals, in the brand palette: the ink terminal surface with deep
+ * panels, the docs site's terminal shades for text, accent for healthy state, warning for the
+ * warn level and states in progress, and signal for the prompt, focus and errors. Only level
+ * tokens, the namespace, and status tones carry color; message text stays in the text shade.
  */
 export const defaultTheme: Theme = {
-    background: '#171d20',
-    surface: '#202a30',
-    border: '#3a4a50',
-    borderFocused: '#d9955c',
-    errorBackground: '#2b2023',
-    text: '#e7e1d7',
-    textMuted: '#8a9794',
-    accent: '#70bdb3',
-    prompt: '#d9955c',
-    selection: '#28343a',
-    error: '#d06d69',
-    warn: '#e0b570',
-    info: '#e7e1d7',
-    verbose: '#74acb1',
-    debug: '#ac9abd',
-    silly: '#ac9abd',
-    ok: '#70bdb3',
-    warning: '#e0b570',
-    danger: '#d06d69',
-    muted: '#8a9794',
+    background: ink,
+    surface: deep,
+    // The brand's dark hairline: accent at 30% over ink.
+    border: mixHex(accent, ink, 0.3),
+    borderFocused: signal,
+    errorBackground: mixHex(signal, ink, 0.12),
+    text: TERMINAL_SHADES.text,
+    textMuted: TERMINAL_SHADES.muted,
+    accent,
+    prompt: signal,
+    selection: forest,
+    error: signal,
+    warn: warning,
+    info: TERMINAL_SHADES.text,
+    verbose: mint,
+    debug: TERMINAL_SHADES.muted,
+    silly: TERMINAL_SHADES.muted,
+    ok: accent,
+    warning,
+    danger: signal,
+    muted: TERMINAL_SHADES.muted,
     chat: chatPaletteFrom(({ hex }) => hex)
 };
 
