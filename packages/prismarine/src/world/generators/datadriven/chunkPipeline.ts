@@ -310,7 +310,7 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
         // of structure NBT and a worker reads them once for the life of the process.
         ...(setup.javaTemplates === false
             ? {}
-            : { templates: findJavaTemplateSource(cacheRoot(), registries.processorLists) })
+            : { templates: findJavaTemplateSource(cacheRoot(), registries.processorLists, registries.release) })
     });
 
     return {
