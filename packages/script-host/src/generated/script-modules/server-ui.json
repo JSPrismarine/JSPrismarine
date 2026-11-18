@@ -9,9 +9,10 @@
         {"version":"2.0.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
         {"version":"2.1.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
         {"version":"2.2.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
-        {"version":"2.3.0-beta","stability":"beta","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}}
+        {"version":"2.3.0","stability":"stable","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-v2-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}},
+        {"version":"2.4.0-beta","stability":"beta","bindings":"@minecraft/server-ui-bindings","wrapper":"@minecraft/server-ui-bindings-wrapper","dependencies":{"@minecraft/server":"2.0.0","@minecraft/common":"1.0.0"}}
     ],
-    "resolves": {"1":"1.3.0","2":"2.2.0"},
+    "resolves": {"1":"1.3.0","2":"2.3.0"},
     "declarations": {
         "ActionFormData": {
             "segments": [
@@ -54,6 +55,22 @@
                 ]
             }
         },
+        "ButtonData": {
+            "segments": [
+                {"from":"2.4.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "label": [
+                    {"from":"2.4.0-beta","kind":"property","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]},"readOnly":false}
+                ],
+                "onClick": [
+                    {"from":"2.4.0-beta","kind":"property","type":{"kind":"closure","arguments":[],"returns":"undefined","privilege":["default"]},"readOnly":false}
+                ],
+                "options": [
+                    {"from":"2.4.0-beta","kind":"property","type":{"kind":"optional","type":"ButtonOptions"},"readOnly":false}
+                ]
+            }
+        },
         "ButtonOptions": {
             "segments": [
                 {"from":"2.1.0","kind":"interface"}
@@ -63,7 +80,7 @@
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
                 ],
                 "imageDetails": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":"ImageDetails"},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":"ImageDetails"},"readOnly":false}
                 ],
                 "tooltip": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
@@ -88,7 +105,8 @@
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
                 ],
                 "constructor": [
-                    {"from":"2.1.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
+                    {"from":"2.1.0","to":"2.3.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]},
+                    {"from":"2.4.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"CustomFormOptions"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
                 ],
                 "divider": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"options","type":{"kind":"optional","type":"DividerOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
@@ -108,6 +126,9 @@
                 "label": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"text","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"TextOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
                 ],
+                "multiButtonRow": [
+                    {"from":"2.4.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"buttons","type":{"kind":"array","element":"ButtonData"},"maxLength":3},{"name":"options","type":{"kind":"optional","type":"MultiButtonRowOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"CustomForm"}
+                ],
                 "show": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":{"kind":"promise","type":"DataDrivenScreenClosedReason"}}
                 ],
@@ -124,6 +145,11 @@
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"toggled","type":"ObservableBoolean"},{"name":"options","type":{"kind":"optional","type":"ToggleOptions"},"default":null}],"throws":["InvalidFormModificationError","InvalidObservableError"],"returns":"CustomForm"}
                 ]
             }
+        },
+        "CustomFormOptions": {
+            "segments": [
+                {"from":"2.4.0-beta","kind":"interface"}
+            ]
         },
         "DataDrivenScreenClosedReason": {
             "segments": [
@@ -179,7 +205,7 @@
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
                 ],
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
                 ],
                 "visible": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
@@ -266,14 +292,14 @@
         },
         "ImageDetails": {
             "segments": [
-                {"from":"2.3.0-beta","kind":"interface"}
+                {"from":"2.3.0","kind":"interface"}
             ],
             "members": {
                 "imagePackId": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"variant","types":["ObservableString","string"]},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"variant","types":["ObservableString","string"]},"readOnly":false}
                 ],
                 "imageSrc": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"variant","types":["ObservableString","string"]},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"variant","types":["ObservableString","string"]},"readOnly":false}
                 ]
             }
         },
@@ -327,25 +353,30 @@
             ],
             "members": {
                 "body": [
-                    {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"body","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                    {"from":"2.1.0","to":"2.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"body","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"},
+                    {"from":"2.4.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"body","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxBodyOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
                 ],
                 "button1": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"tooltip","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
                 ],
                 "button1WithOptions": [
-                    {"from":"2.3.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                    {"from":"2.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
                 ],
                 "button2": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"tooltip","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
                 ],
                 "button2WithOptions": [
-                    {"from":"2.3.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                    {"from":"2.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
+                ],
+                "button3WithOptions": [
+                    {"from":"2.4.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"label","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxButtonOptions"},"default":null}],"throws":["InvalidFormModificationError"],"returns":"MessageBox"}
                 ],
                 "close": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"FormVisibilityError",{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}],"returns":"undefined"}
                 ],
                 "constructor": [
-                    {"from":"2.1.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
+                    {"from":"2.1.0","to":"2.3.0","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]},
+                    {"from":"2.4.0-beta","kind":"constructor","privilege":["restricted_execution"],"arguments":[{"name":"player","type":{"kind":"external","module":"@minecraft/server","name":"Player"}},{"name":"title","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},{"name":"options","type":{"kind":"optional","type":"MessageBoxOptions"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/server","name":"InvalidEntityError"}]}
                 ],
                 "isShowing": [
                     {"from":"2.1.0","kind":"method","privilege":["default"],"arguments":[],"returns":"boolean"}
@@ -355,16 +386,31 @@
                 ]
             }
         },
+        "MessageBoxBodyOptions": {
+            "segments": [
+                {"from":"2.4.0-beta","kind":"interface"}
+            ]
+        },
         "MessageBoxButtonOptions": {
             "segments": [
-                {"from":"2.3.0-beta","kind":"interface"}
+                {"from":"2.3.0","kind":"interface"}
             ],
             "members": {
                 "imageDetails": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":"ImageDetails"},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":"ImageDetails"},"readOnly":false}
                 ],
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                ]
+            }
+        },
+        "MessageBoxOptions": {
+            "segments": [
+                {"from":"2.4.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "showHorizontalButtons": [
+                    {"from":"2.4.0-beta","kind":"property","type":"boolean","readOnly":false}
                 ]
             }
         },
@@ -527,6 +573,16 @@
                 ]
             }
         },
+        "MultiButtonRowOptions": {
+            "segments": [
+                {"from":"2.4.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "visible": [
+                    {"from":"2.4.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
+                ]
+            }
+        },
         "ObservableBoolean": {
             "segments": [
                 {"from":"2.1.0","kind":"class"}
@@ -650,13 +706,13 @@
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
                 ],
                 "fixedFormatDigits": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["double","ObservableNumber"]}},"readOnly":false}
+                    {"from":"2.4.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["double","ObservableNumber"]}},"readOnly":false}
                 ],
                 "step": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["double","ObservableNumber"]}},"readOnly":false}
                 ],
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
                 ],
                 "visible": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
@@ -685,7 +741,7 @@
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
                 ],
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
                 ],
                 "visible": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
@@ -714,7 +770,7 @@
             ],
             "members": {
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
                 ],
                 "visible": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
@@ -733,7 +789,7 @@
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}
                 ],
                 "tooltip": [
-                    {"from":"2.3.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
+                    {"from":"2.3.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["ObservableString","ObservableUIRawMessage","string","UIRawMessage"]}},"readOnly":false}
                 ],
                 "visible": [
                     {"from":"2.1.0","kind":"property","type":{"kind":"optional","type":{"kind":"variant","types":["boolean","ObservableBoolean"]}},"readOnly":false}

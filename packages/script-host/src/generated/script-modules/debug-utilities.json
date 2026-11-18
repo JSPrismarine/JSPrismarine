@@ -161,11 +161,17 @@
                 "color": [
                     {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"RGBA"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
+                "defaultVisibleToAll": [
+                    {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
                 "dimension": [
                     {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Dimension"},"readOnly":true,"get":["restricted_execution"]}
                 ],
                 "hasDuration": [
                     {"from":"1.0.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "hiddenFrom": [
+                    {"from":"1.0.0-beta","kind":"property","type":{"kind":"array","element":{"kind":"external","module":"@minecraft/server","name":"Player"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "location": [
                     {"from":"1.0.0-beta","kind":"property","type":{"kind":"external","module":"@minecraft/server","name":"Vector3"},"readOnly":true,"get":["restricted_execution"]}

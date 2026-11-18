@@ -175,13 +175,13 @@
             ],
             "members": {
                 "saveHold": [
-                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":"undefined"}
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":{"kind":"promise","type":"undefined"}}
                 ],
                 "saveQuery": [
-                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":{"kind":"array","element":"LevelStorageQuerySnapshotFile"}}
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":{"kind":"promise","type":{"kind":"array","element":"LevelStorageQuerySnapshotFile"}}}
                 ],
                 "saveResume": [
-                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["LevelStorageSaveStateChangeError"],"returns":"undefined"}
+                    {"from":"1.0.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":{"kind":"promise","type":"undefined"}}
                 ]
             }
         },

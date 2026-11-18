@@ -121,7 +121,8 @@ The modules a pack imports, such as `@minecraft/server`, are generated rather th
 `metadata/script_modules` from the `bedrock-samples` checkout that
 `packages/bedrock-data/sources.json` pins, and writes one file per module to
 `src/generated/script-modules/`. Each file keeps every version of its module as history, the beta
-the pinned metadata ships included, such as `@minecraft/server` 2.11.0-beta. A
+the pinned metadata ships included, such as `@minecraft/server`
+<!-- fact:scripting.serverBeta -->2.12.0-beta<!-- /fact -->. A
 class or member is a list of segments, each with the first version it appears in and, once Mojang
 removes or changes it, the last. A regeneration after a version bump therefore shows each added,
 changed or removed member as its own line in the diff.
@@ -139,8 +140,8 @@ A pack gets the newest stable minor version of the major version it declares, as
 Dedicated Server, so a pack that declares 2.0.0 sees every 2.x member the pinned server ships. Beta
 versions do not follow semver. With the world's Beta APIs experiment on, a pack that declares a
 beta gets it only when it is the one beta the pinned server ships, such as `@minecraft/server`
-2.11.0-beta, and the version `beta` names that one. Any other version, beta or stable, is refused,
-as `2.12.0-beta` is on BDS. `resolveDependency` does that resolution, and returns BDS's own content
+<!-- fact:scripting.serverBeta -->2.12.0-beta<!-- /fact -->, and the version `beta` names that one.
+Any other version, beta or stable, is refused, as an older or newer beta is on BDS. `resolveDependency` does that resolution, and returns BDS's own content
 log message when it refuses a module.
 
 ```ts
@@ -381,7 +382,7 @@ const scripts = new WorldScripts({
     packs: directories.map(readScriptPack).filter((pack) => pack !== undefined),
     config: readScriptConfig('config'), // BDS's config/ folder
     log: console,
-    server: { version: '0.22.0', minecraftVersion: '1.26.50', protocolVersion: 2193 }, // what @jsprismarine/server reports
+    server: { version, minecraftVersion, protocolVersion }, // what @jsprismarine/server reports
     seed: worldSeed,
     watchdog: watchdogSettings({ 'script-watchdog-hang-threshold': '10000' }),
     onShutdown: (reason) => server.stop()
