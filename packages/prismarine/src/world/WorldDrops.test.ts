@@ -19,6 +19,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { fakeLevel } from '../testing/level';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /** The dropped stacks of a dimension's store, by their actors. */
 const itemsOf = (live: LiveEntityRuntime): ItemEntity[] =>
@@ -106,6 +107,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         sendWorldEvent: async () => {},
         server: {
             getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
+            getKernel: () => testKernel(),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
             // Every roll in the middle, so the drop starts at the middle of the block, still
             // pushed 0.2 upward.
@@ -158,6 +160,7 @@ const emptyWorld = () => {
         level: fakeLevel(),
         changes: NULL_WORLD_CHANGE_SINK,
         server: {
+            getKernel: () => testKernel(),
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),
             getContent: () => live.content(),
             getEntityRuntime: (dimension: string) => live.entityRuntime(dimension),

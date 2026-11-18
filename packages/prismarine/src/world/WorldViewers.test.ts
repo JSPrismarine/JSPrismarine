@@ -5,6 +5,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { StorePlayerActor } from '../entity/data/storePlayers';
 import { liveTestEntities } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { Dimensions } from './DimensionType';
 import { Position } from './Position';
@@ -29,7 +30,9 @@ const storeWorld = (): World => {
     let world: World | undefined;
     const entities = liveTestEntities(() => world);
     const live = entities.entityRuntime(Dimensions.Overworld.name);
+    const kernel = testKernel();
     const server = stub<Server>({
+        getKernel: () => kernel,
         getEntityRuntime: () => live,
         getStorePlayers: () => entities.players,
         getContent: () => entities.content()

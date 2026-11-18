@@ -33,6 +33,7 @@ import { fakeLevel } from '../testing/level';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -244,6 +245,7 @@ const liveWorld = (
         sendWorldEvent: async () => {},
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
+            getKernel: () => testKernel(),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
             getContent: content,
             // The dimension's runtime the content build opened, where a drop becomes a store stack.

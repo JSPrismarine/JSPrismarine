@@ -63,6 +63,8 @@ import { tradeDisplayNameOf } from './trading';
 import type { DataEntityRecord } from './persistence';
 import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../../events/entity/EntityDeathEvent';
+import EntityHurtEvent from '../../events/entity/EntityHurtEvent';
+import EntitySpawnEvent from '../../events/entity/EntitySpawnEvent';
 import { enchantmentProtection } from '../../enchantment/mitigation';
 import { viewableEquipmentOf, wornArmorOf } from '../equipment';
 import { PASS, VETO, replaceAmount } from './damagePipeline';
@@ -402,6 +404,8 @@ const liveHost = (
 
         runtime().store.afterUnit((kept) => {
             if (!kept) return;
+            const events = world.getServer().getKernel().events;
+            if (commit.dealt > 0) events.post('entityHurt', new EntityHurtEvent(victim, commit.dealt, source));
             if (commit.died)
                 world.getServer().getKernel().events.post('entityDeath', new EntityDeathEvent(victim, source));
             for (const raise of raises) raise();
@@ -663,7 +667,15 @@ export class LiveEntityRuntime {
             world: options.world,
             host: liveHost(options, this.actors, () => this.runtime, players),
             report: options.report,
-            onSpawn: (entity) => this.actors.add(entity),
+            onSpawn: (entity, cause) => {
+                this.actors.add(entity);
+                // A player's arrival is `playerSpawn`'s to tell.
+                if (entity.identifier === 'minecraft:player') return;
+                const actor = this.actors.actorOf(entity.id);
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                if (actor !== undefined && events?.hasListeners('entitySpawn') === true)
+                    events.post('entitySpawn', new EntitySpawnEvent(actor, cause));
+            },
             shownAs: (entity) => this.inertTypes.get(entity.id),
             onRemove: (entity, reason) => {
                 this.actors.remove(entity);

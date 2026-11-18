@@ -14,6 +14,7 @@ import { World } from './World';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { DATA_ENTITY_TAG } from '../entity/data/persistence';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { testKernel } from '../testing/kernel.test.helper';
 
 const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) => {
     const logger = stub<Logger>({
@@ -24,6 +25,7 @@ const createWorld = (entityRuntime: LiveEntityRuntime = inertEntityRuntime()) =>
         verbose: () => {}
     });
     const server = stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () => logger,
         getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
         getContent: () => testContent(),

@@ -1,8 +1,8 @@
 /**
  * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
- * `/pardon`, and Bedrock Dedicated Server's `/script debugger` and `/gametest`, which the shared
- * command set leaves out because only a server that runs behavior pack scripts has a debugger to
- * attach and GameTests to run.
+ * `/pardon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest` and `/scriptevent`,
+ * which the shared command set leaves out because only a server that runs behavior pack scripts
+ * has a debugger to attach, GameTests to run and scripts to send an event to.
  *
  * They register into the same `CommandRegistry` as the vanilla commands, so one dispatcher
  * parses them, one flattener advertises them and `/help` lists them. Their bodies reach the
@@ -266,6 +266,39 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
                 )
             ),
         { description: 'Debug output.', permissionLevel: CommandPermissionLevel.OWNER }
+    );
+
+    // BDS's syntax: `scriptevent <messageId> [message]`. The id needs a namespace other than
+    // `minecraft`, and the message is the rest of the line, as the `script-event-console`
+    // scenario recorded.
+    const scriptEvent = (context: Context, message: string): number => {
+        const id = value<string>(context, 'messageId');
+        const current = source(context);
+        const scripts = server.getScripts();
+        if (scripts === undefined) {
+            current.sendError('No behavior pack scripts are running to receive the event');
+            return 0;
+        }
+        if (!scripts.scriptEvent(id, message.trimStart(), current.entity?.id)) {
+            current.sendError(`The message id ${id} needs a namespace other than minecraft, such as jsp:${id}`);
+            return 0;
+        }
+        return RAN;
+    };
+    registry.register(
+        lit('scriptevent').then(
+            arg('messageId', stringArgument())
+                .executes(command((context) => scriptEvent(context, '')))
+                .then(
+                    arg('message', messageArgument()).executes(
+                        command((context) => scriptEvent(context, value<string>(context, 'message')))
+                    )
+                )
+        ),
+        {
+            description: 'Sends an event with an id and a message to the scripts of behavior packs.',
+            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS
+        }
     );
 
     registry.register(

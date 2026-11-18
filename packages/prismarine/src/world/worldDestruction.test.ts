@@ -40,6 +40,7 @@ import { fakeLevel } from '../testing/level';
 import type GameRuleManager from './GameRuleManager';
 import type { GameRuleEntry } from './GameRuleManager';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
@@ -272,6 +273,7 @@ const liveWorld = (
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             // Block destruction and blasts must share the fixture's seeded world RNG.
             getRandom: () => () => getRandom().nextFloat(),
+            getKernel: () => testKernel(),
             getLogger: () => ({
                 debug: () => {},
                 error: (error: unknown) => {
