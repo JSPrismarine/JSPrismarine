@@ -8,8 +8,8 @@
     "family": "scripting.lifecycle",
     "scenario": "beta-versions",
     "server": {
-        "protocolVersion": 2193,
-        "serverVersion": "1.26.51.1"
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
     },
     "observations": [
         {
@@ -17,7 +17,7 @@
             "seq": 1,
             "tick": 0,
             "event": "@minecraft/server exports",
-            "value": 584
+            "value": 601
         },
         {
             "pack": "shipped",
@@ -38,7 +38,7 @@
             "seq": 1,
             "tick": 0,
             "event": "@minecraft/server exports",
-            "value": 584
+            "value": 601
         },
         {
             "pack": "word",
@@ -59,7 +59,7 @@
             "seq": 1,
             "tick": 0,
             "event": "@minecraft/server exports",
-            "value": 536
+            "value": 559
         },
         {
             "pack": "others",
@@ -92,11 +92,11 @@
     ],
     "refusals": [
         "Plugin [JSPrismarine scenario beta-versions newer - 1.0.0] - failed to create context.",
-        "Plugin [JSPrismarine scenario beta-versions newer] - module [JSPrismarine scenario beta-versions newer - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions newer] - module [JSPrismarine scenario beta-versions newer - 1.0.0] requested invalid version [2.13.0-beta] of [@minecraft/server].",
         "Plugin [JSPrismarine scenario beta-versions older - 1.0.0] - failed to create context.",
         "Plugin [JSPrismarine scenario beta-versions older] - module [JSPrismarine scenario beta-versions older - 1.0.0] requested invalid version [2.9.0-beta] of [@minecraft/server].",
         "Plugin [JSPrismarine scenario beta-versions unshipped - 1.0.0] - failed to create context.",
-        "Plugin [JSPrismarine scenario beta-versions unshipped] - module [JSPrismarine scenario beta-versions unshipped - 1.0.0] requested invalid version [2.11.0] of [@minecraft/server].",
+        "Plugin [JSPrismarine scenario beta-versions unshipped] - module [JSPrismarine scenario beta-versions unshipped - 1.0.0] requested invalid version [2.12.0] of [@minecraft/server].",
         "Plugin [JSPrismarine scenario beta-versions newer - 1.0.0] - run failed, no runtime or context available.",
         "Plugin [JSPrismarine scenario beta-versions older - 1.0.0] - run failed, no runtime or context available.",
         "Plugin [JSPrismarine scenario beta-versions unshipped - 1.0.0] - run failed, no runtime or context available.",

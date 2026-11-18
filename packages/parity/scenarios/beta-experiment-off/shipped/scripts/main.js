@@ -1,5 +1,5 @@
 /**
- * The `shipped` pack of the `beta-experiment-off` scenario. It declares `@minecraft/server` 2.11.0-beta in a world without the Beta APIs experiment. BDS refuses it, so it records nothing, and the content log says why.
+ * The `shipped` pack of the `beta-experiment-off` scenario. It declares `@minecraft/server` 2.12.0-beta in a world without the Beta APIs experiment. BDS refuses it, so it records nothing, and the content log says why.
  *
  * `packages/parity/src/scripting/record.ts` defines the format.
  */

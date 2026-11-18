@@ -1,5 +1,5 @@
 /**
- * The `shipped` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.11.0-beta, the beta the pinned server ships.
+ * The `shipped` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.12.0-beta, the beta the pinned server ships.
  *
  * `packages/parity/src/scripting/record.ts` defines the format.
  */

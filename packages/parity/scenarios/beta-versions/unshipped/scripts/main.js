@@ -1,5 +1,5 @@
 /**
- * The `unshipped` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.11.0, a stable version the pinned server does not ship yet. BDS refuses it, so it records nothing, and the content log says why.
+ * The `unshipped` pack of the `beta-versions` scenario. It declares `@minecraft/server` 2.12.0, a stable version the pinned server does not ship yet. BDS refuses it, so it records nothing, and the content log says why.
  *
  * `packages/parity/src/scripting/record.ts` defines the format.
  */
