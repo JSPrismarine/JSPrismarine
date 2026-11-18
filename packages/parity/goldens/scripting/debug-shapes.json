@@ -1,0 +1,1590 @@
+{
+    "$comment": [
+        "What the scripts of scenario `debug-shapes` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.debug",
+    "scenario": "debug-shapes",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "shapes",
+            "seq": 1,
+            "tick": 0,
+            "event": "worldLoad"
+        },
+        {
+            "pack": "shapes",
+            "seq": 2,
+            "tick": 0,
+            "event": "DebugShape constructor",
+            "error": "ReferenceError: No constructor for native class 'DebugShape'."
+        },
+        {
+            "pack": "shapes",
+            "seq": 3,
+            "tick": 0,
+            "event": "DebugArrow defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "endLocation": {
+                    "z": 2,
+                    "y": -57,
+                    "x": 4
+                },
+                "headLength": 1,
+                "headRadius": 0.5,
+                "headSegments": 4
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 4,
+            "tick": 0,
+            "event": "DebugBox defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 5,
+            "tick": 0,
+            "event": "DebugCircle defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 6,
+            "tick": 0,
+            "event": "DebugCone defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "height": 1,
+                "numSegments": 20,
+                "radii": {
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 7,
+            "tick": 0,
+            "event": "DebugCylinder defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "height": 1,
+                "numSegments": 20,
+                "radii": {
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 8,
+            "tick": 0,
+            "event": "DebugEllipsoid defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "radii": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                },
+                "segmentsPerAxis": 20
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 9,
+            "tick": 0,
+            "event": "DebugLine defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "endLocation": {
+                    "z": 2,
+                    "y": -57,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 10,
+            "tick": 0,
+            "event": "DebugPyramid defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "depth": "undefined",
+                "height": 1,
+                "width": 1
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 11,
+            "tick": 0,
+            "event": "DebugSphere defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 12,
+            "tick": 0,
+            "event": "DebugText defaults",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "backfaceVisible": true,
+                "backgroundColorOverride": "undefined",
+                "depthTest": false,
+                "lineGapHeight": 0,
+                "text": "hello",
+                "textBackfaceVisible": false,
+                "useRotation": false
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 13,
+            "tick": 0,
+            "event": "a shape is a DebugShape",
+            "value": {
+                "instance": true,
+                "keys": [],
+                "json": "{}",
+                "string": "[object Object]"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 14,
+            "tick": 0,
+            "event": "a dimension location sets the dimension",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "dimension minecraft:nether",
+                "hasDuration": false,
+                "location": {
+                    "z": 3,
+                    "y": 2,
+                    "x": 1
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 15,
+            "tick": 0,
+            "event": "new DebugBox with nothing",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "shapes",
+            "seq": 16,
+            "tick": 0,
+            "event": "new DebugBox with a string",
+            "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: DimensionLocation | Vector3"
+        },
+        {
+            "pack": "shapes",
+            "seq": 17,
+            "tick": 0,
+            "event": "new DebugLine without its end",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 2, received 1"
+        },
+        {
+            "pack": "shapes",
+            "seq": 18,
+            "tick": 0,
+            "event": "new DebugText with a number",
+            "error": "TypeError: Native variant type conversion failed. Function argument [1] expected type: string | RawMessage"
+        },
+        {
+            "pack": "shapes",
+            "seq": 19,
+            "tick": 0,
+            "event": "setters keep what they are given",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 0.5,
+                    "red": 0.25,
+                    "blue": 2,
+                    "alpha": -1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": 12.5,
+                "rotation": {
+                    "z": -1,
+                    "y": 400,
+                    "x": 10
+                },
+                "scale": -3,
+                "timeLeft": 2,
+                "totalTimeLeft": 2,
+                "bound": {
+                    "z": -1,
+                    "y": 0,
+                    "x": 2
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 20,
+            "tick": 0,
+            "event": "a float keeps what a 32-bit float keeps",
+            "value": 1.100000023841858
+        },
+        {
+            "pack": "shapes",
+            "seq": 21,
+            "tick": 0,
+            "event": "an integer drops its fraction",
+            "value": 3
+        },
+        {
+            "pack": "shapes",
+            "seq": 22,
+            "tick": 0,
+            "event": "a vector read back is a copy",
+            "value": {
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 23,
+            "tick": 0,
+            "event": "a color keeps only its four parts",
+            "value": {
+                "green": 1,
+                "red": 1,
+                "blue": 1,
+                "alpha": 1
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 24,
+            "tick": 0,
+            "event": "timeLeft set to 0",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": 0,
+                "totalTimeLeft": 0,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 25,
+            "tick": 0,
+            "event": "timeLeft set to a negative number",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": -1,
+                "totalTimeLeft": -1,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 26,
+            "tick": 0,
+            "event": "timeLeft set to undefined",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 27,
+            "tick": 0,
+            "event": "maximumRenderDistance set to undefined",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 28,
+            "tick": 0,
+            "event": "depth and backgroundColorOverride set to undefined",
+            "value": {
+                "depth": "undefined",
+                "background": "undefined"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 29,
+            "tick": 0,
+            "event": "setLocation with a vector",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 7,
+                    "y": 8,
+                    "x": 9
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 30,
+            "tick": 0,
+            "event": "setLocation with a dimension location",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "dimension minecraft:nether",
+                "hasDuration": false,
+                "location": {
+                    "z": 7,
+                    "y": 8,
+                    "x": 9
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 31,
+            "tick": 0,
+            "event": "DebugText setText with a string",
+            "value": "second"
+        },
+        {
+            "pack": "shapes",
+            "seq": 32,
+            "tick": 0,
+            "event": "DebugText setText with a raw message",
+            "value": {
+                "before": {
+                    "rawtext": [
+                        {
+                            "text": "raw"
+                        }
+                    ]
+                },
+                "after": {
+                    "rawtext": [
+                        {
+                            "translate": "item.apple.name"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 33,
+            "tick": 0,
+            "event": "DebugText with a raw message part",
+            "value": {
+                "rawtext": [
+                    {
+                        "text": "x"
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 34,
+            "tick": 0,
+            "event": "DebugText setText with a number",
+            "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: string | RawMessage"
+        },
+        {
+            "pack": "shapes",
+            "seq": 35,
+            "tick": 0,
+            "event": "DebugText setters",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "backfaceVisible": true,
+                "backgroundColorOverride": {
+                    "green": 0,
+                    "red": 0,
+                    "blue": 0,
+                    "alpha": 0.5
+                },
+                "depthTest": true,
+                "lineGapHeight": 0.5,
+                "text": "hello",
+                "textBackfaceVisible": true,
+                "useRotation": true
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 36,
+            "tick": 0,
+            "event": "DebugArrow setters",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "endLocation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "headLength": 2,
+                "headRadius": 0.25,
+                "headSegments": 12
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 37,
+            "tick": 0,
+            "event": "DebugCone setters",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "height": 3,
+                "numSegments": 7,
+                "radii": {
+                    "y": 0.5,
+                    "x": 2
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 38,
+            "tick": 0,
+            "event": "DebugPyramid setters",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "depth": 4,
+                "height": 3,
+                "width": 2
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 39,
+            "tick": 0,
+            "event": "DebugEllipsoid setters",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "radii": {
+                    "z": 3,
+                    "y": 2,
+                    "x": 1
+                },
+                "segmentsPerAxis": 9
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 40,
+            "tick": 0,
+            "event": "color without alpha",
+            "error": "TypeError: Native setter cannot be assigned null or undefined. Interface property ['alpha'] expected type: number (failed parsing interface to Function return value)."
+        },
+        {
+            "pack": "shapes",
+            "seq": 41,
+            "tick": 0,
+            "event": "bound without y",
+            "error": "TypeError: Native setter cannot be assigned null or undefined. Interface property ['y'] expected type: number (failed parsing interface to Function return value)."
+        },
+        {
+            "pack": "shapes",
+            "seq": 42,
+            "tick": 0,
+            "event": "bound with an x of NaN",
+            "error": "TypeError: NaN value is not supported. Interface property ['x'] expected type: number (failed parsing interface to Function return value)."
+        },
+        {
+            "pack": "shapes",
+            "seq": 43,
+            "tick": 0,
+            "event": "bound set to a string",
+            "error": "TypeError: Native type conversion failed. Function return value expected type: Vector3"
+        },
+        {
+            "pack": "shapes",
+            "seq": 44,
+            "tick": 0,
+            "event": "scale set to a string",
+            "error": "TypeError: Native type conversion failed. Function return value expected type: number"
+        },
+        {
+            "pack": "shapes",
+            "seq": 45,
+            "tick": 0,
+            "event": "scale set to NaN",
+            "error": "TypeError: NaN value is not supported. Function return value expected type: number"
+        },
+        {
+            "pack": "shapes",
+            "seq": 46,
+            "tick": 0,
+            "event": "scale set to Infinity",
+            "error": "TypeError: Infinity value is not supported. Function return value expected type: number"
+        },
+        {
+            "pack": "shapes",
+            "seq": 47,
+            "tick": 0,
+            "event": "timeLeft set to NaN",
+            "error": "TypeError: NaN value is not supported. Function return value expected type: number | undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 48,
+            "tick": 0,
+            "event": "attachedTo a non-entity",
+            "error": "TypeError: Object did not have a native handle. Function return value expected type: Entity | undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 49,
+            "tick": 0,
+            "event": "dimension set",
+            "error": "TypeError: 'dimension' is read-only"
+        },
+        {
+            "pack": "shapes",
+            "seq": 50,
+            "tick": 0,
+            "event": "hasDuration set",
+            "error": "TypeError: 'hasDuration' is read-only"
+        },
+        {
+            "pack": "shapes",
+            "seq": 51,
+            "tick": 0,
+            "event": "addShape without a dimension",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 52,
+            "tick": 0,
+            "event": "addShape with a dimension",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 53,
+            "tick": 0,
+            "event": "addShape of a dimension location shape with another dimension",
+            "value": "dimension minecraft:nether"
+        },
+        {
+            "pack": "shapes",
+            "seq": 54,
+            "tick": 0,
+            "event": "addShape twice",
+            "value": "added twice"
+        },
+        {
+            "pack": "shapes",
+            "seq": 55,
+            "tick": 0,
+            "event": "addShape of a non-shape",
+            "error": "TypeError: Object did not have a native handle. Function argument [0] expected type: DebugShape"
+        },
+        {
+            "pack": "shapes",
+            "seq": 56,
+            "tick": 0,
+            "event": "addShape of nothing",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1-2, received 0"
+        },
+        {
+            "pack": "shapes",
+            "seq": 57,
+            "tick": 0,
+            "event": "addShape with a dimension that is a string",
+            "error": "TypeError: Native type conversion failed. Function argument [1] expected type: Dimension | undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 58,
+            "tick": 0,
+            "event": "removeShape of a non-shape",
+            "error": "TypeError: Object did not have a native handle. Function argument [0] expected type: DebugShape"
+        },
+        {
+            "pack": "shapes",
+            "seq": 59,
+            "tick": 0,
+            "event": "removeShape of a shape never added",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 60,
+            "tick": 0,
+            "event": "remove of a shape never added",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 61,
+            "tick": 0,
+            "event": "removeAll with nothing drawn",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 62,
+            "tick": 0,
+            "event": "removeShape twice",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 63,
+            "tick": 0,
+            "event": "a removed shape can be added again",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": false,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 64,
+            "tick": 0,
+            "event": "removeAll",
+            "value": {
+                "one": {
+                    "attachedTo": "undefined",
+                    "color": {
+                        "green": 1,
+                        "red": 1,
+                        "blue": 1,
+                        "alpha": 1
+                    },
+                    "dimension": "undefined",
+                    "hasDuration": false,
+                    "location": {
+                        "z": 2.25,
+                        "y": -58,
+                        "x": 1.5
+                    },
+                    "maximumRenderDistance": "undefined",
+                    "rotation": {
+                        "z": 0,
+                        "y": 0,
+                        "x": 0
+                    },
+                    "scale": 1,
+                    "timeLeft": "undefined",
+                    "totalTimeLeft": "undefined",
+                    "bound": {
+                        "z": 1,
+                        "y": 1,
+                        "x": 1
+                    }
+                },
+                "two": {
+                    "attachedTo": "undefined",
+                    "color": {
+                        "green": 1,
+                        "red": 1,
+                        "blue": 1,
+                        "alpha": 1
+                    },
+                    "dimension": "undefined",
+                    "hasDuration": false,
+                    "location": {
+                        "z": 2.25,
+                        "y": -58,
+                        "x": 1.5
+                    },
+                    "maximumRenderDistance": "undefined",
+                    "rotation": {
+                        "z": 0,
+                        "y": 0,
+                        "x": 0
+                    },
+                    "scale": 1,
+                    "timeLeft": "undefined",
+                    "totalTimeLeft": "undefined",
+                    "endLocation": {
+                        "z": 2,
+                        "y": -57,
+                        "x": 4
+                    }
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 65,
+            "tick": 0,
+            "event": "debugDrawer is a DebugDrawer",
+            "value": {
+                "keys": [],
+                "constructor": "DebugDrawer"
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 66,
+            "tick": 0,
+            "event": "disableWatchdogTimingWarnings",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 67,
+            "tick": 0,
+            "event": "disableWatchdogTimingWarnings with nothing",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "shapes",
+            "seq": 68,
+            "tick": 0,
+            "event": "headSegments above its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: headSegments, Value: 300, Property bounds: [3, 128]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 69,
+            "tick": 0,
+            "event": "headSegments below its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: headSegments, Value: -1, Property bounds: [3, 128]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 70,
+            "tick": 0,
+            "event": "numSegments below its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: numSegments, Value: 2, Property bounds: [3, 128]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 71,
+            "tick": 0,
+            "event": "numSegments above its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: numSegments, Value: 129, Property bounds: [3, 128]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 72,
+            "tick": 0,
+            "event": "segmentsPerAxis below its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: segmentsPerAxis, Value: 0, Property bounds: [3, 128]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 73,
+            "tick": 0,
+            "event": "maximumRenderDistance below its bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: maximumRenderDistance, Property bounds: [0, 340282346638528859811704183484516925440.00]"
+        },
+        {
+            "pack": "shapes",
+            "seq": 74,
+            "tick": 0,
+            "event": "a timed shape after addShape",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": 0.5,
+                "totalTimeLeft": 0.5,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 75,
+            "tick": 0,
+            "event": "timeLeft set after addShape",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": 2,
+                "totalTimeLeft": 2,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 76,
+            "tick": 3,
+            "event": "timeLeft set again while drawn",
+            "value": {
+                "timeLeft": 1,
+                "totalTimeLeft": 1
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 77,
+            "tick": 6,
+            "event": "removeShape and addShape in tick 6"
+        },
+        {
+            "pack": "shapes",
+            "seq": 78,
+            "tick": 20,
+            "event": "how each timeLeft moved",
+            "value": {
+                "timed": [
+                    "down",
+                    "at zero"
+                ],
+                "undrawn before addShape": [
+                    "still"
+                ],
+                "undrawn after addShape": [
+                    "down",
+                    "at zero"
+                ],
+                "removed before removeShape": [
+                    "down"
+                ],
+                "removed after removeShape": [
+                    "down",
+                    "still"
+                ],
+                "forever": [
+                    "undefined"
+                ],
+                "totals": [
+                    "0.5 0.5"
+                ]
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 79,
+            "tick": 20,
+            "event": "a shape whose time ran out",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": 0,
+                "totalTimeLeft": 0.5,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "shapes",
+            "seq": 80,
+            "tick": 20,
+            "event": "removeShape of a shape whose time ran out",
+            "value": "undefined"
+        },
+        {
+            "pack": "shapes",
+            "seq": 81,
+            "tick": 20,
+            "event": "addShape of a shape whose time ran out",
+            "value": {
+                "attachedTo": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "dimension": "undefined",
+                "hasDuration": true,
+                "location": {
+                    "z": 2.25,
+                    "y": -58,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "timeLeft": 0,
+                "totalTimeLeft": 0.5,
+                "bound": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        }
+    ]
+}
