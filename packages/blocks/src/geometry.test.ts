@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import table from './tables/blockGeometry.json' with { type: 'json' };
 import {
     BEDROCK_GEOMETRY_STATE_COUNT,
+    BLOCKS_WITHOUT_CAPTURED_GEOMETRY,
     FULL_BLOCK,
     PASSABLE,
     bedrockCollisionTopOf,
@@ -24,11 +25,11 @@ describe('bedrockCollisionTopOf', () => {
         }
     });
 
-    it('covers every block the palette declares', () => {
+    it('covers every block the palette declares, except the reviewed newer ones', () => {
         const missing = Object.keys(blockSchemas.blocks).filter(
             (identifier) => bedrockCollisionTopOf(identifier) === undefined
         );
-        expect(missing).toEqual([]);
+        expect(missing.sort()).toEqual([...BLOCKS_WITHOUT_CAPTURED_GEOMETRY].sort());
         reportProgress(`${BEDROCK_GEOMETRY_STATE_COUNT} captured block geometry state rows are available.`);
     });
 

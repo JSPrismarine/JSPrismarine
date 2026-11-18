@@ -9,6 +9,7 @@ import {
     bedrockCollisionDefaultBoxesOf,
     bedrockCollisionPermutationsOf,
     bedrockHasCollisionOf,
+    BLOCKS_WITHOUT_CAPTURED_GEOMETRY,
     bedrockStaticCollisionBoxesOf
 } from './geometry';
 import { BlocksErrors } from '@jsprismarine/errors/blocks';
@@ -100,6 +101,10 @@ const EXCEPTION_REASONS: readonly { readonly reason: string; readonly matches: (
     {
         reason: 'an engine-internal block the player never places',
         matches: (name) => ['client_request_placeholder_block', 'invisible_bedrock'].includes(name)
+    },
+    {
+        reason: 'added by Bedrock 1.26.60, after the pinned Java release',
+        matches: (name) => ['disc_press', 'ice_crystal', 'icicle'].includes(name)
     }
 ];
 
@@ -311,11 +316,13 @@ export const generateVanillaOverlay = (
         }
 
         const hasCollision = bedrockHasCollisionOf(identifier);
-        if (hasCollision === undefined) throw new BlocksErrors.MissingCollisionGeometry({ identifier });
-        if (!hasCollision) {
+        if (hasCollision === undefined && !BLOCKS_WITHOUT_CAPTURED_GEOMETRY.has(identifier))
+            throw new BlocksErrors.MissingCollisionGeometry({ identifier });
+        // A block without a row keeps the default component, which is a full cube.
+        if (hasCollision === false) {
             components['minecraft:collision_box'] = false;
             nonCollidingBlocks.push(identifier);
-        } else {
+        } else if (hasCollision === true) {
             const boxes = bedrockStaticCollisionBoxesOf(identifier);
             if (boxes !== undefined) {
                 components['minecraft:collision_box'] = collisionComponentFor(boxes);

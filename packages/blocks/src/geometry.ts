@@ -128,6 +128,20 @@ export const bedrockCollisionTopOf = (identifier: string, runtimeId?: number): n
 export const bedrockHasCollisionOf = (identifier: string): boolean | undefined => blocks[identifier]?.hasCollision;
 
 /**
+ * Blocks newer than the shape table, reviewed one by one. The table was captured at 1.26.51
+ * and nothing can refresh it (issue #3106), so a block a later release added has no row. The
+ * overlay declares each one here a full cube, the safe direction {@link FULL_BLOCK} describes,
+ * and refuses any other block without a row. `geometry.test.ts` fails once one of these gains a
+ * row, so a measured shape is never shadowed by this list.
+ */
+export const BLOCKS_WITHOUT_CAPTURED_GEOMETRY: ReadonlySet<string> = new Set([
+    // 1.26.60.
+    'minecraft:disc_press',
+    'minecraft:ice_crystal',
+    'minecraft:icicle'
+]);
+
+/**
  * The captured collision boxes when every state of a block shares one partial shape.
  *
  * Full cubes use Bedrock's default component, blocks without collision use `false`, and blocks
