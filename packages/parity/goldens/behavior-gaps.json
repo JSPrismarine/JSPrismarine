@@ -1771,6 +1771,11 @@
             "kind": "defect",
             "reason": "JSPrismarine's block palette has no old_log_type state on minecraft:oak_log and no stone_type on minecraft:stone, which the pinned BDS still lists, so getAllStates returns fewer states. Every block read, write and error matches BDS.",
             "reference": "docs/plans/script-api-host.md slice 10"
+        },
+        "bds-record:structures": {
+            "kind": "defect",
+            "reason": "JSPrismarine's block palette has no stone_type on minecraft:stone, wood_type on minecraft:oak_planks, old_log_type on minecraft:oak_log or dirt_type on minecraft:dirt, which the pinned BDS still lists, so a structure's getBlockPermutation returns fewer states. Every copy, read, write, placement, turn, save, list, delete and error matches BDS.",
+            "reference": "issue #3237"
         }
     },
     "scripting.commands": {
@@ -1789,6 +1794,11 @@
     },
     "scripting.engine": {},
     "scripting.entities": {
+        "bds-record:entity-components": {
+            "kind": "defect",
+            "reason": "A pig has no underwater_movement attribute on JSPrismarine, where BDS gives every mob 0.02 (issue #3264). A zombie set to 0 health with resetToMinValue leaves the script world at once on JSPrismarine, so its health component throws and it reads isValid false, where BDS keeps it valid through its death animation (issue #3263). Every equipment slot, armor total, other attribute read and write with its bounds, container slot, dimension and effect type, Effect.isValid and spawnParticle match BDS.",
+            "reference": "issue #3263"
+        },
         "bds-record:entity-effects": {
             "kind": "defect",
             "reason": "A pig's speed effect stays at 60 ticks five ticks after addEffect on JSPrismarine, where BDS counts it down to 55, because no player is near and JSPrismarine has no /tickingarea, so the pig never updates. A dying pig's getEffects throws InvalidEntityError on JSPrismarine, where BDS keeps it valid through its death animation and returns its one effect. Every other effect read and write, its errors and display names, the MolangVariableMap setters and spawnParticle match BDS.",

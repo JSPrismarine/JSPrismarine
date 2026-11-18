@@ -737,5 +737,29 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:feedback'] },
         needs: 'server'
+    },
+    {
+        id: 'structures',
+        family: 'scripting.blocks',
+        description:
+            'world.structureManager copies a volume of the world into a structure, reads and writes its blocks, ' +
+            'places it by id or object, rotated or without its blocks, saves it under another id, lists and deletes ' +
+            'structures, and refuses an id in use or one it does not have.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['structures'],
+        needs: 'server'
+    },
+    {
+        id: 'entity-components',
+        family: 'scripting.entities',
+        description:
+            "A player's equippable component reads and writes its worn and held stacks, an entity's health and " +
+            "movement components read and write the attribute, a container's slots read and write the stack in place, " +
+            'and DimensionTypes and EffectTypes list the types the world has.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['components'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:components'] },
+        needs: 'server'
     }
 ];
