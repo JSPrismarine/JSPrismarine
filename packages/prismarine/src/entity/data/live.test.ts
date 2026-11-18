@@ -3124,6 +3124,20 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(live.actors.actorOf(restored.id)?.getPortalCooldown()).toBe(123);
         });
 
+        it('brings a mob from a Bedrock world back under its CustomName', () => {
+            const nbt = savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 });
+            nbt.addValue('CustomName', new Types.StringVal('Grumpy'));
+
+            const migrated = live.restoreExisting(EntitySerializer.fromNBT(nbt));
+            if (migrated === undefined) throw new Error('the saved zombie was not migrated');
+            expect(migrated.body.nameTag).toBe('Grumpy');
+
+            // A record's own name wins over the actor record's.
+            const record = { ...dataEntityRecordOf(migrated, undefined), nameTag: 'Renamed' };
+            const restored = live.restore(record, EntitySerializer.fromNBT(nbt));
+            expect(restored?.body.nameTag).toBe('Renamed');
+        });
+
         it('migrates a saved actor without a record into the data runtime, facing the way it was saved', async () => {
             const stored = EntitySerializer.fromNBT(
                 savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 }, { yaw: 45, pitch: 12 })

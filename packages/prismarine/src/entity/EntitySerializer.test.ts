@@ -318,6 +318,49 @@ describe('entity', () => {
             expect(written.getByte('Invulnerable', 1)).toBe(0);
         });
 
+        describe('name tags', () => {
+            const named = (name: string) =>
+                actor('minecraft:llama', (root) => {
+                    root.addValue('CustomName', new Types.StringVal(name));
+                    root.addValue('CustomNameVisible', new Types.ByteVal(1));
+                });
+
+            it("loads a Bedrock world's CustomName as the actor's name", () => {
+                expect(EntitySerializer.fromNBT(named('Dolly')).nameTag).toBe('Dolly');
+                expect(loaded(named('Dolly')).getName()).toBe('Dolly');
+                expect(EntitySerializer.fromNBT(actor('minecraft:llama')).nameTag).toBeUndefined();
+            });
+
+            it('writes the name back, with the CustomNameVisible it was loaded with', () => {
+                const written = roundTrip(named('Dolly'));
+
+                expect(written.getString('CustomName', '')).toBe('Dolly');
+                expect(written.getByte('CustomNameVisible', 0)).toBe(1);
+            });
+
+            it('writes a name given after loading, and drops one taken away', () => {
+                const llama = loaded(actor('minecraft:llama'));
+                llama.setName('Dolly');
+                expect(EntitySerializer.toNBT(llama).getString('CustomName', '')).toBe('Dolly');
+
+                const renamed = loaded(named('Dolly'));
+                renamed.entity.body.nameTag = undefined;
+                expect(EntitySerializer.toNBT(renamed).has('CustomName')).toBe(false);
+            });
+
+            it('writes the name a data entity record holds when one is given', () => {
+                const at = storeWorld();
+                const cow = at.live.runtime.spawn('minecraft:cow', { x: 0.5, y: 64, z: 0.5 });
+                const actorOfCow = cow === undefined ? undefined : at.live.actors.actorOf(cow.id);
+                if (cow === undefined || actorOfCow === undefined) throw new Error('the fixture declares no cow');
+                cow.body.nameTag = 'Daisy';
+
+                const written = EntitySerializer.toNBT(actorOfCow, dataEntityRecordOf(cow, undefined));
+
+                expect(written.getString('CustomName', '')).toBe('Daisy');
+            });
+        });
+
         describe('portals', () => {
             it('keeps the portal cooldown across a save', () => {
                 const source = actor('minecraft:cow', (root) =>

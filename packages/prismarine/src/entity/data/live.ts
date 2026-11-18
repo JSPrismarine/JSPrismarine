@@ -1166,12 +1166,15 @@ export class LiveEntityRuntime {
         const entity = this.runtime.restore(record, at);
         if (entity === undefined) return undefined;
         this.keep(entity, kept);
-        entity.body.nameTag ??= kept.nameTag;
         return entity;
     }
 
-    /** Puts what an actor record held apart from the entity's record onto the restored entity. */
+    /**
+     * Puts what an actor record held apart from the entity's record onto the restored entity. A
+     * name the entity's record holds wins over the actor record's.
+     */
     private keep(entity: DataEntity, kept: KeptActorState): void {
+        entity.body.nameTag ??= kept.nameTag;
         const actor = this.actors.actorOf(entity.id);
         if (actor !== undefined) {
             actor.persistentNbt = kept.persistentNbt;

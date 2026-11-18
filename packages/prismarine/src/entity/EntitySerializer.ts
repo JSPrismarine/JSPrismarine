@@ -39,6 +39,7 @@ const REWRITTEN = [
     'Pos',
     'Rotation',
     'Tags',
+    'CustomName',
     'JSPFuse',
     'Fuse',
     'fuse',
@@ -57,6 +58,8 @@ export interface StoredActor {
     readonly position: EntityPosition;
     readonly yaw: number;
     readonly pitch: number;
+    /** The name a name tag or a script gave it, Bedrock's `CustomName`, or undefined for none. */
+    readonly nameTag?: string;
     /** The `/tag` tags, each once. */
     readonly tags: readonly string[];
     /** The status effects this server models; the rest stay in {@link StoredActor.persistentNbt}. */
@@ -83,12 +86,14 @@ export class EntitySerializer {
         const identifier = nbt.getString('identifier', '');
         const [x, y, z] = readFloats(nbt, 'Pos', 3);
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
+        const nameTag = nbt.getString('CustomName', '');
 
         return {
             identifier,
             position: { x: x ?? 0, y: y ?? 0, z: z ?? 0 },
             yaw: yaw ?? 0,
             pitch: pitch ?? 0,
+            ...(nameTag === '' ? {} : { nameTag }),
             tags: [...new Set(stringsIn(nbt, 'Tags'))],
             statusEffects: activeEffectsIn(nbt),
             portalCooldown: portalCooldownOf(nbt.getNumber('PortalCooldown', 0)),
@@ -117,6 +122,11 @@ export class EntitySerializer {
         // entity is in exactly the dimension of the world that holds it.
         nbt.addValue('PortalCooldown', new Types.NumberVal(entity.getPortalCooldown()));
         nbt.addValue('DimensionId', new Types.NumberVal(entity.getWorld().getDimension().bedrockId));
+        // Bedrock's own tag, so a name survives a save and a BDS world's names load. Its
+        // `CustomNameVisible` is not modeled and stays in the remainder as the file had it.
+        const name = record === undefined ? entity.getName() : (record.nameTag ?? '');
+        if (name !== '') nbt.addValue('CustomName', new Types.StringVal(name));
+        else nbt.remove('CustomName');
         const tags = entity.getTags();
         if (tags.length > 0) nbt.addValue('Tags', new Set(tags.map((tag) => new Types.StringVal(tag))));
         else nbt.remove('Tags');
