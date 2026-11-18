@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readContentSettings } from '../content/settings';
+import { DEFAULT_PROTOCOL_SETTINGS } from '../network/codec/ProtocolPolicy';
 import { Config } from './Config';
 
 /**
@@ -57,6 +58,8 @@ describe('the config file a boot generates', () => {
         'fluid-replacement',
         'entity-tracking-hysteresis',
         'entity-tracking-interval',
+        'protocol-window',
+        'protocol-content',
         'online-mode',
         'enable-raknet',
         'use-raknet-worker',
@@ -117,7 +120,12 @@ describe('the config file a boot generates', () => {
         writeFileSync(yamlFile, 'content-strict: true\n');
 
         expect(() => new Config()).not.toThrow();
-        expect(readContentSettings()).toEqual({ strict: false, worldPacks: [], datapacks: [] });
+        expect(readContentSettings()).toEqual({
+            strict: false,
+            worldPacks: [],
+            datapacks: [],
+            protocols: DEFAULT_PROTOCOL_SETTINGS
+        });
         expect(readFileSync(yamlFile, 'utf8')).toBe('content-strict: true\n');
     });
 });

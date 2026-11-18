@@ -137,6 +137,10 @@ export interface ConfigFile {
     'entity-tracking-hysteresis'?: number;
     /** Ticks between entity visibility passes. @asType integer @minimum 1 */
     'entity-tracking-interval'?: number;
+    /** How many Bedrock releases to accept, counted back from the newest this server supports. @asType integer @minimum 1 */
+    'protocol-window'?: number;
+    /** Which release in the protocol window the world's content comes from: the newest, or the oldest so every accepted client has all of it. */
+    'protocol-content'?: 'newest' | 'oldest';
     /** Whether players must be signed in to Xbox Live. */
     'online-mode'?: boolean;
     /** Whether to accept clients over RakNet, Bedrock's UDP transport before NetherNet. */
@@ -181,8 +185,12 @@ export interface ConfigFile {
     'content-datapacks'?: string[];
 }
 
-/** The keys the content build reads before `Config.enable` runs. */
-export type ContentConfigKey = 'content-strict' | 'content-world-packs' | 'content-datapacks';
+/**
+ * The keys the content build reads before `Config.enable` runs. The protocol keys are among them
+ * because `protocol-content: oldest` decides which vanilla content the build leaves out.
+ */
+export type ContentConfigKey =
+    'protocol-window' | 'protocol-content' | 'content-strict' | 'content-world-packs' | 'content-datapacks';
 
 /**
  * Every key `config.json` may hold, in the order the file spells them.
@@ -216,6 +224,8 @@ export const CONFIG_KEY_ORDER = [
     'fluid-replacement',
     'entity-tracking-hysteresis',
     'entity-tracking-interval',
+    'protocol-window',
+    'protocol-content',
     'online-mode',
     'enable-raknet',
     'use-raknet-worker',

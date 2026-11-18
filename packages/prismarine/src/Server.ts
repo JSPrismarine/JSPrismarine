@@ -20,6 +20,9 @@ import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport'
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
+import { resolveProtocolPolicy } from './network/codec/ProtocolPolicy';
+import type { ProtocolPolicy } from './network/codec/ProtocolPolicy';
+import type { ProtocolCodec } from '@jsprismarine/protocol';
 import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
 import type { LiveEntityRuntime } from './entity/data/live';
@@ -196,6 +199,13 @@ export default class Server {
      * the item actor port, which it tells what an interaction landed on.
      */
     private contentWorld: ServerWorldHandle | undefined;
+
+    /**
+     * Which client protocols the server accepts and which release its content comes from, read
+     * with the content settings because `protocol-content` decides what the build leaves out.
+     * The newest release only until {@link Server.enableContent} reads the file.
+     */
+    private protocolPolicy: ProtocolPolicy = resolveProtocolPolicy();
 
     /**
      * The data-driven entity runtimes, one per world: each dimension of each level.
@@ -422,6 +432,8 @@ export default class Server {
      */
     private enableContent(): void {
         const settings = readContentSettings();
+        this.protocolPolicy = resolveProtocolPolicy(settings.protocols);
+        this.logProtocolPolicy();
         this.content = undefined;
         this.contentWorld = undefined;
         // A fresh registry per build: the runtimes hold a closure over the content that is
@@ -487,6 +499,20 @@ export default class Server {
         // without a dragon.
         for (const diagnostic of this.content.diagnostics) {
             if (diagnostic.code === 'pack.missing') this.logger.warn(diagnostic.message);
+        }
+    }
+
+    /** Says which releases the server accepts, and that a window was clamped if it was. */
+    private logProtocolPolicy(): void {
+        const policy = this.protocolPolicy;
+        const named = (codec: ProtocolCodec): string => `${codec.minecraftVersions.at(-1)} (${codec.protocolVersion})`;
+        this.logger.info(
+            `Accepting Bedrock §e${policy.releases.map(named).join('§r, §e')}§r, with the content of §e${named(policy.content)}§r`
+        );
+        if (policy.clampedFrom !== undefined) {
+            this.logger.warn(
+                `protocol-window asks for ${policy.clampedFrom} releases and this build supports ${policy.releases.length}; accepting those`
+            );
         }
     }
 
@@ -851,6 +877,15 @@ export default class Server {
     public getContent(): ServerContent {
         if (!this.content) throw new PrismarineServerErrors.ContentReadTooEarly();
         return this.content;
+    }
+
+    /**
+     * Which client protocols the server accepts and which release its content comes from.
+     *
+     * @returns {ProtocolPolicy} The policy `protocol-window` and `protocol-content` resolve to.
+     */
+    public getProtocolPolicy(): ProtocolPolicy {
+        return this.protocolPolicy;
     }
 
     /**

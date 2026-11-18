@@ -137,6 +137,9 @@ export class ConnectionContexts {
             get config() {
                 return server.getConfig();
             },
+            get protocols() {
+                return server.getProtocolPolicy();
+            },
             login
         };
     }

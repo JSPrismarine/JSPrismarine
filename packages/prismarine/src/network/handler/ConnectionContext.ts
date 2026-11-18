@@ -22,6 +22,7 @@ import type PlayerSession from '../PlayerSession';
 import type { PlayerIdentity } from '../../playerIdentity';
 import type { SessionPhase } from '../SessionPhase';
 import type { HandlerLog } from './HandlerContext';
+import type { ProtocolPolicy } from '../codec/ProtocolPolicy';
 
 /** The phases a connection passes through before its login becomes a player session. */
 export type ConnectionPhase = Extract<SessionPhase, 'handshake' | 'login' | 'encryption'>;
@@ -93,6 +94,8 @@ export interface ConnectionContext {
     readonly log: HandlerLog;
     /** The settings the handler may read. */
     readonly config: ConnectionConfig;
+    /** Which client protocols the server accepts. */
+    readonly protocols: Pick<ProtocolPolicy, 'accepted' | 'releases' | 'codecFor'>;
     /** The services a login uses. */
     readonly login: LoginServices;
 }
