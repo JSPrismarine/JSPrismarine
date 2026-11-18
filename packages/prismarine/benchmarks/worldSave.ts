@@ -35,6 +35,7 @@ const makeEntities = (count: number, chunkWidth: number): StoreActor[] => {
             getType: () => 'minecraft:cow',
             getPosition: () => position,
             getTags: () => [],
+            getName: () => '',
             getStatusEffects: () => [],
             getPortalCooldown: () => 0,
             getWorld: () => world,
