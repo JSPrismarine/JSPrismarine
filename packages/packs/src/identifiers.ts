@@ -117,9 +117,13 @@ const IDENTIFIER_FIELDS: Readonly<Record<string, string>> = {
  * reach the report as missing items.
  *
  * @param siblings - The object the `id` field belongs to.
+ * @param parent - The field that object sits under, if any.
  * @returns The registry the id points into, or undefined when it names no registry entry.
  */
-const registryForId = (siblings: Record<string, unknown>): string | undefined => {
+const registryForId = (siblings: Record<string, unknown>, parent: string | undefined): string | undefined => {
+    // Spawn data, as a trial spawner's `spawn_potentials` write it: `{ entity: { id } }`
+    // is the mob to spawn, not an item.
+    if (parent === 'entity') return 'entity_type';
     // An attribute modifier's own name: a free-form resource location the
     // enchantment picks, not an entry of any registry.
     if ('attribute' in siblings) return undefined;
@@ -141,9 +145,14 @@ const registryForId = (siblings: Record<string, unknown>): string | undefined =>
  *
  * @param key - The field name.
  * @param siblings - The object the field belongs to, which decides the ambiguous names.
+ * @param parent - The field that object sits under, if any.
  */
-const registryForField = (key: string, siblings: Record<string, unknown>): string | undefined => {
-    if (key === 'id') return registryForId(siblings);
+const registryForField = (
+    key: string,
+    siblings: Record<string, unknown>,
+    parent: string | undefined
+): string | undefined => {
+    if (key === 'id') return registryForId(siblings, parent);
     // A `minecraft:dynamic` loot entry names a drop the block itself supplies,
     // such as the sherds a decorated pot breaks into. The name is a key into
     // the block's own drop list, not an item.
@@ -186,21 +195,25 @@ const count = (counts: Counts, registry: string, value: unknown, from: Definitio
     } else byId.set(id, { count: 1, required, pack: from.pack, path: from.path });
 };
 
-/** Walks a definition, counting the values of identifier-valued fields. */
-const walk = (value: unknown, counts: Counts, from: Definition): void => {
+/**
+ * Walks a definition, counting the values of identifier-valued fields.
+ *
+ * @param parent - The field `value` sits under, which an array passes on to its members.
+ */
+const walk = (value: unknown, counts: Counts, from: Definition, parent?: string): void => {
     if (Array.isArray(value)) {
-        for (const member of value) walk(member, counts, from);
+        for (const member of value) walk(member, counts, from, parent);
         return;
     }
     if (!isRecord(value)) return;
 
     for (const [key, member] of Object.entries(value)) {
-        const registry = registryForField(key, value);
+        const registry = registryForField(key, value, parent);
         if (registry) {
             if (typeof member === 'string') count(counts, registry, member, from);
             else if (Array.isArray(member)) for (const entry of member) count(counts, registry, entry, from);
         }
-        walk(member, counts, from);
+        walk(member, counts, from, key);
     }
 };
 

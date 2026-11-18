@@ -9,11 +9,10 @@ behavior pack; the Java kind is a datapack folder or zip. `load(stack)` returns 
 object, which maps identifier to winning parsed definition for each registry, plus a diagnostics
 report. The Bedrock registries (blocks, items, entities, loot tables, trade tables, spawn rules,
 recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
-its definition replaces the earlier one whole. The Java registries (`lootTablesJava`, `recipesJava`,
-`advancements`, `tags`, `enchantments`, `damageTypes`, `predicates`, `itemModifiers`, `functions`,
-`dimensionTypes`, `dimensions`, `worldgen`, keyed by namespaced id, from the 26.3 singular directory
-names) resolve by Java's rule: a later pack wins per file, except tags, whose values merge across
-packs unless a later file sets `replace`.
+its definition replaces the earlier one whole. The Java registries (`JAVA_REGISTRY_IDS`, keyed by
+namespaced id; `JAVA_REGISTRY_DIRECTORIES` maps each 26.3 singular directory name to its registry)
+resolve by Java's rule: a later pack wins per file, except tags, whose values merge across packs
+unless a later file sets `replace`.
 
 `dimensionTypes` holds `data/<namespace>/dimension_type/` and `dimensions` holds
 `data/<namespace>/dimension/`, the level stems a datapack adds or overrides. `worldgen` is one

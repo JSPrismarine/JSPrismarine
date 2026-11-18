@@ -81,7 +81,7 @@ regenerates. The output is Mojang's content and stays in the gitignored cache.
 On the first server boot, `@jsprismarine/packs` composes the vanilla behavior pack's brarchive
 layers, the block and entity overlays, and the Java datapack. It writes the resulting definitions
 and diagnostics to one V8 file at
-`node_modules/.cache/jsprismarine/composed-vanilla-prefix.v10`. Warm boots read that prefix from the
+`node_modules/.cache/jsprismarine/composed-vanilla-prefix.v11`. Warm boots read that prefix from the
 file, then load world and plugin packs on top. The cache key includes the resolved vanilla source
 paths, the `@jsprismarine/packs` version, the structural validator key, and a content hash of the
 overlay files. A source path or package version change, or an overlay edit, rebuilds the cache.

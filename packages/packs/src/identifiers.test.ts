@@ -141,6 +141,20 @@ describe('reportIdentifiers', () => {
         expect(byId.has('minecraft:sherds')).toBe(false);
     });
 
+    it("reads a trial spawner's spawn data id as the entity type it spawns", () => {
+        const pack = writeDatapack({
+            'pack.mcmeta': MCMETA,
+            'data/fixture/trial_spawner/crypt.json': JSON.stringify({
+                spawn_potentials: [{ data: { entity: { id: 'fixture:ghoul' } }, weight: 1 }],
+                loot_tables_to_eject: [{ data: 'fixture:crypt_reward', weight: 1 }]
+            })
+        });
+        const { definitions } = load([{ kind: 'datapack', path: pack }], { strict: true });
+
+        const byId = new Map(reportIdentifiers(definitions).map((entry) => [entry.id, entry.registry]));
+        expect(byId.get('fixture:ghoul')).toBe('entity_type');
+    });
+
     it('carries the injected resolver verdict per identifier', () => {
         const { definitions } = load([{ kind: 'datapack', path: fixturePack() }], { strict: true });
         const resolver: IdentifierResolver = {

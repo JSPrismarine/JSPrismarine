@@ -89,6 +89,25 @@ describe('routeDatapackPath', () => {
         });
     });
 
+    it('routes villager trades, trial spawners and mob variants by namespaced id', () => {
+        expect(routeDatapackPath('data/minecraft/villager_trade/armorer/1/emerald_iron_boots.json')).toEqual({
+            registry: 'villagerTrades',
+            identifier: 'minecraft:armorer/1/emerald_iron_boots'
+        });
+        expect(routeDatapackPath('data/minecraft/trade_set/librarian/level_2.json')).toEqual({
+            registry: 'tradeSets',
+            identifier: 'minecraft:librarian/level_2'
+        });
+        expect(routeDatapackPath('data/minecraft/trial_spawner/trial_chamber/breeze/normal.json')).toEqual({
+            registry: 'trialSpawners',
+            identifier: 'minecraft:trial_chamber/breeze/normal'
+        });
+        expect(routeDatapackPath('data/minecraft/wolf_sound_variant/angry.json')).toEqual({
+            registry: 'wolfSoundVariants',
+            identifier: 'minecraft:angry'
+        });
+    });
+
     it('routes every worldgen kind into one registry keyed by kind then namespaced id', () => {
         expect(routeDatapackPath('data/minecraft/worldgen/noise_settings/overworld.json')).toEqual({
             registry: 'worldgen',
@@ -143,7 +162,7 @@ describe('routeDatapackPath', () => {
 
     it('ignores pre-1.21 plural directories, unconsumed registries and nested built-in packs', () => {
         expect(routeDatapackPath('data/minecraft/loot_tables/blocks/stone.json')).toBeUndefined();
-        expect(routeDatapackPath('data/minecraft/trim_material/quartz.json')).toBeUndefined();
+        expect(routeDatapackPath('data/minecraft/chat_type/chat.json')).toBeUndefined();
         expect(
             routeDatapackPath('data/minecraft/datapacks/trade_rebalance/data/minecraft/recipe/x.json')
         ).toBeUndefined();

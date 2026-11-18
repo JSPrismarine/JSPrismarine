@@ -156,6 +156,38 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     dimensions: { required: { type: 'string', generator: 'object' } },
     paintingVariants: { required: { asset_id: 'string', width: 'number', height: 'number' } },
     enchantmentProviders: { required: { type: 'string' } },
+    bannerPatterns: { required: { asset_id: 'string', translation_key: 'string' } },
+    // A horn's or a song's `sound_event` is either a sound id or an inline sound definition.
+    instruments: { required: { use_duration: 'number', range: 'number' } },
+    jukeboxSongs: { required: { length_in_seconds: 'number', comparator_output: 'number' } },
+    trimPatterns: { required: { asset_id: 'string' } },
+    trimMaterials: { required: { palette_id: 'string' } },
+    decoratedPotPatterns: { required: { asset_id: 'string' } },
+    catVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    catSoundVariants: {},
+    chickenVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    chickenSoundVariants: {},
+    cowVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    cowSoundVariants: {},
+    frogVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    pigVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    pigSoundVariants: {},
+    wolfVariants: { required: { assets: 'object' }, optional: { spawn_conditions: 'array' } },
+    wolfSoundVariants: {},
+    zombieNautilusVariants: { required: { asset_id: 'string' }, optional: { spawn_conditions: 'array' } },
+    sulfurCubeArchetypes: { optional: { attribute_modifiers: 'array' } },
+    villagerTrades: {
+        required: { wants: 'object', gives: 'object' },
+        optional: { max_uses: 'number', xp: 'number', reputation_discount: 'number' }
+    },
+    // `trades` is a holder set, a `#tag` string or a list of ids, and `amount` a number provider.
+    tradeSets: { optional: { random_sequence: 'string' } },
+    trialSpawners: {
+        optional: { spawn_potentials: 'array', loot_tables_to_eject: 'array', ticks_between_spawn: 'number' }
+    },
+    timelines: { required: { clock: 'string' }, optional: { tracks: 'object', period_ticks: 'number' } },
+    // Vanilla's clocks are empty objects: a clock is only an id timelines run against.
+    worldClocks: {},
     worldgen: { allowsAnyRoot: true }
 };
 
