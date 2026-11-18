@@ -89,6 +89,8 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     // Where a drop becomes a store stack, whose actor the store's `add` hands `spawned`.
     let live: World | undefined;
     const entities = liveTestEntities(() => live);
+    // One kernel for the world's whole life, so a test hears the player events a break posts.
+    const kernel = testKernel();
     const world: World = Object.assign(Object.create(World.prototype), {
         tickHeader: () => QUIET_TICK_HEADER,
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -114,7 +116,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
                 getPacketCompressionLevel: () => 7,
                 getPacketCompressionThreshold: () => 256
             }),
-            getKernel: () => testKernel(),
+            getKernel: () => kernel,
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
             // Rolls taken in turn, so where a drop lands can be said exactly.
             getRandom: () => {
@@ -139,6 +141,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
 
     return {
         break: async (position: Vector3, player?: any) => world.breakBlock(position, player),
+        kernel,
         sent,
         spawned,
         events,
@@ -248,6 +251,28 @@ describe('world', () => {
             expect(at.getZ()).toBeCloseTo(-19.5);
             const motion = drop.getMotion();
             expect([motion.getX(), motion.getY(), motion.getZ()]).toEqual([-0.1, 0.2, 0.1]);
+        });
+
+        it('keeps the block a playerBreakBlock listener cancels, and reports a break that went on', async () => {
+            const kept = fakeWorld(new BlockState('minecraft:oak_log', { pillar_axis: 'x' }));
+            const broken: string[] = [];
+            kept.kernel.events.on('playerBreakBlock', (event) => {
+                broken.push(`before ${event.getPlayer()} ${event.getBlock().name}`);
+                event.preventDefault();
+            });
+            kept.kernel.events.on('playerBlockBroken', (event) => broken.push(`after ${event.getBlock().name}`));
+
+            expect(await kept.break(new Vector3(10, 64, -20), fakePlayer(Gametype.CREATIVE))).toBe(false);
+            expect(kept.state.name).toBe('minecraft:oak_log');
+            expect(kept.events).toHaveLength(0);
+            expect(broken).toEqual(['before 7 minecraft:oak_log']);
+
+            const gone = fakeWorld(new BlockState('minecraft:oak_log', { pillar_axis: 'x' }));
+            gone.kernel.events.on('playerBlockBroken', (event) =>
+                broken.push(`after ${event.getPlayer()} ${event.getBlock().name} ${event.getItemBefore()}`)
+            );
+            expect(await gone.break(new Vector3(10, 64, -20), fakePlayer(Gametype.CREATIVE))).toBe(true);
+            expect(broken).toEqual(['before 7 minecraft:oak_log', 'after 7 minecraft:oak_log null']);
         });
 
         it('drops nothing in creative', async () => {

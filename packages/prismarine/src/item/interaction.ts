@@ -40,6 +40,8 @@ import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
 import { contentStackOf } from './contentStack';
+import PlayerItemUsedEvent from '../events/player/PlayerItemUsedEvent';
+import PlayerUseItemEvent from '../events/player/PlayerUseItemEvent';
 import type { Item } from './Item';
 import type { ItemStack } from '@jsprismarine/items';
 import type { SystemBlock } from '../world/WorldSystems';
@@ -658,6 +660,10 @@ export const useItemInAir = (interaction: AirInteraction): InteractionResult => 
     const inventory = player.getInventory();
     const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
     const held = inventory.getItemInHand();
+    if (!usePastGuards(player, held)) {
+        resendInventory(player);
+        return 'handled';
+    }
     const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
     if (stack === undefined) return 'declined';
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
@@ -670,6 +676,26 @@ export const useItemInAir = (interaction: AirInteraction): InteractionResult => 
         resendInventory(player);
         return 'handled';
     });
+};
+
+/**
+ * The guard stage of a player's use of an item on nothing: `playerUseItem`, which a plugin or a
+ * script's `world.beforeEvents.itemUse` may cancel, then `playerItemUsed` for a use that went on,
+ * whether or not the item has a behavior. An empty hand uses nothing.
+ *
+ * @returns Whether the use goes on.
+ */
+export const usePastGuards = (
+    player: Pick<InteractingPlayer, 'getRuntimeId' | 'getServer' | 'getWorld'>,
+    item: Item
+): boolean => {
+    if (item.getName() === 'minecraft:air' || item.getAmount() <= 0) return true;
+    const { events } = player.getServer().getKernel();
+    const guard = new PlayerUseItemEvent(player.getRuntimeId(), player.getWorld(), item);
+    events.post('playerUseItem', guard);
+    if (guard.isCanceled()) return false;
+    events.post('playerItemUsed', new PlayerItemUsedEvent(player.getRuntimeId(), player.getWorld(), item));
+    return true;
 };
 
 /** How long eating or drinking takes when the item's `minecraft:consumable` does not say, Java's 1.6 s. */

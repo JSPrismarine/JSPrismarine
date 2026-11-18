@@ -6,7 +6,8 @@
  * A simulated player does what a client's input would make a player do, through the same verbs:
  * its chat goes through the chat manager's guards, a walk or a jump moves it through
  * `PlayerSession.setPlayerPosition` as a client's movement does, and a swing goes through
- * `meleeAttack` as an attack packet does. Scripts drive it from the script flush, and a replay
+ * `meleeAttack` as an attack packet does, an item use goes past the item use guards as a click on
+ * nothing does, and a break goes through `World.breakBlock` as a client's does. Scripts drive it from the script flush, and a replay
  * runs the same scripts, so it needs no input of its own in the replay trace
  * ([ADR 0009](../../../../docs/adr/0009-external-inputs-enter-once-per-tick.md)).
  */
@@ -23,6 +24,8 @@ import type {
 } from '@jsprismarine/script-host/host/world';
 
 import { Chat, ChatType } from '../chat/Chat';
+import { usePastGuards } from '../item/interaction';
+import { itemFromContent } from '../item/itemFromContent';
 import { meleeAttack } from '../entity/Combat';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -50,6 +53,8 @@ const REACH = 3;
 interface Motion {
     walk?: { readonly x: number; readonly z: number; readonly speed: number; readonly relative: boolean };
     jump?: { velocity: number; readonly ground: number };
+    /** The block it is breaking, which it tries each tick until the block is gone. */
+    breaking?: { readonly x: number; readonly y: number; readonly z: number };
 }
 
 /** One simulated player of the level. */
@@ -170,9 +175,40 @@ export const levelSimulatedPlayers = (server: Server, level: Level): ScriptSimul
                     damage: player.getInventory().getItemInHand().getAttackDamage()
                 });
             }
-            case 'useItem':
-                // Using an item in the air has no server-side behavior a script can see yet.
-                return false;
+            case 'useItem': {
+                // The stack the script names, not the one in hand, as BDS uses it; it acts as a
+                // click on nothing, past the item use guards.
+                const item = itemFromContent(action.item.typeId, server.getContent());
+                if (item === null) return false;
+                const user = {
+                    getRuntimeId: () => session.getRuntimeId(),
+                    getServer: () => server,
+                    getWorld: () => session.getWorld()
+                };
+                return usePastGuards(user, item.withCount(action.item.amount));
+            }
+            case 'breakBlock':
+                motion.breaking = action.location;
+                return true;
+        }
+    };
+
+    /**
+     * A tick of a simulated player's break: the block breaks through the world's break, past its
+     * guards, from the tick after the script asked, and a canceled break tries again the next
+     * tick, as the `player-feedback` scenario recorded. The break takes no time in any game mode.
+     */
+    const breakStep = ({ session, motion }: Simulated): void => {
+        const at = motion.breaking;
+        if (at === undefined) return;
+        const world = session.getWorld();
+        const block = world.loadedBlockAt(at.x, at.y, at.z);
+        if (
+            block === undefined ||
+            block.name === 'minecraft:air' ||
+            world.breakBlock(new Vector3(at.x, at.y, at.z), session.getPlayer())
+        ) {
+            motion.breaking = undefined;
         }
     };
 
@@ -244,7 +280,10 @@ export const levelSimulatedPlayers = (server: Server, level: Level): ScriptSimul
             return simulated === undefined ? false : act(simulated, action);
         },
         tick: () => {
-            for (const simulated of players.values()) step(simulated);
+            for (const simulated of players.values()) {
+                breakStep(simulated);
+                step(simulated);
+            }
         }
     };
 };

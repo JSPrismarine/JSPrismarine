@@ -8,7 +8,9 @@
  */
 import type { Weather } from '@jsprismarine/engine-systems';
 import type {
+    BlockBreakIntent,
     ChatSendIntent,
+    ItemUseIntent,
     Guard,
     ScriptCommandResult,
     ScriptCommandSet,
@@ -29,6 +31,7 @@ import type {
 import type { ChatManager } from '../chat/ChatManager';
 import { Scoreboard } from '../world/Scoreboard';
 import type { ScriptEntityEvent } from './scriptEntityEvents';
+import type { ScriptPlayerActions } from './scriptPlayerActions';
 import { scriptScoreboard } from './scriptScoreboard';
 import type { WeatherChange, WorldWeather } from '../world/Weather';
 
@@ -57,6 +60,16 @@ export type ScriptLevelAccess = Pick<
     | 'setGameMode'
     | 'setSelectedSlot'
     | 'applyDamage'
+    | 'setSneaking'
+    | 'showTitle'
+    | 'playSound'
+    | 'spawnParticle'
+    | 'isEffectType'
+    | 'effects'
+    | 'addEffect'
+    | 'removeEffect'
+    | 'blockInventory'
+    | 'setBlockInventoryItem'
     | 'dynamicProperties'
     | 'setDynamicProperties'
     | 'clearDynamicProperties'
@@ -152,6 +165,8 @@ export interface ScriptWorldSources {
      * @returns A function that stops it.
      */
     entityEvents?(listener: (event: ScriptEntityEvent) => void): () => void;
+    /** The item use and block breaking of the level's players. Without them, the scripts see neither. */
+    readonly playerActions?: ScriptPlayerActions;
 }
 
 /** The order BDS sends the entity after-events of one flush in, whatever order they happened in. */
@@ -203,6 +218,26 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly setSelectedSlot: ScriptWorld['setSelectedSlot'];
     /** Hurts an entity through the damage pipeline, when the server can. */
     public readonly applyDamage: ScriptWorld['applyDamage'];
+    /** Makes an entity sneak or stand, when the server can. */
+    public readonly setSneaking: ScriptWorld['setSneaking'];
+    /** Shows a player a title, when the server can. */
+    public readonly showTitle: ScriptWorld['showTitle'];
+    /** Plays a sound, when the server can. */
+    public readonly playSound: ScriptWorld['playSound'];
+    /** Spawns a particle effect, when the server can. */
+    public readonly spawnParticle: ScriptWorld['spawnParticle'];
+    /** Whether the server knows a status effect, when it has effects. */
+    public readonly isEffectType: ScriptWorld['isEffectType'];
+    /** An entity's status effects, when the server has them. */
+    public readonly effects: ScriptWorld['effects'];
+    /** Adds a status effect to an entity, when the server can. */
+    public readonly addEffect: ScriptWorld['addEffect'];
+    /** Takes a status effect off an entity, when the server can. */
+    public readonly removeEffect: ScriptWorld['removeEffect'];
+    /** The slots of a block's container, when the server has block containers. */
+    public readonly blockInventory: ScriptWorld['blockInventory'];
+    /** Writes one slot of a block's container, when the server can. */
+    public readonly setBlockInventoryItem: ScriptWorld['setBlockInventoryItem'];
 
     /** The channel the level's scripts' HTTP requests travel over, when the server gives one. */
     public readonly http: ScriptWorld['http'];
@@ -223,6 +258,16 @@ export class LevelScriptWorld implements ScriptWorld {
         this.setGameMode = this.access.setGameMode;
         this.setSelectedSlot = this.access.setSelectedSlot;
         this.applyDamage = this.access.applyDamage;
+        this.setSneaking = this.access.setSneaking;
+        this.showTitle = this.access.showTitle;
+        this.playSound = this.access.playSound;
+        this.spawnParticle = this.access.spawnParticle;
+        this.isEffectType = this.access.isEffectType;
+        this.effects = this.access.effects;
+        this.addEffect = this.access.addEffect;
+        this.removeEffect = this.access.removeEffect;
+        this.blockInventory = this.access.blockInventory;
+        this.setBlockInventoryItem = this.access.setBlockInventoryItem;
         this.http = sources.http;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
@@ -237,10 +282,12 @@ export class LevelScriptWorld implements ScriptWorld {
             if (this.players().includes(id)) this.committed.push({ type: 'chatSend', sender: id, message });
         });
         const stopEntities = sources.entityEvents?.((event) => this.committed.push(event));
+        const stopActions = sources.playerActions?.events((event) => this.committed.push(event));
         this.stopListening = () => {
             stopWeather();
             stopChat?.();
             stopEntities?.();
+            stopActions?.();
         };
     }
 
@@ -456,6 +503,16 @@ export class LevelScriptWorld implements ScriptWorld {
             if (!this.players().includes(sender)) return { veto: false, intent };
             return guard({ sender, message: intent.message }).veto ? { veto: true } : { veto: false, intent };
         });
+    }
+
+    /** Adds a script guard to the block breaking of the level's players. */
+    public guardBlockBreak(guard: VetoGuard<BlockBreakIntent>): () => void {
+        return this.sources.playerActions?.guardBlockBreak(guard) ?? (() => {});
+    }
+
+    /** Adds a script guard to the item use of the level's players. */
+    public guardItemUse(guard: VetoGuard<ItemUseIntent>): () => void {
+        return this.sources.playerActions?.guardItemUse(guard) ?? (() => {});
     }
 
     /**

@@ -8,6 +8,7 @@ import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
+import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { LevelScripts } from '../scripting/LevelScripts';
@@ -92,7 +93,8 @@ export const scriptsModule = (server: Server): Module => ({
                     return () => server.getCommandManager().setScriptCommands(undefined);
                 },
                 components: (sink) => bindScriptComponents(server, level, sink),
-                entityEvents: levelEntityEvents(server, level)
+                entityEvents: levelEntityEvents(server, level),
+                playerActions: levelPlayerActions(server, level)
             },
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),
