@@ -674,6 +674,18 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'debug-shapes',
+        family: 'scripting.debug',
+        description:
+            "Each debug shape class starts with BDS's defaults and keeps what its setters are given, debugDrawer.addShape, " +
+            "removeShape, removeAll and a shape's remove decide where it is drawn, and a drawn shape's timeLeft counts " +
+            'down by a tick each tick until the drawer drops it.',
+        reference: 'docs/plans/script-api-host.md slice 20',
+        packs: ['shapes'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
         id: 'system-jobs',
         family: 'scripting.lifecycle',
         description:

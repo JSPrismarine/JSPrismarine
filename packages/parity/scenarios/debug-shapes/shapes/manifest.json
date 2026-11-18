@@ -1,0 +1,23 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario debug-shapes shapes",
+        "description": "Records what debug-utilities' shapes and drawer keep and report. Written for packages/parity.",
+        "uuid": "ff161749-bd5c-4066-b9c6-b80a67e37cb0",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "5ca72e43-d2db-44ef-a456-d5b4efd86bb5",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        { "module_name": "@minecraft/server", "version": "2.11.0-beta" },
+        { "module_name": "@minecraft/debug-utilities", "version": "1.0.0-beta" }
+    ]
+}
