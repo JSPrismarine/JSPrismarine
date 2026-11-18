@@ -42,7 +42,7 @@ The first run downloads Mojang's game data once. Then add the server in Minecraf
 
 - [Documentation](https://jsprismarine.dev/): running, configuring and hosting a server
 - [Joining a server](docs/guide/joining.md): for players, including the Windows loopback fix
-- [Extending JSPrismarine](docs/guide/extending.md): packs, and embedding the server in your own code
+- [Extending JSPrismarine](docs/guide/extending.md): script packs, content packs, and embedding the server in your own code
 - [Packages](https://jsprismarine.dev/packages): the protocol, RakNet, NBT, LevelDB, Molang and the rest, each on npm
 
 ## Get involved

@@ -25,9 +25,12 @@ import { CompressionType } from '../../packages/leveldb/src/compression/Compress
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
-import { WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
+import { BETA_APIS, WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
 import { JSPRISMARINE_SERVER } from '../../packages/script-host/src/host/jsprismarineServer.ts';
+import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
+import { STEPS_PER_MILLISECOND } from '../../packages/script-host/src/host/WorldScripts.ts';
+import { NATIVE_BUILD_PLATFORMS } from '../../packages/script-host/src/platform.ts';
 import { currentBeta } from '../../packages/script-host/src/shape/resolve.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
@@ -336,14 +339,35 @@ async function bstatsFacts() {
         )}\n`
     };
 /** The beta Script API versions a pack can declare, read from the generated script module histories. */
+/** Operating systems as `process.platform` names them, by the names readers know them by. */
+const PLATFORM_NAMES: Partial<Record<NodeJS.Platform, string>> = { linux: 'Linux', darwin: 'macOS', win32: 'Windows' };
+
 /**
- * The beta Script API versions a pack can declare, read from the generated script module histories,
- * and the members of `@jsprismarine/server`, read from the definition its runtime and typings share.
+ * The Script API modules and versions a pack can declare, read from the generated script module
+ * histories; the modules a world allows without a `permissions.json`; the watchdog's step budget;
+ * the platforms the script host builds on; and the members of `@jsprismarine/server`, read from the
+ * definition its runtime and typings share.
  */
 function scriptingFacts() {
     const history = SCRIPT_MODULE_HISTORIES['@minecraft/server'];
     const beta = history === undefined ? undefined : currentBeta(history);
     if (beta === undefined) throw new Error('The docs facts no longer find a beta of @minecraft/server.');
+    // The newest major version of `@minecraft/server` and the stable version a pack declaring it gets.
+    const [newestMajor, newestStable] =
+        Object.entries(history?.resolves ?? {}).sort(([a], [b]) => Number(b) - Number(a))[0] ?? [];
+    if (newestStable === undefined) throw new Error('The docs facts no longer find a stable @minecraft/server.');
+    const modules = Object.values(SCRIPT_MODULE_HISTORIES).map((module) => {
+        const stable = Object.entries(module.resolves)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([major, version]) => `${major}.x: ${inlineCode(version)}`);
+        const moduleBeta = currentBeta(module);
+        return [
+            inlineCode(module.module),
+            stable.length === 0 ? 'none' : stable.join(', '),
+            moduleBeta === undefined ? 'none' : inlineCode(moduleBeta),
+            DEFAULT_ALLOWED_MODULES.includes(module.module) ? 'yes' : 'no'
+        ];
+    });
     const members = Object.entries(JSPRISMARINE_SERVER).flatMap(([name, member]) => [
         [inlineCode(name), 'object', member.summary],
         ...Object.entries(member.properties).map(([key, property]) => [
@@ -354,6 +378,16 @@ function scriptingFacts() {
     ]);
     return {
         'scripting.serverBeta': beta,
+        // A whole phrase, since the declared major version follows the newest one served.
+        'scripting.resolveExample': `version ${inlineCode(`${newestMajor}.0.0`)} gets ${inlineCode(newestStable)}`,
+        'scripting.modules.table': `\n${table(
+            ['Module', 'Stable versions served', 'Beta served', 'Allowed without `permissions.json`'],
+            modules
+        )}\n`,
+        'scripting.stepsPerMillisecond': String(STEPS_PER_MILLISECOND),
+        'scripting.buildPlatforms': list(
+            NATIVE_BUILD_PLATFORMS.map((platform) => PLATFORM_NAMES[platform] ?? platform)
+        ),
         'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`
     };
 }
@@ -890,6 +924,8 @@ export async function loadFacts(): Promise<Facts> {
             ...(await bstatsFacts()),
             // The ids a `worlds.<name>` entry's `experiments` accepts.
             'world.experiments': WORLD_EXPERIMENTS.join(', '),
+            // The one a pack that declares a beta Script API version needs.
+            'world.betaApis': BETA_APIS,
             ...scriptingFacts(),
             ...eventFacts(),
             ...prismarineEntryFacts(),
