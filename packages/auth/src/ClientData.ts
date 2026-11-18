@@ -1,4 +1,4 @@
-import { BuildPlatform } from '@jsprismarine/minecraft';
+import { blockSchemas, BuildPlatform } from '@jsprismarine/minecraft';
 import { DEFAULT_SKIN_RESOURCE_PATCH, SKIN_HEIGHT, SKIN_WIDTH, createDefaultSkinImage } from './DefaultSkin';
 
 /**
@@ -106,7 +106,9 @@ export const createClientData = (options: ClientDataOptions): ClientDataPayload 
         // "Connection Request invalid". Verified against BDS 1.26.51.1: 7, 5, 10, 14 and 99 are
         // refused, every member the 2193 documentation lists is admitted.
         DeviceOS: options.deviceOS ?? BuildPlatform.WIN32,
-        GameVersion: options.gameVersion ?? '1.26.51',
+        // The release the vanilla data was captured from, which is the newest one the packages
+        // target. A caller speaking an older protocol names its own version.
+        GameVersion: options.gameVersion ?? blockSchemas.minecraftVersion,
         GuiScale: 0,
         LanguageCode: options.languageCode ?? 'en_GB',
         PlatformOnlineId: '',
