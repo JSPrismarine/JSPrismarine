@@ -53,6 +53,17 @@ Thrown as `ScriptHostErrors.ArgumentNotOfType`, which extends `TypeError`.
 An argument the binding checked against its Script API type reached the implementation as
 another type. This is a bug in the script host; report it with the stack trace.
 
+## `SCRIPT_HOST_ARGUMENT_VARIANT_CONVERSION_FAILED`
+
+`Native variant type conversion failed. Function argument [{argument}] expected type: {type}`
+
+Thrown as `ScriptHostErrors.ArgumentVariantConversionFailed`, which extends `TypeError`.
+
+A script passed `@minecraft/server-admin`'s `transferPlayer` an options object that is
+neither a `TransferPlayerIpPortOptions`, a hostname with a port from 0 to 65535, nor a
+`TransferPlayerNetherNetOptions` with a NetherNet id. The script sees Bedrock Dedicated
+Server's `TypeError`.
+
 ## `SCRIPT_HOST_CONNECT_FAILED`
 
 `{reason}`

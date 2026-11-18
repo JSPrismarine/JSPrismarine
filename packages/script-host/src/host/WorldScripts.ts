@@ -52,6 +52,9 @@ import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from '.
 import { serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
+import { SERVER_ADMIN, serverAdminImplementations } from './serverAdmin';
+import { PackNet } from './netKit';
+import { SERVER_NET, serverNetImplementations } from './serverNet';
 import type { ScriptDeferred } from './serverGametest';
 import { GAMETEST_TAG, gametestImplementations } from './serverGametest';
 import type { EntityKey } from './serverObjects';
@@ -60,6 +63,7 @@ import type { ScriptConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackBytes, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
+import { ScriptHttp } from './ScriptHttp';
 import { hookEventOf } from './serverCustom';
 import { TaskQueue } from './tasks';
 import type {
@@ -192,6 +196,13 @@ interface LoadedPack {
     jsp?: ScriptHandle;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
+    /**
+     * Its realm's `JSON.parse`, taken before any of its code runs, for `@minecraft/server-admin`'s
+     * variables, when it declares the module.
+     */
+    parseJson?: ScriptHandle;
+    /** Its `@minecraft/server-net` request header lists, when it declares the module. */
+    net?: PackNet;
 }
 
 /** A callback a pack subscribed to a signal. */
@@ -260,6 +271,8 @@ export class WorldScripts {
     private lastEntered: LoadedPack | undefined;
     /** The `@minecraft/server-ui` forms the world's players have open. */
     private readonly forms = new ScriptForms<LoadedPack>(() => this.engine);
+    /** The `@minecraft/server-net` requests the packs have in flight. */
+    private readonly http = new ScriptHttp<LoadedPack>();
     /** The world's GameTests, which a reload clears. */
     private readonly gametests: GameTests<LoadedPack>;
     /** The ids of the simulated players GameTests spawned, whose objects are `SimulatedPlayer`s. */
@@ -386,6 +399,7 @@ export class WorldScripts {
         this.tickEntries = 0;
         this.refreshClock();
         this.settleForms();
+        this.settleRequests();
         for (const loaded of this.loaded) if (loaded.lifecycle === 1) this.runJobs(loaded);
         // The GameTest runner and its simulated players go first, as BDS ticks them before the
         // scripts' tasks: a test's function and its delays run ahead of every system task.
@@ -493,11 +507,14 @@ export class WorldScripts {
         this.gametests.clear();
         // A reload or shutdown settles no open form: the contexts that would see it go with it.
         this.forms.clear();
+        this.http.clear(this.options.world.http);
         for (const loaded of this.loaded) {
             loaded.forms?.destroy();
+            loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
             for (const handle of loaded.entities.values()) this.engine.free(handle);
             if (loaded.setNow !== undefined) this.engine.free(loaded.setNow);
+            if (loaded.parseJson !== undefined) this.engine.free(loaded.parseJson);
             if (loaded.jsp !== undefined) this.engine.free(loaded.jsp);
             loaded.api.destroy();
         }
@@ -533,7 +550,8 @@ export class WorldScripts {
 
     /** Loads one pack, or logs why BDS would refuse it and returns undefined, or `no-context`. */
     private loadPack(pack: ScriptPack, lifecycle: 1 | 2): LoadedPack | 'no-context' | undefined {
-        const allowedModules = this.options.config.module(pack.moduleUuid).allowedModules;
+        const config = this.options.config.module(pack.moduleUuid);
+        const { allowedModules } = config;
         const shapes: ModuleShape[] = [];
         for (const dependency of pack.dependencies) {
             const resolution = resolveDependency(dependency, {
@@ -628,6 +646,37 @@ export class WorldScripts {
                 dimension: (id) => this.instance(entry, 'Dimension', TAG.dimension, id),
                 deferred: () => this.deferred(entry),
                 simulated: (id) => this.simulated.add(id)
+            });
+        }
+        if (shapes.some((shape) => shape.module === SERVER_ADMIN)) {
+            entry.parseJson = engine.inContext(context, () => {
+                const parse = engine.evaluate('JSON.parse', '<jsp server-admin>');
+                if (!(parse instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
+                return parse;
+            });
+            serverAdminImplementations(implementations, {
+                config,
+                world: this.options.world,
+                create: (className, tag, state) => api.create(SERVER_ADMIN, className, tag, state),
+                parse: (json) => {
+                    const parse = entry.parseJson;
+                    if (parse === undefined) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
+                    return engine.call(parse, undefined, json);
+                },
+                player: (value) => this.formPlayer(entry, value)
+            });
+        }
+        if (shapes.some((shape) => shape.module === SERVER_NET)) {
+            const lists = new PackNet(engine, context);
+            entry.net = lists;
+            serverNetImplementations(implementations, {
+                engine,
+                lists,
+                create: (module, className, tag, state) => api.create(module, className, tag, state),
+                deferred: () => this.deferred(entry),
+                makeError: (error) => api.makeError(error),
+                send: (request, settlement) => this.http.send(this.options.world.http, entry, request, settlement),
+                cancelAll: (reason) => this.http.cancelAll(this.options.world.http, entry, reason)
             });
         }
         // `@minecraft/server` first, since a class of another module, such as `SimulatedPlayer`,
@@ -741,6 +790,17 @@ export class WorldScripts {
         for (const loaded of this.loaded) loaded.forms?.releaseReturned();
         const responses = this.options.world.forms?.takeResponses() ?? [];
         this.forms.update(responses, this.options.world.players(), (loaded, settle) =>
+            this.engine.inContext(loaded.context, () => this.guarded(loaded, settle))
+        );
+    }
+
+    /**
+     * Settles the `@minecraft/server-net` requests whose results the input step admitted, each in
+     * its pack's context, before any of this flush's promise jobs run.
+     */
+    private settleRequests(): void {
+        const results = this.options.world.http?.takeResponses() ?? [];
+        this.http.update(results, (loaded, settle) =>
             this.engine.inContext(loaded.context, () => this.guarded(loaded, settle))
         );
     }
