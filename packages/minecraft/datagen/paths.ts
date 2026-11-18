@@ -26,16 +26,32 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // Parsed JSON has no type the compiler can see; this is the shape the manifest documents.
 const manifest = JSON.parse(readFileSync(path.join(here, 'manifest.json'), 'utf8')) as DatagenManifest;
 
-/** The protocol version whose generated output is also re-exported at the unversioned paths. */
+/** The protocol version whose generated enums are also re-exported at the unversioned paths. */
 export const defaultProtocolVersion = manifest.defaultProtocolVersion;
+
+/**
+ * The protocol version whose block catalog is re-exported at the unversioned path.
+ *
+ * A block palette is a capture of a Bedrock Dedicated Server, so the catalog follows the server
+ * `@jsprismarine/bedrock-data` captures by default, which is the newest release, rather than the
+ * manifest's `defaultProtocolVersion`. That one names the enums, which are the base layout the
+ * protocol package writes older versions in and expresses newer ones as deltas over.
+ */
+export const blocksProtocolVersion: number =
+    // Parsed JSON has no type the compiler can see; this is the one field read here.
+    (
+        JSON.parse(readFileSync(path.join(here, '../../bedrock-data/sources.json'), 'utf8')) as {
+            bds: { defaultProtocolVersion: number };
+        }
+    ).bds.defaultProtocolVersion;
 
 /**
  * The absolute path of the block palette capture for one protocol version.
  *
- * @param protocol - A protocol version the manifest declares. Defaults to `defaultProtocolVersion`.
+ * @param protocol - A protocol version the manifest declares. Defaults to `blocksProtocolVersion`.
  * @throws If the manifest declares no such version, or that version no block palette source.
  */
-export const blockPaletteSnapshotPath = (protocol: number = defaultProtocolVersion): string => {
+export const blockPaletteSnapshotPath = (protocol: number = blocksProtocolVersion): string => {
     const source = manifest.versions[String(protocol)]?.blocks?.source;
     if (source === undefined) {
         const declared = Object.keys(manifest.versions)
