@@ -19,6 +19,8 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
+import type Server from '../../Server';
+import { testKernel } from '../../testing/kernel.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Dimensions } from '../../world/DimensionType';
 import type { Level } from '../../world/Level';
@@ -177,6 +179,7 @@ const fake = (
             error: (...message) => void logged.push(`error: ${String(message[0] ?? '')}`)
         })
     };
+    const kernel = testKernel();
     const session = stub<PlayerSession>({
         runtimeId,
         identity: identityNamed('tester'),
@@ -184,8 +187,10 @@ const fake = (
         getActor: () => actor,
         getWorld: () => world,
         inputs: () => inputs,
-        // What the content path reads of the player who clicked.
+        // What the content path reads of the player who clicked. Its click guards post the
+        // server's player events, which nothing in these tests listens to.
         getRuntimeId: () => runtimeId,
+        getServer: () => stub<Server>({ getKernel: () => kernel }),
         getInventory: () => inventory,
         isConnected: () => true,
         getConnection: () => stub<ReturnType<PlayerSession['getConnection']>>({ codec: Codec2193 }),

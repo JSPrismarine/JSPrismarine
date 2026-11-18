@@ -40,6 +40,10 @@ import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
 import { contentStackOf } from './contentStack';
+import PlayerBlockInteractedEvent from '../events/player/PlayerBlockInteractedEvent';
+import PlayerEntityInteractedEvent from '../events/player/PlayerEntityInteractedEvent';
+import PlayerInteractBlockEvent from '../events/player/PlayerInteractBlockEvent';
+import PlayerInteractEntityEvent from '../events/player/PlayerInteractEntityEvent';
 import PlayerItemUsedEvent from '../events/player/PlayerItemUsedEvent';
 import PlayerUseItemEvent from '../events/player/PlayerUseItemEvent';
 import type { Item } from './Item';
@@ -533,9 +537,27 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
     const position = player.getPosition();
 
+    // The guard stage of the click, which a plugin or a script's
+    // `world.beforeEvents.playerInteractWithBlock` may cancel before anything takes it.
+    const { events } = player.getServer().getKernel();
+    const { x, y, z } = interaction.position;
+    const click = new PlayerInteractBlockEvent(
+        player.getRuntimeId(),
+        player.getWorld(),
+        { x, y, z, name: block.identifier, states: block.states },
+        face,
+        interaction.faceLocation,
+        held
+    );
+    events.post('playerInteractBlock', click);
+    if (click.isCanceled()) {
+        refusePlacement(interaction, face);
+        return 'handled';
+    }
+
     // A block interaction landed on no entity, which is what `targetOf` has to say while the
     // hooks below run. Recorded for the length of the click rather than kept.
-    return actors.duringInteraction(source, undefined, () => {
+    const result = actors.duringInteraction(source, undefined, (): InteractionResult => {
         // Sneaking with a placeable block skips the block, which is how a player places against
         // a chest instead of opening it. Other items reach the block hook with their sneak state.
         const skipBlock = player.isSneaking() && placedBlock !== undefined;
@@ -608,6 +630,10 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
         resendInventory(player);
         return 'handled';
     });
+    if (result === 'handled') {
+        events.post('playerBlockInteracted', new PlayerBlockInteractedEvent(click, inventory.getItemInHand()));
+    }
+    return result;
 };
 
 /**
@@ -628,7 +654,22 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
     const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
-    return actors.duringInteraction(source, target, () => {
+    // The guard stage of the click, which a plugin or a script's
+    // `world.beforeEvents.playerInteractWithEntity` may cancel before anything takes it.
+    const { events } = player.getServer().getKernel();
+    const click = new PlayerInteractEntityEvent(
+        player.getRuntimeId(),
+        player.getWorld(),
+        { runtimeId: BigInt(target.runtimeId), type: target.identifier },
+        held
+    );
+    events.post('playerInteractEntity', click);
+    if (click.isCanceled()) {
+        resendInventory(player);
+        return 'handled';
+    }
+
+    const result = actors.duringInteraction(source, target, (): InteractionResult => {
         if (actors.interactWithEntity(source)) return 'handled';
         if (stack === undefined) return 'declined';
 
@@ -641,6 +682,10 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
 
         return 'handled';
     });
+    if (result === 'handled') {
+        events.post('playerEntityInteracted', new PlayerEntityInteractedEvent(click, inventory.getItemInHand()));
+    }
+    return result;
 };
 
 /**
