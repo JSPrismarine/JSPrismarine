@@ -1,0 +1,33 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario net-http http",
+        "description": "Builds HTTP requests and sends them to the scenario's local HTTP server. Written for packages/parity.",
+        "uuid": "fe9fa85c-b061-42d1-b2f7-7521c3c44402",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "ebd28508-bac8-4312-a56b-09db8b0dcb7a",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.11.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-net",
+            "version": "1.0.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-admin",
+            "version": "1.0.0-beta"
+        }
+    ]
+}

@@ -1,0 +1,274 @@
+{
+    "$comment": [
+        "What the scripts of scenario `admin-config` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.admin",
+    "scenario": "admin-config",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "admin",
+            "seq": 1,
+            "tick": 0,
+            "event": "variables.names in early execution",
+            "error": "ReferenceError: Native property getter [ServerVariables::names] cannot be used in early execution."
+        },
+        {
+            "pack": "admin",
+            "seq": 2,
+            "tick": 0,
+            "event": "secrets.names in early execution",
+            "error": "ReferenceError: Native property getter [ServerSecrets::names] cannot be used in early execution."
+        },
+        {
+            "pack": "admin",
+            "seq": 3,
+            "tick": 0,
+            "event": "new SecretString in early execution",
+            "error": "ReferenceError: Native constructor for [SecretString] cannot be used in early execution."
+        },
+        {
+            "pack": "admin",
+            "seq": 4,
+            "tick": 0,
+            "event": "variables.get text",
+            "value": "hello"
+        },
+        {
+            "pack": "admin",
+            "seq": 5,
+            "tick": 0,
+            "event": "variables.get number",
+            "value": 4.5
+        },
+        {
+            "pack": "admin",
+            "seq": 6,
+            "tick": 0,
+            "event": "variables.get integer",
+            "value": 7
+        },
+        {
+            "pack": "admin",
+            "seq": 7,
+            "tick": 0,
+            "event": "variables.get flag",
+            "value": true
+        },
+        {
+            "pack": "admin",
+            "seq": 8,
+            "tick": 0,
+            "event": "variables.get nothing",
+            "value": null
+        },
+        {
+            "pack": "admin",
+            "seq": 9,
+            "tick": 0,
+            "event": "variables.get list",
+            "value": [
+                1,
+                "two",
+                {
+                    "three": 3
+                }
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 10,
+            "tick": 0,
+            "event": "variables.get object",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "nested": {
+                    "deep": [
+                        true
+                    ]
+                }
+            }
+        },
+        {
+            "pack": "admin",
+            "seq": 11,
+            "tick": 0,
+            "event": "variables.get missing",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 12,
+            "tick": 0,
+            "event": "variables.get gives a copy",
+            "value": 2
+        },
+        {
+            "pack": "admin",
+            "seq": 13,
+            "tick": 0,
+            "event": "variables.get keeps the key order",
+            "value": [
+                "a",
+                "b",
+                "nested"
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 14,
+            "tick": 0,
+            "event": "secrets.get token",
+            "value": {
+                "type": "object",
+                "constructor": "SecretString",
+                "instance": true,
+                "string": "[object Object]",
+                "json": "{}",
+                "keys": []
+            }
+        },
+        {
+            "pack": "admin",
+            "seq": 15,
+            "tick": 0,
+            "event": "secrets.get number",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 16,
+            "tick": 0,
+            "event": "secrets.get empty",
+            "value": {
+                "type": "object",
+                "constructor": "SecretString",
+                "instance": true,
+                "string": "[object Object]",
+                "json": "{}",
+                "keys": []
+            }
+        },
+        {
+            "pack": "admin",
+            "seq": 17,
+            "tick": 0,
+            "event": "secrets.get object",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 18,
+            "tick": 0,
+            "event": "secrets.get missing",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 19,
+            "tick": 0,
+            "event": "secrets.get gives one object",
+            "value": false
+        },
+        {
+            "pack": "admin",
+            "seq": 20,
+            "tick": 0,
+            "event": "variables.names",
+            "value": [
+                "zebra",
+                "text",
+                "number",
+                "flag",
+                "nothing",
+                "object",
+                "apple",
+                "list",
+                "integer"
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 21,
+            "tick": 0,
+            "event": "secrets.names",
+            "value": [
+                "token",
+                "empty"
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 22,
+            "tick": 0,
+            "event": "new SecretString",
+            "value": {
+                "type": "object",
+                "constructor": "SecretString",
+                "instance": true,
+                "string": "[object Object]",
+                "json": "{}",
+                "keys": []
+            }
+        },
+        {
+            "pack": "admin",
+            "seq": 23,
+            "tick": 0,
+            "event": "transferPlayer without a player",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: Player"
+        },
+        {
+            "pack": "admin",
+            "seq": 24,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "admin",
+            "seq": 25,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "admin",
+            "seq": 26,
+            "tick": 0,
+            "event": "transferPlayer by hostname and port"
+        },
+        {
+            "pack": "admin",
+            "seq": 27,
+            "tick": 0,
+            "event": "transferPlayer by NetherNet id"
+        },
+        {
+            "pack": "admin",
+            "seq": 28,
+            "tick": 0,
+            "event": "transferPlayer with no target",
+            "error": "TypeError: Native variant type conversion failed. Function argument [1] expected type: TransferPlayerIpPortOptions | TransferPlayerNetherNetOptions"
+        },
+        {
+            "pack": "admin",
+            "seq": 29,
+            "tick": 0,
+            "event": "transferPlayer with a port out of range",
+            "error": "TypeError: Native variant type conversion failed. Function argument [1] expected type: TransferPlayerIpPortOptions | TransferPlayerNetherNetOptions"
+        },
+        {
+            "pack": "admin",
+            "seq": 30,
+            "tick": 5,
+            "event": "isValid after the transfers",
+            "value": true
+        }
+    ]
+}

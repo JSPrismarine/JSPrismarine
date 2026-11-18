@@ -1838,6 +1838,13 @@
         }
     },
     "items.behavior": {},
+    "scripting.admin": {
+        "bds-record:admin-config": {
+            "kind": "defect",
+            "reason": "variables.names lists the variables in the order of variables.json on JSPrismarine, where BDS lists them in the order of its hash map: [\"zebra\",\"text\",\"number\",\"flag\",\"nothing\",\"object\",\"apple\",\"list\",\"integer\"]. Every value variables and secrets return, each SecretString and every transferPlayer call match BDS.",
+            "reference": "issue #3249"
+        }
+    },
     "scripting.blocks": {
         "bds-record:blocks": {
             "kind": "defect",
@@ -1882,6 +1889,7 @@
             "reference": "docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md"
         }
     },
+    "scripting.net": {},
     "scripting.world": {
         "bds-record:script-event-console": {
             "kind": "defect",
