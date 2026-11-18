@@ -283,9 +283,8 @@ export default class Server {
 
         const protocols = describeSupportedProtocols();
         logger.info(
-            `Starting ${softwareLabel(true)} for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:`
+            `Starting ${softwareLabel(true)} for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:${protocols.map((protocol) => `\n  ${protocol}`).join('')}`
         );
-        for (const protocol of protocols) logger.info(`  ${protocol}`);
 
         this.logger = logger;
         this.config = config;
