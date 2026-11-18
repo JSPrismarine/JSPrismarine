@@ -6,7 +6,8 @@ each component live from the same source.
 
 | What                     | Where                                         |
 | ------------------------ | --------------------------------------------- |
-| Palette                  | `tools/docs/site/.vitepress/theme/tokens.ts`  |
+| Palette hex values       | `packages/console/src/theme/brand.ts`         |
+| Palette uses             | `tools/docs/site/.vitepress/theme/tokens.ts`  |
 | Mark geometry            | `tools/docs/site/.vitepress/theme/prism.ts`   |
 | Derived shades and sizes | `tools/docs/site/.vitepress/theme/brand.css`  |
 | Code colors              | `tools/docs/site/.vitepress/theme/codeTheme.ts` |
@@ -43,11 +44,15 @@ The accent is <!-- fact:palette.accent -->`#5ca48a`<!-- /fact -->, shared with t
 | `--jsp-cream`  | <!-- fact:palette.cream -->`#efe9da`<!-- /fact --> | Light surface and text on dark.                          |
 | `--jsp-ink`    | <!-- fact:palette.ink -->`#0b1713`<!-- /fact --> | Text on light and the terminal surface.                  |
 | `--jsp-signal` | <!-- fact:palette.signal -->`#ff6b3d`<!-- /fact --> | Spot color for prompts, cursors and the core of the mark. |
+| `--jsp-warning` | <!-- fact:palette.warning -->`#f2c14e`<!-- /fact --> | Spot color for warnings and for states still in progress. |
 
-`tokens.ts` is the authority for these values. The site config writes them into the page head as the
-`--jsp-*` custom properties and builds the favicon from them, and `brand.css` mixes the supporting
-shades (terminal chrome, progress tracks, page backgrounds, muted text) from them with `color-mix`.
-If this table and `tokens.ts` disagree, `tokens.ts` wins and this table is out of date.
+`BRAND_PALETTE` in `packages/console/src/theme/brand.ts` is the authority for these values, so the
+console and the site share them. `tokens.ts` pairs each with its use. The site config writes them
+into the page head as the `--jsp-*` custom properties and builds the favicon from them, and
+`brand.css` mixes the supporting shades (terminal chrome, progress tracks, page backgrounds, muted
+text) from them with `color-mix`. The console and the code theme take the terminal shades from
+`TERMINAL_SHADES` beside the palette, which mixes the same way. If this table and `brand.ts`
+disagree, `brand.ts` wins and this table is out of date.
 
 Rules:
 
@@ -62,6 +67,11 @@ Rules:
   passing. A section may also use it for one solid block, such as a figure tile
   or the stub of a pass. It is never a link color and never a body text
   color.
+- Warning yellow marks what needs a look but has not failed: a warning in a log, a state that is
+  still starting or waiting, a deferred item. Like signal it marks small things and is never body
+  text or a link color. It reads on ink, deep and forest; on the light page it is a fill only, with
+  `--jsp-ink` text, since yellow text on cream misses AA. Signal stays the color of errors and
+  breaking changes, so the two never stand for the same thing.
 - Text on `--jsp-accent` is `--jsp-deep`, through `--jsp-on-accent`. Forest on accent misses AA for
   body text, so forest stays on accent only in display type such as the hero's highlighted word. Text
   on `--jsp-signal` is `--jsp-ink`.
@@ -303,5 +313,5 @@ changes; `pnpm run docs:facts` refreshes the values in the Markdown.
 
 ## Changing the brand
 
-Change a color in `tokens.ts`, a shape in `prism.ts`, and a derived value in `brand.css`, never a hex
-value in a component. Update this guide in the same commit when a token, font or rule changes.
+Change a color in `packages/console/src/theme/brand.ts`, a color's use in `tokens.ts`, a shape in
+`prism.ts`, and a derived value in `brand.css`, never a hex value in a component. Update this guide in the same commit when a token, font or rule changes.

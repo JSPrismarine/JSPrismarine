@@ -18,16 +18,18 @@ without looking.
 
 Each surface has its own source of truth. Read the files for the surface you are touching.
 
-- **Docs site** (`tools/docs/site/`). Colors come from `.vitepress/theme/tokens.ts`, the mark from
-  `prism.ts`, derived shades and sizes from `brand.css`. Reuse the components in
+- **Docs site** (`tools/docs/site/`). Colors come from `.vitepress/theme/tokens.ts`, which reads
+  its hex values from the console's `brand.ts`; the mark from `prism.ts`; derived shades and sizes
+  from `brand.css`. Reuse the components in
   `.vitepress/theme/components/` and register new ones in `theme/index.ts`; the brand kit page
   (`tools/docs/site/brand-kit.md`) shows each one live. Project facts come from
   `tools/docs/site/project.data.mts`.
-- **Console TUI** (`packages/console/`). Read the `opentui` skill and
-  `docs/research/console-tui/ux-design.md`. Colors come from the roles in
-  `packages/console/src/theme/theme.ts` (`THEME_ROLES`). It has truecolor, 16-color and monochrome
-  themes; give every new role a value in each. The console palette predates the brand guide and is tuned for terminals.
-  When a change touches that palette, ask the user whether to move it toward the brand tokens.
+- **Console TUI** (`packages/console/`). Read the `opentui` skill,
+  `docs/research/console-tui/ux-design.md` and `docs/research/console-tui/refresh.md`. Colors come
+  from the roles in `packages/console/src/theme/theme.ts` (`THEME_ROLES`). It has truecolor, 16-color
+  and monochrome themes; give every new role a value in each. The truecolor theme takes its values
+  from `BRAND_PALETTE` and `TERMINAL_SHADES` in `packages/console/src/theme/brand.ts`, the same
+  source the docs site's `tokens.ts` reads.
 - **Mockups and artifacts** outside the repository. Copy the token values from `tokens.ts` and the
   mark from `prism.ts`, and label any sample number as a sample.
 
