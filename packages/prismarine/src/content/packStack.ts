@@ -24,7 +24,11 @@ import { dirname, join, relative, sep } from 'node:path';
 import type { Diagnostic } from '@jsprismarine/content';
 import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
-import { bedrockSamplesCacheFolder, defaultBdsCacheFolder } from '@jsprismarine/bedrock-data/sources';
+import {
+    bedrockSamplesCacheFolder,
+    defaultBdsCacheFolder,
+    javaServerCacheFolder
+} from '@jsprismarine/bedrock-data/sources';
 
 /** Points the resolver at a local copy of one fetched source. */
 export const PACK_STACK_ENV = {
@@ -197,10 +201,13 @@ const cachedSamples = (root: string): string | undefined => {
     return undefined;
 };
 
-/** The Java vanilla datapack the data generator wrote, under its Java version folder. */
+/**
+ * The Java vanilla datapack the data generator wrote, under its Java version folder. The pinned
+ * release comes first, since a cache keeps the datapack of every release it generated.
+ */
 const vanillaDatapack = (root: string): string | undefined => {
     if (!existsSync(root)) return undefined;
-    for (const version of readdirSync(root)) {
+    for (const version of pinnedFirst(root, javaServerCacheFolder)) {
         const pack = join(root, version);
         if (existsSync(join(pack, 'pack.mcmeta'))) return pack;
     }
