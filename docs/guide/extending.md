@@ -98,7 +98,7 @@ To install it:
    `permissions.json`, `variables.json` and `secrets.json`. Without the folder, the server allows
    the modules a fresh BDS allows.
 3. If the pack declares a beta version, such as `@minecraft/server`
-   <!-- fact:scripting.serverBeta -->2.11.0-beta<!-- /fact -->, turn on the Beta APIs experiment:
+   <!-- fact:scripting.serverBeta -->2.12.0-beta<!-- /fact -->, turn on the Beta APIs experiment:
    add <!-- fact:world.betaApis -->`gametest`<!-- /fact --> to the `experiments` list of the
    world's `worlds.<name>` entry ([The config shape](../data-driven/dimensions.md#the-config-shape)).
 4. Start the server. For each pack, it logs how much of the Script API the pack's scripts use is
@@ -115,8 +115,8 @@ restart. A change to any other pack file still restarts the server.
 
 Each row is a module a pack can declare in its `dependencies`, with the versions this server
 serves. The server generates every module from the metadata in Mojang's `bedrock-samples`
-<!-- fact:samples.tag -->v1.26.50.4<!-- /fact -->, and serves the versions the pinned BDS
-<!-- fact:bds.version -->1.26.51.1<!-- /fact --> serves.
+<!-- fact:samples.tag -->v1.26.60.5<!-- /fact -->, and serves the versions the pinned BDS
+<!-- fact:bds.version -->1.26.60.6<!-- /fact --> serves.
 
 <!-- fact:scripting.modules.table -->
 | Module                       | Stable versions served       | Beta served   | Allowed without `permissions.json` |
@@ -124,18 +124,18 @@ serves. The server generates every module from the metadata in Mojang's `bedrock
 | `@minecraft/common`          | 1.x: `1.3.0`                 | none          | no                                 |
 | `@minecraft/debug-utilities` | none                         | `1.0.0-beta`  | yes                                |
 | `@minecraft/diagnostics`     | none                         | `1.0.0-beta`  | no                                 |
-| `@minecraft/server`          | 1.x: `1.19.0`, 2.x: `2.10.0` | `2.11.0-beta` | yes                                |
+| `@minecraft/server`          | 1.x: `1.19.0`, 2.x: `2.11.0` | `2.12.0-beta` | yes                                |
 | `@minecraft/server-admin`    | none                         | `1.0.0-beta`  | yes                                |
 | `@minecraft/server-gametest` | none                         | `1.0.0-beta`  | yes                                |
 | `@minecraft/server-graphics` | 1.x: `1.0.0`                 | `1.1.0-beta`  | no                                 |
 | `@minecraft/server-net`      | none                         | `1.0.0-beta`  | no                                 |
-| `@minecraft/server-ui`       | 1.x: `1.3.0`, 2.x: `2.2.0`   | `2.3.0-beta`  | yes                                |
+| `@minecraft/server-ui`       | 1.x: `1.3.0`, 2.x: `2.3.0`   | `2.4.0-beta`  | yes                                |
 <!-- /fact -->
 
 The server picks versions the way BDS does:
 
 - A stable version gets the newest stable minor of its major version, so a pack's dependency on
-  `@minecraft/server` <!-- fact:scripting.resolveExample -->version `2.0.0` gets `2.10.0`<!-- /fact -->.
+  `@minecraft/server` <!-- fact:scripting.resolveExample -->version `2.0.0` gets `2.11.0`<!-- /fact -->.
   A version newer than that, or a major version the table doesn't list, is refused.
 - A beta version needs the world's Beta APIs experiment, and loads only when it is the one beta in
   the table. The word `beta` in place of a version names that one. Beta versions don't follow
