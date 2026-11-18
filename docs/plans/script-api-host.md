@@ -391,6 +391,48 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `World.structureManager` and `StructureManager`, `EntityEquippableComponent`,
       `EntityAttributeComponent`, `DimensionTypes`, `Container.getSlot` and `ContainerSlot`,
       `world.beforeEvents.playerInteractWithBlock` and `Entity.getBlockFromViewDirection`.
+    - Batch 4 (2026-11-18): `world.structureManager` and `Structure`, a player's `equippable`
+      component, the attribute components such as `health` and `movement`, `Container.getSlot`
+      and `ContainerSlot`, `Entity.hasComponent`, `DimensionTypes`, `EffectTypes`,
+      `Effect.isValid`, `Player.spawnParticle`, the GameTest `Test.spawn`, and
+      `world.beforeEvents` and `afterEvents` for `playerInteractWithBlock` and
+      `playerInteractWithEntity`. The corpus's share of member uses with behavior went from 82.2%
+      to 88.2%, and its share of pack members from 62.8% to 70.8%. The new `structures` and
+      `entity-components` scenarios match BDS but for the gaps below.
+    - Learned: `StructureManager.get` returns the same object for an id each time, and
+      `getWorldStructureIds` lists structures saved to memory too. An id needs a namespace, and
+      one in use throws, so packs delete before they copy. A structure keeps air, and
+      `Rotate90` turns it clockwise seen from above, moving a block from x, z to depth - 1 - z, x
+      and turning a log's `pillar_axis`. A structure's `size` lists `z` first.
+    - Learned: only a player has `minecraft:equippable` on BDS; a pig and a zombie have none. An
+      armor slot refuses a stack not worn there and returns false, as `Body` did an apple on a
+      player. A health component's bounds are 0 and the maximum, while a speed's maximum is the
+      largest 32-bit float. A zombie set to 0 health was still valid 4 ticks later. An empty `ContainerSlot` throws
+      `InvalidContainerSlotError` from every member but `hasItem`, `getItem`, `setItem` and
+      `isValid`, and an amount set past the stack size holds a full stack.
+    - Learned: BDS refuses `EffectTypes` in early execution but reads `DimensionType.typeId`
+      there, because a property the metadata marks `is_baked` checks no privilege. `EffectTypes`
+      includes `minecraft:empty` and lists the types in no fixed order.
+    - Learned: a GameTest simulated player's `interactWithBlock` and `interactWithEntity` open a
+      chest and feed a pig on BDS but raise neither interaction event, so no capture records them
+      and unit tests cover them.
+    - Left: a level keeps its structures until it unloads, where BDS saves a structure saved to the
+      world, and a structure holds no entities, so the item databases in Canopy and Understudy that
+      store entities in structures read back nothing. A placement ignores `integrity` and
+      `waterlogged`, and turns only `pillar_axis` and the cardinal and facing direction states; no
+      scenario records `mirror`.
+      `getPackStructureIds` and a pack's `.mcstructure` files have no behavior. The palette lacks
+      `stone_type`, `wood_type`, `old_log_type` and `dirt_type`
+      ([#3237](https://github.com/JSPrismarine/JSPrismarine/issues/3237)), a mob has no default
+      underwater speed ([#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264)), and
+      a mob at 0 health leaves the script world at once
+      ([#3263](https://github.com/JSPrismarine/JSPrismarine/issues/3263)). An interaction raises
+      one event a click, so `isFirstEvent` is always true. `ScreenDisplay`'s HUD members,
+      `SoundInstance.stop`, `ItemEnchantableComponent` and other item components, and
+      `world.afterEvents.playerInventoryItemChange` still have no behavior. Next by corpus use:
+      `Entity.getBlockFromViewDirection`, `PistonActivateAfterEvent`, `Player.inputPermissions`,
+      `Entity.isOnGround` and `triggerEvent`, `BlockVolume`, `Dimension.createExplosion` and
+      `setBlockType`, and `world.afterEvents.playerPlaceBlock`.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.

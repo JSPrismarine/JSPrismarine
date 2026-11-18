@@ -71,6 +71,8 @@ import type { JobStep } from './jobs';
 import { TaskQueue } from './tasks';
 import type {
     BlockBreakIntent,
+    BlockInteractIntent,
+    EntityInteractIntent,
     ChatSendIntent,
     ItemUseIntent,
     ScriptBlockHook,
@@ -381,7 +383,9 @@ export class WorldScripts {
                 this.options.world.guardChat((intent) => this.chatGuard(intent)),
                 this.options.world.watchPlayerLeave((player) => this.playerLeaving(player)),
                 this.options.world.guardBlockBreak?.((intent) => this.blockBreakGuard(intent)) ?? (() => {}),
-                this.options.world.guardItemUse?.((intent) => this.itemUseGuard(intent)) ?? (() => {})
+                this.options.world.guardItemUse?.((intent) => this.itemUseGuard(intent)) ?? (() => {}),
+                this.options.world.guardBlockInteract?.((intent) => this.blockInteractGuard(intent)) ?? (() => {}),
+                this.options.world.guardEntityInteract?.((intent) => this.entityInteractGuard(intent)) ?? (() => {})
             ];
         }
         this.refreshClock();
@@ -1016,6 +1020,27 @@ export class WorldScripts {
                 ...(event.itemBefore === undefined ? {} : { itemBefore: event.itemBefore }),
                 ...(event.itemAfter === undefined ? {} : { itemAfter: event.itemAfter })
             });
+        } else if (event.type === 'playerInteractWithBlock') {
+            const { dimension, x, y, z } = event.block;
+            this.dispatchWith('PlayerInteractWithBlockAfterEventSignal', 'PlayerInteractWithBlockAfterEvent', {
+                kind: 'blockInteract',
+                cancel: false,
+                player: event.player,
+                block: { dimension, x, y, z },
+                face: event.face,
+                faceLocation: event.faceLocation,
+                ...(event.item === undefined ? {} : { item: event.item }),
+                ...(event.itemAfter === undefined ? {} : { itemAfter: event.itemAfter })
+            });
+        } else if (event.type === 'playerInteractWithEntity') {
+            this.dispatchWith('PlayerInteractWithEntityAfterEventSignal', 'PlayerInteractWithEntityAfterEvent', {
+                kind: 'entityInteract',
+                cancel: false,
+                player: event.player,
+                target: { id: event.target.id, typeId: event.target.typeId },
+                ...(event.item === undefined ? {} : { item: event.item }),
+                ...(event.itemAfter === undefined ? {} : { itemAfter: event.itemAfter })
+            });
         } else {
             const tag = this.addEvent({
                 kind: 'weatherAfter',
@@ -1119,6 +1144,39 @@ export class WorldScripts {
         this.refreshClock();
         const data: EventData = { kind: 'itemUse', cancel: false, player: intent.player, item: intent.item };
         return { veto: this.dispatchBefore(signal, 'ItemUseBeforeEvent', data) };
+    }
+
+    /** The block click action's scripting guard: `world.beforeEvents.playerInteractWithBlock`. */
+    private blockInteractGuard(intent: BlockInteractIntent): VetoVerdict {
+        const signal = 'PlayerInteractWithBlockBeforeEventSignal';
+        if (this.stopped || !this.subscriptions.some((each) => each.signal === signal)) return { veto: false };
+        this.refreshClock();
+        const { dimension, x, y, z } = intent.block;
+        const data: EventData = {
+            kind: 'blockInteract',
+            cancel: false,
+            player: intent.player,
+            block: { dimension, x, y, z },
+            face: intent.face,
+            faceLocation: intent.faceLocation,
+            ...(intent.item === undefined ? {} : { item: intent.item })
+        };
+        return { veto: this.dispatchBefore(signal, 'PlayerInteractWithBlockBeforeEvent', data) };
+    }
+
+    /** The entity click action's scripting guard: `world.beforeEvents.playerInteractWithEntity`. */
+    private entityInteractGuard(intent: EntityInteractIntent): VetoVerdict {
+        const signal = 'PlayerInteractWithEntityBeforeEventSignal';
+        if (this.stopped || !this.subscriptions.some((each) => each.signal === signal)) return { veto: false };
+        this.refreshClock();
+        const data: EventData = {
+            kind: 'entityInteract',
+            cancel: false,
+            player: intent.player,
+            target: { id: intent.target.id, typeId: intent.target.typeId },
+            ...(intent.item === undefined ? {} : { item: intent.item })
+        };
+        return { veto: this.dispatchBefore(signal, 'PlayerInteractWithEntityBeforeEvent', data) };
     }
 
     /**

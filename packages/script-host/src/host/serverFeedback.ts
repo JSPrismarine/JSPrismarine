@@ -437,7 +437,48 @@ export const implementFeedback = (implementations: ScriptApiImplementations, hos
         .implement(SERVER, 'Effect', 'typeId', { get: (call) => effectState(call).typeId })
         .implement(SERVER, 'Effect', 'amplifier', { get: (call) => effectState(call).amplifier })
         .implement(SERVER, 'Effect', 'duration', { get: (call) => effectState(call).duration })
-        .implement(SERVER, 'Effect', 'displayName', { get: (call) => effectDisplayName(effectState(call)) });
+        .implement(SERVER, 'Effect', 'displayName', { get: (call) => effectDisplayName(effectState(call)) })
+        .implement(SERVER, 'Effect', 'isValid', {
+            get: (call) => {
+                // The host wrote the state with JSON.stringify.
+                const parsed: unknown = JSON.parse(call.state);
+                const entity = isRecord(parsed) && typeof parsed.entity === 'string' ? parsed.entity : '';
+                const { typeId } = effectState(call);
+                return world.effects?.(entity)?.some((each) => each.typeId === typeId) === true;
+            }
+        })
+        .implement(SERVER, 'EffectTypes', 'get', (call) => {
+            const typeId = withNamespace(String(call.args[0]));
+            if (world.isEffectType?.(typeId) !== true) return undefined;
+            return host.engine.release(host.create('EffectType', TAG.effectType, typeId));
+        })
+        .implement(SERVER, 'EffectTypes', 'getAll', () => {
+            const array = host.engine.evaluate('[]');
+            if (!(array instanceof ScriptHandle))
+                throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'array' });
+            (world.effectTypes?.() ?? []).forEach((typeId, index) => {
+                const made = host.create('EffectType', TAG.effectType, typeId);
+                host.engine.set(array, String(index), made);
+                host.engine.free(made);
+            });
+            return host.engine.release(array);
+        })
+        .implement(SERVER, 'EffectType', 'getName', (call) => call.state)
+        .implement(SERVER, 'Player', 'spawnParticle', (call) => {
+            const player = live(call.state, 'call', 'spawnParticle');
+            const effect = String(call.args[0]);
+            const location = vectorArgument(call, 1);
+            const map = call.args[2];
+            const variables = map instanceof ScriptHandle ? molangOf(call.stateOf(map)) : [];
+            world.spawnParticle?.(
+                player.dimension,
+                effect,
+                location,
+                variables.length === 0 ? undefined : JSON.stringify(variables),
+                player.id
+            );
+            return undefined;
+        });
 };
 
 /** Sets one variable of a `MolangVariableMap`, replacing one of the same name in its place. */
