@@ -16,6 +16,7 @@ import {
     StartGamePacket,
     StopSoundPacket,
     TextPacket,
+    newestRelease,
     v2193,
     v2225
 } from '@jsprismarine/protocol';
@@ -43,8 +44,7 @@ import { ClientErrors } from '@jsprismarine/errors/client';
  * message that says which side is behind, which is the least a client owes somebody who
  * cannot connect.
  */
-export const PROTOCOL_VERSION = v2193.protocolVersion;
-export const MINECRAFT_VERSION = '1.26.51';
+export const PROTOCOL_VERSION = newestRelease.protocolVersion;
 
 /**
  * The Minecraft version string that goes with each protocol this client can speak, and the
@@ -55,11 +55,14 @@ export const MINECRAFT_VERSION = '1.26.51';
  * version-gated fields.
  */
 const PROTOCOLS = new Map([
-    [v2193.protocolVersion, { minecraftVersion: MINECRAFT_VERSION }],
+    [v2193.protocolVersion, { minecraftVersion: '1.26.51' }],
     [v2225.protocolVersion, { minecraftVersion: '1.26.60' }],
     // A preview: the client speaks it to bring the server's preview support up against BDS.
     [v2259.protocolVersion, { minecraftVersion: v2259.minecraftVersions[0]! }]
 ]);
+
+/** The Minecraft version this client reports when it speaks {@link PROTOCOL_VERSION}. */
+export const MINECRAFT_VERSION: string = PROTOCOLS.get(PROTOCOL_VERSION)!.minecraftVersion;
 
 export interface ClientOptions {
     readonly host: string;
