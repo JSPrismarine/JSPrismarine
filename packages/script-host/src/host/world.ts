@@ -106,6 +106,8 @@ export interface ScriptItem {
     readonly nameTag?: string;
     /** The lines of lore under its name. Absent or empty when it has none. */
     readonly lore?: readonly string[];
+    /** The durability the stack has lost, for an item with durability. Absent or 0 when it has lost none. */
+    readonly damage?: number;
     /**
      * The stack's dynamic properties, by the script module UUID of the pack that set them, as BDS
      * keys them on an item. Absent or empty when it has none. Only a stack of one item can hold
@@ -191,6 +193,65 @@ export interface ScriptItemType {
     readonly typeId: string;
     /** How many items one stack holds at most. */
     readonly maxStackSize: number;
+    /** The durability a new stack has, for a type that wears out. Absent for every other type. */
+    readonly maxDurability?: number;
+}
+
+/** A status effect on an entity, as `Effect` reads it. */
+export interface ScriptEffect {
+    /** The effect's type, such as `minecraft:speed`. */
+    readonly typeId: string;
+    /** One below the potency the effect's name shows. */
+    readonly amplifier: number;
+    /** The ticks left. */
+    readonly duration: number;
+}
+
+/** A status effect a script adds to an entity. */
+export interface ScriptEffectRequest extends ScriptEffect {
+    readonly showParticles: boolean;
+}
+
+/** One title instruction, as `/title` sends it to a player. */
+export type ScriptTitle =
+    | { readonly kind: 'title' | 'subtitle' | 'actionbar'; readonly text: string }
+    | { readonly kind: 'clear' | 'reset' }
+    | {
+          readonly kind: 'times';
+          /** Ticks the title takes to appear. */
+          readonly fadeIn: number;
+          /** Ticks the title stays. */
+          readonly stay: number;
+          /** Ticks the title takes to go. */
+          readonly fadeOut: number;
+      };
+
+/** A sound a script plays, as `/playsound` plays one. */
+export interface ScriptSound {
+    /** The sound's name, such as `random.orb`. */
+    readonly sound: string;
+    readonly dimension: string;
+    readonly location: ScriptVector3;
+    readonly volume: number;
+    readonly pitch: number;
+    /** The id of the one player who hears it. Everyone near the location hears it when absent. */
+    readonly player?: string;
+}
+
+/** A block a player is about to break, which a script's before-event sees before the world does. */
+export interface BlockBreakIntent {
+    /** The id of the player breaking it, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    readonly block: ScriptBlockLocation;
+    /** The stack in the player's hand. Absent for an empty hand. */
+    readonly item?: ScriptItem;
+}
+
+/** An item a player is about to use, which a script's before-event sees before the item acts. */
+export interface ItemUseIntent {
+    /** The id of the player using it, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    readonly item: ScriptItem;
 }
 
 /** What a command a script ran did: how many times it succeeded, or why it failed. */
@@ -246,7 +307,20 @@ export type ScriptWorldEvent =
           readonly source: ScriptDamageSource;
       }
     /** An entity died. */
-    | { readonly type: 'entityDie'; readonly entity: ScriptEntityRef; readonly source: ScriptDamageSource };
+    | { readonly type: 'entityDie'; readonly entity: ScriptEntityRef; readonly source: ScriptDamageSource }
+    /** A player broke a block. */
+    | {
+          readonly type: 'playerBreakBlock';
+          readonly player: string;
+          readonly block: ScriptBlockLocation;
+          readonly brokenBlockPermutation: ScriptBlockPermutation;
+          /** The stack in the player's hand before the break. Absent for an empty hand. */
+          readonly itemBefore?: ScriptItem;
+          /** The stack in the player's hand after the break. Absent for an empty hand. */
+          readonly itemAfter?: ScriptItem;
+      }
+    /** A player used an item that the before-event let through. */
+    | { readonly type: 'itemUse'; readonly player: string; readonly item: ScriptItem };
 
 /** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
 export interface ScriptFormResponse {
@@ -353,7 +427,9 @@ export type SimulatedPlayerAction =
     /** Swings at one entity, when it is within reach. */
     | { readonly kind: 'attackEntity'; readonly entity: string }
     /** Uses an item in the air, as a client's right click does. */
-    | { readonly kind: 'useItem'; readonly item: ScriptItem };
+    | { readonly kind: 'useItem'; readonly item: ScriptItem }
+    /** Breaks a block, through the guards a client's break goes through, retrying each tick while one vetoes it. */
+    | { readonly kind: 'breakBlock'; readonly location: ScriptVector3 };
 
 /**
  * The GameTest simulated players of a world: players with no client, which every script,
@@ -714,6 +790,55 @@ export interface ScriptWorld {
     placeStructure?(dimension: string, location: ScriptVector3, structure: Uint8Array): void;
     /** Sets a player's game mode, as `/gamemode` does. */
     setGameMode?(id: string, gameMode: ScriptGameMode): void;
+    /** Makes an entity sneak or stand, and tells the clients that see it. */
+    setSneaking?(id: string, sneaking: boolean): void;
+    /** Sends a player a title instruction, as `/title` does. A world without it shows no title. */
+    showTitle?(player: string, title: ScriptTitle): void;
+    /** Plays a sound, as `/playsound` does. A world without it plays none. */
+    playSound?(sound: ScriptSound): void;
+    /**
+     * Spawns a particle effect for the players near a location, as `/particle` does.
+     * @param molangVariables - The JSON of the effect's MoLang variables, as `SpawnParticleEffectPacket` carries it.
+     */
+    spawnParticle?(dimension: string, effect: string, location: ScriptVector3, molangVariables?: string): void;
+    /** Whether the world knows a status effect type, such as `minecraft:speed`. */
+    isEffectType?(typeId: string): boolean;
+    /**
+     * The status effects on an entity, in the order they were added.
+     * @returns Undefined for an entity that is gone.
+     */
+    effects?(id: string): readonly ScriptEffect[] | undefined;
+    /**
+     * Adds a status effect to an entity, as `/effect` does: one that is no stronger and no longer
+     * than the effect it already has changes nothing.
+     */
+    addEffect?(id: string, effect: ScriptEffectRequest): void;
+    /** @returns False when the entity has no such effect. */
+    removeEffect?(id: string, typeId: string): boolean;
+    /**
+     * The slots of the container a block holds, such as a chest's, each the stack it holds or null.
+     * @returns Undefined for a block that holds none, or one in a chunk that is not loaded.
+     */
+    blockInventory?(dimension: string, location: ScriptVector3): readonly (ScriptItem | null)[] | undefined;
+    /** Puts a stack into one slot of a block's container, or empties it. */
+    setBlockInventoryItem?(
+        dimension: string,
+        location: ScriptVector3,
+        slot: number,
+        item: ScriptItem | undefined
+    ): void;
+    /**
+     * Adds a guard to the block breaking of the world's players, which runs before the block goes.
+     * A veto leaves the block where it is.
+     * @returns A function that removes it.
+     */
+    guardBlockBreak?(guard: VetoGuard<BlockBreakIntent>): () => void;
+    /**
+     * Adds a guard to the item use of the world's players, which runs before the item acts. A veto
+     * stops the use.
+     * @returns A function that removes it.
+     */
+    guardItemUse?(guard: VetoGuard<ItemUseIntent>): () => void;
     /** Moves a player's hand to a hotbar slot, from 0 to 8, and tells their client. */
     setSelectedSlot?(id: string, slot: number): void;
     /**

@@ -375,6 +375,16 @@ Thrown as `ScriptHostErrors.InterfacePropertyConversionFailed`, which extends `T
 A custom component a script registered has a hook that is not a function. The script sees
 Bedrock Dedicated Server's `TypeError`. Make each hook of the component a function.
 
+## `SCRIPT_HOST_INTERFACE_PROPERTY_MISSING`
+
+`Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [{index}]).`
+
+Thrown as `ScriptHostErrors.InterfacePropertyMissing`, which extends `TypeError`.
+
+A script passed an object that lacks a property the Script API's interface needs, such as
+an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`. Pass
+an object with every property the interface lists.
+
 ## `SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE`
 
 `A debugger message is an object with a type`

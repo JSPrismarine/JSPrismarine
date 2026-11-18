@@ -4,7 +4,13 @@
  * read, so a test can bound the world calls a script's member makes.
  */
 import type {
+    BlockBreakIntent,
     ChatSendIntent,
+    ItemUseIntent,
+    ScriptEffect,
+    ScriptEffectRequest,
+    ScriptSound,
+    ScriptTitle,
     Guard,
     ScriptBlockPermutation,
     ScriptCommandResult,
@@ -41,8 +47,18 @@ const BLOCK_TYPES: Readonly<Record<string, Readonly<Record<string, readonly (str
     'minecraft:dirt': {},
     'minecraft:grass_block': {},
     'minecraft:stone': {},
-    'minecraft:oak_log': { pillar_axis: ['y', 'x', 'z'] }
+    'minecraft:oak_log': { pillar_axis: ['y', 'x', 'z'] },
+    'minecraft:chest': {}
 };
+
+/** The block types that hold a container, with its size. */
+const CONTAINER_BLOCKS: Readonly<Record<string, number>> = { 'minecraft:chest': 27 };
+
+/** The item types that wear out, with their durability. */
+const DURABILITY: Readonly<Record<string, number>> = { 'minecraft:diamond_sword': 1561 };
+
+/** The status effects the world knows. */
+const EFFECT_TYPES: ReadonlySet<string> = new Set(['minecraft:speed', 'minecraft:slowness', 'minecraft:haste']);
 
 const ITEM_TYPES: Readonly<Record<string, number>> = {
     'minecraft:apple': 64,
@@ -76,6 +92,8 @@ interface MemoryEntity {
     rotation: { x: number; y: number };
     gameMode?: ScriptGameMode;
     selectedSlot?: number;
+    sneaking?: boolean;
+    effects: ScriptEffect[];
 }
 
 /** What the host read of the world, by method. */
@@ -188,6 +206,104 @@ export class MemoryWorld implements ScriptWorld {
     private readonly live = new Map<string, MemoryEntity>();
     private readonly set = new Map<string, ScriptBlockPermutation>();
     private nextId = 1;
+    private readonly containers = new Map<string, (ScriptItem | null)[]>();
+    private readonly breakGuards: VetoGuard<BlockBreakIntent>[] = [];
+    private readonly useGuards: VetoGuard<ItemUseIntent>[] = [];
+    /** The titles players were shown, as `<player> <kind> <text or times>`. */
+    public readonly titles: string[] = [];
+    /** The sounds played. */
+    public readonly sounds: ScriptSound[] = [];
+    /** The particles spawned, as `<effect> <MoLang JSON>`. */
+    public readonly particles: string[] = [];
+
+    /** A player breaks a block, past the break guards, as a client's break does. @returns Whether it broke. */
+    public breakBlock(player: string, dimension: string, location: ScriptVector3): boolean {
+        const permutation = this.block(dimension, location);
+        if (permutation === undefined || permutation.typeId === 'minecraft:air') return false;
+        const block = { dimension, ...location };
+        for (const guard of this.breakGuards) if (guard({ player, block }).veto) return false;
+        const air = this.resolveBlock('minecraft:air', {});
+        if (air !== undefined) this.setBlock(dimension, location, air);
+        this.committed.push({ type: 'playerBreakBlock', player, block, brokenBlockPermutation: permutation });
+        return true;
+    }
+
+    /** A player uses an item, past the item use guards. @returns Whether it was used. */
+    public useItem(player: string, item: ScriptItem): boolean {
+        for (const guard of this.useGuards) if (guard({ player, item }).veto) return false;
+        this.committed.push({ type: 'itemUse', player, item });
+        return true;
+    }
+    public guardBlockBreak(guard: VetoGuard<BlockBreakIntent>): () => void {
+        this.breakGuards.push(guard);
+        return () => this.breakGuards.splice(this.breakGuards.indexOf(guard), 1);
+    }
+    public guardItemUse(guard: VetoGuard<ItemUseIntent>): () => void {
+        this.useGuards.push(guard);
+        return () => this.useGuards.splice(this.useGuards.indexOf(guard), 1);
+    }
+    public setSneaking(id: string, sneaking: boolean): void {
+        const entity = this.live.get(id);
+        if (entity !== undefined) entity.sneaking = sneaking;
+    }
+    public showTitle(player: string, title: ScriptTitle): void {
+        this.titles.push(
+            `${player} ${title.kind}${'text' in title ? ` ${title.text}` : ''}${
+                title.kind === 'times' ? ` ${title.fadeIn} ${title.stay} ${title.fadeOut}` : ''
+            }`
+        );
+    }
+    public playSound(sound: ScriptSound): void {
+        this.sounds.push(sound);
+    }
+    public spawnParticle(_dimension: string, effect: string, _location: ScriptVector3, molang?: string): void {
+        this.particles.push(`${effect} ${molang ?? ''}`);
+    }
+    public isEffectType(typeId: string): boolean {
+        return EFFECT_TYPES.has(typeId);
+    }
+    public effects(id: string): readonly ScriptEffect[] | undefined {
+        return this.live.get(id)?.effects.map((effect) => ({ ...effect }));
+    }
+    /** Adds an effect by `/effect`'s rule: a weaker or shorter one of the same strength changes nothing. */
+    public addEffect(id: string, { typeId, amplifier, duration }: ScriptEffectRequest): void {
+        const effects = this.live.get(id)?.effects;
+        if (effects === undefined) return;
+        const at = effects.findIndex((each) => each.typeId === typeId);
+        const held = effects[at];
+        if (
+            held !== undefined &&
+            (amplifier < held.amplifier || (amplifier === held.amplifier && duration <= held.duration))
+        )
+            return;
+        if (at >= 0) effects[at] = { typeId, amplifier, duration };
+        else effects.push({ typeId, amplifier, duration });
+    }
+    public removeEffect(id: string, typeId: string): boolean {
+        const effects = this.live.get(id)?.effects;
+        const at = effects?.findIndex((each) => each.typeId === typeId) ?? -1;
+        if (effects === undefined || at < 0) return false;
+        effects.splice(at, 1);
+        return true;
+    }
+    public blockInventory(dimension: string, location: ScriptVector3): readonly (ScriptItem | null)[] | undefined {
+        const size = CONTAINER_BLOCKS[this.block(dimension, location)?.typeId ?? ''];
+        if (size === undefined) return undefined;
+        const key = this.blockKey(dimension, location);
+        const slots = this.containers.get(key) ?? new Array<ScriptItem | null>(size).fill(null);
+        this.containers.set(key, slots);
+        return slots.map((slot) => (slot === null ? null : { ...slot }));
+    }
+    public setBlockInventoryItem(
+        dimension: string,
+        location: ScriptVector3,
+        slot: number,
+        item: ScriptItem | undefined
+    ): void {
+        if (this.blockInventory(dimension, location) === undefined) return;
+        const slots = this.containers.get(this.blockKey(dimension, location));
+        if (slots !== undefined && slot >= 0 && slot < slots.length) slots[slot] = item ?? null;
+    }
 
     /** The ids of the players online, in the order they joined. */
     public get online(): readonly string[] {
@@ -244,6 +360,11 @@ export class MemoryWorld implements ScriptWorld {
         act: (id, action) => {
             this.acted.push(`${id} ${action.kind}`);
             if (action.kind === 'chat') this.chat(id, action.message);
+            if (action.kind === 'useItem') return this.useItem(id, action.item);
+            if (action.kind === 'breakBlock') {
+                const dimension = this.live.get(id)?.dimension ?? 'minecraft:overworld';
+                return this.breakBlock(id, dimension, action.location);
+            }
             return action.kind === 'jump';
         },
         tick: () => {
@@ -257,7 +378,7 @@ export class MemoryWorld implements ScriptWorld {
 
     /** How many guards the runtime still has on the world's actions. */
     public guardCount(): number {
-        return this.guards.length + this.chatGuards.length;
+        return this.guards.length + this.chatGuards.length + this.breakGuards.length + this.useGuards.length;
     }
 
     public dynamicProperties(owner: ScriptPropertyOwner, pack: string): ScriptProperties | undefined {
@@ -397,6 +518,8 @@ export class MemoryWorld implements ScriptWorld {
     }
     public setBlock(dimension: string, location: ScriptVector3, permutation: ScriptBlockPermutation): void {
         this.set.set(this.blockKey(dimension, location), permutation);
+        if (CONTAINER_BLOCKS[permutation.typeId] === undefined)
+            this.containers.delete(this.blockKey(dimension, location));
     }
     public resolveBlock(
         typeId: string,
@@ -416,7 +539,10 @@ export class MemoryWorld implements ScriptWorld {
     }
     public itemType(typeId: string): ScriptItemType | undefined {
         const maxStackSize = ITEM_TYPES[typeId];
-        return maxStackSize === undefined ? undefined : { typeId, maxStackSize };
+        const maxDurability = DURABILITY[typeId];
+        return maxStackSize === undefined
+            ? undefined
+            : { typeId, maxStackSize, ...(maxDurability === undefined ? {} : { maxDurability }) };
     }
     public runCommand(command: string, source: ScriptCommandSource): ScriptCommandResult {
         this.commands.push(`${'entity' in source ? source.entity : source.dimension}: ${command}`);
@@ -499,6 +625,7 @@ export class MemoryWorld implements ScriptWorld {
             tags: [],
             health: type?.health ?? 1,
             rotation: { x: 0, y: 0 },
+            effects: [],
             ...(size === undefined ? {} : { inventory: new Array<ScriptItem | null>(size).fill(null) }),
             ...(typeId === 'minecraft:player' ? { gameMode: 'Survival', selectedSlot: 0 } : {})
         });
@@ -516,7 +643,7 @@ export class MemoryWorld implements ScriptWorld {
             ...(entity.inventory === undefined ? {} : { inventorySize: entity.inventory.length }),
             rotation: { ...entity.rotation },
             headLocation: { ...entity.location, y: entity.location.y + (ENTITY_TYPES[entity.typeId]?.eyes ?? 0) },
-            sneaking: false,
+            sneaking: entity.sneaking === true,
             ...(entity.gameMode === undefined ? {} : { gameMode: entity.gameMode }),
             ...(entity.selectedSlot === undefined ? {} : { selectedSlot: entity.selectedSlot })
         };

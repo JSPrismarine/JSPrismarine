@@ -47,7 +47,7 @@ export const TAG = {
     entity: 7,
     /** An entity's inventory component; its state is the entity's {@link EntityKey}. */
     inventory: 8,
-    /** An entity's container; its state is the entity's {@link EntityKey}. */
+    /** An entity's or a block's container; its state is the entity's {@link EntityKey} or the block's {@link BlockKey}. */
     container: 9,
     /** A block; its state is a {@link BlockKey}. */
     block: 10,
@@ -83,6 +83,18 @@ export const TAG = {
     componentEvent: 25,
     /** The parameters a block or item gives a custom component; its state is their JSON, empty for none. */
     componentParameters: 26,
+    /** A player's screen display; its state is the player's {@link EntityKey}. */
+    screenDisplay: 27,
+    /** A sound a script played; its state names the sound and its listener. */
+    soundInstance: 28,
+    /** A `MolangVariableMap`; its state is the JSON of its variables. */
+    molangVariables: 29,
+    /** A status effect as it was read; its state is a `ScriptEffect` and its entity's id. */
+    effect: 30,
+    /** A block's inventory component; its state is the block's {@link BlockKey}. */
+    blockInventory: 31,
+    /** An item stack's durability component; its state is empty, and the stack it reads is linked to it. */
+    durability: 32,
     /** A signal's tag is this plus its index in the signal list. */
     signal: 100
 } as const;
@@ -122,6 +134,9 @@ export const blockKeyOf = (state: string): BlockKey => {
     }
     return { dimension, x, y, z };
 };
+
+/** Whether an object's state names a block, as a container's state does for a block's container. */
+export const namesBlock = (state: string): boolean => 'dimension' in parseState(state, 'container');
 
 /** The permutation an object stands for. */
 export const permutationOf = (state: string): ScriptBlockPermutation => {
@@ -174,7 +189,7 @@ const propertyOfState = (entry: unknown): readonly [string, ScriptPropertyValue]
 
 /** The item stack an object stands for. */
 export const itemOf = (state: string): ScriptItem => {
-    const { typeId, amount, nameTag, lore, properties } = parseState(state, 'item stack');
+    const { typeId, amount, nameTag, lore, damage, properties } = parseState(state, 'item stack');
     if (typeof typeId !== 'string' || typeof amount !== 'number')
         throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'item' });
     const dynamicProperties = new Map<string, ScriptProperties>();
@@ -192,6 +207,7 @@ export const itemOf = (state: string): ScriptItem => {
         amount,
         ...(typeof nameTag === 'string' ? { nameTag } : {}),
         ...(Array.isArray(lore) ? { lore: lore.filter((line) => typeof line === 'string') } : {}),
+        ...(typeof damage === 'number' && damage > 0 ? { damage } : {}),
         ...(dynamicProperties.size > 0 ? { dynamicProperties } : {})
     };
 };

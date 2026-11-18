@@ -365,6 +365,13 @@ export const gametestImplementations = <Owner>(
             const target = entityKeyOf(call.stateOf(call.args[0] ?? null));
             return act(call, 'attackEntity', { kind: 'attackEntity', entity: target.id });
         })
+        .implement(GAMETEST, 'SimulatedPlayer', 'breakBlock', (call) => {
+            const origin = tests.runOfPlayer(entityKeyOf(call.state).id)?.origin ?? { x: 0, y: 0, z: 0 };
+            return act(call, 'breakBlock', {
+                kind: 'breakBlock',
+                location: add(origin, floor(vectorArgument(call, 0)))
+            });
+        })
         .implement(GAMETEST, 'SimulatedPlayer', 'useItem', (call) =>
             act(call, 'useItem', { kind: 'useItem', item: itemOf(call.stateOf(call.args[0] ?? null)) })
         );

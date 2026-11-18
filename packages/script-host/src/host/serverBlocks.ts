@@ -1,6 +1,6 @@
 /**
- * The `@minecraft/server` members of blocks: `Dimension.getBlock`, `Block`, `BlockPermutation`
- * and `BlockType.id`.
+ * The `@minecraft/server` members of blocks: `Dimension.getBlock`, `Block`, `BlockPermutation`,
+ * `BlockType.id` and a block's inventory component, whose container `serverEntities.ts` implements.
  *
  * A block object carries its dimension and position ({@link BlockKey}) and reads the world each
  * time a member runs, so it always shows the block there now, as BDS's does. A permutation and a
@@ -8,6 +8,7 @@
  * `blocks` scenario recorded on BDS.
  */
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
+import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
 import type { BlockKey } from './serverObjects';
@@ -45,6 +46,10 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
         if (permutation === undefined) throw unloadedChunk(key);
         return { key, permutation };
     };
+    /** Whether a component id names the inventory and the block holds a container. Only the inventory has behavior yet. */
+    const holdsInventory = (key: BlockKey, component: ScriptValue | undefined): boolean =>
+        withNamespace(String(component)) === 'minecraft:inventory' &&
+        world.blockInventory?.(key.dimension, key) !== undefined;
     /** Completes a type's permutation, or throws BDS's error for a type it does not have. */
     const resolveType = (call: ScriptCall): ScriptBlockPermutation => {
         const [type] = call.args;
@@ -78,6 +83,15 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
             get: (call) => host.instance('Dimension', TAG.dimension, blockKeyOf(call.state).dimension)
         })
         .implement(SERVER, 'Block', 'permutation', { get: (call) => permutationObject(read(call).permutation) })
+        .implement(SERVER, 'Block', 'getComponent', (call) => {
+            const { key } = read(call);
+            if (!holdsInventory(key, call.args[0])) return undefined;
+            return host.engine.release(host.create('BlockInventoryComponent', TAG.blockInventory, JSON.stringify(key)));
+        })
+        .implement(SERVER, 'Block', 'hasComponent', (call) => holdsInventory(read(call).key, call.args[0]))
+        .implement(SERVER, 'BlockComponent', 'block', {
+            get: (call) => host.engine.release(host.create('Block', TAG.block, call.state))
+        })
         .implement(SERVER, 'Block', 'setType', (call) => {
             const { key } = read(call);
             world.setBlock(key.dimension, key, resolveType(call));
