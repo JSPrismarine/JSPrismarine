@@ -19,6 +19,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { readZip } from '@jsprismarine/packs';
 import type { JavaStructureTemplate } from '@jsprismarine/structures';
 import { readJavaStructureTemplate } from '@jsprismarine/structures';
@@ -127,13 +128,20 @@ const pathPartsOf = (identifier: string): readonly string[] => {
 };
 
 /**
- * The source for whatever the fetch left on disk.
+ * The source for whatever the fetch left on disk for one Java release.
  *
  * Always returns a source: one that finds no files places no template, which is the same answer
  * the feature gets for a template this server does not carry.
+ *
+ * @param release - The Java release whose templates to read, the one the registries came from.
+ *   Defaults to the release `sources.json` names as the default.
  */
-export const findJavaTemplateSource = (cacheRoot: string, processorLists: JavaRegistry): TemplateSource => {
-    const directory = javaTemplateDirectory(cacheRoot);
+export const findJavaTemplateSource = (
+    cacheRoot: string,
+    processorLists: JavaRegistry,
+    release: string = javaServerCacheFolder
+): TemplateSource => {
+    const directory = javaTemplateDirectory(cacheRoot, release);
     if (directory !== undefined) {
         return createDirectoryTemplateSource(directory, processorLists, () =>
             fingerprintTemplateFiles(readTemplateDirectory(directory))
@@ -142,7 +150,7 @@ export const findJavaTemplateSource = (cacheRoot: string, processorLists: JavaRe
 
     let files: ReadonlyMap<string, Uint8Array> | undefined;
     const readFiles = (): ReadonlyMap<string, Uint8Array> => {
-        files ??= findJavaTemplates(cacheRoot) ?? new Map();
+        files ??= findJavaTemplates(cacheRoot, release) ?? new Map();
         return files;
     };
     return createTemplateSource(readFiles, processorLists, () => fingerprintTemplateFiles(readFiles()));
@@ -159,12 +167,22 @@ const fingerprintTemplateFiles = (files: ReadonlyMap<string, Uint8Array>): strin
 
 const compareStrings = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
 
-/** The extracted template directory, from the override or the cache, when there is one. */
-export const javaTemplateDirectory = (cacheRoot: string): string | undefined => {
+/**
+ * The extracted template directory, from the override or the release's folder in the cache, when
+ * there is one.
+ *
+ * `extract:structures` writes each release to its own `java-structures/<release>/`, so the folder
+ * is picked by name: the newest-named one could be a preview the world does not run.
+ */
+export const javaTemplateDirectory = (
+    cacheRoot: string,
+    release: string = javaServerCacheFolder
+): string | undefined => {
     const override = process.env[JAVA_TEMPLATE_ENV.templates];
     if (override !== undefined && override !== '') return existsSync(override) ? override : undefined;
 
-    return newestVersionIn(join(cacheRoot, 'java-structures'));
+    const directory = join(cacheRoot, 'java-structures', release);
+    return existsSync(directory) ? directory : undefined;
 };
 
 /** Every `.nbt` under a directory, as `minecraft:<path without the extension>`. */
@@ -212,49 +230,44 @@ export const readTemplateJar = (jarPath: string): Map<string, Uint8Array> => {
 };
 
 /**
- * Finds the templates on disk.
+ * Finds one Java release's templates on disk.
  *
  * @param cacheRoot - The `node_modules/.cache/jsprismarine` the fetch writes into.
+ * @param release - The Java release whose templates to read. Defaults to the release
+ *   `sources.json` names as the default.
  * @returns The raw bytes keyed by identifier, or undefined when neither source is there.
  */
-export const findJavaTemplates = (cacheRoot: string): Map<string, Uint8Array> | undefined => {
+export const findJavaTemplates = (
+    cacheRoot: string,
+    release: string = javaServerCacheFolder
+): Map<string, Uint8Array> | undefined => {
     const directory = process.env[JAVA_TEMPLATE_ENV.templates];
     if (directory !== undefined && directory !== '') {
         const found = readTemplateDirectory(directory);
         return found.size === 0 ? undefined : found;
     }
 
-    const extracted = newestVersionIn(join(cacheRoot, 'java-structures'));
+    const extracted = javaTemplateDirectory(cacheRoot, release);
     if (extracted !== undefined) {
         const found = readTemplateDirectory(extracted);
         if (found.size > 0) return found;
     }
 
-    const jar = javaServerJar(cacheRoot);
+    const jar = javaServerJar(cacheRoot, release);
     return jar === undefined ? undefined : readTemplateJar(jar);
 };
 
-/** The pinned server jar, taking whichever version the fetch wrote. */
-const javaServerJar = (cacheRoot: string): string | undefined => {
+/**
+ * The release's server jar, from either cache folder the fetch writes.
+ *
+ * There is no fallback to another release's jar. Its templates would sit beside this release's
+ * structure and pool documents, and a template a release renamed or reshaped would place wrong.
+ */
+const javaServerJar = (cacheRoot: string, release: string): string | undefined => {
     const override = process.env[JAVA_TEMPLATE_ENV.jar];
     if (override !== undefined && override !== '') return existsSync(override) ? override : undefined;
 
-    for (const root of ['java-server', 'java']) {
-        const version = newestVersionIn(join(cacheRoot, root), 'server.jar');
-        if (version !== undefined) return join(version, 'server.jar');
-    }
-
-    return undefined;
-};
-
-/** The newest version directory under a cache folder, optionally one holding a named entry. */
-const newestVersionIn = (root: string, holds?: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-
-    for (const entry of readdirSync(root).sort().reverse()) {
-        const candidate = join(root, entry);
-        if (holds === undefined || existsSync(join(candidate, holds))) return candidate;
-    }
-
-    return undefined;
+    return ['java-server', 'java']
+        .map((root) => join(cacheRoot, root, release, 'server.jar'))
+        .find((path) => existsSync(path));
 };

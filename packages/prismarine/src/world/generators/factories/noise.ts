@@ -81,7 +81,7 @@ const openShared = (registries: JavaWorldgenRegistries, context: GeneratorBuildC
     });
     const built = new DataDrivenGenerator({
         registries,
-        templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
+        templates: findJavaTemplateSource(cacheRoot(), registries.processorLists, registries.release),
         ...(context.completionQueue === undefined ? {} : { completionQueue: context.completionQueue }),
         ...(stages === undefined || context.terrainCache === undefined
             ? {}
