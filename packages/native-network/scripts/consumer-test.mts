@@ -1,7 +1,8 @@
 /**
  * Installs the packed package from an npm project, the way users do: npm runs its install script,
- * so the build is downloaded and loads. The manifest packed for the test points at the artifacts
- * directory, so nothing is fetched from a release.
+ * after the project approves it where npm asks for that, so the build is downloaded and loads. The
+ * manifest packed for the test points at the artifacts directory, so nothing is fetched from a
+ * release.
  *
  *     node scripts/consumer-test.mts <artifacts-dir>
  */
@@ -79,6 +80,16 @@ try {
 
     const npm = project('npm');
     run('npm', ['install', '--no-audit', '--no-fund'], npm);
+    // npm 12 skips a dependency's install script until the project approves it.
+    if (!existsSync(installedFile(npm))) {
+        const blocked = load(npm);
+        expect(
+            !blocked.ok && blocked.output.includes('npm install-scripts approve'),
+            `loading before approval says how to approve the install script (${blocked.output.trim()})`
+        );
+        run('npm', ['install-scripts', 'approve', '@jsprismarine/native-network'], npm);
+        run('npm', ['rebuild', '@jsprismarine/native-network'], npm);
+    }
     expect(existsSync(installedFile(npm)), 'npm runs the install script and downloads the build');
     const npmLoad = load(npm);
     expect(npmLoad.ok, `the npm project loads the library (${npmLoad.output.trim()})`);

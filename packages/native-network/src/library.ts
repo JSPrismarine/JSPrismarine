@@ -35,7 +35,7 @@ export interface LocateOptions {
  */
 export const approvalAdvice = (platform: string): string =>
     `${PACKAGE_NAME} downloads the build for ${platform} in its install script, which has not run. ` +
-    `Under npm, run \`npm rebuild ${PACKAGE_NAME}\` with install scripts enabled. ` +
+    `Under npm, run \`npm install-scripts approve ${PACKAGE_NAME}\`, then \`npm rebuild ${PACKAGE_NAME}\`. ` +
     `Under pnpm, run \`pnpm approve-builds\` or add \`allowBuilds: { '${PACKAGE_NAME}': true }\` to pnpm-workspace.yaml, then reinstall. ` +
     `Under Bun, add "${PACKAGE_NAME}" to "trustedDependencies" in package.json, then reinstall. ` +
     `Or set ${LIBRARY_ENV} to a build of the library.`;

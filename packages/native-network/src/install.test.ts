@@ -158,6 +158,7 @@ describe('loading the native library', () => {
         const attempt = () => locateLibrary({ packageDir: publishedPackage(), platform: PLATFORM, manifest, env: {} });
 
         expect(attempt).toThrow(NativeLibraryError);
+        expect(attempt).toThrow('npm install-scripts approve @jsprismarine/native-network');
         expect(attempt).toThrow('npm rebuild @jsprismarine/native-network');
         expect(attempt).toThrow('pnpm approve-builds');
         expect(attempt).toThrow('"trustedDependencies"');

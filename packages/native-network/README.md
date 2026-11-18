@@ -37,7 +37,9 @@ downloads nothing, and checks the file against the same digest.
 
 Package managers that hold install scripts back need to be told to run this one:
 
-- npm runs it unless install scripts are turned off.
+- npm 12 runs it after `npm install-scripts approve @jsprismarine/native-network`, which adds the
+  package to `allowScripts` in `package.json`, then `npm rebuild @jsprismarine/native-network`.
+  Earlier npm runs it unless install scripts are turned off.
 - pnpm runs it after `pnpm approve-builds`, or with
   `allowBuilds: { '@jsprismarine/native-network': true }` in `pnpm-workspace.yaml`.
 - Bun runs it once `"@jsprismarine/native-network"` is in the project's `trustedDependencies`.
