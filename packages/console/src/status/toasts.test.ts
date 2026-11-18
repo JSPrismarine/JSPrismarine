@@ -52,16 +52,23 @@ describe('createToastStack', () => {
             const under = new TextRenderable(test.renderer, {
                 id: 'under',
                 position: 'absolute',
-                content: Array.from({ length: 3 }, () => 'x'.repeat(60)).join('\n')
+                content: Array.from({ length: 3 }, () => '#'.repeat(60)).join('\n')
             });
             test.parent.add(under);
             const stack = createToastStack({ renderer: test.renderer, theme: defaultTheme });
             test.parent.add(stack.renderable);
 
-            stack.push({ tone: 'danger', text: 'server crashed (exit 1)' });
+            const id = stack.push({ tone: 'danger', text: 'a notice with spaces in it' });
             await test.renderOnce();
 
-            expect(test.captureCharFrame()).toContain('│ server crashed (exit 1) [x] │');
+            const box = test.renderer.root.findDescendantById(id)!;
+            const covered = test
+                .captureCharFrame()
+                .split('\n')
+                .slice(box.y, box.y + box.height)
+                .map((row) => [...row].slice(box.x, box.x + box.width).join(''));
+            expect(covered).toHaveLength(3);
+            for (const row of covered) expect(row).not.toContain('#');
             stack.dispose();
         } finally {
             await test.dispose();
