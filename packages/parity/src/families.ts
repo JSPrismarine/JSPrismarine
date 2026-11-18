@@ -161,6 +161,8 @@ export const FAMILIES = {
     scriptingNet: 'scripting.net',
     /** `@minecraft/server-admin`: the variables and secrets a pack's config folder gives it, and the player transfers it makes. */
     scriptingAdmin: 'scripting.admin',
+    /** `@minecraft/debug-utilities`: the debug shapes a script makes, what they keep and how the drawer counts their time down. */
+    scriptingDebug: 'scripting.debug',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',
