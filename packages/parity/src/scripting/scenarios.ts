@@ -507,6 +507,47 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'entity-members',
+        family: 'scripting.entities',
+        description:
+            'World.getEntity finds an entity by id as the same object, Dimension.getPlayers lists only players, an ' +
+            'entity reports its rotation, head location, view direction and sneaking, and Container.addItem fills a ' +
+            'chest minecart as a hopper would: onto matching stacks first, then into the first empty slot, handing ' +
+            'back what does not fit.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['members'],
+        needs: 'server'
+    },
+    {
+        id: 'entity-events',
+        family: 'scripting.events',
+        description:
+            'world.afterEvents.entitySpawn, entityHurt and entityDie report entities a script spawns, summons, hurts ' +
+            'with applyDamage and kills, with the cause, the damage and the entity that dealt it.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['events'],
+        needs: 'server'
+    },
+    {
+        id: 'script-event-console',
+        family: 'scripting.world',
+        description:
+            '/scriptevent typed on the server console raises system.afterEvents.scriptEventReceive with the source ' +
+            'type Server and no source entity, block or initiator, and an id in the minecraft namespace raises nothing.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['console'],
+        consoleAfter: {
+            event: 'ready for the console',
+            commands: [
+                'scriptevent jsp:first hello there',
+                'scriptevent minecraft:refused nothing',
+                'scriptevent jsp:empty',
+                'scriptevent jsp:last  two  spaces '
+            ]
+        },
+        needs: 'server'
+    },
+    {
         id: 'blocks',
         family: 'scripting.blocks',
         description:

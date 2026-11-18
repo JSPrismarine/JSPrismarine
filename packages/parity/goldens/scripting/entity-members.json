@@ -1,0 +1,248 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-members` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "entity-members",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "members",
+            "seq": 1,
+            "tick": 0,
+            "event": "getEntity finds the same object",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 2,
+            "tick": 0,
+            "event": "getEntity of an unknown id",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 3,
+            "tick": 0,
+            "event": "getEntity of a word",
+            "error": "Error: Entity id 'nonsense' is invalid."
+        },
+        {
+            "pack": "members",
+            "seq": 4,
+            "tick": 0,
+            "event": "Dimension.getPlayers",
+            "value": 0
+        },
+        {
+            "pack": "members",
+            "seq": 5,
+            "tick": 0,
+            "event": "Dimension.getPlayers by name",
+            "value": 0
+        },
+        {
+            "pack": "members",
+            "seq": 6,
+            "tick": 0,
+            "event": "Dimension.getPlayers by type",
+            "error": "CommandError: Error occurred with parsing command params: Type argument applied to player-only selector"
+        },
+        {
+            "pack": "members",
+            "seq": 7,
+            "tick": 0,
+            "event": "getRotation",
+            "value": {
+                "y": 0,
+                "x": 0
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 8,
+            "tick": 0,
+            "event": "getHeadLocation",
+            "value": {
+                "z": 0.5,
+                "y": -58.3213,
+                "x": 0.5
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 9,
+            "tick": 0,
+            "event": "getViewDirection",
+            "value": {
+                "z": 1,
+                "y": 0,
+                "x": 0
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 10,
+            "tick": 0,
+            "event": "isSneaking",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 11,
+            "tick": 0,
+            "event": "addItem into an empty container"
+        },
+        {
+            "pack": "members",
+            "seq": 12,
+            "tick": 0,
+            "event": "slot 0 after addItem",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 5,
+                "nameTag": null
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 13,
+            "tick": 0,
+            "event": "addItem past a full stack"
+        },
+        {
+            "pack": "members",
+            "seq": 14,
+            "tick": 0,
+            "event": "slots 0 and 1 after addItem",
+            "value": [
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 64,
+                    "nameTag": null
+                },
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 3,
+                    "nameTag": null
+                }
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 15,
+            "tick": 0,
+            "event": "addItem a named stack"
+        },
+        {
+            "pack": "members",
+            "seq": 16,
+            "tick": 0,
+            "event": "slots 1 and 2 after a named stack",
+            "value": [
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 3,
+                    "nameTag": null
+                },
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 2,
+                    "nameTag": "Shiny"
+                }
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 17,
+            "tick": 0,
+            "event": "addItem an unstackable item"
+        },
+        {
+            "pack": "members",
+            "seq": 18,
+            "tick": 0,
+            "event": "slot 3 after an unstackable item",
+            "value": {
+                "typeId": "minecraft:diamond_sword",
+                "amount": 1,
+                "nameTag": null
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 19,
+            "tick": 0,
+            "event": "addItem fills a gap first",
+            "value": [
+                {
+                    "typeId": "minecraft:stick",
+                    "amount": 4,
+                    "nameTag": null
+                },
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 20,
+            "tick": 0,
+            "event": "addItem leaves the argument as it was",
+            "value": 7
+        },
+        {
+            "pack": "members",
+            "seq": 21,
+            "tick": 0,
+            "event": "addItem into a nearly full container",
+            "value": [
+                {
+                    "typeId": "minecraft:stone",
+                    "amount": 6
+                },
+                {
+                    "typeId": "minecraft:stone",
+                    "amount": 64,
+                    "nameTag": null
+                }
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 22,
+            "tick": 0,
+            "event": "addItem into a full container",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 3
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 23,
+            "tick": 0,
+            "event": "emptySlotsCount when full",
+            "value": 0
+        },
+        {
+            "pack": "members",
+            "seq": 24,
+            "tick": 0,
+            "event": "getEntity of a removed entity",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 25,
+            "tick": 0,
+            "event": "addItem to the container of a removed entity",
+            "error": "Error: Failed to call function 'addItem'."
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario entity-events events",
+        "description": "Records the entitySpawn, entityHurt and entityDie after-events of entities a script spawns and hurts. Written for packages/parity.",
+        "uuid": "e56a2610-444b-470e-8583-63fa3171ee34",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "124bcdff-951d-4834-b739-f87ee47c13bd",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}
