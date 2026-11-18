@@ -277,8 +277,91 @@ const engineActorEntries = (): readonly AllowListEntry[] =>
         id: `no-definition:${id}`,
         kind: 'intentional' as const,
         reason,
-        reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities, which has no file for it'
+        reference: 'the pinned bedrock-samples behavior_pack/entities, which has no file for it'
     }));
+
+/**
+ * Advertised actor types whose only definition is in an experimental pack of the pinned server,
+ * which a world without that experiment does not load.
+ */
+const experimentalActorEntries = (): readonly AllowListEntry[] =>
+    (
+        [
+            [
+                'minecraft:ice_ball',
+                "The frostbite's projectile, defined only in BDS 1.26.60.6's experimental_y_2026_drop_4 pack."
+            ]
+        ] as const
+    ).map(([id, reason]) => ({
+        family: 'entities.addactor' as const,
+        id: `no-definition:${id}`,
+        kind: 'intentional' as const,
+        reason,
+        reference: 'BDS 1.26.60.6 behavior_packs; the advertised list names it whether or not the experiment is on'
+    }));
+
+/**
+ * Items whose number in bedrock-samples' `mojang-items.json` differs from the number the pinned
+ * server sends, and the one item only that file lists.
+ *
+ * The samples file at v1.26.60.5 numbers the items of the 1.26.60 experimental drop among the
+ * others - `minecraft:ice_ball` 853, `minecraft:ice_crystal` 854, `minecraft:icicle` 855 - so
+ * every item numbered after them sits one to three higher than in the server's registry, which
+ * leaves the experiment's items to negative block-item ids. The server's capture is what a
+ * client is sent, so the table follows it.
+ */
+const experimentalItemNumberingEntries = (): readonly AllowListEntry[] => [
+    {
+        family: 'registry.items',
+        id: 'samples-only:minecraft:ice_ball',
+        kind: 'intentional',
+        reason: 'An experimental-drop item the pinned server does not register without the experiment.',
+        reference: 'bedrock-samples v1.26.60.5 metadata/vanilladata_modules/mojang-items.json'
+    },
+    ...[
+        'apple',
+        'black_bundle',
+        'blue_bundle',
+        'breeze_rod',
+        'brown_bundle',
+        'bundle',
+        'copper_spear',
+        'cyan_bundle',
+        'diamond_spear',
+        'glow_berries',
+        'golden_spear',
+        'gray_bundle',
+        'green_bundle',
+        'ice_crystal',
+        'icicle',
+        'iron_spear',
+        'light_blue_bundle',
+        'light_gray_bundle',
+        'lime_bundle',
+        'magenta_bundle',
+        'netherite_spear',
+        'ominous_trial_key',
+        'orange_bundle',
+        'pink_bundle',
+        'purple_bundle',
+        'red_bundle',
+        'red_shrub',
+        'shelf_mushroom',
+        'stone_spear',
+        'trial_key',
+        'white_bundle',
+        'wind_charge',
+        'wooden_spear',
+        'yellow_bundle'
+    ].map((name) => ({
+        family: 'registry.items' as const,
+        id: `sources-disagree:minecraft:${name}`,
+        kind: 'intentional' as const,
+        reason: "bedrock-samples numbers the experimental drop's items among the others; the server's own registry does not.",
+        reference:
+            'bedrock-samples v1.26.60.5 mojang-items.json against packages/bedrock-data/src/jsp/v2225/required_item_list.json'
+    }))
+];
 
 /** Advertised actor types whose definition declares no collision box at the top level. */
 const bodilessActorEntries = (): readonly AllowListEntry[] =>
@@ -294,7 +377,7 @@ const bodilessActorEntries = (): readonly AllowListEntry[] =>
         id: `no-collision-box:${id}`,
         kind: 'intentional' as const,
         reason,
-        reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities'
+        reference: 'the pinned bedrock-samples behavior_pack/entities'
     }));
 
 /**
@@ -400,6 +483,8 @@ export const allowList: readonly AllowListEntry[] = [
     // is replayed into a chunk already handed out.
 
     ...engineActorEntries(),
+    ...experimentalActorEntries(),
+    ...experimentalItemNumberingEntries(),
     ...bodilessActorEntries(),
     ...entityStatEntries(),
     ...entityStatLossEntries(),

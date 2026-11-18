@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { defaultBdsCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { packJson } from '@jsprismarine/loot';
 import { hangingState, paintingSightOf } from '@jsprismarine/prismarine/entity/data/hangingEntities';
 import { bedrockPaintingMotif, paintingState } from '@jsprismarine/prismarine/entity/data/paintings';
@@ -401,13 +402,9 @@ const bedrockPaintingNames = (): {
         // name standing on its own, not inside a longer word.
         inServer: (name) => {
             if (bytes === undefined) {
-                const root = join(FETCH_CACHE, 'bds');
-                const binary = existsSync(root)
-                    ? readdirSync(root)
-                          .map((version) => join(root, version, 'unpacked', 'bedrock_server'))
-                          .find((path) => existsSync(path))
-                    : undefined;
-                if (binary === undefined)
+                // The default server's binary: the cache keeps every version it fetched.
+                const binary = join(FETCH_CACHE, 'bds', defaultBdsCacheFolder, 'unpacked', 'bedrock_server');
+                if (!existsSync(binary))
                     throw new Error('the pinned Bedrock Dedicated Server is not in the fetch cache');
                 bytes = readFileSync(binary);
             }

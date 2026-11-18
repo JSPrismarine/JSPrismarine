@@ -1,4 +1,4 @@
-import { item_table as items2193 } from '@jsprismarine/bedrock-data';
+import { item_table as items2193 } from '@jsprismarine/bedrock-data/v2193';
 import { item_table as items2225 } from '@jsprismarine/bedrock-data/v2225';
 import {
     createTestOracle,
