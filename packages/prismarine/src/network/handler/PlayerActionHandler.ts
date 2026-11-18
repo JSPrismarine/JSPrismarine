@@ -176,7 +176,13 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 if (config.getServerAuthoritativeBlockBreaking()) {
                     // The block is read from its loaded chunk; one nobody has loaded starts nothing.
                     const mining = player.getComponents().get('mining.block');
-                    const started = world.startBlockCracking(blockPosition, blockFace, tool, blockMiningOf(mining));
+                    const started = world.startBlockCracking(
+                        blockPosition,
+                        blockFace,
+                        tool,
+                        blockMiningOf(mining),
+                        session.handledInputs()
+                    );
                     inputs.setPlayerMining(player, playerMiningOf(started));
                     return;
                 }
@@ -239,7 +245,10 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                     return;
                 }
 
-                const refusal = refusePrediction(blockPosition, mining, world, player, step.tick);
+                const refusal = refusePrediction(blockPosition, mining, world, player, {
+                    tick: step.tick,
+                    input: session.handledInputs()
+                });
                 if (refusal !== null) {
                     log.verbose(
                         `Refused a predicted break from ${session.identity.name} at ${blockPosition}: ${refusal}`,
@@ -391,14 +400,15 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
  * @param mining - What the server was timing the player mining, before the prediction.
  * @param world - The player's world.
  * @param player - Who predicted it, whose tool and effects the break time allows for.
- * @param tick - The tick the prediction is applied in, on the clock mining was started on.
+ * @param now - The tick the prediction is applied in, on the clock mining was started on, and the
+ *   client's input count, on the clock of `BlockMining.startedAtInput`.
  */
 const refusePrediction = (
     blockPosition: BlockPosition,
     mining: BlockMining | null,
     world: Pick<World, 'loadedBlockRuntimeIdAt' | 'loadedBlock'>,
     player: Pick<StorePlayer, 'getInventory' | 'getStatusEffects'>,
-    tick: number
+    now: { readonly tick: number; readonly input: number }
 ): string | null => {
     const x = blockPosition.getX();
     const y = blockPosition.getY();
@@ -410,7 +420,13 @@ const refusePrediction = (
         if (world.loadedBlockRuntimeIdAt(x, y, z) !== mining.runtimeId) return 'the block changed since mining began';
 
         const needed = minimumBreakTicks(mining, player.getStatusEffects());
-        const took = tick - mining.startedAt;
+        // The longer of the server's ticks and the client's. A server that falls behind skips
+        // ticks to catch up, and a break the client mined in real time then spans fewer server
+        // ticks than it took; the client's inputs kept coming one a tick all the while.
+        const took = Math.max(
+            now.tick - mining.startedAt,
+            mining.startedAtInput === undefined ? 0 : now.input - mining.startedAtInput
+        );
         if (!Number.isFinite(needed)) return 'the block cannot be broken';
         return took >= needed ? null : `it was mined for ${took} of the ${needed} ticks it needs`;
     }

@@ -70,7 +70,8 @@ const fakeWorld = () => {
         getPlayer: () => sender,
         getWorld: () => world,
         getConnection: () => connection,
-        inputs: () => inputs
+        inputs: () => inputs,
+        handledInputs: () => 0
     });
     const watcher = stub<PlayerSession>({
         runtimeId: 8n,

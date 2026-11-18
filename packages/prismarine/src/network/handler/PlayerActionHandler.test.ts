@@ -63,8 +63,11 @@ const fakeSession = (
             return blockMiningOf(held);
         }
     };
-    /** The server's tick, which a test moves on to stand in for time spent mining. */
-    const clock = { tick: 0 };
+    /**
+     * The server's tick and the client's input count, which a test moves on to stand in for time
+     * spent mining.
+     */
+    const clock = { tick: 0, inputs: 0 };
     /** The runtime id of what stands at every position; mining records 1. */
     const standing = { runtimeId: 1 };
     const effects: StatusEffect[] = [];
@@ -89,14 +92,29 @@ const fakeSession = (
         sendWorldEvent: (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },
-        startBlockCracking: (where: Vector3, face: number, tool: Item | null, previous: BlockMining | null) => {
+        startBlockCracking: (
+            where: Vector3,
+            face: number,
+            tool: Item | null,
+            previous: BlockMining | null,
+            input?: number
+        ) => {
             cracking.push(`start ${at(where)} (${previous === null ? 'none' : at(previous.position)})`);
             tools.push(tool);
             const breakTicks = Math.ceil(breakSeconds * 20);
             // As the world does: mining continued on the same block keeps the tick it began on.
             const continued = previous !== null && previous.position.equals(where);
             const startedAt = continued ? previous.startedAt : clock.tick;
-            return { position: where, face, runtimeId: 1, progressPerTick: 5461, breakTicks, startedAt };
+            const startedAtInput = continued ? previous.startedAtInput : input;
+            return {
+                position: where,
+                face,
+                runtimeId: 1,
+                progressPerTick: 5461,
+                breakTicks,
+                startedAt,
+                startedAtInput
+            };
         },
         stopBlockCracking: (where: Vector3) => {
             cracking.push(`stop ${at(where)}`);
@@ -148,6 +166,7 @@ const fakeSession = (
             getPlayer: () => player,
             getWorld: () => world,
             inputs: () => inputs,
+            handledInputs: () => clock.inputs,
             setSprinting: async (value: boolean) => {
                 sprinting.push(value);
             },
@@ -410,6 +429,31 @@ describe('PlayerActionHandler', () => {
             await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
             expect(broken).toEqual([near(2)]);
+        });
+
+        it('breaks a block the client mined in full while the server skipped ticks', async () => {
+            const scene = serverTimed();
+            const { broken, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            // A second of the client's inputs, over which the server fell behind and ran only five.
+            clock.inputs += 20;
+            clock.tick += 5;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([near(2)]);
+        });
+
+        it('refuses a predicted break when neither clock gave the block time to give way', async () => {
+            const scene = serverTimed();
+            const { broken, clock } = scene;
+
+            await act(scene, PlayerActionType.StartDestroyBlock, near(2), 5);
+            clock.inputs += 20 - MINING_LATENCY_TICKS - 1;
+            clock.tick += 20 - MINING_LATENCY_TICKS - 1;
+            await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
+
+            expect(broken).toEqual([]);
         });
 
         it('refuses a predicted break that came before the block could give way', async () => {

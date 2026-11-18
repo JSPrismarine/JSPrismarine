@@ -514,6 +514,9 @@ export default class PlayerSession {
      */
     private lastInputTick = 0n;
 
+    /** How many `PlayerAuthInputPacket`s were handled for this client; see {@link handledInputs}. */
+    private inputCount = 0;
+
     /**
      * The `Loading Screen Id` the next `ChangeDimensionPacket` gets. The docs ask for an
      * unsigned integer that increments for ever and is unique among the screens still open.
@@ -2464,7 +2467,20 @@ export default class PlayerSession {
      * @param {bigint} tick - The packet's `Tick` field.
      */
     public recordInputTick(tick: bigint): void {
+        this.inputCount += 1;
         if (tick > this.lastInputTick) this.lastInputTick = tick;
+    }
+
+    /**
+     * How many `PlayerAuthInputPacket`s were handled for this client: one per tick of its own
+     * simulation, as the client sends one an input tick.
+     *
+     * A clock in the client's ticks that the server counts itself. It keeps running while the
+     * server skips ticks to catch up, which the server's tick counter does not, and the client
+     * cannot move it on without sending the inputs, unlike the `Tick` field each input claims.
+     */
+    public handledInputs(): number {
+        return this.inputCount;
     }
 
     /**

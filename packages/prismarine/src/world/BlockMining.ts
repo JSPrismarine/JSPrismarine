@@ -23,6 +23,12 @@ export interface BlockMining {
     readonly breakTicks: number;
     /** The server tick the player began mining this block on. */
     readonly startedAt: number;
+    /**
+     * How many inputs the client had sent when it began mining this block, which counts the
+     * client's own ticks: see `PlayerSession.handledInputs`. Absent for mining begun without a
+     * client to count, such as mining saved before the field existed.
+     */
+    readonly startedAtInput?: number;
 }
 
 /**
@@ -44,7 +50,7 @@ export function playerMiningOf(mining: BlockMining | null): PlayerMining | null;
  */
 export function playerMiningOf(mining: BlockMining | null): PlayerMining | null {
     if (mining === null) return null;
-    const { position, face, runtimeId, progressPerTick, breakTicks, startedAt } = mining;
+    const { position, face, runtimeId, progressPerTick, breakTicks, startedAt, startedAtInput } = mining;
     return {
         x: position.getX(),
         y: position.getY(),
@@ -53,7 +59,8 @@ export function playerMiningOf(mining: BlockMining | null): PlayerMining | null 
         runtimeId,
         progressPerTick,
         breakTicks,
-        startedAt
+        startedAt,
+        ...(startedAtInput === undefined ? {} : { startedAtInput })
     };
 }
 
@@ -76,8 +83,16 @@ export function blockMiningOf(mining: PlayerMining | null): BlockMining | null;
  */
 export function blockMiningOf(mining: PlayerMining | null): BlockMining | null {
     if (mining === null) return null;
-    const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt } = mining;
-    return { position: new Vector3(x, y, z), face, runtimeId, progressPerTick, breakTicks, startedAt };
+    const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt, startedAtInput } = mining;
+    return {
+        position: new Vector3(x, y, z),
+        face,
+        runtimeId,
+        progressPerTick,
+        breakTicks,
+        startedAt,
+        ...(startedAtInput === undefined ? {} : { startedAtInput })
+    };
 }
 
 /**

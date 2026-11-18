@@ -66,7 +66,13 @@ export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmen
         if (mining !== null && data.hotbarSlot !== previousSlot) {
             const world = session.getWorld();
             world.stopBlockCracking(mining.position);
-            const restarted = world.startBlockCracking(mining.position, mining.face, inventory.getItemInHand(), null);
+            const restarted = world.startBlockCracking(
+                mining.position,
+                mining.face,
+                inventory.getItemInHand(),
+                null,
+                session.handledInputs()
+            );
             session.inputs().setPlayerMining(player, playerMiningOf(restarted));
         }
     }

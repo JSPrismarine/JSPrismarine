@@ -42,6 +42,8 @@ export interface PlayerMining {
     readonly progressPerTick: number;
     readonly breakTicks: number;
     readonly startedAt: number;
+    /** The client's input count when mining began; see `BlockMining.startedAtInput`. */
+    readonly startedAtInput?: number;
 }
 
 /**
@@ -233,7 +235,7 @@ const sneakingSinceIn = (value: PlainData): number | null =>
 const miningIn = (value: PlainData): PlayerMining | null => {
     if (value === null) return null;
     if (isPlainRecord(value)) {
-        const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt } = value;
+        const { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt, startedAtInput } = value;
         if (
             typeof x === 'number' &&
             typeof y === 'number' &&
@@ -242,9 +244,20 @@ const miningIn = (value: PlainData): PlayerMining | null => {
             typeof runtimeId === 'number' &&
             typeof progressPerTick === 'number' &&
             typeof breakTicks === 'number' &&
-            typeof startedAt === 'number'
+            typeof startedAt === 'number' &&
+            (startedAtInput === undefined || typeof startedAtInput === 'number')
         )
-            return { x, y, z, face, runtimeId, progressPerTick, breakTicks, startedAt };
+            return {
+                x,
+                y,
+                z,
+                face,
+                runtimeId,
+                progressPerTick,
+                breakTicks,
+                startedAt,
+                ...(startedAtInput === undefined ? {} : { startedAtInput })
+            };
     }
     throw new PrismarineEntityErrors.InvalidSavedMining({ value: JSON.stringify(value) });
 };

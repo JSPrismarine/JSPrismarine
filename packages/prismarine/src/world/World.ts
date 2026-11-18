@@ -2188,6 +2188,8 @@ export class World implements Service {
      * @param {Item | null} tool - What the player holds, or null for a bare hand.
      * @param {BlockMining | null} previous - What the player was mining until now. When it is
      * this same block, the mining carries on from when it began rather than starting over.
+     * @param {number} [input] - How many inputs the miner's client has sent, which times the
+     * break in the client's ticks as well as the server's; see `PlayerSession.handledInputs`.
      * @returns {BlockMining | null} What the player is mining now, or null for air, for a block
      * in a chunk that is not loaded and for a block that breaks at once, which have nothing to
      * animate.
@@ -2196,7 +2198,8 @@ export class World implements Service {
         position: Vector3,
         face: number,
         tool: Item | null,
-        previous: BlockMining | null
+        previous: BlockMining | null,
+        input?: number
     ): BlockMining | null {
         if (previous !== null) this.stopBlockCracking(previous.position);
 
@@ -2218,6 +2221,7 @@ export class World implements Service {
         // A client restarts the cracks on the block it is already mining, sometimes in the
         // same input as the prediction that it broke, and that must not reset the time it took.
         const sameBlock = previous !== null && previous.position.equals(position) && previous.runtimeId === runtimeId;
+        const startedAtInput = sameBlock ? previous.startedAtInput : input;
         const mining: BlockMining = {
             position,
             face,
@@ -2225,7 +2229,8 @@ export class World implements Service {
             // The client is told how much progress a tick is worth, not how long the block takes.
             progressPerTick: Math.floor(65535 / breakTicks),
             breakTicks,
-            startedAt: sameBlock ? previous.startedAt : this.server.getTick()
+            startedAt: sameBlock ? previous.startedAt : this.server.getTick(),
+            ...(startedAtInput === undefined ? {} : { startedAtInput })
         };
 
         this.sendWorldEvent(position, LevelEvent.START_BLOCK_CRACKING, mining.progressPerTick);
