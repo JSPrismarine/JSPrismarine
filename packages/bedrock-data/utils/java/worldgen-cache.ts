@@ -52,6 +52,7 @@ export const worldgenCachePaths = (version: string): WorldgenCachePaths => ({
 const WITNESSES = {
     datapack: [
         'pack.mcmeta',
+        'version.json',
         'data/minecraft/worldgen/noise_settings/overworld.json',
         'data/minecraft/worldgen/biome/plains.json',
         'data/minecraft/tags/block/logs.json',

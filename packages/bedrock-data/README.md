@@ -183,6 +183,9 @@ the rest of the repository reads, under the same gitignored cache:
   server names an advancement in chat with them, since a Bedrock client has no string for a Java
   advancement's translation key. `pnpm run extract:lang` does that step on its own, and
   `ensure:worldgen` runs it for a cache built before the step existed.
+- `vanilla-datapack/<version>/version.json`, the release id, JDK, data pack format and data
+  version the jar declares. `readGeneratedJavaVersion` from `@jsprismarine/bedrock-data/sources`
+  reads it, and `ensure:worldgen` writes it for a cache built before the step existed.
 
 The templates matter for speed rather than for correctness. The world generator can read them
 out of the jar, but that means inflating all 17655 of its entries on the first template a world

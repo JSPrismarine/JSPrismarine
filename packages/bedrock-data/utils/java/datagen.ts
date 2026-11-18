@@ -14,7 +14,8 @@
  *
  * The generator writes no `pack.mcmeta` of its own, so this step writes one from the jar's
  * declared data pack version. That file is what marks the directory as a complete datapack for
- * every reader above.
+ * every reader above. Beside it goes `version.json`, the release id, JDK, data pack format and
+ * data version the jar declares.
  *
  * Run as `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, after `fetch:sources` has
  * put the hash-verified jar in the cache. Pass `--java <release>` to generate a pinned release
@@ -33,7 +34,7 @@ import { hashFile } from '../fetch/hash.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome, jdkBinaryPath } from './jdk.ts';
-import { readJarVersion, resolveJavaRelease } from './release.ts';
+import { readJarVersion, resolveJavaRelease, writeGeneratedJavaVersion } from './release.ts';
 import { cacheRoot, javaServerJarPath, worldgenCacheComplete, worldgenCachePaths } from './worldgen-cache.ts';
 
 const force = process.argv.includes('--force');
@@ -130,6 +131,8 @@ const mcmeta = {
     }
 };
 writeFileSync(join(datapackDir, 'pack.mcmeta'), `${JSON.stringify(mcmeta, undefined, 4)}\n`);
+// The release record beside it, which the runtime reads instead of the jar.
+await writeGeneratedJavaVersion(jarPath, datapackDir);
 
 rmSync(workDir, { recursive: true, force: true });
 
