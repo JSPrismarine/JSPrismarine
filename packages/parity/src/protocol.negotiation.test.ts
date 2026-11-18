@@ -3,6 +3,7 @@ import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { advertisedCodec, latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
 import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
+import { resolveProtocolPolicy } from '@jsprismarine/prismarine/network/codec/ProtocolPolicy';
 import { about } from '@jsprismarine/prismarine/about';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
 import RequestNetworkSettingsHandler from '@jsprismarine/prismarine/network/handler/RequestNetworkSettingsHandler';
@@ -93,20 +94,25 @@ const listSkin = () =>
         PieceTintColors: []
     });
 
-const server = stub<Server>({
-    getConfig: () =>
-        stub<Config>({
-            getPacketCompressionAlgorithm: () => PacketCompressionAlgorithm.ZLIB,
-            getPacketCompressionThreshold: () => 256
-        }),
-    getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} })
-});
+/** A server whose protocol window accepts every release this build ships. */
+const serverWith = (policy = resolveProtocolPolicy({ window: registeredCodecs.length, content: 'newest' })) =>
+    stub<Server>({
+        getProtocolPolicy: () => policy,
+        getConfig: () =>
+            stub<Config>({
+                getPacketCompressionAlgorithm: () => PacketCompressionAlgorithm.ZLIB,
+                getPacketCompressionThreshold: () => 256
+            }),
+        getLogger: () => stub<ReturnType<Server['getLogger']>>({ info: () => {} })
+    });
 
-const negotiate = async (protocolVersion: number) => {
+const server = serverWith();
+
+const negotiate = async (protocolVersion: number, on: Server = server) => {
     const recorder = connectionRecorder();
     await new RequestNetworkSettingsHandler().handle(
         requestOnTheWire(protocolVersion),
-        ConnectionContexts.of(server).contextOf(recorder.connection)
+        ConnectionContexts.of(on).contextOf(recorder.connection)
     );
     return recorder;
 };
@@ -369,6 +375,25 @@ describe(FAMILIES.protocolNegotiation, () => {
             expect(codec.minecraftVersions).not.toContain(minecraftVersion);
         }
         reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, cases);
+    });
+
+    it('accepts only the newest release under the default protocol window, as BDS does', async () => {
+        // ADR 0025: a 1.26.51 client is outdated unless the owner widens protocol-window.
+        const { connection, hangups } = await negotiate(Codec2193.protocolVersion, serverWith(resolveProtocolPolicy()));
+        const refused =
+            connection.codec === undefined &&
+            hangups.length === 1 &&
+            hangups[0]!.reason === DisconnectReason.OUTDATED_CLIENT;
+        reportParityCases(FAMILIES.protocolNegotiation, import.meta.filename, [
+            parityCase(
+                'window:default/protocol-2193',
+                'Default window refuses 2193',
+                'Client protocol negotiation and login settings',
+                refused
+            )
+        ]);
+
+        expect(refused).toBe(true);
     });
 
     it('the versions the server reports are exactly the ones a client can negotiate', async () => {
