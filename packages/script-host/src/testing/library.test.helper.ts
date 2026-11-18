@@ -24,6 +24,6 @@ export const loadLibrary = (): ScriptHostLibrary => ScriptHostLibrary.load();
 /** What a test's runtime tells `@jsprismarine/server` about the server. */
 export const TEST_SERVER: JsprismarineServerInfo = {
     version: '0.0.0-test',
-    minecraftVersion: '1.26.50',
-    protocolVersion: 2193
+    minecraftVersion: '1.26.60',
+    protocolVersion: 2225
 };

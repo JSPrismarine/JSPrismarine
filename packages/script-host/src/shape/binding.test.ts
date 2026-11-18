@@ -74,7 +74,7 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
 
     it.each([
         ['1.3.0', 354],
-        ['2.0.0', 536]
+        ['2.0.0', 559]
     ])('gives a pack declaring %s a namespace with the %i exports of the version it is served', (version, count) => {
         const scripts = engine();
         bindServer(scripts, version);
@@ -513,7 +513,7 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
 
     it('reports how much of each served version is implemented', () => {
         const implementations = new ScriptApiImplementations();
-        for (const version of ['1.19.0', '2.10.0']) {
+        for (const version of ['1.19.0', '2.11.0']) {
             const { implemented, total } = implementationCoverage(serve(version), implementations);
             expect(total).toBeGreaterThan(0);
             reportProgress(

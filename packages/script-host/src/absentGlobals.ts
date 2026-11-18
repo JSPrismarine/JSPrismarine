@@ -18,7 +18,7 @@ export interface AbsentPath {
 }
 
 /**
- * What QuickJS 2026-06-04 defines and a script on Bedrock Dedicated Server 1.26.51.1 cannot see.
+ * What QuickJS 2026-06-04 defines and a script on the pinned Bedrock Dedicated Server cannot see.
  * It is the difference between the two that the `scripting.engine` parity row's `globals`
  * scenario records, `packages/parity/goldens/scripting/globals.json`, so a path QuickJS never
  * defines does not belong here. The C layer deletes each path when it creates a context, members

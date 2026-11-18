@@ -27,8 +27,9 @@ describe('resolveDependency', () => {
     it.each([
         ['1.0.0', '1.19.0', 354],
         ['1.3.0', '1.19.0', 354],
-        ['2.0.0', '2.10.0', 536],
-        ['2.10.0', '2.10.0', 536]
+        ['2.0.0', '2.11.0', 559],
+        ['2.10.0', '2.11.0', 559],
+        ['2.11.0', '2.11.0', 559]
     ])('serves a pack declaring %s the %s API, with its %i exports', (declared, served, exports) => {
         const resolution = resolveDependency(server(declared), options);
 
@@ -74,7 +75,7 @@ describe('resolveDependency', () => {
         });
     });
 
-    it.each(['3.0.0', '2.11.0', '1.20.0', 'latest'])(
+    it.each(['3.0.0', '2.12.0', '1.20.0', 'latest'])(
         'refuses @minecraft/server %s, which BDS does not ship, listing the versions it does',
         (version) => {
             expect(resolveDependency(server(version), options)).toEqual({
@@ -82,15 +83,15 @@ describe('resolveDependency', () => {
                 reason: 'unknown-version',
                 message:
                     `Plugin [jsp probe] - module [jsp probe - 1.0.0] requested invalid version [${version}] of [@minecraft/server].\n` +
-                    '\nAvailable versions:\n1.19.0\n2.10.0\n2.11.0-beta'
+                    '\nAvailable versions:\n1.19.0\n2.11.0\n2.12.0-beta'
             });
         }
     );
 
     it.each([
-        ['2.11.0-beta', '2.11.0-beta'],
         ['2.12.0-beta', '2.12.0-beta'],
-        ['beta', '2.11.0-beta']
+        ['2.13.0-beta', '2.13.0-beta'],
+        ['beta', '2.12.0-beta']
     ])('refuses beta version %s without the Beta APIs experiment, naming it %s', (version, named) => {
         expect(resolveDependency(server(version), options)).toEqual({
             ok: false,
@@ -103,10 +104,10 @@ describe('resolveDependency', () => {
         const resolution = resolveDependency(server('beta'), { ...options, betaApis: true });
 
         if (!resolution.ok) throw new Error(resolution.message);
-        expect(resolution.shape.version.version).toBe('2.11.0-beta');
+        expect(resolution.shape.version.version).toBe('2.12.0-beta');
     });
 
-    it.each(['2.12.0-beta', '2.9.0-beta', '1.17.0-beta', '3.0.0-beta'])(
+    it.each(['2.13.0-beta', '2.11.0-beta', '2.9.0-beta', '1.17.0-beta', '3.0.0-beta'])(
         'refuses beta version %s, which BDS does not ship, naming the beta it does',
         (version) => {
             expect(resolveDependency(server(version), { ...options, betaApis: true })).toEqual({
@@ -114,8 +115,8 @@ describe('resolveDependency', () => {
                 reason: 'unknown-version',
                 message:
                     `Plugin [jsp probe] - module [jsp probe - 1.0.0] requested invalid version [${version}] of [@minecraft/server].\n` +
-                    '\nCurrent [beta] version is [2.11.0-beta].\n' +
-                    '\nAvailable versions:\n1.19.0\n2.10.0\n2.11.0-beta'
+                    '\nCurrent [beta] version is [2.12.0-beta].\n' +
+                    '\nAvailable versions:\n1.19.0\n2.11.0\n2.12.0-beta'
             });
         }
     );
@@ -130,12 +131,12 @@ describe('resolveDependency', () => {
         expect(resolution.shape.version.version).toBe('1.0.0-beta');
     });
 
-    it('serves the beta version BDS ships, with its 584 exports, when the experiment is on', () => {
-        const resolution = resolveDependency(server('2.11.0-beta'), { ...options, betaApis: true });
+    it('serves the beta version BDS ships, with its 601 exports, when the experiment is on', () => {
+        const resolution = resolveDependency(server('2.12.0-beta'), { ...options, betaApis: true });
 
         if (!resolution.ok) throw new Error(resolution.message);
-        expect(resolution.shape.version).toMatchObject({ version: '2.11.0-beta', stability: 'beta' });
-        expect(exportNames(resolution.shape)).toHaveLength(584);
+        expect(resolution.shape.version).toMatchObject({ version: '2.12.0-beta', stability: 'beta' });
+        expect(exportNames(resolution.shape)).toHaveLength(601);
         expect(resolution.shape.declarations.get('WorldBeforeEvents')?.members.has('chatSend')).toBe(true);
     });
 

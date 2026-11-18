@@ -572,6 +572,15 @@
                 "ClientboundMapItemDataPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundMapItemDataPacket"}
                 ],
+                "ClientboundMatchmakingStatePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundMatchmakingStatePacket"}
+                ],
+                "ClientboundPlayAudioContentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundPlayAudioContentPacket"}
+                ],
+                "ClientboundStonecutterSetRecipePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundStonecutterSetRecipePacket"}
+                ],
                 "ClientboundTextureShiftPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ClientboundTextureShiftPacket"}
                 ],
@@ -929,6 +938,9 @@
                 "ServerToClientHandshakePacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerToClientHandshakePacket"}
                 ],
+                "ServerboundCursorItemDragPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundCursorItemDragPacket"}
+                ],
                 "ServerboundDataDrivenScreenClosedPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundDataDrivenScreenClosedPacket"}
                 ],
@@ -941,8 +953,17 @@
                 "ServerboundLoadingScreenPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundLoadingScreenPacket"}
                 ],
+                "ServerboundMatchmakingCancelPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundMatchmakingCancelPacket"}
+                ],
                 "ServerboundPackSettingChangePacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundPackSettingChangePacket"}
+                ],
+                "ServerboundRegisterAudioContentPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundRegisterAudioContentPacket"}
+                ],
+                "ServerboundStonecutterSetRecipePacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"ServerboundStonecutterSetRecipePacket"}
                 ],
                 "SetActorDataPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetActorDataPacket"}
@@ -976,6 +997,9 @@
                 ],
                 "SetLocalPlayerAsInitializedPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetLocalPlayerAsInitializedPacket"}
+                ],
+                "SetPassengerOfBlockPacket": [
+                    {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetPassengerOfBlockPacket"}
                 ],
                 "SetPlayerFurnaceOptionsPacket": [
                     {"from":"1.0.0-beta","kind":"constant","static":true,"type":"string","value":"SetPlayerFurnaceOptionsPacket"}
