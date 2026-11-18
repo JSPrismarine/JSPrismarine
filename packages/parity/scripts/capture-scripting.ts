@@ -49,6 +49,8 @@ import {
     scenarioPackDirectory
 } from '../src/scripting/scenarios.ts';
 import type { ScriptScenario } from '../src/scripting/scenarios.ts';
+import type { ScenarioHttpServer } from '../src/scripting/httpServer.ts';
+import { scenarioHttpBase, startScenarioHttpServer } from '../src/scripting/httpServer.ts';
 import type { JoinedScenarioClient } from './scenarioClient.ts';
 import { joinScenarioClient } from './scenarioClient.ts';
 
@@ -166,6 +168,16 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
     const copied = config === undefined ? [] : readdirSync(config).map((folder) => join(staged.root, 'config', folder));
     if (config !== undefined) await cp(config, join(staged.root, 'config'), { recursive: true });
 
+    const base = scenario.httpServer === true ? scenarioHttpBase(scenario) : undefined;
+    if (scenario.httpServer === true && base === undefined) {
+        throw new Error(`Scenario ${scenario.id} has no base variable for its HTTP server.`);
+    }
+    // The server listens on the host's loopback address, which a container's own loopback is not.
+    if (base !== undefined && launcher.kind !== 'native') {
+        throw new Error(`Scenario ${scenario.id} sends HTTP requests to the host, so it captures natively only.`);
+    }
+    // Before the server starts, as a top-level request can go out in early execution.
+    const http: ScenarioHttpServer | undefined = base === undefined ? undefined : await startScenarioHttpServer(base);
     const server = startServer({
         // Only a scenario with a client needs the server's ports published.
         ...launcher.launch(staged.root, { clientConnects: scenario.client !== undefined }),
@@ -236,6 +248,7 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
         await server.stop(NATIVE_TIMEOUTS.stop * launcher.timeoutScale);
         // A stop that timed out kills the CLI rather than the container it started.
         launcher.cleanup();
+        await http?.close();
         for (const folder of copied) await rm(folder, { recursive: true, force: true });
     }
 
