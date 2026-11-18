@@ -1,7 +1,7 @@
 # @jsprismarine/mapping
 
 The Java Edition to Bedrock Edition seam. This package owns the knowledge that two editions exist:
-it maps Java 26.3 identifiers onto Bedrock 1.26.51 identifiers through generated, vendored tables
+it maps Java 26.3 identifiers onto the identifiers of the pinned Bedrock release through generated, vendored tables
 and a reviewed loss list. Nothing outside this package should name both editions.
 
 ## Interface
@@ -108,8 +108,9 @@ still verifies each referenced identifier against the generated census.
 The tables under `src/tables/` are generated and committed. They come from the pinned sources in
 `packages/bedrock-data/sources.json`: GeyserMC/mappings `blocks.nbt` (positional over Java block
 state ids) joined against Mojang's `reports/blocks.json`, GeyserMC `items.json` and `biomes.json`,
-and this repository's own BDS 1.26.51.1 captures as the Bedrock source of truth. The GeyserMC data
-is MIT; see [NOTICE](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/mapping/NOTICE).
+and this repository's own captures of the default pinned BDS as the Bedrock source of truth. Geyser's
+`blocks.nbt` targets an older Bedrock release than the pin, so `generate-tables.ts` reads the few
+states a newer release added off the Java state, in `STATES_FROM_JAVA`. The GeyserMC data is MIT; see [NOTICE](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/mapping/NOTICE).
 
 To regenerate after a version bump:
 

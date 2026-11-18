@@ -20,7 +20,7 @@ export type EntityMappingResult =
 const entityLossById = new Map<string, EntityLoss>(ENTITY_LOSSES.map((loss) => [loss.javaId, loss]));
 
 /**
- * Maps one Java 26.3 entity type to its Bedrock 1.26.51 entity identifier.
+ * Maps one Java 26.3 entity type to its entity identifier in the pinned Bedrock release.
  * Total over all 161 Java entity types: every type returns `mapped` or a
  * reviewed `loss`, never `undefined`. Non-`minecraft:` identifiers pass
  * through untouched.

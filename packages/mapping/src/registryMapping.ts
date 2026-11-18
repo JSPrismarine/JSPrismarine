@@ -28,8 +28,8 @@ const registryLossById = new Map<string, RegistryLoss>(
 );
 
 /**
- * Maps one Java 26.3 identifier of the named registry to its Bedrock 1.26.51
- * identifier. Total over the registry's vanilla entries: every entry returns
+ * Maps one Java 26.3 identifier of the named registry to its identifier in the
+ * pinned Bedrock release. Total over the registry's vanilla entries: every entry returns
  * `mapped` or a reviewed `loss`, never `undefined`. Non-`minecraft:`
  * identifiers pass through untouched.
  */
