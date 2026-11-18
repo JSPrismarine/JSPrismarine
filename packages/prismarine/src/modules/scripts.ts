@@ -1,12 +1,14 @@
 import type { Module } from '@jsprismarine/kernel';
 import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/ClientboundCloseFormPacket';
 import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
+import PrimitiveShapesPacket from '@jsprismarine/protocol/packet/PrimitiveShapesPacket';
 import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 
 import type Server from '../Server';
 import type { Level } from '../world/Level';
+import { primitiveShapes } from '../scripting/debugShapes';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
@@ -40,6 +42,11 @@ export const scriptsModule = (server: Server): Module => ({
     register: () => {},
     start: async () => {
         const level = server.getWorldManager().getDefaultLevel();
+        /** The wire's id of one of the level's dimensions, by its Bedrock name. */
+        const dimensionId = (name: string): number | undefined =>
+            [...level.getStems().keys()]
+                .map((stem) => level.dimensionTypeOf(stem))
+                .find((type) => type.bedrockName === name)?.bedrockId;
         const scripts = await LevelScripts.load({
             packDirectories: server.getContentSettings().worldPacks,
             configDirectory: scriptConfigDirectory(),
@@ -63,6 +70,12 @@ export const scriptsModule = (server: Server): Module => ({
                                     session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
                                 ),
                             closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({}))),
+                            drawDebugShapes: (changes) =>
+                                session.released(
+                                    session.send(
+                                        new PrimitiveShapesPacket({ shapes: primitiveShapes(changes, dimensionId) })
+                                    )
+                                ),
                             transfer: (target) => {
                                 // A NetherNet transfer's packet is not captured yet, so only an address moves the player.
                                 if (!('hostname' in target)) return;
