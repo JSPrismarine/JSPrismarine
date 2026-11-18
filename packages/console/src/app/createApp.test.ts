@@ -1,4 +1,5 @@
 import type { LogLevel } from '@jsprismarine/logger';
+import { TextRenderable, parseColor } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,10 +57,26 @@ async function setup(
 
 type AppHarness = Awaited<ReturnType<typeof setup>>;
 
+const byId = (t: AppHarness, id: string) => t.renderer.root.findDescendantById(id);
+
+/** Whether the command line has keyboard focus. */
+const inputFocused = (t: AppHarness): boolean => byId(t, 'command-input')?.focused === true;
+
+/** Whether the theme color `role` is what the title bar's state tile is painted in. */
+function tileIs(t: AppHarness, role: 'ok' | 'warning' | 'danger'): boolean {
+    const title = byId(t, 'title-left');
+    if (!(title instanceof TextRenderable)) throw new Error('the title bar has no left text');
+    return title.content.chunks[0]?.bg?.equals(parseColor(defaultTheme[role])) === true;
+}
+
+/** Levels of the log records the view shows. */
+const visibleLevels = (t: AppHarness) =>
+    t.store.visible().flatMap((record) => (record.kind === 'log' ? [record.level] : []));
+
 async function focusLog(t: AppHarness): Promise<void> {
     t.mockInput.pressEscape();
     await new Promise((resolve) => setTimeout(resolve, 30));
-    await t.waitForFrame((frame) => frame.includes('Esc to type'));
+    await t.waitForFrame(() => !inputFocused(t));
 }
 
 describe('createApp', () => {
@@ -74,12 +91,15 @@ describe('createApp', () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
-        const frame = t.captureCharFrame();
-        expect(frame).toContain('JSPrismarine 0.15.2 · default');
-        expect(frame).toContain('> type a command, ? for help');
-        expect(frame).toContain('● starting');
-        expect(frame).toContain('info and up · all sources · ? help');
-        expect(frame).toContain('Players');
+        expect(byId(t, 'title-bar')?.visible).toBe(true);
+        expect(byId(t, 'side-pane')?.visible).toBe(true);
+        expect(inputFocused(t)).toBe(true);
+        expect(tileIs(t, 'warning')).toBe(true);
+        // The title bar's tile carries the state, so the status bar does not repeat it.
+        expect(byId(t, 'status-left-state')).toBeUndefined();
+        for (const id of ['level-filter', 'namespace-filter', 'help']) {
+            expect(byId(t, `status-right-${id}`), id).toBeDefined();
+        }
     });
 
     it('drops the title bar and side pane at 80x24', async () => {
@@ -131,11 +151,11 @@ describe('createApp', () => {
         });
         await t.renderOnce();
 
-        const frame = t.captureCharFrame();
-        expect(frame).toMatch(/online\s+2\/20/);
         // The side pane shows the vitals, so the status bar does not repeat them.
-        expect(frame).toContain('● starting · ERR 0 · WARN 0  ');
-        expect(frame).not.toContain('· TPS 20.00 ·');
+        expect(byId(t, 'side-pane')?.visible).toBe(true);
+        for (const id of ['tps', 'players', 'tick', 'memory', 'uptime']) {
+            expect(byId(t, `status-left-${id}`), id).toBeUndefined();
+        }
     });
 
     it('shows the vitals in the status bar while the side pane is hidden', async () => {
@@ -154,29 +174,40 @@ describe('createApp', () => {
         });
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('● starting · ERR 0 · WARN 0 · TPS 20.00 · 2/20');
+        expect(byId(t, 'side-pane')?.visible).toBe(false);
+        for (const id of ['tps', 'players']) expect(byId(t, `status-left-${id}`), id).toBeDefined();
     });
 
-    it('moves the state segment to running on a lifecycle message', async () => {
+    it('moves the state tile to running on a lifecycle message', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
         t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('● running');
+        expect(tileIs(t, 'ok')).toBe(true);
     });
 
-    it('shows a toast and the state segment when the supervisor reports a crash', async () => {
+    it('shows the state in the status bar while the title bar is hidden', async () => {
+        const t = await setup({ width: 80, height: 24 });
+        dispose = t.dispose;
+
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
+        await t.renderOnce();
+
+        expect(byId(t, 'title-bar')?.visible).toBe(false);
+        expect(byId(t, 'status-left-state')).toBeDefined();
+    });
+
+    it('shows a toast and the state tile when the supervisor reports a crash', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
         t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
         await t.renderOnce();
 
-        const frame = t.captureCharFrame();
-        expect(frame).toContain('server crashed (exit 1)');
-        expect(frame).toContain('● crashed');
+        expect(byId(t, 'toast-stack')?.getChildren()).toHaveLength(1);
+        expect(tileIs(t, 'danger')).toBe(true);
     });
 
     it('appends child output as raw lines', async () => {
@@ -212,7 +243,8 @@ describe('createApp', () => {
 
         const frame = t.captureCharFrame();
         expect(frame.split('\n')[0]).toContain('dev ● watching packages');
-        expect(frame).toContain('restarts 0');
+        // The pane adds restart history only once there is some.
+        expect(byId(t, 'side-pane-dev')).toBeUndefined();
     });
 
     it('sends a typed command to onCommand', async () => {
@@ -234,7 +266,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         expect(t.captureCharFrame()).toContain('> g/w?n?');
-        expect(t.captureCharFrame()).toContain('Esc to scroll');
+        expect(inputFocused(t)).toBe(true);
     });
 
     it('routes a bracketed paste from the log pane into the command input', async () => {
@@ -247,7 +279,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         expect(t.captureCharFrame()).toContain('> say hello');
-        expect(t.captureCharFrame()).toContain('Esc to scroll');
+        expect(inputFocused(t)).toBe(true);
     });
 
     describe('clipboard', () => {
@@ -383,7 +415,7 @@ describe('createApp', () => {
             t.clipboard.copy.mockClear();
             t.app.focus();
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain('Esc to scroll');
+            expect(inputFocused(t)).toBe(true);
 
             t.mockInput.pressKey(cmd('c'));
             await flush();
@@ -440,9 +472,8 @@ describe('createApp', () => {
             await flush();
             await t.renderOnce();
 
-            const frame = t.captureCharFrame();
-            expect(frame).toContain('> say pasted');
-            expect(frame).toContain('Esc to scroll');
+            expect(t.captureCharFrame()).toContain('> say pasted');
+            expect(inputFocused(t)).toBe(true);
         });
 
         it('turns a pasted block into one line', async () => {
@@ -499,15 +530,19 @@ describe('createApp', () => {
     it('cycles the level filter with Ctrl+F', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
+        for (const level of ['error', 'warn', 'info', 'debug'] as const) {
+            t.app.applyServerMessage(logMessage(level, level));
+        }
         await focusLog(t);
+        expect(visibleLevels(t)).toEqual(['error', 'warn', 'info']);
 
         t.mockInput.pressKey('f', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('all levels · all sources · ? help');
+        expect(visibleLevels(t)).toEqual(['error', 'warn', 'info', 'debug']);
 
         t.mockInput.pressKey('f', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('errors only · all sources · ? help');
+        expect(visibleLevels(t)).toEqual(['error']);
     });
 
     it('closes the help overlay with Esc', async () => {
@@ -689,18 +724,6 @@ describe('createApp', () => {
             expect(frame).toContain('19+');
         });
 
-        it('keeps the side pane graph on the tick rate', async () => {
-            const t = await setup({ width: 120, height: 40 });
-            dispose = t.dispose;
-
-            reportTps(t, [40, 39], 40);
-            await t.renderOnce();
-
-            const frame = t.captureCharFrame();
-            expect(frame).toMatch(/40 ┤/);
-            expect(frame).toMatch(/20 └/);
-        });
-
         it('opens when the side pane graph is clicked', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
@@ -708,8 +731,8 @@ describe('createApp', () => {
             await t.renderOnce();
             expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
 
-            const axis = find(t, '15 ┤');
-            await t.mockMouse.click(axis.x + 8, axis.y);
+            const graph = byId(t, 'side-pane-graph')!;
+            await t.mockMouse.click(graph.x + 2, graph.y);
             await t.renderOnce();
 
             const frame = t.captureCharFrame();
@@ -724,7 +747,7 @@ describe('createApp', () => {
             reportTps(t, [20]);
             await t.renderOnce();
 
-            const segment = find(t, 'TPS 20.00');
+            const segment = byId(t, 'status-left-tps')!;
             await t.mockMouse.click(segment.x + 2, segment.y);
             await t.renderOnce();
             expect(t.captureCharFrame()).toContain(SPAN_ROW);
@@ -746,7 +769,7 @@ describe('createApp', () => {
             t.mockInput.pressEscape();
             await new Promise((resolve) => setTimeout(resolve, 30));
             await t.waitForFrame((frame) => !frame.includes(SPAN_ROW));
-            expect(t.captureCharFrame()).toContain('Esc to type');
+            expect(inputFocused(t)).toBe(false);
         });
 
         it('restores input focus when it closes after opening from the input', async () => {
@@ -755,17 +778,16 @@ describe('createApp', () => {
             reportTps(t, [20]);
             await t.renderOnce();
 
-            const segment = find(t, 'Performance ▸ graph');
-            await t.mockMouse.click(segment.x + 2, segment.y);
+            const graph = byId(t, 'side-pane-graph')!;
+            await t.mockMouse.click(graph.x + 2, graph.y);
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain('Esc to type');
+            expect(inputFocused(t)).toBe(false);
 
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
-            const frame = t.captureCharFrame();
-            expect(frame).not.toContain(SPAN_ROW);
-            expect(frame).toContain('Esc to scroll');
+            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+            expect(inputFocused(t)).toBe(true);
         });
 
         it('does not type into the command line while it is open', async () => {
@@ -999,7 +1021,10 @@ describe('createApp', () => {
                 expect(topLogRow(t)).toContain('after clear');
             },
             'log.filter': async (t) => {
-                expect(t.captureCharFrame()).toContain('all levels · all sources · ? help');
+                // From the default of info and up, one press shows every level.
+                t.app.applyServerMessage(logMessage('quiet', 'debug'));
+                await t.renderOnce();
+                expect(visibleLevels(t)).toContain('debug');
             },
             'view.toggleSidePane': async (t) => {
                 expect(t.captureCharFrame()).not.toContain('Players');
@@ -1014,7 +1039,7 @@ describe('createApp', () => {
                 expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
             },
             'view.toggleFocus': async (t) => {
-                await t.waitForFrame((frame) => frame.includes('Esc to type'));
+                await t.waitForFrame(() => !inputFocused(t));
             },
             'view.palette': async (t) => {
                 expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);

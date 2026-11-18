@@ -125,6 +125,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     const strip = new TextRenderable(renderer, { height: 1, fg: theme.textMuted, visible: false });
     const promptText = new TextRenderable(renderer, { content: props.prompt ?? DEFAULT_PROMPT, fg: theme.prompt });
     const input = new InputRenderable(renderer, {
+        id: 'command-input',
         flexGrow: 1,
         placeholder: PLACEHOLDER,
         placeholderColor: theme.textMuted,

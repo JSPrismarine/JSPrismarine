@@ -344,7 +344,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     renderer.root.add(root);
 
     function refreshStatus(): void {
-        const left: Segment[] = [stateSegment(state)];
+        // The title bar's tile shows the state while the title bar is there.
+        const left: Segment[] = layout.titleBar ? [] : [stateSegment(state)];
         left.push({
             id: 'error-count',
             text: `ERR ${store.errorCount}`,
@@ -634,6 +635,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     function setState(next: ServerState): void {
         state = next;
+        titleBar.setState(next);
         refreshStatus();
         refreshSidePane();
     }
@@ -1060,6 +1062,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 refreshTpsPage();
             }
             state = event.state;
+            titleBar.setState(state);
         }
         const transition = reduceDevState(dev, event, now());
         setDev(transition.state);
