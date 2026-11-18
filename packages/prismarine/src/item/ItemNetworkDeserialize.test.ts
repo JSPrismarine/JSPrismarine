@@ -349,6 +349,35 @@ describe('the numbering a stack is written and read with', () => {
         expect(at2193.getBuffer().readInt16LE(0)).toBe(ItemTable['minecraft:stone']!.runtime_id);
     });
 
+    it('writes a vanilla item the version lacks as info_update, not under the number another version gives it', () => {
+        // 791 is the frostbite spawn egg at 2225 and wool at 2193; issue #3256.
+        const handedIn = new InventorySlotPacket(descriptorBytes(new NetworkItemStackDescriptor(791, 1, 0, false, 0)));
+        handedIn.codecProtocol = 2225;
+        const egg = Item.networkDeserialize(handedIn);
+        expect(egg.getName()).toBe('minecraft:frostbite_spawn_egg');
+
+        const infoUpdate = ItemTable['minecraft:info_update']!.runtime_id;
+        expect(egg.toStackDescriptor(slotAt(2193)).id).toBe(infoUpdate);
+        expect(egg.toStackDescriptor(slotAt(2225)).id).toBe(791);
+    });
+
+    it('writes a vanilla item built by name the version lacks as info_update, with its block', () => {
+        const icicle = new Item({ name: 'minecraft:icicle' });
+
+        const at2193 = icicle.toStackDescriptor(slotAt(2193));
+        expect(at2193.id).toBe(ItemTable['minecraft:info_update']!.runtime_id);
+        expect(at2193.stackSize).toBe(1);
+        expect(at2193.blockRuntimeId).toBe(BlockRuntimeIds.tryGetByName('minecraft:info_update'));
+        expect(icicle.toStackDescriptor(slotAt(2225)).id).toBe(ItemTable['minecraft:icicle']!.runtime_id);
+    });
+
+    it('keeps the number a custom item was given at every version', () => {
+        const custom = new Item({ runtimeId: 5123, name: 'example:widget' });
+
+        expect(custom.toStackDescriptor(slotAt(2193)).id).toBe(5123);
+        expect(custom.toStackDescriptor(slotAt(2225)).id).toBe(5123);
+    });
+
     it('numbers a stack written to a bare stream with the canonical table', () => {
         const stream = new NetworkBinaryStream();
         new Item({ name: 'minecraft:apple' }).networkSerialize(stream);

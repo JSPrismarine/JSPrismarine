@@ -52,6 +52,7 @@ import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
 import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import { wireRuntimeIdOf } from './codec/itemData';
 import { allSent } from './allSent';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
@@ -829,7 +830,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             const packet = new ActorEventPacket();
             packet.runtimeEntityId = entity;
             packet.event = event;
-            packet.data = item === undefined ? data : (codec.itemData.table[item]?.runtime_id ?? data);
+            packet.data = item === undefined ? data : wireRuntimeIdOf(codec.itemData, item, data);
             return packet;
         };
         const sends = [this.sendToTrackedEntity(entity, (codec) => [packetForViewer(codec)])];

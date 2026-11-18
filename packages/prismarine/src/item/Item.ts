@@ -25,7 +25,13 @@ import type { ServerContent } from '../content/ServerContent';
 import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
-import { canonicalItemData, itemDataForProtocol } from '../network/codec/itemData';
+import {
+    MISSING_ITEM_SUBSTITUTE,
+    canonicalItemData,
+    isMissingVanillaItem,
+    itemDataForProtocol,
+    wireRuntimeIdOf
+} from '../network/codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -306,11 +312,12 @@ export class Item {
 
     /**
      * This item's number under one protocol version's table, falling back to the number the
-     * stack was constructed with for a name that table does not have - which is how an item
-     * this server invented reaches a client at all.
+     * stack was constructed with for a name no captured table has - which is how an item this
+     * server invented reaches a client at all. A vanilla item the version lacks goes out as the
+     * substitute {@link wireRuntimeIdOf} names.
      */
     private runtimeIdIn(itemData: ProtocolItemData): number {
-        return itemData.table[this.name]?.runtime_id ?? this.runtimeId;
+        return wireRuntimeIdOf(itemData, this.name, this.runtimeId);
     }
 
     /** The stack's damage or variant value, which the wire carries beside the id. */
@@ -730,7 +737,8 @@ export class Item {
         source: BinaryStream | ProtocolContext,
         stackNetId: number | null = null
     ): ItemStackDescriptorData {
-        const runtimeId = this.wireId(wireItemData(source));
+        const itemData = wireItemData(source);
+        const runtimeId = this.wireId(itemData);
         const empty = runtimeId === 0;
 
         return {
@@ -738,7 +746,7 @@ export class Item {
             stackSize: empty ? 0 : this.getAmount(),
             auxValue: empty ? 0 : this.meta,
             stackNetId,
-            blockRuntimeId: empty ? 0 : this.getBlockRuntimeId(),
+            blockRuntimeId: empty ? 0 : this.wireBlockRuntimeId(itemData),
             userData: empty ? Buffer.alloc(0) : this.extraData()
         };
     }
@@ -750,12 +758,13 @@ export class Item {
      * stacks. See {@link networkSerialize} for how the two forms differ beyond the flag.
      */
     public networkSerializeWithoutStackId(stream: BinaryStream): void {
-        const runtimeId = this.wireId(wireItemData(stream));
+        const itemData = wireItemData(stream);
+        const runtimeId = this.wireId(itemData);
 
         stream.writeVarInt(runtimeId);
         stream.writeUnsignedShortLE(runtimeId === 0 ? 0 : this.getAmount());
         stream.writeUnsignedVarInt(runtimeId === 0 ? 0 : this.meta);
-        stream.writeVarInt(runtimeId === 0 ? 0 : this.getBlockRuntimeId());
+        stream.writeVarInt(runtimeId === 0 ? 0 : this.wireBlockRuntimeId(itemData));
 
         this.writeExtraData(stream, runtimeId !== 0);
     }
@@ -772,6 +781,15 @@ export class Item {
      */
     public getBlockRuntimeId(): number {
         return this.placedBlockRuntimeId ?? BlockRuntimeIds.tryGetByName(this.getName()) ?? 0;
+    }
+
+    /**
+     * The block runtime id written beside the item id: the substitute's own block when the
+     * session's version lacks this item, so the whole stack describes the substitute.
+     */
+    private wireBlockRuntimeId(itemData: ProtocolItemData): number {
+        if (!isMissingVanillaItem(itemData, this.name)) return this.getBlockRuntimeId();
+        return BlockRuntimeIds.tryGetByName(MISSING_ITEM_SUBSTITUTE) ?? 0;
     }
 
     /**

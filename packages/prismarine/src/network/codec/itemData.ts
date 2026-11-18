@@ -80,3 +80,42 @@ export const canonicalItemData: ProtocolItemData = byProtocol.get(newestRelease.
  */
 export const itemDataForProtocol = (protocolVersion: number): ProtocolItemData =>
     byProtocol.get(protocolVersion) ?? canonicalItemData;
+
+/** Every name a captured table has, at any protocol version: what makes an item vanilla. */
+const vanillaNames: ReadonlySet<string> = new Set([...byProtocol.values()].flatMap(({ table }) => Object.keys(table)));
+
+/**
+ * What a session is sent in place of a vanilla item its version does not have.
+ *
+ * The client draws it as the "update" block, which every version has, so the slot shows that
+ * something is there rather than a different item or nothing.
+ */
+export const MISSING_ITEM_SUBSTITUTE = 'minecraft:info_update';
+
+/**
+ * Whether `itemData`'s version has no item by this name although another captured version does.
+ * @param itemData - The numbering the session speaks.
+ * @param name - The item's identifier.
+ * @returns True for a vanilla item the session's version predates or dropped.
+ */
+export const isMissingVanillaItem = (itemData: ProtocolItemData, name: string): boolean =>
+    itemData.table[name] === undefined && vanillaNames.has(name);
+
+/**
+ * The number an item travels as under one version's table.
+ *
+ * `fallback` answers only for a name no captured table has, which is an item a pack added: it
+ * keeps the number its registry gave it. A vanilla name the version lacks would otherwise go
+ * out under another version's number, which names a different item there (1.26.60's frostbite
+ * spawn egg is 791, wool at 2193), so it travels as {@link MISSING_ITEM_SUBSTITUTE}.
+ * @param itemData - The numbering the session speaks.
+ * @param name - The item's identifier.
+ * @param fallback - The number the item carries itself.
+ * @returns The runtime id to write.
+ */
+export const wireRuntimeIdOf = (itemData: ProtocolItemData, name: string, fallback: number): number => {
+    const entry = itemData.table[name];
+    if (entry !== undefined) return entry.runtime_id;
+    if (!vanillaNames.has(name)) return fallback;
+    return itemData.table[MISSING_ITEM_SUBSTITUTE]?.runtime_id ?? 0;
+};
