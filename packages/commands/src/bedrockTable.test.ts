@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { reportProgress } from '../../../.test/reportProgress';
 
@@ -30,10 +32,15 @@ describe('the generated Bedrock command table', () => {
     });
 
     it('is pinned to the bedrock-samples commit used to generate this table', () => {
+        // Parsed JSON; these are the three fields of the pin the table records.
+        const { repo, tag, commit } = JSON.parse(
+            readFileSync(join(import.meta.dirname, '../../bedrock-data/sources.json'), 'utf8')
+        ).bedrockSamples as { repo: string; tag: string; commit: string };
+
         expect(bedrockCommandTable.source).toEqual({
-            repo: 'Mojang/bedrock-samples',
-            tag: 'v1.26.50.4',
-            commit: '46ba6ea985fb5a92d79a9419198f10dda14c199d',
+            repo,
+            tag,
+            commit,
             path: 'metadata/command_modules/mojang-commands.json'
         });
     });

@@ -91,7 +91,9 @@ describe('the command set', () => {
         // The chained subcommand pairs and parse symbols then took the form a real server sends.
         // Every overload a chain continues into, `/execute run` among them, then became chaining.
         // `/effect` then took Bedrock's `effect <player> <effect>` and `effect <player> clear` forms.
-        expect(digest).toBe('f154666690425e9a73f870318b62dd4eb1e81a28');
+        // The Bedrock command data then moved to bedrock-samples v1.26.60.5, whose enums list the
+        // 1.26.60 blocks, entities, biome and effect.
+        expect(digest).toBe('ad8e7e21100877a244fc0d0cd090b84e55b99b6a');
     });
 });
 
