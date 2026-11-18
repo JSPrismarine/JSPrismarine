@@ -1,4 +1,4 @@
-import { BoxRenderable } from '@opentui/core';
+import { BoxRenderable, TextRenderable } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -46,6 +46,28 @@ async function setup(width = 60, height = 10) {
 }
 
 describe('createToastStack', () => {
+    it('covers the text under it, spaces included', async () => {
+        const test = await setup();
+        try {
+            const under = new TextRenderable(test.renderer, {
+                id: 'under',
+                position: 'absolute',
+                content: Array.from({ length: 3 }, () => 'x'.repeat(60)).join('\n')
+            });
+            test.parent.add(under);
+            const stack = createToastStack({ renderer: test.renderer, theme: defaultTheme });
+            test.parent.add(stack.renderable);
+
+            stack.push({ tone: 'danger', text: 'server crashed (exit 1)' });
+            await test.renderOnce();
+
+            expect(test.captureCharFrame()).toContain('│ server crashed (exit 1) [x] │');
+            stack.dispose();
+        } finally {
+            await test.dispose();
+        }
+    });
+
     it('shows a toast in a bordered box at the top right of its parent and removes it when the ttl fires', async () => {
         const test = await setup();
         const clock = manualTimers();

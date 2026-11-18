@@ -57,15 +57,24 @@ function stateBadge(state: DevState, event: Extract<SupervisorEvent, { type: 'su
     }
 }
 
-function stateToast(event: Extract<SupervisorEvent, { type: 'supervisor.state' }>): ToastInput | undefined {
+function stateToast(
+    state: DevState,
+    event: Extract<SupervisorEvent, { type: 'supervisor.state' }>
+): ToastInput | undefined {
     switch (event.state) {
-        case 'crashed':
-            return { tone: 'danger', text: `server crashed (${exitText(event.code, event.signal)})`, sticky: true };
+        case 'crashed': {
+            const crashed = `server crashed (${exitText(event.code, event.signal)})`;
+            // Under the watcher, say what brings the server back rather than leave a dead end.
+            const text =
+                state.watchRoot === undefined
+                    ? crashed
+                    : `${crashed}. Saving a file under ${state.watchRoot} restarts it.`;
+            return { tone: 'danger', text, sticky: true };
+        }
         case 'restarting':
             return { tone: 'accent', text: 'restarting server' };
-        case 'waiting':
-            return { tone: 'muted', text: 'waiting for changes' };
         default:
+            // `waiting` always follows `crashed`, whose toast already says what happens next.
             return undefined;
     }
 }
@@ -113,7 +122,7 @@ export function reduceDevState(state: DevState, event: SupervisorEvent, now = Da
                 lastRestartAt: restarted ? now : state.lastRestartAt,
                 badge: state.badge === undefined && state.watchRoot === undefined ? undefined : stateBadge(state, event)
             };
-            return { state: next, toast: stateToast(event) };
+            return { state: next, toast: stateToast(state, event) };
         }
         case 'supervisor.output':
             return { state };
