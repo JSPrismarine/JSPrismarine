@@ -10,7 +10,7 @@
  *    pinned version;
  * 5. every output state value is in that state's real domain.
  *
- * The Bedrock side of truth is this repository's own BDS 1.26.51.1 captures:
+ * The Bedrock side of truth is this repository's own captures of the default pinned BDS:
  * the block palette snapshot under packages/minecraft/datagen/, and the item
  * table and actor identifier list from @jsprismarine/bedrock-data. The loss
  * lists fail in both directions, as Chunker's do: an unlisted loss fails, and
@@ -405,20 +405,20 @@ describe('property 3 for states: the word vocabularies round-trip every state in
 });
 
 describe('property 4: every output identifier exists in the real Bedrock data for the pinned version', () => {
-    it('block identifiers are in the 1.26.51 palette', () => {
+    it('block identifiers are in the pinned palette', () => {
         for (const [name] of blocksTable.statePalette) {
             expect(bedrockPalette.states, name).toHaveProperty(`minecraft:${name}`);
         }
     });
 
-    it('item identifiers are in the 1.26.51 item table', () => {
+    it('item identifiers are in the pinned item table', () => {
         for (const entry of Object.values(itemsTable.items)) {
             expect(item_table, entry.bedrockIdentifier).toHaveProperty(entry.bedrockIdentifier);
         }
         for (const loss of ITEM_LOSSES) expect(item_table).toHaveProperty(loss.bedrockFallback);
     });
 
-    it('entity identifiers are in the 1.26.51 actor identifier list', () => {
+    it('entity identifiers are in the pinned actor identifier list', () => {
         // The capture is AvailableActorIdentifiersPacket NBT; the identifier
         // strings are pulled by pattern, the way the research note measured
         // them, because the file is not a plain NBT flavor this repo parses.
@@ -477,7 +477,7 @@ describe('property 4: every output identifier exists in the real Bedrock data fo
 });
 
 describe("property 5: every output state value is in that state's real domain", () => {
-    it('block state values are inside the 1.26.51 palette domains', () => {
+    it('block state values are inside the pinned palette domains', () => {
         for (const target of paletteTargets) {
             const domains = bedrockPalette.domains[target.name];
             expect(domains, target.name).toBeDefined();

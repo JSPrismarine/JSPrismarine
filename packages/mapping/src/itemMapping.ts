@@ -24,7 +24,7 @@ export type ItemMappingResult =
 const itemLossById = new Map<string, ItemLoss>(ITEM_LOSSES.map((loss) => [loss.javaId, loss]));
 
 /**
- * Maps one Java 26.3 item identifier to its Bedrock 1.26.51 item. Total over
+ * Maps one Java 26.3 item identifier to its item in the pinned Bedrock release. Total over
  * all 1658 Java items: every item returns `mapped` or a reviewed `loss`,
  * never `undefined`. Non-`minecraft:` identifiers pass through untouched.
  */

@@ -312,9 +312,46 @@ interface PaletteState {
     name: string;
     states: Record<string, string | number>;
 }
+
+/**
+ * Bedrock states the pinned palette declares and the Geyser table does not produce, each read off
+ * the Java property of the same meaning, by Bedrock identifier.
+ *
+ * Geyser's `blocks.nbt` targets the oldest Bedrock release Geyser supports and adds the states a
+ * newer release brought in code. 1.26.60 gave three blocks the connection states Java has always
+ * had, so each value here is the Java state's own: `true` and `false` become the bits Bedrock
+ * stores, and redstone's `none`, `side` and `up` carry over as they are.
+ */
+const STATES_FROM_JAVA: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+    'minecraft:chorus_plant': {
+        'minecraft:connection_down': 'down',
+        'minecraft:connection_east': 'east',
+        'minecraft:connection_north': 'north',
+        'minecraft:connection_south': 'south',
+        'minecraft:connection_up': 'up',
+        'minecraft:connection_west': 'west'
+    },
+    'minecraft:fire': {
+        'minecraft:connection_east': 'east',
+        'minecraft:connection_north': 'north',
+        'minecraft:connection_south': 'south',
+        'minecraft:connection_up': 'up',
+        'minecraft:connection_west': 'west'
+    },
+    'minecraft:redstone_wire': {
+        redstone_east: 'east',
+        redstone_north: 'north',
+        redstone_south: 'south',
+        redstone_west: 'west'
+    }
+};
+
+/** A Java state value as Bedrock stores it: a boolean is a bit, anything else is unchanged. */
+const fromJava = (value: string): string | number => (value === 'true' ? 1 : value === 'false' ? 0 : value);
+
 /** Distinct Bedrock target states by canonical form, in first-seen order. */
 const targetStates = new Map<string, PaletteState>();
-const targetOf = (javaName: string, entry: JavaNbtCompound): string => {
+const targetOf = (javaName: string, entry: JavaNbtCompound, javaState: Record<string, string> = {}): string => {
     // The NBT entry carries at most `bedrock_identifier` and `state`.
     const typed = entry as GeyserBlockEntry;
     const bedrockName = `minecraft:${typed.bedrock_identifier ?? javaName.split(':', 2)[1]}`;
@@ -327,6 +364,12 @@ const targetOf = (javaName: string, entry: JavaNbtCompound): string => {
             throw new Error(`${javaName}: state value ${value} does not fit the canonical form`);
         }
         states[key] = normalize(value);
+    }
+    for (const [key, javaProperty] of Object.entries(STATES_FROM_JAVA[bedrockName] ?? {})) {
+        const value = javaState[javaProperty];
+        if (value === undefined) throw new Error(`${javaName} has no ${javaProperty} for ${bedrockName}'s ${key}`);
+        if (key in states) throw new Error(`${javaName}: the Geyser table already carries ${key}; drop the rule`);
+        states[key] = fromJava(value);
     }
 
     // Refuse to emit a state the pinned palette does not have.
@@ -362,7 +405,7 @@ for (const name of blockNames) {
         if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
             throw new Error(`${name}: blocks.nbt entry ${state.id} is not a compound`);
         }
-        canonicalByStateId[state.id] = targetOf(name, entry);
+        canonicalByStateId[state.id] = targetOf(name, entry, state.properties);
     }
 }
 

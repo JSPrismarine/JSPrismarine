@@ -55,7 +55,7 @@ const targetsOf = (javaId: string): Uint16Array => {
 const blockLossById = new Map<string, BlockLoss>(BLOCK_LOSSES.map((loss) => [loss.javaId, loss]));
 
 /**
- * Maps one Java 26.3 block state to its Bedrock 1.26.51 palette state. Total
+ * Maps one Java 26.3 block state to its palette state in the pinned Bedrock release. Total
  * over all 35723 Java states: every valid state returns `mapped` or a
  * reviewed `loss`, never `undefined`.
  *
