@@ -11,10 +11,10 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./testing": {
+                "types": "./dist/testing.d.ts",
+                "import": "./dist/testing.js",
+                "module": "./dist/testing.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +32,9 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./testing": {
+            "jsprismarine:dist": "./dist/testing.js",
+            "default": "./src/testing.ts"
         },
         "./package.json": "./package.json"
     },

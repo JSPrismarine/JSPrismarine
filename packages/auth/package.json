@@ -11,10 +11,25 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./IAuthProvider": {
+                "types": "./dist/IAuthProvider.d.ts",
+                "import": "./dist/IAuthProvider.js",
+                "module": "./dist/IAuthProvider.js"
+            },
+            "./client": {
+                "types": "./dist/client.d.ts",
+                "import": "./dist/client.js",
+                "module": "./dist/client.js"
+            },
+            "./protocol": {
+                "types": "./dist/protocol.d.ts",
+                "import": "./dist/protocol.js",
+                "module": "./dist/protocol.js"
+            },
+            "./server": {
+                "types": "./dist/server.d.ts",
+                "import": "./dist/server.js",
+                "module": "./dist/server.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +47,21 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./IAuthProvider": {
+            "jsprismarine:dist": "./dist/IAuthProvider.js",
+            "default": "./src/IAuthProvider.ts"
+        },
+        "./client": {
+            "jsprismarine:dist": "./dist/client.js",
+            "default": "./src/client.ts"
+        },
+        "./protocol": {
+            "jsprismarine:dist": "./dist/protocol.js",
+            "default": "./src/protocol.ts"
+        },
+        "./server": {
+            "jsprismarine:dist": "./dist/server.js",
+            "default": "./src/server.ts"
         },
         "./package.json": "./package.json"
     },

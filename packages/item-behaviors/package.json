@@ -11,10 +11,20 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./behaviors/combat": {
+                "types": "./dist/behaviors/combat.d.ts",
+                "import": "./dist/behaviors/combat.js",
+                "module": "./dist/behaviors/combat.js"
+            },
+            "./behaviors/placement": {
+                "types": "./dist/behaviors/placement.d.ts",
+                "import": "./dist/behaviors/placement.js",
+                "module": "./dist/behaviors/placement.js"
+            },
+            "./world": {
+                "types": "./dist/world.d.ts",
+                "import": "./dist/world.js",
+                "module": "./dist/world.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +42,17 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./behaviors/combat": {
+            "jsprismarine:dist": "./dist/behaviors/combat.js",
+            "default": "./src/behaviors/combat.ts"
+        },
+        "./behaviors/placement": {
+            "jsprismarine:dist": "./dist/behaviors/placement.js",
+            "default": "./src/behaviors/placement.ts"
+        },
+        "./world": {
+            "jsprismarine:dist": "./dist/world.js",
+            "default": "./src/world.ts"
         },
         "./package.json": "./package.json"
     },

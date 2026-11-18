@@ -11,10 +11,90 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./attributes": {
+                "types": "./dist/attributes.d.ts",
+                "import": "./dist/attributes.js",
+                "module": "./dist/attributes.js"
+            },
+            "./componentState": {
+                "types": "./dist/componentState.d.ts",
+                "import": "./dist/componentState.js",
+                "module": "./dist/componentState.js"
+            },
+            "./components/bribeable": {
+                "types": "./dist/components/bribeable.d.ts",
+                "import": "./dist/components/bribeable.js",
+                "module": "./dist/components/bribeable.js"
+            },
+            "./components/hazards": {
+                "types": "./dist/components/hazards.d.ts",
+                "import": "./dist/components/hazards.js",
+                "module": "./dist/components/hazards.js"
+            },
+            "./components/peek": {
+                "types": "./dist/components/peek.d.ts",
+                "import": "./dist/components/peek.js",
+                "module": "./dist/components/peek.js"
+            },
+            "./components/shared": {
+                "types": "./dist/components/shared.d.ts",
+                "import": "./dist/components/shared.js",
+                "module": "./dist/components/shared.js"
+            },
+            "./components/tamemount": {
+                "types": "./dist/components/tamemount.d.ts",
+                "import": "./dist/components/tamemount.js",
+                "module": "./dist/components/tamemount.js"
+            },
+            "./components/trust": {
+                "types": "./dist/components/trust.d.ts",
+                "import": "./dist/components/trust.js",
+                "module": "./dist/components/trust.js"
+            },
+            "./entityInstance": {
+                "types": "./dist/entityInstance.d.ts",
+                "import": "./dist/entityInstance.js",
+                "module": "./dist/entityInstance.js"
+            },
+            "./entityType": {
+                "types": "./dist/entityType.d.ts",
+                "import": "./dist/entityType.js",
+                "module": "./dist/entityType.js"
+            },
+            "./eventEngine": {
+                "types": "./dist/eventEngine.d.ts",
+                "import": "./dist/eventEngine.js",
+                "module": "./dist/eventEngine.js"
+            },
+            "./events": {
+                "types": "./dist/events.d.ts",
+                "import": "./dist/events.js",
+                "module": "./dist/events.js"
+            },
+            "./filterContext": {
+                "types": "./dist/filterContext.d.ts",
+                "import": "./dist/filterContext.js",
+                "module": "./dist/filterContext.js"
+            },
+            "./hooks": {
+                "types": "./dist/hooks.d.ts",
+                "import": "./dist/hooks.js",
+                "module": "./dist/hooks.js"
+            },
+            "./itemNames": {
+                "types": "./dist/itemNames.d.ts",
+                "import": "./dist/itemNames.js",
+                "module": "./dist/itemNames.js"
+            },
+            "./javaStats": {
+                "types": "./dist/javaStats.d.ts",
+                "import": "./dist/javaStats.js",
+                "module": "./dist/javaStats.js"
+            },
+            "./riding": {
+                "types": "./dist/riding.d.ts",
+                "import": "./dist/riding.js",
+                "module": "./dist/riding.js"
             },
             "./package.json": "./package.json"
         }
@@ -33,9 +113,73 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./attributes": {
+            "jsprismarine:dist": "./dist/attributes.js",
+            "default": "./src/attributes.ts"
+        },
+        "./componentState": {
+            "jsprismarine:dist": "./dist/componentState.js",
+            "default": "./src/componentState.ts"
+        },
+        "./components/bribeable": {
+            "jsprismarine:dist": "./dist/components/bribeable.js",
+            "default": "./src/components/bribeable.ts"
+        },
+        "./components/hazards": {
+            "jsprismarine:dist": "./dist/components/hazards.js",
+            "default": "./src/components/hazards.ts"
+        },
+        "./components/peek": {
+            "jsprismarine:dist": "./dist/components/peek.js",
+            "default": "./src/components/peek.ts"
+        },
+        "./components/shared": {
+            "jsprismarine:dist": "./dist/components/shared.js",
+            "default": "./src/components/shared.ts"
+        },
+        "./components/tamemount": {
+            "jsprismarine:dist": "./dist/components/tamemount.js",
+            "default": "./src/components/tamemount.ts"
+        },
+        "./components/trust": {
+            "jsprismarine:dist": "./dist/components/trust.js",
+            "default": "./src/components/trust.ts"
+        },
+        "./entityInstance": {
+            "jsprismarine:dist": "./dist/entityInstance.js",
+            "default": "./src/entityInstance.ts"
+        },
+        "./entityType": {
+            "jsprismarine:dist": "./dist/entityType.js",
+            "default": "./src/entityType.ts"
+        },
+        "./eventEngine": {
+            "jsprismarine:dist": "./dist/eventEngine.js",
+            "default": "./src/eventEngine.ts"
+        },
+        "./events": {
+            "jsprismarine:dist": "./dist/events.js",
+            "default": "./src/events.ts"
+        },
+        "./filterContext": {
+            "jsprismarine:dist": "./dist/filterContext.js",
+            "default": "./src/filterContext.ts"
+        },
+        "./hooks": {
+            "jsprismarine:dist": "./dist/hooks.js",
+            "default": "./src/hooks.ts"
+        },
+        "./itemNames": {
+            "jsprismarine:dist": "./dist/itemNames.js",
+            "default": "./src/itemNames.ts"
+        },
+        "./javaStats": {
+            "jsprismarine:dist": "./dist/javaStats.js",
+            "default": "./src/javaStats.ts"
+        },
+        "./riding": {
+            "jsprismarine:dist": "./dist/riding.js",
+            "default": "./src/riding.ts"
         },
         "./package.json": "./package.json"
     },

@@ -11,10 +11,15 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./dialect": {
+                "types": "./dist/dialect.d.ts",
+                "import": "./dist/dialect.js",
+                "module": "./dist/dialect.js"
+            },
+            "./registry": {
+                "types": "./dist/registry.d.ts",
+                "import": "./dist/registry.js",
+                "module": "./dist/registry.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +37,13 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./dialect": {
+            "jsprismarine:dist": "./dist/dialect.js",
+            "default": "./src/dialect.ts"
+        },
+        "./registry": {
+            "jsprismarine:dist": "./dist/registry.js",
+            "default": "./src/registry.ts"
         },
         "./package.json": "./package.json"
     },

@@ -11,10 +11,25 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./sources": {
+                "types": "./dist/sources.d.ts",
+                "import": "./dist/sources.js",
+                "module": "./dist/sources.js"
+            },
+            "./v2193": {
+                "types": "./dist/v2193.d.ts",
+                "import": "./dist/v2193.js",
+                "module": "./dist/v2193.js"
+            },
+            "./v2225": {
+                "types": "./dist/v2225.d.ts",
+                "import": "./dist/v2225.js",
+                "module": "./dist/v2225.js"
+            },
+            "./v2259": {
+                "types": "./dist/v2259.d.ts",
+                "import": "./dist/v2259.js",
+                "module": "./dist/v2259.js"
             },
             "./package.json": "./package.json"
         }
@@ -33,9 +48,21 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./sources": {
+            "jsprismarine:dist": "./dist/sources.js",
+            "default": "./src/sources.ts"
+        },
+        "./v2193": {
+            "jsprismarine:dist": "./dist/v2193.js",
+            "default": "./src/v2193.ts"
+        },
+        "./v2225": {
+            "jsprismarine:dist": "./dist/v2225.js",
+            "default": "./src/v2225.ts"
+        },
+        "./v2259": {
+            "jsprismarine:dist": "./dist/v2259.js",
+            "default": "./src/v2259.ts"
         },
         "./package.json": "./package.json"
     },

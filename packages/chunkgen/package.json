@@ -11,10 +11,25 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./GenerationPool": {
+                "types": "./dist/GenerationPool.d.ts",
+                "import": "./dist/GenerationPool.js",
+                "module": "./dist/GenerationPool.js"
+            },
+            "./generationHost": {
+                "types": "./dist/generationHost.d.ts",
+                "import": "./dist/generationHost.js",
+                "module": "./dist/generationHost.js"
+            },
+            "./hostRole": {
+                "types": "./dist/hostRole.d.ts",
+                "import": "./dist/hostRole.js",
+                "module": "./dist/hostRole.js"
+            },
+            "./reusableInput": {
+                "types": "./dist/reusableInput.d.ts",
+                "import": "./dist/reusableInput.js",
+                "module": "./dist/reusableInput.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +47,21 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./GenerationPool": {
+            "jsprismarine:dist": "./dist/GenerationPool.js",
+            "default": "./src/GenerationPool.ts"
+        },
+        "./generationHost": {
+            "jsprismarine:dist": "./dist/generationHost.js",
+            "default": "./src/generationHost.ts"
+        },
+        "./hostRole": {
+            "jsprismarine:dist": "./dist/hostRole.js",
+            "default": "./src/hostRole.ts"
+        },
+        "./reusableInput": {
+            "jsprismarine:dist": "./dist/reusableInput.js",
+            "default": "./src/reusableInput.ts"
         },
         "./package.json": "./package.json"
     },

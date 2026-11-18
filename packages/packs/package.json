@@ -11,10 +11,30 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./brarchive": {
+                "types": "./dist/brarchive.d.ts",
+                "import": "./dist/brarchive.js",
+                "module": "./dist/brarchive.js"
+            },
+            "./lenientJson": {
+                "types": "./dist/lenientJson.d.ts",
+                "import": "./dist/lenientJson.js",
+                "module": "./dist/lenientJson.js"
+            },
+            "./mcdocValidator": {
+                "types": "./dist/mcdocValidator.d.ts",
+                "import": "./dist/mcdocValidator.js",
+                "module": "./dist/mcdocValidator.js"
+            },
+            "./sources": {
+                "types": "./dist/sources.d.ts",
+                "import": "./dist/sources.js",
+                "module": "./dist/sources.js"
+            },
+            "./zip": {
+                "types": "./dist/zip.d.ts",
+                "import": "./dist/zip.js",
+                "module": "./dist/zip.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +52,25 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./brarchive": {
+            "jsprismarine:dist": "./dist/brarchive.js",
+            "default": "./src/brarchive.ts"
+        },
+        "./lenientJson": {
+            "jsprismarine:dist": "./dist/lenientJson.js",
+            "default": "./src/lenientJson.ts"
+        },
+        "./mcdocValidator": {
+            "jsprismarine:dist": "./dist/mcdocValidator.js",
+            "default": "./src/mcdocValidator.ts"
+        },
+        "./sources": {
+            "jsprismarine:dist": "./dist/sources.js",
+            "default": "./src/sources.ts"
+        },
+        "./zip": {
+            "jsprismarine:dist": "./dist/zip.js",
+            "default": "./src/zip.ts"
         },
         "./package.json": "./package.json"
     },
