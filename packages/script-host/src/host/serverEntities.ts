@@ -15,16 +15,15 @@ import type { ScriptApiImplementations, ScriptCall } from '../shape/implementati
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
+import { componentFacts, containerSlots, entityComponent, slotPastEnd, writeContainerSlot } from './serverComponents';
 import type { EntityAccess, EntityKey } from './serverObjects';
 import {
-    blockKeyOf,
     COMMON,
     entityKeyOf,
     gameModeOf,
     invalidEntity,
     itemOf,
     itemState,
-    namesBlock,
     plainError,
     readMessage,
     SERVER,
@@ -332,11 +331,9 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
             runCommand(host, call.args[0], { entity: live(call, 'call', 'runCommand').id })
         )
         .implement(SERVER, 'Entity', 'getComponent', (call) => {
-            const entity = live(call, 'call', 'getComponent');
-            const component = withNamespace(String(call.args[0]));
-            // Only the inventory has behavior yet; any other component reads as one the entity lacks.
-            if (component !== 'minecraft:inventory' || entity.inventorySize === undefined) return undefined;
-            return host.engine.release(host.create('EntityInventoryComponent', TAG.inventory, call.state));
+            live(call, 'call', 'getComponent');
+            // A component the host has no behavior for reads as one the entity lacks.
+            return entityComponent(host, keyOf(call), String(call.args[0]));
         })
         .implement(SERVER, 'Entity', 'getRotation', (call) =>
             JSON.stringify(live(call, 'call', 'getRotation').rotation ?? { x: 0, y: 0 })
@@ -436,18 +433,9 @@ const damageSourceArgument = (call: ScriptCall, options: ScriptValue | undefined
 const implementInventory = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const { world } = host;
     /** The slots of the container an object's state names, or undefined once it is gone. */
-    const slotsOf = (state: string): readonly (ScriptItem | null)[] | undefined => {
-        if (!namesBlock(state)) return world.inventory(entityKeyOf(state).id);
-        const block = blockKeyOf(state);
-        return world.blockInventory?.(block.dimension, block);
-    };
-    const writeSlot = (state: string, slot: number, item: ScriptItem | undefined): void => {
-        if (!namesBlock(state)) world.setInventoryItem(entityKeyOf(state).id, slot, item);
-        else {
-            const block = blockKeyOf(state);
-            world.setBlockInventoryItem?.(block.dimension, block, slot, item);
-        }
-    };
+    const slotsOf = (state: string) => containerSlots(world, state);
+    const writeSlot = (state: string, slot: number, item: ScriptItem | undefined): void =>
+        writeContainerSlot(world, state, slot, item);
     /**
      * The container's slots, or BDS's error for a member of a container that is gone: `Failed to
      * get property 'size'.` for a property and `Failed to call function 'addItem'.` for a method.
@@ -462,9 +450,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
     const slotArgument = (call: ScriptCall, size: number): number => {
         const [slot] = call.args;
         const index = typeof slot === 'number' ? Math.trunc(slot) : -1;
-        if (index >= size) {
-            throw plainError(`Invalid container slot provided '${index}'. Maximum slot is '${size - 1}'.`);
-        }
+        if (index >= size) throw slotPastEnd(index, size);
         return index;
     };
 
@@ -475,11 +461,13 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
                     ? 'minecraft:inventory'
                     : call.tag === TAG.durability
                       ? 'minecraft:durability'
-                      : ''
+                      : (componentFacts(world, call.tag, call.state)?.typeId ?? '')
         })
         .implement(SERVER, 'Component', 'isValid', {
             get: (call) => {
                 if (call.tag === TAG.durability) return true;
+                const facts = componentFacts(world, call.tag, call.state);
+                if (facts !== undefined) return facts.isValid;
                 if (call.tag === TAG.blockInventory) return slotsOf(call.state) !== undefined;
                 return world.entity(entityKeyOf(call.state).id) !== undefined;
             }

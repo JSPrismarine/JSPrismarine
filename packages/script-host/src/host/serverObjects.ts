@@ -95,6 +95,20 @@ export const TAG = {
     blockInventory: 31,
     /** An item stack's durability component; its state is empty, and the stack it reads is linked to it. */
     durability: 32,
+    /** An entity's equippable component; its state is the entity's {@link EntityKey}. */
+    equippable: 33,
+    /** An entity's attribute component; its state is the entity's {@link EntityKey} and the attribute's id. */
+    attribute: 34,
+    /** A `ContainerSlot`; its state names its container, or its entity's equipment, and the slot. */
+    containerSlot: 35,
+    /** `world.structureManager`. */
+    structureManager: 36,
+    /** A structure; its state is the structure's id. */
+    structure: 37,
+    /** A dimension type; its state is the dimension's id. */
+    dimensionType: 38,
+    /** A status effect type; its state is the effect's id. */
+    effectType: 39,
     /** A signal's tag is this plus its index in the signal list. */
     signal: 100
 } as const;

@@ -254,6 +254,74 @@ export interface ItemUseIntent {
     readonly item: ScriptItem;
 }
 
+/** An equipment slot, as `EquipmentSlot` names it. */
+export type ScriptEquipmentSlot = 'Body' | 'Chest' | 'Feet' | 'Head' | 'Legs' | 'Mainhand' | 'Offhand';
+
+/** What an entity wears and holds, as `EntityEquippableComponent` reads it. */
+export interface ScriptEquipment {
+    /** The stack in each slot, with an empty slot left out. */
+    readonly slots: Readonly<Partial<Record<ScriptEquipmentSlot, ScriptItem>>>;
+    /** The armor points the worn pieces give, out of 20 for a full diamond set. */
+    readonly armor: number;
+    /** The armor toughness the worn pieces give. */
+    readonly toughness: number;
+}
+
+/** An entity's attribute, such as its health, as an attribute component reads it. */
+export interface ScriptAttribute {
+    readonly current: number;
+    /** The value the entity's type gives it, which `resetToDefaultValue` returns to. */
+    readonly default: number;
+    readonly min: number;
+    readonly max: number;
+}
+
+/** How a structure is kept, as `StructureSaveMode` names it. */
+export type ScriptStructureSaveMode = 'Memory' | 'World';
+
+/**
+ * A structure as plain data: a box of blocks, each an index into its palette, or -1 where the
+ * structure has no block, as a structure void leaves one.
+ */
+export interface ScriptStructure {
+    readonly size: ScriptVector3;
+    readonly palette: readonly ScriptBlockPermutation[];
+    /** The blocks, x outermost, then y, then z, as a `.mcstructure` orders them. */
+    readonly blocks: readonly number[];
+    readonly saveMode: ScriptStructureSaveMode;
+}
+
+/** The structures of a world, by their ids with a namespace, such as `mystructure:house`. */
+export interface ScriptStructureStore {
+    get(id: string): ScriptStructure | undefined;
+    set(id: string, structure: ScriptStructure): void;
+    /** @returns False when there was none. */
+    delete(id: string): boolean;
+    /** Every id, in the order the structures were first kept. */
+    ids(): readonly string[];
+}
+
+/** A block a player clicks, which a script's before-event sees before the click does anything. */
+export interface BlockInteractIntent {
+    /** The id of the player clicking, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    readonly block: ScriptBlockLocation;
+    readonly face: ScriptDirection;
+    /** Where on the face the click landed, from the block's lowest corner. */
+    readonly faceLocation: ScriptVector3;
+    /** The stack in the player's hand. Absent for an empty hand. */
+    readonly item?: ScriptItem;
+}
+
+/** An entity a player clicks, which a script's before-event sees before the click does anything. */
+export interface EntityInteractIntent {
+    /** The id of the player clicking, as {@link ScriptWorld.players} lists it. */
+    readonly player: string;
+    readonly target: ScriptEntityRef;
+    /** The stack in the player's hand. Absent for an empty hand. */
+    readonly item?: ScriptItem;
+}
+
 /** What a command a script ran did: how many times it succeeded, or why it failed. */
 export type ScriptCommandResult = { readonly successCount: number } | { readonly error: string };
 
@@ -320,7 +388,19 @@ export type ScriptWorldEvent =
           readonly itemAfter?: ScriptItem;
       }
     /** A player used an item that the before-event let through. */
-    | { readonly type: 'itemUse'; readonly player: string; readonly item: ScriptItem };
+    | { readonly type: 'itemUse'; readonly player: string; readonly item: ScriptItem }
+    /** A player's click on a block went past the before-event and did something. */
+    | ({
+          readonly type: 'playerInteractWithBlock';
+          /** The stack in the player's hand after the click. Absent for an empty hand. */
+          readonly itemAfter?: ScriptItem;
+      } & BlockInteractIntent)
+    /** A player's click on an entity went past the before-event and did something. */
+    | ({
+          readonly type: 'playerInteractWithEntity';
+          /** The stack in the player's hand after the click. Absent for an empty hand. */
+          readonly itemAfter?: ScriptItem;
+      } & EntityInteractIntent);
 
 /** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
 export interface ScriptFormResponse {
@@ -885,10 +965,17 @@ export interface ScriptWorld {
     /** Plays a sound, as `/playsound` does. A world without it plays none. */
     playSound?(sound: ScriptSound): void;
     /**
-     * Spawns a particle effect for the players near a location, as `/particle` does.
+     * Spawns a particle effect for the players near a location, as `/particle` does, or for one player.
      * @param molangVariables - The JSON of the effect's MoLang variables, as `SpawnParticleEffectPacket` carries it.
+     * @param player - The id of the one player who sees it. Everyone near the location sees it when absent.
      */
-    spawnParticle?(dimension: string, effect: string, location: ScriptVector3, molangVariables?: string): void;
+    spawnParticle?(
+        dimension: string,
+        effect: string,
+        location: ScriptVector3,
+        molangVariables?: string,
+        player?: string
+    ): void;
     /** Whether the world knows a status effect type, such as `minecraft:speed`. */
     isEffectType?(typeId: string): boolean;
     /**
@@ -927,6 +1014,46 @@ export interface ScriptWorld {
      * @returns A function that removes it.
      */
     guardItemUse?(guard: VetoGuard<ItemUseIntent>): () => void;
+    /**
+     * Adds a guard to the block clicks of the world's players, which runs before the click opens,
+     * uses or places anything. A veto drops the click.
+     * @returns A function that removes it.
+     */
+    guardBlockInteract?(guard: VetoGuard<BlockInteractIntent>): () => void;
+    /**
+     * Adds a guard to the entity clicks of the world's players, which runs before the click does
+     * anything. A veto drops the click.
+     * @returns A function that removes it.
+     */
+    guardEntityInteract?(guard: VetoGuard<EntityInteractIntent>): () => void;
+    /**
+     * What an entity wears and holds.
+     * @returns Undefined for an entity that is gone or has no equipment a script reaches, which
+     *   is any but a player, as on BDS.
+     */
+    equipment?(id: string): ScriptEquipment | undefined;
+    /**
+     * Puts a stack into one equipment slot, or empties it, and tells the clients that see it.
+     * @returns False when the slot cannot hold the stack, such as an apple on the chest.
+     */
+    setEquipment?(id: string, slot: ScriptEquipmentSlot, item: ScriptItem | undefined): boolean;
+    /**
+     * One of an entity's attributes.
+     * @param name - The attribute component's id, such as `minecraft:health`.
+     * @returns Undefined for an entity that is gone or whose type has no such attribute.
+     */
+    attribute?(id: string, name: string): ScriptAttribute | undefined;
+    /** Writes an attribute's value, within its bounds, and tells the clients that see it. */
+    setAttribute?(id: string, name: string, value: number): void;
+    /**
+     * Every dimension type the world registers, as Bedrock names them, in the order of their
+     * numeric ids. A world without it lists its dimensions.
+     */
+    dimensionTypes?(): readonly string[];
+    /** Every status effect type the world knows, by its id with a namespace. */
+    effectTypes?(): readonly string[];
+    /** The world's structures, which `world.structureManager` reads and writes. A world without them keeps none. */
+    readonly structures?: ScriptStructureStore;
     /** Moves a player's hand to a hotbar slot, from 0 to 8, and tells their client. */
     setSelectedSlot?(id: string, slot: number): void;
     /**
