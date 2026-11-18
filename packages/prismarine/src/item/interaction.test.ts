@@ -677,6 +677,32 @@ describe('useItemOnBlock', () => {
         expect(sessionOf(player).opened).toHaveLength(0);
     });
 
+    it('does nothing with a click the playerInteractBlock guard cancels, and reports one that went on', () => {
+        place(chunk, { x: 2, y: 63, z: 2 }, 'minecraft:stone');
+        place(chunk, { x: 2, y: 64, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: false, open_bit: false });
+        place(chunk, { x: 2, y: 65, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: true, open_bit: false });
+        const { events } = world.getServer().getKernel();
+        let cancel = true;
+        const stopGuard = events.on('playerInteractBlock', (event) => {
+            if (cancel) event.preventDefault();
+            cancel = false;
+        });
+        const after: string[] = [];
+        const stopAfter = events.on('playerBlockInteracted', (event) =>
+            after.push(`${event.getBlock().name} ${event.getFace()} ${event.getItemAfter()?.getName()}`)
+        );
+        const player = playerHolding(world, 'minecraft:stick');
+
+        expect(click(player, { x: 2, y: 64, z: 2 })).toBe('handled');
+        expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(0);
+        expect(after).toEqual([]);
+        expect(click(player, { x: 2, y: 64, z: 2 })).toBe('handled');
+        expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(1);
+        expect(after).toEqual(['minecraft:wooden_door up minecraft:stick']);
+        stopGuard();
+        stopAfter();
+    });
+
     it('declines a click nothing wants with an item that places no block, and sends nothing', () => {
         place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:stone');
         const player = playerHolding(world, 'minecraft:stick');

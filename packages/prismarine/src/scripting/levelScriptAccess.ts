@@ -14,11 +14,15 @@ import type {
     ScriptCommandResult,
     ScriptCommandSource,
     ScriptEntityState,
+    ScriptEquipmentSlot,
     ScriptItem
 } from '@jsprismarine/script-host/host/world';
+import { ATTRIBUTES } from '@jsprismarine/entities/attributes';
+import type { AttributeName } from '@jsprismarine/entities/attributes';
 
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
 import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound } from '@jsprismarine/nbt';
@@ -29,6 +33,8 @@ import type { StoreActor } from '../entity/data/storeActors';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { WindowIds } from '../inventory/WindowIds';
 import ContainerEntry from '../inventory/ContainerEntry';
+import type Inventory from '../inventory/Inventory';
+import { mobEquipmentSlotOf } from '../entity/equipment';
 import type { Item } from '../item/Item';
 import { maxStackSizeOf } from '../item/Item';
 import { itemFromContent } from '../item/itemFromContent';
@@ -44,7 +50,7 @@ import {
     withPropertyWrites
 } from '../world/dynamicProperties';
 import { blockContainerAt } from '../command/host/containers';
-import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEffect';
+import { bedrockMobEffectId, bedrockMobEffectIdentifiers, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
 import { scriptScoreboard } from './scriptScoreboard';
 
@@ -97,6 +103,12 @@ const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): 
         ...(item.damage === undefined || item.damage <= 0 ? {} : { damage: item.damage })
     };
 };
+
+/** The equipment slots of a player's armor container, in the order the client numbers them. */
+const ARMOR_ORDER: readonly ScriptEquipmentSlot[] = ['Head', 'Chest', 'Legs', 'Feet'];
+
+/** The largest 32-bit float, which bounds an attribute BDS gives no maximum. */
+const FLOAT_MAX = 3.4028234663852886e38;
 
 /** A player's game mode as the Script API names it, or undefined for one it has no name for. */
 const gameModeName = (gamemode: number) => {
@@ -187,6 +199,18 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         dimension: actor.getWorld().getDimension().id
     });
     const javaDimension = (dimension: string): string => worldOf(dimension)?.getDimension().id ?? dimension;
+    /** A script's stack as a player's inventory slot holds it, or undefined for a type the content lacks. */
+    const entryOf = (item: ScriptItem): ContainerEntry | undefined => {
+        const stack = itemFromContent(item.typeId, server.getContent());
+        if (stack === null) return undefined;
+        const shown = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
+        const most = shown.getMaxDurability();
+        const written = most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
+        return new ContainerEntry({ item: written, count: item.amount });
+    };
+    /** The attribute a component id names, such as `health` for `minecraft:health`. */
+    const attributeName = (component: string): AttributeName | undefined =>
+        ATTRIBUTES.find((name) => `minecraft:${name}` === component);
 
     return {
         entity: (id) => {
@@ -258,12 +282,9 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             }
             if (item === undefined) inventory.removeItem(slot);
             else {
-                const stack = itemFromContent(item.typeId, server.getContent());
-                if (stack === null) return;
-                const shown = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
-                const most = shown.getMaxDurability();
-                const written = most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
-                inventory.setItem(slot, new ContainerEntry({ item: written, count: item.amount }));
+                const entry = entryOf(item);
+                if (entry === undefined) return;
+                inventory.setItem(slot, entry);
             }
             session.released(session.sendInventory());
         },
@@ -303,6 +324,74 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                 ...(maxDurability > 0 ? { maxDurability } : {})
             };
         },
+        equipment: (id) => {
+            // Only a player has equipment a script reaches, as on BDS.
+            const inventory = sessionOf(id)?.getPlayer().getInventory();
+            if (inventory === undefined) return undefined;
+            const held = (container: Inventory, slot: number) =>
+                container.isEmpty(slot) ? undefined : (scriptItemOf(container.getItem(slot)) ?? undefined);
+            const slots: Partial<Record<ScriptEquipmentSlot, ScriptItem>> = {};
+            const read: readonly (readonly [ScriptEquipmentSlot, Inventory, number])[] = [
+                ['Mainhand', inventory, inventory.getHandSlotIndex()],
+                ['Offhand', inventory.getOffhand(), 0],
+                ...ARMOR_ORDER.map((slot, index) => [slot, inventory.getArmor(), index] as const)
+            ];
+            for (const [slot, container, index] of read) {
+                const item = held(container, index);
+                if (item !== undefined) slots[slot] = item;
+            }
+            return { slots, armor: inventory.getArmorDefensePoints(), toughness: inventory.getArmorToughness() };
+        },
+        setEquipment: (id, slot, item) => {
+            const session = sessionOf(id);
+            const inventory = session?.getPlayer().getInventory();
+            if (session === undefined || inventory === undefined || slot === 'Body') return false;
+            const entry = item === undefined ? undefined : entryOf(item);
+            if (item !== undefined && entry === undefined) return false;
+            const armorSlot = ARMOR_ORDER.indexOf(slot);
+            // An armor slot takes only a piece worn there, as the item's `minecraft:wearable` says.
+            if (armorSlot >= 0 && entry !== undefined) {
+                const worn = entry.getItem().getEquipmentSlot();
+                if (worn === undefined || mobEquipmentSlotOf(worn) !== slot.toLowerCase()) return false;
+            }
+            const [container, index] =
+                slot === 'Mainhand'
+                    ? [inventory, inventory.getHandSlotIndex()]
+                    : slot === 'Offhand'
+                      ? [inventory.getOffhand(), 0]
+                      : [inventory.getArmor(), armorSlot];
+            if (entry === undefined) container.removeItem(index);
+            else container.setItem(index, entry);
+            session.released(session.sendInventory());
+            return true;
+        },
+        attribute: (id, component) => {
+            const name = attributeName(component);
+            const found = name === undefined ? undefined : actorOf(id)?.entity.instance.attributes.get(name);
+            if (found === undefined) return undefined;
+            // BDS keeps attributes as 32-bit floats, and bounds a speed only by the largest of them.
+            return {
+                current: Math.fround(found.current),
+                default: Math.fround(found.base),
+                min: Math.fround(found.min),
+                max: name === 'health' ? Math.fround(found.max) : FLOAT_MAX
+            };
+        },
+        setAttribute: (id, component, value) => {
+            const name = attributeName(component);
+            const attributes = actorOf(id)?.entity.instance.attributes;
+            const found = name === undefined ? undefined : attributes?.get(name);
+            if (name === undefined || attributes === undefined || found === undefined) return;
+            if (value > found.max) attributes.setMax(name, value);
+            attributes.set(name, value);
+        },
+        dimensionTypes: () =>
+            [...level.getDimensionTypes().values()]
+                .sort((a, b) => a.bedrockId - b.bedrockId)
+                .map((type) => type.bedrockName),
+        // BDS lists `minecraft:empty`, the effect with id 0, among its types, as the
+        // `entity-components` scenario recorded.
+        effectTypes: () => ['minecraft:empty', ...bedrockMobEffectIdentifiers()],
         setSneaking: (id, sneaking) => {
             const session = sessionOf(id);
             if (session === undefined) return;
@@ -322,8 +411,20 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                       : [listener];
             host().world.playSound(sound, listeners.map(refOf), location, volume, pitch);
         },
-        spawnParticle: (dimension, effect, location, molangVariables) => {
-            host().world.particle(effect, location, javaDimension(dimension), molangVariables);
+        spawnParticle: (dimension, effect, location, molangVariables, player) => {
+            if (player === undefined) {
+                host().world.particle(effect, location, javaDimension(dimension), molangVariables);
+                return;
+            }
+            const session = sessionOf(player);
+            const world = worldOf(dimension);
+            if (session === undefined || world === undefined) return;
+            const packet = new SpawnParticleEffectPacket();
+            packet.dimensionId = world.getDimension().bedrockId;
+            packet.effectName = effect;
+            packet.position = new Vector3(location.x, location.y, location.z);
+            if (molangVariables !== undefined) packet.molangVariables = molangVariables;
+            session.released(session.send(packet));
         },
         isEffectType: (typeId) => bedrockMobEffectId(normalizeStatusEffectId(typeId)) !== undefined,
         effects: (id) =>

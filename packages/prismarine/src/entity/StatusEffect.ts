@@ -139,3 +139,6 @@ export const bedrockMobEffectId = (identifier: string): number | undefined =>
 
 /** The Bedrock effect name stored in actor NBT for a numeric id. */
 export const bedrockMobEffectIdentifier = (id: number): string | undefined => BEDROCK_MOB_EFFECTS_BY_ID.get(id);
+
+/** Every status effect identifier Bedrock numbers, in the order of their ids. */
+export const bedrockMobEffectIdentifiers = (): readonly string[] => [...BEDROCK_MOB_EFFECT_IDS.keys()];
