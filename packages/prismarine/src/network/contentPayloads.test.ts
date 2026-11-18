@@ -365,8 +365,24 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)(
     { tags: ['real-data'] },
     () => {
         /** Built once: the pack stack takes seconds and every test here reads the same build. */
+        let content: ServerContent | undefined;
         let built: NetworkContentPayloads | undefined;
-        const vanilla = (): NetworkContentPayloads => (built ??= buildNetworkContentPayloads(buildServerContent({})));
+        const vanillaContent = (): ServerContent => (content ??= buildServerContent({}));
+        const vanilla = (): NetworkContentPayloads => (built ??= buildNetworkContentPayloads(vanillaContent()));
+
+        it("writes the creative menu's chorus plant as a 1.26.51 client knows it", () => {
+            // 1.26.60 gave chorus plants six connection states, which 1.26.51 does not have.
+            const chorusOf = (payloads: NetworkContentPayloads) =>
+                payloads.creative.entries.find(
+                    (entry) =>
+                        entry.item.runtimeId ===
+                        payloads.items.find(({ name }) => name === 'minecraft:chorus_plant')?.runtimeId
+                )?.item.blockRuntimeId;
+            const at2193 = buildNetworkContentPayloads(vanillaContent(), { itemData: itemData2193 });
+
+            expect(chorusOf(at2193)).toBe(blockRuntimeId('minecraft:chorus_plant'));
+            expect(chorusOf(vanilla())).not.toBe(blockRuntimeId('minecraft:chorus_plant'));
+        });
 
         it('sends every registry the client builds its world from', () => {
             const payloads = vanilla();

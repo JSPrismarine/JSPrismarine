@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type { LevelSoundEvent } from '@jsprismarine/minecraft';
-import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
+import { LevelEvent, LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
@@ -53,6 +53,9 @@ import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
 import { wireRuntimeIdOf } from './codec/itemData';
+import { blockTranslationFor } from './codec/blockTranslation';
+import type { BlockTranslation } from './codec/blockTranslation';
+import { CRACK_PARTICLES } from '../entity/playerMining';
 import { allSent } from './allSent';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
@@ -147,13 +150,22 @@ const subChunkOrigin = (position: Vector3): BlockPos =>
 const blockChangeKey = ({ position, blockRuntimeId }: BlockChange): string =>
     `${position.getX()},${position.getY()},${position.getZ()},${blockRuntimeId >>> 0},${BLOCK_UPDATE_FLAGS}`;
 
-/** The single-block update, which is shorter than a sub chunk packet holding one change. */
-const updateBlockPacket = ({ position, blockRuntimeId }: BlockChange): UpdateBlockPacket => {
+/** The level events whose data is a block runtime id, which the particles are textured with. */
+const BLOCK_DATA_EVENTS: ReadonlySet<LevelEvent> = new Set([LevelEvent.PARTICLES_DESTROY_BLOCK, ...CRACK_PARTICLES]);
+
+/**
+ * The single-block update, which is shorter than a sub chunk packet holding one change.
+ * @param toClient - The id the viewers' release writes for the world's.
+ */
+const updateBlockPacket = (
+    { position, blockRuntimeId }: BlockChange,
+    toClient: (runtimeId: number) => number
+): UpdateBlockPacket => {
     const packet = new UpdateBlockPacket();
     packet.x = position.getX();
     packet.y = position.getY();
     packet.z = position.getZ();
-    packet.blockRuntimeId = blockRuntimeId;
+    packet.blockRuntimeId = toClient(blockRuntimeId);
     packet.flags = BLOCK_UPDATE_FLAGS;
     return packet;
 };
@@ -288,6 +300,27 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      */
     public sendAround<T extends NetworkPacket<unknown>>(position: Vector3, packet: T, options?: AudienceOptions): void {
         this.sendToAll(this.getViewers(position, options), packet);
+    }
+
+    /**
+     * Like {@link sendAround}, for a packet that names a block runtime id: built once for each
+     * codec among the audience, since an older release writes some blocks differently.
+     */
+    private sendBlockAround<T extends NetworkPacket<unknown>>(
+        position: Vector3,
+        build: (toClient: (runtimeId: number) => number) => T,
+        options?: AudienceOptions
+    ): void {
+        const byCodec = new Map<ProtocolCodec, PlayerSession[]>();
+        for (const viewer of this.getViewers(position, options)) {
+            const codec = viewer.getConnection().codec;
+            const audience = byCodec.get(codec);
+            if (audience === undefined) byCodec.set(codec, [viewer]);
+            else audience.push(viewer);
+        }
+        for (const [codec, audience] of byCodec) {
+            this.sendToAll(audience, build(blockTranslationFor(codec.protocolVersion).toClient));
+        }
     }
 
     /** @inheritdoc */
@@ -455,16 +488,28 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // With proximity off every client is told about everything, so the bytes are identical and
         // one compression per protocol version serves every client who speaks it.
         if (!this.server.getConfig().getProximityBroadcast()) {
-            const broadcast = broadcastSharedBatches(
-                viewers.map((session) => session.getConnection()),
-                this.blockPackets(changes).map(({ packet }) => packet),
-                this.server.getConfig().getPacketCompressionLevel(),
-                (error) => this.server.getLogger().error(error),
-                // The configured threshold was already negotiated per connection; leave the override unset.
-                undefined,
-                { fullFlushFragments, fragmentCache }
+            // Grouped by how each release writes the blocks, since an older one writes some
+            // differently; sessions whose ids agree still share one batch per protocol.
+            const byTranslation = new Map<BlockTranslation, ClientConnection[]>();
+            for (const session of viewers) {
+                const connection = session.getConnection();
+                const translation = blockTranslationFor(connection.codec.protocolVersion);
+                const connections = byTranslation.get(translation);
+                if (connections === undefined) byTranslation.set(translation, [connection]);
+                else connections.push(connection);
+            }
+            const broadcasts = [...byTranslation].map(([translation, connections]) =>
+                broadcastSharedBatches(
+                    connections,
+                    this.blockPackets(changes, translation.toClient).map(({ packet }) => packet),
+                    this.server.getConfig().getPacketCompressionLevel(),
+                    (error) => this.server.getLogger().error(error),
+                    // The configured threshold was already negotiated per connection; leave the override unset.
+                    undefined,
+                    { fullFlushFragments, fragmentCache }
+                )
             );
-            this.released([broadcast]);
+            this.released(broadcasts);
             return;
         }
 
@@ -543,6 +588,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const sends: Promise<void>[] = [];
 
         for (const [codec, groups] of groupsByCodec) {
+            const { toClient } = blockTranslationFor(codec.protocolVersion);
             const encodedPackets = new Map<string, { packet: NetworkPacket<unknown>; buffer: Buffer }>();
             for (const group of groups.values()) {
                 const visibleChanges = group.indices.map((index) => {
@@ -555,7 +601,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 // changing aggregation, visibility, or the per-viewer packet stream.
                 const packets: NetworkPacket<unknown>[] = [];
                 const buffers: Buffer[] = [];
-                for (const { key, packet } of this.blockPackets(visibleChanges)) {
+                for (const { key, packet } of this.blockPackets(visibleChanges, toClient)) {
                     let encoded = encodedPackets.get(key);
                     if (encoded === undefined) {
                         const prepared = encodePacketsForCodec([packet], codec);
@@ -612,9 +658,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * is keyed by position, so each position appears once and the result is the same whichever
      * sub chunk lands first.
      * @param {BlockChange[]} changes - What to put in the batch.
+     * @param toClient - The id the viewers' release writes for each world id. The cache keys
+     *   name the world id, which is right because the caller keeps one cache per codec.
      * @returns Packets and stable cache keys, in sub chunk order.
      */
-    private blockPackets(changes: readonly BlockChange[]): BlockPacket[] {
+    private blockPackets(changes: readonly BlockChange[], toClient: (runtimeId: number) => number): BlockPacket[] {
         const bySubChunk = new Map<string, BlockChange[]>();
         for (const change of changes) {
             const key = subChunkKey(change.position);
@@ -627,7 +675,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         for (const bucket of bySubChunk.values()) {
             const single = bucket.length === 1 ? bucket[0] : undefined;
             if (single !== undefined) {
-                packets.push({ key: `block:${blockChangeKey(single)}`, packet: updateBlockPacket(single) });
+                packets.push({ key: `block:${blockChangeKey(single)}`, packet: updateBlockPacket(single, toClient) });
                 continue;
             }
 
@@ -642,7 +690,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                             ({ position, blockRuntimeId }) =>
                                 new UpdateSubChunkNetworkBlockInfo(
                                     new BlockPos(position.getX(), position.getY(), position.getZ()),
-                                    blockRuntimeId,
+                                    toClient(blockRuntimeId),
                                     BLOCK_UPDATE_FLAGS,
                                     0n,
                                     0
@@ -694,22 +742,25 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** A block's noise, to the players near it but the one whose own client plays it. */
     private sendBlockSound({ x, y, z, sound, block, except }: OccurrenceKinds['block-sound']): void {
-        const packet = new LevelSoundEventPacket();
-        packet.sound = sound;
+        const packetFor = (toClient: (runtimeId: number) => number): LevelSoundEventPacket => {
+            const packet = new LevelSoundEventPacket();
+            packet.sound = sound;
 
-        // Center of the block, not its corner: the sound is placed in the world and a whole
-        // block off is audible when it is right next to you. Only the packet is centered - the
-        // audience is still resolved at the block itself.
-        packet.positionX = x + 0.5;
-        packet.positionY = y + 0.5;
-        packet.positionZ = z + 0.5;
+            // Center of the block, not its corner: the sound is placed in the world and a whole
+            // block off is audible when it is right next to you. Only the packet is centered - the
+            // audience is still resolved at the block itself.
+            packet.positionX = x + 0.5;
+            packet.positionY = y + 0.5;
+            packet.positionZ = z + 0.5;
 
-        packet.extraData = block; // In this case refers to block runtime Id
-        packet.entityType = SOUND_ACTOR_TYPE[sound] ?? '';
-        packet.isBabyMob = false;
-        packet.disableRelativeVolume = false;
+            packet.extraData = toClient(block); // In this case refers to block runtime Id
+            packet.entityType = SOUND_ACTOR_TYPE[sound] ?? '';
+            packet.isBabyMob = false;
+            packet.disableRelativeVolume = false;
+            return packet;
+        };
 
-        this.sendAround(new Vector3(x, y, z), packet, {
+        this.sendBlockAround(new Vector3(x, y, z), packetFor, {
             radius: SOUND_RADIUS,
             ...(except === null ? {} : { exclude: { getRuntimeId: () => except } })
         });
@@ -794,7 +845,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             return;
         }
 
-        this.sendAround(new Vector3(position.x, position.y, position.z), packet, { radius: WORLD_EVENT_RADIUS });
+        const at = new Vector3(position.x, position.y, position.z);
+        if (BLOCK_DATA_EVENTS.has(effect)) {
+            this.sendBlockAround(
+                at,
+                (toClient) =>
+                    new LevelEventPacket({ eventId: effect, position: protocolPosition, data: toClient(data) }),
+                { radius: WORLD_EVENT_RADIUS }
+            );
+            return;
+        }
+        this.sendAround(at, packet, { radius: WORLD_EVENT_RADIUS });
     }
 
     /** A block-defined event, such as a chest lid opening, to the players near the block. */

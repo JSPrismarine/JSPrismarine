@@ -78,6 +78,8 @@ import type { PlayerSpawn } from '../world/SpawnPlacement';
 import { dimensionByBedrockId } from '../world/DimensionType';
 import { maxSubChunk, minSubChunk } from '../world/Dimension';
 import Chunk from '../world/chunk/Chunk';
+import { translateChunkPayload } from '../world/chunk/translateNetworkPalettes';
+import { blockTranslationFor } from './codec/blockTranslation';
 import type ClientConnection from './ClientConnection';
 import { forgetAdvancements } from '../advancement/progress';
 import { forgetEnchantmentSeed } from '../enchantment/enchantingTable';
@@ -923,7 +925,11 @@ export default class PlayerSession {
                 continue;
             }
 
-            const data = chunk.networkSerializeRequestSubChunk(y);
+            const translation = blockTranslationFor(this.connection.codec.protocolVersion);
+            const worldData = chunk.networkSerializeRequestSubChunk(y);
+            // The terrain opens the payload as one sub chunk, and the block entities after it
+            // are copied as they are.
+            const data = translation.changes ? translateChunkPayload(worldData, 1, translation.toClient) : worldData;
             const allAir = data.byteLength === 2 && data[0] === 8 && data[1] === 0;
             entry.result = allAir ? SubChunkRequestResult.SUCCESS_ALL_AIR : SubChunkRequestResult.SUCCESS;
             entry.heightMaps = chunk.networkSubChunkHeightmaps(y);
@@ -946,7 +952,7 @@ export default class PlayerSession {
             // ClientCacheMissResponse. The payload is still there and holds the section's block
             // entities, empty when it has none: a game client reads a successful entry's payload
             // whether or not it is cached, and leaves with a bad packet error when it is absent.
-            const blob = this.clientBlobCache.prepareRequestSubChunk(chunk, y);
+            const blob = this.clientBlobCache.prepareRequestSubChunk(chunk, y, translation);
             this.clientBlobCache.track([blob]);
             Object.assign(entry, { blobId: blob.id, serializedSubChunk: blob.blockEntities });
             entries.push(entry);
@@ -1220,6 +1226,9 @@ export default class PlayerSession {
                 if (epoch !== this.chunkEpoch) return;
                 const biomes = cached ? this.clientBlobCache.prepareRequestBiomes(chunk) : undefined;
                 if (biomes !== undefined) this.clientBlobCache.track([biomes]);
+                const subChunkCount = requestMode
+                    ? chunk.getNetworkSubChunkRequestLimit()
+                    : chunk.getNetworkSubChunkCount();
                 const batch = await chunkBatchCache.getOrCreate(
                     chunk,
                     revision,
@@ -1230,12 +1239,13 @@ export default class PlayerSession {
                             chunkX: chunk.getX(),
                             chunkZ: chunk.getZ(),
                             dimension: chunk.getDimension().bedrockId,
-                            subChunkCount: requestMode
-                                ? chunk.getNetworkSubChunkRequestLimit()
-                                : chunk.getNetworkSubChunkCount(),
+                            subChunkCount,
                             clientSubChunkRequestsEnabled: requestMode,
                             ...(biomes === undefined
-                                ? { cached: false, payload }
+                                ? {
+                                      cached: false,
+                                      payload: this.clientChunkPayload(payload, requestMode, subChunkCount)
+                                  }
                                 : { cached: true, blobHashes: [biomes.id], payload: biomes.tail })
                         })
                     ],
@@ -1495,6 +1505,19 @@ export default class PlayerSession {
     private queueChunkNow(queued: QueuedChunk): void {
         this.chunkSendQueue.push(queued);
         this.queuedChunkBytes += queued.memoryBytes;
+    }
+
+    /**
+     * A chunk payload with its block ids as this client's release writes them.
+     *
+     * Built inside the batch cache's factory, which keeps one batch per codec, so an older
+     * session pays for the copy once per chunk revision. A request-mode payload carries no sub
+     * chunks; those are translated as they are requested.
+     */
+    private clientChunkPayload(payload: Buffer, requestMode: boolean, subChunkCount: number): Buffer {
+        const translation = blockTranslationFor(this.connection.codec.protocolVersion);
+        if (requestMode || !translation.changes) return payload;
+        return translateChunkPayload(payload, subChunkCount, translation.toClient);
     }
 
     /** Whether this client is sent chunks in request mode; see {@link SUB_CHUNK_REQUESTS_SINCE}. */

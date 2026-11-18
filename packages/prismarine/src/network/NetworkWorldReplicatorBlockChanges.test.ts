@@ -15,7 +15,7 @@ import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { BatchCodec } from '@jsprismarine/protocol';
+import { BatchCodec, blockRuntimeId } from '@jsprismarine/protocol';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
 import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
@@ -27,7 +27,7 @@ import { sealBlockWrite } from '../testing/sealedBlocks.test.helper';
 /** Viewers' sessions and the block updates the replicator batches for each. */
 const replicatorFor = (
     viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[],
-    codec: ProtocolCodec | ((viewerIndex: number) => ProtocolCodec) = Codec2193,
+    codec: ProtocolCodec | ((viewerIndex: number) => ProtocolCodec) = Codec2225,
     compression: (viewerIndex: number) => { algorithm: PacketCompressionAlgorithm; threshold: number } = () => ({
         algorithm: PacketCompressionAlgorithm.ZLIB,
         threshold: 256
@@ -290,6 +290,27 @@ describe('NetworkWorldReplicator block changes', () => {
         expect(batches[1]).toStrictEqual(batches[0]);
         expect(batches[2]).toHaveLength(1);
         expect(updatesIn(batches[2]!)).toHaveLength(1);
+    });
+
+    it('sends each viewer the block as its own release writes it', async () => {
+        // 1.26.60 gave fire connection states, so a 1.26.51 client knows the fire only without them.
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 4 },
+                { x: 9, z: 9, viewDistance: 4 }
+            ],
+            (index) => (index === 0 ? Codec2193 : Codec2225)
+        );
+        const fire = BlockRuntimeIds.tryGetByState('minecraft:fire', { age: 3, 'minecraft:connection_up': true });
+        if (fire === null) throw new Error('minecraft:fire must have its 1.26.60 connection states');
+
+        sealBlockWrite(replicator, new Vector3(8, 64, 8), fire);
+        await replicator.flushBlockChanges();
+
+        expect(updatesIn(batches[0]!).map(({ runtimeId }) => runtimeId)).toEqual([
+            blockRuntimeId('minecraft:fire', { age: 3 }) >>> 0
+        ]);
+        expect(updatesIn(batches[1]!).map(({ runtimeId }) => runtimeId)).toEqual([fire >>> 0]);
     });
 
     it('reuses encoded subchunk packets across overlapping but different viewer sets', async () => {

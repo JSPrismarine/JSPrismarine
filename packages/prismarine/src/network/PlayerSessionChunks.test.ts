@@ -409,7 +409,11 @@ describe('network', () => {
             const sentPackets: NetworkPacket<unknown>[] = [];
             const sessionWithResponses = sessionFor(
                 server,
-                stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
+                // Sub chunk requests come from a request-mode client, 2225 or newer.
+                stub<ClientConnection>({
+                    codec: Codec2225,
+                    sendDataPacket: async (packet) => void sentPackets.push(packet)
+                }),
                 playerWithWorld,
                 { world, joined: true }
             );
@@ -514,7 +518,11 @@ describe('network', () => {
             const sentPackets: NetworkPacket<unknown>[] = [];
             const cacheSession = sessionFor(
                 server,
-                stub<ClientConnection>({ sendDataPacket: async (packet) => void sentPackets.push(packet) }),
+                // Sub chunk requests come from a request-mode client, 2225 or newer.
+                stub<ClientConnection>({
+                    codec: Codec2225,
+                    sendDataPacket: async (packet) => void sentPackets.push(packet)
+                }),
                 playerWithWorld,
                 { world, joined: true }
             );

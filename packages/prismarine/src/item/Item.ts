@@ -32,6 +32,7 @@ import {
     itemDataForProtocol,
     wireRuntimeIdOf
 } from '../network/codec/itemData';
+import { blockTranslationFor } from '../network/codec/blockTranslation';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -788,8 +789,11 @@ export class Item {
      * session's version lacks this item, so the whole stack describes the substitute.
      */
     private wireBlockRuntimeId(itemData: ProtocolItemData): number {
-        if (!isMissingVanillaItem(itemData, this.name)) return this.getBlockRuntimeId();
-        return BlockRuntimeIds.tryGetByName(MISSING_ITEM_SUBSTITUTE) ?? 0;
+        const id = isMissingVanillaItem(itemData, this.name)
+            ? (BlockRuntimeIds.tryGetByName(MISSING_ITEM_SUBSTITUTE) ?? 0)
+            : this.getBlockRuntimeId();
+        // As the session's release writes the block: a 1.26.51 chorus plant has no connections.
+        return blockTranslationFor(itemData.protocolVersion).toClient(id);
     }
 
     /**
