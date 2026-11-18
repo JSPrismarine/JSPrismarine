@@ -1,6 +1,6 @@
 {
     "javaVersion": "26.3",
-    "bedrockVersion": "1.26.51.1",
+    "bedrockVersion": "1.26.60.6",
     "componentTypes": [
         "minecraft:additional_trade_cost",
         "minecraft:attack_animation",

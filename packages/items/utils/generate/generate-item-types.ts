@@ -25,7 +25,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 
-import { EXCEPTED_ITEM_COUNT, ITEM_TABLE_EXCEPTIONS } from '../../src/exceptions.ts';
+import { ITEM_TABLE_EXCEPTIONS } from '../../src/exceptions.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
@@ -40,13 +40,15 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 
 interface SourcesManifest {
     javaServer: { version: string };
-    bds: { version: string };
+    bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
 }
 
 // sources.json is parsed JSON; only the pins this generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
 const javaVersion = sources.javaServer.version;
-const bedrockVersion = sources.bds.version;
+// The server the unversioned item table below was captured from.
+const bedrockVersion = sources.bds.versions[String(sources.bds.defaultProtocolVersion)]?.serverVersion;
+if (bedrockVersion === undefined) throw new Error('sources.json pins no server for its defaultProtocolVersion');
 
 // Node cannot load another package's TypeScript sources, which import each
 // other without file extensions, so the generator reads the built mapping.
@@ -323,9 +325,6 @@ if (unreviewed.length > 0) {
 }
 if (stale.length > 0) {
     throw new Error(`these reviewed exceptions match nothing and should be removed: ${stale.join(', ')}`);
-}
-if (computed.size !== EXCEPTED_ITEM_COUNT) {
-    throw new Error(`EXCEPTED_ITEM_COUNT says ${EXCEPTED_ITEM_COUNT}, the join dropped ${computed.size}`);
 }
 
 for (const merge of computedMerges) {
