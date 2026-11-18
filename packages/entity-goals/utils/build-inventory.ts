@@ -29,43 +29,47 @@ const target = join(here, '..', 'src', 'generated', 'goalInventory.json');
 
 const decoder = new TextDecoder();
 
+/** The pins this script reads; `packages/bedrock-data/sources.json` is the manifest. */
+interface Sources {
+    bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
+    bedrockSamples: { tag: string };
+}
+
+// The manifest is parsed JSON; `Sources` documents the two fields read here.
+const sources = JSON.parse(readFileSync(join(here, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as Sources;
+
 const GOAL_PREFIX = 'minecraft:behavior.';
 
 /** The `vanilla*` layer folders of an unpacked BDS, in the order the engine composes them. */
 const bedrockServerLayers = () => {
-    const root = join(cacheRoot, 'bds');
-    if (!existsSync(root)) return [];
-    for (const version of readdirSync(root)) {
-        const packs = join(root, version, 'unpacked', 'behavior_packs');
-        if (!existsSync(packs)) continue;
-        const layers = readdirSync(packs)
-            .filter((name) => name === 'vanilla' || name.startsWith('vanilla_'))
-            .filter((name) => statSync(join(packs, name)).isDirectory())
-            .map((name) => ({ name, parts: (name.split('_')[1] ?? '0').split('.').map(Number) }))
-            .sort((a, b) => {
-                for (let part = 0; part < 3; part += 1) {
-                    const order = (a.parts[part] ?? 0) - (b.parts[part] ?? 0);
-                    if (order !== 0) return order;
-                }
-                return a.name.localeCompare(b.name);
-            })
-            .map((layer) => join(packs, layer.name));
-        if (layers.length > 0) return { layers, version };
-    }
-    return { layers: [], version: 'unknown' };
+    // The default server only: the cache keeps every version it fetched.
+    const protocol = sources.bds.defaultProtocolVersion;
+    const version = sources.bds.versions[String(protocol)]?.serverVersion ?? 'unknown';
+    const packs = join(cacheRoot, 'bds', `v${protocol}`, 'unpacked', 'behavior_packs');
+    if (!existsSync(packs)) return { layers: [], version };
+    const layers = readdirSync(packs)
+        .filter((name) => name === 'vanilla' || name.startsWith('vanilla_'))
+        .filter((name) => statSync(join(packs, name)).isDirectory())
+        .map((name) => ({ name, parts: (name.split('_')[1] ?? '0').split('.').map(Number) }))
+        .sort((a, b) => {
+            for (let part = 0; part < 3; part += 1) {
+                const order = (a.parts[part] ?? 0) - (b.parts[part] ?? 0);
+                if (order !== 0) return order;
+            }
+            return a.name.localeCompare(b.name);
+        })
+        .map((layer) => join(packs, layer.name));
+    return { layers, version };
 };
 
 /** The behavior pack folder of a bedrock-samples checkout, which ships 128 of the 129 files. */
 const bedrockSamplesPack = () => {
-    const root = join(cacheRoot, 'bedrock-samples');
-    if (!existsSync(root)) return undefined;
-    for (const tag of readdirSync(root)) {
-        const unpacked = join(root, tag, 'unpacked');
-        if (!existsSync(unpacked)) continue;
-        for (const checkout of readdirSync(unpacked)) {
-            const pack = join(unpacked, checkout, 'behavior_pack');
-            if (existsSync(join(pack, 'entities'))) return { pack, tag };
-        }
+    const tag = sources.bedrockSamples.tag;
+    const unpacked = join(cacheRoot, 'bedrock-samples', tag, 'unpacked');
+    if (!existsSync(unpacked)) return undefined;
+    for (const checkout of readdirSync(unpacked)) {
+        const pack = join(unpacked, checkout, 'behavior_pack');
+        if (existsSync(join(pack, 'entities'))) return { pack, tag };
     }
     return undefined;
 };
