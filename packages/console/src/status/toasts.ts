@@ -88,8 +88,9 @@ export function createToastStack(
                 borderStyle: 'rounded',
                 borderColor: theme[toast.tone],
                 backgroundColor: theme.surface,
+                // Opaque: at any lower opacity a space in the notice let the log text under it
+                // show through, so `a b` over `xyz` read `ayb`.
                 shouldFill: true,
-                opacity: 0.9,
                 flexDirection: 'row',
                 alignItems: 'center',
                 paddingLeft: 1,
