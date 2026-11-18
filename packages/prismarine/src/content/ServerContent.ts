@@ -19,8 +19,8 @@ import {
 } from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
 import type { BlockHooks } from '@jsprismarine/blocks';
-import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
-import { flattenBlockStates, resolveBlocks, vanillaBlockPalette } from '@jsprismarine/blocks';
+import type { BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
+import { BlockPalette, flattenBlockStates, resolveBlocks, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { BehaviorRegistry, Registry } from '@jsprismarine/content';
 import type { Diagnostic } from '@jsprismarine/content';
 import { EnchantmentRegistry, createEnchantmentView, parseEnchantment } from '@jsprismarine/enchantments';
@@ -75,6 +75,8 @@ import { withJavaSkeletonHorseSaddle } from '../entity/javaSkeletonHorseSaddle';
 import { withJavaCamelHuskLead } from '../entity/javaCamelHuskLead';
 import { FALLBACK_PLAYER_FILE, PLAYER_IDENTIFIER, withPlayerOverlay } from '../entity/playerOverlay';
 import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
+import { NOTHING_WITHHELD } from './withheldContent';
+import type { WithheldContent } from './withheldContent';
 
 /** The resolved block domain. */
 export interface ServerContentBlocks {
@@ -132,6 +134,8 @@ export interface ServerContent {
     readonly contentFingerprint: string;
     /** Whether invalid content made the build fail instead of being reported as diagnostics. */
     readonly strict: boolean;
+    /** The vanilla content the build left out, because `protocol-content` holds the world to an older release. */
+    readonly withheld: WithheldContent;
     /** The composed pack stack, before any domain resolved it. */
     readonly definitions: Definitions;
     /** Everything the load and every resolve reported, in build order. */
@@ -281,6 +285,30 @@ const fingerprintContent = (input: unknown): string =>
         .update(JSON.stringify(stableContentData(input)))
         .digest('hex');
 
+/** The definitions with the withheld blocks, items and entity types left out. */
+const withholdDefinitions = (definitions: Definitions, withheld: WithheldContent): Definitions => {
+    const without = (registry: ReadonlyMap<string, Definition>, names: ReadonlySet<string>) =>
+        new Map([...registry].filter(([identifier]) => !names.has(identifier)));
+    return {
+        ...definitions,
+        blocks: without(definitions.blocks, withheld.blocks),
+        items: without(definitions.items, withheld.items),
+        entities: without(definitions.entities, withheld.entities)
+    };
+};
+
+/** The palette without the withheld blocks, or the same palette when none are. */
+const withholdBlocks = (palette: BlockPalette, withheld: WithheldContent | undefined): BlockPalette => {
+    if (withheld === undefined || !palette.entries.some(({ identifier }) => withheld.blocks.has(identifier))) {
+        return palette;
+    }
+    return new BlockPalette(
+        palette.entries
+            .filter(({ identifier }) => !withheld.blocks.has(identifier))
+            .map(({ identifier, model }) => [identifier, model] as const)
+    );
+};
+
 /**
  * Builds every content registry from a pack stack.
  *
@@ -315,7 +343,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         options.load === undefined && resolved.cache !== undefined ? { strict, cache: resolved.cache } : { strict }
     );
     diagnostics.push(...loaded.diagnostics);
-    const definitions = loaded.definitions;
+    const withheld = options.withheld;
+    const definitions = withheld === undefined ? loaded.definitions : withholdDefinitions(loaded.definitions, withheld);
 
     // Plan section 5's rule: a Java identifier with no Bedrock mapping and no
     // reviewed loss stops a strict build here, before any domain resolves
@@ -323,8 +352,10 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const identifierResolver = options.identifiers ?? createPackIdentifierResolver();
     diagnostics.push(...checkIdentifiers(definitions, { strict, resolver: identifierResolver }));
 
-    const blockPalette = options.blockPalette ?? vanillaBlockPalette();
-    const itemDefinitions = [...(options.itemDefinitions ?? vanillaItemDefinitions())];
+    const blockPalette = withholdBlocks(options.blockPalette ?? vanillaBlockPalette(), withheld);
+    const itemDefinitions = [...(options.itemDefinitions ?? vanillaItemDefinitions())].filter(
+        (definition) => withheld?.items.has(definition.identifier) !== true
+    );
     const blockIdentifiers = new Set([
         ...blockPalette.entries.map((entry) => entry.identifier),
         ...definitions.blocks.keys()
@@ -542,6 +573,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const content: ServerContent = {
         contentFingerprint,
         strict,
+        withheld: withheld ?? NOTHING_WITHHELD,
         definitions,
         diagnostics,
         world,

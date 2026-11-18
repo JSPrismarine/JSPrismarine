@@ -9,6 +9,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { NOTHING_WITHHELD } from '../content/withheldContent';
+import type { WithheldContent } from '../content/withheldContent';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
@@ -56,9 +58,10 @@ const bytesOf = (tags: NBTTagCompound): Buffer => {
     return stream.getBuffer();
 };
 
-const testServer = (): Server => {
+const testServer = (withheld: WithheldContent = NOTHING_WITHHELD): Server => {
     const runtime = inertEntityRuntime();
     return stub<Server>({
+        getWithheldContent: () => withheld,
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
@@ -69,8 +72,8 @@ const testServer = (): Server => {
 };
 
 /** A world with one flat chunk in memory and a recorder attached as its change sink. */
-const flatWorld = async () => {
-    const server = testServer();
+const flatWorld = async (withheld?: WithheldContent) => {
+    const server = testServer(withheld);
     const world = new World({
         name: 'world-change-sink-test',
         path: path.join(os.tmpdir(), 'world-change-sink-test'),
@@ -148,6 +151,24 @@ describe('world', () => {
                     after: glowstone
                 }
             ]);
+        });
+
+        it('refuses to place a block protocol-content withholds, and writes nothing', async () => {
+            const withheld = { ...NOTHING_WITHHELD, blocks: new Set(['minecraft:glowstone']) };
+            const { world, blockEntries } = await flatWorld(withheld);
+
+            world.beginChangeTick();
+            const written = world.setLoadedBlockState(
+                4,
+                GROUND + 1,
+                4,
+                { name: 'minecraft:glowstone', states: {} },
+                false
+            );
+            world.sealChangeTick();
+
+            expect(written).toBe(false);
+            expect(blockEntries()).toEqual([]);
         });
 
         it('says nothing for a write that leaves the block as it was', async () => {

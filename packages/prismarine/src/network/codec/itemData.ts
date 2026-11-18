@@ -119,3 +119,14 @@ export const wireRuntimeIdOf = (itemData: ProtocolItemData, name: string, fallba
     if (!vanillaNames.has(name)) return fallback;
     return itemData.table[MISSING_ITEM_SUBSTITUTE]?.runtime_id ?? 0;
 };
+
+/**
+ * The items the canonical table has and one version's does not: what a world on the newest
+ * release holds that the version cannot name.
+ * @param itemData - The version's numbering.
+ * @returns The names, sorted.
+ */
+export const missingVanillaItems = (itemData: ProtocolItemData): string[] =>
+    Object.keys(canonicalItemData.table)
+        .filter((name) => itemData.table[name] === undefined)
+        .sort();
