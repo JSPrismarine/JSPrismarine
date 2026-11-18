@@ -139,10 +139,15 @@ import java_entity_attributes_data from './jsp/java/entity_attributes.json';
 import java_entity_navigation_data from './jsp/java/entity_navigation.json';
 import java_entity_goals_data from './jsp/java/entity_goals.json';
 
-/** One Java entity type's hitbox and the attributes its class declares. */
+/** One Java entity type's hitbox, the attributes its class declares and its peaceful rule. */
 export interface JavaEntityAttributes {
     /** The `MobCategory` the class belongs to, such as `monster` or `creature`. */
     category: string;
+    /**
+     * Java's `EntityType.isAllowedInPeaceful`: false for a type built with `notInPeaceful()`,
+     * which `Mob.checkDespawn` discards while the world is on peaceful.
+     */
+    allowedInPeaceful: boolean;
     /** The hitbox width in blocks, which Bedrock writes as `minecraft:collision_box.width`. */
     width: number;
     /** The hitbox height in blocks, which Bedrock writes as `minecraft:collision_box.height`. */

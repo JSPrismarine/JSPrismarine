@@ -33,7 +33,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:armadillo": {
         "category": "creature",
@@ -68,7 +69,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:armor_stand": {
         "category": "misc",
@@ -101,7 +103,8 @@
             "minecraft:step_height": 0,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:axolotl": {
         "category": "axolotls",
@@ -137,7 +140,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:bat": {
         "category": "ambient",
@@ -171,7 +175,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:bee": {
         "category": "creature",
@@ -208,7 +213,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:blaze": {
         "category": "monster",
@@ -243,7 +249,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:bogged": {
         "category": "monster",
@@ -278,7 +285,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:breeze": {
         "category": "monster",
@@ -313,7 +321,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:camel": {
         "category": "creature",
@@ -348,7 +357,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:camel_husk": {
         "category": "monster",
@@ -383,7 +393,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:cat": {
         "category": "creature",
@@ -419,7 +430,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:cave_spider": {
         "category": "monster",
@@ -454,7 +466,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:chicken": {
         "category": "creature",
@@ -489,7 +502,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:cod": {
         "category": "water_ambient",
@@ -523,7 +537,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:copper_golem": {
         "category": "misc",
@@ -557,7 +572,8 @@
             "minecraft:step_height": 1,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:cow": {
         "category": "creature",
@@ -592,7 +608,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:creaking": {
         "category": "monster",
@@ -627,7 +644,8 @@
             "minecraft:step_height": 1.0625,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:creeper": {
         "category": "monster",
@@ -662,7 +680,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:dolphin": {
         "category": "water_creature",
@@ -697,7 +716,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:donkey": {
         "category": "creature",
@@ -732,7 +752,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:drowned": {
         "category": "monster",
@@ -768,7 +789,8 @@
             "minecraft:step_height": 1,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:elder_guardian": {
         "category": "monster",
@@ -803,7 +825,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:ender_dragon": {
         "category": "monster",
@@ -837,7 +860,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:enderman": {
         "category": "monster",
@@ -872,7 +896,8 @@
             "minecraft:step_height": 1,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:endermite": {
         "category": "monster",
@@ -907,7 +932,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:evoker": {
         "category": "monster",
@@ -942,7 +968,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:fox": {
         "category": "creature",
@@ -978,7 +1005,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:frog": {
         "category": "creature",
@@ -1014,7 +1042,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:ghast": {
         "category": "monster",
@@ -1049,7 +1078,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:giant": {
         "category": "monster",
@@ -1084,7 +1114,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:glow_squid": {
         "category": "underground_water_creature",
@@ -1118,7 +1149,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:goat": {
         "category": "creature",
@@ -1154,7 +1186,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:guardian": {
         "category": "monster",
@@ -1189,7 +1222,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:happy_ghast": {
         "category": "creature",
@@ -1225,7 +1259,8 @@
             "minecraft:tempt_range": 16,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:hoglin": {
         "category": "monster",
@@ -1260,7 +1295,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:horse": {
         "category": "creature",
@@ -1295,7 +1331,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:husk": {
         "category": "monster",
@@ -1331,7 +1368,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:illusioner": {
         "category": "monster",
@@ -1366,7 +1404,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:iron_golem": {
         "category": "misc",
@@ -1401,7 +1440,8 @@
             "minecraft:step_height": 1,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:llama": {
         "category": "creature",
@@ -1436,7 +1476,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:magma_cube": {
         "category": "monster",
@@ -1471,7 +1512,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:mannequin": {
         "category": "misc",
@@ -1504,7 +1546,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:mooshroom": {
         "category": "creature",
@@ -1539,7 +1582,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:mule": {
         "category": "creature",
@@ -1574,7 +1618,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:nautilus": {
         "category": "water_creature",
@@ -1610,7 +1655,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:ocelot": {
         "category": "creature",
@@ -1646,7 +1692,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:panda": {
         "category": "creature",
@@ -1682,7 +1729,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:parched": {
         "category": "monster",
@@ -1717,7 +1765,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:parrot": {
         "category": "creature",
@@ -1754,7 +1803,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:phantom": {
         "category": "monster",
@@ -1789,7 +1839,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:pig": {
         "category": "creature",
@@ -1824,7 +1875,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:piglin": {
         "category": "monster",
@@ -1859,7 +1911,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:piglin_brute": {
         "category": "monster",
@@ -1894,7 +1947,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:pillager": {
         "category": "monster",
@@ -1929,7 +1983,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:player": {
         "category": "misc",
@@ -1972,7 +2027,8 @@
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_receive_range": 60000000,
             "minecraft:waypoint_transmit_range": 60000000
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:polar_bear": {
         "category": "creature",
@@ -2008,7 +2064,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:pufferfish": {
         "category": "water_ambient",
@@ -2042,7 +2099,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:rabbit": {
         "category": "creature",
@@ -2078,7 +2136,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:ravager": {
         "category": "monster",
@@ -2113,7 +2172,8 @@
             "minecraft:step_height": 1,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:salmon": {
         "category": "water_ambient",
@@ -2147,7 +2207,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:sheep": {
         "category": "creature",
@@ -2182,7 +2243,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:shulker": {
         "category": "monster",
@@ -2216,7 +2278,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:silverfish": {
         "category": "monster",
@@ -2251,7 +2314,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:skeleton": {
         "category": "monster",
@@ -2286,7 +2350,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:skeleton_horse": {
         "category": "creature",
@@ -2321,7 +2386,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:slime": {
         "category": "monster",
@@ -2356,7 +2422,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:sniffer": {
         "category": "creature",
@@ -2391,7 +2458,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:snow_golem": {
         "category": "misc",
@@ -2425,7 +2493,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:spider": {
         "category": "monster",
@@ -2460,7 +2529,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:squid": {
         "category": "water_creature",
@@ -2494,7 +2564,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:stray": {
         "category": "monster",
@@ -2529,7 +2600,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:strider": {
         "category": "creature",
@@ -2564,7 +2636,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:sulfur_cube": {
         "category": "monster",
@@ -2599,7 +2672,8 @@
             "minecraft:tempt_range": 8,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:tadpole": {
         "category": "creature",
@@ -2634,7 +2708,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:trader_llama": {
         "category": "creature",
@@ -2669,7 +2744,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:tropical_fish": {
         "category": "water_ambient",
@@ -2703,7 +2779,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:turtle": {
         "category": "creature",
@@ -2738,7 +2815,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:vex": {
         "category": "monster",
@@ -2773,7 +2851,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:villager": {
         "category": "misc",
@@ -2807,7 +2886,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:vindicator": {
         "category": "monster",
@@ -2842,7 +2922,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:wandering_trader": {
         "category": "creature",
@@ -2876,7 +2957,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:warden": {
         "category": "monster",
@@ -2911,7 +2993,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:witch": {
         "category": "monster",
@@ -2946,7 +3029,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:wither": {
         "category": "monster",
@@ -2982,7 +3066,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:wither_skeleton": {
         "category": "monster",
@@ -3017,7 +3102,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:wolf": {
         "category": "creature",
@@ -3053,7 +3139,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:zoglin": {
         "category": "monster",
@@ -3088,7 +3175,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:zombie": {
         "category": "monster",
@@ -3124,7 +3212,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:zombie_horse": {
         "category": "monster",
@@ -3159,7 +3248,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:zombie_nautilus": {
         "category": "monster",
@@ -3195,7 +3285,8 @@
             "minecraft:tempt_range": 10,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": true
     },
     "minecraft:zombie_villager": {
         "category": "monster",
@@ -3231,7 +3322,8 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     },
     "minecraft:zombified_piglin": {
         "category": "monster",
@@ -3267,6 +3359,7 @@
             "minecraft:step_height": 0.6,
             "minecraft:water_movement_efficiency": 0,
             "minecraft:waypoint_transmit_range": 0
-        }
+        },
+        "allowedInPeaceful": false
     }
 }

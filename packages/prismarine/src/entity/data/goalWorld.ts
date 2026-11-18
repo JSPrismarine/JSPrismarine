@@ -32,6 +32,7 @@ import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { blockPositionOf, entityEyePosition } from './position';
 import { controlledVehicleOf } from './riderControl';
 import type { EntityScene } from './scene';
+import { canTargetPlayer } from './playerTargets';
 import { clientOwnsMovement } from '../playerOverlay';
 
 /** How far Java's `LivingEntity.hasLineOfSight` looks, in blocks. */
@@ -258,9 +259,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
                 const player = playerById(scene, mob.id);
                 const attacker = scene.byId(entity.id);
                 return (
-                    player !== undefined &&
-                    player.creative !== true &&
-                    player.spectator !== true &&
+                    canTargetPlayer(player, scene.world.level) &&
                     attacker !== undefined &&
                     canEntityAttackView(attacker.instance, mob.view())
                 );

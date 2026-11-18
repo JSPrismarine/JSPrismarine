@@ -548,6 +548,24 @@ describe('the goal world over the entity runtime', () => {
             expect(world.hits.map((hit) => hit.id)).toContain(700);
         });
 
+        it('takes no player as its target on peaceful, as Java’s LivingEntity.canAttack refuses', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 700, identifier: 'minecraft:player', position: groundAt(8, 0) }],
+                difficulty: 'peaceful'
+            });
+            const fixture = fixtureOf(world);
+            const stalker = spawned(fixture, 'jsprismarine:stalker', groundAt(0, 0));
+            const pet = spawned(fixture, 'jsprismarine:pet', groundAt(0, 4));
+
+            // A neutral mob a player hits on peaceful does not turn on them either.
+            fixture.runtime.hurt(pet, 700, 'entity_attack', 1);
+            run(fixture, 60);
+
+            expect(stalker.target).toBeUndefined();
+            expect(pet.target).toBeUndefined();
+            expect(world.hits).toEqual([]);
+        });
+
         it('leaves a player alone when no entry of its table accepts one', () => {
             const world = new TestEntityWorld({
                 players: [{ id: 700, identifier: 'minecraft:player', position: groundAt(8, 0) }]

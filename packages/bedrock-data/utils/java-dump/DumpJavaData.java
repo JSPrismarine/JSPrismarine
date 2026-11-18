@@ -212,6 +212,9 @@ public final class DumpJavaData {
             entry.raw("width", Json.number(type.getDimensions().width()));
             entry.raw("height", Json.number(type.getDimensions().height()));
             entry.object("attributes", attributes);
+            // What Mob.checkDespawn reads on peaceful, before any persistence rule: a type built
+            // with notInPeaceful() is discarded.
+            entry.raw("allowedInPeaceful", Boolean.toString(type.isAllowedInPeaceful()));
             root.raw(BuiltInRegistries.ENTITY_TYPE.getKey(type).toString(), entry.toString());
         }
         return root.toString() + "\n";

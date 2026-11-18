@@ -27,12 +27,12 @@ import {
 import type { JavaClass } from '../javaClassFile.ts';
 import { loadVanillaDatapack, vanillaLootRegistry } from '../javaDatapack.ts';
 import type { VanillaDatapack } from '../javaDatapack.ts';
-import { javaEntityClasses } from '../javaEntityClasses.ts';
+import { javaEntityClasses, javaIsA } from '../javaEntityClasses.ts';
 import { buildRealStack, seededDraws, serverContent } from '../serverStack.ts';
 import type { RealStack } from '../serverStack.ts';
 import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
-import { componentValues, entitiesDeclaring, field, groupsDeclaring } from './subjects.ts';
+import { componentValues, entitiesDeclaring, field, groupsDeclaring, javaEntityIds, mappedEntity } from './subjects.ts';
 
 /**
  * Scenarios for what a mob leaves behind and when it leaves: its death loot and experience,
@@ -483,15 +483,21 @@ const JAVA_DESPAWN_DISTANCE: Readonly<Record<string, number>> = { WATER_AMBIENT:
 
 /**
  * What `EntityTypes`'s static initializer registers each type with: each registration reads its
- * `EntityTypeIds` key, calls the builder with its `MobCategory` and options such as `noSave`,
- * then stores the type.
+ * `EntityTypeIds` key, calls the builder with its `MobCategory` and options such as `noSave` and
+ * `notInPeaceful`, then stores the type.
  */
 let registrations:
-    { readonly categories: ReadonlyMap<string, string>; readonly noSave: ReadonlySet<string> } | undefined;
+    | {
+          readonly categories: ReadonlyMap<string, string>;
+          readonly noSave: ReadonlySet<string>;
+          readonly notInPeaceful: ReadonlySet<string>;
+      }
+    | undefined;
 const javaRegistrations = () => {
     if (registrations === undefined) {
         const found = new Map<string, string>();
         const noSave = new Set<string>();
+        const notInPeaceful = new Set<string>();
         const init = pinnedJavaClass('net/minecraft/world/entity/EntityTypes').find(
             (method) => method.name === '<clinit>'
         );
@@ -505,12 +511,14 @@ const javaRegistrations = () => {
                 category = ref.member.slice('MobCategory.'.length);
             } else if (ref.kind === 'call' && ref.member === 'EntityType$Builder.noSave' && key !== undefined) {
                 noSave.add(`minecraft:${key}`);
+            } else if (ref.kind === 'call' && ref.member === 'EntityType$Builder.notInPeaceful' && key !== undefined) {
+                notInPeaceful.add(`minecraft:${key}`);
             } else if (ref.kind === 'put' && key !== undefined && category !== undefined) {
                 found.set(`minecraft:${key}`, category);
                 key = undefined;
             }
         }
-        registrations = { categories: found, noSave };
+        registrations = { categories: found, noSave, notInPeaceful };
     }
     return registrations;
 };
@@ -1602,6 +1610,47 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     ? undefined
                     : `a level 0 player's death dropped ${dropped} experience, where Java drops none`;
             });
+        }
+    },
+    {
+        name: 'peaceful-despawn',
+        java: 'On peaceful, a mob whose type is registered notInPeaceful is discarded on its next tick, named or not, and every other mob stays.',
+        reference:
+            'Java Mob.checkDespawn (Difficulty.PEACEFUL and EntityType.isAllowedInPeaceful, before isPersistenceRequired) and the notInPeaceful() calls in EntityTypes; issue #3005',
+        subjects: () =>
+            javaEntityIds().flatMap((javaId) => {
+                const className = javaEntityClasses().get(javaId);
+                const subject = mappedEntity(javaId);
+                return subject !== undefined &&
+                    className !== undefined &&
+                    javaIsA(className, 'net/minecraft/world/entity/Mob') &&
+                    serverContent().entities.registry.has(subject.bedrock)
+                    ? [subject]
+                    : [];
+            }),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['peaceful-despawn'],
+        run: (subject) => {
+            const javaDiscards = javaRegistrations().notInPeaceful.has(subject.javaId);
+            const { world } = realStack();
+            const before = world.difficulty;
+            world.difficulty = 'peaceful';
+            try {
+                // A player beside it, so no distance rule takes it, and a name, which Java's
+                // peaceful rule ignores and every other despawn rule honors.
+                return withWorld(playerAt(2), () => {
+                    const entity = spawn(subject.bedrock);
+                    realStack().runtime.nameEntity(entity.id, 'Parity');
+                    runTicks(1);
+                    const discarded = entity.removed !== undefined;
+                    if (discarded === javaDiscards) return undefined;
+                    return discarded
+                        ? `it was removed on peaceful (${entity.removed}), where Java keeps it`
+                        : 'it stayed on peaceful, where Java discards it';
+                });
+            } finally {
+                world.difficulty = before;
+            }
         }
     },
     {

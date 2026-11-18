@@ -270,6 +270,11 @@ export const statRuling = (identifier: string, stat: SharedStat): StatRuling => 
 
 /** One Java entity type's hitbox and the attributes its class declares. */
 export interface JavaEntityStats {
+    /**
+     * Java's `EntityType.isAllowedInPeaceful`: false for a type `Mob.checkDespawn` discards while
+     * the world is on peaceful. Absent from a table that does not say, which reads as allowed.
+     */
+    readonly allowedInPeaceful?: boolean;
     /** The hitbox width in blocks. */
     readonly width: number;
     /** The hitbox height in blocks. */

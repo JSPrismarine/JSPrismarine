@@ -131,6 +131,41 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('peaceful', () => {
+        it('discards a mob Java keeps out of peaceful on its next tick, named or not, and keeps the rest', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 99, identifier: 'minecraft:player', position: { x: 2, y: FLOOR_Y + 1, z: 0 } }]
+            });
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'minecraft:zombie': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:nameable': {},
+                            'minecraft:collision_box': { width: 0.6, height: 1.95 }
+                        }
+                    }
+                }
+            );
+            const zombie = runtime.spawn('minecraft:zombie', GROUND);
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (zombie === undefined || cow === undefined) throw new Error('the fixture declares no zombie or cow');
+            runtime.nameEntity(zombie.id, 'Kept');
+
+            runtime.tick(1);
+            expect(zombie.removed).toBeUndefined();
+
+            // Java's `Mob.checkDespawn` discards it before any persistence rule, which a name is.
+            world.difficulty = 'peaceful';
+            runtime.tick(2);
+
+            expect(zombie.removed).toBeDefined();
+            expect(cow.removed).toBeUndefined();
+        });
+    });
+
     describe('warden sonic boom', () => {
         it('routes a hit on a host-owned player through the host effect seam', () => {
             const player: ContentEntity = {

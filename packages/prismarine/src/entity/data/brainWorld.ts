@@ -40,6 +40,7 @@ import { setDoorOpen } from './doors';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
 import { blockPositionOf, ENTITY_EYE_HEIGHT_FRACTION } from './position';
 import type { EntityScene } from './scene';
+import { canTargetPlayer } from './playerTargets';
 import { DEFAULT_BOX, DEFAULT_FOLLOW_RANGE, PLAYER_BOX } from './facts';
 import { clientOwnsMovement } from '../playerOverlay';
 
@@ -172,10 +173,7 @@ const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity =
         get spectator() {
             return current()?.spectator === true;
         },
-        canBeTargeted: () => {
-            const live = current();
-            return live !== undefined && live.creative !== true && live.spectator !== true;
-        },
+        canBeTargeted: () => canTargetPlayer(current(), scene.world.level),
         conditions: NO_TAGS
     };
 

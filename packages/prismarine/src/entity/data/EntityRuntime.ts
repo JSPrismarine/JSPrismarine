@@ -307,6 +307,7 @@ import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 import { isDay } from '../../world/DayCycle';
 import { overworldSkyDarken } from '../../world/skyDarken';
 import { PhantomSpawner } from './phantomSpawner';
+import { canTargetPlayer } from './playerTargets';
 
 /** The dimension Java runs its `PhantomSpawner` in, the overworld's only custom spawners being there. */
 const OVERWORLD = 'minecraft:overworld';
@@ -2246,6 +2247,7 @@ export class EntityRuntime implements EntityScene {
         this.runSpawnCycle(tick);
         this.runPhantomSpawner();
         this.runDespawnCycle(shouldTick);
+        this.discardNotAllowedInPeaceful(shouldTick);
     }
 
     /**
@@ -2533,6 +2535,24 @@ export class EntityRuntime implements EntityScene {
                 entity.body.nameTag !== undefined || entity.instance.hasComponent('minecraft:persistent');
             const reason = despawnReason({ position: blockPositionOf(entity.position), persistent }, world);
             if (reason !== undefined) this.remove(entity.id, reason);
+        }
+    }
+
+    /**
+     * Java's `Mob.checkDespawn` on peaceful: a mob whose type is not allowed in peaceful is
+     * discarded, before any persistence rule, so a named zombie goes too. It runs for every
+     * ticking mob rather than only the ones a spawn rule made, which is what empties a world when
+     * its difficulty changes to peaceful and what clears a monster loaded from a save on its first
+     * tick. The type's rule is Java's own, from the pinned server's `EntityType.isAllowedInPeaceful`.
+     */
+    private discardNotAllowedInPeaceful(shouldTick?: (position: EntityPosition) => boolean): void {
+        if (this.world.level.difficulty() !== 'peaceful') return;
+        const javaStats = this.content().entities.javaStats;
+        for (const entity of this.entities()) {
+            if (entity.removed !== undefined) continue;
+            if (shouldTick !== undefined && !shouldTick(entity.position)) continue;
+            if (javaEntityStats(entity.identifier, javaStats)?.allowedInPeaceful !== false) continue;
+            this.remove(entity.id, 'not allowed in peaceful');
         }
     }
 
@@ -4225,7 +4245,7 @@ export class EntityRuntime implements EntityScene {
 
             if (targetId !== undefined && targetView !== undefined) {
                 const targetPlayer = this.host.playerById(targetId);
-                if (targetPlayer?.creative === true || targetPlayer?.spectator === true) continue;
+                if (targetPlayer !== undefined && !canTargetPlayer(targetPlayer, this.world.level)) continue;
                 if (!canEntityAttackView(candidate.instance, targetView)) continue;
 
                 candidate.target = targetId;
@@ -4348,10 +4368,10 @@ export class EntityRuntime implements EntityScene {
         return found;
     }
 
-    /** Makes a player that looked at a body its target, unless the player is creative or a spectator. */
+    /** Makes a player that looked at a body its target, unless {@link canTargetPlayer} refuses them. */
     private targetLooker(body: MobBody, instance: EntityInstance, looker: LookedAtCandidate): void {
         const player = this.host.playerById(looker.id);
-        if (player?.creative === true || player?.spectator === true) return;
+        if (player !== undefined && !canTargetPlayer(player, this.world.level)) return;
         body.target = looker.id;
         instance.setAttackTarget(looker.view);
     }
