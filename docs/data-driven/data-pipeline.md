@@ -22,8 +22,12 @@ so a build is reproducible and an edition bump is an edit to this one file. The 
   feature rules, structures and worldgen data, with its measured sha256.
 - `bedrockSamples`: Mojang/bedrock-samples at tag <!-- fact:samples.tag -->v1.26.60.5<!-- /fact -->, the plain-JSON publication of the
   vanilla packs, read for data the BDS zip stores as undocumented binary.
-- `javaServer`: the Java Edition <!-- fact:java.version -->26.3<!-- /fact --> server jar, with Mojang's own sha1 from piston-meta plus a
-  measured sha256. Its data generator emits the vanilla datapack and the reports.
+- `javaServer`: the Java Edition server jars, one per release id under `versions`, each with
+  Mojang's own sha1 from piston-meta plus a measured sha256. `defaultVersion` is the release the
+  server runs, <!-- fact:java.version -->26.3<!-- /fact -->. One entry may carry `"preview": true` for a snapshot or pre-release
+  tracked ahead of the default; loading the manifest fails when two entries do, or when the
+  preview is not newer than the default. The jar's data generator emits the vanilla datapack and
+  the reports.
 - `vanillaMcdoc`: the SpyglassMC/vanilla-mcdoc commit the Java half of the pack loader validates
   datapack JSON against, through `@spyglassmc/mcdoc`.
 - `geyserMappings`: the GeyserMC/mappings commit the mapping tables are generated from.
@@ -32,8 +36,9 @@ No third-party dump of the Bedrock tables is pinned. The item table, item compon
 menu and actor list are generated from the join packets a capture of the pinned server records,
 as [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) explains.
 
-Every Java script, the dumper in `packages/bedrock-data/utils/java-dump/run.mjs` included, reads
-the release from `sources.json` and the JDK it needs from the jar's own `version.json`.
+Every Java script in `packages/bedrock-data`, the dumper in `utils/java-dump/run.mjs` included,
+works on `defaultVersion` unless `--java <release>` names another pinned release, and reads the JDK
+it needs from the jar's own `version.json`. `fetch:sources` downloads only the selected jar.
 
 ## Fetch
 
@@ -70,7 +75,11 @@ run writes both halves of the Java data, into the same cache the fetch stage use
 
 The generator writes no `pack.mcmeta`, so the step writes one from the `pack_version` the jar
 declares in its `version.json` (121.0 for 26.3). That file is what marks the directory as a
-loadable datapack for every reader above. The same `version.json` names the JDK the jar needs
+loadable datapack for every reader above. Beside it, the step writes its own `version.json` with
+the release id, the JDK, the data pack format and the data version the jar declares, which
+`readGeneratedJavaVersion` in `@jsprismarine/bedrock-data/sources` reads. `ensure:worldgen` writes
+that file into a cache generated before it existed, without running the generator again. The
+jar's `version.json` also names the JDK it needs
 (Java 25 for 26.3), found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
 `/usr/libexec/java_home`.
 
@@ -205,12 +214,14 @@ Java vanilla datapack as missing.
 
 ## A version bump, step by step
 
-1. Edit `packages/bedrock-data/sources.json` with the new versions, URLs and hashes, and the Java
-   pin constants in `utils/java-dump/run.mjs` if the Java version moved.
+1. Edit `packages/bedrock-data/sources.json` with the new versions, URLs and hashes. A new Java
+   release goes under `javaServer.versions`, and `defaultVersion` moves to it once it is the one
+   the server runs.
 2. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and review the
    `pack-hashes.json` diff to see which upstream folders changed.
 3. If the Java version moved, run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to
-   replace the cached datapack and reports, then `pnpm --filter @jsprismarine/bedrock-data run
+   generate the cached datapack and reports (add `--java <release>` for a release that is not the
+   default yet), then `pnpm --filter @jsprismarine/bedrock-data run
    dump:java` and update the counts `src/javaGoldens.test.ts` asserts.
 4. If the Bedrock version moved, run
    `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` on a Linux x86-64 machine (or let
