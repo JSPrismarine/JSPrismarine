@@ -1,0 +1,137 @@
+{
+    "$comment": [
+        "What the scripts of scenario `system-jobs` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.lifecycle",
+    "scenario": "system-jobs",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "jobs",
+            "seq": 1,
+            "tick": 0,
+            "event": "worldLoad"
+        },
+        {
+            "pack": "jobs",
+            "seq": 2,
+            "tick": 0,
+            "event": "runJob returns a number",
+            "value": "number"
+        },
+        {
+            "pack": "jobs",
+            "seq": 3,
+            "tick": 0,
+            "event": "clearJob before it ran"
+        },
+        {
+            "pack": "jobs",
+            "seq": 4,
+            "tick": 0,
+            "event": "clearJob of an id never issued"
+        },
+        {
+            "pack": "jobs",
+            "seq": 5,
+            "tick": 0,
+            "event": "runJob with a plain function",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: Generator<void, void, void>"
+        },
+        {
+            "pack": "jobs",
+            "seq": 6,
+            "tick": 0,
+            "event": "runJob with nothing",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 1, received 0"
+        },
+        {
+            "pack": "jobs",
+            "seq": 7,
+            "tick": 0,
+            "event": "run queued before the jobs"
+        },
+        {
+            "pack": "jobs",
+            "seq": 8,
+            "tick": 1,
+            "event": "job A step 1"
+        },
+        {
+            "pack": "jobs",
+            "seq": 9,
+            "tick": 1,
+            "event": "job B step 1"
+        },
+        {
+            "pack": "jobs",
+            "seq": 10,
+            "tick": 1,
+            "event": "stopped job step 1"
+        },
+        {
+            "pack": "jobs",
+            "seq": 11,
+            "tick": 1,
+            "event": "throwing job step 1"
+        },
+        {
+            "pack": "jobs",
+            "seq": 12,
+            "tick": 1,
+            "event": "job A step 2"
+        },
+        {
+            "pack": "jobs",
+            "seq": 13,
+            "tick": 1,
+            "event": "job A step 3"
+        },
+        {
+            "pack": "jobs",
+            "seq": 14,
+            "tick": 1,
+            "event": "job A done"
+        },
+        {
+            "pack": "jobs",
+            "seq": 15,
+            "tick": 1,
+            "event": "job B step 2"
+        },
+        {
+            "pack": "jobs",
+            "seq": 16,
+            "tick": 1,
+            "event": "job B done"
+        },
+        {
+            "pack": "jobs",
+            "seq": 17,
+            "tick": 1,
+            "event": "stopped job step 2"
+        },
+        {
+            "pack": "jobs",
+            "seq": 18,
+            "tick": 1,
+            "event": "long job done",
+            "value": {
+                "spun": 2000,
+                "firstTickSteps": false
+            }
+        },
+        {
+            "pack": "jobs",
+            "seq": 19,
+            "tick": 1,
+            "event": "runTimeout 1"
+        }
+    ]
+}

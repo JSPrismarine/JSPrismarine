@@ -1,0 +1,255 @@
+{
+    "$comment": [
+        "What the scripts of scenario `player-feedback` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "player-feedback",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "feedback",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "feedback",
+            "seq": 2,
+            "tick": 0,
+            "event": "onScreenDisplay is the same object",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 3,
+            "tick": 0,
+            "event": "onScreenDisplay isValid",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 4,
+            "tick": 0,
+            "event": "setTitle"
+        },
+        {
+            "pack": "feedback",
+            "seq": 5,
+            "tick": 0,
+            "event": "setTitle with options"
+        },
+        {
+            "pack": "feedback",
+            "seq": 6,
+            "tick": 0,
+            "event": "setTitle with a negative stay",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: stayDuration, Value: -1, Argument min: 0"
+        },
+        {
+            "pack": "feedback",
+            "seq": 7,
+            "tick": 0,
+            "event": "updateSubtitle"
+        },
+        {
+            "pack": "feedback",
+            "seq": 8,
+            "tick": 0,
+            "event": "setActionBar"
+        },
+        {
+            "pack": "feedback",
+            "seq": 9,
+            "tick": 0,
+            "event": "playSound",
+            "value": "object"
+        },
+        {
+            "pack": "feedback",
+            "seq": 10,
+            "tick": 0,
+            "event": "playSound at a location",
+            "value": "played"
+        },
+        {
+            "pack": "feedback",
+            "seq": 11,
+            "tick": 0,
+            "event": "dimension playSound",
+            "value": {
+                "id": "3",
+                "soundEventId": "random.pop",
+                "recipient": null
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 12,
+            "tick": 0,
+            "event": "dimension playSound with a negative volume",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: volume, Value: -1, Property min: 0"
+        },
+        {
+            "pack": "feedback",
+            "seq": 13,
+            "tick": 0,
+            "event": "isSneaking",
+            "value": false
+        },
+        {
+            "pack": "feedback",
+            "seq": 14,
+            "tick": 0,
+            "event": "set isSneaking",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 15,
+            "tick": 0,
+            "event": "addEffect",
+            "value": {
+                "typeId": "minecraft:haste",
+                "amplifier": 1,
+                "duration": 100
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 16,
+            "tick": 0,
+            "event": "getEffects",
+            "value": [
+                "minecraft:haste"
+            ]
+        },
+        {
+            "pack": "feedback",
+            "seq": 17,
+            "tick": 0,
+            "event": "world.beforeEvents.itemUse",
+            "value": {
+                "item": {
+                    "typeId": "minecraft:stick",
+                    "amount": 1
+                },
+                "source": "Tester",
+                "cancel": false
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 18,
+            "tick": 0,
+            "event": "useItem",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 19,
+            "tick": 0,
+            "event": "world.afterEvents.itemUse",
+            "value": {
+                "item": {
+                    "typeId": "minecraft:stick",
+                    "amount": 1
+                },
+                "source": "Tester"
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 20,
+            "tick": 2,
+            "event": "set isSneaking a tick later",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 21,
+            "tick": 4,
+            "event": "breakBlock",
+            "value": true
+        },
+        {
+            "pack": "feedback",
+            "seq": 22,
+            "tick": 4,
+            "event": "block right after breakBlock",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "feedback",
+            "seq": 23,
+            "tick": 5,
+            "event": "world.beforeEvents.playerBreakBlock",
+            "value": {
+                "block": "minecraft:stone",
+                "player": "Tester",
+                "item": null,
+                "dimension": "minecraft:overworld",
+                "cancel": false
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 24,
+            "tick": 6,
+            "event": "world.beforeEvents.playerBreakBlock",
+            "value": {
+                "block": "minecraft:stone",
+                "player": "Tester",
+                "item": null,
+                "dimension": "minecraft:overworld",
+                "cancel": false
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 25,
+            "tick": 6,
+            "event": "world.afterEvents.playerBreakBlock",
+            "value": {
+                "block": "minecraft:air",
+                "broken": "minecraft:stone",
+                "player": "Tester",
+                "before": null,
+                "after": null,
+                "dimension": "minecraft:overworld"
+            }
+        },
+        {
+            "pack": "feedback",
+            "seq": 26,
+            "tick": 8,
+            "event": "block 4 ticks after breakBlock",
+            "value": "minecraft:air"
+        },
+        {
+            "pack": "feedback",
+            "seq": 27,
+            "tick": 8,
+            "event": "removing"
+        },
+        {
+            "pack": "feedback",
+            "seq": 28,
+            "tick": 8,
+            "event": "onScreenDisplay isValid after removal",
+            "value": false
+        },
+        {
+            "pack": "feedback",
+            "seq": 29,
+            "tick": 8,
+            "event": "setTitle after removal",
+            "error": "InvalidEntityError: Failed to call function 'Player' due to Entity being invalid (has the Entity been removed?)."
+        }
+    ]
+}

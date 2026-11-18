@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario system-jobs jobs",
+        "description": "Records when system.runJob advances a generator and what clearJob stops. Written for packages/parity.",
+        "uuid": "dedc5b2a-efc1-4f22-b213-bf929bb97e52",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "be736341-6020-4d9b-be68-73505363e050",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.0.0" }]
+}
