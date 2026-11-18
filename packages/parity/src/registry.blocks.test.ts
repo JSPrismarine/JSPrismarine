@@ -1,4 +1,6 @@
 import { blockSchemas } from '@jsprismarine/minecraft';
+import { blockTranslationFor } from '@jsprismarine/prismarine/network/codec/blockTranslation';
+import { blockRuntimeId } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
@@ -83,6 +85,43 @@ describe(FAMILIES.registryBlocks, () => {
 
     it('ships every block, property and value the palette capture contains', () => {
         expect(verdict.unexpected).toEqual([]);
+    });
+
+    it('sends a 1.26.51 session every block as a state its own captured palette holds', () => {
+        // ADR 0025: the world holds the newest release's states, and an older session is sent
+        // each one projected onto its release, or info_update for a block it lacks. The ids are
+        // checked against what BDS 1.26.51.1 itself saved, not against the server's catalog.
+        const older = loadBlockPaletteCapture(2193);
+        const statesOf = (properties: Record<string, { values: (string | number | boolean)[] }>) =>
+            Object.entries(properties).reduce<Record<string, string | number | boolean>[]>(
+                (states, [name, { values }]) =>
+                    states.flatMap((state) => values.map((value) => ({ ...state, [name]: value }))),
+                [{}]
+            );
+        const known = new Set(
+            Object.keys(older.states).flatMap((name) =>
+                statesOf(
+                    Object.fromEntries(
+                        Object.keys(older.states[name]!).map((property) => [property, older.domains[name]![property]!])
+                    )
+                ).map((state) => blockRuntimeId(name, state))
+            )
+        );
+        const { toClient } = blockTranslationFor(2193);
+
+        const unknown = Object.entries(blockSchemas.blocks).flatMap(([name, schema]) =>
+            statesOf(
+                Object.fromEntries(
+                    Object.entries(schema.properties).map(([property, { type, values }]) => [
+                        property,
+                        { values: type === 'byte' ? values.map((value) => value === true || value === 1) : values }
+                    ])
+                )
+            )
+                .filter((state) => !known.has(toClient(blockRuntimeId(name, state))))
+                .map((state) => `${name}${JSON.stringify(state)}`)
+        );
+        expect(unknown).toEqual([]);
     });
 
     it('carries no stale allow-list entry', () => {
