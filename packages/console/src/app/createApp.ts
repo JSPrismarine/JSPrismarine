@@ -93,6 +93,12 @@ const LEVEL_CYCLE: readonly (LogLevel | undefined)[] = ['error', 'warn', 'info',
 /** The level filter the console starts with, as the UX note recommends. */
 const DEFAULT_LEVEL: LogLevel = 'info';
 
+/** The level filter as the footer names it: the levels it lets through. */
+const levelFilterLabel = (level: LogLevel | undefined): string => {
+    if (level === undefined) return 'all levels';
+    return level === 'error' ? 'errors only' : `${level} and up`;
+};
+
 const NOT_AVAILABLE = (what: string): ToastInput => ({ tone: 'muted', text: `${what} is not yet available` });
 
 interface Metrics {
@@ -353,7 +359,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             priority: 97,
             onActivate: store.warningCount > 0 ? () => showLevel('warn') : undefined
         });
-        if (metrics.tps !== undefined) {
+        // The inline side pane already shows the vitals; repeating them here filled the footer
+        // with nothing new.
+        const vitals = layout.sidePane !== 'inline';
+        if (vitals && metrics.tps !== undefined) {
             left.push({
                 id: 'tps',
                 text: formatTps(metrics.tps),
@@ -362,7 +371,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 onActivate: toggleTps
             });
         }
-        if (metrics.players) {
+        if (vitals && metrics.players) {
             left.push({
                 id: 'players',
                 text: formatPlayers(metrics.players.online, metrics.players.max),
@@ -371,7 +380,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             });
         }
         if (!layout.compactStatus) {
-            if (metrics.tickMs !== undefined) {
+            if (vitals && metrics.tickMs !== undefined) {
                 left.push({
                     id: 'tick',
                     text: formatTickMs(metrics.tickMs),
@@ -379,10 +388,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                     priority: 50
                 });
             }
-            if (metrics.rssBytes !== undefined) {
+            if (vitals && metrics.rssBytes !== undefined) {
                 left.push({ id: 'memory', text: formatMemory(metrics.rssBytes), tone: 'muted', priority: 60 });
             }
-            if (metrics.uptimeMs !== undefined) {
+            if (vitals && metrics.uptimeMs !== undefined) {
                 left.push({ id: 'uptime', text: `up ${formatUptime(metrics.uptimeMs)}`, tone: 'muted', priority: 40 });
             }
             if (!layout.titleBar && dev.badge) {
@@ -391,8 +400,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         statusBar.setLeft(left);
         const focusSegment: Segment = inputFocused
-            ? { id: 'focus', text: 'INPUT · Esc log', tone: 'muted', priority: 10 }
-            : { id: 'focus', text: 'LOG · Esc input', tone: 'muted', priority: 10 };
+            ? { id: 'focus', text: 'Esc to scroll', tone: 'muted', priority: 10 }
+            : { id: 'focus', text: 'Esc to type', tone: 'muted', priority: 10 };
         const helpSegment: Segment = {
             ...HELP_SEGMENT,
             tone: 'accent',
@@ -416,14 +425,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         const filters: Segment[] = [
             {
                 id: 'level-filter',
-                text: levelFilter ?? 'all',
+                text: levelFilterLabel(levelFilter),
                 tone: 'accent',
                 priority: 100,
                 onActivate: (bounds) => openLevelDropdown(bounds)
             },
             {
                 id: 'namespace-filter',
-                text: namespaceFilter ?? 'all',
+                text: namespaceFilter === undefined ? 'all sources' : `source ${namespaceFilter}`,
                 tone: 'accent',
                 priority: 90,
                 onActivate: (bounds) => openNamespaceDropdown(bounds)

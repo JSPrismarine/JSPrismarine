@@ -41,7 +41,7 @@ export interface FormattedLogLine extends StyledText {
 }
 
 /** Characters in the namespace column, before the space that separates it from the message. */
-export const NAMESPACE_WIDTH = 12;
+export const NAMESPACE_WIDTH = 15;
 
 const ELLIPSIS = '…';
 const RULE = '─';
@@ -149,36 +149,43 @@ function layout(
     const sourceMessageWidth = columns(sourceMessage);
     message = [...message, ...suffix];
     const points = [...message.map((chunk) => chunk.text).join('')];
-    const indent = plainChunk(' '.repeat(prefixWidth), options.theme);
-    return messageRanges(points, available, options.wrap).map(([start, end], index) => {
+    return messageRanges(points, available, options.wrap).map(([start, end, hang], index) => {
         // Without wrap a row that does not fit ends in an ellipsis one column early.
         const cut = !options.wrap && end - start > available ? start + available - 1 : end;
         const body = sliceChunks(message, start, cut);
         if (cut < end) body.push(plainChunk(ELLIPSIS, options.theme, 'textMuted'));
+        const contentStart = index === 0 ? 0 : prefixWidth + hang;
+        const indent = plainChunk(' '.repeat(contentStart), options.theme);
         return Object.assign(new StyledText([...(index === 0 ? prefix : [indent]), ...body]), {
             sourceText,
             sourceStart: index === 0 ? 0 : prefixWidth + Math.min(start, sourceMessageWidth),
             sourceEnd: prefixWidth + Math.min(cut, sourceMessageWidth),
-            contentStart: index === 0 ? 0 : prefixWidth
+            contentStart
         });
     });
 }
 
 /**
- * The `[start, end)` code point ranges of the rows a message takes: a row per line of the
- * message, each line wrapped to `width` columns when `wrap` is on. The newlines themselves
- * fall between ranges, so each row's text stays one line.
+ * The `[start, end, hang)` code point ranges of the rows a message takes: a row per line of the
+ * message, each line wrapped to `width` columns when `wrap` is on. The newlines themselves fall
+ * between ranges, so each row's text stays one line. `hang` is the extra indent of a wrapped
+ * row: the leading spaces of its line, so the tail of a stack frame lines up under its `at`.
  */
-function messageRanges(points: readonly string[], width: number, wrap: boolean): [number, number][] {
-    const ranges: [number, number][] = [];
+function messageRanges(points: readonly string[], width: number, wrap: boolean): [number, number, number][] {
+    const ranges: [number, number, number][] = [];
     let lineStart = 0;
     for (let index = 0; index <= points.length; index += 1) {
         if (index < points.length && points[index] !== '\n') continue;
-        if (!wrap) ranges.push([lineStart, index]);
+        if (!wrap) ranges.push([lineStart, index, 0]);
         else {
-            for (const [start, end] of wrapRanges(points.slice(lineStart, index), width)) {
-                ranges.push([lineStart + start, lineStart + end]);
-            }
+            const line = points.slice(lineStart, index);
+            let lead = 0;
+            while (line[lead] === ' ') lead += 1;
+            // A deep indent would leave the wrapped rows too narrow to read; those hang flush.
+            const hang = lead * 2 < width ? lead : 0;
+            wrapRanges(line, width, width - hang).forEach(([start, end], row) => {
+                ranges.push([lineStart + start, lineStart + end, row === 0 ? 0 : hang]);
+            });
         }
         lineStart = index + 1;
     }
@@ -206,12 +213,15 @@ function linkChunks(chunks: TextChunk[]): TextChunk[] {
     return result;
 }
 
-/** Splits code points into `[start, end)` ranges of at most `width` columns, breaking at spaces. */
-function wrapRanges(points: readonly string[], width: number): [number, number][] {
+/**
+ * Splits code points into `[start, end)` ranges, breaking at spaces: the first range is at most
+ * `width` columns and the rest at most `restWidth`.
+ */
+function wrapRanges(points: readonly string[], width: number, restWidth = width): [number, number][] {
     const ranges: [number, number][] = [];
     let start = 0;
-    while (points.length - start > width) {
-        const limit = start + width;
+    while (points.length - start > (ranges.length === 0 ? width : restWidth)) {
+        const limit = start + (ranges.length === 0 ? width : restWidth);
         const space = points.lastIndexOf(' ', limit);
         if (space > start) {
             ranges.push([start, space]);
@@ -221,7 +231,8 @@ function wrapRanges(points: readonly string[], width: number): [number, number][
             start = limit;
         }
     }
-    ranges.push([start, points.length]);
+    // A break on the line's last space leaves nothing after it; that is not a row of its own.
+    if (start < points.length || ranges.length === 0) ranges.push([start, points.length]);
     return ranges;
 }
 

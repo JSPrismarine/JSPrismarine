@@ -61,7 +61,7 @@ describe('formatLogLine', () => {
     });
 
     it('lays out time, level, namespace, and message in fixed columns', () => {
-        expect(text(formatLogLine(record(), options()))).toEqual(['12:05:33 INFO    Server       Server started']);
+        expect(text(formatLogLine(record(), options()))).toEqual(['12:05:33 INFO    Server          Server started']);
     });
 
     it('colors the level token with the level color and the message with the text color', () => {
@@ -76,9 +76,9 @@ describe('formatLogLine', () => {
         const [row] = formatLogLine(record(), options({ repeatCount: 3 }));
         const count = row!.chunks.find((chunk) => chunk.text === ' (x3)');
 
-        expect(text([row!])).toEqual(['12:05:33 INFO    Server       Server started (x3)']);
+        expect(text([row!])).toEqual(['12:05:33 INFO    Server          Server started (x3)']);
         expect(count?.fg?.equals(parseColor(defaultTheme.textMuted))).toBe(true);
-        expect(row!.sourceText).toBe('12:05:33 INFO    Server       Server started');
+        expect(row!.sourceText).toBe('12:05:33 INFO    Server          Server started');
         expect(row!.sourceEnd).toBe([...row!.sourceText].length);
     });
 
@@ -91,14 +91,14 @@ describe('formatLogLine', () => {
 
     it('truncates long namespaces to the column width', () => {
         const [row] = text(formatLogLine(record({ namespace: 'AVeryLongNamespaceName' }), options()));
-        expect(row).toBe('12:05:33 INFO    AVeryLongNa… Server started');
+        expect(row).toBe('12:05:33 INFO    AVeryLongNames… Server started');
     });
 
     it('converts § codes in the message through the theme', () => {
         const [row] = formatLogLine(record({ message: 'hello §cworld' }), options());
         const red = row!.chunks.find((chunk) => chunk.text === 'world');
         expect(red?.fg?.equals(parseColor(defaultTheme.chat.c))).toBe(true);
-        expect(text([row!])[0]).toBe('12:05:33 INFO    Server       hello world');
+        expect(text([row!])[0]).toBe('12:05:33 INFO    Server          hello world');
     });
 
     it('truncates the message with an ellipsis when wrap is off', () => {
@@ -151,6 +151,16 @@ describe('formatLogLine', () => {
         expect(rows).toEqual([`12:05:33 INFO    ${'a'.repeat(22)}…`, '                 short']);
     });
 
+    it('hangs wrapped rows under the indent of their own line', () => {
+        const message = 'Error: boom\n    at TeleportCommand.run (prismarine/src/command/Teleport.ts:88:19)';
+        const rows = text(formatLogLine(record({ message }), options({ width: 64, wrap: true, showNamespace: false })));
+        expect(rows).toEqual([
+            '12:05:33 INFO    Error: boom',
+            '                     at TeleportCommand.run',
+            '                     (prismarine/src/command/Teleport.ts:88:19)'
+        ]);
+    });
+
     it('breaks words longer than the message column', () => {
         const rows = text(
             formatLogLine(record({ message: 'x'.repeat(40) }), options({ width: 37, wrap: true, showNamespace: false }))
@@ -189,7 +199,7 @@ describe('formatLogLine', () => {
             record({ message: 'Player Steve joined; steve again' }),
             options({ highlight: 'steve' })
         );
-        expect(text([row!])[0]).toBe('12:05:33 INFO    Server       Player Steve joined; steve again');
+        expect(text([row!])[0]).toBe('12:05:33 INFO    Server          Player Steve joined; steve again');
         const hits = row!.chunks.filter((chunk) => chunk.bg !== undefined);
         expect(hits.map((chunk) => chunk.text)).toEqual(['Steve', 'steve']);
         expect(hits[0]!.bg?.equals(parseColor(defaultTheme.selection))).toBe(true);

@@ -366,8 +366,13 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
                     const startColumn = columns(buffer.getTextRange(0, bounds.start));
                     const endColumn = columns(buffer.getTextRange(0, bounds.end));
                     const start = line.sourceStart + Math.max(0, startColumn - line.contentStart);
-                    const end = Math.min(line.sourceEnd, line.sourceStart + Math.max(0, endColumn - line.contentStart));
+                    let end = Math.min(line.sourceEnd, line.sourceStart + Math.max(0, endColumn - line.contentStart));
                     if (end <= start) return;
+                    // A wrap that breaks on a trailing space leaves it after the last row; a
+                    // selection to the end of the record keeps it.
+                    if (end === line.sourceEnd && sliceColumns(line.sourceText, end).trim() === '') {
+                        end = columns(line.sourceText);
+                    }
                     if (previous) {
                         parts.push(
                             previous.record === record ? sliceColumns(line.sourceText, previous.end, start) : '\n'

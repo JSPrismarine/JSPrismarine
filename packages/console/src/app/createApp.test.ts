@@ -59,7 +59,7 @@ type AppHarness = Awaited<ReturnType<typeof setup>>;
 async function focusLog(t: AppHarness): Promise<void> {
     t.mockInput.pressEscape();
     await new Promise((resolve) => setTimeout(resolve, 30));
-    await t.waitForFrame((frame) => frame.includes('LOG · Esc input'));
+    await t.waitForFrame((frame) => frame.includes('Esc to type'));
 }
 
 describe('createApp', () => {
@@ -78,7 +78,7 @@ describe('createApp', () => {
         expect(frame).toContain('JSPrismarine 0.15.2 · default');
         expect(frame).toContain('> type a command, ? for help');
         expect(frame).toContain('● starting');
-        expect(frame).toContain('info · all · ? help');
+        expect(frame).toContain('info and up · all sources · ? help');
         expect(frame).toContain('Players');
     });
 
@@ -100,7 +100,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         const frame = t.captureCharFrame();
-        expect(frame).toContain('12:00:01 INFO    Server       Listening on 0.0.0.0:19132');
+        expect(frame).toContain('12:00:01 INFO    Server          Listening on 0.0.0.0:19132');
     });
 
     it('uses one-letter level tokens and no namespace column at 80 columns', async () => {
@@ -132,8 +132,29 @@ describe('createApp', () => {
         await t.renderOnce();
 
         const frame = t.captureCharFrame();
-        expect(frame).toContain('● starting · ERR 0 · WARN 0 · TPS 20.00 · 2/20 · 4.1 ms · 212 MB · up 00:05:40');
         expect(frame).toMatch(/online\s+2\/20/);
+        // The side pane shows the vitals, so the status bar does not repeat them.
+        expect(frame).toContain('● starting · ERR 0 · WARN 0  ');
+        expect(frame).not.toContain('· TPS 20.00 ·');
+    });
+
+    it('shows the vitals in the status bar while the side pane is hidden', async () => {
+        const t = await setup({ width: 99, height: 40 });
+        dispose = t.dispose;
+
+        t.app.applyServerMessage({
+            type: 'status',
+            v: 1,
+            tps: 20,
+            tickMs: 4.1,
+            players: 2,
+            maxPlayers: 20,
+            rssBytes: 212 * 1024 * 1024,
+            uptimeMs: 340_000
+        });
+        await t.renderOnce();
+
+        expect(t.captureCharFrame()).toContain('● starting · ERR 0 · WARN 0 · TPS 20.00 · 2/20');
     });
 
     it('moves the state segment to running on a lifecycle message', async () => {
@@ -213,7 +234,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         expect(t.captureCharFrame()).toContain('> g/w?n?');
-        expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+        expect(t.captureCharFrame()).toContain('Esc to scroll');
     });
 
     it('routes a bracketed paste from the log pane into the command input', async () => {
@@ -226,7 +247,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         expect(t.captureCharFrame()).toContain('> say hello');
-        expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+        expect(t.captureCharFrame()).toContain('Esc to scroll');
     });
 
     describe('clipboard', () => {
@@ -362,7 +383,7 @@ describe('createApp', () => {
             t.clipboard.copy.mockClear();
             t.app.focus();
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+            expect(t.captureCharFrame()).toContain('Esc to scroll');
 
             t.mockInput.pressKey(cmd('c'));
             await flush();
@@ -421,7 +442,7 @@ describe('createApp', () => {
 
             const frame = t.captureCharFrame();
             expect(frame).toContain('> say pasted');
-            expect(frame).toContain('INPUT · Esc log');
+            expect(frame).toContain('Esc to scroll');
         });
 
         it('turns a pasted block into one line', async () => {
@@ -482,11 +503,11 @@ describe('createApp', () => {
 
         t.mockInput.pressKey('f', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('all · all · ? help');
+        expect(t.captureCharFrame()).toContain('all levels · all sources · ? help');
 
         t.mockInput.pressKey('f', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('error · all · ? help');
+        expect(t.captureCharFrame()).toContain('errors only · all sources · ? help');
     });
 
     it('closes the help overlay with Esc', async () => {
@@ -615,7 +636,7 @@ describe('createApp', () => {
 
             const frame = t.captureCharFrame();
             expect(frame).toMatch(/now 20\.00\s+avg 20\.00\s+min 20\.00\s+max 20\.00/);
-            expect(frame).toContain('TPS 20.00');
+            expect(frame).toMatch(/TPS\s+20\.00/);
             expect(frame).not.toMatch(/2[1-9]\.\d\d/);
             expect(frame).not.toMatch(/ 2[1-9] [┤└]/);
         });
@@ -634,7 +655,7 @@ describe('createApp', () => {
 
             const frame = t.captureCharFrame();
             expect(frame).toMatch(/now 40\.00\s+avg \d+\.\d\d\s+min 38\.00\s+max 40\.00/);
-            expect(frame).toContain('TPS 40.00');
+            expect(frame).toMatch(/TPS\s+40\.00/);
             expect(frame).toMatch(/40 ┤/);
             expect(frame).toContain('38+');
             expect(frame).toContain('30-38');
@@ -697,7 +718,8 @@ describe('createApp', () => {
         });
 
         it('opens when the TPS segment in the status bar is clicked and closes on a second click', async () => {
-            const t = await setup({ width: 120, height: 40 });
+            // Narrow enough that the side pane is hidden and the status bar carries TPS.
+            const t = await setup({ width: 90, height: 40 });
             dispose = t.dispose;
             reportTps(t, [20]);
             await t.renderOnce();
@@ -724,7 +746,7 @@ describe('createApp', () => {
             t.mockInput.pressEscape();
             await new Promise((resolve) => setTimeout(resolve, 30));
             await t.waitForFrame((frame) => !frame.includes(SPAN_ROW));
-            expect(t.captureCharFrame()).toContain('LOG · Esc input');
+            expect(t.captureCharFrame()).toContain('Esc to type');
         });
 
         it('restores input focus when it closes after opening from the input', async () => {
@@ -733,17 +755,17 @@ describe('createApp', () => {
             reportTps(t, [20]);
             await t.renderOnce();
 
-            const segment = find(t, 'TPS 20.00');
+            const segment = find(t, 'Performance ▸ graph');
             await t.mockMouse.click(segment.x + 2, segment.y);
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain('LOG · Esc input');
+            expect(t.captureCharFrame()).toContain('Esc to type');
 
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
             const frame = t.captureCharFrame();
             expect(frame).not.toContain(SPAN_ROW);
-            expect(frame).toContain('INPUT · Esc log');
+            expect(frame).toContain('Esc to scroll');
         });
 
         it('does not type into the command line while it is open', async () => {
@@ -977,7 +999,7 @@ describe('createApp', () => {
                 expect(topLogRow(t)).toContain('after clear');
             },
             'log.filter': async (t) => {
-                expect(t.captureCharFrame()).toContain('all · all · ? help');
+                expect(t.captureCharFrame()).toContain('all levels · all sources · ? help');
             },
             'view.toggleSidePane': async (t) => {
                 expect(t.captureCharFrame()).not.toContain('Players');
@@ -992,7 +1014,7 @@ describe('createApp', () => {
                 expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
             },
             'view.toggleFocus': async (t) => {
-                await t.waitForFrame((frame) => frame.includes('LOG · Esc input'));
+                await t.waitForFrame((frame) => frame.includes('Esc to type'));
             },
             'view.palette': async (t) => {
                 expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);
@@ -1094,7 +1116,7 @@ describe('createApp', () => {
             t.mockInput.pressKey('e', { ctrl: true });
             await t.renderOnce();
             await t.renderOnce();
-            expect(topLogRow(t)).toContain('ERROR   Server       boom');
+            expect(topLogRow(t)).toContain('ERROR   Server          boom');
         });
 
         it('types a bound letter once the line has text', async () => {
