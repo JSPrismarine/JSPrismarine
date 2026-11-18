@@ -53,6 +53,14 @@ const readZip = (bytes: Buffer): Map<string, Buffer> => {
     return entries;
 };
 
+// The default Java release from this repository's source manifest, parsed JSON. It is tried
+// first, so a cache holding several releases runs on the one the server does.
+const defaultJavaRelease = (
+    JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as {
+        javaServer: { defaultVersion: string };
+    }
+).javaServer.defaultVersion;
+
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
@@ -61,7 +69,9 @@ const findServerJar = (): { readonly version: string; readonly path: string } =>
     for (const source of ['java-server', 'java']) {
         const root = join(cacheRoot, source);
         if (!existsSync(root)) continue;
-        const version = readdirSync(root).find((name) => existsSync(join(root, name, 'server.jar')));
+        const version = [defaultJavaRelease, ...readdirSync(root)].find((name) =>
+            existsSync(join(root, name, 'server.jar'))
+        );
         if (version) return { version, path: join(root, version, 'server.jar') };
     }
     throw new Error(`no server.jar under ${cacheRoot}; run the bedrock-data fetch:sources script`);
