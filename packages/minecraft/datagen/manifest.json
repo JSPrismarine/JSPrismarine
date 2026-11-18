@@ -27,7 +27,13 @@
         "the version named by `defaultProtocolVersion` is also re-exported at the unversioned",
         "`src/generated/` paths so existing imports keep working. The enums `legacy` covers are",
         "the exception: no release describes them, so they are written once and shared rather",
-        "than copied per version."
+        "than copied per version.",
+        "",
+        "`defaultProtocolVersion` is the oldest supported protocol, not the newest release: the",
+        "protocol package writes that version's layouts with these enums and expresses each newer",
+        "version as a delta over it. The block catalog is the other exception. It follows the",
+        "Bedrock Dedicated Server `packages/bedrock-data/sources.json` names as the default, which",
+        "`paths.ts` reads, because a palette is a capture of that server."
     ],
     "defaultProtocolVersion": 2193,
     "versions": {
@@ -119,19 +125,19 @@
         },
         "2225": {
             "$comment": [
-                "Minecraft 1.26.60, BDS 1.26.60.6. This entry has `schemas` and `source`, and",
-                "deliberately has no `blocks`: the block palette is captured from a Bedrock Dedicated",
-                "Server of this version and that capture does not reproduce run to run yet. The generators",
-                "skip a version that declares neither rather than writing an empty catalog, and",
-                "`defaultProtocolVersion` stays at 2193 until the palette is here.",
+                "Minecraft 1.26.60, BDS 1.26.60.6, the newest release. Its block palette is the",
+                "unversioned block catalog, because `packages/bedrock-data/sources.json` names this",
+                "server as the default capture; see `paths.ts`.",
                 "",
-                "To finish this version:",
+                "Captured with:",
                 "  pnpm --filter @jsprismarine/bedrock-data run fetch:sources --protocol 2225",
-                "  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --protocol 2225",
-                "then follow `datagen/README-palette.md` to merge the capture into",
-                "`snapshot/v2225/block-palette.json` and add a `blocks` entry here shaped like 2193's.",
-                "BDS is Linux x86-64 only; `utils/bedrock-dump/runner.ts` runs it in a container from",
-                "another platform.",
+                "  pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass palette --protocol 2225",
+                "Against 2193 the palette adds `minecraft:disc_press`, `minecraft:ice_crystal` and",
+                "`minecraft:icicle`, and gives three blocks new states: the six",
+                "`minecraft:connection_*` states on `minecraft:chorus_plant`, five of them on",
+                "`minecraft:fire`, and `redstone_east`, `redstone_north`, `redstone_south` and",
+                "`redstone_west` on `minecraft:redstone_wire`. Every state of those three hashes to a",
+                "different runtime id than at 2193.",
                 "",
                 "See `docs/research/protocol-2225-delta.md` for what 2225 changed on the wire."
             ],
@@ -174,14 +180,19 @@
                 "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
                 "minecraftVersion": "1.26.40",
                 "networkProtocolVersion": 2168
+            },
+            "blocks": {
+                "$comment": "Captured from BDS 1.26.60.6 the way 2193's was; `README-palette.md` is how.",
+                "source": "snapshot/v2225/block-palette.json",
+                "target": "../src/generated/v2225/block-schemas.ts"
             }
         },
         "2259": {
             "$comment": [
                 "Minecraft Preview 1.26.70.24, BDS preview 1.26.70.24: a preview protocol. The server",
                 "negotiates it but advertises the newest release, and it is replaced, not kept beside, when",
-                "the next preview or the 1.26.70 release lands. Like 2225 it has no `blocks` entry: the",
-                "palette is captured from the BDS preview and that capture does not reproduce yet.",
+                "the next preview or the 1.26.70 release lands. It has no `blocks` entry: no palette of",
+                "the BDS preview is captured.",
                 "",
                 "See `docs/research/protocol-2259-delta.md` for what 2259 changed on the wire."
             ],

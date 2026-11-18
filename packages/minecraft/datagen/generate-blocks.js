@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { blocksProtocolVersion } from './paths.ts';
 import { versionsOf } from './versions.js';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
@@ -42,9 +43,18 @@ const typeOf = (value) => {
 /** Booleans travel as 0 and 1; everything else is already what it will be. */
 const toWire = (value) => (typeof value === 'boolean' ? Number(value) : value);
 
+// The unversioned catalog is the default Bedrock Dedicated Server's, which `paths.ts` explains;
+// the manifest's `defaultProtocolVersion` decides only the enums.
+if (!(String(blocksProtocolVersion) in manifest.versions)) {
+    console.error(
+        `The default Bedrock Dedicated Server is protocol ${blocksProtocolVersion}, which the manifest does not declare.`
+    );
+    process.exit(1);
+}
+
 for (const version of versionsOf(manifest, HERE)) {
     console.log(`Protocol ${version.protocol}:`);
-    generateVersion(version);
+    generateVersion({ ...version, isDefault: version.protocol === blocksProtocolVersion });
 }
 
 /**
