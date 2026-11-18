@@ -519,6 +519,10 @@
             "jsprismarine:dist": "./dist/network/codec/itemData.js",
             "default": "./src/network/codec/itemData.ts"
         },
+        "./network/codec/blockTranslation": {
+            "jsprismarine:dist": "./dist/network/codec/blockTranslation.js",
+            "default": "./src/network/codec/blockTranslation.ts"
+        },
         "./network/connectionContexts": {
             "jsprismarine:dist": "./dist/network/connectionContexts.js",
             "default": "./src/network/connectionContexts.ts"

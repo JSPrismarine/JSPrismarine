@@ -70,11 +70,11 @@ export interface BlockPaletteCapture {
 }
 
 /** Reads the block palette captured from a Bedrock Dedicated Server (datagen snapshot). */
-export const loadBlockPaletteCapture = (): BlockPaletteCapture =>
+export const loadBlockPaletteCapture = (protocol?: number): BlockPaletteCapture =>
     // The datagen manifest decides which protocol version's snapshot the unversioned exports
     // are generated from, and where it sits.
     // Parsed JSON has no type the compiler can see; this is its documented shape.
-    readJson(blockPaletteSnapshotPath()) as BlockPaletteCapture;
+    readJson(blockPaletteSnapshotPath(protocol)) as BlockPaletteCapture;
 
 /** One item as `required_item_list.json` records it. */
 export interface RequiredItemEntry {
