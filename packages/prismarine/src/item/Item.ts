@@ -25,7 +25,7 @@ import type { ServerContent } from '../content/ServerContent';
 import { javaItemTagsForBedrock } from '../content/javaTags';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
-import { itemData2193, itemDataForProtocol } from '../network/codec/itemData';
+import { canonicalItemData, itemDataForProtocol } from '../network/codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
@@ -152,11 +152,11 @@ const toolRuleNamesOf = (block: string): readonly string[] => {
  * through is the packet itself on every path a client is on either end of, and the packet
  * carries the codec that built it, so the numbering is already here and nothing above has to
  * pass it down. A bare stream - a stack written to disk, or to a buffer assembled by hand -
- * gets protocol 2193's, the canonical table.
+ * gets the canonical table, the newest release's.
  */
 const wireItemData = (source: BinaryStream | ProtocolContext): ProtocolItemData => {
     if (source instanceof NetworkPacket) return itemDataForProtocol(source.codecProtocol);
-    if (source instanceof BinaryStream) return itemData2193;
+    if (source instanceof BinaryStream) return canonicalItemData;
     return source.itemData ?? itemDataForProtocol(source.protocolVersion);
 };
 
@@ -294,14 +294,14 @@ export class Item {
     }
 
     /**
-     * The Bedrock runtime id for this item under the canonical numbering, protocol 2193's.
+     * The Bedrock runtime id for this item under the canonical numbering, the newest release's.
      *
      * What everything off the wire means by an item's number. A stack going to a client is
      * numbered by {@link Item.wireId} against that session's own table instead, because the
      * two disagree for 82 items from 1.26.60 on.
      */
     public getRuntimeId(): number {
-        return this.runtimeIdIn(itemData2193);
+        return this.runtimeIdIn(canonicalItemData);
     }
 
     /**

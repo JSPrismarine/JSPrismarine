@@ -229,7 +229,7 @@ describe('world', () => {
 
             const bytes = stream.getBuffer();
             expect(bytes.includes(Buffer.from('version'))).toBe(true);
-            expect(BLOCK_STATE_VERSION).toBe(0x011a3301);
+            expect(BLOCK_STATE_VERSION).toBe(0x011a3c01);
         });
 
         it('reports a block it has never heard of rather than throwing', () => {

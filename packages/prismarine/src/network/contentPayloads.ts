@@ -39,7 +39,7 @@ import {
     itemIdsOf
 } from '@jsprismarine/protocol/payload';
 
-import { itemData2193 } from './codec/itemData';
+import { canonicalItemData } from './codec/itemData';
 import { assertContentPaletteAgrees } from './contentPalette';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
@@ -208,7 +208,7 @@ export interface ContentPayloadOptions {
     readonly clientPalette?: BlockPalette;
     /**
      * The item registry data the session speaks, from its codec's
-     * {@link import('./codec/itemData').ProtocolItemData}. Protocol 2193's by
+     * {@link import('./codec/itemData').ProtocolItemData}. The newest release's by
      * default, which is what every caller that does not know a session gets.
      */
     readonly itemData?: ProtocolItemData;
@@ -236,7 +236,7 @@ export const buildNetworkContentPayloads = (
     assertBlockPaletteAgrees(declared.properties, client);
 
     const items = buildItemRegistry(content.items.types.values(), {
-        table: (options.itemData ?? itemData2193).table,
+        table: (options.itemData ?? canonicalItemData).table,
         capturedComponents: capturedItemComponents,
         projection: {
             mapIdentifier: (javaId) => {
@@ -363,7 +363,7 @@ const cache = new WeakMap<ServerContent, Map<number, NetworkContentPayloads>>();
 const failed = new WeakMap<ServerContent, Set<number>>();
 
 /** The version a set of options builds for, which is the cache's second key. */
-const versionOf = (options: ContentPayloadOptions): number => (options.itemData ?? itemData2193).protocolVersion;
+const versionOf = (options: ContentPayloadOptions): number => (options.itemData ?? canonicalItemData).protocolVersion;
 
 const cached = (content: ServerContent, options: ContentPayloadOptions): NetworkContentPayloads | undefined =>
     cache.get(content)?.get(versionOf(options));

@@ -1,11 +1,15 @@
-import { jigsaw_structure_data } from '@jsprismarine/bedrock-data';
-import { biome_definitions_network, block_definitions, entity_identifiers } from '@jsprismarine/bedrock-data/v2225';
+import {
+    biome_definitions_network,
+    block_definitions,
+    entity_identifiers,
+    jigsaw_structure_data
+} from '@jsprismarine/bedrock-data/v2225';
 import { createProtocolCodec, ProtocolVersions } from '@jsprismarine/protocol';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 
 import { itemData2225 } from './itemData';
 
-/** Server-configured protocol 2225 codec with the tables captured for BDS 1.26.60.6. */
+/** Server-configured protocol 2225 codec with the tables captured from BDS 1.26.60.6. */
 const Codec2225 = createProtocolCodec({
     definition: ProtocolVersions.v2225,
     context: {

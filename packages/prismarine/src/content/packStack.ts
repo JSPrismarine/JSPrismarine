@@ -24,6 +24,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import type { Diagnostic } from '@jsprismarine/content';
 import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
+import { bedrockSamplesCacheFolder, defaultBdsCacheFolder } from '@jsprismarine/bedrock-data/sources';
 
 /** Points the resolver at a local copy of one fetched source. */
 export const PACK_STACK_ENV = {
@@ -150,6 +151,18 @@ const sourcePath = (override: string | undefined, found: () => string | undefine
 };
 
 /**
+ * The version folders of one cached source, the pinned one first.
+ *
+ * The cache keeps every version it was asked for, so a checkout that fetched an older pin still
+ * has it after the pin moves. The pinned version wins when it is there; any other is the
+ * fallback for a cache that has not fetched it yet.
+ */
+const pinnedFirst = (root: string, pinned: string): string[] => {
+    const versions = readdirSync(root);
+    return versions.includes(pinned) ? [pinned, ...versions.filter((version) => version !== pinned)] : versions;
+};
+
+/**
  * The BDS `behavior_packs` directory, whose `vanilla` and `vanilla_<version>`
  * folders are the layers of the composed vanilla pack. BDS keeps chemistry,
  * the editor, the script libraries and the experimental packs in the same
@@ -158,7 +171,7 @@ const sourcePath = (override: string | undefined, found: () => string | undefine
  */
 const bdsBehaviorPacks = (root: string): string | undefined => {
     if (!existsSync(root)) return undefined;
-    for (const version of readdirSync(root)) {
+    for (const version of pinnedFirst(root, defaultBdsCacheFolder)) {
         const unpacked = join(root, version, 'unpacked', 'behavior_packs');
         if (existsSync(unpacked)) return unpacked;
     }
@@ -177,7 +190,7 @@ const samplesPackIn = (unpacked: string): string | undefined => {
 /** The unpacked `bedrock-samples` archive in the cache, under its version folder. */
 const cachedSamples = (root: string): string | undefined => {
     if (!existsSync(root)) return undefined;
-    for (const version of readdirSync(root)) {
+    for (const version of pinnedFirst(root, bedrockSamplesCacheFolder)) {
         const unpacked = join(root, version, 'unpacked');
         if (existsSync(unpacked) && samplesPackIn(unpacked) !== undefined) return unpacked;
     }
