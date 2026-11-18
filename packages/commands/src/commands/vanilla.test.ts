@@ -26,7 +26,7 @@ import {
 const run = (
     line: string,
     overrides: TestCommandHostOverrides = {},
-    extra: { entity?: EntityRef; feedback?: string[]; content?: ContentRegistryIds } = {}
+    extra: { entity?: EntityRef; feedback?: string[]; errors?: string[]; content?: ContentRegistryIds } = {}
 ): { results: unknown[]; host: CommandHost; registry: CommandRegistry<CommandSource> } => {
     const host = testCommandHost(overrides);
     const registry = registerVanillaCommands(
@@ -36,7 +36,8 @@ const run = (
         host,
         ...(extra.entity === undefined ? {} : { entity: extra.entity }),
         permissionLevel: 4,
-        onFeedback: (message) => extra.feedback?.push(message)
+        onFeedback: (message) => extra.feedback?.push(message),
+        onError: (message) => extra.errors?.push(message)
     });
     return { results: registry.getDispatcher().execute(line, source), host, registry };
 };
@@ -600,36 +601,38 @@ describe('the world commands', () => {
         expect(set).toEqual([23_000, 1000, 6000, 18_000, 42]);
     });
 
-    it('/time set refuses a word that names no time of day, pointing at the word', () => {
+    it('/time set names the dimension it set the time of, as Bedrock 1.26.60 does', () => {
+        const feedback: string[] = [];
+        run('time set day', { world: { setTime: () => undefined } }, { feedback });
+
+        expect(feedback).toEqual(["Set the time of 'minecraft:overworld' to 1000"]);
+    });
+
+    it('/time set refuses a word that names no time marker, naming the word and the dimension', () => {
         const set: number[] = [];
+        const errors: string[] = [];
         const world = { setTime: (ticks: number) => void set.push(ticks) };
 
-        let thrown: unknown;
-        try {
-            run('time set nonsense', { world });
-        } catch (error) {
-            thrown = error;
-        }
+        const { results } = run('time set nonsense', { world }, { errors });
 
-        expect(thrown).toBeInstanceOf(CommandSyntaxException);
-        expect(thrown instanceof CommandSyntaxException && [thrown.getInput(), thrown.getCursor()]).toEqual([
-            'time set nonsense',
-            'time set '.length
-        ]);
+        expect(results).toEqual([0]);
+        expect(errors).toEqual(["Cannot find time marker 'nonsense' on 'minecraft:overworld'"]);
         expect(set).toEqual([]);
     });
 
-    it('/time set takes a negative tick count and refuses a fraction, as Bedrock does', () => {
+    it('/time set refuses a negative tick count and a fraction, as Bedrock does', () => {
         const set: number[] = [];
-        const feedback: string[] = [];
+        const errors: string[] = [];
         const world = { setTime: (ticks: number) => void set.push(ticks) };
 
-        run('time set -5', { world }, { feedback });
-        expect(set).toEqual([-5]);
-        expect(feedback).toEqual(['Set the time to -5']);
+        const { results } = run('time set -5', { world }, { errors });
+        expect(results).toEqual([0]);
+        expect(errors).toEqual(['Cannot set time to before 0 ticks, the number must be at least 0']);
+        expect(set).toEqual([]);
 
         expect(() => run('time set 1.5', { world })).toThrow(CommandSyntaxException);
-        expect(set).toEqual([-5]);
+        run('time set 0', { world });
+        expect(set).toEqual([0]);
     });
 
     it('reads any run of spaces between arguments', () => {

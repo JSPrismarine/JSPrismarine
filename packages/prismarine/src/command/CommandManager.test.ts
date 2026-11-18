@@ -224,9 +224,8 @@ describe('command', () => {
             );
         };
 
-        // What the pinned Bedrock Dedicated Server (1.26.51.1) prints at its console for each line.
+        // What the pinned Bedrock Dedicated Server prints at its console for each line.
         it.each([
-            ['/time set nonsense', 'Syntax error: Unexpected "nonsense": at "/time set >>nonsense<<"'],
             ['/time set', 'Syntax error: Unexpected "": at "/time set>><<"'],
             ['/time nonsense', 'Syntax error: Unexpected "nonsense": at "/time >>nonsense<<"'],
             ['/time set 100 extra', 'Syntax error: Unexpected "extra": at "e set 100 >>extra<<"'],
@@ -235,11 +234,26 @@ describe('command', () => {
             ['/gamerule doDaylightCycle notabool', 'Syntax error: Unexpected "notabool": at "ightCycle >>notabool<<"'],
             ['/weather clear abc', 'Syntax error: Unexpected "abc": at "her clear >>abc<<"'],
             ['/difficulty bogus', 'Syntax error: Unexpected "bogus": at "ifficulty >>bogus<<"'],
-            ['/time   set   nonsense', 'Syntax error: Unexpected "nonsense": at "e   set   >>nonsense<<"'],
             ['/time set 1.5', 'Syntax error: Unexpected "1.5": at "/time set >>1.5<<"'],
             ['/tp ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ x', 'Syntax error: Unexpected "~": at "~ ~ ~ ~ ~ >>~<< ~ ~ ~ ~ ~"'],
             ['/effect @a speed 10 1 notabool', 'Syntax error: Unexpected "notabool": at "peed 10 1 >>notabool<<"']
         ])('refuses %s with the syntax error BDS words', async (line, expected) => {
+            const commandManager = managerOver({});
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await expect(commandManager.dispatchCommand(console, console, line)).resolves.toBe(false);
+            expect(sendMessage.mock.calls.map(([message]) => message)).toEqual([`§c${expected}`]);
+        });
+
+        // 1.26.60 looks a word up as a time marker, so these parse and the command refuses them.
+        it.each([
+            ['/time set nonsense', "Cannot find time marker 'nonsense' on 'minecraft:overworld'"],
+            ['/time   set   nonsense', "Cannot find time marker 'nonsense' on 'minecraft:overworld'"],
+            ['/time set -5', 'Cannot set time to before 0 ticks, the number must be at least 0']
+        ])('refuses %s with the error BDS words', async (line, expected) => {
             const commandManager = managerOver({});
             await commandManager.enable();
 

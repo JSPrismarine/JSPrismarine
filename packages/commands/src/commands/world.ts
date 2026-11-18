@@ -31,6 +31,7 @@ import { suggestFromData } from '../suggestions';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
 import {
+    FAILED,
     arg,
     command,
     dimensionArgument,
@@ -39,6 +40,7 @@ import {
     resolvePosition,
     select,
     source,
+    toBedrockDimensionName,
     unexpectedArgument,
     value
 } from './support';
@@ -66,12 +68,20 @@ const TIME_SPEC_TICKS: Record<TimeSpec, number> = {
     midnight: 18_000
 };
 
+/**
+ * Sets the time and names the source's dimension in the answer, as Bedrock 1.26.60 does since
+ * it gave each dimension its own clock. The world keeps one clock, so every dimension moves.
+ */
 const setTime = (context: Context, ticks: number): number => {
     const current = source(context);
+    if (ticks < 0) {
+        current.sendError('Cannot set time to before 0 ticks, the number must be at least 0');
+        return FAILED;
+    }
     current.host.world.setTime(ticks);
-    current.sendFeedback(`Set the time to ${ticks}`);
-    // A count of zero or less reads as a failure, and Bedrock's `time set` takes a negative time.
-    return ticks > 0 ? ticks : 1;
+    current.sendFeedback(`Set the time of '${toBedrockDimensionName(current.dimension)}' to ${ticks}`);
+    // A count of zero reads as a failure, and setting the time to zero succeeds.
+    return Math.max(ticks, 1);
 };
 
 /** What `/locate` looks for, which is also the literal and the argument name of each form. */
@@ -357,8 +367,9 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             .then(
                 lit('set')
                     .then(
-                        // Bedrock's `time set` takes a plain integer, negative or not, and refuses a
-                        // fraction or a unit, so this is not Java's `time` argument.
+                        // Bedrock's `time set` takes a plain integer and refuses a fraction or a
+                        // unit, so this is not Java's `time` argument. A negative one parses and
+                        // is refused by `setTime`, with Bedrock's answer rather than a syntax error.
                         arg('amount', integerArgument()).executes(
                             command((context) => setTime(context, value<number>(context, 'amount')))
                         )
@@ -367,13 +378,22 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
                         // Named after Java's `timemarker` argument, so the Java 26.3 route
                         // that merges over this one binds here and not to `amount`. That
                         // route parses a resource location, so `minecraft:noon` arrives too,
-                        // and so does any other word, which Bedrock refuses as a syntax error.
+                        // and so does any other word, which Bedrock 1.26.60 looks up as a
+                        // marker of the source's dimension and refuses by name. A word that
+                        // starts like a number, such as `1.5`, is neither a tick count nor a
+                        // marker name there, and is refused as a syntax error.
                         arg('timemarker', enumArgument('TimeSpec', TIME_SPECS)).executes(
                             command((context) => {
-                                const marker = value<string>(context, 'timemarker').replace(/^minecraft:/, '');
+                                const word = value<string>(context, 'timemarker');
+                                const marker = word.replace(/^minecraft:/, '');
                                 const spec = TIME_SPECS.find((name) => name === marker);
-                                if (spec === undefined) return unexpectedArgument(context, 'timemarker');
-                                return setTime(context, TIME_SPEC_TICKS[spec]);
+                                if (spec !== undefined) return setTime(context, TIME_SPEC_TICKS[spec]);
+                                if (/^[-+.\d]/.test(word)) return unexpectedArgument(context, 'timemarker');
+                                const current = source(context);
+                                current.sendError(
+                                    `Cannot find time marker '${word}' on '${toBedrockDimensionName(current.dimension)}'`
+                                );
+                                return FAILED;
                             })
                         )
                     )

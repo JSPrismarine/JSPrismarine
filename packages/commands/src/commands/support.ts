@@ -230,3 +230,9 @@ export const toDimensionId = (name: string): string => {
     if (name.includes(':')) return name;
     return `minecraft:${name === 'nether' ? 'the_nether' : name}`;
 };
+
+/**
+ * The name Bedrock gives a dimension in a command's answer: the inverse of {@link toDimensionId}
+ * for the vanilla three, so Java's `minecraft:the_nether` is `minecraft:nether`.
+ */
+export const toBedrockDimensionName = (id: string): string => (id === 'minecraft:the_nether' ? 'minecraft:nether' : id);

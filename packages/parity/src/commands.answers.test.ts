@@ -26,10 +26,14 @@ import { REFERENCES } from './references.ts';
 /** What this server answers a console line with, in the shape the capture records. */
 const answerOf = (command: string): Omit<CommandAnswer, 'command'> => {
     const feedback: string[] = [];
+    const errors: string[] = [];
     const source = createCommandSource({
         host: testCommandHost(),
         permissionLevel: 4,
-        onFeedback: (message) => feedback.push(message)
+        onFeedback: (message) => feedback.push(message),
+        // A command that parsed and then refused to run answers through `sendError`, which the
+        // console logs at the error level, as it does a syntax error.
+        onError: (message) => errors.push(message)
     });
     try {
         registerVanillaCommands().getDispatcher().execute(command, source);
@@ -37,6 +41,7 @@ const answerOf = (command: string): Omit<CommandAnswer, 'command'> => {
         if (!(error instanceof CommandSyntaxException)) throw error;
         return { level: 'ERROR', message: bedrockSyntaxError(error) ?? error.getMessage() };
     }
+    if (errors.length > 0) return { level: 'ERROR', message: errors[0]! };
     return { level: 'INFO', message: feedback[0] ?? '' };
 };
 
