@@ -3,9 +3,15 @@
  * `unhandledJavaTypes.test.ts` checks each list against the pinned Java registry report, and
  * fails when an entry gains a handler or leaves the report, so a list only shrinks.
  *
- * A listed type still parses: the predicate warns that it is not implemented and evaluates
- * false.
+ * A listed sub-predicate type still parses: the predicate warns that it is not implemented and
+ * evaluates false.
  */
+
+/** `minecraft:loot_condition_type` entries with no condition. */
+export const UNHANDLED_LOOT_CONDITION_TYPE: readonly string[] = [];
+
+/** `minecraft:loot_function_type` entries with no modifier. */
+export const UNHANDLED_LOOT_FUNCTION_TYPE: readonly string[] = [];
 
 /** `minecraft:data_component_predicate_type` entries with no built-in predicate. */
 export const UNHANDLED_DATA_COMPONENT_PREDICATE_TYPE: readonly string[] = [
