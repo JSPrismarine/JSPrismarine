@@ -16,6 +16,8 @@ import type {
     ScriptCommandSet,
     ScriptCommandSource,
     ScriptComponentSink,
+    ScriptDebugShape,
+    ScriptDebugShapeChange,
     ScriptEventSourceType,
     ScriptFormChannel,
     ScriptFormResponse,
@@ -123,6 +125,8 @@ export interface ScriptWorldPlayer {
     closeForms?(): void;
     /** Sends the player to another server, as a `TransferPacket`. A player without it stays. */
     transfer?(target: ScriptTransferTarget): void;
+    /** Draws, redraws or removes debug shapes, as a `PrimitiveShapesPacket`. A player without it sees none. */
+    drawDebugShapes?(changes: readonly ScriptDebugShapeChange[]): void;
 }
 
 /** What {@link LevelScriptWorld} reads of its level. */
@@ -207,6 +211,10 @@ export class LevelScriptWorld implements ScriptWorld {
     private known = new Map<string, string>();
     /** The players in the level when the running script flush began; undefined between flushes. */
     private presentAtFlush: ReadonlySet<string> | undefined;
+    /** The debug shapes the level's scripts draw now, by id. */
+    private readonly shapes = new Map<number, ScriptDebugShape>();
+    /** The players who were sent {@link LevelScriptWorld.shapes} and each change since. */
+    private readonly shapeViewers = new Set<string>();
 
     /** The level's GameTest simulated players, when the server gives the scripts any. */
     public readonly simulatedPlayers: ScriptWorld['simulatedPlayers'];
@@ -524,9 +532,35 @@ export class LevelScriptWorld implements ScriptWorld {
         this.presentAtFlush = new Set(this.players());
     }
 
-    /** Marks the end of a script flush. */
+    /**
+     * Marks the end of a script flush, and sends a player who has not seen the level's debug
+     * shapes, such as one who joined since the last flush, every shape the level draws.
+     */
     public endFlush(): void {
         this.presentAtFlush = undefined;
+        const players = this.sources.players();
+        const present = new Set(players.map((player) => player.id));
+        for (const viewer of this.shapeViewers) if (!present.has(viewer)) this.shapeViewers.delete(viewer);
+        const all = [...this.shapes].map(([id, shape]) => ({ id, shape }));
+        for (const player of players) {
+            if (this.shapeViewers.has(player.id)) continue;
+            this.shapeViewers.add(player.id);
+            if (all.length > 0) player.drawDebugShapes?.(all);
+        }
+    }
+
+    /**
+     * Sends one flush's debug shape changes to every player who has seen the shapes so far. The
+     * others get every shape at the end of the flush.
+     */
+    public drawDebugShapes(changes: readonly ScriptDebugShapeChange[]): void {
+        for (const { id, shape } of changes) {
+            if (shape === undefined) this.shapes.delete(id);
+            else this.shapes.set(id, shape);
+        }
+        for (const player of this.sources.players()) {
+            if (this.shapeViewers.has(player.id)) player.drawDebugShapes?.(changes);
+        }
     }
 
     /**
