@@ -11,10 +11,20 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./db/Storage": {
+                "types": "./dist/db/Storage.d.ts",
+                "import": "./dist/db/Storage.js",
+                "module": "./dist/db/Storage.js"
+            },
+            "./format/InternalKey": {
+                "types": "./dist/format/InternalKey.d.ts",
+                "import": "./dist/format/InternalKey.js",
+                "module": "./dist/format/InternalKey.js"
+            },
+            "./format/TableReader": {
+                "types": "./dist/format/TableReader.d.ts",
+                "import": "./dist/format/TableReader.js",
+                "module": "./dist/format/TableReader.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +42,17 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./db/Storage": {
+            "jsprismarine:dist": "./dist/db/Storage.js",
+            "default": "./src/db/Storage.ts"
+        },
+        "./format/InternalKey": {
+            "jsprismarine:dist": "./dist/format/InternalKey.js",
+            "default": "./src/format/InternalKey.ts"
+        },
+        "./format/TableReader": {
+            "jsprismarine:dist": "./dist/format/TableReader.js",
+            "default": "./src/format/TableReader.ts"
         },
         "./package.json": "./package.json"
     },

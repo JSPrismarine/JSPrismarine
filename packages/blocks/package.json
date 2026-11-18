@@ -11,10 +11,20 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./components": {
+                "types": "./dist/components.d.ts",
+                "import": "./dist/components.js",
+                "module": "./dist/components.js"
+            },
+            "./geometry": {
+                "types": "./dist/geometry.d.ts",
+                "import": "./dist/geometry.js",
+                "module": "./dist/geometry.js"
+            },
+            "./hooks": {
+                "types": "./dist/hooks.d.ts",
+                "import": "./dist/hooks.js",
+                "module": "./dist/hooks.js"
             },
             "./package.json": "./package.json"
         }
@@ -33,9 +43,17 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./components": {
+            "jsprismarine:dist": "./dist/components.js",
+            "default": "./src/components.ts"
+        },
+        "./geometry": {
+            "jsprismarine:dist": "./dist/geometry.js",
+            "default": "./src/geometry.ts"
+        },
+        "./hooks": {
+            "jsprismarine:dist": "./dist/hooks.js",
+            "default": "./src/hooks.ts"
         },
         "./package.json": "./package.json"
     },

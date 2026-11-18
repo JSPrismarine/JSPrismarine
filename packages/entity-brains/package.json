@@ -11,10 +11,35 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./memory": {
+                "types": "./dist/memory.d.ts",
+                "import": "./dist/memory.js",
+                "module": "./dist/memory.js"
+            },
+            "./mobs/hoglin": {
+                "types": "./dist/mobs/hoglin.d.ts",
+                "import": "./dist/mobs/hoglin.js",
+                "module": "./dist/mobs/hoglin.js"
+            },
+            "./mobs/piglin": {
+                "types": "./dist/mobs/piglin.d.ts",
+                "import": "./dist/mobs/piglin.js",
+                "module": "./dist/mobs/piglin.js"
+            },
+            "./mobs/villager": {
+                "types": "./dist/mobs/villager.d.ts",
+                "import": "./dist/mobs/villager.js",
+                "module": "./dist/mobs/villager.js"
+            },
+            "./mobs/warden": {
+                "types": "./dist/mobs/warden.d.ts",
+                "import": "./dist/mobs/warden.js",
+                "module": "./dist/mobs/warden.js"
+            },
+            "./world": {
+                "types": "./dist/world.d.ts",
+                "import": "./dist/world.js",
+                "module": "./dist/world.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +57,29 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./memory": {
+            "jsprismarine:dist": "./dist/memory.js",
+            "default": "./src/memory.ts"
+        },
+        "./mobs/hoglin": {
+            "jsprismarine:dist": "./dist/mobs/hoglin.js",
+            "default": "./src/mobs/hoglin.ts"
+        },
+        "./mobs/piglin": {
+            "jsprismarine:dist": "./dist/mobs/piglin.js",
+            "default": "./src/mobs/piglin.ts"
+        },
+        "./mobs/villager": {
+            "jsprismarine:dist": "./dist/mobs/villager.js",
+            "default": "./src/mobs/villager.ts"
+        },
+        "./mobs/warden": {
+            "jsprismarine:dist": "./dist/mobs/warden.js",
+            "default": "./src/mobs/warden.ts"
+        },
+        "./world": {
+            "jsprismarine:dist": "./dist/world.js",
+            "default": "./src/world.ts"
         },
         "./package.json": "./package.json"
     },

@@ -11,10 +11,10 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./levels": {
+                "types": "./dist/levels.d.ts",
+                "import": "./dist/levels.js",
+                "module": "./dist/levels.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +32,9 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./levels": {
+            "jsprismarine:dist": "./dist/levels.js",
+            "default": "./src/levels.ts"
         },
         "./package.json": "./package.json"
     },

@@ -6,10 +6,225 @@
     "publishConfig": {
         "access": "public",
         "exports": {
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./JSPrismarineError": {
+                "types": "./dist/JSPrismarineError.d.ts",
+                "import": "./dist/JSPrismarineError.js",
+                "module": "./dist/JSPrismarineError.js"
+            },
+            "./auth": {
+                "types": "./dist/auth.d.ts",
+                "import": "./dist/auth.js",
+                "module": "./dist/auth.js"
+            },
+            "./binaryutils": {
+                "types": "./dist/binaryutils.d.ts",
+                "import": "./dist/binaryutils.js",
+                "module": "./dist/binaryutils.js"
+            },
+            "./block-behaviors": {
+                "types": "./dist/block-behaviors.d.ts",
+                "import": "./dist/block-behaviors.js",
+                "module": "./dist/block-behaviors.js"
+            },
+            "./blocks": {
+                "types": "./dist/blocks.d.ts",
+                "import": "./dist/blocks.js",
+                "module": "./dist/blocks.js"
+            },
+            "./brigadier": {
+                "types": "./dist/brigadier.d.ts",
+                "import": "./dist/brigadier.js",
+                "module": "./dist/brigadier.js"
+            },
+            "./chunkgen": {
+                "types": "./dist/chunkgen.d.ts",
+                "import": "./dist/chunkgen.js",
+                "module": "./dist/chunkgen.js"
+            },
+            "./client": {
+                "types": "./dist/client.d.ts",
+                "import": "./dist/client.js",
+                "module": "./dist/client.js"
+            },
+            "./commands": {
+                "types": "./dist/commands.d.ts",
+                "import": "./dist/commands.js",
+                "module": "./dist/commands.js"
+            },
+            "./common": {
+                "types": "./dist/common.d.ts",
+                "import": "./dist/common.js",
+                "module": "./dist/common.js"
+            },
+            "./console": {
+                "types": "./dist/console.d.ts",
+                "import": "./dist/console.js",
+                "module": "./dist/console.js"
+            },
+            "./console-protocol": {
+                "types": "./dist/console-protocol.d.ts",
+                "import": "./dist/console-protocol.js",
+                "module": "./dist/console-protocol.js"
+            },
+            "./content": {
+                "types": "./dist/content.d.ts",
+                "import": "./dist/content.js",
+                "module": "./dist/content.js"
+            },
+            "./engine-systems": {
+                "types": "./dist/engine-systems.d.ts",
+                "import": "./dist/engine-systems.js",
+                "module": "./dist/engine-systems.js"
+            },
+            "./entities": {
+                "types": "./dist/entities.d.ts",
+                "import": "./dist/entities.js",
+                "module": "./dist/entities.js"
+            },
+            "./entity-brains": {
+                "types": "./dist/entity-brains.d.ts",
+                "import": "./dist/entity-brains.js",
+                "module": "./dist/entity-brains.js"
+            },
+            "./entity-goals": {
+                "types": "./dist/entity-goals.d.ts",
+                "import": "./dist/entity-goals.js",
+                "module": "./dist/entity-goals.js"
+            },
+            "./features": {
+                "types": "./dist/features.d.ts",
+                "import": "./dist/features.js",
+                "module": "./dist/features.js"
+            },
+            "./items": {
+                "types": "./dist/items.d.ts",
+                "import": "./dist/items.js",
+                "module": "./dist/items.js"
+            },
+            "./kernel": {
+                "types": "./dist/kernel.d.ts",
+                "import": "./dist/kernel.js",
+                "module": "./dist/kernel.js"
+            },
+            "./leveldb": {
+                "types": "./dist/leveldb.d.ts",
+                "import": "./dist/leveldb.js",
+                "module": "./dist/leveldb.js"
+            },
+            "./lighting": {
+                "types": "./dist/lighting.d.ts",
+                "import": "./dist/lighting.js",
+                "module": "./dist/lighting.js"
+            },
+            "./loot": {
+                "types": "./dist/loot.d.ts",
+                "import": "./dist/loot.js",
+                "module": "./dist/loot.js"
+            },
+            "./mapping": {
+                "types": "./dist/mapping.d.ts",
+                "import": "./dist/mapping.js",
+                "module": "./dist/mapping.js"
+            },
+            "./minecraft": {
+                "types": "./dist/minecraft.d.ts",
+                "import": "./dist/minecraft.js",
+                "module": "./dist/minecraft.js"
+            },
+            "./molang": {
+                "types": "./dist/molang.d.ts",
+                "import": "./dist/molang.js",
+                "module": "./dist/molang.js"
+            },
+            "./native-network": {
+                "types": "./dist/native-network.d.ts",
+                "import": "./dist/native-network.js",
+                "module": "./dist/native-network.js"
+            },
+            "./nbt": {
+                "types": "./dist/nbt.d.ts",
+                "import": "./dist/nbt.js",
+                "module": "./dist/nbt.js"
+            },
+            "./nethernet": {
+                "types": "./dist/nethernet.d.ts",
+                "import": "./dist/nethernet.js",
+                "module": "./dist/nethernet.js"
+            },
+            "./packs": {
+                "types": "./dist/packs.d.ts",
+                "import": "./dist/packs.js",
+                "module": "./dist/packs.js"
+            },
+            "./predicates": {
+                "types": "./dist/predicates.d.ts",
+                "import": "./dist/predicates.js",
+                "module": "./dist/predicates.js"
+            },
+            "./prismarine/command": {
+                "types": "./dist/prismarine/command.d.ts",
+                "import": "./dist/prismarine/command.js",
+                "module": "./dist/prismarine/command.js"
+            },
+            "./prismarine/content": {
+                "types": "./dist/prismarine/content.d.ts",
+                "import": "./dist/prismarine/content.js",
+                "module": "./dist/prismarine/content.js"
+            },
+            "./prismarine/entity": {
+                "types": "./dist/prismarine/entity.d.ts",
+                "import": "./dist/prismarine/entity.js",
+                "module": "./dist/prismarine/entity.js"
+            },
+            "./prismarine/generation": {
+                "types": "./dist/prismarine/generation.d.ts",
+                "import": "./dist/prismarine/generation.js",
+                "module": "./dist/prismarine/generation.js"
+            },
+            "./prismarine/network": {
+                "types": "./dist/prismarine/network.d.ts",
+                "import": "./dist/prismarine/network.js",
+                "module": "./dist/prismarine/network.js"
+            },
+            "./prismarine/server": {
+                "types": "./dist/prismarine/server.d.ts",
+                "import": "./dist/prismarine/server.js",
+                "module": "./dist/prismarine/server.js"
+            },
+            "./prismarine/world": {
+                "types": "./dist/prismarine/world.d.ts",
+                "import": "./dist/prismarine/world.js",
+                "module": "./dist/prismarine/world.js"
+            },
+            "./protocol/codec": {
+                "types": "./dist/protocol/codec.d.ts",
+                "import": "./dist/protocol/codec.js",
+                "module": "./dist/protocol/codec.js"
+            },
+            "./protocol/wire": {
+                "types": "./dist/protocol/wire.d.ts",
+                "import": "./dist/protocol/wire.js",
+                "module": "./dist/protocol/wire.js"
+            },
+            "./raknet": {
+                "types": "./dist/raknet.d.ts",
+                "import": "./dist/raknet.js",
+                "module": "./dist/raknet.js"
+            },
+            "./server": {
+                "types": "./dist/server.d.ts",
+                "import": "./dist/server.js",
+                "module": "./dist/server.js"
+            },
+            "./structures": {
+                "types": "./dist/structures.d.ts",
+                "import": "./dist/structures.js",
+                "module": "./dist/structures.js"
+            },
+            "./worldgen": {
+                "types": "./dist/worldgen.d.ts",
+                "import": "./dist/worldgen.js",
+                "module": "./dist/worldgen.js"
             },
             "./package.json": "./package.json"
         }
@@ -21,9 +236,181 @@
         "README.md"
     ],
     "exports": {
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./JSPrismarineError": {
+            "jsprismarine:dist": "./dist/JSPrismarineError.js",
+            "default": "./src/JSPrismarineError.ts"
+        },
+        "./auth": {
+            "jsprismarine:dist": "./dist/auth.js",
+            "default": "./src/auth.ts"
+        },
+        "./binaryutils": {
+            "jsprismarine:dist": "./dist/binaryutils.js",
+            "default": "./src/binaryutils.ts"
+        },
+        "./block-behaviors": {
+            "jsprismarine:dist": "./dist/block-behaviors.js",
+            "default": "./src/block-behaviors.ts"
+        },
+        "./blocks": {
+            "jsprismarine:dist": "./dist/blocks.js",
+            "default": "./src/blocks.ts"
+        },
+        "./brigadier": {
+            "jsprismarine:dist": "./dist/brigadier.js",
+            "default": "./src/brigadier.ts"
+        },
+        "./chunkgen": {
+            "jsprismarine:dist": "./dist/chunkgen.js",
+            "default": "./src/chunkgen.ts"
+        },
+        "./client": {
+            "jsprismarine:dist": "./dist/client.js",
+            "default": "./src/client.ts"
+        },
+        "./commands": {
+            "jsprismarine:dist": "./dist/commands.js",
+            "default": "./src/commands.ts"
+        },
+        "./common": {
+            "jsprismarine:dist": "./dist/common.js",
+            "default": "./src/common.ts"
+        },
+        "./console": {
+            "jsprismarine:dist": "./dist/console.js",
+            "default": "./src/console.ts"
+        },
+        "./console-protocol": {
+            "jsprismarine:dist": "./dist/console-protocol.js",
+            "default": "./src/console-protocol.ts"
+        },
+        "./content": {
+            "jsprismarine:dist": "./dist/content.js",
+            "default": "./src/content.ts"
+        },
+        "./engine-systems": {
+            "jsprismarine:dist": "./dist/engine-systems.js",
+            "default": "./src/engine-systems.ts"
+        },
+        "./entities": {
+            "jsprismarine:dist": "./dist/entities.js",
+            "default": "./src/entities.ts"
+        },
+        "./entity-brains": {
+            "jsprismarine:dist": "./dist/entity-brains.js",
+            "default": "./src/entity-brains.ts"
+        },
+        "./entity-goals": {
+            "jsprismarine:dist": "./dist/entity-goals.js",
+            "default": "./src/entity-goals.ts"
+        },
+        "./features": {
+            "jsprismarine:dist": "./dist/features.js",
+            "default": "./src/features.ts"
+        },
+        "./items": {
+            "jsprismarine:dist": "./dist/items.js",
+            "default": "./src/items.ts"
+        },
+        "./kernel": {
+            "jsprismarine:dist": "./dist/kernel.js",
+            "default": "./src/kernel.ts"
+        },
+        "./leveldb": {
+            "jsprismarine:dist": "./dist/leveldb.js",
+            "default": "./src/leveldb.ts"
+        },
+        "./lighting": {
+            "jsprismarine:dist": "./dist/lighting.js",
+            "default": "./src/lighting.ts"
+        },
+        "./loot": {
+            "jsprismarine:dist": "./dist/loot.js",
+            "default": "./src/loot.ts"
+        },
+        "./mapping": {
+            "jsprismarine:dist": "./dist/mapping.js",
+            "default": "./src/mapping.ts"
+        },
+        "./minecraft": {
+            "jsprismarine:dist": "./dist/minecraft.js",
+            "default": "./src/minecraft.ts"
+        },
+        "./molang": {
+            "jsprismarine:dist": "./dist/molang.js",
+            "default": "./src/molang.ts"
+        },
+        "./native-network": {
+            "jsprismarine:dist": "./dist/native-network.js",
+            "default": "./src/native-network.ts"
+        },
+        "./nbt": {
+            "jsprismarine:dist": "./dist/nbt.js",
+            "default": "./src/nbt.ts"
+        },
+        "./nethernet": {
+            "jsprismarine:dist": "./dist/nethernet.js",
+            "default": "./src/nethernet.ts"
+        },
+        "./packs": {
+            "jsprismarine:dist": "./dist/packs.js",
+            "default": "./src/packs.ts"
+        },
+        "./predicates": {
+            "jsprismarine:dist": "./dist/predicates.js",
+            "default": "./src/predicates.ts"
+        },
+        "./prismarine/command": {
+            "jsprismarine:dist": "./dist/prismarine/command.js",
+            "default": "./src/prismarine/command.ts"
+        },
+        "./prismarine/content": {
+            "jsprismarine:dist": "./dist/prismarine/content.js",
+            "default": "./src/prismarine/content.ts"
+        },
+        "./prismarine/entity": {
+            "jsprismarine:dist": "./dist/prismarine/entity.js",
+            "default": "./src/prismarine/entity.ts"
+        },
+        "./prismarine/generation": {
+            "jsprismarine:dist": "./dist/prismarine/generation.js",
+            "default": "./src/prismarine/generation.ts"
+        },
+        "./prismarine/network": {
+            "jsprismarine:dist": "./dist/prismarine/network.js",
+            "default": "./src/prismarine/network.ts"
+        },
+        "./prismarine/server": {
+            "jsprismarine:dist": "./dist/prismarine/server.js",
+            "default": "./src/prismarine/server.ts"
+        },
+        "./prismarine/world": {
+            "jsprismarine:dist": "./dist/prismarine/world.js",
+            "default": "./src/prismarine/world.ts"
+        },
+        "./protocol/codec": {
+            "jsprismarine:dist": "./dist/protocol/codec.js",
+            "default": "./src/protocol/codec.ts"
+        },
+        "./protocol/wire": {
+            "jsprismarine:dist": "./dist/protocol/wire.js",
+            "default": "./src/protocol/wire.ts"
+        },
+        "./raknet": {
+            "jsprismarine:dist": "./dist/raknet.js",
+            "default": "./src/raknet.ts"
+        },
+        "./server": {
+            "jsprismarine:dist": "./dist/server.js",
+            "default": "./src/server.ts"
+        },
+        "./structures": {
+            "jsprismarine:dist": "./dist/structures.js",
+            "default": "./src/structures.ts"
+        },
+        "./worldgen": {
+            "jsprismarine:dist": "./dist/worldgen.js",
+            "default": "./src/worldgen.ts"
         },
         "./package.json": "./package.json"
     },

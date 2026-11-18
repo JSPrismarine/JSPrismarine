@@ -11,10 +11,45 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./biome/BiomeSource": {
+                "types": "./dist/biome/BiomeSource.d.ts",
+                "import": "./dist/biome/BiomeSource.js",
+                "module": "./dist/biome/BiomeSource.js"
+            },
+            "./blending/Blender": {
+                "types": "./dist/blending/Blender.d.ts",
+                "import": "./dist/blending/Blender.js",
+                "module": "./dist/blending/Blender.js"
+            },
+            "./blending/BlendingData": {
+                "types": "./dist/blending/BlendingData.d.ts",
+                "import": "./dist/blending/BlendingData.js",
+                "module": "./dist/blending/BlendingData.js"
+            },
+            "./blending/belowZeroRetrogen": {
+                "types": "./dist/blending/belowZeroRetrogen.d.ts",
+                "import": "./dist/blending/belowZeroRetrogen.js",
+                "module": "./dist/blending/belowZeroRetrogen.js"
+            },
+            "./blending/generationVersion": {
+                "types": "./dist/blending/generationVersion.d.ts",
+                "import": "./dist/blending/generationVersion.js",
+                "module": "./dist/blending/generationVersion.js"
+            },
+            "./chunk/Aquifer": {
+                "types": "./dist/chunk/Aquifer.d.ts",
+                "import": "./dist/chunk/Aquifer.js",
+                "module": "./dist/chunk/Aquifer.js"
+            },
+            "./random/LegacyRandomSource": {
+                "types": "./dist/random/LegacyRandomSource.d.ts",
+                "import": "./dist/random/LegacyRandomSource.js",
+                "module": "./dist/random/LegacyRandomSource.js"
+            },
+            "./surface/SurfaceSystem": {
+                "types": "./dist/surface/SurfaceSystem.d.ts",
+                "import": "./dist/surface/SurfaceSystem.js",
+                "module": "./dist/surface/SurfaceSystem.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +67,37 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./biome/BiomeSource": {
+            "jsprismarine:dist": "./dist/biome/BiomeSource.js",
+            "default": "./src/biome/BiomeSource.ts"
+        },
+        "./blending/Blender": {
+            "jsprismarine:dist": "./dist/blending/Blender.js",
+            "default": "./src/blending/Blender.ts"
+        },
+        "./blending/BlendingData": {
+            "jsprismarine:dist": "./dist/blending/BlendingData.js",
+            "default": "./src/blending/BlendingData.ts"
+        },
+        "./blending/belowZeroRetrogen": {
+            "jsprismarine:dist": "./dist/blending/belowZeroRetrogen.js",
+            "default": "./src/blending/belowZeroRetrogen.ts"
+        },
+        "./blending/generationVersion": {
+            "jsprismarine:dist": "./dist/blending/generationVersion.js",
+            "default": "./src/blending/generationVersion.ts"
+        },
+        "./chunk/Aquifer": {
+            "jsprismarine:dist": "./dist/chunk/Aquifer.js",
+            "default": "./src/chunk/Aquifer.ts"
+        },
+        "./random/LegacyRandomSource": {
+            "jsprismarine:dist": "./dist/random/LegacyRandomSource.js",
+            "default": "./src/random/LegacyRandomSource.ts"
+        },
+        "./surface/SurfaceSystem": {
+            "jsprismarine:dist": "./dist/surface/SurfaceSystem.js",
+            "default": "./src/surface/SurfaceSystem.ts"
         },
         "./package.json": "./package.json"
     },

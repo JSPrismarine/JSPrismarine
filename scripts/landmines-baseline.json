@@ -1,18 +1,9 @@
 {
-    "packages/advancements/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/advancements/src/corpus.test.ts": {
         "landmines-testing/no-flake-masking": 3
     },
-    "packages/auth/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/auth/src/XboxAuthProvider.test.ts": {
         "landmines-testing/no-test-doubles": 1
-    },
-    "packages/bedrock-data/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/bedrock-data/utils/bedrock-dump/leveldbCompat.test.ts": {
         "landmines-testing/no-flake-masking": 2
@@ -24,26 +15,11 @@
     "packages/bedrock-data/utils/java/jdk.test.ts": {
         "landmines-testing/no-test-doubles": 2
     },
-    "packages/binaryutils/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/binaryutils/src/BinaryStream.alloc.test.ts": {
         "landmines-testing/no-test-doubles": 2
     },
-    "packages/block-behaviors/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/blocks/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/blocks/src/vanillaBlocks.test.ts": {
         "landmines-testing/no-flake-masking": 4
-    },
-    "packages/brigadier/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/chunkgen/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/chunkgen/src/ChunkHolder.test.ts": {
         "landmines-testing/no-test-doubles": 4
@@ -62,9 +38,6 @@
     "packages/chunkgen/src/hostLifetime.test.ts": {
         "landmines-testing/no-fixed-sleep": 1,
         "landmines-testing/no-flake-masking": 3
-    },
-    "packages/client/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/client/src/DimensionChange.test.ts": {
         "landmines-testing/no-fixed-sleep": 1,
@@ -122,20 +95,8 @@
     "packages/client/src/testing/slowHost.test.helper.ts": {
         "landmines-structure/test-file-names": 1
     },
-    "packages/color-parser/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/commands/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/console-protocol/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/console-protocol/src/subprocessLink.test.ts": {
         "landmines-testing/no-test-doubles": 2
-    },
-    "packages/console/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/console/src/app/createApp.test.ts": {
         "landmines-testing/no-fixed-sleep": 4,
@@ -150,20 +111,11 @@
     "packages/console/src/startConsole.test.ts": {
         "landmines-testing/no-test-doubles": 3
     },
-    "packages/content/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/enchantments/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/enchantments/src/corpus.test.ts": {
         "landmines-testing/no-flake-masking": 1
     },
     "packages/enchantments/test/fixtures.ts": {
         "landmines-structure/test-file-names": 1
-    },
-    "packages/engine-systems/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/engine-systems/src/engine.test.ts": {
         "landmines-testing/no-test-doubles": 1
@@ -171,14 +123,8 @@
     "packages/engine-systems/src/scheduler.test.ts": {
         "landmines-testing/no-test-doubles": 1
     },
-    "packages/entities/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/entities/src/componentState.test.helper.ts": {
         "landmines-structure/test-file-names": 1
-    },
-    "packages/entity-brains/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/entity-brains/src/mobs/mobs.test.ts": {
         "landmines-testing/no-flake-masking": 1,
@@ -187,48 +133,18 @@
     "packages/entity-brains/src/testWorld.ts": {
         "landmines-testing/no-flake-masking": 1
     },
-    "packages/entity-goals/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/errors/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/features/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/features/src/corpus.test.ts": {
         "landmines-structure/colocated-tests": 1
     },
-    "packages/item-behaviors/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/items/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/kernel/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/kernel/src/events.test.ts": {
         "landmines-testing/no-unsignaled-poll": 1
-    },
-    "packages/leveldb/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/leveldb/src/Database.test.ts": {
         "landmines-testing/no-flake-masking": 1,
         "landmines-testing/no-test-doubles": 2
     },
-    "packages/lighting/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/logger/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/logger/src/logger.test.ts": {
         "landmines-testing/no-test-doubles": 2
-    },
-    "packages/loot/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/loot/src/bedrockCorpus.test.ts": {
         "landmines-testing/no-flake-masking": 5
@@ -236,29 +152,11 @@
     "packages/loot/src/corpus.test.ts": {
         "landmines-testing/no-flake-masking": 2
     },
-    "packages/mapping/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/mapping/src/vanillaIdentifiers.test.ts": {
         "landmines-testing/no-flake-masking": 2
     },
-    "packages/math/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/mcfunction/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/minecraft/datagen/unversioned-enums.test.ts": {
         "landmines-structure/colocated-tests": 1
-    },
-    "packages/minecraft/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/molang/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/native-network/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/native-network/src/SharedPort.raknet.test.ts": {
         "landmines-testing/no-fixed-sleep": 2
@@ -269,12 +167,6 @@
     "packages/native-network/src/testing/native.test.helper.ts": {
         "landmines-structure/test-file-names": 1
     },
-    "packages/nbt/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/nethernet/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/nethernet/src/Connection.close.test.ts": {
         "landmines-testing/no-flake-masking": 1
     },
@@ -283,9 +175,6 @@
     },
     "packages/nethernet/src/testing/nativeDriver.test.helper.ts": {
         "landmines-structure/test-file-names": 1
-    },
-    "packages/packs/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/packs/src/load.test.ts": {
         "landmines-testing/no-test-doubles": 1
@@ -331,9 +220,6 @@
     },
     "packages/parity/src/worldgen.generation.test.ts": {
         "landmines-testing/no-flake-masking": 1
-    },
-    "packages/predicates/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/predicates/src/corpus.test.ts": {
         "landmines-testing/no-flake-masking": 1
@@ -662,9 +548,6 @@
     "packages/protocol/benchmarks/compression.bench.ts": {
         "landmines-testing/no-test-doubles": 2
     },
-    "packages/protocol/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/protocol/src/packet/ChangeDimensionPacket.layout.test.ts": {
         "landmines-structure/colocated-tests": 1
     },
@@ -719,9 +602,6 @@
     "packages/protocol/src/testing/evidence.test.helper.ts": {
         "landmines-structure/test-file-names": 1
     },
-    "packages/raknet/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/raknet/src/ClientHandshake.test.ts": {
         "landmines-testing/no-fixed-sleep": 3
     },
@@ -743,14 +623,8 @@
     "packages/raknet/src/WorkerServerSocket.test.ts": {
         "landmines-testing/no-fixed-sleep": 4
     },
-    "packages/recipes/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/recipes/src/vanillaRecipes.test.ts": {
         "landmines-testing/no-flake-masking": 1
-    },
-    "packages/server/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/server/src/Server.shutdown.test.ts": {
         "landmines-testing/no-flake-masking": 1
@@ -767,26 +641,14 @@
     "packages/server/src/host/frontends.test.ts": {
         "landmines-testing/no-test-doubles": 3
     },
-    "packages/spawning/package.json": {
-        "landmines-structure/package-exports": 1
-    },
     "packages/spawning/src/attemptWorld.test.ts": {
         "landmines-testing/no-test-doubles": 6
-    },
-    "packages/structures/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/structures/src/corpus.test.ts": {
         "landmines-testing/no-flake-masking": 2
     },
     "packages/structures/src/processors.ts": {
         "landmines-testing/no-flake-masking": 2
-    },
-    "packages/trading/package.json": {
-        "landmines-structure/package-exports": 1
-    },
-    "packages/worldgen/package.json": {
-        "landmines-structure/package-exports": 1
     },
     "packages/worldgen/src/biome/biome.test.ts": {
         "landmines-testing/no-flake-masking": 2

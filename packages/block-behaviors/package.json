@@ -11,10 +11,20 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./*": {
-                "types": "./dist/*.d.ts",
-                "import": "./dist/*.js",
-                "module": "./dist/*.js"
+            "./rules/container": {
+                "types": "./dist/rules/container.d.ts",
+                "import": "./dist/rules/container.js",
+                "module": "./dist/rules/container.js"
+            },
+            "./rules/fluid": {
+                "types": "./dist/rules/fluid.d.ts",
+                "import": "./dist/rules/fluid.js",
+                "module": "./dist/rules/fluid.js"
+            },
+            "./rules/piston": {
+                "types": "./dist/rules/piston.d.ts",
+                "import": "./dist/rules/piston.js",
+                "module": "./dist/rules/piston.js"
             },
             "./package.json": "./package.json"
         }
@@ -32,9 +42,17 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./*": {
-            "jsprismarine:dist": "./dist/*.js",
-            "default": "./src/*.ts"
+        "./rules/container": {
+            "jsprismarine:dist": "./dist/rules/container.js",
+            "default": "./src/rules/container.ts"
+        },
+        "./rules/fluid": {
+            "jsprismarine:dist": "./dist/rules/fluid.js",
+            "default": "./src/rules/fluid.ts"
+        },
+        "./rules/piston": {
+            "jsprismarine:dist": "./dist/rules/piston.js",
+            "default": "./src/rules/piston.ts"
         },
         "./package.json": "./package.json"
     },
