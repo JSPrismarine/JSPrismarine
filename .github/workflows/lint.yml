@@ -11,9 +11,10 @@ on:
             - master
     pull_request:
 
+# A newer pull request push supersedes the old run. A push to master always finishes.
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: false
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     lint:

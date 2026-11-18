@@ -34,9 +34,11 @@ permissions:
     contents: read
     pull-requests: read
 
+# A newer pull request push supersedes the old preview build. A push to master finishes and
+# queues the next one behind it, so the site deploys in commit order.
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: false
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     # The build does not wait for linting: only publishing does, as its first step, so a long lint
