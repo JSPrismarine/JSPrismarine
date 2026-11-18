@@ -29,17 +29,11 @@ import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:f
 import { dirname, join } from 'node:path';
 
 import { hashFile } from '../fetch/hash.ts';
-import { readZipEntry } from '../fetch/unzip.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome, jdkBinaryPath } from './jdk.ts';
-import {
-    cacheRoot,
-    javaServerJarPath,
-    loadJavaServerSource,
-    worldgenCacheComplete,
-    worldgenCachePaths
-} from './worldgen-cache.ts';
+import { readJarVersion, resolveJavaRelease } from './release.ts';
+import { cacheRoot, javaServerJarPath, worldgenCacheComplete, worldgenCachePaths } from './worldgen-cache.ts';
 
 const force = process.argv.includes('--force');
 
@@ -47,7 +41,7 @@ const force = process.argv.includes('--force');
 // The pinned jar
 // ---------------------------------------------------------------------------
 
-const javaServer = await loadJavaServerSource();
+const javaServer = await resolveJavaRelease(process.argv);
 
 const version = javaServer.version;
 const jarPath = javaServerJarPath(javaServer);
@@ -80,18 +74,7 @@ if (digest !== javaServer.hash.value) {
     );
 }
 
-/** The fields of the jar's `version.json` this step reads. */
-interface JarVersion {
-    /** Feature release the jar was built for, the lowest JDK that can run it. */
-    java_version: number;
-    /** Format numbers a datapack must declare to load in this version. */
-    pack_version: { data_major: number; data_minor: number };
-}
-
-const versionBytes = await readZipEntry(jarPath, 'version.json');
-if (versionBytes === undefined) throw new Error(`${jarPath} has no version.json; it is not a Minecraft server jar`);
-// Extracted game data: parsed, never executed.
-const jarVersion = JSON.parse(versionBytes.toString('utf8')) as JarVersion;
+const jarVersion = await readJarVersion(jarPath);
 
 // ---------------------------------------------------------------------------
 // The run

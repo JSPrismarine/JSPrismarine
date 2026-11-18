@@ -32,8 +32,8 @@ No third-party dump of the Bedrock tables is pinned. The item table, item compon
 menu and actor list are generated from the join packets a capture of the pinned server records,
 as [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md) explains.
 
-The Java dumper currently keeps its own copy of the Java pin in constants at the top of
-`packages/bedrock-data/utils/java-dump/run.mjs`; a bump edits both until they are merged.
+Every Java script, the dumper in `packages/bedrock-data/utils/java-dump/run.mjs` included, reads
+the release from `sources.json` and the JDK it needs from the jar's own `version.json`.
 
 ## Fetch
 

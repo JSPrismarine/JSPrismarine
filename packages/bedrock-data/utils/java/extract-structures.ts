@@ -22,7 +22,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { hashFile } from '../fetch/hash.ts';
-import { loadSourceDescriptors } from '../fetch/manifest.ts';
+import { resolveJavaRelease } from './release.ts';
 import { readZipEntries, readZipEntriesFrom } from '../fetch/unzip.ts';
 
 /** Where the templates sit inside the inner server jar. */
@@ -72,9 +72,7 @@ if (import.meta.filename === process.argv[1]) {
     const cacheRoot = resolve(packageDir, '../../node_modules/.cache/jsprismarine');
     const force = process.argv.includes('--force');
 
-    const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-    const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-    if (javaServer === undefined) throw new Error('sources.json no longer pins a java-server source');
+    const javaServer = await resolveJavaRelease(process.argv);
 
     const override = process.env[javaServer.envOverride];
     const jarPath =

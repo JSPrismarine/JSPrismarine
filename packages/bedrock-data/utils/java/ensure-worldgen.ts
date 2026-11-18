@@ -23,13 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { fetchSource } from '../fetch/fetch.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { findJdkHome, JDK_HOME_ENV } from './jdk.ts';
-import {
-    cacheRoot,
-    javaServerJarPath,
-    loadJavaServerSource,
-    worldgenCacheComplete,
-    worldgenCachePaths
-} from './worldgen-cache.ts';
+import { cacheRoot, javaServerJarPath, worldgenCacheComplete, worldgenCachePaths } from './worldgen-cache.ts';
+import { resolveJavaRelease } from './release.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -44,7 +39,7 @@ const FLAT_WORLD_HINT =
     'To run without any of this, set `generator` to `Flat` for your world in `jsp/config.json`. ' +
     'A flat world needs no Java data, but it is not Minecraft terrain.';
 
-const source = await loadJavaServerSource();
+const source = await resolveJavaRelease(process.argv);
 const paths = worldgenCachePaths(source.version);
 
 if (worldgenCacheComplete(paths)) {

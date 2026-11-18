@@ -11,8 +11,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { hashFile } from '../fetch/hash.ts';
-import { loadSourceDescriptors } from '../fetch/manifest.ts';
 import { readZipEntriesFrom } from '../fetch/unzip.ts';
+import { resolveJavaRelease } from '../java/release.ts';
 import { captureJavaGoals } from './capture.ts';
 import { createJavaGoalReader } from './goals.ts';
 
@@ -44,9 +44,7 @@ export const pinnedServerJar = async (): Promise<{
     readonly envOverride: string;
 }> => {
     const cacheRoot = resolve(packageDir, '../../node_modules/.cache/jsprismarine');
-    const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-    const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-    if (javaServer === undefined) throw new Error('sources.json no longer pins a java-server source');
+    const javaServer = await resolveJavaRelease(process.argv);
     const override = process.env[javaServer.envOverride];
     const path =
         override !== undefined && override !== ''
