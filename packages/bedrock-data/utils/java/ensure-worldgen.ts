@@ -21,11 +21,12 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { GENERATED_JAVA_VERSION_FILE } from '../../src/sources.ts';
 import { fetchSource } from '../fetch/fetch.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { findJdkHome, JDK_HOME_ENV } from './jdk.ts';
 import { cacheRoot, javaServerJarPath, worldgenCacheComplete, worldgenCachePaths } from './worldgen-cache.ts';
-import { resolveJavaRelease } from './release.ts';
+import { resolveJavaRelease, writeGeneratedJavaVersion } from './release.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +43,17 @@ const FLAT_WORLD_HINT =
 
 const source = await resolveJavaRelease(process.argv);
 const paths = worldgenCachePaths(source.version);
+
+// A cache generated before `datagen:java` wrote `version.json` lacks only that file, and it is a
+// zip read, so it is filled in here rather than by regenerating everything else.
+const versionFile = join(paths.datapack, GENERATED_JAVA_VERSION_FILE);
+if (!existsSync(versionFile) && existsSync(join(paths.datapack, 'pack.mcmeta'))) {
+    const jar = javaServerJarPath(source);
+    if (existsSync(jar)) {
+        await writeGeneratedJavaVersion(jar, paths.datapack);
+        console.log(`Wrote the Java ${source.version} release record to ${versionFile}`);
+    }
+}
 
 if (worldgenCacheComplete(paths)) {
     // A cache built before the English strings were extracted has the jar but not the strings,

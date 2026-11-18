@@ -30,6 +30,7 @@ const touch = async (path: string): Promise<void> => {
 const completeCache = async (paths: WorldgenCachePaths): Promise<void> => {
     for (const witness of [
         'pack.mcmeta',
+        'version.json',
         'data/minecraft/worldgen/noise_settings/overworld.json',
         'data/minecraft/worldgen/biome/plains.json',
         'data/minecraft/tags/block/logs.json',
@@ -69,6 +70,7 @@ describe('worldgenCacheComplete', () => {
 
     it.each([
         ['the datapack', 'vanilla-datapack/26.3/data/minecraft/worldgen/biome/plains.json'],
+        ['the datapack without its release record', 'vanilla-datapack/26.3/version.json'],
         ['the reports', 'java-reports/26.3/generated/reports/biome_parameters/minecraft/overworld.json'],
         ['the structure templates', 'java-structures/26.3/village/plains/houses/plains_small_house_1.nbt']
     ])('reports a run that left %s half-written as incomplete', async (_registry, missing) => {

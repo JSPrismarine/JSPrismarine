@@ -5,7 +5,10 @@
  * Every script that reads the Java server jar or the data generated from it learns its release
  * here, so the choice is made in one place.
  */
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import { GENERATED_JAVA_VERSION_FILE, type GeneratedJavaVersion } from '../../src/sources.ts';
 
 import {
     javaServerDescriptor,
@@ -30,6 +33,10 @@ export const resolveJavaRelease = async (argv: readonly string[] = process.argv)
 
 /** The fields of a server jar's `version.json` the Java scripts read. */
 export interface JarVersion {
+    /** The release id, such as `26.3`. */
+    readonly id: string;
+    /** The world data version a save written by this release records. */
+    readonly world_version: number;
     /** Feature release the jar was built for, the lowest JDK that can run it. */
     readonly java_version: number;
     /** Format numbers a datapack must declare to load in this version. */
@@ -48,4 +55,27 @@ export const readJarVersion = async (jarPath: string): Promise<JarVersion> => {
     if (bytes === undefined) throw new Error(`${jarPath} has no version.json; it is not a Minecraft server jar`);
     // Extracted game data: parsed, never executed.
     return JSON.parse(bytes.toString('utf8')) as JarVersion;
+};
+
+/**
+ * Writes `version.json` into a generated vanilla datapack, recording what its jar declares, so
+ * the runtime learns the release's data pack format and data version without opening the jar.
+ *
+ * @param jarPath - The bundler server jar the datapack was generated from.
+ * @param datapackDir - The datapack root, the directory holding `pack.mcmeta`.
+ * @returns The record written.
+ */
+export const writeGeneratedJavaVersion = async (
+    jarPath: string,
+    datapackDir: string
+): Promise<GeneratedJavaVersion> => {
+    const jar = await readJarVersion(jarPath);
+    const record: GeneratedJavaVersion = {
+        release: jar.id,
+        javaVersion: jar.java_version,
+        dataPackFormat: [jar.pack_version.data_major, jar.pack_version.data_minor],
+        dataVersion: jar.world_version
+    };
+    await writeFile(join(datapackDir, GENERATED_JAVA_VERSION_FILE), `${JSON.stringify(record, undefined, 4)}\n`);
+    return record;
 };
