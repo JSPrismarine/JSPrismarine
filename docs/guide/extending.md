@@ -147,7 +147,7 @@ public on purpose.
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->18<!-- /fact --> events, and
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->20<!-- /fact --> events, and
 `server.once`, `server.removeListener` and `server.removeAllListeners` take the same names. They
 subscribe on the kernel's event bus, `server.getKernel().events`, which the server raises every
 event on.
@@ -171,7 +171,9 @@ event on.
 | `chat`                     | `ChatEvent`                     |
 | `tick`                     | `TickEvent`                     |
 | `entityDamage`             | `EntityDamageEvent`             |
+| `entityHurt`               | `EntityHurtEvent`               |
 | `entityDeath`              | `EntityDeathEvent`              |
+| `entitySpawn`              | `EntitySpawnEvent`              |
 | `entityPortalEnter`        | `EntityPortalEnterEvent`        |
 | `playerChangeDimension`    | `PlayerChangeDimensionEvent`    |
 | `playerConnect`            | `PlayerConnectEvent`            |

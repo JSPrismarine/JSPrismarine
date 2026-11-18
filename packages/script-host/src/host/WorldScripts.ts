@@ -841,6 +841,25 @@ export class WorldScripts {
                 sourceType: event.sourceType,
                 ...(source === undefined ? {} : { sourceEntity: { id: source.id, typeId: source.typeId } })
             });
+        } else if (event.type === 'entitySpawn') {
+            this.dispatchWith('EntitySpawnAfterEventSignal', 'EntitySpawnAfterEvent', {
+                kind: 'entitySpawn',
+                entity: event.entity,
+                cause: event.cause
+            });
+        } else if (event.type === 'entityHurt') {
+            this.dispatchWith('EntityHurtAfterEventSignal', 'EntityHurtAfterEvent', {
+                kind: 'entityHurt',
+                entity: event.entity,
+                damage: event.damage,
+                source: event.source
+            });
+        } else if (event.type === 'entityDie') {
+            this.dispatchWith('EntityDieAfterEventSignal', 'EntityDieAfterEvent', {
+                kind: 'entityDie',
+                entity: event.entity,
+                source: event.source
+            });
         } else {
             const tag = this.addEvent({
                 kind: 'weatherAfter',

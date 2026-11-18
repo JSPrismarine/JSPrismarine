@@ -1,6 +1,6 @@
 /**
  * The behavior of the `@minecraft/server` members JSPrismarine implements, for one pack: the
- * system tasks, the lifecycle, the world, player, weather, chat and script events, the watchdog's
+ * system tasks, the lifecycle, the world, player, entity, weather, chat and script events, the watchdog's
  * terminate event, dimensions, and through the modules it registers, entities and players
  * (`serverEntities.ts`), blocks (`serverBlocks.ts`), item stacks (`serverItems.ts`), dynamic
  * properties (`serverProperties.ts`), the scoreboard (`serverScoreboard.ts`), and custom
@@ -29,7 +29,7 @@ import { implementScoreboard } from './serverScoreboard';
 import type { EntityKey } from './serverObjects';
 import { PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
 import type { TaskKind } from './tasks';
-import type { ScriptEventSourceType, ScriptWeather, ScriptWorld } from './world';
+import type { ScriptDamageSource, ScriptEventSourceType, ScriptSpawnCause, ScriptWeather, ScriptWorld } from './world';
 
 /** The event signals a pack can subscribe to, by the class the Script API gives each. */
 export const SIGNALS = [
@@ -47,7 +47,10 @@ export const SIGNALS = [
     'PlayerSpawnAfterEventSignal',
     'PlayerLeaveAfterEventSignal',
     'PlayerLeaveBeforeEventSignal',
-    'ScriptEventCommandMessageAfterEventSignal'
+    'ScriptEventCommandMessageAfterEventSignal',
+    'EntitySpawnAfterEventSignal',
+    'EntityHurtAfterEventSignal',
+    'EntityDieAfterEventSignal'
 ] as const;
 
 /** One of {@link SIGNALS}. */
@@ -128,6 +131,28 @@ export interface ScriptEventData {
     readonly sourceEntity?: EntityKey;
 }
 
+/** An entity that appeared, as `EntitySpawnAfterEvent` reads it. */
+export interface EntitySpawnData {
+    readonly kind: 'entitySpawn';
+    readonly entity: EntityKey;
+    readonly cause: ScriptSpawnCause;
+}
+
+/** A blow that took health, as `EntityHurtAfterEvent` reads it. */
+export interface EntityHurtData {
+    readonly kind: 'entityHurt';
+    readonly entity: EntityKey;
+    readonly damage: number;
+    readonly source: ScriptDamageSource;
+}
+
+/** An entity that died, as `EntityDieAfterEvent` reads it. */
+export interface EntityDieData {
+    readonly kind: 'entityDie';
+    readonly entity: EntityKey;
+    readonly source: ScriptDamageSource;
+}
+
 /** What an event object's members read, by the tag the object was made with. */
 export type EventData =
     | WeatherBeforeData
@@ -138,7 +163,10 @@ export type EventData =
     | PlayerPresenceData
     | PlayerSpawnData
     | PlayerLeavingData
-    | ScriptEventData;
+    | ScriptEventData
+    | EntitySpawnData
+    | EntityHurtData
+    | EntityDieData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
@@ -200,6 +228,18 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         return found as Extract<EventData, { kind: Kind }>;
     };
     const signal = (name: SignalName) => ({ get: () => host.instance(name, TAG.signal + SIGNALS.indexOf(name)) });
+    /** An `EntityDamageSource`, a plain object whose entities are the pack's entity objects. */
+    const damageSource = ({ cause, damagingEntity, damagingProjectile }: ScriptDamageSource): ScriptHandle => {
+        const source = host.engine.evaluate('({})');
+        if (!(source instanceof ScriptHandle))
+            throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'object' });
+        host.engine.set(source, 'cause', cause);
+        if (damagingEntity !== undefined) host.engine.set(source, 'damagingEntity', host.entity(damagingEntity));
+        if (damagingProjectile !== undefined) {
+            host.engine.set(source, 'damagingProjectile', host.entity(damagingProjectile));
+        }
+        return host.engine.release(source);
+    };
 
     const implementations = new ScriptApiImplementations()
         .implement(SERVER, 'System', 'run', (call) => host.schedule('run', callbackOf(call), 0))
@@ -301,6 +341,26 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         // No block or NPC sends a /scriptevent on JSPrismarine yet, and the initiator is an NPC's talker.
         .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'sourceBlock', { get: () => undefined })
         .implement(SERVER, 'ScriptEventCommandMessageAfterEvent', 'initiator', { get: () => undefined })
+        .implement(SERVER, 'WorldAfterEvents', 'entitySpawn', signal('EntitySpawnAfterEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'entityHurt', signal('EntityHurtAfterEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'entityDie', signal('EntityDieAfterEventSignal'))
+        .implement(SERVER, 'EntitySpawnAfterEvent', 'entity', {
+            get: (call) => host.entity(data(call, 'entitySpawn').entity)
+        })
+        .implement(SERVER, 'EntitySpawnAfterEvent', 'cause', { get: (call) => data(call, 'entitySpawn').cause })
+        .implement(SERVER, 'EntityHurtAfterEvent', 'hurtEntity', {
+            get: (call) => host.entity(data(call, 'entityHurt').entity)
+        })
+        .implement(SERVER, 'EntityHurtAfterEvent', 'damage', { get: (call) => data(call, 'entityHurt').damage })
+        .implement(SERVER, 'EntityHurtAfterEvent', 'damageSource', {
+            get: (call) => damageSource(data(call, 'entityHurt').source)
+        })
+        .implement(SERVER, 'EntityDieAfterEvent', 'deadEntity', {
+            get: (call) => host.entity(data(call, 'entityDie').entity)
+        })
+        .implement(SERVER, 'EntityDieAfterEvent', 'damageSource', {
+            get: (call) => damageSource(data(call, 'entityDie').source)
+        })
         .implement(SERVER, 'WeatherChangeBeforeEvent', 'cancel', {
             get: (call) => data(call, 'weatherBefore').cancel,
             set: (call) => {
