@@ -356,6 +356,41 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `EntityEventOptions`. Next by corpus use: `Player.onScreenDisplay`, `MolangVariableMap`,
       `world.beforeEvents.playerBreakBlock` and `itemUse`, `Player.playSound`, `System.runJob`,
       `Entity.addEffect`, `ItemStack.getComponent` and block inventories.
+    - Batch 3 (2026-11-18): `system.runJob` and `clearJob`, `Player.onScreenDisplay` with
+      `setTitle`, `updateSubtitle` and `setActionBar`, `Player.playSound` and `Dimension.playSound`
+      with their `SoundInstance`, `MolangVariableMap` with `Dimension.spawnParticle`,
+      `Entity.addEffect`, `getEffect`, `getEffects` and `removeEffect` with `Effect`, the
+      `isSneaking` setter, a block's inventory component and its container, an item stack's
+      durability component, `world.beforeEvents` and `afterEvents` for `itemUse` and
+      `playerBreakBlock`, and `EntityEventOptions` on `entityHurt` and `entityDie`. The corpus's
+      share of member uses with behavior went from 74.2% to 82.2%, and its share of pack members
+      from 52.1% to 62.8%. The new `system-jobs`, `entity-event-options` and `player-feedback`
+      scenarios match BDS, and `block-inventory` and `entity-effects` match but for the gaps below.
+    - Learned: BDS runs a job from the tick after `runJob`, before that tick's system tasks. Each
+      tick, every job takes one step in the order they were queued, then each job runs to its end
+      in the same order, so a job of 2,000 steps ended in one tick. JSPrismarine gives a tick's
+      jobs 100 interpreter steps where BDS gives them what is left of the tick's time.
+    - Learned: a subscriber with `EntityEventOptions` gets an entity's event only when each list it
+      gives names the entity or its type. An empty list matches no entity, and BDS adds no
+      namespace to a type, so `cow` matches nothing.
+    - Learned: `addEffect` returns the effect the entity has afterwards, so a weaker effect returns
+      the one already there. `displayName` writes the potency in Roman numerals from II up, as in
+      `Speed IV`. A removed player's `ScreenDisplay` throws `Failed to call function 'Player'`.
+      `playSound` returns a `SoundInstance` whose `id` counts up from 1.
+    - Learned: a simulated player's `breakBlock` breaks the block in the next tick, and a break
+      the before-event cancels tries again the tick after. Its first `useItem` raises both
+      `itemUse` events in the same tick, and later calls return false and raise neither, even
+      after `stopUsingItem`, so the scenario uses one item and a unit test covers the canceled use.
+    - Left: a mob's effects do not count down in a world with no player, because JSPrismarine has
+      no `/tickingarea` ([#3251](https://github.com/JSPrismarine/JSPrismarine/issues/3251)), and
+      a dying pig's `getEffects` throws, as batch 2's dying mob does. On BDS, a stack read back
+      from a chest throws `Failed to get property 'damage'.` from its durability component, where
+      JSPrismarine returns the damage. `ScreenDisplay`'s HUD members, `SoundInstance.stop`,
+      `Effect.isValid`, `EffectTypes`, `Player.spawnParticle`, item components other than
+      durability and `world.afterEvents.playerInventoryItemChange` have no behavior yet. Next by corpus use:
+      `World.structureManager` and `StructureManager`, `EntityEquippableComponent`,
+      `EntityAttributeComponent`, `DimensionTypes`, `Container.getSlot` and `ContainerSlot`,
+      `world.beforeEvents.playerInteractWithBlock` and `Entity.getBlockFromViewDirection`.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.

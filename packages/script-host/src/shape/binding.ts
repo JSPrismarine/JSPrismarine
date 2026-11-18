@@ -316,6 +316,11 @@ export class ScriptApiContext {
         const setState = (next: string): void => {
             if (self instanceof ScriptHandle) this.engine.call(this.setStateFunction, this.runtime, self, next);
         };
+        const setStateOf = (value: ScriptValue, next: string): void => {
+            if (value instanceof ScriptHandle && this.identify(value) !== undefined) {
+                this.engine.call(this.setStateFunction, this.runtime, value, next);
+            }
+        };
         const stateOf = (value: ScriptValue): string => {
             if (!(value instanceof ScriptHandle)) return '';
             const found = this.engine.call(this.stateOfFunction, this.runtime, value);
@@ -334,6 +339,7 @@ export class ScriptApiContext {
                 state,
                 setState,
                 stateOf,
+                setStateOf,
                 stringify,
                 args
             });

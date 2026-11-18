@@ -178,6 +178,12 @@ export class GameTests<Owner> {
         return this.runs.get(id);
     }
 
+    /** The run that spawned a simulated player, whose structure its test-relative locations count from. */
+    public runOfPlayer(player: string): GameTestRun<Owner> | undefined {
+        for (const run of this.runs.values()) if (run.players.includes(player)) return run;
+        return undefined;
+    }
+
     /** `/gametest run <name>`: queues one test in a batch of its own. */
     public runTest(name: string): GameTestReply {
         const registration = this.latest().find((each) => each.name === name);

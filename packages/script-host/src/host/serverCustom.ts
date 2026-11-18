@@ -119,6 +119,15 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
         const ref: ScriptEntityRef = { id: value.id, typeId: value.typeId };
         return host.entity(ref);
     };
+    /** The block a `BlockEvent` is about: a component hook's, or a player's break. */
+    const blockOfEvent = (call: ScriptCall): unknown => {
+        if (call.tag === TAG.componentEvent) return field(call, 'block');
+        const data = host.eventData(call.tag);
+        if (data?.kind !== 'blockBreakBefore' && data?.kind !== 'blockBreakAfter') {
+            throw new ScriptHostErrors.EventNoLongerValid();
+        }
+        return data.block;
+    };
     const block = (value: unknown): ScriptValue => {
         if (!isRecord(value)) return undefined;
         return release(host.create('Block', TAG.block, JSON.stringify(value)));
@@ -203,10 +212,10 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
             // A block of the formats before version 2 gives its components no parameters.
             get: (call) => (call.state === '' ? undefined : parseInEngine(call, call.state))
         })
-        .implement(SERVER, 'BlockEvent', 'block', { get: (call) => block(field(call, 'block')) })
+        .implement(SERVER, 'BlockEvent', 'block', { get: (call) => block(blockOfEvent(call)) })
         .implement(SERVER, 'BlockEvent', 'dimension', {
             get: (call) => {
-                const at = field(call, 'block');
+                const at = blockOfEvent(call);
                 const dimension = isRecord(at) && typeof at.dimension === 'string' ? at.dimension : undefined;
                 return dimension === undefined ? undefined : host.instance('Dimension', TAG.dimension, dimension);
             }

@@ -26,10 +26,19 @@ import { implementEntities } from './serverEntities';
 import { implementItems } from './serverItems';
 import { implementDynamicProperties } from './serverProperties';
 import { implementScoreboard } from './serverScoreboard';
-import type { EntityKey } from './serverObjects';
-import { PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
+import { implementFeedback } from './serverFeedback';
+import type { BlockKey, EntityKey } from './serverObjects';
+import { entityKeyOf, itemOf, itemState, PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
 import type { TaskKind } from './tasks';
-import type { ScriptDamageSource, ScriptEventSourceType, ScriptSpawnCause, ScriptWeather, ScriptWorld } from './world';
+import type {
+    ScriptBlockPermutation,
+    ScriptDamageSource,
+    ScriptEventSourceType,
+    ScriptItem,
+    ScriptSpawnCause,
+    ScriptWeather,
+    ScriptWorld
+} from './world';
 
 /** The event signals a pack can subscribe to, by the class the Script API gives each. */
 export const SIGNALS = [
@@ -50,8 +59,35 @@ export const SIGNALS = [
     'ScriptEventCommandMessageAfterEventSignal',
     'EntitySpawnAfterEventSignal',
     'EntityHurtAfterEventSignal',
-    'EntityDieAfterEventSignal'
+    'EntityDieAfterEventSignal',
+    'ItemUseBeforeEventSignal',
+    'ItemUseAfterEventSignal',
+    'PlayerBreakBlockBeforeEventSignal',
+    'PlayerBreakBlockAfterEventSignal'
 ] as const;
+
+/** The signals whose `subscribe` takes `EntityEventOptions`, which pick the entities whose events a callback gets. */
+export const ENTITY_FILTERED_SIGNALS: ReadonlySet<SignalName> = new Set<SignalName>([
+    'EntityHurtAfterEventSignal',
+    'EntityDieAfterEventSignal'
+]);
+
+/**
+ * The entities a subscriber of an entity event asked for, by `EntityEventOptions`. An entity's
+ * event reaches it when it is one of `entities` and its type is one of `entityTypes`, for each
+ * list given; an empty list matches none, and a type is matched as written, without a namespace
+ * added, as the `entity-event-options` scenario recorded.
+ */
+export interface EntityFilter {
+    readonly entities?: readonly string[];
+    readonly entityTypes?: readonly string[];
+}
+
+/** Whether an entity's event reaches a subscriber with a filter. */
+export const passesFilter = (filter: EntityFilter | undefined, entity: EntityKey): boolean =>
+    filter === undefined ||
+    ((filter.entities === undefined || filter.entities.includes(entity.id)) &&
+        (filter.entityTypes === undefined || filter.entityTypes.includes(entity.typeId)));
 
 /** One of {@link SIGNALS}. */
 export type SignalName = (typeof SIGNALS)[number];
@@ -153,6 +189,36 @@ export interface EntityDieData {
     readonly source: ScriptDamageSource;
 }
 
+/** An item a player uses, as `ItemUseBeforeEvent` and `ItemUseAfterEvent` read it. */
+export interface ItemUseData {
+    readonly kind: 'itemUse';
+    /** Whether a before-event's script canceled it; always false for an after-event. */
+    cancel: boolean;
+    /** The player's id, as the world's players list it. */
+    readonly player: string;
+    item: ScriptItem;
+}
+
+/** A block a player is about to break, as `PlayerBreakBlockBeforeEvent` reads and writes it. */
+export interface BlockBreakBeforeData {
+    readonly kind: 'blockBreakBefore';
+    cancel: boolean;
+    readonly player: string;
+    readonly block: BlockKey;
+    /** The stack in the player's hand, which a script may replace. Absent for an empty hand. */
+    item: ScriptItem | undefined;
+}
+
+/** A block a player broke, as `PlayerBreakBlockAfterEvent` reads it. */
+export interface BlockBreakAfterData {
+    readonly kind: 'blockBreakAfter';
+    readonly player: string;
+    readonly block: BlockKey;
+    readonly broken: ScriptBlockPermutation;
+    readonly itemBefore?: ScriptItem;
+    readonly itemAfter?: ScriptItem;
+}
+
 /** What an event object's members read, by the tag the object was made with. */
 export type EventData =
     | WeatherBeforeData
@@ -166,7 +232,10 @@ export type EventData =
     | ScriptEventData
     | EntitySpawnData
     | EntityHurtData
-    | EntityDieData;
+    | EntityDieData
+    | ItemUseData
+    | BlockBreakBeforeData
+    | BlockBreakAfterData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
@@ -182,8 +251,14 @@ export interface PackHost {
     /** Queues a system task and returns its id. */
     schedule(kind: TaskKind, callback: ScriptHandle, delay: number): number;
     clearRun(id: number): void;
-    /** Adds a callback to a signal. The host keeps its own handle. */
-    subscribe(signal: SignalName, callback: ScriptHandle): void;
+    /** Queues a `system.runJob` generator and returns the job's id. */
+    runJob(generator: ScriptHandle): number;
+    clearJob(id: number): void;
+    /**
+     * Adds a callback to a signal. The host keeps its own handle.
+     * @param filter - The entities an entity event's callback gets, from its `EntityEventOptions`.
+     */
+    subscribe(signal: SignalName, callback: ScriptHandle, filter?: EntityFilter): void;
     unsubscribe(signal: SignalName, callback: ScriptHandle): void;
     /**
      * The one instance of a class this pack gets for a tag and a state, made the first time and
@@ -202,6 +277,20 @@ export interface PackHost {
     /** The runtime's custom commands and components, which the pack registers into in `startup`. */
     readonly custom: PackCustomContent;
 }
+
+/** Whether a value is a generator object, as `system.runJob` takes one. */
+const isGenerator = (engine: ScriptEngine, value: ScriptHandle): boolean => {
+    const check = engine.evaluate(
+        '(value) => Object.prototype.toString.call(value) === "[object Generator]"',
+        '<jsp runJob>'
+    );
+    if (!(check instanceof ScriptHandle)) return false;
+    try {
+        return engine.call(check, undefined, value) === true;
+    } finally {
+        engine.free(check);
+    }
+};
 
 const isWeather = (value: ScriptValue): value is ScriptWeather =>
     value === 'Clear' || value === 'Rain' || value === 'Thunder';
@@ -250,6 +339,21 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         .implement(SERVER, 'System', 'clearRun', (call) => {
             const [id] = call.args;
             if (typeof id === 'number') host.clearRun(id);
+            return undefined;
+        })
+        .implement(SERVER, 'System', 'runJob', (call) => {
+            const [generator] = call.args;
+            if (!(generator instanceof ScriptHandle) || !isGenerator(call.engine, generator)) {
+                throw new ScriptHostErrors.ArgumentConversionFailed({
+                    index: 0,
+                    expected: 'Generator<void, void, void>'
+                });
+            }
+            return host.runJob(generator);
+        })
+        .implement(SERVER, 'System', 'clearJob', (call) => {
+            const [id] = call.args;
+            if (typeof id === 'number') host.clearJob(id);
             return undefined;
         })
         .implement(SERVER, 'System', 'currentTick', { get: () => host.currentTick() })
@@ -427,11 +531,14 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementDynamicProperties(implementations, host);
     implementScoreboard(implementations, host);
     implementCustom(implementations, host);
+    implementFeedback(implementations, host);
+    implementPlayerActions(implementations, host, data, signal);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {
                 const callback = callbackOf(call);
-                host.subscribe(name, callback);
+                const filter = ENTITY_FILTERED_SIGNALS.has(name) ? entityFilterOf(call, call.args[1]) : undefined;
+                host.subscribe(name, callback, filter);
                 return callback;
             })
             .implement(SERVER, name, 'unsubscribe', (call) => {
@@ -440,4 +547,100 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
             });
     }
     return implementations;
+};
+
+/** Reads the `EntityEventOptions` a subscriber passed: the ids of its entities, and its types as written. */
+const entityFilterOf = (call: ScriptCall, options: ScriptValue | undefined): EntityFilter | undefined => {
+    if (!(options instanceof ScriptHandle)) return undefined;
+    const list = (key: string): ScriptValue[] | undefined => {
+        const found = call.engine.get(options, key);
+        if (!(found instanceof ScriptHandle)) return undefined;
+        try {
+            const length = call.engine.get(found, 'length');
+            if (typeof length !== 'number') return undefined;
+            return Array.from({ length }, (_, index) => call.engine.get(found, String(index)) ?? null);
+        } finally {
+            call.engine.free(found);
+        }
+    };
+    const entities = list('entities')?.map((each) => {
+        const state = call.stateOf(each);
+        if (each instanceof ScriptHandle) call.engine.free(each);
+        return state === '' ? '' : entityKeyOf(state).id;
+    });
+    const entityTypes = list('entityTypes')?.map((each) => String(each));
+    return {
+        ...(entities === undefined ? {} : { entities }),
+        ...(entityTypes === undefined ? {} : { entityTypes })
+    };
+};
+
+/**
+ * Registers `world.beforeEvents` and `world.afterEvents` for a player's item use and block
+ * break, whose before-events are guards of the world's actions.
+ */
+const implementPlayerActions = (
+    implementations: ScriptApiImplementations,
+    host: PackHost,
+    data: <Kind extends EventData['kind']>(call: ScriptCall, kind: Kind) => Extract<EventData, { kind: Kind }>,
+    signal: (name: SignalName) => { get: () => ScriptHandle }
+): void => {
+    const stackObject = (item: ScriptItem | undefined): ScriptHandle | undefined =>
+        item === undefined ? undefined : host.engine.release(host.create('ItemStack', TAG.itemStack, itemState(item)));
+    const player = (id: string): ScriptHandle => host.entity({ id, typeId: PLAYER });
+    implementations
+        .implement(SERVER, 'WorldBeforeEvents', 'itemUse', signal('ItemUseBeforeEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'itemUse', signal('ItemUseAfterEventSignal'))
+        .implement(SERVER, 'ItemUseAfterEvent', 'source', { get: (call) => player(data(call, 'itemUse').player) })
+        .implement(SERVER, 'ItemUseAfterEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'itemUse').item),
+            set: (call) => {
+                const [stack] = call.args;
+                if (stack instanceof ScriptHandle) data(call, 'itemUse').item = itemOf(call.stateOf(stack));
+            }
+        })
+        .implement(SERVER, 'ItemUseBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'itemUse').cancel,
+            set: (call) => {
+                data(call, 'itemUse').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'WorldBeforeEvents', 'playerBreakBlock', signal('PlayerBreakBlockBeforeEventSignal'))
+        .implement(SERVER, 'WorldAfterEvents', 'playerBreakBlock', signal('PlayerBreakBlockAfterEventSignal'))
+        .implement(SERVER, 'PlayerBreakBlockBeforeEvent', 'player', {
+            get: (call) => player(data(call, 'blockBreakBefore').player)
+        })
+        .implement(SERVER, 'PlayerBreakBlockBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'blockBreakBefore').cancel,
+            set: (call) => {
+                data(call, 'blockBreakBefore').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'PlayerBreakBlockBeforeEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'blockBreakBefore').item),
+            set: (call) => {
+                const [stack] = call.args;
+                data(call, 'blockBreakBefore').item =
+                    stack instanceof ScriptHandle ? itemOf(call.stateOf(stack)) : undefined;
+            }
+        })
+        .implement(SERVER, 'PlayerBreakBlockAfterEvent', 'player', {
+            get: (call) => player(data(call, 'blockBreakAfter').player)
+        })
+        .implement(SERVER, 'PlayerBreakBlockAfterEvent', 'brokenBlockPermutation', {
+            get: (call) =>
+                host.engine.release(
+                    host.create(
+                        'BlockPermutation',
+                        TAG.permutation,
+                        JSON.stringify(data(call, 'blockBreakAfter').broken)
+                    )
+                )
+        })
+        .implement(SERVER, 'PlayerBreakBlockAfterEvent', 'itemStackBeforeBreak', {
+            get: (call) => stackObject(data(call, 'blockBreakAfter').itemBefore)
+        })
+        .implement(SERVER, 'PlayerBreakBlockAfterEvent', 'itemStackAfterBreak', {
+            get: (call) => stackObject(data(call, 'blockBreakAfter').itemAfter)
+        });
 };
