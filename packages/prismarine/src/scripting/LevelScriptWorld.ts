@@ -9,6 +9,8 @@
 import type { Weather } from '@jsprismarine/engine-systems';
 import type {
     BlockBreakIntent,
+    BlockInteractIntent,
+    EntityInteractIntent,
     ChatSendIntent,
     ItemUseIntent,
     Guard,
@@ -22,6 +24,8 @@ import type {
     ScriptFormChannel,
     ScriptFormResponse,
     ScriptHttpChannel,
+    ScriptStructure,
+    ScriptStructureStore,
     ScriptTransferTarget,
     ScriptWeather,
     ScriptWorld,
@@ -72,6 +76,12 @@ export type ScriptLevelAccess = Pick<
     | 'removeEffect'
     | 'blockInventory'
     | 'setBlockInventoryItem'
+    | 'equipment'
+    | 'setEquipment'
+    | 'attribute'
+    | 'setAttribute'
+    | 'effectTypes'
+    | 'dimensionTypes'
     | 'dynamicProperties'
     | 'setDynamicProperties'
     | 'clearDynamicProperties'
@@ -191,6 +201,17 @@ const inEntityEventOrder = (events: readonly ScriptWorldEvent[]): ScriptWorldEve
     return events.map((event) => (isEntityEvent(event) ? (entity.shift() ?? event) : event));
 };
 
+/** A structure store in memory, which keeps its structures in the order they were first set. */
+const levelStructures = (): ScriptStructureStore => {
+    const kept = new Map<string, ScriptStructure>();
+    return {
+        get: (id) => kept.get(id),
+        set: (id, structure) => void kept.set(id, structure),
+        delete: (id) => kept.delete(id),
+        ids: () => [...kept.keys()]
+    };
+};
+
 /** The dimension Bedrock renders weather in, and reports weather events for. */
 const WEATHER_DIMENSION = 'minecraft:overworld';
 
@@ -246,6 +267,23 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly blockInventory: ScriptWorld['blockInventory'];
     /** Writes one slot of a block's container, when the server can. */
     public readonly setBlockInventoryItem: ScriptWorld['setBlockInventoryItem'];
+    /** What an entity wears and holds, when the server has equipment. */
+    public readonly equipment: ScriptWorld['equipment'];
+    /** Writes one equipment slot, when the server can. */
+    public readonly setEquipment: ScriptWorld['setEquipment'];
+    /** One of an entity's attributes, when the server has them. */
+    public readonly attribute: ScriptWorld['attribute'];
+    /** Writes an entity's attribute, when the server can. */
+    public readonly setAttribute: ScriptWorld['setAttribute'];
+    /** The status effect types the server knows, when it has effects. */
+    public readonly effectTypes: ScriptWorld['effectTypes'];
+    /** The dimension types the level registers, when the server lists them. */
+    public readonly dimensionTypes: ScriptWorld['dimensionTypes'];
+    /**
+     * The level's structures. They last as long as the level is loaded: a save does not keep them
+     * yet, as BDS keeps a structure saved to the world.
+     */
+    public readonly structures: ScriptStructureStore = levelStructures();
 
     /** The channel the level's scripts' HTTP requests travel over, when the server gives one. */
     public readonly http: ScriptWorld['http'];
@@ -276,6 +314,12 @@ export class LevelScriptWorld implements ScriptWorld {
         this.removeEffect = this.access.removeEffect;
         this.blockInventory = this.access.blockInventory;
         this.setBlockInventoryItem = this.access.setBlockInventoryItem;
+        this.equipment = this.access.equipment;
+        this.setEquipment = this.access.setEquipment;
+        this.attribute = this.access.attribute;
+        this.setAttribute = this.access.setAttribute;
+        this.effectTypes = this.access.effectTypes;
+        this.dimensionTypes = this.access.dimensionTypes;
         this.http = sources.http;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
@@ -521,6 +565,16 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Adds a script guard to the item use of the level's players. */
     public guardItemUse(guard: VetoGuard<ItemUseIntent>): () => void {
         return this.sources.playerActions?.guardItemUse(guard) ?? (() => {});
+    }
+
+    /** Adds a script guard to the block clicks of the level's players. */
+    public guardBlockInteract(guard: VetoGuard<BlockInteractIntent>): () => void {
+        return this.sources.playerActions?.guardBlockInteract(guard) ?? (() => {});
+    }
+
+    /** Adds a script guard to the entity clicks of the level's players. */
+    public guardEntityInteract(guard: VetoGuard<EntityInteractIntent>): () => void {
+        return this.sources.playerActions?.guardEntityInteract(guard) ?? (() => {});
     }
 
     /**

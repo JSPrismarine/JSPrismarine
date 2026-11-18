@@ -361,7 +361,7 @@ public on purpose.
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->24<!-- /fact --> events, and
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->28<!-- /fact --> events, and
 `server.once`, `server.removeListener` and `server.removeAllListeners` take the same names. They
 subscribe on the kernel's event bus, `server.getKernel().events`, which the server raises every
 event on.
@@ -403,6 +403,10 @@ event on.
 | `playerBlockBroken`        | `PlayerBlockBrokenEvent`        |
 | `playerUseItem`            | `PlayerUseItemEvent`            |
 | `playerItemUsed`           | `PlayerItemUsedEvent`           |
+| `playerInteractBlock`      | `PlayerInteractBlockEvent`      |
+| `playerBlockInteracted`    | `PlayerBlockInteractedEvent`    |
+| `playerInteractEntity`     | `PlayerInteractEntityEvent`     |
+| `playerEntityInteracted`   | `PlayerEntityInteractedEvent`   |
 | `raknetConnect`            | `RaknetConnectEvent`            |
 | `raknetDisconnect`         | `RaknetDisconnectEvent`         |
 | `raknetEncapsulatedPacket` | `RaknetEncapsulatedPacketEvent` |
