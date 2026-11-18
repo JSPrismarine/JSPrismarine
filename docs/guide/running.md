@@ -157,8 +157,8 @@ with no mobs, no `/summon` and no dragon. Run it by hand with
 server. It is `prismarine --watch`: it builds the server and its workspace packages once, then runs
 the compiled entry next to `vite build --watch` for each package, so there is no TypeScript loader in
 the server process or its workers. Editing a source file rebuilds that package, and the server restarts
-when its `dist` output or content pack data changes. The first restart a few seconds after start-up is
-the watch builds writing their initial output. The watch builds log to
+when the bytes of its `dist` output or content pack data change. The watch builds' first pass rewrites
+the output the start-up build wrote with the same bytes, so it restarts nothing. The watch builds log to
 `node_modules/.cache/jsprismarine-dev-build.log` so they stay out of the terminal UI. It opens the
 terminal UI described in the [Console](#console) section when it can, and falls back to the plain
 line console otherwise.

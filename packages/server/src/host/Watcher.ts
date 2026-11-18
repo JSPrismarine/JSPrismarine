@@ -1,6 +1,7 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { spawn } from 'node:child_process';
-import { readdirSync, statSync, watch } from 'node:fs';
+import { hash } from 'node:crypto';
+import { readFileSync, readdirSync, statSync, watch } from 'node:fs';
 import path from 'node:path';
 import type { Timers } from './ServerChild';
 
@@ -34,7 +35,8 @@ export interface WatcherOptions {
     /**
      * Whether the server runs from the packages' built `dist/` rather than their `src/`. Source
      * edits then do nothing until a `build:watch` rebuilds them, so the watcher waits for the
-     * rebuilt output: restarting on the source change would start the old code again.
+     * rebuilt output: restarting on the source change would start the old code again. A
+     * rebuild that writes the same bytes restarts nothing.
      */
     built?: boolean;
     /** Defaults to the global timers. */
@@ -58,6 +60,15 @@ const SOURCE_FILE = /\.(ts|json)$/;
 const BUILT_FILE = /\.(m?js|json)$/;
 const PACK_DATA_FILE = /\.(json|mcfunction|mcmeta|brarchive)$/i;
 
+/** A file's content hash, or `undefined` when it cannot be read, such as after a delete. */
+const hashFile = (file: string): string | undefined => {
+    try {
+        return hash('sha1', readFileSync(file));
+    } catch {
+        return undefined;
+    }
+};
+
 /**
  * Restarts the server when a package source file or loaded pack data file changes, and
  * regenerates the bedrock-data JSON when the generator's inputs change.
@@ -80,7 +91,10 @@ export class Watcher {
     private generateQueued = false;
     private restartTimer: ReturnType<typeof setTimeout> | undefined;
     private generateTimer: ReturnType<typeof setTimeout> | undefined;
-    private pendingReason: string | undefined;
+    /** The changed paths of the batch waiting on the debounce, each with the built file to check, if any. */
+    private readonly pending = new Map<string, string | undefined>();
+    /** The content hash of each built file the server loads, by absolute path. */
+    private readonly builtHashes = new Map<string, string>();
 
     public constructor(private readonly options: WatcherOptions) {
         this.timers = options.timers ?? globalThis;
@@ -100,6 +114,10 @@ export class Watcher {
      * costs nothing. Start the server after this resolves so the first generation is in place.
      */
     public async start(): Promise<void> {
+        // `pnpm dev` builds every package, then starts `build:watch`, whose first pass writes
+        // the same files again. Hash them before that pass gets far, so it restarts nothing.
+        if (this.options.built === true) this.recordBuiltFiles();
+
         await this.generateBedrockData({ restart: false });
 
         // The generator's inputs live outside the restart watchers: the Bedrock captures and
@@ -116,7 +134,8 @@ export class Watcher {
             this.watch(path.join(this.options.packagesDir, pkg, directory), (filename) => {
                 if (!filename || !(built ? BUILT_FILE : SOURCE_FILE).test(filename)) return;
                 if (!built && shouldIgnore(pkg, filename)) return;
-                this.requestRestart(path.join('packages', pkg, directory, filename));
+                const builtFile = built ? path.join(this.options.packagesDir, pkg, directory, filename) : undefined;
+                this.requestRestart(path.join('packages', pkg, directory, filename), builtFile);
             });
         }
 
@@ -134,7 +153,35 @@ export class Watcher {
         for (const watcher of this.watchers.splice(0)) watcher.close();
         this.timers.clearTimeout(this.restartTimer);
         this.timers.clearTimeout(this.generateTimer);
-        this.pendingReason = undefined;
+        this.pending.clear();
+    }
+
+    private recordBuiltFiles(): void {
+        for (const entry of readdirSync(this.options.packagesDir, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const dist = path.join(this.options.packagesDir, entry.name, 'dist');
+            let files: string[];
+            try {
+                files = readdirSync(dist, { recursive: true, encoding: 'utf8' });
+            } catch {
+                continue;
+            }
+            for (const file of files) {
+                if (!BUILT_FILE.test(file)) continue;
+                const absolute = path.join(dist, file);
+                const digest = hashFile(absolute);
+                if (digest !== undefined) this.builtHashes.set(absolute, digest);
+            }
+        }
+    }
+
+    /** Whether a built file's bytes differ from the last ones seen, recording the new ones. */
+    private builtFileChanged(file: string): boolean {
+        const digest = hashFile(file);
+        if (digest === this.builtHashes.get(file)) return false;
+        if (digest === undefined) this.builtHashes.delete(file);
+        else this.builtHashes.set(file, digest);
+        return true;
     }
 
     private watch(dir: string, onChange: (filename: string | null) => void): void {
@@ -170,13 +217,19 @@ export class Watcher {
         });
     }
 
-    private requestRestart(reason: string): void {
-        this.pendingReason ??= reason;
+    /**
+     * Queues a restart for the settled batch. A change to `builtFile` counts only when its bytes
+     * differ, checked once the batch settles, after the build has finished writing it.
+     */
+    private requestRestart(reason: string, builtFile?: string): void {
+        if (!this.pending.has(reason)) this.pending.set(reason, builtFile);
         this.timers.clearTimeout(this.restartTimer);
         this.restartTimer = this.timers.setTimeout(() => {
-            const first = this.pendingReason ?? reason;
-            this.pendingReason = undefined;
-            if (this.generating) return;
+            // Check every built file, not only up to the first change, so each hash stays current.
+            const changed = [...this.pending].filter(([, file]) => file === undefined || this.builtFileChanged(file));
+            this.pending.clear();
+            const first = changed[0]?.[0];
+            if (first === undefined || this.generating) return;
             this.options.onEvent({ type: 'supervisor.changed', path: first });
             this.options.requestRestart(first);
         }, this.debounceMs);

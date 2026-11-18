@@ -152,21 +152,65 @@ describe('Watcher', () => {
 
     it('watches built output instead of source when the server runs from it', async () => {
         const packagesDir = makePackages();
-        mkdirSync(path.join(packagesDir, 'alpha', 'dist'), { recursive: true });
+        const dist = path.join(packagesDir, 'alpha', 'dist');
+        mkdirSync(dist, { recursive: true });
+        writeFileSync(path.join(dist, 'index.js'), 'export const a = 1;\n');
         const { requestRestart, fs, started } = await startWatcher(packagesDir, () => true, [], true);
         await started;
 
-        expect(fs.watched()).toContain(path.join(packagesDir, 'alpha', 'dist'));
+        expect(fs.watched()).toContain(dist);
         expect(fs.watched()).not.toContain(path.join(packagesDir, 'alpha', 'src'));
 
         // A rebuild writes modules and leaves declarations and maps that nothing loads.
-        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.js');
-        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.d.ts');
-        fs.change(path.join(packagesDir, 'alpha', 'dist'), 'index.js.map');
+        writeFileSync(path.join(dist, 'index.js'), 'export const a = 2;\n');
+        fs.change(dist, 'index.js');
+        fs.change(dist, 'index.d.ts');
+        fs.change(dist, 'index.js.map');
         await advanceDebounce();
 
         expect(requestRestart).toHaveBeenCalledOnce();
         expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'dist', 'index.js'));
+    });
+
+    it('skips a rebuild that writes the bytes the server started with', async () => {
+        const packagesDir = makePackages();
+        const alphaDist = path.join(packagesDir, 'alpha', 'dist');
+        const dataDist = path.join(packagesDir, 'bedrock-data', 'dist');
+        mkdirSync(alphaDist, { recursive: true });
+        mkdirSync(path.join(dataDist, 'generated'), { recursive: true });
+        writeFileSync(path.join(alphaDist, 'index.js'), 'export const a = 1;\n');
+        writeFileSync(path.join(dataDist, 'generated', 'blocks.json'), '[]');
+        const { requestRestart, fs, started } = await startWatcher(packagesDir, () => true, [], true);
+        await started;
+
+        // The first pass of `build:watch` rewrites what the build before it wrote.
+        writeFileSync(path.join(alphaDist, 'index.js'), 'export const a = 1;\n');
+        writeFileSync(path.join(dataDist, 'generated', 'blocks.json'), '[]');
+        fs.change(alphaDist, 'index.js');
+        fs.change(dataDist, path.join('generated', 'blocks.json'));
+        fs.change(alphaDist, 'missing.js');
+        await advanceDebounce();
+        expect(requestRestart).not.toHaveBeenCalled();
+
+        // The first file to really change names the restart, even after an unchanged one.
+        writeFileSync(path.join(alphaDist, 'index.js'), 'export const a = 2;\n');
+        writeFileSync(path.join(dataDist, 'generated', 'blocks.json'), '[1]');
+        fs.change(dataDist, path.join('generated', 'blocks.json'));
+        fs.change(alphaDist, 'index.js');
+        await advanceDebounce();
+        expect(requestRestart).toHaveBeenCalledOnce();
+        expect(requestRestart).toHaveBeenCalledWith(
+            path.join('packages', 'bedrock-data', 'dist', 'generated', 'blocks.json')
+        );
+
+        // The rebuilt bytes become the new reference, and deleting a file is a change.
+        fs.change(alphaDist, 'index.js');
+        await advanceDebounce();
+        expect(requestRestart).toHaveBeenCalledOnce();
+        rmSync(path.join(alphaDist, 'index.js'));
+        fs.change(alphaDist, 'index.js');
+        await advanceDebounce();
+        expect(requestRestart).toHaveBeenCalledTimes(2);
     });
 
     it('restarts for a nested block overlay definition change', async () => {
