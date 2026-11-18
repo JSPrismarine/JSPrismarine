@@ -141,8 +141,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             consoleMode: 'disabled',
             screenMode: 'alternate-screen',
             openConsoleOnError: false,
-            useMouse: true,
-            experimental_nativeInput: true
+            useMouse: true
         });
     } catch (error) {
         throw new ConsoleErrors.RendererFailed({ errorText: errorText(error) }, { cause: error });
