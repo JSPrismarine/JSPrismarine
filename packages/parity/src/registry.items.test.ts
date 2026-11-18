@@ -9,7 +9,7 @@ import { reportParityProgress } from './progress.ts';
 import { reportParityCases } from './trackerCases.ts';
 
 /**
- * Compares the item capture from a 1.26.51 Bedrock Dedicated Server with the item list Mojang
+ * Compares the item capture from the pinned Bedrock Dedicated Server with the item list Mojang
  * publishes in `bedrock-samples`, which catches a golden taken from the wrong version: the
  * samples list a subset of the registry, so an item they name has to be captured with the
  * same id. Then compares the item table the server ships against the capture, which catches a
@@ -80,7 +80,9 @@ describe(FAMILIES.registryItems, () => {
     });
 
     it('carries no stale allow-list entry', () => {
-        expect(verdict.stale).toEqual([]);
+        // Without the samples only the table comparison ran, so only its entries can go stale.
+        const stale = samplesRoot === undefined ? verdict.stale.filter((id) => id.startsWith('table:')) : verdict.stale;
+        expect(stale).toEqual([]);
     });
 
     it('reports the current item catalog comparison volume', () => {

@@ -19,7 +19,7 @@ describe('allow list', () => {
     });
 
     it('reports nothing when the comparison reports nothing and the family has no entries', () => {
-        expect(checkAllowList(FAMILIES.registryItems, [])).toEqual({ unexpected: [], stale: [] });
+        expect(checkAllowList(FAMILIES.registryBlocks, [])).toEqual({ unexpected: [], stale: [] });
     });
 
     it('carries the reviewed mapping losses as rows, derived from the loss list itself', () => {
