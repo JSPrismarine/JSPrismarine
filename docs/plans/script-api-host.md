@@ -69,6 +69,16 @@ covers the Script API's place among add-on features. The ones the plan rests on:
   the main thread and in a worker, and its step budget stopped a loop at the same step every run.
 - Eight of the 14 corpus candidates depend on a beta `@minecraft/server`.
 
+2026-11-18: the host moved to BDS 1.26.60.6 and `bedrock-samples` v1.26.60.5. `@minecraft/server`
+2.11.0 is now stable, so a pack declaring 2.0.0 gets 559 exports, and the shipped beta is
+2.12.0-beta with 601. `@minecraft/server-ui` went to 2.3.0 stable and 2.4.0-beta. The new members,
+such as block named ticks, `BlockEntityStorageComponent`, crafting recipe components and
+`playerItemAttackEntity`, have no behavior yet. Canopy and Construct declare 2.12.0-beta, so they
+load on the pinned server now. Every scripting golden was recaptured: the engine's globals did not
+change, `EffectTypes` lists `minecraft:freezing`, and a custom component's `params` come back in an
+order that is neither the JSON's nor sorted. The comparison ignores key order, so no row records
+that.
+
 ## Shape
 
 `@jsprismarine/script-host` (`packages/script-host`) owns the runtime. `@jsprismarine/prismarine`
