@@ -605,7 +605,43 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     `packageAreas.ts`.
 19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
-20. [ ] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
+20. [x] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
+    - Done (2026-11-18): the corpus uses only `@minecraft/debug-utilities`, in the beta packs
+      `canopy`, `construct` and `lushway`: the shape constructors, `color`, `scale`, `timeLeft`,
+      `DebugBox.bound`, the arrow's head, `DebugText.setText` and `useRotation`, and
+      `debugDrawer.addShape` and `removeShape`. No pack declares `@minecraft/diagnostics` or
+      `@minecraft/server-graphics`. Every shape class and `debugDrawer` now have behavior, and
+      `disableWatchdogTimingWarnings` does nothing, as the watchdog never warns about time. The
+      drawer hands `ScriptWorld.drawDebugShapes` the shapes that changed at the end of each flush,
+      and Prismarine sends them as `PrimitiveShapesPacket`s, with every drawn shape to a player who
+      joins. The `scripting.debug` family's `debug-shapes` scenario matches BDS on all 81
+      observations.
+    - Learned, from the pinned BDS 1.26.51.1: a float property keeps what a 32-bit float keeps
+      (`scale = 1.1` reads `1.100000023841858`), an integer one drops its fraction, and colors and
+      scales outside their usual range are kept. `timeLeft` sets `totalTimeLeft` too. A dimension
+      given to `addShape` does not become the shape's `dimension`. A `RawMessage` text reads back
+      inside `rawtext`. A shape taken out of the drawer loses one more tick's time. A shape whose
+      time ran out keeps reading 0, and adding it again does not restart it.
+    - Learned: BDS takes each frame's elapsed time off a drawn shape's `timeLeft`, which went
+      from 0.007 to 0.057 seconds a tick in the captures. JSPrismarine takes off 0.05 seconds a
+      tick, so a replay counts the same, and the scenario records which way each count moved
+      rather than its values.
+    - Learned: BDS words a setter's conversion error with `Function return value` where an
+      argument's says `Function argument [n]`, for `@minecraft/server` setters such as
+      `ItemStack.amount` too. A plain object where a class instance belongs is `Object did not have
+      a native handle.`, a float property's bounds error leaves the value out and gives the float
+      range (`[0, 340282346638528859811704183484516925440.00]`), and a variant lists its types
+      primitives first, then classes and interfaces, then arrays, each in the metadata's order. The
+      runtime now does all four for every module. A bounds error also leaves its text on BDS's
+      error stack, and the next conversion error's message carries it; the runtime does not copy
+      that.
+    - Left: `collectRuntimeStats`, `collectPluginStats`, the diagnostics classes, all of
+      `@minecraft/diagnostics` and all of `@minecraft/server-graphics` throw `NotImplementedError`
+      ([#3262](https://github.com/JSPrismarine/JSPrismarine/issues/3262)). The wire's sphere
+      segments and a cylinder's pair of radii per axis are guesses no capture checks yet.
+      `@minecraft/server`'s own `primitiveShapesManager` and `TextPrimitive`, which one stable
+      corpus pack uses, have no behavior
+      ([#3261](https://github.com/JSPrismarine/JSPrismarine/issues/3261)).
 
 ## Risks
 

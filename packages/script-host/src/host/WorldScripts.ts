@@ -52,6 +52,7 @@ import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateRe
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
+import { DEBUG_UTILITIES, debugUtilitiesImplementations, PackDebugDrawer } from './debugUtilities';
 import { SERVER_ADMIN, serverAdminImplementations } from './serverAdmin';
 import { PackNet } from './netKit';
 import { SERVER_NET, serverNetImplementations } from './serverNet';
@@ -79,6 +80,7 @@ import type {
     ScriptCommandOutcome,
     ScriptComponentSink,
     ScriptComponentUse,
+    ScriptDebugShapeChange,
     ScriptItemHook,
     ScriptItemHookEvent,
     ScriptWorld,
@@ -222,6 +224,8 @@ interface LoadedPack {
     parseJson?: ScriptHandle;
     /** Its `@minecraft/server-net` request header lists, when it declares the module. */
     net?: PackNet;
+    /** Its `@minecraft/debug-utilities` drawer, when it declares the module. */
+    debug?: PackDebugDrawer;
 }
 
 /** A callback a pack subscribed to a signal. */
@@ -273,6 +277,11 @@ export class WorldScripts {
     private nextEventTag = EVENT_TAG_START;
     private privilege: Privilege = 'default';
     private tick = 0;
+    /**
+     * The next `@minecraft/debug-utilities` shape's id. A reload keeps counting, so no shape of the
+     * new runtime shares an id with one the world drew for the old.
+     */
+    private nextShapeId = 1;
     private clock: number | undefined;
     private releaseGuards: (() => void)[] = [];
     /** Set once scripts may no longer run: after a teardown, or a critical exception that shuts down. */
@@ -460,6 +469,7 @@ export class WorldScripts {
             }
             if (work === 0) break;
         }
+        this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.step() ?? []));
         this.tick++;
     }
 
@@ -515,6 +525,11 @@ export class WorldScripts {
         this.critical(loaded, 'Hang', `[Watchdog] Hang detected in '${loaded.pack.name}'`);
     }
 
+    /** Hands the world the flush's debug shape changes, when there are any. */
+    private drawDebugShapes(changes: readonly ScriptDebugShapeChange[]): void {
+        if (changes.length > 0) this.options.world.drawDebugShapes?.(changes);
+    }
+
     private teardown(): void {
         if (!this.stopped) {
             this.dispatch('ShutdownBeforeEventSignal', 'restricted_execution', (loaded) =>
@@ -535,6 +550,8 @@ export class WorldScripts {
         // A reload or shutdown settles no open form: the contexts that would see it go with it.
         this.forms.clear();
         this.http.clear(this.options.world.http);
+        // The world stops drawing what the runtime's shapes drew, since nothing can remove them after.
+        this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.clear() ?? []));
         for (const loaded of this.loaded) {
             loaded.forms?.destroy();
             loaded.net?.destroy();
@@ -685,22 +702,40 @@ export class WorldScripts {
                 simulated: (id) => this.simulated.add(id)
             });
         }
-        if (shapes.some((shape) => shape.module === SERVER_ADMIN)) {
+        if (shapes.some((shape) => shape.module === SERVER_ADMIN || shape.module === DEBUG_UTILITIES)) {
             entry.parseJson = engine.inContext(context, () => {
                 const parse = engine.evaluate('JSON.parse', '<jsp server-admin>');
                 if (!(parse instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
                 return parse;
             });
+        }
+        const parse = (json: string): ScriptValue => {
+            const parseJson = entry.parseJson;
+            if (parseJson === undefined) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
+            return engine.call(parseJson, undefined, json);
+        };
+        if (shapes.some((shape) => shape.module === SERVER_ADMIN)) {
             serverAdminImplementations(implementations, {
                 config,
                 world: this.options.world,
                 create: (className, tag, state) => api.create(SERVER_ADMIN, className, tag, state),
-                parse: (json) => {
-                    const parse = entry.parseJson;
-                    if (parse === undefined) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
-                    return engine.call(parse, undefined, json);
-                },
+                parse,
                 player: (value) => this.formPlayer(entry, value)
+            });
+        }
+        if (shapes.some((shape) => shape.module === DEBUG_UTILITIES)) {
+            const drawer = new PackDebugDrawer(engine, api);
+            entry.debug = drawer;
+            debugUtilitiesImplementations(implementations, {
+                drawer,
+                nextId: () => this.nextShapeId++,
+                dimensionOf: (value) => {
+                    const found = api.identify(value);
+                    return found?.tag === TAG.dimension ? found.state : undefined;
+                },
+                dimension: (id) => this.instance(entry, 'Dimension', TAG.dimension, id),
+                entity: (key) => this.entityObject(entry, key),
+                parse
             });
         }
         if (shapes.some((shape) => shape.module === SERVER_NET)) {

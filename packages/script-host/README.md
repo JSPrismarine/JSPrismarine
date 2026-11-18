@@ -557,6 +557,34 @@ record each rule below on the pinned BDS.
 - **Transfers.** `transferPlayer` takes a player and either a hostname with a port or a NetherNet
   id, and hands it to `ScriptWorld.transferPlayer`.
 
+### Debug shapes
+
+`@minecraft/debug-utilities` is a beta module that BDS's shipped `permissions.json` allows. Its
+shapes and `debugDrawer` have behavior; the `scripting.debug` family of the parity suite records
+each rule below on the pinned BDS.
+
+- **Shapes keep what a script sets.** Each class starts with BDS's defaults. A float property keeps
+  what a 32-bit float keeps, so `scale = 1.1` reads back `1.100000023841858`, and an integer
+  property drops its fraction. A `DimensionLocation` sets the shape's `dimension`, and a
+  `RawMessage` text reads back inside `rawtext`.
+- **The drawer.** `addShape`, `removeShape`, `removeAll` and a shape's `remove` decide which shapes
+  the pack draws. At the end of each script flush the drawer hands `ScriptWorld.drawDebugShapes`
+  the shapes that are new or changed and the ones that went, so a world sends a shape again only
+  when the script changed it. A dimension given to `addShape` draws the shape there without
+  becoming its `dimension`, as on BDS. A reload removes every shape the old runtime drew.
+- **Time left counts in ticks.** The drawer's step takes 0.05 seconds off each drawn shape's
+  `timeLeft`, and drops the shape once it reaches 0. A shape taken out loses that tick's time too.
+  BDS takes off the frame's elapsed time instead, which depends on its load, so the scenario
+  records which way each count moves rather than its values.
+- **Not implemented.** `collectRuntimeStats` and `collectPluginStats` would read the engine's
+  memory, which differs from BDS's and from one build to the next, and the diagnostics classes
+  send stats to a client JSPrismarine does not have. They throw `NotImplementedError`.
+  `disableWatchdogTimingWarnings` does nothing, as the watchdog counts steps and never warns about
+  time.
+
+`@minecraft/diagnostics` and `@minecraft/server-graphics` are served with no behavior, and BDS's
+shipped `permissions.json` allows neither.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that

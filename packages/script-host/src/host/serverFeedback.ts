@@ -117,7 +117,11 @@ const numbersArgument = <Key extends string>(
     for (const key of [...keys].sort()) {
         const value = isRecord(parsed) ? parsed[key] : undefined;
         if (typeof value !== 'number') {
-            throw new ScriptHostErrors.InterfacePropertyMissing({ property: key, expected: 'number', index });
+            throw new ScriptHostErrors.InterfacePropertyMissing({
+                property: key,
+                expected: 'number',
+                target: `Function argument [${index}]`
+            });
         }
         read[key] = value;
     }

@@ -204,6 +204,25 @@ describe.skipIf(!scriptHostAvailable())('binding the Script API into an engine',
         [
             "mc.world.getDimension.call({}, 'overworld')",
             'ReferenceError: Native function [World::getDimension] object bound to prototype does not exist.'
+        ],
+        // A setter's value is the `Function return value`, and an object the host did not make has
+        // no native handle, as the `debug-shapes` golden holds for the debug shapes' setters and
+        // `addShape`. A capture of the same scenario's draft recorded these three ItemStack messages.
+        [
+            'Object.create(mc.ItemStack.prototype).amount = NaN',
+            'TypeError: NaN value is not supported. Function return value expected type: number'
+        ],
+        [
+            'Object.create(mc.ItemStack.prototype).nameTag = 5',
+            'TypeError: Native type conversion failed. Function return value expected type: string | undefined'
+        ],
+        [
+            "Object.create(mc.ItemStack.prototype).keepOnDeath = 'x'",
+            'TypeError: Native type conversion failed. Function return value expected type: boolean'
+        ],
+        [
+            'Object.create(mc.Container.prototype).setItem(0, {})',
+            'TypeError: Object did not have a native handle. Function argument [1] expected type: ItemStack | undefined'
         ]
     ])('throws what BDS throws for %s', (source, message) => {
         const scripts = engine();

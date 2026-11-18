@@ -1,5 +1,5 @@
 import { engineFunctionSource } from '../engineSource';
-import type { RuntimeCall, RuntimeExport, RuntimeMember, RuntimePlan, RuntimeType } from './plan';
+import type { RuntimeArgument, RuntimeCall, RuntimeExport, RuntimeMember, RuntimePlan, RuntimeType } from './plan';
 
 /**
  * The host function the runtime calls for every member: the member's id, `this`, the tag and the
@@ -62,7 +62,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
     const { isArray } = Array;
     const { isFinite, isInteger } = Number;
     const { parse, stringify } = JSON;
-    const { Error, TypeError, ReferenceError, Map, Set, WeakMap, String } = globalThis;
+    const { Error, TypeError, ReferenceError, Map, Set, WeakMap, String, BigInt } = globalThis;
     const iterator = Symbol.iterator;
     const uncurry =
         <This, Args extends unknown[], Result>(fn: (this: This, ...args: Args) => Result) =>
@@ -194,7 +194,27 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         }
     };
 
-    /** A type as BDS's conversion errors write it. A variant lists its types last to first. */
+    /**
+     * Where BDS lists a variant's type in its conversion errors: a primitive first, then a class or
+     * an interface, then an array, each group in the metadata's order. The goldens hold
+     * `string | ItemType`, `string | RawMessage | (string | RawMessage)[]` and
+     * `DimensionLocation | Vector3`.
+     */
+    const variantRank = (type: RuntimeType): number => {
+        switch (type.kind) {
+            case 'boolean':
+            case 'string':
+            case 'number':
+            case 'undefined':
+                return 0;
+            case 'array':
+                return 2;
+            default:
+                return 1;
+        }
+    };
+
+    /** A type as BDS's conversion errors write it. */
     const describe = (type: RuntimeType): string => {
         switch (type.kind) {
             case 'instance':
@@ -211,9 +231,13 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 return `${describe(type.type)} | undefined`;
             case 'variant': {
                 let text = '';
-                for (let index = type.types.length - 1; index >= 0; index--) {
-                    const each = type.types[index];
-                    if (each !== undefined) text += `${text === '' ? '' : ' | '}${describe(each)}`;
+                for (let rank = 0; rank < 3; rank++) {
+                    for (let index = 0; index < type.types.length; index++) {
+                        const each = type.types[index];
+                        if (each !== undefined && variantRank(each) === rank) {
+                            text += `${text === '' ? '' : ' | '}${describe(each)}`;
+                        }
+                    }
                 }
                 return text;
             }
@@ -222,9 +246,16 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         }
     };
 
-    /** A bound as BDS writes it: a whole number in the int32 range as it is, anything else with two decimals. */
-    const bound32 = (value: number): string =>
-        isInteger(value) && value >= -2147483648 && value <= 2147483647 ? String(value) : toFixed(value, 2);
+    /**
+     * A bound as BDS writes it: a whole number in the int32 range as it is, anything else with two
+     * decimals and every digit, as `printf` writes it. `toFixed` writes an exponent from 1e21 on, so
+     * a whole number that large, such as the float range's end, is written through `BigInt`.
+     */
+    const bound32 = (value: number): string => {
+        if (isInteger(value) && value >= -2147483648 && value <= 2147483647) return String(value);
+        if (isInteger(value) && (value >= 1e21 || value <= -1e21)) return `${String(BigInt(value))}.00`;
+        return toFixed(value, 2);
+    };
 
     const outOfBounds = (index: number, value: number, min?: number, max?: number): Error => {
         const bounds =
@@ -241,8 +272,26 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
         );
     };
 
-    /** What BDS throws for a value set on a property outside its bounds, such as `ItemStack.amount = 0`. */
-    const propertyOutOfBounds = (name: string, value: number, min?: number, max?: number): Error => {
+    /** The largest finite float, which BDS gives a float property's open side of its bounds. */
+    const FLOAT_MAX = 3.4028234663852886e38;
+
+    /**
+     * What BDS throws for a value set on a property outside its bounds, such as `ItemStack.amount
+     * = 0`. A float property's error leaves out the value and closes an open side with the float
+     * range ({@link RuntimeArgument.float}).
+     */
+    const propertyOutOfBounds = (name: string, value: number, argument: RuntimeArgument): Error => {
+        const { min, max } = argument;
+        if (argument.float === true) {
+            const low = min ?? -FLOAT_MAX;
+            const high = max ?? FLOAT_MAX;
+            return makeError(
+                COMMON,
+                'PropertyOutOfBoundsError',
+                `Unsupported or out of bounds value set on Property: ${name}, Property bounds: [${bound32(low)}, ${bound32(high)}]`,
+                { value, minValue: low, maxValue: high }
+            );
+        }
         const bounds =
             min !== undefined && max !== undefined
                 ? `Property bounds: [${bound32(min)}, ${bound32(max)}]`
@@ -259,7 +308,8 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     /**
      * Checks a call's arguments and fills in omitted defaults.
-     * @param property - The property a setter's one argument is for, which words a bounds error.
+     * @param property - The property a setter's one argument is for. BDS names a setter's value
+     *   `Function return value` in its conversion errors, and the property in a bounds error.
      */
     const check = (call: RuntimeCall, args: readonly unknown[], property?: string): unknown[] => {
         if (args.length < call.required || args.length > call.arguments.length) {
@@ -282,21 +332,26 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 if (argument.default !== undefined) put(checked, index, argument.default);
                 continue;
             }
+            const target = property === undefined ? `Function argument [${index}]` : 'Function return value';
             if (!matches(argument.type, value)) {
                 const inner = argument.type.kind === 'optional' ? argument.type.type : argument.type;
-                const conversion =
-                    inner.kind === 'variant' ? 'Native variant type conversion' : 'Native type conversion';
+                // An object that is not one the host made, where a class's instance belongs.
+                const unbound =
+                    inner.kind === 'instance' && typeof value === 'object' && value !== null && !weakHas(bound, value);
+                const conversion = unbound
+                    ? 'Object did not have a native handle.'
+                    : inner.kind === 'variant'
+                      ? 'Native variant type conversion failed.'
+                      : 'Native type conversion failed.';
                 // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
-                throw new TypeError(
-                    `${conversion} failed. Function argument [${index}] expected type: ${describe(argument.type)}`
-                );
+                throw new TypeError(`${conversion} ${target} expected type: ${describe(argument.type)}`);
             }
             if (typeof value === 'number' && argument.type.kind !== 'host') {
                 // BDS refuses NaN and an infinity before it checks any bounds.
                 if (!isFinite(value)) {
                     // biome-ignore lint/plugin/no-raw-errors: runs inside the script engine, and the script gets the native error BDS throws.
                     throw new TypeError(
-                        `${value} value is not supported. Function argument [${index}] expected type: ${describe(argument.type)}`
+                        `${value} value is not supported. ${target} expected type: ${describe(argument.type)}`
                     );
                 }
                 const low = argument.min !== undefined && value < argument.min;
@@ -304,7 +359,7 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
                 if (low || high) {
                     throw property === undefined
                         ? outOfBounds(index, value, argument.min, argument.max)
-                        : propertyOutOfBounds(property, value, argument.min, argument.max);
+                        : propertyOutOfBounds(property, value, argument);
                 }
             }
             if (typeof value === 'string' && argument.maxLength !== undefined && value.length > argument.maxLength) {

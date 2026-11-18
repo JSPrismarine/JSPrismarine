@@ -205,6 +205,10 @@ changes for this, but a few things behave differently from BDS:
 - **The clock moves once per tick.** `Date.now()`, `new Date()` and `Date()` return the time the
   tick started, the same value for every call in that tick. Measure work in ticks with
   `system.currentTick` rather than by subtracting two dates.
+- **Debug shapes count down in ticks.** A shape drawn with `@minecraft/debug-utilities` loses 0.05
+  seconds of its `timeLeft` each tick. BDS takes off the time each frame took, so how many ticks a
+  shape lasts there depends on the server's load. On JSPrismarine it lasts the same number of ticks
+  every time.
 - **HTTP results arrive in a later tick.** A request from `@minecraft/server-net` runs off the
   tick, and its promise settles in a later tick's script flush, never in the tick that sent it. A
   replay settles it with the recorded result instead of the network.
