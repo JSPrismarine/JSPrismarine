@@ -17,7 +17,7 @@ const packageRoot = path.resolve(here, '../..');
 const repoRoot = path.resolve(packageRoot, '../..');
 
 const sources = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8'));
-const javaVersion = sources.javaServer.version;
+const javaVersion = sources.javaServer.defaultVersion;
 // The 26.3 manifest declares Java 25, and the dumper compiles against the server classes.
 const requiredJdkMajor = 25;
 
@@ -28,7 +28,7 @@ const librariesDir = path.join(cacheDir, 'libraries');
 for (const required of [serverJar, librariesDir]) {
     if (!fs.existsSync(required)) {
         throw new Error(
-            `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run dump:java\` first; ` +
+            `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run dump:java --java ${javaVersion}\` first; ` +
                 'it downloads, verifies and unpacks the pinned server jar.'
         );
     }

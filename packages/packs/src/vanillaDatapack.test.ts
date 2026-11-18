@@ -25,9 +25,9 @@ const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.
 // depend on @jsprismarine/bedrock-data, so the test reads the file rather than its export.
 const pinnedJavaVersion = (
     JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as {
-        javaServer: { version: string };
+        javaServer: { defaultVersion: string };
     }
-).javaServer.version;
+).javaServer.defaultVersion;
 
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');

@@ -35,10 +35,10 @@ const readJavaVersion = (): string => {
     if (typeof manifest !== 'object' || manifest === null || !('javaServer' in manifest))
         throw new Error('the source manifest does not declare a Java server');
     const javaServer = manifest.javaServer;
-    if (typeof javaServer !== 'object' || javaServer === null || !('version' in javaServer))
-        throw new Error('the source manifest does not declare the Java server version');
-    if (typeof javaServer.version !== 'string') throw new Error('the Java server version is not a string');
-    return javaServer.version;
+    if (typeof javaServer !== 'object' || javaServer === null || !('defaultVersion' in javaServer))
+        throw new Error('the source manifest does not declare the default Java release');
+    if (typeof javaServer.defaultVersion !== 'string') throw new Error('the default Java release is not a string');
+    return javaServer.defaultVersion;
 };
 
 const jarPath = resolve(

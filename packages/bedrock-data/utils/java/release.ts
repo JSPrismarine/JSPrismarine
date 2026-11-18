@@ -7,27 +7,26 @@
  */
 import { join } from 'node:path';
 
-import { loadSourceDescriptors, type SourceDescriptor } from '../fetch/manifest.ts';
+import {
+    javaServerDescriptor,
+    loadJavaServerData,
+    parseJavaArgument,
+    type SourceDescriptor
+} from '../fetch/manifest.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
 import { packageDir } from './worldgen-cache.ts';
 
 /**
- * The `sources.json` entry for the Java Edition release a script should work on.
+ * The `sources.json` entry for the Java Edition release a script should work on: the one
+ * `--java <release>` names, or `javaServer.defaultVersion` when the flag is absent.
  *
- * This is always the pinned `javaServer` release for now; the arguments are taken so a flag that
- * picks another release has one place to be read.
- *
- * @param _argv - The script's command line arguments.
+ * @param argv - The script's command line arguments.
  * @returns The descriptor of the release's server jar.
- * @throws Error when `sources.json` pins no Java server.
+ * @throws Error when `--java` has no value, names a release `sources.json` does not pin, or the
+ * manifest breaks the one-preview rule.
  */
-export const resolveJavaRelease = async (_argv: readonly string[] = process.argv): Promise<SourceDescriptor> => {
-    const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-    const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-    if (javaServer === undefined) throw new Error('sources.json no longer pins a java-server source');
-
-    return javaServer;
-};
+export const resolveJavaRelease = async (argv: readonly string[] = process.argv): Promise<SourceDescriptor> =>
+    javaServerDescriptor(await loadJavaServerData(join(packageDir, 'sources.json')), parseJavaArgument(argv));
 
 /** The fields of a server jar's `version.json` the Java scripts read. */
 export interface JarVersion {

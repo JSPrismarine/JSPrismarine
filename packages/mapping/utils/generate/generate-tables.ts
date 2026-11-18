@@ -39,14 +39,14 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 // ---------------------------------------------------------------------------
 
 interface SourcesManifest {
-    javaServer: { version: string };
+    javaServer: { defaultVersion: string };
     bedrockSamples: { tag: string; commit: string };
     geyserMappings: { commit: string };
 }
 
 // sources.json is parsed JSON; only the pins the generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
-const javaVersion = sources.javaServer.version;
+const javaVersion = sources.javaServer.defaultVersion;
 const geyserCommit = sources.geyserMappings.commit;
 
 const geyserDir = join(cacheRoot, 'geyser-mappings', geyserCommit, 'unpacked', `mappings-${geyserCommit}`);

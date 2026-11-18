@@ -19,8 +19,8 @@ const repoRoot = path.resolve(packageRoot, '../..');
 
 // The pin lives in the shared source manifest, so a version bump edits that file once.
 const sources = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8'));
-const JAVA_VERSION = sources.javaServer.version;
-const SERVER_JAR_SHA1 = sources.javaServer.sha1;
+const JAVA_VERSION = sources.javaServer.defaultVersion;
+const SERVER_JAR_SHA1 = sources.javaServer.versions[JAVA_VERSION].sha1;
 // The 26.3 version manifest declares Java 25 for the server classes.
 const REQUIRED_JDK_MAJOR = 25;
 
@@ -41,7 +41,7 @@ export const findServerJar = () => {
     }
     throw new Error(
         `No Java ${JAVA_VERSION} server jar with sha1 ${SERVER_JAR_SHA1} found. Run ` +
-            '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` or set JSP_JAVA_JAR_PATH.'
+            `\`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${JAVA_VERSION}\` or set JSP_JAVA_JAR_PATH.`
     );
 };
 

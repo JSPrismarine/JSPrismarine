@@ -95,18 +95,19 @@ const committed = (id: string, path: string, holds: string): ReferenceSource => 
 });
 
 /** The pins in `sources.json` the reference locators read, or `undefined` without the file. */
-const pinnedSources = (): { javaServer?: { version?: string }; bedrockSamples?: { tag?: string } } | undefined => {
+const pinnedSources = ():
+    { javaServer?: { defaultVersion?: string }; bedrockSamples?: { tag?: string } } | undefined => {
     const manifest = join(repoRoot, 'packages/bedrock-data/sources.json');
     if (!existsSync(manifest)) return undefined;
-    // sources.json is parsed JSON; only the Java version and the bedrock-samples tag are read.
+    // sources.json is parsed JSON; only the default Java release and the bedrock-samples tag are read.
     return JSON.parse(readFileSync(manifest, 'utf-8')) as {
-        javaServer?: { version?: string };
+        javaServer?: { defaultVersion?: string };
         bedrockSamples?: { tag?: string };
     };
 };
 
-/** The pinned Java Edition version, read from the one manifest that declares it. */
-const pinnedJavaVersion = (): string | undefined => pinnedSources()?.javaServer?.version;
+/** The default Java Edition release, read from the one manifest that declares it. */
+const pinnedJavaVersion = (): string | undefined => pinnedSources()?.javaServer?.defaultVersion;
 
 /**
  * The pinned `bedrock-samples` checkout's directories, two levels under its tag. The fetch cache

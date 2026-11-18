@@ -95,15 +95,32 @@
     "javaServer": {
         "$comment": [
             "The Java Edition server jar, whose data generator emits the vanilla datapack and the",
-            "reports. The URL and sha1 come from the piston-meta 26.3 package, which is Mojang's",
-            "own checksum; the sha1 is also the object name in the URL. The sha256 was measured",
-            "on download. The jar is kept as a file, not unpacked."
+            "reports. Pinned per Java Edition release id, the way `bds` is pinned per protocol:",
+            "each entry caches as `node_modules/.cache/jsprismarine/java-server/<release>/server.jar`",
+            "and its generated data under `<release>/` folders, so several releases coexist.",
+            "`--java <release>` on `fetch:sources`, `datagen:java`, `ensure:worldgen` and the other",
+            "Java scripts selects one, and `defaultVersion` is used when nothing asks; it is the",
+            "release the server runs. `fetch:sources` downloads only the selected jar.",
+            "",
+            "An entry may carry `\"preview\": true` for a snapshot or pre-release tracked ahead of",
+            "the default. At most one entry is a preview, and it must be newer than",
+            "`defaultVersion`; loading the manifest fails otherwise.",
+            "",
+            "Each URL and sha1 come from the release's piston-meta package, which is Mojang's own",
+            "checksum; the sha1 is also the object name in the URL. Each sha256 was measured on",
+            "download. The jar is kept as a file, not unpacked. The data pack format, the data",
+            "version and the JDK a release needs are read from the jar's `version.json`, not",
+            "written here."
         ],
-        "version": "26.3",
-        "url": "https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar",
-        "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
-        "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
-        "sizeInBytes": 62294556
+        "defaultVersion": "26.3",
+        "versions": {
+            "26.3": {
+                "url": "https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar",
+                "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
+                "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
+                "sizeInBytes": 62294556
+            }
+        }
     },
     "vanillaMcdoc": {
         "$comment": [

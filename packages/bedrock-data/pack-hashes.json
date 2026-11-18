@@ -90,7 +90,7 @@
             "util.json": "0f7dde5bbfa2ce4519cf585caa463a3628446a8d97f31bbea8451dfe385cf3eb"
         }
     },
-    "java-server": {
+    "java-server/26.3": {
         "version": "26.3",
         "entries": {
             "server.jar": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64"
