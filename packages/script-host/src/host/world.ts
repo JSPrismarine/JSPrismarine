@@ -73,6 +73,16 @@ export interface ScriptEntityState {
     readonly name?: string;
     /** How many slots its inventory has. Absent for an entity without one. */
     readonly inventorySize?: number;
+    /** Its rotation in degrees: `x` the pitch, `y` the yaw. Absent reads as facing south, level. */
+    readonly rotation?: { readonly x: number; readonly y: number };
+    /** Where its eyes are. Absent reads as its location. */
+    readonly headLocation?: ScriptVector3;
+    /** Whether it is sneaking. */
+    readonly sneaking?: boolean;
+    /** A player's game mode. Absent for every other entity. */
+    readonly gameMode?: ScriptGameMode;
+    /** The hotbar slot a player holds, from 0 to 8. Absent for every other entity. */
+    readonly selectedSlot?: number;
 }
 
 /**
@@ -189,6 +199,19 @@ export type ScriptCommandResult = { readonly successCount: number } | { readonly
 /** Who a script's command runs as: a dimension, as the server does, or an entity, as `@s`. */
 export type ScriptCommandSource = { readonly dimension: string } | { readonly entity: string };
 
+/** Why an entity appeared, as `EntityInitializationCause` names it. */
+export type ScriptSpawnCause = 'Born' | 'Event' | 'Loaded' | 'Spawned' | 'Transformed';
+
+/** What hurt an entity, as `EntityDamageSource` reads it. */
+export interface ScriptDamageSource {
+    /** The cause, as `EntityDamageCause` names it, such as `fall` or `entityAttack`. */
+    readonly cause: string;
+    /** The entity answerable for the blow, such as the archer of an arrow. */
+    readonly damagingEntity?: ScriptEntityRef;
+    /** The projectile that made contact, when it is not the damaging entity. */
+    readonly damagingProjectile?: ScriptEntityRef;
+}
+
 /** How a script's `/scriptevent` was sent, as `ScriptEventSource` names it. */
 export type ScriptEventSourceType = 'Block' | 'Entity' | 'NPCDialogue' | 'Server';
 
@@ -211,7 +234,19 @@ export type ScriptWorldEvent =
           readonly sourceType: ScriptEventSourceType;
           /** The entity that ran it, when an entity did. */
           readonly sourceEntity?: string;
-      };
+      }
+    /** An entity appeared in the world. */
+    | { readonly type: 'entitySpawn'; readonly entity: ScriptEntityRef; readonly cause: ScriptSpawnCause }
+    /** A blow took health off an entity. */
+    | {
+          readonly type: 'entityHurt';
+          readonly entity: ScriptEntityRef;
+          /** The health the blow took. */
+          readonly damage: number;
+          readonly source: ScriptDamageSource;
+      }
+    /** An entity died. */
+    | { readonly type: 'entityDie'; readonly entity: ScriptEntityRef; readonly source: ScriptDamageSource };
 
 /** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
 export interface ScriptFormResponse {
@@ -623,6 +658,15 @@ export interface ScriptWorld {
     placeStructure?(dimension: string, location: ScriptVector3, structure: Uint8Array): void;
     /** Sets a player's game mode, as `/gamemode` does. */
     setGameMode?(id: string, gameMode: ScriptGameMode): void;
+    /** Moves a player's hand to a hotbar slot, from 0 to 8, and tells their client. */
+    setSelectedSlot?(id: string, slot: number): void;
+    /**
+     * Hurts an entity through the world's damage pipeline, as `/damage` does.
+     * @param amount - The blow, before armor and resistance.
+     * @returns Whether the blow landed. A blow no stronger than the one the entity is still
+     *   recovering from lands without taking health, and one at a dead entity does not land.
+     */
+    applyDamage?(id: string, amount: number, source: ScriptDamageSource): boolean;
     /**
      * Puts the custom commands the scripts registered into the world's command tree, after
      * `startup`. A world without it has no custom commands.

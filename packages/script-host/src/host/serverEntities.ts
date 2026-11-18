@@ -31,7 +31,15 @@ import {
     vectorArgument,
     withNamespace
 } from './serverObjects';
-import type { ScriptCommandResult, ScriptCommandSource, ScriptEntityState, ScriptVector3 } from './world';
+import type {
+    ScriptCommandResult,
+    ScriptCommandSource,
+    ScriptDamageSource,
+    ScriptEntityRef,
+    ScriptEntityState,
+    ScriptItem,
+    ScriptVector3
+} from './world';
 import { isRecord } from '../isRecord';
 
 /** The `EntityQueryOptions` fields the host filters by. */
@@ -149,6 +157,58 @@ const entityArray = (host: PackHost, entities: readonly ScriptEntityState[]): Sc
     return host.engine.release(array);
 };
 
+/** The direction an entity with a rotation looks in, as a unit vector, as BDS works it out. */
+export const viewDirection = ({ x: pitch, y: yaw }: { readonly x: number; readonly y: number }): ScriptVector3 => {
+    const radians = Math.PI / 180;
+    const level = Math.cos(pitch * radians);
+    // BDS keeps the parts as 32-bit floats; a zero stays positive.
+    const part = (value: number): number => Math.fround(value) + 0;
+    return {
+        x: part(-Math.sin(yaw * radians) * level),
+        y: part(-Math.sin(pitch * radians)),
+        z: part(Math.cos(yaw * radians) * level)
+    };
+};
+
+/** The slot range of a player's hotbar, which `selectedSlotIndex` takes. */
+const HOTBAR = { min: 0, max: 8 } as const;
+
+/** Whether two stacks merge into one slot: the same type, name, lore and dynamic properties. */
+const stacksWith = (a: ScriptItem, b: ScriptItem): boolean =>
+    a.typeId === b.typeId &&
+    a.nameTag === b.nameTag &&
+    JSON.stringify(a.lore ?? []) === JSON.stringify(b.lore ?? []) &&
+    (a.dynamicProperties?.size ?? 0) === 0 &&
+    (b.dynamicProperties?.size ?? 0) === 0;
+
+/**
+ * Where `Container.addItem` puts a stack: onto the stacks it merges with, in slot order, then
+ * into the empty slots, in slot order, as the `entity-members` scenario recorded on BDS.
+ * @param most - How many items one slot of the stack's type holds.
+ * @returns Each slot it changes with the stack the slot then holds, and what did not fit.
+ */
+export const placeItem = (
+    slots: readonly (ScriptItem | null)[],
+    item: ScriptItem,
+    most: number
+): { readonly writes: ReadonlyMap<number, ScriptItem>; readonly left: number } => {
+    const writes = new Map<number, ScriptItem>();
+    let left = item.amount;
+    slots.forEach((slot, index) => {
+        if (left <= 0 || slot === null || !stacksWith(slot, item) || slot.amount >= most) return;
+        const moved = Math.min(left, most - slot.amount);
+        writes.set(index, { ...slot, amount: slot.amount + moved });
+        left -= moved;
+    });
+    slots.forEach((slot, index) => {
+        if (left <= 0 || slot !== null) return;
+        const moved = Math.min(left, most);
+        writes.set(index, { ...item, amount: moved });
+        left -= moved;
+    });
+    return { writes, left };
+};
+
 /**
  * Registers the entity and player members.
  * @param implementations - The pack's implementations, which this adds to.
@@ -184,6 +244,25 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
             }
             return entityArray(host, queryEntities(players(), query));
         })
+        .implement(SERVER, 'World', 'getEntity', (call) => {
+            const id = String(call.args[0]);
+            // BDS reads the id as a whole number, the one `Entity.id` writes.
+            if (!/^-?\d+$/.test(id)) throw plainError(`Entity id '${id}' is invalid.`);
+            const entity = world.entity(id);
+            return entity === undefined ? undefined : host.entity(entity);
+        })
+        .implement(SERVER, 'Dimension', 'getPlayers', (call) => {
+            const query = queryArgument(call, 0);
+            if (query.type !== undefined || query.excludeTypes !== undefined) {
+                throw new ScriptApiError(
+                    SERVER,
+                    'CommandError',
+                    'Error occurred with parsing command params: Type argument applied to player-only selector'
+                );
+            }
+            const here = players().filter((player) => player.dimension === call.state);
+            return entityArray(host, queryEntities(here, query));
+        })
         .implement(SERVER, 'Dimension', 'getEntities', (call) =>
             entityArray(host, queryEntities(world.entities(call.state), queryArgument(call, 0)))
         )
@@ -217,7 +296,8 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
             get: (call) => host.instance('Dimension', TAG.dimension, live(call, 'get', 'dimension').dimension)
         })
         .implement(SERVER, 'Entity', 'nameTag', {
-            get: (call) => live(call, 'get', 'nameTag').nameTag,
+            // BDS words a read of a gone entity's name tag as a set, as the `entities` scenario recorded.
+            get: (call) => live(call, 'set', 'nameTag').nameTag,
             set: (call) => world.setNameTag(live(call, 'set', 'nameTag').id, String(call.args[0]))
         })
         .implement(SERVER, 'Entity', 'addTag', (call) =>
@@ -255,6 +335,44 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
             if (component !== 'minecraft:inventory' || entity.inventorySize === undefined) return undefined;
             return host.engine.release(host.create('EntityInventoryComponent', TAG.inventory, call.state));
         })
+        .implement(SERVER, 'Entity', 'getRotation', (call) =>
+            JSON.stringify(live(call, 'call', 'getRotation').rotation ?? { x: 0, y: 0 })
+        )
+        .implement(SERVER, 'Entity', 'getHeadLocation', (call) => {
+            const entity = live(call, 'call', 'getHeadLocation');
+            return JSON.stringify(entity.headLocation ?? entity.location);
+        })
+        .implement(SERVER, 'Entity', 'getViewDirection', (call) =>
+            JSON.stringify(viewDirection(live(call, 'call', 'getViewDirection').rotation ?? { x: 0, y: 0 }))
+        )
+        .implement(SERVER, 'Entity', 'isSneaking', {
+            get: (call) => live(call, 'get', 'isSneaking').sneaking === true
+        })
+        .implement(SERVER, 'Entity', 'applyDamage', (call) => {
+            const entity = live(call, 'call', 'applyDamage');
+            const [amount, options] = call.args;
+            return world.applyDamage?.(entity.id, Number(amount), damageSourceArgument(call, options)) ?? false;
+        })
+        .implement(SERVER, 'Player', 'getGameMode', (call) => live(call, 'call', 'getGameMode').gameMode ?? 'Survival')
+        .implement(SERVER, 'Player', 'selectedSlotIndex', {
+            get: (call) => live(call, 'get', 'selectedSlotIndex').selectedSlot ?? 0,
+            set: (call) => {
+                const player = live(call, 'set', 'selectedSlotIndex');
+                const [slot] = call.args;
+                const index = typeof slot === 'number' ? Math.trunc(slot) : 0;
+                if (index < HOTBAR.min || index > HOTBAR.max) {
+                    // BDS names the property `selectedSlot` here, as the `players` scenario recorded.
+                    throw new ScriptApiError(
+                        COMMON,
+                        'PropertyOutOfBoundsError',
+                        `Unsupported or out of bounds value set on Property: selectedSlot, Value: ${index}, ` +
+                            `Property bounds: [${HOTBAR.min}, ${HOTBAR.max}]`,
+                        { value: index, minValue: HOTBAR.min, maxValue: HOTBAR.max }
+                    );
+                }
+                world.setSelectedSlot?.(player.id, index);
+            }
+        })
         .implement(SERVER, 'Player', 'name', {
             get: (call) => {
                 const player = world.entity(keyOf(call).id);
@@ -277,13 +395,48 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
     implementInventory(implementations, host);
 };
 
+/**
+ * Reads an `EntityApplyDamageOptions` or `EntityApplyDamageByProjectileOptions` argument, whose
+ * entities are objects the host made. With none, the cause is `none`, as on BDS.
+ */
+const damageSourceArgument = (call: ScriptCall, options: ScriptValue | undefined): ScriptDamageSource => {
+    if (!(options instanceof ScriptHandle)) return { cause: 'none' };
+    const read = (key: string): ScriptValue | undefined => {
+        const found = call.engine.get(options, key);
+        if (!(found instanceof ScriptHandle)) return found;
+        // A handle the source keeps only by its state, which outlives the handle.
+        const state = call.stateOf(found);
+        call.engine.free(found);
+        return state;
+    };
+    const entityOf = (key: string): ScriptEntityRef | undefined => {
+        const state = read(key);
+        if (typeof state !== 'string' || state === '') return undefined;
+        const { id, typeId } = entityKeyOf(state);
+        return { id, typeId };
+    };
+    const cause = read('cause');
+    const damagingEntity = entityOf('damagingEntity');
+    const damagingProjectile = entityOf('damagingProjectile');
+    return {
+        cause: typeof cause === 'string' ? cause : damagingProjectile === undefined ? 'none' : 'projectile',
+        ...(damagingEntity === undefined ? {} : { damagingEntity }),
+        ...(damagingProjectile === undefined ? {} : { damagingProjectile })
+    };
+};
+
 /** The inventory component and its container, both of which name their entity by its key. */
 const implementInventory = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const { world } = host;
-    /** The entity's slots, or BDS's error for a member of a container whose entity is gone. */
-    const slots = (call: ScriptCall, member: string) => {
+    /**
+     * The entity's slots, or BDS's error for a member of a container whose entity is gone: `Failed
+     * to get property 'size'.` for a property and `Failed to call function 'addItem'.` for a method.
+     */
+    const slots = (call: ScriptCall, member: string, access: 'get' | 'call' = 'get') => {
         const found = world.inventory(entityKeyOf(call.state).id);
-        if (found === undefined) throw plainError(`Failed to get property '${member}'.`);
+        if (found === undefined) {
+            throw plainError(`Failed to ${access === 'get' ? 'get property' : 'call function'} '${member}'.`);
+        }
         return found;
     };
     const slotArgument = (call: ScriptCall, size: number): number => {
@@ -318,13 +471,25 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
             get: (call) => slots(call, 'emptySlotsCount').filter((slot) => slot === null).length
         })
         .implement(SERVER, 'Container', 'getItem', (call) => {
-            const all = slots(call, 'getItem');
+            const all = slots(call, 'getItem', 'call');
             const item = all[slotArgument(call, all.length)];
             if (item === undefined || item === null) return undefined;
             return host.engine.release(host.create('ItemStack', TAG.itemStack, itemState(item)));
         })
+        .implement(SERVER, 'Container', 'addItem', (call) => {
+            const all = slots(call, 'addItem', 'call');
+            const stack = call.args[0];
+            if (!(stack instanceof ScriptHandle)) return undefined;
+            const item = itemOf(call.stateOf(stack));
+            const most = world.itemType(item.typeId)?.maxStackSize ?? item.amount;
+            const { writes, left } = placeItem(all, item, Math.max(1, most));
+            const id = entityKeyOf(call.state).id;
+            for (const [slot, written] of writes) world.setInventoryItem(id, slot, written);
+            if (left <= 0) return undefined;
+            return host.engine.release(host.create('ItemStack', TAG.itemStack, itemState({ ...item, amount: left })));
+        })
         .implement(SERVER, 'Container', 'setItem', (call) => {
-            const all = slots(call, 'setItem');
+            const all = slots(call, 'setItem', 'call');
             const slot = slotArgument(call, all.length);
             const stack = call.args[1];
             const item = stack instanceof ScriptHandle ? itemOf(call.stateOf(stack)) : undefined;

@@ -11,7 +11,9 @@ import type {
     ScriptCommandSet,
     ScriptCommandSource,
     ScriptComponentSink,
+    ScriptDamageSource,
     ScriptEntityState,
+    ScriptGameMode,
     ScriptItem,
     ScriptDisplay,
     ScriptDisplaySlot,
@@ -48,11 +50,14 @@ const ITEM_TYPES: Readonly<Record<string, number>> = {
     'minecraft:diamond_sword': 1
 };
 
-/** The entity types the world can spawn, with their inventory size. */
-const ENTITY_TYPES: Readonly<Record<string, number | undefined>> = {
-    'minecraft:armor_stand': undefined,
-    'minecraft:chest_minecart': 27,
-    'minecraft:player': 36
+/** The entity types the world can spawn, with their inventory size, health and eye height. */
+const ENTITY_TYPES: Readonly<
+    Record<string, { readonly inventory?: number; readonly health: number; readonly eyes: number }>
+> = {
+    'minecraft:armor_stand': { health: 6, eyes: 1.5 },
+    'minecraft:chest_minecart': { inventory: 27, health: 0, eyes: 0.5 },
+    'minecraft:pig': { health: 10, eyes: 0.75 },
+    'minecraft:player': { inventory: 36, health: 20, eyes: 1.62 }
 };
 
 /** How far from the origin chunks are loaded, in blocks. */
@@ -67,6 +72,10 @@ interface MemoryEntity {
     tags: string[];
     name?: string;
     inventory?: (ScriptItem | null)[];
+    health: number;
+    rotation: { x: number; y: number };
+    gameMode?: ScriptGameMode;
+    selectedSlot?: number;
 }
 
 /** What the host read of the world, by method. */
@@ -300,7 +309,9 @@ export class MemoryWorld implements ScriptWorld {
     ): string | 'unknown-type' | 'unloaded' {
         if (!(typeId in ENTITY_TYPES)) return 'unknown-type';
         if (!this.loaded(location)) return 'unloaded';
-        return this.add(dimension, typeId, location);
+        const id = this.add(dimension, typeId, location);
+        this.committed.push({ type: 'entitySpawn', entity: { id, typeId }, cause: 'Spawned' });
+        return id;
     }
     public teleport(id: string, dimension: string, location: ScriptVector3): void {
         const found = this.live.get(id);
@@ -310,6 +321,33 @@ export class MemoryWorld implements ScriptWorld {
     }
     public kill(id: string): boolean {
         return this.live.delete(id);
+    }
+    /** Takes the blow off the entity's health, and kills it at zero. No blow is ever turned aside. */
+    public applyDamage(id: string, amount: number, source: ScriptDamageSource): boolean {
+        const found = this.live.get(id);
+        if (found === undefined || amount <= 0 || found.health <= 0) return false;
+        const damage = Math.min(amount, found.health);
+        found.health -= damage;
+        const entity = { id, typeId: found.typeId };
+        this.committed.push({ type: 'entityHurt', entity, damage: amount, source });
+        if (found.health <= 0) {
+            this.live.delete(id);
+            this.committed.push({ type: 'entityDie', entity, source });
+        }
+        return true;
+    }
+    public setGameMode(id: string, gameMode: ScriptGameMode): void {
+        const found = this.live.get(id);
+        if (found?.gameMode !== undefined) found.gameMode = gameMode;
+    }
+    public setSelectedSlot(id: string, slot: number): void {
+        const found = this.live.get(id);
+        if (found?.selectedSlot !== undefined) found.selectedSlot = slot;
+    }
+    /** Turns an entity to face a direction, in degrees. */
+    public rotate(id: string, rotation: { x: number; y: number }): void {
+        const found = this.live.get(id);
+        if (found !== undefined) found.rotation = { ...rotation };
     }
     public remove(id: string): void {
         this.live.delete(id);
@@ -450,7 +488,8 @@ export class MemoryWorld implements ScriptWorld {
 
     private add(dimension: string, typeId: string, location: ScriptVector3): string {
         const id = String(this.nextId++);
-        const size = ENTITY_TYPES[typeId];
+        const type = ENTITY_TYPES[typeId];
+        const size = type?.inventory;
         this.live.set(id, {
             id,
             typeId,
@@ -458,7 +497,10 @@ export class MemoryWorld implements ScriptWorld {
             location: { ...location },
             nameTag: '',
             tags: [],
-            ...(size === undefined ? {} : { inventory: new Array<ScriptItem | null>(size).fill(null) })
+            health: type?.health ?? 1,
+            rotation: { x: 0, y: 0 },
+            ...(size === undefined ? {} : { inventory: new Array<ScriptItem | null>(size).fill(null) }),
+            ...(typeId === 'minecraft:player' ? { gameMode: 'Survival', selectedSlot: 0 } : {})
         });
         return id;
     }
@@ -471,7 +513,12 @@ export class MemoryWorld implements ScriptWorld {
             nameTag: entity.nameTag,
             tags: [...entity.tags],
             ...(entity.name === undefined ? {} : { name: entity.name }),
-            ...(entity.inventory === undefined ? {} : { inventorySize: entity.inventory.length })
+            ...(entity.inventory === undefined ? {} : { inventorySize: entity.inventory.length }),
+            rotation: { ...entity.rotation },
+            headLocation: { ...entity.location, y: entity.location.y + (ENTITY_TYPES[entity.typeId]?.eyes ?? 0) },
+            sneaking: false,
+            ...(entity.gameMode === undefined ? {} : { gameMode: entity.gameMode }),
+            ...(entity.selectedSlot === undefined ? {} : { selectedSlot: entity.selectedSlot })
         };
     }
     private loaded(location: ScriptVector3): boolean {
