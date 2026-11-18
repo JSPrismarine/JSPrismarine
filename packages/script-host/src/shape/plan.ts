@@ -29,6 +29,12 @@ export interface RuntimeArgument {
     readonly min?: number;
     readonly max?: number;
     readonly maxLength?: number;
+    /**
+     * Set on a float property's value. BDS words a float property's bounds error without the value
+     * and with the float range for a side the metadata leaves open, as the `debug-shapes` scenario
+     * recorded for `DebugShape.maximumRenderDistance = -1`.
+     */
+    readonly float?: true;
 }
 
 /** A call into the host: its member id and the checks its arguments pass first. */
