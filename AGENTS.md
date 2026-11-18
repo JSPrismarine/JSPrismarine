@@ -102,6 +102,15 @@ commit messages and comments.
   `scripts/barrel-baseline.json` allows, or less often, so the baseline only shrinks. After removing
   a barrel or an `export *`, lower the baseline with `node scripts/check-barrels.mts --update`,
   which never adds an entry.
+- Biome cannot run JavaScript rules, so Oxlint runs the testing and structure rules from
+  [`@interfere/landmines`](https://github.com/interfere-inc/landmines) that `.oxlintrc.json`
+  enables, with Oxlint's own rules off. `pnpm run lint:landmines` fails when a file breaks a rule
+  more often, or less often, than `scripts/landmines-baseline.json` records. Follow the rule's
+  message rather than raising the baseline, and lower it with
+  `node scripts/check-landmines.mts --update` after fixing a finding. `pnpm exec oxlint <path>`
+  prints the full messages. The check counts a `package-exports` finding against the package's
+  `package.json`, but Oxlint reports it on the package's source files, so pass the package
+  directory rather than the manifest.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
 - Code is the source of truth for every value it owns: versions, requirements, defaults, counts,
