@@ -6,11 +6,6 @@
     "publishConfig": {
         "access": "public",
         "exports": {
-            ".": {
-                "types": "./dist/index.d.ts",
-                "import": "./dist/index.js",
-                "module": "./dist/index.js"
-            },
             "./*": {
                 "types": "./dist/*.d.ts",
                 "import": "./dist/*.js",
@@ -25,13 +20,7 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
     "exports": {
-        ".": {
-            "jsprismarine:dist": "./dist/index.js",
-            "default": "./src/index.ts"
-        },
         "./*": {
             "jsprismarine:dist": "./dist/*.js",
             "default": "./src/*.ts"
