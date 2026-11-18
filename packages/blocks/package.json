@@ -46,7 +46,7 @@
         "generate:block-tags": "node utils/generate-block-tags.mjs",
         "generate:display-names": "node utils/generate-display-names.mjs",
         "generate:liquid-reactions": "vite build && node utils/generate-liquid-reactions.mjs",
-        "generate:overlay": "pnpm run generate:display-names && vite build && node utils/generate-overlay.mjs",
+        "generate:overlay": "pnpm run generate:display-names && turbo run build --filter=@jsprismarine/blocks && node --conditions=jsprismarine:dist utils/generate-overlay.mjs",
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },

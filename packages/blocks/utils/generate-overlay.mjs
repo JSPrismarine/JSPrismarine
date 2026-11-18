@@ -4,9 +4,15 @@
  * from `@jsprismarine/mapping`'s Java-sourced property table.
  *
  * Run as `pnpm --filter @jsprismarine/blocks run generate:overlay`, which
- * builds the package first. The output is committed, so a palette or
+ * builds the package and its dependencies first and runs this under the
+ * `jsprismarine:dist` condition. The output is committed, so a palette or
  * property-table bump shows up as a reviewable diff rather than as a silent
  * change at load.
+ *
+ * The condition matters: without it, `dist/` resolves the other workspace
+ * packages to their TypeScript sources, whose extensionless relative imports,
+ * such as `generated/block-schemas`'s re-export of the default version,
+ * `node`'s resolver cannot follow.
  *
  * This is plain JavaScript over the built `dist/`, the way
  * `packages/bedrock-data/utils/java-dump/run.mjs` is, so that nothing in
