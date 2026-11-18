@@ -61,6 +61,9 @@ jobs:
                   # the releases page dates each version by its tag. A shallow clone dates every page
                   # by the newest commit.
                   fetch-depth: 0
+                  # No old file contents, which are nearly all of the repository's 2 GB.
+                  # Git fetches a blob a command needs on demand.
+                  filter: blob:none
 
             - name: 📦 Install
               uses: ./.github/common/install
