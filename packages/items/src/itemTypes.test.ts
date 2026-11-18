@@ -8,6 +8,14 @@ import { itemName, maxStackSize } from './components/universal';
 import { loadItemTypes, vanillaItemDefinitions } from './itemTypes';
 import { itemTypesTable } from './tables';
 import itemTypesJson from './tables/itemTypes.json' with { type: 'json' };
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+/** The pins the table was generated from. */
+const sources = JSON.parse(readFileSync(join(import.meta.dirname, '../../bedrock-data/sources.json'), 'utf8')) as {
+    javaServer: { version: string };
+    bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
+};
 
 const { registry, types, diagnostics } = loadItemTypes({ strict: true });
 
@@ -27,9 +35,11 @@ describe('the generated item type table', () => {
         expect(itemTypesTable).toEqual(itemTypesJson);
     });
 
-    it('is pinned to the versions the plan names', () => {
-        expect(itemTypesTable.javaVersion).toBe('26.3');
-        expect(itemTypesTable.bedrockVersion).toBe('1.26.51.1');
+    it('is pinned to the versions the sources name', () => {
+        expect(itemTypesTable.javaVersion).toBe(sources.javaServer.version);
+        expect(itemTypesTable.bedrockVersion).toBe(
+            sources.bds.versions[String(sources.bds.defaultProtocolVersion)]?.serverVersion
+        );
         reportProgress(
             `Item type table covers ${Object.keys(itemTypesTable.items).length} Bedrock identifiers and ${itemTypesTable.javaItemCount} Java items.`
         );
