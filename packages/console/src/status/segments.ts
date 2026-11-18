@@ -136,9 +136,23 @@ const STATE_TONES: Record<ServerState, SegmentTone> = {
     stopping: 'warning',
     stopped: 'muted',
     crashed: 'danger',
-    restarting: 'accent',
-    waiting: 'muted'
+    restarting: 'warning',
+    waiting: 'danger'
 };
+
+/** The tone a server state is drawn in: warning while it is on its way somewhere, danger once it crashed. */
+export function stateTone(state: ServerState): SegmentTone {
+    return STATE_TONES[state];
+}
+
+/**
+ * The word a server state is shown as. The supervisor only waits after a crash, so `waiting`
+ * reads `crashed`: what the user needs to know is that the server is down, not that the
+ * watcher is idle.
+ */
+export function stateLabel(state: ServerState): string {
+    return state === 'waiting' ? 'crashed' : state;
+}
 
 /**
  * Priority of the server state segment; it is the last segment to go when the bar narrows.
@@ -149,5 +163,5 @@ export const STATE_PRIORITY = 100;
  * Builds the server state segment: a bullet, the state name, and the tone that colors both.
  */
 export function stateSegment(state: ServerState): Segment {
-    return { id: 'state', text: `● ${state}`, tone: STATE_TONES[state], priority: STATE_PRIORITY };
+    return { id: 'state', text: `● ${stateLabel(state)}`, tone: stateTone(state), priority: STATE_PRIORITY };
 }

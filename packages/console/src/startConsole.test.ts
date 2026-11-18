@@ -1,5 +1,6 @@
 import { memoryLinkPair } from '@jsprismarine/console-protocol';
 import type { ConsoleMessage, ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
+import { TextRenderable } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import type { TestRendererSetup } from '@opentui/core/testing';
 import { readFile } from 'node:fs/promises';
@@ -117,8 +118,17 @@ describe('startConsole', () => {
             message: 'Done in 2.14 s',
             formatted: 'Done in 2.14 s'
         });
+        const tileColor = () => {
+            const title = t.test.renderer.root.findDescendantById('title-left');
+            return title instanceof TextRenderable ? title.content.chunks[0]?.bg : undefined;
+        };
+        const starting = tileColor();
+        expect(starting).toBeDefined();
         t.supervisor.emit({ type: 'supervisor.state', state: 'running', generation: 1 });
-        await t.test.waitForFrame((frame) => frame.includes('Done in 2.14 s') && frame.includes('● running'));
+        // The supervisor's state reaches the title bar's tile, which changes color.
+        await t.test.waitForFrame(
+            (frame) => frame.includes('Done in 2.14 s') && tileColor()?.equals(starting!) === false
+        );
     });
 
     it('keeps the input disabled until a link attaches and after it closes', async () => {

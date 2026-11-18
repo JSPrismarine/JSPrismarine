@@ -97,8 +97,9 @@ describe('stateSegment', () => {
         expect(stateSegment('stopping')).toMatchObject({ text: '● stopping', tone: 'warning' });
         expect(stateSegment('stopped')).toMatchObject({ text: '● stopped', tone: 'muted' });
         expect(stateSegment('crashed')).toMatchObject({ text: '● crashed', tone: 'danger' });
-        expect(stateSegment('restarting')).toMatchObject({ text: '● restarting', tone: 'accent' });
-        expect(stateSegment('waiting')).toMatchObject({ text: '● waiting', tone: 'muted' });
+        expect(stateSegment('restarting')).toMatchObject({ text: '● restarting', tone: 'warning' });
+        // The supervisor waits only after a crash, so the console keeps calling it one.
+        expect(stateSegment('waiting')).toEqual(stateSegment('crashed'));
     });
 
     it('gives the state segment the highest priority', () => {

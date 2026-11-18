@@ -5,9 +5,10 @@ import type { ConsoleContext } from '../context';
 import { formatTime } from '../log/logLine';
 import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime } from '../status/segments';
 import type { ServerState } from '../status/segments';
-import { graphChunks } from '../tps/graphChunks';
-import { DEFAULT_TICK_RATE, plotGraph, tickTone, tpsTone } from '../tps/plotGraph';
+import { DEFAULT_TICK_RATE, tickTone, tpsTone } from '../tps/plotGraph';
 import type { GraphTone } from '../tps/plotGraph';
+import { sparkline, sparklineChunks } from '../tps/sparkline';
+import type { SparkCell } from '../tps/sparkline';
 import type { DevState } from './devState';
 import type { SidePaneMode } from './layout';
 
@@ -47,46 +48,58 @@ export interface SidePane {
     dispose(): void;
 }
 
-type Row =
-    | { kind: 'header'; text: string; hint?: string; opensTps?: true }
+/** One row of the pane, as {@link sidePaneRows} lists them. */
+export type SidePaneRow =
+    | { kind: 'header'; key: SidePaneSection; text: string; hint?: string; opensTps?: true }
     | { kind: 'player'; name: string }
+    | { kind: 'note'; text: string }
     | { kind: 'value'; label: string; value: string; tone?: GraphTone | 'muted' | 'text'; opensTps?: true }
     | { kind: 'graph'; values: readonly number[]; opensTps?: true }
     | { kind: 'blank' };
 
+/** The pane's sections; each header row's renderable id is `side-pane-<section>`. */
+export type SidePaneSection = 'details' | 'players' | 'performance' | 'server' | 'dev';
+
 const DASH = '—';
 const MAX_VISIBLE_PLAYERS = 5;
-const GRAPH_ROWS = 3;
 /** The graph spans the top half of the tick rate: 10 to 20 at the default. */
 const GRAPH_MIN_SHARE = 0.5;
 
-const formatAxis = (value: number): string => (Number.isInteger(value) ? String(value) : value.toFixed(1));
+/**
+ * The bars of the TPS graph for the pane's width. The range is the top half of the server's own
+ * tick rate, so a server aiming for 40 is measured against 40.
+ */
+export function graphCells(values: readonly number[], tickRate: number | undefined, columns: number): SparkCell[] {
+    const max = tickRate ?? DEFAULT_TICK_RATE;
+    return sparkline(values, { columns, min: max * GRAPH_MIN_SHARE, max });
+}
 
-function rowsFor(model: SidePaneModel): Row[] {
+/** The rows the pane draws for a model, top to bottom. */
+export function sidePaneRows(model: SidePaneModel): SidePaneRow[] {
     const names = model.playerNames ?? [];
     const online = model.players?.online ?? names.length;
-    const rows: Row[] = [
-        { kind: 'header', text: 'Server details' },
-        { kind: 'header', text: 'Players' },
+    const rows: SidePaneRow[] = [
+        { kind: 'header', key: 'details', text: 'Server details' },
         {
-            kind: 'value',
-            label: 'online',
-            value: model.players ? formatPlayers(model.players.online, model.players.max) : String(online)
+            kind: 'header',
+            key: 'players',
+            text: 'Players',
+            hint: ` ${model.players ? formatPlayers(model.players.online, model.players.max) : String(online)}`
         }
     ];
 
     if (names.length > 0) {
         for (const name of names.slice(0, MAX_VISIBLE_PLAYERS)) rows.push({ kind: 'player', name });
         const additional = Math.max(0, online - Math.min(names.length, MAX_VISIBLE_PLAYERS));
-        if (additional > 0) rows.push({ kind: 'value', label: 'more', value: `${additional} players` });
+        if (additional > 0) rows.push({ kind: 'note', text: `and ${additional} more` });
     } else {
-        rows.push({ kind: 'value', label: 'names', value: online === 0 ? 'none online' : 'unavailable' });
+        rows.push({ kind: 'note', text: online === 0 ? 'nobody online' : 'names unavailable' });
     }
 
     const low = model.tpsHistory.length > 1 ? Math.min(...model.tpsHistory) : undefined;
     rows.push(
         { kind: 'blank' },
-        { kind: 'header', text: 'Performance', hint: ' ▸ graph', opensTps: true },
+        { kind: 'header', key: 'performance', text: 'Performance', hint: ' ▸ graph', opensTps: true },
         {
             kind: 'value',
             label: 'TPS',
@@ -110,16 +123,17 @@ function rowsFor(model: SidePaneModel): Row[] {
         },
         { kind: 'value', label: 'memory', value: model.rssBytes === undefined ? DASH : formatMemory(model.rssBytes) },
         { kind: 'blank' },
-        { kind: 'header', text: 'Server' },
-        { kind: 'value', label: 'state', value: model.state },
+        // The state is the title bar's tile; this section keeps what nothing else shows.
+        { kind: 'header', key: 'server', text: 'Server' },
         { kind: 'value', label: 'version', value: model.server?.version ?? DASH },
         { kind: 'value', label: 'uptime', value: model.uptimeMs === undefined ? DASH : formatUptime(model.uptimeMs) }
     );
-    if (model.dev.badge !== undefined) {
+    // The watcher's own state is the dev badge; the pane only adds the restart history, once
+    // there is one.
+    if (model.dev.badge !== undefined && model.dev.restarts > 0) {
         rows.push(
             { kind: 'blank' },
-            { kind: 'header', text: 'Dev' },
-            { kind: 'value', label: 'status', value: model.dev.badge.text },
+            { kind: 'header', key: 'dev', text: 'Dev' },
             { kind: 'value', label: 'restarts', value: String(model.dev.restarts) },
             {
                 kind: 'value',
@@ -165,12 +179,14 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     });
     renderable.add(closeButton);
 
-    const chunksFor = (row: Exclude<Row, { kind: 'graph' }>, labelWidth: number): TextChunk[] => {
+    const chunksFor = (row: Exclude<SidePaneRow, { kind: 'graph' }>, labelWidth: number): TextChunk[] => {
         switch (row.kind) {
             case 'header':
                 return [fg(theme.accent)(row.text), ...(row.hint === undefined ? [] : [fg(theme.textMuted)(row.hint)])];
             case 'player':
                 return [fg(theme.text)(`• ${row.name}`)];
+            case 'note':
+                return [fg(theme.textMuted)(` ${row.text}`)];
             case 'value':
                 return [
                     fg(theme.textMuted)(` ${row.label.padEnd(labelWidth)} `),
@@ -189,12 +205,12 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
                 renderable.remove(child);
                 child.destroyRecursively();
             }
-            const rows = rowsFor(model);
+            const rows = sidePaneRows(model);
             const labelWidth = Math.max(0, ...rows.map((row) => (row.kind === 'value' ? row.label.length : 0)));
             let line = 0;
-            const addRow = (chunks: TextChunk[], opensTps = false): void => {
+            const addRow = (chunks: TextChunk[], opensTps = false, id = `side-pane-row-${line}`): void => {
                 const text = new TextRenderable(renderer, {
-                    id: `side-pane-row-${line}`,
+                    id,
                     height: 1,
                     truncate: true,
                     content: new StyledText(chunks)
@@ -212,20 +228,16 @@ export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             };
             for (const row of rows) {
                 if (row.kind !== 'graph') {
-                    addRow(chunksFor(row, labelWidth), 'opensTps' in row);
+                    const id = row.kind === 'header' ? `side-pane-${row.key}` : undefined;
+                    addRow(chunksFor(row, labelWidth), 'opensTps' in row, id);
                     continue;
                 }
-                const max = model.tpsRate ?? DEFAULT_TICK_RATE;
-                const min = max * GRAPH_MIN_SHARE;
-                const labels = [max, (max + min) / 2, min].map(formatAxis);
-                const axisWidth = Math.max(...labels.map((label) => label.length));
-                const columns = Math.max(1, Math.min(32, renderable.width - 4 - axisWidth));
-                const plot = plotGraph(row.values, { columns, rows: GRAPH_ROWS, min, max });
-                plot.forEach((graphRow, index) => {
-                    const axis = `${(labels[index] ?? '').padStart(axisWidth)} ${index === GRAPH_ROWS - 1 ? '└' : '┤'}`;
-                    addRow([fg(theme.textMuted)(axis), ...graphChunks(graphRow, theme)], true);
-                });
-                if (row.values.length === 0) addRow([fg(theme.textMuted)('       awaiting samples')], true);
+                if (row.values.length === 0) {
+                    addRow([fg(theme.textMuted)(' awaiting samples')], true, 'side-pane-graph');
+                    continue;
+                }
+                const cells = graphCells(row.values, model.tpsRate, Math.max(1, renderable.width - 3));
+                addRow([fg(theme.textMuted)(' '), ...sparklineChunks(cells, theme)], true, 'side-pane-graph');
             }
             renderable.remove(closeButton);
             renderable.add(closeButton);
