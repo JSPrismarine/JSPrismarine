@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 
 import { hashFile } from '../fetch/hash.ts';
 import { fetchSource } from '../fetch/fetch.ts';
-import { loadSourceDescriptors } from '../fetch/manifest.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
+import { resolveJavaRelease } from '../java/release.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
@@ -24,9 +24,7 @@ if (override) {
     }
     console.log(`Using JSP_JAVA_SERVER_JAR=${override}`);
 } else {
-    const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-    const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-    if (!javaServer) throw new Error('sources.json no longer pins a java-server source');
+    const javaServer = await resolveJavaRelease(process.argv);
 
     let source = await fetchSource(javaServer, { cacheRoot });
     let outerJarPath = source.fromOverride ? source.contentPath : join(source.contentPath, javaServer.fileName);

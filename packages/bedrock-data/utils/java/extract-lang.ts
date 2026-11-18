@@ -18,7 +18,8 @@ import { dirname, join } from 'node:path';
 
 import { hashFile } from '../fetch/hash.ts';
 import { readZipEntries, readZipEntriesFrom } from '../fetch/unzip.ts';
-import { cacheRoot, javaServerJarPath, loadJavaServerSource } from './worldgen-cache.ts';
+import { cacheRoot, javaServerJarPath } from './worldgen-cache.ts';
+import { resolveJavaRelease } from './release.ts';
 
 /** Where the English strings sit inside the inner server jar. */
 const LANG_ENTRY = 'assets/minecraft/lang/en_us.json';
@@ -53,7 +54,7 @@ export const extractJavaLang = async (jarPath: string, destination: string): Pro
 
 if (import.meta.filename === process.argv[1]) {
     const force = process.argv.includes('--force');
-    const javaServer = await loadJavaServerSource();
+    const javaServer = await resolveJavaRelease(process.argv);
     const jarPath = javaServerJarPath(javaServer);
     const destination = javaLangPath(javaServer.version);
 

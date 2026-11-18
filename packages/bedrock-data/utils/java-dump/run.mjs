@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { findJdkHome } from '../java/jdk.ts';
+import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
 import { extractServer } from './extract.ts';
 
 /**
@@ -16,14 +17,12 @@ import { extractServer } from './extract.ts';
  * only things run against them are `javac` and the dumper itself.
  */
 
-// The Java Edition pin comes from the shared source manifest, so a version bump edits
+// The Java Edition release comes from the shared source manifest, so a version bump edits
 // sources.json once and this script follows.
-const sources = JSON.parse(fs.readFileSync(new URL('../../sources.json', import.meta.url), 'utf8'));
-const JAVA_VERSION = sources.javaServer.version;
-const SERVER_JAR_SHA1 = sources.javaServer.sha1;
+const release = await resolveJavaRelease(process.argv);
+const JAVA_VERSION = release.version;
+const SERVER_JAR_SHA1 = release.hash.value;
 const VERSION_MANIFEST_URL = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json';
-// The jar needs class files the dumper compiles against; the 26.3 manifest declares Java 25.
-const REQUIRED_JDK_MAJOR = 25;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, '../..');
@@ -108,7 +107,9 @@ const writeGolden = (outputDir, name) => {
 
 const jarPath = await downloadServerJar();
 const { serverJar, librariesDir } = extractServer(jarPath, cacheDir, JAVA_VERSION);
-const jdkHome = findJdkHome({ minimumMajor: REQUIRED_JDK_MAJOR, binaries: ['java', 'javac'] });
+// The dumper compiles against the jar's classes, so it needs the JDK the jar declares it was built for.
+const { java_version: requiredJdkMajor } = await readJarVersion(jarPath);
+const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac'] });
 const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
 writeGolden(outputDir, 'entity_attributes.json');

@@ -9,22 +9,13 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadSourceDescriptors, type SourceDescriptor } from '../fetch/manifest.ts';
+import type { SourceDescriptor } from '../fetch/manifest.ts';
 
 /** This package's root, the directory holding `sources.json`. */
 export const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /** The repository-wide fetch cache the Java steps read and write. */
 export const cacheRoot = resolve(packageDir, '../../node_modules/.cache/jsprismarine');
-
-/** The `sources.json` entry for the pinned Java Edition server jar. */
-export const loadJavaServerSource = async (): Promise<SourceDescriptor> => {
-    const descriptors = await loadSourceDescriptors(join(packageDir, 'sources.json'));
-    const javaServer = descriptors.find((descriptor) => descriptor.name === 'java-server');
-    if (javaServer === undefined) throw new Error('sources.json no longer pins a java-server source');
-
-    return javaServer;
-};
 
 /** The jar the data generator runs, either the fetched one or the caller's own copy. */
 export const javaServerJarPath = (source: SourceDescriptor): string => {
