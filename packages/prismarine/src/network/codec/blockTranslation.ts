@@ -152,3 +152,17 @@ export const blockTranslationFor = (protocolVersion: number): BlockTranslation =
     }
     return translation;
 };
+
+/**
+ * The vanilla blocks the world's catalog has and a release's does not. Empty for a release
+ * with no captured catalog, which is sent the world's blocks as they are.
+ * @param protocolVersion - The release.
+ * @returns The block names, sorted.
+ */
+export const missingVanillaBlocks = (protocolVersion: number): string[] => {
+    const older = catalogs.get(protocolVersion);
+    if (older === undefined) return [];
+    return Object.keys(blockSchemas.blocks)
+        .filter((name) => older.blocks[name] === undefined)
+        .sort();
+};

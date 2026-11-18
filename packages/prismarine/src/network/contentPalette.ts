@@ -65,12 +65,15 @@ const sameValues = (left: readonly BlockStateValue[], right: readonly BlockState
  * @param palette - The palette the content build resolved, which is
  *   `ServerContent.blocks.palette`.
  * @param client - The palette a client has, the captured vanilla one by default.
+ * @param withheld - Vanilla blocks the build left out on purpose, because
+ *   `protocol-content` holds the world to an older release that lacks them.
  * @throws {ContentPaletteError} When any vanilla block is missing from either
  *   side or carries states the other does not.
  */
 export const assertContentPaletteAgrees = (
     palette: BlockPalette,
-    client: BlockPalette = vanillaBlockPalette()
+    client: BlockPalette = vanillaBlockPalette(),
+    withheld: ReadonlySet<string> = new Set()
 ): void => {
     const disagreements: ContentPaletteDisagreement[] = [];
 
@@ -114,7 +117,7 @@ export const assertContentPaletteAgrees = (
     }
 
     for (const entry of client.entries) {
-        if (palette.entry(entry.identifier) === undefined) {
+        if (palette.entry(entry.identifier) === undefined && !withheld.has(entry.identifier)) {
             disagreements.push({
                 block: entry.identifier,
                 detail: 'is a block the client has and the content build does not'

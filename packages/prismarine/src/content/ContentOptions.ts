@@ -22,6 +22,7 @@ import { JAVA_REGISTRY_IDS, REGISTRY_IDS } from '@jsprismarine/packs';
 
 import type { PackStackRequest } from './packStack';
 import type { ServerWorldSource } from './world/adapter';
+import type { WithheldContent } from './withheldContent';
 
 /** Loads a pack stack. `load` from `@jsprismarine/packs` is the default. */
 export type PackLoader = (stack: PackStack, options: LoadOptions) => LoadResult;
@@ -65,6 +66,12 @@ export interface ContentOptions {
      * the pack stack and their components stay on each type as Bedrock data.
      */
     readonly itemDefinitions?: Iterable<ContentDefinition>;
+    /**
+     * Vanilla blocks, items and entity types to leave out of the build, which
+     * `protocol-content: oldest` asks for so the world holds nothing the oldest
+     * accepted release lacks. Nothing is left out when absent.
+     */
+    readonly withheld?: WithheldContent;
 }
 
 /**

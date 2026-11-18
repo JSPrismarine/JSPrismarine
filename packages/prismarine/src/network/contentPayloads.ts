@@ -235,7 +235,7 @@ export const buildNetworkContentPayloads = (
     options: ContentPayloadOptions = {}
 ): NetworkContentPayloads => {
     const client = options.clientPalette ?? vanillaBlockPalette();
-    assertContentPaletteAgrees(content.blocks.palette, client);
+    assertContentPaletteAgrees(content.blocks.palette, client, content.withheld.blocks);
 
     const declared = buildBlockProperties(inventedBlocksOf(content, client));
     assertBlockPaletteAgrees(declared.properties, client);

@@ -7,6 +7,7 @@
  * no type to draw it as. A pack's own actor is in no capture and is shown as before.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
+import { entity_identifiers } from '@jsprismarine/bedrock-data';
 import { entity_identifiers as entity_identifiers_2193 } from '@jsprismarine/bedrock-data/v2193';
 import { entity_identifiers as entity_identifiers_2225 } from '@jsprismarine/bedrock-data/v2225';
 import { entity_identifiers as entity_identifiers_2259 } from '@jsprismarine/bedrock-data/v2259';
@@ -50,3 +51,12 @@ export const isMissingVanillaActor = (context: ProtocolContext, identifier: stri
     context.entityIdentifiers !== undefined &&
     !namesOf(context.entityIdentifiers).has(identifier) &&
     vanillaActorTypes().has(identifier);
+
+/**
+ * The actor types the newest release lists and a session's release does not: what a world on
+ * the newest release can hold that the session cannot draw.
+ * @param context - The session codec's context.
+ * @returns The types, sorted.
+ */
+export const missingVanillaActors = (context: ProtocolContext): string[] =>
+    [...namesOf(entity_identifiers)].filter((identifier) => isMissingVanillaActor(context, identifier)).sort();

@@ -2900,6 +2900,9 @@ export class World implements Service {
      * @returns {boolean} `false` if nothing changed.
      */
     public setLoadedBlockState(x: number, y: number, z: number, block: SystemBlock, notifyNeighbors: boolean): boolean {
+        // A block the oldest accepted release lacks, which `protocol-content: oldest` keeps out
+        // of the world. Every placement by name, a command's or a block behavior's, comes here.
+        if (this.server.getWithheldContent?.().blocks.has(block.name) === true) return false;
         const runtimeId = BlockRuntimeIds.tryGetByState(block.name, block.states);
         if (runtimeId === null) return false;
 

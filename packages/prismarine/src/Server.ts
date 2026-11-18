@@ -22,6 +22,8 @@ import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
 import { resolveProtocolPolicy } from './network/codec/ProtocolPolicy';
 import type { ProtocolPolicy } from './network/codec/ProtocolPolicy';
+import { NOTHING_WITHHELD, contentMissingAt, withheldNames } from './content/withheldContent';
+import type { WithheldContent } from './content/withheldContent';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import { serverWorldSource } from './content/world/serverSource';
 import { EntityRuntimes } from './entity/data/live';
@@ -206,6 +208,9 @@ export default class Server {
      * The newest release only until {@link Server.enableContent} reads the file.
      */
     private protocolPolicy: ProtocolPolicy = resolveProtocolPolicy();
+
+    /** The vanilla content the build left out because `protocol-content` asked for an older release's. */
+    private withheld: WithheldContent = NOTHING_WITHHELD;
 
     /**
      * The data-driven entity runtimes, one per world: each dimension of each level.
@@ -433,6 +438,9 @@ export default class Server {
     private enableContent(): void {
         const settings = readContentSettings();
         this.protocolPolicy = resolveProtocolPolicy(settings.protocols);
+        const newest = this.protocolPolicy.releases[0]!;
+        this.withheld =
+            this.protocolPolicy.content === newest ? NOTHING_WITHHELD : contentMissingAt(this.protocolPolicy.content);
         this.logProtocolPolicy();
         this.content = undefined;
         this.contentWorld = undefined;
@@ -468,6 +476,7 @@ export default class Server {
                 strict: settings.strict,
                 seed,
                 world: this.contentWorld,
+                withheld: this.withheld,
                 packs: {
                     worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
                     pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
@@ -512,6 +521,19 @@ export default class Server {
         if (policy.clampedFrom !== undefined) {
             this.logger.warn(
                 `protocol-window asks for ${policy.clampedFrom} releases and this build supports ${policy.releases.length}; accepting those`
+            );
+        }
+
+        const withheld = withheldNames(this.withheld);
+        if (withheld.length > 0) {
+            this.logger.info(`Leaving out what ${named(policy.content)} lacks: ${withheld.join(', ')}`);
+        }
+        // Content newer than the oldest accepted release reaches its players as placeholders.
+        const oldest = policy.releases.at(-1)!;
+        const substituted = oldest === policy.content ? [] : withheldNames(contentMissingAt(oldest));
+        if (substituted.length > 0) {
+            this.logger.warn(
+                `Players on ${named(oldest)} see a placeholder for ${substituted.join(', ')}; set protocol-content to oldest to leave them out`
             );
         }
     }
@@ -886,6 +908,16 @@ export default class Server {
      */
     public getProtocolPolicy(): ProtocolPolicy {
         return this.protocolPolicy;
+    }
+
+    /**
+     * The vanilla content left out of this server's world, because `protocol-content` is
+     * `oldest` and the oldest accepted release lacks it.
+     *
+     * @returns {WithheldContent} The identifiers, empty when the world holds the newest content.
+     */
+    public getWithheldContent(): WithheldContent {
+        return this.withheld;
     }
 
     /**
