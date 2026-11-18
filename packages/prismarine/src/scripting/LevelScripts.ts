@@ -183,7 +183,7 @@ export class LevelScripts {
             library,
             world,
             packs,
-            config: host.readScriptConfig(options.configDirectory),
+            config: host.readScriptConfig(options.configDirectory, (message) => log.warn(message)),
             betaApis: options.experiments?.includes(BETA_APIS) === true,
             log,
             server: { version, minecraftVersion, protocolVersion },

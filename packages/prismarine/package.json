@@ -225,6 +225,11 @@
                 "import": "./dist/scripting/LevelScriptWorld.js",
                 "module": "./dist/scripting/LevelScriptWorld.js"
             },
+            "./scripting/ScriptHttpInputs": {
+                "types": "./dist/scripting/ScriptHttpInputs.d.ts",
+                "import": "./dist/scripting/ScriptHttpInputs.js",
+                "module": "./dist/scripting/ScriptHttpInputs.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -780,6 +785,10 @@
         "./scripting/LevelScriptWorld": {
             "jsprismarine:dist": "./dist/scripting/LevelScriptWorld.js",
             "default": "./src/scripting/LevelScriptWorld.ts"
+        },
+        "./scripting/ScriptHttpInputs": {
+            "jsprismarine:dist": "./dist/scripting/ScriptHttpInputs.js",
+            "default": "./src/scripting/ScriptHttpInputs.ts"
         },
         "./package.json": "./package.json"
     },

@@ -43,6 +43,8 @@ import { contentModule } from './modules/content';
 import { packetHandlersModule } from './modules/packetHandlers';
 import { networkModule, ServerNetworking } from './modules/network';
 import type { InboundPacketRecorder } from './network/InboundPacketTrace';
+import type { ScriptHttpTransport } from './scripting/ScriptHttpInputs';
+import { ScriptHttpInputs } from './scripting/ScriptHttpInputs';
 import type { OutboundPacketRecorder } from './network/OutboundPacketTrace';
 import type { Transport } from './network/transport/Transport';
 import { permissionsModule } from './modules/permissions';
@@ -156,6 +158,8 @@ export default class Server {
     /** Respawn searches deaths filed, whose answers the next input step applies. */
     private readonly respawnRequests = new RespawnRequests((error) => this.logger.error(error));
     private readonly worldMessages = new WorldMessages((error) => this.logger.error(error));
+    /** The behavior pack scripts' HTTP requests, whose results each input step admits. */
+    private readonly scriptHttp: ScriptHttpInputs;
     /**
      * The network's view of each world: who is watching it, and what they are told.
      *
@@ -264,6 +268,8 @@ export default class Server {
      *   scripts, `Date.now` by default. A replay harness gives one that returns the recorded values.
      * @param [options.replay] - Whether the server replays a recorded session. A replay never opens
      *   the script debugger's socket, whatever the config says.
+     * @param [options.scriptHttpTransport] - What sends the scripts' `@minecraft/server-net`
+     *   requests, the host's network by default. A test gives one that answers without it.
      * @returns {Server} The server instance.
      */
     public constructor({
@@ -278,7 +284,8 @@ export default class Server {
         onStopCommandComplete,
         tickClock,
         wallClock = Date.now,
-        replay = false
+        replay = false,
+        scriptHttpTransport
     }: {
         logger: Logger;
         config: Config;
@@ -292,10 +299,12 @@ export default class Server {
         tickClock?: () => number;
         wallClock?: () => number;
         replay?: boolean;
+        scriptHttpTransport?: ScriptHttpTransport;
     }) {
         this.kernel = new Kernel<ServerEvents>({ logger });
         this.wallClock = wallClock;
         this.admittedClock = wallClock();
+        this.scriptHttp = new ScriptHttpInputs(scriptHttpTransport);
 
         this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
             tick: () => this.getTick(),
@@ -339,7 +348,8 @@ export default class Server {
                         this.chunkCompletionQueue.admissions.admit(this.getTick()) +
                         this.respawnRequests.admit() +
                         this.dimensionTravel.admit() +
-                        this.worldMessages.admit()
+                        this.worldMessages.admit() +
+                        this.scriptHttp.admit(this.getTick())
                     );
                 },
                 pollNetwork: () => this.networking.pollInbound(),
@@ -669,6 +679,8 @@ export default class Server {
             // world they are in now, and no later step would apply it.
             this.networking.admitInputs(Number.POSITIVE_INFINITY);
             this.worldMessages.drain();
+            // No script will read an answer now.
+            this.scriptHttp.close();
 
             // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
             // client told the server shut down shows that code instead.
@@ -851,6 +863,14 @@ export default class Server {
      */
     public getWorldReplicators(): WorldReplicators {
         return this.worldReplicators;
+    }
+
+    /**
+     * The behavior pack scripts' `@minecraft/server-net` requests: a replay harness records what
+     * each input step admits with `setRecorder` and replays it with `replay`.
+     */
+    public getScriptHttp(): ScriptHttpInputs {
+        return this.scriptHttp;
     }
 
     /**
