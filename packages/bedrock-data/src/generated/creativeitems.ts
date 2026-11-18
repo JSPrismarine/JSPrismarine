@@ -1,4 +1,4 @@
-// Generated from src/jsp/v2193/wire/0x91.bin by utils/build.js. Do not edit.
+// Generated from src/jsp/v2225/wire/0x91.bin by utils/build.js. Do not edit.
 
 /** One heading of the creative menu, with the item the client draws beside it. */
 export interface CreativeGroupEntry {
@@ -1156,7 +1156,7 @@ export const creativeitems: CreativeItemEntry[] = [
     entry("minecraft:nether_wart", 48),
     entry("minecraft:end_stone", 48, {"block_states":"CgAAAwoAbmV0d29ya19pZFeFQ7UA"}),
     entry("minecraft:chorus_flower", 48, {"block_states":"CgAAAwoAbmV0d29ya19pZGd3VlYA"}),
-    entry("minecraft:chorus_plant", 48, {"block_states":"CgAAAwoAbmV0d29ya19pZA3uVqMA"}),
+    entry("minecraft:chorus_plant", 48, {"block_states":"CgAAAwoAbmV0d29ya19pZKaLSyQA"}),
     entry("minecraft:chorus_fruit", 48),
     entry("minecraft:popped_chorus_fruit", 48),
     entry("minecraft:sponge", 48, {"block_states":"CgAAAwoAbmV0d29ya19pZNmQW/oA"}),

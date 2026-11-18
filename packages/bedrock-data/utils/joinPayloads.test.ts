@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { creative_groups, creativeitems, entity_identifiers, item_components, item_table } from '../src/index.ts';
-import { entity_identifiers as entity_identifiers_2225, item_table as item_table_2225 } from '../src/v2225.ts';
+import { entity_identifiers as entity_identifiers_2193, item_table as item_table_2193 } from '../src/v2193.ts';
 import { entity_identifiers as entity_identifiers_2259 } from '../src/v2259.ts';
 import {
     assertActorIdentifiers,
@@ -101,7 +101,7 @@ describe('the tables generated from the default capture', () => {
     });
 
     it.each([
-        ['v2225', entity_identifiers_2225],
+        ['v2193', entity_identifiers_2193],
         ['v2259', entity_identifiers_2259]
     ])('replay the actor list the %s server sent, not the default one', (version, published) => {
         const captured = readWirePayload(join(jsp, version), JOIN_PACKET_IDS.availableActorIdentifiers);
@@ -135,8 +135,17 @@ describe('the tables generated from the default capture', () => {
 });
 
 describe('the tables generated from the other captures', () => {
-    it('carry the version the 2225 registry sent with each item', () => {
-        const registry = readItemRegistry(readWirePayload(join(jsp, 'v2225'), JOIN_PACKET_IDS.itemRegistry));
-        for (const { name, version } of registry) expect(item_table_2225[name]?.version, name).toBe(version);
+    it('carry the version the 2193 registry sent with each item', () => {
+        const registry = readItemRegistry(readWirePayload(join(jsp, 'v2193'), JOIN_PACKET_IDS.itemRegistry));
+        for (const { name, version } of registry) expect(item_table_2193[name]?.version, name).toBe(version);
+    });
+
+    it('publish the default version under its own name as well', async () => {
+        const named: { item_table: unknown; entity_identifiers: Buffer } = await import(
+            `../src/v${sources.bds.defaultProtocolVersion}.ts`
+        );
+
+        expect(named.item_table).toEqual(item_table);
+        expect(named.entity_identifiers.equals(entity_identifiers)).toBe(true);
     });
 });

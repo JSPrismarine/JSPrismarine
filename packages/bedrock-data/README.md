@@ -8,10 +8,12 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
 
 ## Where the data comes from
 
-- `src/jsp/` is captured from a Bedrock Dedicated Server 1.26.51.1 by `pnpm run dump:bedrock`.
-  The item table and the three payloads a client refuses to join without live at the top level,
-  the Script API registries under `src/jsp/bedrock/`, the raw engine tables under
-  `src/jsp/packets/`, and the reference world in `src/jsp/reference_world.json`.
+- `src/jsp/v<protocol>/` is captured from the Bedrock Dedicated Server pinned for that protocol
+  by `pnpm run dump:bedrock`. The default is <!-- fact:bds.version -->1.26.60.6<!-- /fact -->, the
+  newest release; the unversioned exports carry its data, and each `v<protocol>` module carries
+  one version's own. The item table and the three payloads a client refuses to join without live
+  at the top of each version's directory, the Script API registries under `bedrock/`, the raw
+  engine tables under `packets/`, and the reference world in `reference_world.json`.
 - `src/generated/` is what `utils/build.js` makes of those captures. The item versions, the item
   components, the creative menu and the actor list come from the payloads the `packets` pass
   records under `src/jsp/v<protocol>/wire/`, the join packets the server sends every client.

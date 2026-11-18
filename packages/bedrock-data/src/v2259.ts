@@ -2,11 +2,11 @@
  * What a Bedrock Dedicated Server 1.26.70.24 sends a joining client, for a session speaking the
  * Minecraft Preview protocol 2259.
  *
- * Published beside the unversioned exports, as `v2225` is. A preview is replaced, not kept, when
+ * Published beside the unversioned exports, as `v2193` is. A preview is replaced, not kept, when
  * the next preview or its release lands, so this module goes with it.
  *
- * `jigsaw_structure_data` is absent for the reason `v2225` gives: the capture does not reproduce
- * its template-pool order, so a 2259 session sends the default version's rules.
+ * `jigsaw_structure_data` is absent: no 2259 capture of it is committed, so a 2259 session sends
+ * the default version's rules.
  */
 import biome_definitions_network_data from './generated/v2259/biome_definitions_network.json';
 import entity_identifiers_data from './generated/v2259/entity_identifiers.json';
