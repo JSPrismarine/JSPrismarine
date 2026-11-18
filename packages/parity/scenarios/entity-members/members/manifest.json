@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario entity-members members",
+        "description": "Records World.getEntity, an entity's rotation and view, and Container.addItem on a chest minecart. Written for packages/parity.",
+        "uuid": "2c5900bd-d4eb-476a-bc1a-22b505cd7ead",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "bc26ee2a-d367-40a7-92fc-7b02c2f5e1c3",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

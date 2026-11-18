@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario script-event-console console",
+        "description": "Records the scriptEventReceive events of /scriptevent typed on the server console. Written for packages/parity.",
+        "uuid": "1a400f32-98c8-483b-8bb4-a67a66aae2d1",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "0a340db5-bddd-4fff-ba44-023cc64c2dcf",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

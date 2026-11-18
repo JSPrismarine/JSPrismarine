@@ -1,0 +1,208 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-events` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "entity-events",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "events",
+            "seq": 1,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "events",
+            "seq": 2,
+            "tick": 0,
+            "event": "summon",
+            "value": 1
+        },
+        {
+            "pack": "events",
+            "seq": 3,
+            "tick": 0,
+            "event": "entitySpawn",
+            "value": {
+                "typeId": "minecraft:armor_stand",
+                "cause": "Spawned"
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 4,
+            "tick": 0,
+            "event": "entitySpawn",
+            "value": {
+                "typeId": "minecraft:pig",
+                "cause": "Spawned"
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 5,
+            "tick": 0,
+            "event": "entitySpawn",
+            "value": {
+                "typeId": "minecraft:pig",
+                "cause": "Spawned"
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 6,
+            "tick": 0,
+            "event": "entitySpawn",
+            "value": {
+                "typeId": "minecraft:armor_stand",
+                "cause": "Spawned"
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 7,
+            "tick": 2,
+            "event": "applyDamage",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 8,
+            "tick": 2,
+            "event": "applyDamage by an entity",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 9,
+            "tick": 2,
+            "event": "applyDamage of nothing",
+            "value": false
+        },
+        {
+            "pack": "events",
+            "seq": 10,
+            "tick": 2,
+            "event": "applyDamage a fatal fall",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 11,
+            "tick": 2,
+            "event": "applyDamage a dead entity",
+            "value": false
+        },
+        {
+            "pack": "events",
+            "seq": 12,
+            "tick": 2,
+            "event": "kill",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 13,
+            "tick": 2,
+            "event": "kill a pig",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 14,
+            "tick": 2,
+            "event": "hurt"
+        },
+        {
+            "pack": "events",
+            "seq": 15,
+            "tick": 2,
+            "event": "entityHurt",
+            "value": {
+                "hurtEntity": "pig",
+                "damage": 3,
+                "damageSource": {
+                    "cause": "none",
+                    "damagingEntity": null,
+                    "damagingProjectile": null
+                }
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 16,
+            "tick": 2,
+            "event": "entityHurt",
+            "value": {
+                "hurtEntity": "pig",
+                "damage": 97,
+                "damageSource": {
+                    "cause": "fall",
+                    "damagingEntity": null,
+                    "damagingProjectile": null
+                }
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 17,
+            "tick": 2,
+            "event": "entityHurt",
+            "value": {
+                "hurtEntity": "other pig",
+                "damage": 10,
+                "damageSource": {
+                    "cause": "selfDestruct",
+                    "damagingEntity": null,
+                    "damagingProjectile": null
+                }
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 18,
+            "tick": 2,
+            "event": "entityDie",
+            "value": {
+                "deadEntity": "pig",
+                "typeId": "minecraft:pig",
+                "isValid": true,
+                "damageSource": {
+                    "cause": "fall",
+                    "damagingEntity": null,
+                    "damagingProjectile": null
+                }
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 19,
+            "tick": 2,
+            "event": "entityDie",
+            "value": {
+                "deadEntity": "other pig",
+                "typeId": "minecraft:pig",
+                "isValid": true,
+                "damageSource": {
+                    "cause": "selfDestruct",
+                    "damagingEntity": null,
+                    "damagingProjectile": null
+                }
+            }
+        },
+        {
+            "pack": "events",
+            "seq": 20,
+            "tick": 12,
+            "event": "isValid of the dead pig",
+            "value": true
+        }
+    ]
+}
