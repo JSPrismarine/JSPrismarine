@@ -246,7 +246,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts GameTests', () => {
             '2 later [false,0]'
         ]);
         expect(world.acted).toEqual(['1 chat', '1 jump', '1 move']);
-        expect(world.structures).toEqual(['minecraft:overworld 0 -60 0 12']);
+        expect(world.placedStructures).toEqual(['minecraft:overworld 0 -60 0 12']);
         expect(world.simulatedTicks).toBe(4);
     });
 });

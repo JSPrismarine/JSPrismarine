@@ -21,18 +21,32 @@ import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import type { PackCustomContent } from './customContent';
 import { implementBlocks } from './serverBlocks';
+import { implementComponents } from './serverComponents';
 import { implementCustom } from './serverCustom';
 import { implementEntities } from './serverEntities';
 import { implementItems } from './serverItems';
 import { implementDynamicProperties } from './serverProperties';
 import { implementScoreboard } from './serverScoreboard';
+import { implementStructures } from './serverStructures';
 import { implementFeedback } from './serverFeedback';
 import type { BlockKey, EntityKey } from './serverObjects';
-import { entityKeyOf, itemOf, itemState, PLAYER, readMessage, SERVER, shortName, TAG } from './serverObjects';
+import {
+    entityKeyOf,
+    itemOf,
+    itemState,
+    PLAYER,
+    readMessage,
+    SERVER,
+    shortName,
+    TAG,
+    withNamespace
+} from './serverObjects';
 import type { TaskKind } from './tasks';
 import type {
     ScriptBlockPermutation,
     ScriptDamageSource,
+    ScriptDirection,
+    ScriptVector3,
     ScriptEventSourceType,
     ScriptItem,
     ScriptSpawnCause,
@@ -63,7 +77,11 @@ export const SIGNALS = [
     'ItemUseBeforeEventSignal',
     'ItemUseAfterEventSignal',
     'PlayerBreakBlockBeforeEventSignal',
-    'PlayerBreakBlockAfterEventSignal'
+    'PlayerBreakBlockAfterEventSignal',
+    'PlayerInteractWithBlockBeforeEventSignal',
+    'PlayerInteractWithBlockAfterEventSignal',
+    'PlayerInteractWithEntityBeforeEventSignal',
+    'PlayerInteractWithEntityAfterEventSignal'
 ] as const;
 
 /** The signals whose `subscribe` takes `EntityEventOptions`, which pick the entities whose events a callback gets. */
@@ -219,6 +237,37 @@ export interface BlockBreakAfterData {
     readonly itemAfter?: ScriptItem;
 }
 
+/**
+ * A player's click on a block, as `PlayerInteractWithBlockBeforeEvent` reads and writes it and
+ * `PlayerInteractWithBlockAfterEvent` reads it.
+ */
+export interface BlockInteractData {
+    readonly kind: 'blockInteract';
+    /** Whether a before-event's script canceled it; always false for an after-event. */
+    cancel: boolean;
+    readonly player: string;
+    readonly block: BlockKey;
+    readonly face: ScriptDirection;
+    readonly faceLocation: ScriptVector3;
+    /** The stack in the player's hand before the click. Absent for an empty hand. */
+    readonly item?: ScriptItem;
+    /** The stack in the player's hand after the click, for an after-event. Absent for an empty hand. */
+    readonly itemAfter?: ScriptItem;
+}
+
+/**
+ * A player's click on an entity, as `PlayerInteractWithEntityBeforeEvent` reads and writes it and
+ * `PlayerInteractWithEntityAfterEvent` reads it.
+ */
+export interface EntityInteractData {
+    readonly kind: 'entityInteract';
+    cancel: boolean;
+    readonly player: string;
+    readonly target: EntityKey;
+    readonly item?: ScriptItem;
+    readonly itemAfter?: ScriptItem;
+}
+
 /** What an event object's members read, by the tag the object was made with. */
 export type EventData =
     | WeatherBeforeData
@@ -235,7 +284,9 @@ export type EventData =
     | EntityDieData
     | ItemUseData
     | BlockBreakBeforeData
-    | BlockBreakAfterData;
+    | BlockBreakAfterData
+    | BlockInteractData
+    | EntityInteractData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
@@ -330,6 +381,8 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         return host.engine.release(source);
     };
 
+    const dimensionTypes = (): readonly string[] => host.world.dimensionTypes?.() ?? host.world.dimensions();
+
     const implementations = new ScriptApiImplementations()
         .implement(SERVER, 'System', 'run', (call) => host.schedule('run', callbackOf(call), 0))
         .implement(SERVER, 'System', 'runTimeout', (call) => host.schedule('timeout', callbackOf(call), delayOf(call)))
@@ -392,6 +445,23 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
             return undefined;
         })
         .implement(SERVER, 'Dimension', 'id', { get: (call) => call.state })
+        .implement(SERVER, 'DimensionTypes', 'getAll', () => {
+            const array = host.engine.evaluate('[]');
+            if (!(array instanceof ScriptHandle))
+                throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'array' });
+            dimensionTypes().forEach((id, index) => {
+                const type = host.create('DimensionType', TAG.dimensionType, id);
+                host.engine.set(array, String(index), type);
+                host.engine.free(type);
+            });
+            return host.engine.release(array);
+        })
+        .implement(SERVER, 'DimensionTypes', 'get', (call) => {
+            const id = withNamespace(String(call.args[0]));
+            if (!dimensionTypes().includes(id)) return undefined;
+            return host.engine.release(host.create('DimensionType', TAG.dimensionType, id));
+        })
+        .implement(SERVER, 'DimensionType', 'typeId', { get: (call) => call.state })
         .implement(SERVER, 'Dimension', 'setWeather', (call) => {
             const [weather, duration] = call.args;
             if (!isWeather(weather))
@@ -526,11 +596,13 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         });
 
     implementEntities(implementations, host);
+    implementComponents(implementations, host);
     implementBlocks(implementations, host);
     implementItems(implementations, host);
     implementDynamicProperties(implementations, host);
     implementScoreboard(implementations, host);
     implementCustom(implementations, host);
+    implementStructures(implementations, host);
     implementFeedback(implementations, host);
     implementPlayerActions(implementations, host, data, signal);
     for (const name of SIGNALS) {
@@ -642,5 +714,88 @@ const implementPlayerActions = (
         })
         .implement(SERVER, 'PlayerBreakBlockAfterEvent', 'itemStackAfterBreak', {
             get: (call) => stackObject(data(call, 'blockBreakAfter').itemAfter)
+        });
+
+    const block = (key: BlockKey): ScriptHandle =>
+        host.engine.release(host.create('Block', TAG.block, JSON.stringify(key)));
+    implementations
+        .implement(
+            SERVER,
+            'WorldBeforeEvents',
+            'playerInteractWithBlock',
+            signal('PlayerInteractWithBlockBeforeEventSignal')
+        )
+        .implement(
+            SERVER,
+            'WorldAfterEvents',
+            'playerInteractWithBlock',
+            signal('PlayerInteractWithBlockAfterEventSignal')
+        )
+        .implement(
+            SERVER,
+            'WorldBeforeEvents',
+            'playerInteractWithEntity',
+            signal('PlayerInteractWithEntityBeforeEventSignal')
+        )
+        .implement(
+            SERVER,
+            'WorldAfterEvents',
+            'playerInteractWithEntity',
+            signal('PlayerInteractWithEntityAfterEventSignal')
+        );
+    for (const className of ['PlayerInteractWithBlockBeforeEvent', 'PlayerInteractWithBlockAfterEvent'] as const) {
+        implementations
+            .implement(SERVER, className, 'player', { get: (call) => player(data(call, 'blockInteract').player) })
+            .implement(SERVER, className, 'block', { get: (call) => block(data(call, 'blockInteract').block) })
+            .implement(SERVER, className, 'blockFace', { get: (call) => data(call, 'blockInteract').face })
+            .implement(SERVER, className, 'faceLocation', {
+                get: (call) => JSON.stringify(data(call, 'blockInteract').faceLocation)
+            })
+            // A click raises one event; holding the button does not raise more on JSPrismarine.
+            .implement(SERVER, className, 'isFirstEvent', {
+                get: (call) => {
+                    data(call, 'blockInteract');
+                    return true;
+                }
+            });
+    }
+    implementations
+        .implement(SERVER, 'PlayerInteractWithBlockBeforeEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'blockInteract').item)
+        })
+        .implement(SERVER, 'PlayerInteractWithBlockBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'blockInteract').cancel,
+            set: (call) => {
+                data(call, 'blockInteract').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'PlayerInteractWithBlockAfterEvent', 'beforeItemStack', {
+            get: (call) => stackObject(data(call, 'blockInteract').item)
+        })
+        .implement(SERVER, 'PlayerInteractWithBlockAfterEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'blockInteract').itemAfter)
+        });
+    for (const className of ['PlayerInteractWithEntityBeforeEvent', 'PlayerInteractWithEntityAfterEvent'] as const) {
+        implementations
+            .implement(SERVER, className, 'player', { get: (call) => player(data(call, 'entityInteract').player) })
+            .implement(SERVER, className, 'target', {
+                get: (call) => host.entity(data(call, 'entityInteract').target)
+            });
+    }
+    implementations
+        .implement(SERVER, 'PlayerInteractWithEntityBeforeEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'entityInteract').item)
+        })
+        .implement(SERVER, 'PlayerInteractWithEntityBeforeEvent', 'cancel', {
+            get: (call) => data(call, 'entityInteract').cancel,
+            set: (call) => {
+                data(call, 'entityInteract').cancel = call.args[0] === true;
+            }
+        })
+        .implement(SERVER, 'PlayerInteractWithEntityAfterEvent', 'beforeItemStack', {
+            get: (call) => stackObject(data(call, 'entityInteract').item)
+        })
+        .implement(SERVER, 'PlayerInteractWithEntityAfterEvent', 'itemStack', {
+            get: (call) => stackObject(data(call, 'entityInteract').itemAfter)
         });
 };

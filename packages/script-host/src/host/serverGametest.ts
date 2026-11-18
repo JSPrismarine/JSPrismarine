@@ -23,6 +23,7 @@ import {
     itemOf,
     PLAYER,
     plainError,
+    unloadedChunk,
     vectorArgument,
     withNamespace
 } from './serverObjects';
@@ -287,6 +288,16 @@ export const gametestImplementations = <Owner>(
             const id = spawn(String(name ?? 'Simulated Player'), run.dimension, at, gameModeOf(gameMode ?? 0));
             run.players.push(id);
             return playerObject(id);
+        })
+        .implement(GAMETEST, 'Test', 'spawn', (call) => {
+            const run = runOf(call, 'spawn');
+            const typeId = withNamespace(String(call.args[0]));
+            // A block location stands the entity in the middle of the block, as a simulated player stands.
+            const at = add(add(run.origin, floor(vectorArgument(call, 1))), { x: 0.5, y: 0, z: 0.5 });
+            const spawned = world.spawnEntity(run.dimension, typeId, at);
+            if (spawned === 'unknown-type') throw plainError(`Invalid entity type '${typeId}'.`);
+            if (spawned === 'unloaded') throw unloadedChunk(at);
+            return host.entity({ id: spawned, typeId });
         })
         .implement(GAMETEST, 'Test', 'removeSimulatedPlayer', (call) => {
             const run = runOf(call, 'removeSimulatedPlayer');

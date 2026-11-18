@@ -5,6 +5,13 @@
  */
 import type {
     BlockBreakIntent,
+    BlockInteractIntent,
+    EntityInteractIntent,
+    ScriptAttribute,
+    ScriptEquipment,
+    ScriptEquipmentSlot,
+    ScriptStructure,
+    ScriptStructureStore,
     ChatSendIntent,
     ItemUseIntent,
     ScriptEffect,
@@ -63,8 +70,19 @@ const EFFECT_TYPES: ReadonlySet<string> = new Set(['minecraft:speed', 'minecraft
 const ITEM_TYPES: Readonly<Record<string, number>> = {
     'minecraft:apple': 64,
     'minecraft:stone': 64,
-    'minecraft:diamond_sword': 1
+    'minecraft:diamond_sword': 1,
+    'minecraft:iron_helmet': 1,
+    'minecraft:leather_boots': 1
 };
+
+/** The armor pieces, with the slot each is worn in and the armor points it gives. */
+const ARMOR: Readonly<Record<string, { readonly slot: ScriptEquipmentSlot; readonly points: number }>> = {
+    'minecraft:iron_helmet': { slot: 'Head', points: 2 },
+    'minecraft:leather_boots': { slot: 'Feet', points: 1 }
+};
+
+/** The movement speed of each entity type that has one. */
+const MOVEMENT: Readonly<Record<string, number>> = { 'minecraft:pig': 0.25, 'minecraft:player': 0.1 };
 
 /** The entity types the world can spawn, with their inventory size, health and eye height. */
 const ENTITY_TYPES: Readonly<
@@ -94,6 +112,9 @@ interface MemoryEntity {
     selectedSlot?: number;
     sneaking?: boolean;
     effects: ScriptEffect[];
+    /** What a player wears and holds in the off hand; the main hand is the selected inventory slot. */
+    equipment?: Partial<Record<ScriptEquipmentSlot, ScriptItem>>;
+    movement?: number;
 }
 
 /** What the host read of the world, by method. */
@@ -213,8 +234,79 @@ export class MemoryWorld implements ScriptWorld {
     public readonly titles: string[] = [];
     /** The sounds played. */
     public readonly sounds: ScriptSound[] = [];
-    /** The particles spawned, as `<effect> <MoLang JSON>`. */
+    /** The particles spawned, as `<effect> <MoLang JSON>`, and `> <player>` for one player's. */
     public readonly particles: string[] = [];
+    private readonly blockInteractGuards: VetoGuard<BlockInteractIntent>[] = [];
+    private readonly entityInteractGuards: VetoGuard<EntityInteractIntent>[] = [];
+    private readonly kept = new Map<string, ScriptStructure>();
+    /** The world's structures, in memory. */
+    public readonly structures: ScriptStructureStore = {
+        get: (id) => this.kept.get(id),
+        set: (id, structure) => void this.kept.set(id, structure),
+        delete: (id) => this.kept.delete(id),
+        ids: () => [...this.kept.keys()]
+    };
+
+    /** A player clicks a block, past the interact guards. @returns Whether the click went on. */
+    public interactWithBlock(intent: BlockInteractIntent & { readonly itemAfter?: ScriptItem }): boolean {
+        for (const guard of this.blockInteractGuards) if (guard(intent).veto) return false;
+        this.committed.push({ type: 'playerInteractWithBlock', ...intent });
+        return true;
+    }
+
+    /** A player clicks an entity, past the interact guards. @returns Whether the click went on. */
+    public interactWithEntity(intent: EntityInteractIntent & { readonly itemAfter?: ScriptItem }): boolean {
+        for (const guard of this.entityInteractGuards) if (guard(intent).veto) return false;
+        this.committed.push({ type: 'playerInteractWithEntity', ...intent });
+        return true;
+    }
+    public guardBlockInteract(guard: VetoGuard<BlockInteractIntent>): () => void {
+        this.blockInteractGuards.push(guard);
+        return () => this.blockInteractGuards.splice(this.blockInteractGuards.indexOf(guard), 1);
+    }
+    public guardEntityInteract(guard: VetoGuard<EntityInteractIntent>): () => void {
+        this.entityInteractGuards.push(guard);
+        return () => this.entityInteractGuards.splice(this.entityInteractGuards.indexOf(guard), 1);
+    }
+    public equipment(id: string): ScriptEquipment | undefined {
+        const found = this.live.get(id);
+        if (found?.equipment === undefined) return undefined;
+        const hand = found.inventory?.[found.selectedSlot ?? 0] ?? null;
+        const slots = { ...found.equipment, ...(hand === null ? {} : { Mainhand: { ...hand } }) };
+        const armor = Object.values(slots).reduce((sum, item) => sum + (ARMOR[item.typeId]?.points ?? 0), 0);
+        return { slots, armor, toughness: 0 };
+    }
+    /** Wears a piece only in its slot, holds anything in a hand, and has no body slot, as a player. */
+    public setEquipment(id: string, slot: ScriptEquipmentSlot, item: ScriptItem | undefined): boolean {
+        const found = this.live.get(id);
+        if (found?.equipment === undefined || slot === 'Body') return false;
+        if (slot === 'Mainhand') {
+            this.setInventoryItem(id, found.selectedSlot ?? 0, item);
+            return true;
+        }
+        if (item !== undefined && slot !== 'Offhand' && ARMOR[item.typeId]?.slot !== slot) return false;
+        if (item === undefined) delete found.equipment[slot];
+        else found.equipment[slot] = { ...item };
+        return true;
+    }
+    public attribute(id: string, name: string): ScriptAttribute | undefined {
+        const found = this.live.get(id);
+        if (found === undefined) return undefined;
+        const most = ENTITY_TYPES[found.typeId]?.health ?? 0;
+        if (name === 'minecraft:health' && most > 0) return { current: found.health, default: most, min: 0, max: most };
+        const speed = MOVEMENT[found.typeId];
+        if (name !== 'minecraft:movement' || speed === undefined) return undefined;
+        return { current: found.movement ?? speed, default: speed, min: 0, max: Number.MAX_VALUE };
+    }
+    public setAttribute(id: string, name: string, value: number): void {
+        const found = this.live.get(id);
+        if (found === undefined) return;
+        if (name === 'minecraft:health') found.health = value;
+        else if (name === 'minecraft:movement') found.movement = value;
+    }
+    public effectTypes(): readonly string[] {
+        return [...EFFECT_TYPES];
+    }
 
     /** A player breaks a block, past the break guards, as a client's break does. @returns Whether it broke. */
     public breakBlock(player: string, dimension: string, location: ScriptVector3): boolean {
@@ -256,8 +348,14 @@ export class MemoryWorld implements ScriptWorld {
     public playSound(sound: ScriptSound): void {
         this.sounds.push(sound);
     }
-    public spawnParticle(_dimension: string, effect: string, _location: ScriptVector3, molang?: string): void {
-        this.particles.push(`${effect} ${molang ?? ''}`);
+    public spawnParticle(
+        _dimension: string,
+        effect: string,
+        _location: ScriptVector3,
+        molang?: string,
+        player?: string
+    ): void {
+        this.particles.push(`${effect} ${molang ?? ''}${player === undefined ? '' : ` > ${player}`}`);
     }
     public isEffectType(typeId: string): boolean {
         return EFFECT_TYPES.has(typeId);
@@ -342,8 +440,8 @@ export class MemoryWorld implements ScriptWorld {
     /** What the simulated players were told to do, as `<id> <action kind>`, and the ticks they moved. */
     public readonly acted: string[] = [];
     public simulatedTicks = 0;
-    /** The structures placed, as `<dimension> <x> <y> <z> <bytes>`. */
-    public readonly structures: string[] = [];
+    /** The GameTest structures placed, as `<dimension> <x> <y> <z> <bytes>`. */
+    public readonly placedStructures: string[] = [];
 
     /** The world's simulated players: players who join and leave as any other, with no client. */
     public readonly simulatedPlayers: ScriptSimulatedPlayers = {
@@ -373,7 +471,7 @@ export class MemoryWorld implements ScriptWorld {
     };
 
     public placeStructure(dimension: string, { x, y, z }: ScriptVector3, structure: Uint8Array): void {
-        this.structures.push(`${dimension} ${x} ${y} ${z} ${structure.length}`);
+        this.placedStructures.push(`${dimension} ${x} ${y} ${z} ${structure.length}`);
     }
 
     /** How many guards the runtime still has on the world's actions. */
@@ -627,7 +725,7 @@ export class MemoryWorld implements ScriptWorld {
             rotation: { x: 0, y: 0 },
             effects: [],
             ...(size === undefined ? {} : { inventory: new Array<ScriptItem | null>(size).fill(null) }),
-            ...(typeId === 'minecraft:player' ? { gameMode: 'Survival', selectedSlot: 0 } : {})
+            ...(typeId === 'minecraft:player' ? { gameMode: 'Survival', selectedSlot: 0, equipment: {} } : {})
         });
         return id;
     }

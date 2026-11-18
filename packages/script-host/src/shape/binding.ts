@@ -530,7 +530,16 @@ export class ScriptApiContext {
                     );
                     runtimeMembers.push({ kind: 'method', name: memberName, static: isStatic, call });
                 } else if (member.kind === 'property') {
-                    const get = this.entry(shape.module, name, memberName, 'get', member.get);
+                    // A baked property holds a value BDS fixed when it made the object, so reading it
+                    // checks no privilege: `DimensionTypes.getAll()[0].typeId` reads in early execution,
+                    // as the `entity-components` scenario recorded.
+                    const get = this.entry(
+                        shape.module,
+                        name,
+                        memberName,
+                        'get',
+                        member.baked === true ? ['early_execution', 'restricted_execution'] : member.get
+                    );
                     const value = { name: 'value', type: member.type, min: member.min, max: member.max };
                     const set = member.readOnly
                         ? undefined
