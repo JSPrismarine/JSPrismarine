@@ -60,8 +60,8 @@ export function formatTime(at: number): string {
  * column, and the message with `§` codes mapped through the theme. Separators render as a rule
  * across the width with the generation appended to the reason; raw child output is muted and
  * prefixed by its stream; dropped notices show the store's message in the warning color. With
- * `wrap` off a long message ends in an ellipsis and the result is one row; with it on,
- * continuation rows are indented to the message column. Repeated log and raw records can add a
+ * `wrap` off each line of the message is one row and a long one ends in an ellipsis; with it
+ * on, long lines wrap. Rows after the first are indented to the message column. Repeated log and raw records can add a
  * muted count after the message. Widths are measured in code points.
  */
 export function formatLogLine(record: StoredRecord, options: LogLineOptions): FormattedLogLine[] {
@@ -138,54 +138,51 @@ function layout(
     options: LogLineOptions,
     suffix: TextChunk[] = []
 ): FormattedLogLine[] {
-    message = [...linkChunks(message), ...suffix];
     const prefixWidth = chunkColumns(prefix);
     const available = width - prefixWidth;
     if (available < 1) {
         return [mappedRow(new StyledText(sliceChunks(prefix, 0, width)))];
     }
-    const plain = message.map((chunk) => chunk.text).join('');
-    const suffixWidth = chunkColumns(suffix);
-    if (!options.wrap) {
-        const body =
-            columns(plain) <= available
-                ? message
-                : [...sliceChunks(message, 0, available - 1), plainChunk(ELLIPSIS, options.theme, 'textMuted')];
-        const row = new StyledText([...prefix, ...body]);
-        if (suffixWidth === 0) return [mappedRow(row)];
-        const sourceText =
-            prefix.map((chunk) => chunk.text).join('') +
-            message
-                .map((chunk) => chunk.text)
-                .slice(0, -suffix.length)
-                .join('');
-        const visibleMessageWidth = Math.min(
-            columns(sourceText) - prefixWidth,
-            columns(plain) <= available ? columns(plain) - suffixWidth : available - 1
-        );
-        return [
-            Object.assign(row, {
-                sourceText,
-                sourceStart: 0,
-                sourceEnd: prefixWidth + Math.max(0, visibleMessageWidth),
-                contentStart: 0
-            })
-        ];
-    }
-    const sourceMessage = (suffix.length > 0 ? message.slice(0, -suffix.length) : message)
-        .map((chunk) => chunk.text)
-        .join('');
+    message = linkChunks(message);
+    const sourceMessage = message.map((chunk) => chunk.text).join('');
     const sourceText = prefix.map((chunk) => chunk.text).join('') + sourceMessage;
     const sourceMessageWidth = columns(sourceMessage);
+    message = [...message, ...suffix];
+    const points = [...message.map((chunk) => chunk.text).join('')];
     const indent = plainChunk(' '.repeat(prefixWidth), options.theme);
-    return wrapRanges([...plain], available).map(([start, end], index) =>
-        Object.assign(new StyledText([index === 0 ? prefix : [indent], sliceChunks(message, start, end)].flat()), {
+    return messageRanges(points, available, options.wrap).map(([start, end], index) => {
+        // Without wrap a row that does not fit ends in an ellipsis one column early.
+        const cut = !options.wrap && end - start > available ? start + available - 1 : end;
+        const body = sliceChunks(message, start, cut);
+        if (cut < end) body.push(plainChunk(ELLIPSIS, options.theme, 'textMuted'));
+        return Object.assign(new StyledText([...(index === 0 ? prefix : [indent]), ...body]), {
             sourceText,
             sourceStart: index === 0 ? 0 : prefixWidth + Math.min(start, sourceMessageWidth),
-            sourceEnd: prefixWidth + Math.min(end, sourceMessageWidth),
+            sourceEnd: prefixWidth + Math.min(cut, sourceMessageWidth),
             contentStart: index === 0 ? 0 : prefixWidth
-        })
-    );
+        });
+    });
+}
+
+/**
+ * The `[start, end)` code point ranges of the rows a message takes: a row per line of the
+ * message, each line wrapped to `width` columns when `wrap` is on. The newlines themselves
+ * fall between ranges, so each row's text stays one line.
+ */
+function messageRanges(points: readonly string[], width: number, wrap: boolean): [number, number][] {
+    const ranges: [number, number][] = [];
+    let lineStart = 0;
+    for (let index = 0; index <= points.length; index += 1) {
+        if (index < points.length && points[index] !== '\n') continue;
+        if (!wrap) ranges.push([lineStart, index]);
+        else {
+            for (const [start, end] of wrapRanges(points.slice(lineStart, index), width)) {
+                ranges.push([lineStart + start, lineStart + end]);
+            }
+        }
+        lineStart = index + 1;
+    }
+    return ranges;
 }
 
 function mappedRow(row: StyledText): FormattedLogLine {

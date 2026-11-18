@@ -133,7 +133,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let namespaceFilter: string | undefined;
     let namespaceFilterExact = false;
     let search: string | undefined;
-    let wrap = false;
+    let wrap = true;
     let inputFocused = true;
     let sidePanePreference: boolean | undefined;
     let sidePaneWidth = SIDE_PANE_WIDTH;

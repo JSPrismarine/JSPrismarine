@@ -965,8 +965,9 @@ describe('createApp', () => {
             },
             'log.toggleWrap': async (t) => {
                 const frame = t.captureCharFrame();
-                expect(frame).toContain('wrapping long lines');
-                expect(frame).not.toContain('truncating long lines');
+                // Wrap is on by default, so the first toggle turns it off.
+                expect(frame).toContain('truncating long lines');
+                expect(frame).not.toContain('wrapping long lines');
             },
             'log.clearView': async (t) => {
                 expect(t.captureCharFrame()).not.toMatch(/line \d/);
@@ -1108,7 +1109,7 @@ describe('createApp', () => {
             const frame = t.captureCharFrame();
             expect(frame).toContain('> saw?');
             expect(frame).not.toContain('Keyboard shortcuts');
-            expect(frame).not.toContain('wrapping long lines');
+            expect(frame).not.toContain('truncating long lines');
         });
     });
 });

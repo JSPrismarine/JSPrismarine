@@ -130,6 +130,27 @@ describe('formatLogLine', () => {
         expect(rows).toEqual(['12:05:33 INFO    the quick brown fox jumps over', '                 the lazy dog']);
     });
 
+    it.each([false, true])('starts a row under the message column at each newline (wrap %s)', (wrap) => {
+        const message = 'Starting on 2 protocol versions:\n  protocol 2259: 1.26.70\n  protocol 2225: 1.26.60';
+        const rows = formatLogLine(record({ message }), options({ wrap, showNamespace: false, repeatCount: 2 }));
+        expect(text(rows)).toEqual([
+            '12:05:33 INFO    Starting on 2 protocol versions:',
+            '                   protocol 2259: 1.26.70',
+            '                   protocol 2225: 1.26.60 (x2)'
+        ]);
+        // Copying the rows back joins them with the newline that split them.
+        expect(rows.map((row) => row.sourceText.slice(row.sourceStart, row.sourceEnd)).join('\n')).toBe(
+            `12:05:33 INFO    ${message}`
+        );
+    });
+
+    it('truncates each line of a multi-line message on its own when wrap is off', () => {
+        const rows = text(
+            formatLogLine(record({ message: `${'a'.repeat(40)}\nshort` }), options({ width: 40, showNamespace: false }))
+        );
+        expect(rows).toEqual([`12:05:33 INFO    ${'a'.repeat(22)}…`, '                 short']);
+    });
+
     it('breaks words longer than the message column', () => {
         const rows = text(
             formatLogLine(record({ message: 'x'.repeat(40) }), options({ width: 37, wrap: true, showNamespace: false }))
