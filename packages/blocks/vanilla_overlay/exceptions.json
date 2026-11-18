@@ -1,6 +1,6 @@
 {
     "$comment": "Palette blocks no Java block state maps onto. Each takes BEDROCK_ONLY_FALLBACK from @jsprismarine/blocks and is reviewed here rather than defaulted silently.",
-    "count": 182,
+    "count": 185,
     "blocks": [
         {
             "identifier": "minecraft:allow",
@@ -76,6 +76,11 @@
             "identifier": "minecraft:deprecated_purpur_block_2",
             "behavior": "jsprismarine:inert",
             "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:disc_press",
+            "behavior": "jsprismarine:plain_block",
+            "reason": "added by Bedrock 1.26.60, after the pinned Java release"
         },
         {
             "identifier": "minecraft:element_0",
@@ -861,6 +866,16 @@
             "identifier": "minecraft:hard_yellow_stained_glass_pane",
             "behavior": "jsprismarine:inert",
             "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:ice_crystal",
+            "behavior": "jsprismarine:ice",
+            "reason": "added by Bedrock 1.26.60, after the pinned Java release"
+        },
+        {
+            "identifier": "minecraft:icicle",
+            "behavior": "jsprismarine:plain_block",
+            "reason": "added by Bedrock 1.26.60, after the pinned Java release"
         },
         {
             "identifier": "minecraft:info_update",
