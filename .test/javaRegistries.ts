@@ -44,15 +44,12 @@ export const javaRegistryEntries = (registry: string): string[] => {
     return Object.keys(entries);
 };
 
-/** The path a {@link recognizesType} probe parses at, which an unknown-type error names first. */
-const PROBE_PATH = 'registry-probe';
-
 /**
  * Builds a handler check out of a parser that fails with a dedicated error on a type it does
- * not know. The probe document holds the type id and nothing else, so for a type the parser
+ * not know. The probe document holds the type id and no children, so for a type the parser
  * handles it fails on a missing field, and for one it does not it fails on the type.
  *
- * @param parse - Parses a document naming the type id at a path, such as `{ type: id }`.
+ * @param parse - Parses a document that names the type id, such as `{ type: id }`.
  * @param isUnknownType - Whether an error is the parser's unknown-type error.
  * @returns Whether the parser recognizes a type id.
  */
@@ -60,12 +57,10 @@ export const recognizesType =
     (parse: (id: string, path: string) => unknown, isUnknownType: (error: unknown) => boolean) =>
     (id: string): boolean => {
         try {
-            parse(id, PROBE_PATH);
+            parse(id, 'registry-probe');
             return true;
         } catch (error) {
-            // A nested parser can raise the same error class for a child; only the probed
-            // document's own path counts.
-            return !(isUnknownType(error) && error instanceof Error && error.message.startsWith(`${PROBE_PATH}:`));
+            return !isUnknownType(error);
         }
     };
 
