@@ -51,9 +51,9 @@ describe('createLogView', () => {
             t.view.setWrap(true);
             const frame = await t.frame();
             const last = frame.findLastIndex((row) => row.trim().length > 1);
-            await t.mockMouse.drag(31, 0, 59, last);
+            await t.mockMouse.drag(34, 0, 59, last);
             expect(t.view.getSelectedText()).toBe(message.replace('§c', ''));
-            await t.mockMouse.drag(59, last, 31, 0);
+            await t.mockMouse.drag(59, last, 34, 0);
             expect(t.view.getSelectedText()).toBe(message.replace('§c', ''));
         } finally {
             await t.dispose();
@@ -68,7 +68,7 @@ describe('createLogView', () => {
                 t.store.append(entry(message));
                 t.view.setWrap(true);
                 await t.frame();
-                const start = message.startsWith('é') ? 34 : 37;
+                const start = message.startsWith('é') ? 37 : 40;
                 await t.mockMouse.drag(start, 0, start + 2, 0);
                 expect(t.view.getSelectedText()).toBe('abc');
             } finally {
@@ -84,11 +84,11 @@ describe('createLogView', () => {
             t.store.append(entry('next'));
             t.view.setWrap(true);
             await t.frame();
-            await t.mockMouse.drag(34, 1, 38, 1);
+            await t.mockMouse.drag(37, 1, 41, 1);
             expect(t.view.getSelectedText()).toBe('aaaaa');
             await t.mockMouse.drag(1, 0, 59, 2);
             expect(t.view.getSelectedText()).toBe(
-                '12:05:33 INFO    Server       ' + 'a'.repeat(50) + '\n12:05:33 INFO    Server       next'
+                '12:05:33 INFO    Server          ' + 'a'.repeat(50) + '\n12:05:33 INFO    Server          next'
             );
         } finally {
             await t.dispose();
@@ -103,8 +103,8 @@ describe('createLogView', () => {
             t.store.append(entry(`${path}:88:9`));
             t.view.setWrap(true);
             await t.frame();
-            await t.mockMouse.click(32, 0, 0, { modifiers: { ctrl: true } });
-            await t.mockMouse.click(32, 1, 0, { modifiers: { alt: true } });
+            await t.mockMouse.click(35, 0, 0, { modifiers: { ctrl: true } });
+            await t.mockMouse.click(35, 1, 0, { modifiers: { alt: true } });
             expect(open.mock.calls).toEqual([[{ path, line: 88, column: 9 }], [{ path, line: 88, column: 9 }]]);
             await t.mockMouse.click(20, 1, 0, { modifiers: { ctrl: true } });
             expect(open).toHaveBeenCalledTimes(2);
@@ -237,10 +237,10 @@ describe('createLogView', () => {
             t.view.setWrap(true);
             const rows = await t.frame();
             expect(rows).toEqual([
-                '│12:05:33 INFO    Server       short',
-                '│12:05:33 INFO    Server       a long message that will not',
-                '│                              fit on one row of sixty',
-                '│                              columns'
+                '│12:05:33 INFO    Server          short',
+                '│12:05:33 INFO    Server          a long message that will',
+                '│                                 not fit on one row of',
+                '│                                 sixty columns'
             ]);
         } finally {
             await t.dispose();

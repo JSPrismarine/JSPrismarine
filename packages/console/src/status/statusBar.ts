@@ -175,13 +175,19 @@ export function createStatusBar(
         });
     };
 
-    const layout = () => {
-        const width = renderer.terminalWidth - PADDING * 2;
-        const rightKept = layoutSegments(right, Math.floor(width / 2), SEPARATOR);
-        const rightWidth = rightKept.reduce(
+    const segmentsWidth = (segments: readonly Segment[]): number =>
+        segments.reduce(
             (sum, segment, index) => sum + columns(segment.text) + (index === 0 ? 0 : columns(SEPARATOR)),
             0
         );
+
+    const layout = () => {
+        const width = renderer.terminalWidth - PADDING * 2;
+        // The right side always gets half the bar, and also whatever the left side leaves unused.
+        const leftNeeds = Math.min(segmentsWidth(left), Math.floor(width / 2));
+        const rightMax = Math.max(Math.floor(width / 2), width - leftNeeds - GAP);
+        const rightKept = layoutSegments(right, rightMax, SEPARATOR);
+        const rightWidth = segmentsWidth(rightKept);
         const leftWidth = Math.max(0, width - rightWidth - (rightKept.length > 0 ? GAP : 0));
 
         const rightStart = renderer.terminalWidth - PADDING - rightWidth;
