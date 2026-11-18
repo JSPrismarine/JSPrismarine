@@ -90,6 +90,12 @@ export interface ScriptScenario {
      */
     readonly client?: ScenarioClient;
     /**
+     * Whether the runner starts the local HTTP server the scenario's `server-net` requests go
+     * to (`httpServer.ts`), on the address the `base` variable of its `variables.json` names,
+     * before the server starts and until it stops.
+     */
+    readonly httpServer?: boolean;
+    /**
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
      * records instead of the golden's value or error, why, and the decision record that says so.
      * The scenario's row reports each as an intentional difference.
@@ -639,6 +645,32 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             'parameters, when a script or a command places it, its tick comes round and it is removed.',
         reference: 'docs/plans/script-api-host.md slice 11',
         packs: ['components'],
+        needs: 'server'
+    },
+    {
+        id: 'net-http',
+        family: 'scripting.net',
+        description:
+            'HttpRequest and HttpHeader keep what a script sets, http.get and http.request send it to a local server and ' +
+            'settle with its status, headers and body or reject, cancelAll rejects the requests in flight, and a pack ' +
+            'that declares @minecraft/server-net without a permissions.json that allows it does not load.',
+        reference: 'docs/plans/script-api-host.md slice 15',
+        packs: ['http', 'unconfigured'],
+        refused: ['unconfigured'],
+        experiments: ['gametest'],
+        httpServer: true,
+        needs: 'world'
+    },
+    {
+        id: 'admin-config',
+        family: 'scripting.admin',
+        description:
+            "variables and secrets read the pack's variables.json and secrets.json, a secret reaches a script only as an " +
+            'opaque SecretString, and transferPlayer takes a player and either a hostname and port or a NetherNet id.',
+        reference: 'docs/plans/script-api-host.md slice 15',
+        packs: ['admin'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:transfer'] },
         needs: 'server'
     }
 ];

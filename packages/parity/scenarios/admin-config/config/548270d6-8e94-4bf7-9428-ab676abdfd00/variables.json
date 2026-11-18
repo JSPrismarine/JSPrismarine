@@ -1,0 +1,11 @@
+{
+    "text": "hello",
+    "number": 4.5,
+    "integer": 7,
+    "flag": true,
+    "nothing": null,
+    "list": [1, "two", { "three": 3 }],
+    "object": { "nested": { "deep": [true] }, "b": 2, "a": 1 },
+    "zebra": "last by name",
+    "apple": "first by name"
+}

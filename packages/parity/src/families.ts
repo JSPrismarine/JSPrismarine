@@ -157,6 +157,10 @@ export const FAMILIES = {
     scriptingCommands: 'scripting.commands',
     /** Custom block and item components a script registers, and the hooks a pack's blocks and items run them through. */
     scriptingComponents: 'scripting.components',
+    /** `@minecraft/server-net`: the HTTP requests a script builds and sends, and what their promises settle with. */
+    scriptingNet: 'scripting.net',
+    /** `@minecraft/server-admin`: the variables and secrets a pack's config folder gives it, and the player transfers it makes. */
+    scriptingAdmin: 'scripting.admin',
 
     /** The public parity claim stays in step with the research note it cites. */
     conformanceClaim: 'conformance.claim',

@@ -25,11 +25,13 @@ import Server from '@jsprismarine/prismarine';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { NO_LEVEL_ACCESS } from '@jsprismarine/prismarine/scripting/LevelScriptWorld';
 import { LevelScripts } from '@jsprismarine/prismarine/scripting/LevelScripts';
+import { ScriptHttpInputs } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
 import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 
 import { isRecord } from '../isRecord.ts';
 import type { FormAnswer } from './formClient.ts';
+import { scenarioHttpBase, startScenarioHttpServer } from './httpServer.ts';
 import { cancelByte, FormClientScript } from './formClient.ts';
 import type { ScenarioRecord } from './record.ts';
 import { END_TABLE, readScenarioRecord } from './record.ts';
@@ -208,6 +210,29 @@ const runPacksInLevel = async (
 ): Promise<string[]> => {
     const lines: string[] = [];
     const level = fakeLevel();
+    const base = scenario.httpServer === true ? scenarioHttpBase(scenario) : undefined;
+    if (scenario.httpServer === true && base === undefined) {
+        throw new Error(`Scenario ${scenario.id} has no base variable for its HTTP server.`);
+    }
+    const httpServer = base === undefined ? undefined : await startScenarioHttpServer(base);
+    // The host's network, as a server sends the requests, with each result admitted between ticks.
+    const http = new ScriptHttpInputs();
+    try {
+        return await runLoadedPacks(scenario, client, lines, level, http);
+    } finally {
+        http.close();
+        await httpServer?.close();
+    }
+};
+
+/** Loads a world scenario's packs and ticks them until they end; see {@link runPacksInLevel}. */
+const runLoadedPacks = async (
+    scenario: ScriptScenario,
+    client: ScenarioClientPlayer | undefined,
+    lines: string[],
+    level: ReturnType<typeof fakeLevel>,
+    http: ScriptHttpInputs
+): Promise<string[]> => {
     const scripts = await LevelScripts.load({
         packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
         configDirectory: scenarioConfigDirectory(scenario),
@@ -228,7 +253,8 @@ const runPacksInLevel = async (
             // simulated player, which runs in a server scenario.
             chat: { addGuard: () => () => {} },
             // A fixed clock: no scenario records a date, and a run must not depend on the host's.
-            clock: () => Date.UTC(2026, 10, 16)
+            clock: () => Date.UTC(2026, 10, 16),
+            http
         },
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),
@@ -250,6 +276,10 @@ const runPacksInLevel = async (
         let reloaded = false;
         for (let tick = 0; tick < SCENARIO_TICKS && !ended(); tick++) {
             client?.answer(scripts);
+            // Every request a script sent has its answer before the next tick, so a run admits
+            // the same results in the same ticks however fast the network is.
+            await http.settled();
+            http.admit(tick);
             scripts.flush();
             // Between ticks, as a console command arrives.
             const reloadAfter = scenario.reloadAfter;
