@@ -1,7 +1,8 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { item_components as ItemComponents } from '@jsprismarine/bedrock-data';
+import { item_table as ItemTable } from '@jsprismarine/bedrock-data/v2193';
 import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
-import { NetworkBinaryStream, ProtocolVersions } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, ProtocolVersions, newestRelease } from '@jsprismarine/protocol';
 import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -304,8 +305,8 @@ describe('network', () => {
                     expect(at2225.get('minecraft:breeze_rod')).toBe(879);
                 });
 
-                it('falls back to 2193 for a version no table was captured for', () => {
-                    expect(encodeAt(2048)).toEqual(buffer);
+                it('falls back to the newest release for a version no table was captured for', () => {
+                    expect(encodeAt(2048)).toEqual(encodeAt(newestRelease.protocolVersion));
                 });
             });
         });
