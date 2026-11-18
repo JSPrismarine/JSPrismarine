@@ -54,6 +54,20 @@ export const isCheckable = (file: string): boolean => {
     }
 };
 
+/**
+ * Splits the script's arguments into the command and the arguments it gets. `pnpm run lint:biome --
+ * --max-diagnostics=500` forwards the `--` too, and the tool would read every option after it as a
+ * path, so the first `--` is dropped.
+ *
+ * @param argv - The arguments after the script's path.
+ */
+export const commandLine = (argv: readonly string[]): { command: string | undefined; args: string[] } => {
+    const [command, ...args] = argv;
+    const separator = args.indexOf('--');
+    if (separator !== -1) args.splice(separator, 1);
+    return { command, args };
+};
+
 const git = (root: string, args: readonly string[]): string | undefined => {
     try {
         return execFileSync('git', [...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -89,7 +103,7 @@ const changedFiles = (root: string): string[] | undefined => {
 const BATCH = 400;
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    const [command, ...args] = process.argv.slice(2);
+    const { command, args } = commandLine(process.argv.slice(2));
     if (command === undefined) {
         console.error('usage: node scripts/lint-changed.mts <command> [arguments...]');
         process.exit(2);

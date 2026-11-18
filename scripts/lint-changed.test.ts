@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { isCheckable, LINT_INPUTS, lintTargets } from './lint-changed.mts';
+import { commandLine, isCheckable, LINT_INPUTS, lintTargets } from './lint-changed.mts';
 
 const everywhere = (): boolean => true;
 
@@ -43,5 +43,18 @@ describe('isCheckable', () => {
         } finally {
             fs.rmSync(dir, { recursive: true, force: true });
         }
+    });
+});
+
+describe('commandLine', () => {
+    it('passes options that pnpm forwarded after `--` to the tool as options', () => {
+        expect(commandLine(['biome', 'check', '--', '--max-diagnostics=500'])).toEqual({
+            command: 'biome',
+            args: ['check', '--max-diagnostics=500']
+        });
+    });
+
+    it('keeps the arguments when there is no `--`', () => {
+        expect(commandLine(['prettier', '--check'])).toEqual({ command: 'prettier', args: ['--check'] });
     });
 });
