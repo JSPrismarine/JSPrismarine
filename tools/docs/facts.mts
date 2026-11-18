@@ -167,8 +167,30 @@ async function commandFacts() {
             ['Command', 'What it would need'],
             unwired.map(([name, reason]) => [`\`/${name}\``, reason])
         )}\n`,
-        'commands.registered.list': wrap(registered.map(({ name }) => name))
+        'commands.registered.list': wrap(registered.map(({ name }) => name)),
+        'commands.bedrockTable': `\n${bedrockCommandCountsTable()}\n`
     };
+}
+
+/** The counts the Bedrock command table generator measured, from the table it wrote. */
+function bedrockCommandCountsTable() {
+    // Parsed JSON written by `generate-bedrock-commands.ts`; `counts` is the one field read.
+    const { counts } = JSON.parse(
+        readFileSync(path.join(repoRoot, 'packages', 'commands', 'src', 'tables', 'bedrockCommands.json'), 'utf8')
+    ) as { counts: Record<string, number> };
+    const rows: [string, string][] = [
+        ['Commands', 'commands'],
+        ['Overloads', 'overloads'],
+        ['Parameters', 'parameters'],
+        ['Command enums', 'enums'],
+        ['Enum values', 'enumValues'],
+        ['Basic parameter types', 'basicTypes'],
+        ['Soft enums', 'softEnums']
+    ];
+    return table(
+        ["In Mojang's Bedrock table", 'Count'],
+        rows.map(([label, key]) => [label, String(counts[key])])
+    );
 }
 
 /** The command reference: every command the server answers, with its permission and who has it. */

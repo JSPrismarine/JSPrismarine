@@ -20,7 +20,7 @@ pack formats at once, read [architecture.md](architecture.md) first;
 
 Mojang publishes Java Edition's gameplay rules as data a server reads at load time. Bedrock keeps
 much of the same material in the engine. The vanilla behavior pack that Bedrock Dedicated Server
-<!-- fact:bds.version -->1.26.51.1<!-- /fact --> ships, composed the way the server loads it, carries <!-- fact:bedrock.lootTables.entities -->122<!-- /fact --> entity loot tables and
+<!-- fact:bds.version -->1.26.60.6<!-- /fact --> ships, composed the way the server loads it, carries <!-- fact:bedrock.lootTables.entities -->122<!-- /fact --> entity loot tables and
 <!-- fact:bedrock.lootTables.chests -->61<!-- /fact --> chest tables, but only <!-- fact:bedrock.lootTables.blocks -->99<!-- /fact --> block tables, and 96 of those are the colored concrete and wool slabs and stairs. Every other block's drops are
 compiled in, and nothing in those packs is an advancement or an enchantment definition. Java
 publishes all of it as data.

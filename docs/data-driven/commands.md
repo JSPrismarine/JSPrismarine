@@ -28,19 +28,21 @@ them once per matched entity.
 
 Bedrock 1.26.50 publishes its whole command set as data rather than as code. The file is
 `metadata/command_modules/mojang-commands.json` in `Mojang/bedrock-samples`, pinned by
-`packages/bedrock-data/sources.json` to tag <!-- fact:samples.tag -->`v1.26.50.4`<!-- /fact -->, and
+`packages/bedrock-data/sources.json` to tag <!-- fact:samples.tag -->`v1.26.60.5`<!-- /fact -->, and
 `packages/commands/src/tables/bedrockCommands.json` is generated from it. Nothing in that table is
-hand-written, and `packages/commands/src/bedrockTable.test.ts` asserts every count below:
+hand-written, and the generator records every count below in it:
 
+<!-- fact:commands.bedrockTable -->
 | In Mojang's Bedrock table | Count |
-| ------------------------- | ----: |
-| Commands                  |    84 |
-| Overloads                 |   279 |
-| Parameters                |  1186 |
-| Command enums             |   236 |
-| Enum values               | 14281 |
-| Basic parameter types     |    26 |
-| Soft enums                |     4 |
+| ------------------------- | ----- |
+| Commands                  | 84    |
+| Overloads                 | 281   |
+| Parameters                | 1189  |
+| Command enums             | 232   |
+| Enum values               | 14353 |
+| Basic parameter types     | 26    |
+| Soft enums                | 4     |
+<!-- /fact -->
 
 46 command names appear in both editions. 48 Java root names have no Bedrock counterpart at all,
 among them `/advancement`, `/bossbar`, `/team`, `/worldborder`, `/trigger` and `/datapack`. This
@@ -281,7 +283,7 @@ runner here is the vanilla dispatcher, joined to it in
 Know one thing before you invest in it. Vanilla ships zero functions in either edition, so running
 them buys no parity with either Minecraft. The Java 26.3 server jar has 9884 files under `data/minecraft/` and
 none of them is an `.mcfunction`; it has <!-- fact:java.datapack.tags -->883<!-- /fact --> tag files and none tags the function registry.
-`Mojang/bedrock-samples` at <!-- fact:samples.tag -->v1.26.50.4<!-- /fact --> has <!-- fact:samples.files -->22258<!-- /fact --> files, no `.mcfunction` and no `tick.json`. Both
+`Mojang/bedrock-samples` at <!-- fact:samples.tag -->v1.26.60.5<!-- /fact --> has <!-- fact:samples.files -->22327<!-- /fact --> files, no `.mcfunction` and no `tick.json`. Both
 editions have a function runtime and neither uses it for vanilla gameplay. This one exists because
 datapack authors expect it, and because it is a place to write server behavior as data rather than
 as TypeScript.

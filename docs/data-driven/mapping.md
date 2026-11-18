@@ -71,7 +71,7 @@ It takes the numeric id or the Bedrock identifier, and returns `mapped`, a revie
 identifier the pinned data does not have is `unknown` whichever namespace it is in. The
 correspondence is not one to one in either direction. Five Java biomes share a Bedrock one, and
 the inverse names the Java biome that is not on the loss list, so `minecraft:the_end` comes back
-as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, <!-- fact:mapping.bedrockBiomeLosses -->27<!-- /fact --> of
+as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, <!-- fact:mapping.bedrockBiomeLosses -->28<!-- /fact --> of
 Bedrock's <!-- fact:bedrock.biomes -->89<!-- /fact --> biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
 
 One more lookup is a Bedrock overlay rather than a translation. Java describes a dimension in its
@@ -183,10 +183,10 @@ against the full generated tables on every test run:
 3. The mapping composed with the reverse index is identity, except for the reviewed loss list.
    Biomes round-trip through the generated inverse both ways rather than through an index the
    test builds.
-4. Every output identifier exists in the real Bedrock 1.26.51 data: the block palette, the item
+4. Every output identifier exists in the real Bedrock <!-- fact:bds.minecraft -->1.26.60<!-- /fact --> data: the block palette, the item
    table, the actor identifier list, and the pinned name sets. The inverse names only Java 26.3
    biomes, and numbers every Bedrock biome exactly once.
-5. Every output state value is inside that state's real domain in the 1.26.51 palette.
+5. Every output state value is inside that state's real domain in the <!-- fact:bds.minecraft -->1.26.60<!-- /fact --> palette.
 
 The tests fail in both directions: when an unlisted loss appears, and when a listed loss stops
 occurring. That keeps the loss list exact rather than a growing pile of stale exemptions.
