@@ -13,6 +13,8 @@ import { isDeepStrictEqual, parseArgs } from 'node:util';
 
 import { parse, stringify } from 'yaml';
 
+import { isRecord } from './isRecord.mts';
+
 const REPOSITORY_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const LABELS_FILE = '.github/labels.yml';
 const CODERABBIT_FILE = '.coderabbit.yaml';
@@ -40,10 +42,6 @@ export interface Label {
 export interface LabelCatalog {
     labels: Label[];
     errors: string[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isStringArray(value: unknown): value is string[] {
