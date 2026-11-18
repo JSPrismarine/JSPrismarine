@@ -52,6 +52,14 @@ const INTEGER_BOUNDS: Partial<Record<NumberType, readonly [number, number]>> = {
     uint32: [0, 4294967295]
 };
 
+/** Marks a float property setter's value, whose bounds error BDS words its own way ({@link RuntimeArgument.float}). */
+const floatProperty = (call: RuntimeCall, type: ShapeType): RuntimeCall => {
+    const declared = typeof type === 'object' && type.kind === 'optional' ? type.type : type;
+    const [value] = call.arguments;
+    if (declared !== 'float' || value === undefined) return call;
+    return { ...call, arguments: [{ ...value, float: true }] };
+};
+
 /** How BDS writes a privilege in its error. */
 const PRIVILEGE_NAMES: Readonly<Record<Privilege, string>> = {
     default: 'default execution',
@@ -221,6 +229,14 @@ export class ScriptApiContext {
         if (typeof tag !== 'number' || tag < 0) return undefined;
         const state = this.engine.call(this.stateFunction, this.runtime, value);
         return { tag, state: typeof state === 'string' ? state : '' };
+    }
+
+    /**
+     * Replaces the state of an instance the host made, outside a call into one of its members,
+     * such as a drawn debug shape whose `timeLeft` the tick counts down. Leaves any other value alone.
+     */
+    public setState(value: ScriptValue, state: string): void {
+        if (this.identify(value) !== undefined) this.engine.call(this.setStateFunction, this.runtime, value, state);
     }
 
     /**
@@ -518,7 +534,7 @@ export class ScriptApiContext {
                     const value = { name: 'value', type: member.type, min: member.min, max: member.max };
                     const set = member.readOnly
                         ? undefined
-                        : this.call(shape, name, memberName, 'set', [value], member.set);
+                        : floatProperty(this.call(shape, name, memberName, 'set', [value], member.set), member.type);
                     runtimeMembers.push({
                         kind: 'property',
                         name: memberName,

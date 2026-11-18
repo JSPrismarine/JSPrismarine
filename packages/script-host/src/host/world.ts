@@ -396,6 +396,88 @@ export interface ScriptHttpChannel {
 export type ScriptTransferTarget =
     { readonly hostname: string; readonly port: number } | { readonly netherNetId: string };
 
+/** The classes of `@minecraft/debug-utilities`' shapes, by the name the Script API gives each. */
+export type ScriptDebugShapeKind =
+    | 'DebugArrow'
+    | 'DebugBox'
+    | 'DebugCircle'
+    | 'DebugCone'
+    | 'DebugCylinder'
+    | 'DebugEllipsoid'
+    | 'DebugLine'
+    | 'DebugPyramid'
+    | 'DebugSphere'
+    | 'DebugText';
+
+/** A color with alpha, each part from 0 to 1 as a script gives it, though nothing clamps it. */
+export interface ScriptRgba {
+    readonly red: number;
+    readonly green: number;
+    readonly blue: number;
+    readonly alpha: number;
+}
+
+/** A pair of numbers, such as a cone's radii along X and Z. */
+export interface ScriptVector2 {
+    readonly x: number;
+    readonly y: number;
+}
+
+/**
+ * A debug shape as the world draws it, from what a script set on a `@minecraft/debug-utilities`
+ * shape. Each class's own properties are present for that class only. Floats hold what a 32-bit
+ * float keeps of the script's number, as BDS's do.
+ */
+export interface ScriptDebugShape {
+    readonly kind: ScriptDebugShapeKind;
+    readonly location: ScriptVector3;
+    /** The dimension it is drawn in, when the shape or `addShape` names one. */
+    readonly dimension?: string;
+    readonly color: ScriptRgba;
+    readonly scale: number;
+    /** Pitch, yaw and roll, as the script gave them. */
+    readonly rotation: ScriptVector3;
+    /** The seconds left before the shape goes, as the tick counts them; absent for a shape that stays. */
+    readonly timeLeft?: number;
+    readonly maximumRenderDistance?: number;
+    /** The id of the entity the shape follows, as {@link ScriptWorld.entity} takes it. */
+    readonly attachedTo?: string;
+    /** A line's or an arrow's other end. */
+    readonly endLocation?: ScriptVector3;
+    readonly headLength?: number;
+    readonly headRadius?: number;
+    readonly headSegments?: number;
+    /** A box's extent. */
+    readonly bound?: ScriptVector3;
+    /** A cone's or a cylinder's radii along X and Z, or an ellipsoid's along X, Y and Z. */
+    readonly radii?: ScriptVector2 | ScriptVector3;
+    readonly height?: number;
+    /** A cone's or a cylinder's segments. */
+    readonly numSegments?: number;
+    readonly segmentsPerAxis?: number;
+    /** A pyramid's base. */
+    readonly width?: number;
+    readonly depth?: number;
+    /** A text's words, with a `RawMessage` read as chat reads one. */
+    readonly text?: string;
+    readonly useRotation?: boolean;
+    readonly backgroundColorOverride?: ScriptRgba;
+    readonly lineGapHeight?: number;
+    readonly depthTest?: boolean;
+    readonly backfaceVisible?: boolean;
+    readonly textBackfaceVisible?: boolean;
+}
+
+/**
+ * One change to the debug shapes a world draws: a shape to draw, or to draw again as it now is,
+ * or, without `shape`, one to stop drawing.
+ */
+export interface ScriptDebugShapeChange {
+    /** The shape's id, unique in the world for as long as the world's scripts run. */
+    readonly id: number;
+    readonly shape?: ScriptDebugShape;
+}
+
 /** A game mode as the Script API's `GameMode` names it. */
 export type ScriptGameMode = 'Adventure' | 'Creative' | 'Spectator' | 'Survival';
 
@@ -780,6 +862,12 @@ export interface ScriptWorld {
     readonly http?: ScriptHttpChannel;
     /** Sends a player to another server, as `/transfer` does. A world without it transfers no one. */
     transferPlayer?(id: string, target: ScriptTransferTarget): void;
+    /**
+     * Draws, redraws or removes `@minecraft/debug-utilities` shapes for every player, once per
+     * script flush that changed any. A world without it draws none, and the scripts still read
+     * their shapes back the same.
+     */
+    drawDebugShapes?(changes: readonly ScriptDebugShapeChange[]): void;
     /** The world's GameTest simulated players. A world without them refuses to spawn one. */
     readonly simulatedPlayers?: ScriptSimulatedPlayers;
     /**

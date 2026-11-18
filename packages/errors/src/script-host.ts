@@ -312,13 +312,25 @@ export const ScriptHostErrors = defineErrors('script-host', {
         base: TypeError
     },
     /**
-     * A script passed an object that lacks a property the Script API's interface needs, such as
-     * an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`. Pass
-     * an object with every property the interface lists.
+     * A script passed or set an object that lacks a property the Script API's interface needs, such
+     * as an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`,
+     * which names the argument, or `Function return value` for a value a script set on a property.
+     * Pass an object with every property the interface lists.
      */
     InterfacePropertyMissing: {
         message:
-            "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [{index}]).",
+            "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).",
+        base: TypeError
+    },
+    /**
+     * A script passed or set an object whose number property is `NaN` or an infinity, such as a
+     * debug shape's `bound` with an `x` of `NaN`. The script sees Bedrock Dedicated Server's
+     * `TypeError`, which names the argument, or `Function return value` for a value a script set on
+     * a property. Give every number property a finite value.
+     */
+    InterfacePropertyNotFinite: {
+        message:
+            "{value} value is not supported. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).",
         base: TypeError
     },
     /**

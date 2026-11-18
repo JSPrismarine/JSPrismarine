@@ -377,13 +377,25 @@ Bedrock Dedicated Server's `TypeError`. Make each hook of the component a functi
 
 ## `SCRIPT_HOST_INTERFACE_PROPERTY_MISSING`
 
-`Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [{index}]).`
+`Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).`
 
 Thrown as `ScriptHostErrors.InterfacePropertyMissing`, which extends `TypeError`.
 
-A script passed an object that lacks a property the Script API's interface needs, such as
-an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`. Pass
-an object with every property the interface lists.
+A script passed or set an object that lacks a property the Script API's interface needs, such
+as an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`,
+which names the argument, or `Function return value` for a value a script set on a property.
+Pass an object with every property the interface lists.
+
+## `SCRIPT_HOST_INTERFACE_PROPERTY_NOT_FINITE`
+
+`{value} value is not supported. Interface property ['{property}'] expected type: {expected} (failed parsing interface to {target}).`
+
+Thrown as `ScriptHostErrors.InterfacePropertyNotFinite`, which extends `TypeError`.
+
+A script passed or set an object whose number property is `NaN` or an infinity, such as a
+debug shape's `bound` with an `x` of `NaN`. The script sees Bedrock Dedicated Server's
+`TypeError`, which names the argument, or `Function return value` for a value a script set on
+a property. Give every number property a finite value.
 
 ## `SCRIPT_HOST_INVALID_DEBUGGER_MESSAGE`
 
