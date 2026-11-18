@@ -8,8 +8,8 @@
     "family": "scripting.entities",
     "scenario": "entity-components",
     "server": {
-        "protocolVersion": 2193,
-        "serverVersion": "1.26.51.1"
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
     },
     "observations": [
         {
@@ -86,6 +86,7 @@
                 "minecraft:empty",
                 "minecraft:fatal_poison",
                 "minecraft:fire_resistance",
+                "minecraft:freezing",
                 "minecraft:haste",
                 "minecraft:health_boost",
                 "minecraft:hunger",

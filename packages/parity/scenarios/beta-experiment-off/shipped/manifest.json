@@ -2,7 +2,7 @@
     "format_version": 2,
     "header": {
         "name": "JSPrismarine scenario beta-experiment-off shipped",
-        "description": "Declares @minecraft/server 2.11.0-beta. Written for packages/parity.",
+        "description": "Declares @minecraft/server 2.12.0-beta. Written for packages/parity.",
         "uuid": "34416ad7-a1ee-4e7e-9859-4392ba0aa223",
         "version": [1, 0, 0],
         "min_engine_version": [1, 21, 0]
@@ -19,7 +19,7 @@
     "dependencies": [
         {
             "module_name": "@minecraft/server",
-            "version": "2.11.0-beta"
+            "version": "2.12.0-beta"
         }
     ]
 }
