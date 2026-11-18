@@ -1,9 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { describe, expect, it } from 'vitest';
 
+import { describeWithJavaRegistries, expectRegistryCovered, javaRegistryEntries } from '../../../.test/javaRegistries';
 import { reportProgress } from '../../../.test/reportProgress';
 
 import {
@@ -15,6 +12,7 @@ import {
     isRemovedGameRule,
     renamedGameRule
 } from './gamerules';
+import { UNHANDLED_GAME_RULE } from './unhandledJavaTypes';
 
 describe('the Java gamerule registry', () => {
     it('keeps each rule addressable by a namespaced registry id', () => {
@@ -117,21 +115,18 @@ describe('the Bedrock gamerules', () => {
     });
 });
 
-const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
-const registriesPath = join(
-    repoRoot,
-    'node_modules/.cache/jsprismarine/java-reports/26.3/generated/reports/registries.json'
-);
-const hasReport = existsSync(registriesPath);
-
-describe.skipIf(!hasReport)('against Mojang’s own registry report', { tags: ['real-data'] }, () => {
+describeWithJavaRegistries('against Mojang’s own registry report', { tags: ['real-data'] }, () => {
     it('matches the 26.3 minecraft:game_rule registry exactly', () => {
-        // The data generator's report, this repository's pinned Java source.
-        const registries = JSON.parse(readFileSync(registriesPath, 'utf8')) as {
-            'minecraft:game_rule': { entries: Record<string, unknown> };
-        };
-        const published = Object.keys(registries['minecraft:game_rule'].entries).sort();
+        expect(JAVA_GAME_RULES.map((rule) => rule.name).sort()).toEqual(
+            javaRegistryEntries('minecraft:game_rule').sort()
+        );
+    });
 
-        expect(JAVA_GAME_RULES.map((rule) => rule.name).sort()).toEqual(published);
+    it('has a row or a reviewed entry for every rule', () => {
+        expectRegistryCovered({
+            registry: 'minecraft:game_rule',
+            handles: (id) => gameRule(id) !== undefined,
+            unhandled: UNHANDLED_GAME_RULE
+        });
     });
 });
