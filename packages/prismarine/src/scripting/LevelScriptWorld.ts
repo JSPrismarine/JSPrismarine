@@ -14,6 +14,7 @@ import type {
     ScriptCommandSet,
     ScriptCommandSource,
     ScriptComponentSink,
+    ScriptEventSourceType,
     ScriptFormChannel,
     ScriptFormResponse,
     ScriptWeather,
@@ -25,6 +26,7 @@ import type {
 
 import type { ChatManager } from '../chat/ChatManager';
 import { Scoreboard } from '../world/Scoreboard';
+import type { ScriptEntityEvent } from './scriptEntityEvents';
 import { scriptScoreboard } from './scriptScoreboard';
 import type { WeatherChange, WorldWeather } from '../world/Weather';
 
@@ -51,6 +53,8 @@ export type ScriptLevelAccess = Pick<
     | 'simulatedPlayers'
     | 'placeStructure'
     | 'setGameMode'
+    | 'setSelectedSlot'
+    | 'applyDamage'
     | 'dynamicProperties'
     | 'setDynamicProperties'
     | 'clearDynamicProperties'
@@ -136,7 +140,31 @@ export interface ScriptWorldSources {
      * @returns A function that stops it.
      */
     components?(sink: ScriptComponentSink): () => void;
+    /**
+     * Calls `listener` with each entity that appears in the level, each blow that lands and each
+     * death, once the world has kept it.
+     * @returns A function that stops it.
+     */
+    entityEvents?(listener: (event: ScriptEntityEvent) => void): () => void;
 }
+
+/** The order BDS sends the entity after-events of one flush in, whatever order they happened in. */
+const ENTITY_EVENT_ORDER: Readonly<Record<ScriptEntityEvent['type'], number>> = {
+    entitySpawn: 0,
+    entityHurt: 1,
+    entityDie: 2
+};
+
+const isEntityEvent = (event: ScriptWorldEvent): event is ScriptEntityEvent => event.type in ENTITY_EVENT_ORDER;
+
+/**
+ * Puts the entity events of a flush in BDS's order, every spawn, then every blow, then every
+ * death, as the `entity-events` scenario recorded, and leaves the other events where they are.
+ */
+const inEntityEventOrder = (events: readonly ScriptWorldEvent[]): ScriptWorldEvent[] => {
+    const entity = events.filter(isEntityEvent).sort((a, b) => ENTITY_EVENT_ORDER[a.type] - ENTITY_EVENT_ORDER[b.type]);
+    return events.map((event) => (isEntityEvent(event) ? (entity.shift() ?? event) : event));
+};
 
 /** The dimension Bedrock renders weather in, and reports weather events for. */
 const WEATHER_DIMENSION = 'minecraft:overworld';
@@ -165,6 +193,10 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly placeStructure: ScriptWorld['placeStructure'];
     /** Sets a player's game mode, when the server can. */
     public readonly setGameMode: ScriptWorld['setGameMode'];
+    /** Moves a player's hand to a hotbar slot, when the server can. */
+    public readonly setSelectedSlot: ScriptWorld['setSelectedSlot'];
+    /** Hurts an entity through the damage pipeline, when the server can. */
+    public readonly applyDamage: ScriptWorld['applyDamage'];
 
     /** The forms of the level's scripts, which travel to the level's players and back. */
     public readonly forms: ScriptFormChannel = {
@@ -180,6 +212,8 @@ export class LevelScriptWorld implements ScriptWorld {
         this.simulatedPlayers = this.access.simulatedPlayers;
         this.placeStructure = this.access.placeStructure;
         this.setGameMode = this.access.setGameMode;
+        this.setSelectedSlot = this.access.setSelectedSlot;
+        this.applyDamage = this.access.applyDamage;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
                 type: 'weatherChange',
@@ -192,9 +226,11 @@ export class LevelScriptWorld implements ScriptWorld {
             const id = String(sender);
             if (this.players().includes(id)) this.committed.push({ type: 'chatSend', sender: id, message });
         });
+        const stopEntities = sources.entityEvents?.((event) => this.committed.push(event));
         this.stopListening = () => {
             stopWeather();
             stopChat?.();
+            stopEntities?.();
         };
     }
 
@@ -324,15 +360,27 @@ export class LevelScriptWorld implements ScriptWorld {
     public runCommand(command: string, source: ScriptCommandSource): ScriptCommandResult {
         const [name, id = '', ...message] = command.trim().split(' ');
         if (name !== 'scriptevent') return this.access.runCommand(command, source);
-        if (!SCRIPT_EVENT_ID.test(id)) return { successCount: 0 };
+        const sent = this.scriptEvent(id, message.join(' '), 'entity' in source ? source.entity : undefined);
+        return { successCount: sent ? 1 : 0 };
+    }
+
+    /**
+     * Raises `system.afterEvents.scriptEventReceive` for a `/scriptevent`, from a script, the
+     * console or a player.
+     * @param sourceEntity - The id of the entity that ran it; the server when absent.
+     * @returns False for an id `/scriptevent` refuses, which raises nothing.
+     */
+    public scriptEvent(id: string, message: string, sourceEntity?: string): boolean {
+        if (!SCRIPT_EVENT_ID.test(id)) return false;
+        const sourceType: ScriptEventSourceType = sourceEntity === undefined ? 'Server' : 'Entity';
         this.committed.push({
             type: 'scriptEvent',
             id,
-            message: message.join(' '),
-            sourceType: 'entity' in source ? 'Entity' : 'Server',
-            ...('entity' in source ? { sourceEntity: source.entity } : {})
+            message,
+            sourceType,
+            ...(sourceEntity === undefined ? {} : { sourceEntity })
         });
-        return { successCount: 1 };
+        return true;
     }
 
     /** Calls `listener` as a player leaves the level, before their entity goes. */
@@ -429,7 +477,7 @@ export class LevelScriptWorld implements ScriptWorld {
             presence.push({ type: 'playerSpawn', playerId, initialSpawn: true });
         }
         this.known = new Map([...now, ...leaving]);
-        return [...presence, ...this.committed.splice(0)];
+        return [...presence, ...inEntityEventOrder(this.committed.splice(0))];
     }
 
     /** The wall clock the input step admitted for this tick. */

@@ -249,6 +249,16 @@ export class LevelScripts {
     }
 
     /**
+     * Raises `system.afterEvents.scriptEventReceive` for a `/scriptevent` the console or a player
+     * ran, in the next script flush.
+     * @param sourceEntity - The runtime id of the entity that ran it; the server when absent.
+     * @returns False for an id `/scriptevent` refuses: one without a namespace, or in `minecraft`.
+     */
+    public scriptEvent(id: string, message: string, sourceEntity?: string): boolean {
+        return this.world.scriptEvent(id, message, sourceEntity);
+    }
+
+    /**
      * Reloads every pack's scripts, as `/reload` does. The reload replaces the engine, so an
      * attached debugger detaches first.
      */

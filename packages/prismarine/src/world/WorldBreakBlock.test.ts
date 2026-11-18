@@ -18,6 +18,7 @@ import { World } from './World';
 import { fakeLevel } from '../testing/level';
 import { collectAddedActors } from '../testing/addedActors.test.helper';
 import { QUIET_TICK_HEADER } from '../testing/tickHeader.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /**
  * A world reduced to what breaking a block touches. The real one wants a server, a provider
@@ -113,6 +114,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
                 getPacketCompressionLevel: () => 7,
                 getPacketCompressionThreshold: () => 256
             }),
+            getKernel: () => testKernel(),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
             // Rolls taken in turn, so where a drop lands can be said exactly.
             getRandom: () => {

@@ -20,6 +20,7 @@
  * The camel, the happy ghast and the tadpole run both 1 and 3, which is what
  * `BrainMobDefinition.alsoRunsGoals` is for.
  */
+import type { EntitySpawnCause } from '../../events/entity/EntitySpawnEvent';
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import { javaDyeColorIndexOf } from '@jsprismarine/mapping';
 import type {
@@ -689,7 +690,7 @@ export interface EntityRuntimeOptions {
      * sent is the host's, and it is created here rather than by every caller
      * of {@link EntityRuntime.spawn}.
      */
-    onSpawn?(entity: DataEntity): void;
+    onSpawn?(entity: DataEntity, cause: EntitySpawnCause): void;
     /** Called once per entity, after it has left the index. */
     onRemove?(entity: DataEntity, reason: string): void;
     /**
@@ -984,7 +985,7 @@ export class EntityRuntime implements EntityScene {
     /** Recipe books are readonly content snapshots; a reload supplies a new key, and values keep only scalars. */
     private readonly craftIntoCache = new WeakMap<RecipeBook, Map<string, CraftIntoCandidate | null>>();
     private readonly onReport: (message: string) => void;
-    private readonly onSpawn: (entity: DataEntity) => void;
+    private readonly onSpawn: (entity: DataEntity, cause: EntitySpawnCause) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
     private readonly shownAs: (entity: DataEntity) => string | undefined;
     private readonly gameEvents: EntityRuntimeOptions['gameEvents'];
@@ -1445,7 +1446,7 @@ export class EntityRuntime implements EntityScene {
         this.store.enter(entity, this.savedFormOf(entity));
         // After the spawn event, so the body a client is sent already carries whatever the
         // event added: a baby is born a baby rather than growing into one on the next tick.
-        this.onSpawn(entity);
+        this.onSpawn(entity, options.cause ?? 'spawned');
         this.addRiders(entity);
         if ((options.cause ?? 'spawned') === 'spawned') this.seatChickenJockey(entity);
         return entity;
@@ -1570,7 +1571,7 @@ export class EntityRuntime implements EntityScene {
         this.startFuse(entity);
         this.prepare(entity, prepare);
         this.store.enter(entity, this.savedFormOf(entity));
-        this.onSpawn(entity);
+        this.onSpawn(entity, 'loaded');
         return entity;
     }
 

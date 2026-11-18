@@ -6,6 +6,7 @@ import type { PlayerChatGuard } from '../chat/ChatManager';
 import { fakeLevel } from '../testing/level';
 import { LevelScriptWorld, NO_LEVEL_ACCESS } from './LevelScriptWorld';
 import type { ScriptWorldSources } from './LevelScriptWorld';
+import type { ScriptEntityEvent } from './scriptEntityEvents';
 
 /** A level's script world over a test level's real weather. */
 const scriptWorld = (overrides: Partial<ScriptWorldSources> = {}) => {
@@ -251,5 +252,47 @@ describe('LevelScriptWorld', () => {
         expect(world.takeEvents()).toEqual([
             { type: 'scriptEvent', id: 'jsp:hello', message: 'hi there', sourceType: 'Server' }
         ]);
+    });
+
+    it('raises scriptEventReceive for a /scriptevent from the console or a player', () => {
+        const { world } = scriptWorld();
+
+        expect(world.scriptEvent('jsp:console', 'two  spaces')).toBe(true);
+        expect(world.scriptEvent('jsp:player', '', '7')).toBe(true);
+        expect(world.scriptEvent('minecraft:refused', 'x')).toBe(false);
+        expect(world.takeEvents()).toEqual([
+            { type: 'scriptEvent', id: 'jsp:console', message: 'two  spaces', sourceType: 'Server' },
+            { type: 'scriptEvent', id: 'jsp:player', message: '', sourceType: 'Entity', sourceEntity: '7' }
+        ]);
+    });
+
+    it("hands the scripts a flush's entity events as BDS does: spawns, then blows, then deaths", () => {
+        const listeners: ((event: ScriptEntityEvent) => void)[] = [];
+        const { world } = scriptWorld({
+            entityEvents: (listener) => {
+                listeners.push(listener);
+                return () => void listeners.splice(listeners.indexOf(listener), 1);
+            }
+        });
+        const pig = { id: '3', typeId: 'minecraft:pig' };
+        const fall = { cause: 'fall' };
+        const raise = (event: ScriptEntityEvent) => {
+            for (const listener of listeners) listener(event);
+        };
+        raise({ type: 'entitySpawn', entity: pig, cause: 'Spawned' });
+        raise({ type: 'entityHurt', entity: pig, damage: 3, source: fall });
+        raise({ type: 'entityDie', entity: pig, source: fall });
+        world.scriptEvent('jsp:between', '');
+        raise({ type: 'entityHurt', entity: pig, damage: 1, source: fall });
+
+        expect(world.takeEvents().map((event) => event.type)).toEqual([
+            'entitySpawn',
+            'entityHurt',
+            'entityHurt',
+            'scriptEvent',
+            'entityDie'
+        ]);
+        world.close();
+        expect(listeners).toEqual([]);
     });
 });
