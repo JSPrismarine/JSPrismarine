@@ -17,6 +17,8 @@ import type {
     ScriptEventSourceType,
     ScriptFormChannel,
     ScriptFormResponse,
+    ScriptHttpChannel,
+    ScriptTransferTarget,
     ScriptWeather,
     ScriptWorld,
     ScriptWorldEvent,
@@ -106,6 +108,8 @@ export interface ScriptWorldPlayer {
     showForm?(formId: number, json: string): void;
     /** Closes every form the player has open, as a `ClientboundCloseFormPacket`. */
     closeForms?(): void;
+    /** Sends the player to another server, as a `TransferPacket`. A player without it stays. */
+    transfer?(target: ScriptTransferTarget): void;
 }
 
 /** What {@link LevelScriptWorld} reads of its level. */
@@ -125,6 +129,8 @@ export interface ScriptWorldSources {
     clock(): number;
     /** The level's entities, blocks, items and commands. {@link NO_LEVEL_ACCESS} when absent. */
     readonly access?: ScriptLevelAccess;
+    /** The channel the scripts' HTTP requests travel over. Without one, each request fails. */
+    readonly http?: ScriptHttpChannel;
     /**
      * Calls `listener` with a player's id as they leave, before their entity goes.
      * @returns A function that stops it.
@@ -198,6 +204,9 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Hurts an entity through the damage pipeline, when the server can. */
     public readonly applyDamage: ScriptWorld['applyDamage'];
 
+    /** The channel the level's scripts' HTTP requests travel over, when the server gives one. */
+    public readonly http: ScriptWorld['http'];
+
     /** The forms of the level's scripts, which travel to the level's players and back. */
     public readonly forms: ScriptFormChannel = {
         show: (player, formId, json) => this.player(player)?.showForm?.(formId, json),
@@ -214,6 +223,7 @@ export class LevelScriptWorld implements ScriptWorld {
         this.setGameMode = this.access.setGameMode;
         this.setSelectedSlot = this.access.setSelectedSlot;
         this.applyDamage = this.access.applyDamage;
+        this.http = sources.http;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
                 type: 'weatherChange',
@@ -390,6 +400,11 @@ export class LevelScriptWorld implements ScriptWorld {
                 if (this.known.has(player)) listener(player);
             }) ?? (() => {})
         );
+    }
+
+    /** Sends a player of the level to another server. */
+    public transferPlayer(id: string, target: ScriptTransferTarget): void {
+        this.player(id)?.transfer?.(target);
     }
 
     /**
