@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario player-feedback feedback",
+        "description": "Records a player's screen display, sounds, effects, sneaking, item use and block breaking. Written for packages/parity.",
+        "uuid": "7de2f8d4-8e9a-43f2-bf60-26c2bbb1572e",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "b4ba62d6-e778-460f-b9a0-14625e99dbf6",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.11.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-gametest",
+            "version": "1.0.0-beta"
+        }
+    ]
+}

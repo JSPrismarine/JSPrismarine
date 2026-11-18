@@ -1,0 +1,127 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-event-options` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "entity-event-options",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "options",
+            "seq": 1,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "options",
+            "seq": 2,
+            "tick": 0,
+            "event": "subscribe with an unknown type",
+            "value": "subscribed"
+        },
+        {
+            "pack": "options",
+            "seq": 3,
+            "tick": 2,
+            "event": "hurt the pig",
+            "value": true
+        },
+        {
+            "pack": "options",
+            "seq": 4,
+            "tick": 2,
+            "event": "hurt the cow",
+            "value": true
+        },
+        {
+            "pack": "options",
+            "seq": 5,
+            "tick": 2,
+            "event": "hurt, no options",
+            "value": "pig"
+        },
+        {
+            "pack": "options",
+            "seq": 6,
+            "tick": 2,
+            "event": "hurt, pig type",
+            "value": "pig"
+        },
+        {
+            "pack": "options",
+            "seq": 7,
+            "tick": 2,
+            "event": "hurt, no options",
+            "value": "cow"
+        },
+        {
+            "pack": "options",
+            "seq": 8,
+            "tick": 2,
+            "event": "hurt, the cow entity",
+            "value": "cow"
+        },
+        {
+            "pack": "options",
+            "seq": 9,
+            "tick": 4,
+            "event": "kill the pig",
+            "value": true
+        },
+        {
+            "pack": "options",
+            "seq": 10,
+            "tick": 4,
+            "event": "kill the cow",
+            "value": true
+        },
+        {
+            "pack": "options",
+            "seq": 11,
+            "tick": 4,
+            "event": "hurt, no options",
+            "value": "pig"
+        },
+        {
+            "pack": "options",
+            "seq": 12,
+            "tick": 4,
+            "event": "hurt, pig type",
+            "value": "pig"
+        },
+        {
+            "pack": "options",
+            "seq": 13,
+            "tick": 4,
+            "event": "hurt, no options",
+            "value": "cow"
+        },
+        {
+            "pack": "options",
+            "seq": 14,
+            "tick": 4,
+            "event": "hurt, the cow entity",
+            "value": "cow"
+        },
+        {
+            "pack": "options",
+            "seq": 15,
+            "tick": 4,
+            "event": "die, pig type",
+            "value": "pig"
+        },
+        {
+            "pack": "options",
+            "seq": 16,
+            "tick": 4,
+            "event": "die, the cow entity",
+            "value": "cow"
+        }
+    ]
+}

@@ -1,0 +1,260 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-effects` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "entity-effects",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "effects",
+            "seq": 1,
+            "tick": 0,
+            "event": "getEffects of a new pig",
+            "value": 0
+        },
+        {
+            "pack": "effects",
+            "seq": 2,
+            "tick": 0,
+            "event": "addEffect speed",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 0,
+                "duration": 200,
+                "displayName": "Speed"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 3,
+            "tick": 0,
+            "event": "addEffect minecraft:slowness with options",
+            "value": {
+                "typeId": "minecraft:slowness",
+                "amplifier": 2,
+                "duration": 100,
+                "displayName": "Slowness III"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 4,
+            "tick": 0,
+            "event": "addEffect a weaker speed",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 0,
+                "duration": 200,
+                "displayName": "Speed"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 5,
+            "tick": 0,
+            "event": "addEffect a stronger speed",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 3,
+                "duration": 60,
+                "displayName": "Speed IV"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 6,
+            "tick": 0,
+            "event": "addEffect unknown",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: effectType"
+        },
+        {
+            "pack": "effects",
+            "seq": 7,
+            "tick": 0,
+            "event": "addEffect duration 0",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 0, Argument bounds: [1, 20000000]"
+        },
+        {
+            "pack": "effects",
+            "seq": 8,
+            "tick": 0,
+            "event": "addEffect amplifier 300",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [2]: amplifier, Value: 300, Argument bounds: [0, 255]"
+        },
+        {
+            "pack": "effects",
+            "seq": 9,
+            "tick": 0,
+            "event": "getEffect speed",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 3,
+                "duration": 60,
+                "displayName": "Speed IV"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 10,
+            "tick": 0,
+            "event": "getEffect minecraft:speed",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 3,
+                "duration": 60,
+                "displayName": "Speed IV"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 11,
+            "tick": 0,
+            "event": "getEffect absent",
+            "value": null
+        },
+        {
+            "pack": "effects",
+            "seq": 12,
+            "tick": 0,
+            "event": "getEffect unknown",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: effectType"
+        },
+        {
+            "pack": "effects",
+            "seq": 13,
+            "tick": 0,
+            "event": "getEffects",
+            "value": [
+                {
+                    "typeId": "minecraft:speed",
+                    "amplifier": 3,
+                    "duration": 60,
+                    "displayName": "Speed IV"
+                },
+                {
+                    "typeId": "minecraft:slowness",
+                    "amplifier": 2,
+                    "duration": 100,
+                    "displayName": "Slowness III"
+                }
+            ]
+        },
+        {
+            "pack": "effects",
+            "seq": 14,
+            "tick": 0,
+            "event": "removeEffect slowness",
+            "value": true
+        },
+        {
+            "pack": "effects",
+            "seq": 15,
+            "tick": 0,
+            "event": "removeEffect slowness again",
+            "value": false
+        },
+        {
+            "pack": "effects",
+            "seq": 16,
+            "tick": 0,
+            "event": "removeEffect unknown",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: effectType"
+        },
+        {
+            "pack": "effects",
+            "seq": 17,
+            "tick": 0,
+            "event": "setFloat"
+        },
+        {
+            "pack": "effects",
+            "seq": 18,
+            "tick": 0,
+            "event": "setVector3"
+        },
+        {
+            "pack": "effects",
+            "seq": 19,
+            "tick": 0,
+            "event": "setColorRGB"
+        },
+        {
+            "pack": "effects",
+            "seq": 20,
+            "tick": 0,
+            "event": "setColorRGBA"
+        },
+        {
+            "pack": "effects",
+            "seq": 21,
+            "tick": 0,
+            "event": "setSpeedAndDirection"
+        },
+        {
+            "pack": "effects",
+            "seq": 22,
+            "tick": 0,
+            "event": "setFloat without a number",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 2, received 1"
+        },
+        {
+            "pack": "effects",
+            "seq": 23,
+            "tick": 0,
+            "event": "setColorRGB with a vector",
+            "error": "TypeError: Native setter cannot be assigned null or undefined. Interface property ['blue'] expected type: number (failed parsing interface to Function argument [1])."
+        },
+        {
+            "pack": "effects",
+            "seq": 24,
+            "tick": 0,
+            "event": "spawnParticle with the map"
+        },
+        {
+            "pack": "effects",
+            "seq": 25,
+            "tick": 0,
+            "event": "spawnParticle without a map"
+        },
+        {
+            "pack": "effects",
+            "seq": 26,
+            "tick": 0,
+            "event": "spawnParticle unloaded",
+            "error": "LocationInUnloadedChunkError: Trying to access location (5000.0, -59.0, 5000.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "effects",
+            "seq": 27,
+            "tick": 5,
+            "event": "getEffect speed 5 ticks later",
+            "value": {
+                "typeId": "minecraft:speed",
+                "amplifier": 3,
+                "duration": 55,
+                "displayName": "Speed IV"
+            }
+        },
+        {
+            "pack": "effects",
+            "seq": 28,
+            "tick": 5,
+            "event": "getEffect slowness 5 ticks later",
+            "value": null
+        },
+        {
+            "pack": "effects",
+            "seq": 29,
+            "tick": 5,
+            "event": "getEffects of a dead pig",
+            "value": 1
+        }
+    ]
+}

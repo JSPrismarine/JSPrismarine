@@ -672,5 +672,58 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:transfer'] },
         needs: 'server'
+    },
+    {
+        id: 'system-jobs',
+        family: 'scripting.lifecycle',
+        description:
+            'system.runJob advances each generator in the script flush of every tick until it ends, alongside the ' +
+            'system tasks, clearJob stops a job before or while it runs, and a job that throws ends.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['jobs'],
+        needs: 'world'
+    },
+    {
+        id: 'entity-event-options',
+        family: 'scripting.events',
+        description:
+            'An entityHurt or entityDie subscriber that passes EntityEventOptions gets only the events of the entities ' +
+            'or the entity types it names, either list matching when both are given.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['options'],
+        needs: 'server'
+    },
+    {
+        id: 'block-inventory',
+        family: 'scripting.blocks',
+        description:
+            "A chest's inventory component holds a container a script reads and writes like an entity's, a block " +
+            "without one has no component, and an item stack's durability component reads and writes its damage.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['chest'],
+        needs: 'server'
+    },
+    {
+        id: 'entity-effects',
+        family: 'scripting.entities',
+        description:
+            'Entity.addEffect, getEffect, getEffects and removeEffect add, read and take off status effects, with ' +
+            'fixed errors for an unknown effect or a duration out of range, and a MolangVariableMap goes with a particle.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['effects'],
+        needs: 'server'
+    },
+    {
+        id: 'player-feedback',
+        family: 'scripting.entities',
+        description:
+            "A player's onScreenDisplay shows titles and an action bar, playSound plays to them, isSneaking can be " +
+            'set, and world.beforeEvents.itemUse and playerBreakBlock can cancel a use and a break that their ' +
+            'after-events then do not report.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['feedback'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:feedback'] },
+        needs: 'server'
     }
 ];

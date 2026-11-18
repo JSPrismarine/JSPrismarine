@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario block-inventory chest",
+        "description": "Records a chest's inventory component, its container and an item stack's durability component. Written for packages/parity.",
+        "uuid": "6c22811d-3519-44ff-9c32-83ff317cfde2",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "09054c4f-4967-46e5-a2ae-95442368d9c5",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.0.0" }]
+}
