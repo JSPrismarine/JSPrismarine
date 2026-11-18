@@ -504,8 +504,40 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `useItem` returns false; `maxAttempts`, `padding`, `rotateTest` and `setupTicks` are kept and
       not acted on; the batch callbacks, `GameTestSequence`, the navigation and block-interaction
       members of `SimulatedPlayer` and most `Test` assertions throw `NotImplementedError`.
-15. [ ] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
+15. [x] [#3212](https://github.com/JSPrismarine/JSPrismarine/issues/3212) **`@minecraft/server-net` and `@minecraft/server-admin`.** Responses as inputs, and the
     permissions BDS requires.
+    - Done (2026-11-18): `http.get`, `http.request` and `http.cancelAll`, `HttpRequest`,
+      `HttpHeader` and `HttpResponse`, and `variables`, `secrets`, `SecretString` and
+      `transferPlayer`. A request runs off the tick on `node:http`, and its result is an input
+      that the input step admits and records, as a chunk completion is; a replay admits the
+      recorded results and never reaches the network. The `scripting.net` family's `net-http`
+      scenario runs against a local HTTP server and matches BDS; the `scripting.admin` family's
+      `admin-config` scenario matches but for one gap. This covers the corpus's use of both
+      modules: `samples-howto-gallery-betas` (`http.request`, `HttpRequest`, `HttpHeader`,
+      `HttpRequestMethod.Post`, `variables.get`, `secrets.get`), `chestlock` (`transferPlayer`) and
+      `lushway`, which declares both and calls neither.
+    - Learned, from the pinned BDS 1.26.51.1: the builders and `SecretString`'s constructor are
+      not early execution, though `http.get` is, and a constructor's privilege error says `Native
+      constructor for [HttpRequest]`. BDS's client is `libhttpclient/1.0.0.0`: it sends `Accept:
+      */*`, no `Connection`, a `Content-Length` only with a body, and no body for `Get` or `Head`;
+      it follows no redirect and gives response header names in lower case. A scheme other than
+      `http` or `https` rejects with `MalformedUriError` naming the scheme, empty when there is
+      none; a refused connection rejects with `InternalHttpRequestError` and code 111, and a
+      timeout with `E_FAIL` (-2147467259). `cancelAll` rejects every request in flight with a
+      plain `Error` of its reason.
+    - Learned: `request.headers` is one array per request that each read fills again with new
+      `HttpHeader`s, so a pushed element stays and a list read before `addHeader` grows with it.
+      `variables.get` copies the value with object keys in byte order, `secrets.get` makes a new
+      `SecretString` each time, a secret that is not a string is dropped with a warning, and
+      `transferPlayer` checks its options as a whole, a port past 65535 included.
+    - Left: `variables.names` lists the file's order, where BDS lists its hash map's
+      ([#3249](https://github.com/JSPrismarine/JSPrismarine/issues/3249)); a NetherNet
+      `transferPlayer` sends nothing, as its packet is not captured; the replay trace does not
+      write the recorded results to its file yet, as with the clock
+      ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226)); the WebSocket
+      client, the packet events, `HttpResponse.deserialize`, the request limit, the allow list,
+      the level storage, `asyncPlayerJoin` and the operator and kick functions throw
+      `NotImplementedError`.
 16. [x] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
     docs page with the detect-and-fall-back pattern.
     - Done: the module exports `jsprismarine`, a frozen object with the server's `name`,

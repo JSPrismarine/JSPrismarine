@@ -270,6 +270,58 @@ export interface ScriptFormChannel {
     takeResponses(): readonly ScriptFormResponse[];
 }
 
+/** An HTTP method, as `@minecraft/server-net`'s `HttpRequestMethod` names it. */
+export type ScriptHttpMethod = 'Delete' | 'Get' | 'Head' | 'Patch' | 'Post' | 'Put';
+
+/** One HTTP request a script sent, as the network gets it. */
+export interface ScriptHttpRequest {
+    /** An `http` or `https` URI. */
+    readonly uri: string;
+    readonly method: ScriptHttpMethod;
+    /** The headers in the order the script added them, each secret's text in place of its `SecretString`. */
+    readonly headers: readonly (readonly [string, string])[];
+    /** The body; a `Get` or `Head` request sends none. */
+    readonly body: string;
+    /** Seconds before the request is abandoned; 0 for no limit. */
+    readonly timeout: number;
+}
+
+/**
+ * How one request ended: the response the server sent, or the error that ended it, by the code
+ * BDS's HTTP client reports, such as 111 for a refused connection.
+ */
+export type ScriptHttpResult =
+    | {
+          readonly id: number;
+          readonly status: number;
+          /** The response headers in the order they arrived, each name in lower case. */
+          readonly headers: readonly (readonly [string, string])[];
+          readonly body: string;
+      }
+    | { readonly id: number; readonly errorCode: number };
+
+/**
+ * How the scripts' `@minecraft/server-net` requests reach the network, and their results come
+ * back. The network runs off the tick, and a result is an input: it enters the world in a later
+ * tick's input step, which records it, so a replay gets it back without the network
+ * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)).
+ */
+export interface ScriptHttpChannel {
+    /**
+     * Starts a request off the tick.
+     * @param id - The request's id, which its result carries. The runtime counts them from 1 and never reuses one.
+     */
+    send(id: number, request: ScriptHttpRequest): void;
+    /** Abandons a request in flight; its result, if one comes, is dropped. */
+    cancel(id: number): void;
+    /** The results the input step admitted since the last call, in the order it admitted them. */
+    takeResponses(): readonly ScriptHttpResult[];
+}
+
+/** Where `@minecraft/server-admin`'s `transferPlayer` sends a player. */
+export type ScriptTransferTarget =
+    { readonly hostname: string; readonly port: number } | { readonly netherNetId: string };
+
 /** A game mode as the Script API's `GameMode` names it. */
 export type ScriptGameMode = 'Adventure' | 'Creative' | 'Spectator' | 'Survival';
 
@@ -648,6 +700,10 @@ export interface ScriptWorld {
     readonly scoreboard: ScriptScoreboard;
     /** The channel `@minecraft/server-ui` forms travel over. A world without one sends no form. */
     readonly forms?: ScriptFormChannel;
+    /** The channel `@minecraft/server-net` requests travel over. A world without one fails each request. */
+    readonly http?: ScriptHttpChannel;
+    /** Sends a player to another server, as `/transfer` does. A world without it transfers no one. */
+    transferPlayer?(id: string, target: ScriptTransferTarget): void;
     /** The world's GameTest simulated players. A world without them refuses to spawn one. */
     readonly simulatedPlayers?: ScriptSimulatedPlayers;
     /**

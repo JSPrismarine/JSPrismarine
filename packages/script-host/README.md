@@ -530,6 +530,33 @@ registers, and a hook that is not a function throws BDS's conversion error.
   A block that names a component in `minecraft:custom_components` gets no parameters and no
   `onBreak`, as on BDS.
 
+### HTTP requests and server configuration
+
+`@minecraft/server-net` and `@minecraft/server-admin` are beta modules, so a pack that declares
+either needs the Beta APIs experiment and a `permissions.json` that allows the module: BDS's
+shipped `config/default/permissions.json` lists `@minecraft/server-admin` and leaves
+`@minecraft/server-net` out. The `scripting.net` and `scripting.admin` families of the parity suite
+record each rule below on the pinned BDS.
+
+- **Requests.** `HttpRequest` and `HttpHeader` keep what a script sets. A request's `headers` is
+  one list per request, filled again with new `HttpHeader`s on each read, so a list read earlier
+  grows with `addHeader`. `http.get` and `http.request` hand the request to the world's
+  `ScriptHttpChannel` (`ScriptWorld.http`) and return a promise. A URI whose scheme is not `http`
+  or `https` rejects with `MalformedUriError` and reaches no network, and `cancelAll` rejects every
+  request the pack has in flight with a plain `Error` of its reason.
+- **Responses are inputs.** The network runs off the tick. Its result enters the world through the
+  input step, which records it, and settles the request in the next script flush, before its
+  promise jobs run ([ADR 0021](../../docs/adr/0021-the-script-watchdog-counts-steps.md)). A replay
+  admits the recorded results in the same ticks, so it settles the same promises the same way
+  without the network. A failure rejects with `InternalHttpRequestError` and the code BDS's HTTP
+  client gives it, such as 111 for a refused connection or `E_FAIL` for a timeout.
+- **Variables and secrets.** `variables` and `secrets` read the pack's `variables.json` and
+  `secrets.json`. `variables.get` returns a copy, its object keys in byte order. `secrets.get`
+  returns a new `SecretString` each time, which a script cannot read; only a request header sends
+  its text. A secret that is not a string is dropped with BDS's warning.
+- **Transfers.** `transferPlayer` takes a player and either a hostname with a port or a NetherNet
+  id, and hands it to `ScriptWorld.transferPlayer`.
+
 ## Building it
 
 The package is private, and not published to npm, until each platform has a prebuilt library that

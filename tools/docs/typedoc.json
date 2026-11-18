@@ -16,7 +16,7 @@
     "membersWithOwnFile": ["Class"],
     "router": "member",
     "excludeExternals": true,
-    "exclude": ["**/node_modules/**", "../../packages/parity"],
+    "exclude": ["**/node_modules/**", "../../packages/parity", "../../packages/script-types"],
     "packageOptions": {
         "entryPoints": ["src/index.ts"],
         "readme": "README.md",
