@@ -1,5 +1,5 @@
 {
-    "source": "Bedrock Dedicated Server 1.26.51.1",
+    "source": "Bedrock Dedicated Server 1.26.60.6",
     "entityCount": 129,
     "goalCount": 170,
     "entities": [
@@ -787,24 +787,10 @@
                     ]
                 },
                 {
-                    "key": "panic_sound",
-                    "instances": 1,
-                    "types": [
-                        "string"
-                    ]
-                },
-                {
                     "key": "prefer_water",
                     "instances": 1,
                     "types": [
                         "boolean"
-                    ]
-                },
-                {
-                    "key": "sound_interval",
-                    "instances": 1,
-                    "types": [
-                        "object"
                     ]
                 }
             ],
@@ -1028,25 +1014,24 @@
                     ]
                 },
                 {
-                    "key": "sound_interval",
-                    "instances": 2,
-                    "types": [
-                        "array",
-                        "object"
-                    ]
-                },
-                {
-                    "key": "tempt_sound",
-                    "instances": 2,
-                    "types": [
-                        "string"
-                    ]
-                },
-                {
                     "key": "can_tempt_while_ridden",
                     "instances": 1,
                     "types": [
                         "boolean"
+                    ]
+                },
+                {
+                    "key": "sound_interval",
+                    "instances": 1,
+                    "types": [
+                        "array"
+                    ]
+                },
+                {
+                    "key": "tempt_sound",
+                    "instances": 1,
+                    "types": [
+                        "string"
                     ]
                 }
             ],
@@ -1542,25 +1527,25 @@
                     ]
                 },
                 {
-                    "key": "attack_radius",
-                    "instances": 14,
+                    "key": "attack_range",
+                    "instances": 15,
                     "types": [
-                        "integer"
+                        "object"
                     ]
                 },
                 {
                     "key": "attack_interval",
-                    "instances": 13,
+                    "instances": 14,
                     "types": [
                         "number",
                         "object"
                     ]
                 },
                 {
-                    "key": "attack_range",
-                    "instances": 9,
+                    "key": "attack_radius",
+                    "instances": 8,
                     "types": [
-                        "object"
+                        "integer"
                     ]
                 },
                 {
@@ -1579,14 +1564,14 @@
                 },
                 {
                     "key": "attack_interval_max",
-                    "instances": 4,
+                    "instances": 3,
                     "types": [
                         "integer"
                     ]
                 },
                 {
                     "key": "attack_interval_min",
-                    "instances": 4,
+                    "instances": 3,
                     "types": [
                         "integer"
                     ]
@@ -1618,6 +1603,13 @@
                     "instances": 1,
                     "types": [
                         "integer"
+                    ]
+                },
+                {
+                    "key": "set_persistent",
+                    "instances": 1,
+                    "types": [
+                        "boolean"
                     ]
                 },
                 {
@@ -2176,13 +2168,6 @@
                     "instances": 3,
                     "types": [
                         "boolean"
-                    ]
-                },
-                {
-                    "key": "target_dist",
-                    "instances": 1,
-                    "types": [
-                        "number"
                     ]
                 }
             ],
