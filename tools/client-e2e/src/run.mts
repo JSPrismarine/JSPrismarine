@@ -65,7 +65,8 @@ const allScenarios = suites.flatMap((suite) => suite.scenarios);
 const worldgenDataReady = await (async (): Promise<boolean> => {
     try {
         const cache = await import('../../../packages/bedrock-data/utils/java/worldgen-cache.ts');
-        const source = await cache.loadJavaServerSource();
+        const { resolveJavaRelease } = await import('../../../packages/bedrock-data/utils/java/release.ts');
+        const source = await resolveJavaRelease([]);
         return cache.worldgenCacheComplete(cache.worldgenCachePaths(source.version));
     } catch {
         return false;
