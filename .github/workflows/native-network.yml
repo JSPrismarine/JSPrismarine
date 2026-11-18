@@ -42,6 +42,9 @@ env:
 jobs:
     build:
         name: 🔨 Build (${{ matrix.platform }})
+        # The release pull request changes only the package's version and changelog, which no build
+        # reads. Skipping the builds skips every job after them.
+        if: ${{ github.head_ref != 'changeset-release/master' }}
         strategy:
             fail-fast: false
             matrix:

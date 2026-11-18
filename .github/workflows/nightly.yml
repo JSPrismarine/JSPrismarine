@@ -59,6 +59,9 @@ env:
 jobs:
     nightly-version:
         name: 🏷️ Resolve nightly version
+        # The release pull request changes only versions and changelogs, and the pull requests
+        # merged before it built the same code. Skipping this job skips the builds.
+        if: ${{ github.head_ref != 'changeset-release/master' }}
         concurrency:
             group: nightly-version-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
