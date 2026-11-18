@@ -129,7 +129,7 @@ export const familyContextOf = (bind: BindContext, world: BlockWorld): FamilyCon
 });
 
 const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial<BlockHooks> => {
-    const actions = (event: BlockEvent): WorldActions => context.world.at(event.block.dimension);
+    const actions = (event: BlockEvent): WorldActions => context.world.at(event.block.dimension, event.block.level);
     const bound: Partial<BlockHooks> = {};
 
     const {

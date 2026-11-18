@@ -108,6 +108,8 @@ export interface ContentBlockGroupOptions {
     readonly content: ContentLookup;
     /** The dimension this group covers, which the block hooks carry. */
     readonly dimension?: string;
+    /** The level this group covers, which the block hooks carry; left out for the default level. */
+    readonly level?: string;
     /** Runs the engine systems when a content block announces that it changed. */
     readonly updateEngineAround?: (at: ContentPosition, block: ContentBlock) => void;
 }
@@ -116,10 +118,11 @@ export interface ContentBlockGroupOptions {
 const hookBlockAt = (
     storage: BlockStorageAccess,
     dimension: string,
+    level: string | undefined,
     position: ContentPosition
 ): HookBlock | undefined => {
     const block = storage.at(position);
-    return block && { identifier: block.identifier, position, dimension, states: block.states };
+    return block && { identifier: block.identifier, position, dimension, level, states: block.states };
 };
 
 interface NeighborNotification {
@@ -196,7 +199,7 @@ const reactsToNeighbors = (content: ContentLookup, identifier: string): boolean 
  * call the family that is calling it.
  */
 export const createContentBlockGroup = (options: ContentBlockGroupOptions): ContentBlockGroup => {
-    const { storage, blockEntities, content, updateEngineAround } = options;
+    const { storage, blockEntities, content, updateEngineAround, level } = options;
     const dimension = options.dimension ?? 'minecraft:overworld';
 
     /**
@@ -219,7 +222,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
 
     const notifyNeighbors = (at: ContentPosition): void => {
         if (shaping) return;
-        const changed = hookBlockAt(storage, dimension, at);
+        const changed = hookBlockAt(storage, dimension, level, at);
         if (!changed) return;
         if (chainedUpdates >= MAX_CHAINED_NEIGHBOR_UPDATES) return;
 
@@ -259,6 +262,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                         identifier: neighbor.identifier,
                         position,
                         dimension,
+                        level,
                         states: neighbor.states
                     };
                     hooksOf(content, neighbor.identifier, neighbor.states)?.dispatch('onNeighborChanged', {
@@ -274,7 +278,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                 const liquid = storage.liquidAt?.(position);
                 if (liquid && reactsToNeighbors(content, liquid.identifier)) {
                     hooksOf(content, liquid.identifier, liquid.states)?.dispatch('onNeighborChanged', {
-                        block: { identifier: liquid.identifier, position, dimension, states: liquid.states },
+                        block: { identifier: liquid.identifier, position, dimension, level, states: liquid.states },
                         face: opposite(face),
                         neighbor: update.changed
                     });
@@ -302,9 +306,9 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         try {
             for (const face of UPDATE_SHAPE_ORDER) {
                 // Read again for every face: a family may have rewritten or removed the block.
-                const block = hookBlockAt(storage, dimension, at);
+                const block = hookBlockAt(storage, dimension, level, at);
                 if (block === undefined || !reactsToNeighbors(content, block.identifier)) return;
-                const neighbor = hookBlockAt(storage, dimension, relative(at, face));
+                const neighbor = hookBlockAt(storage, dimension, level, relative(at, face));
                 if (neighbor === undefined) continue;
                 hooksOf(content, block.identifier, block.states)?.dispatch('onNeighborChanged', {
                     block,
@@ -330,7 +334,7 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // A shape update removes a block without its loot, so it answers that the drop was handled.
         destroy: destroy && ((at, options) => shaping || destroy(at, options)),
         executeEntityEvent: (at, entity, name) => {
-            const block = hookBlockAt(storage, dimension, at);
+            const block = hookBlockAt(storage, dimension, level, at);
             if (block === undefined) return;
             hooksOf(content, block.identifier, block.states)?.dispatch('onEntity', {
                 block,
@@ -339,10 +343,16 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
             });
         },
         set: (at, block, withNeighbors, placement) => {
-            const previous = hookBlockAt(storage, dimension, at);
+            const previous = hookBlockAt(storage, dimension, level, at);
             storage.write(at, block);
 
-            const placed: HookBlock = { identifier: block.identifier, position: at, dimension, states: block.states };
+            const placed: HookBlock = {
+                identifier: block.identifier,
+                position: at,
+                dimension,
+                level,
+                states: block.states
+            };
             const hooks = hooksOf(content, block.identifier, block.states);
 
             if (previous?.identifier === block.identifier) {

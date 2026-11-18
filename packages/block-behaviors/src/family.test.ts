@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { blockPropertiesOf, componentValue, defineFamily, familyHooks } from './family';
+import { blockPropertiesOf, componentValue, defineFamily, familyBehavior, familyHooks } from './family';
 import { bindFamily, testDefinition } from './harness';
+import { VoxelWorld } from './voxelWorld';
 import { DEFAULT_BLOCK_PROPERTIES } from './world';
 
 describe('blockPropertiesOf', () => {
@@ -53,6 +54,34 @@ describe('defineFamily', () => {
         expect(harness.interact({ x: 1, y: 2, z: 3 })).toBe(true);
         expect(harness.dimension.sounds).toEqual([{ position: { x: 1, y: 2, z: 3 }, name: 'test.use' }]);
         expect(harness.world.overworld.sounds).toEqual([]);
+    });
+
+    it('asks for the world of the level the event block is in', () => {
+        const asked: [string, string | undefined][] = [];
+        const world = new VoxelWorld();
+        const behavior = familyBehavior(family, {
+            at: (dimension, level) => {
+                asked.push([dimension, level]);
+                return world.at(dimension);
+            }
+        });
+        const hooks = behavior.create({ identifier: 'minecraft:stone', definition: testDefinition('minecraft:stone') });
+
+        hooks.onPlayerInteract?.({
+            block: {
+                identifier: 'minecraft:stone',
+                position: { x: 1, y: 2, z: 3 },
+                dimension: 'minecraft:overworld',
+                level: 'beta',
+                states: {}
+            },
+            player: { identifier: 'minecraft:player', position: { x: 1, y: 3, z: 3 } },
+            face: 'up',
+            faceLocation: undefined,
+            itemStack: undefined
+        });
+
+        expect(asked).toEqual([['minecraft:overworld', 'beta']]);
     });
 
     it('routes named entity events through the family and its block dimension', () => {

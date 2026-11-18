@@ -122,8 +122,11 @@ export interface AirInteraction {
 
 /** The block a hook reads, out of the live world, or undefined when its chunk is not loaded. */
 const hookBlockAt = (player: InteractingPlayer, dimension: string, at: ContentPosition): HookBlock | undefined => {
-    const block = player.getWorld().loadedBlockAt(at.x, at.y, at.z);
-    return block && { identifier: block.name, position: at, dimension, states: block.states };
+    const world = player.getWorld();
+    const block = world.loadedBlockAt(at.x, at.y, at.z);
+    return (
+        block && { identifier: block.name, position: at, dimension, level: world.getLevel().name, states: block.states }
+    );
 };
 
 /**

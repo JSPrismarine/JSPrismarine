@@ -136,6 +136,8 @@ export interface ContentItemGroupOptions {
     readonly entities: ContentEntityAccess;
     readonly effects: ContentEffectSink;
     readonly level: ContentLevelFacts;
+    /** The name of the level this group covers, which the block hooks carry; left out for the default level. */
+    readonly levelName?: string;
     /** The entity-facing half of the union, plus the two queries about the user. */
     readonly actors: ItemActorPort;
     /** The built content, read at call time; see {@link ContentLookup}. */
@@ -186,6 +188,7 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
                 identifier: block.identifier,
                 position: action.position,
                 dimension: level.dimension,
+                level: options.levelName,
                 states: block.states
             },
             tick: level.gameTime()

@@ -51,6 +51,11 @@ export interface HookBlock {
     readonly position: BlockPosition;
     /** The dimension the block is in, such as `minecraft:overworld`. */
     readonly dimension: string;
+    /**
+     * The name of the level the block is in, for a host that runs more than one. Left out, the
+     * block is in the default level.
+     */
+    readonly level?: string;
     /** Every state value the block carries, keyed by state name. */
     readonly states: Readonly<Record<string, BlockStateValue>>;
 }

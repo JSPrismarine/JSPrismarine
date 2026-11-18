@@ -276,6 +276,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
             identifier: standing.name,
             position,
             dimension,
+            level: world.getLevel().name,
             states: standing.states
         };
 

@@ -135,6 +135,7 @@ const adapterFor = (
         blockEntities: worldBlockEntities(world),
         content,
         dimension,
+        level: levelName,
         updateEngineAround: (at, block) => {
             const live = world();
             if (live !== undefined) {
@@ -209,6 +210,7 @@ const adapterFor = (
             entities: liveEntities?.entities ?? entities,
             effects,
             level,
+            levelName,
             actors,
             content,
             potions: javaPotionEffects,

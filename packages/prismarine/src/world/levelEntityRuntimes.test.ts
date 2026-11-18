@@ -209,6 +209,26 @@ describe('two levels that share a dimension', () => {
         expect(beta.loadedBlockAt(5, 70, 5)?.name).toBe('minecraft:air');
     });
 
+    it('runs a block family a write in the second level triggers against that level', () => {
+        const dimension = beta.getDimension().name;
+        const blocks = server.getContent().world.blockWorld.at(dimension, OTHER_LEVEL);
+        const support = { x: 8, y: 70, z: 8 };
+        const torch = { x: 8, y: 71, z: 8 };
+        tick(() => {
+            blocks.setBlock(support, 'minecraft:stone');
+            blocks.setBlock(torch, 'minecraft:torch', { torch_facing_direction: 'top' });
+        });
+        expect(beta.loadedBlockAt(torch.x, torch.y, torch.z)?.name).toBe('minecraft:torch');
+
+        // The torch hears its support go and pops off. Its family has to read and write `beta`:
+        // reading the default level's world it finds no torch there and leaves this one standing.
+        tick(() => {
+            expect(beta.setBlockByName(support.x, support.y, support.z, 'minecraft:air')).toBe(true);
+        });
+
+        expect(beta.loadedBlockAt(torch.x, torch.y, torch.z)?.name).toBe('minecraft:air');
+    });
+
     it('reads for an item interaction in the level it started in', () => {
         const dimension = beta.getDimension().name;
         const { blockWorld, itemActions } = server.getContent().world;

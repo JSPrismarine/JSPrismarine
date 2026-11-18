@@ -60,6 +60,7 @@ export const contentBlockTickHandlers = (
                 identifier,
                 position: at,
                 dimension: live.getDimension().name,
+                level: live.getLevel().name,
                 states: state.values
             },
             tick: live.getTicks()

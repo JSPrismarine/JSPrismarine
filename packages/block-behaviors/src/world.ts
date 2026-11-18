@@ -311,8 +311,13 @@ export interface WorldActions {
  * dimension argument.
  */
 export interface BlockWorld {
-    /** The actions for one dimension, such as `minecraft:overworld`. */
-    at(dimension: string): WorldActions;
+    /**
+     * The actions for one world.
+     *
+     * @param dimension - The namespaced dimension, such as `minecraft:overworld`.
+     * @param level - The level's name, from the event's block; left out for the default level.
+     */
+    at(dimension: string, level?: string): WorldActions;
 }
 
 /** Presents one {@link WorldActions} as a {@link BlockWorld} with a single dimension. */

@@ -61,7 +61,13 @@ export const contentRandomTickHandlers = (
         // Bedrock's palette model. Convert before resolving the state and dispatching its hook.
         const states = bedrockBlockStates(identifier, block.states);
         type.state(states).content.hooks.dispatch('onRandomTick', {
-            block: { identifier, position: at, dimension: live.getDimension().name, states },
+            block: {
+                identifier,
+                position: at,
+                dimension: live.getDimension().name,
+                level: live.getLevel().name,
+                states
+            },
             tick: live.getTicks()
         });
     };

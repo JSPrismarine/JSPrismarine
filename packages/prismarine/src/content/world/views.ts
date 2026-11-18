@@ -114,7 +114,7 @@ export const contentWorldViews = (
 
     return {
         blockWorld: {
-            at: (dimension, level) => blockActionsOf(world.at(dimension, level), content),
+            at: (dimension, level) => blockActionsOf(world.at(dimension, level), content, level),
             updateShape: (at, dimension, level) => world.at(dimension, level).blocks.updateShape?.(at)
         },
         // The world the interaction started in, level and all, so an item used in a second level
@@ -177,8 +177,17 @@ const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammabi
 
 const blockActionsByAdapter = new WeakMap<ServerWorldAdapter, BlockWorldActions>();
 
-/** `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one dimension. */
-const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): BlockWorldActions => {
+/**
+ * `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one world.
+ *
+ * @param level - The level's name, which the hook blocks carry so a family that a hook in a
+ *   second level runs acts on that level.
+ */
+const blockActionsOf = (
+    adapter: ServerWorldAdapter,
+    content: ContentLookup,
+    level: string | undefined
+): BlockWorldActions => {
     const cached = blockActionsByAdapter.get(adapter);
     if (cached !== undefined) return cached;
 
@@ -186,7 +195,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
 
     const hookBlock = (at: ContentPosition): HookBlock | undefined => {
         const block = adapter.blocks.get(at);
-        return block && { identifier: block.identifier, position: at, dimension, states: block.states };
+        return block && { identifier: block.identifier, position: at, dimension, level, states: block.states };
     };
 
     /**

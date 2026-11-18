@@ -89,6 +89,7 @@ export const contentRedstoneUpdateHandlers = (options: ContentRedstoneUpdateOpti
                         identifier: block.name,
                         position: at,
                         dimension: live.getDimension().name,
+                        level: live.getLevel().name,
                         states: state.values
                     },
                     power
