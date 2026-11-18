@@ -3,6 +3,8 @@ import { join, relative } from 'node:path';
 
 import { expect, it } from 'vitest';
 
+import { JAVA_REGISTRY_DIRECTORIES } from '@jsprismarine/packs';
+
 import type { BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
@@ -19,20 +21,25 @@ interface DatapackEntry {
     readonly path: string;
 }
 
+/** How a content table spells a registry entry. */
+interface LoadedRegistry {
+    readonly table: string;
+    readonly key: (entry: DatapackEntry) => string;
+}
+
 /**
  * The registries the server loads, by the content table that holds them and how that table
- * spells an entry. Every other registry is a Java feature the server has no loader for.
+ * spells an entry. The pack loader's directory routing is the source: each directory it routes
+ * keys its entries by namespaced id. Every other registry is a Java feature the server has no
+ * loader for.
  */
-const LOADED: Readonly<Record<string, { readonly table: string; readonly key: (entry: DatapackEntry) => string }>> = {
-    advancement: { table: 'advancements', key: (entry) => `minecraft:${entry.path}` },
-    enchantment: { table: 'enchantments', key: (entry) => `minecraft:${entry.path}` },
-    damage_type: { table: 'damageTypes', key: (entry) => `minecraft:${entry.path}` },
-    loot_table: { table: 'lootTablesJava', key: (entry) => `minecraft:${entry.path}` },
-    recipe: { table: 'recipesJava', key: (entry) => `minecraft:${entry.path}` },
-    predicate: { table: 'predicates', key: (entry) => `minecraft:${entry.path}` },
-    block_transformer: { table: 'blockTransformers', key: (entry) => `minecraft:${entry.path}` },
-    dimension_type: { table: 'dimensionTypes', key: (entry) => `minecraft:${entry.path}` },
-    enchantment_provider: { table: 'enchantmentProviders', key: (entry) => `minecraft:${entry.path}` },
+const LOADED: Readonly<Record<string, LoadedRegistry>> = {
+    ...Object.fromEntries(
+        Object.entries(JAVA_REGISTRY_DIRECTORIES).map(([directory, table]): [string, LoadedRegistry] => [
+            directory,
+            { table, key: (entry) => `minecraft:${entry.path}` }
+        ])
+    ),
     tags: {
         table: 'tags',
         key: (entry) => {
