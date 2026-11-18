@@ -1,0 +1,598 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-components` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "entity-components",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "components",
+            "seq": 1,
+            "tick": 0,
+            "event": "DimensionTypes.getAll",
+            "value": [
+                "minecraft:overworld",
+                "minecraft:nether",
+                "minecraft:the_end"
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 2,
+            "tick": 0,
+            "event": "DimensionTypes.get overworld",
+            "value": "minecraft:overworld"
+        },
+        {
+            "pack": "components",
+            "seq": 3,
+            "tick": 0,
+            "event": "DimensionTypes.get minecraft:the_end",
+            "value": "minecraft:the_end"
+        },
+        {
+            "pack": "components",
+            "seq": 4,
+            "tick": 0,
+            "event": "DimensionTypes.get of an unknown type",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 5,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "components",
+            "seq": 6,
+            "tick": 0,
+            "event": "EffectTypes.get speed",
+            "value": "minecraft:speed"
+        },
+        {
+            "pack": "components",
+            "seq": 7,
+            "tick": 0,
+            "event": "EffectTypes.get minecraft:village_hero",
+            "value": "minecraft:village_hero"
+        },
+        {
+            "pack": "components",
+            "seq": 8,
+            "tick": 0,
+            "event": "EffectTypes.get of an unknown effect",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 9,
+            "tick": 0,
+            "event": "EffectTypes.getAll",
+            "value": [
+                "minecraft:absorption",
+                "minecraft:bad_omen",
+                "minecraft:blindness",
+                "minecraft:breath_of_the_nautilus",
+                "minecraft:conduit_power",
+                "minecraft:darkness",
+                "minecraft:empty",
+                "minecraft:fatal_poison",
+                "minecraft:fire_resistance",
+                "minecraft:haste",
+                "minecraft:health_boost",
+                "minecraft:hunger",
+                "minecraft:infested",
+                "minecraft:instant_damage",
+                "minecraft:instant_health",
+                "minecraft:invisibility",
+                "minecraft:jump_boost",
+                "minecraft:levitation",
+                "minecraft:mining_fatigue",
+                "minecraft:nausea",
+                "minecraft:night_vision",
+                "minecraft:oozing",
+                "minecraft:poison",
+                "minecraft:raid_omen",
+                "minecraft:regeneration",
+                "minecraft:resistance",
+                "minecraft:saturation",
+                "minecraft:slow_falling",
+                "minecraft:slowness",
+                "minecraft:speed",
+                "minecraft:strength",
+                "minecraft:trial_omen",
+                "minecraft:village_hero",
+                "minecraft:water_breathing",
+                "minecraft:weakness",
+                "minecraft:weaving",
+                "minecraft:wind_charged",
+                "minecraft:wither"
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 10,
+            "tick": 0,
+            "event": "player getComponent equippable",
+            "value": "minecraft:equippable"
+        },
+        {
+            "pack": "components",
+            "seq": 11,
+            "tick": 0,
+            "event": "player hasComponent minecraft:equippable",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 12,
+            "tick": 0,
+            "event": "pig getComponent equippable",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 13,
+            "tick": 0,
+            "event": "zombie getComponent equippable",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 14,
+            "tick": 0,
+            "event": "getEquipment Mainhand",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 15,
+            "tick": 0,
+            "event": "setEquipment Head",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 16,
+            "tick": 0,
+            "event": "getEquipment Head",
+            "value": {
+                "typeId": "minecraft:iron_helmet",
+                "amount": 1
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 17,
+            "tick": 0,
+            "event": "setEquipment Offhand",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 18,
+            "tick": 0,
+            "event": "setEquipment Mainhand",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 19,
+            "tick": 0,
+            "event": "mainhand in the inventory",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 3
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 20,
+            "tick": 0,
+            "event": "setEquipment Chest with an apple",
+            "value": false
+        },
+        {
+            "pack": "components",
+            "seq": 21,
+            "tick": 0,
+            "event": "getEquipment Chest",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 22,
+            "tick": 0,
+            "event": "setEquipment Body",
+            "value": false
+        },
+        {
+            "pack": "components",
+            "seq": 23,
+            "tick": 0,
+            "event": "totalArmor",
+            "value": 2
+        },
+        {
+            "pack": "components",
+            "seq": 24,
+            "tick": 0,
+            "event": "getEquipmentSlot Head",
+            "value": {
+                "typeId": "minecraft:iron_helmet",
+                "amount": 1,
+                "hasItem": true,
+                "isValid": true
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 25,
+            "tick": 0,
+            "event": "getEquipmentSlot Feet setItem",
+            "value": {
+                "before": false,
+                "after": {
+                    "typeId": "minecraft:leather_boots",
+                    "amount": 1
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 26,
+            "tick": 0,
+            "event": "setEquipment Head with none",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 27,
+            "tick": 0,
+            "event": "getEquipment of a bad slot",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: EquipmentSlot"
+        },
+        {
+            "pack": "components",
+            "seq": 28,
+            "tick": 0,
+            "event": "player health",
+            "value": {
+                "typeId": "minecraft:health",
+                "currentValue": 20,
+                "defaultValue": 20,
+                "effectiveMin": 0,
+                "effectiveMax": 20
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 29,
+            "tick": 0,
+            "event": "player minecraft:health",
+            "value": "minecraft:health"
+        },
+        {
+            "pack": "components",
+            "seq": 30,
+            "tick": 0,
+            "event": "player movement",
+            "value": {
+                "typeId": "minecraft:movement",
+                "currentValue": 0.10000000149011612,
+                "defaultValue": 0.10000000149011612,
+                "effectiveMin": 0,
+                "effectiveMax": 3.4028234663852886e+38
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 31,
+            "tick": 0,
+            "event": "pig health",
+            "value": {
+                "typeId": "minecraft:health",
+                "currentValue": 10,
+                "defaultValue": 10,
+                "effectiveMin": 0,
+                "effectiveMax": 10
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 32,
+            "tick": 0,
+            "event": "pig movement",
+            "value": {
+                "typeId": "minecraft:movement",
+                "currentValue": 0.25,
+                "defaultValue": 0.25,
+                "effectiveMin": 0,
+                "effectiveMax": 3.4028234663852886e+38
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 33,
+            "tick": 0,
+            "event": "pig underwater_movement",
+            "value": {
+                "typeId": "minecraft:underwater_movement",
+                "currentValue": 0.019999999552965164,
+                "defaultValue": 0.019999999552965164,
+                "effectiveMin": 0,
+                "effectiveMax": 3.4028234663852886e+38
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 34,
+            "tick": 0,
+            "event": "zombie health",
+            "value": {
+                "typeId": "minecraft:health",
+                "currentValue": 20,
+                "defaultValue": 20,
+                "effectiveMin": 0,
+                "effectiveMax": 20
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 35,
+            "tick": 0,
+            "event": "pig setCurrentValue 4",
+            "value": [
+                true,
+                4
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 36,
+            "tick": 0,
+            "event": "pig setCurrentValue past the max",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: value, Value: 50, Argument bounds: [0, 10]"
+        },
+        {
+            "pack": "components",
+            "seq": 37,
+            "tick": 0,
+            "event": "pig setCurrentValue negative",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: value, Value: -3, Argument bounds: [0, 10]"
+        },
+        {
+            "pack": "components",
+            "seq": 38,
+            "tick": 0,
+            "event": "pig resetToMaxValue",
+            "value": 10
+        },
+        {
+            "pack": "components",
+            "seq": 39,
+            "tick": 0,
+            "event": "pig resetToDefaultValue",
+            "value": 10
+        },
+        {
+            "pack": "components",
+            "seq": 40,
+            "tick": 0,
+            "event": "player setCurrentValue 7",
+            "value": [
+                true,
+                7
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 41,
+            "tick": 0,
+            "event": "getSlot 5 of an empty slot",
+            "value": {
+                "hasItem": false,
+                "isValid": true,
+                "item": null
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 42,
+            "tick": 0,
+            "event": "typeId of an empty slot",
+            "error": "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+        },
+        {
+            "pack": "components",
+            "seq": 43,
+            "tick": 0,
+            "event": "amount of an empty slot",
+            "error": "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+        },
+        {
+            "pack": "components",
+            "seq": 44,
+            "tick": 0,
+            "event": "nameTag of an empty slot",
+            "error": "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+        },
+        {
+            "pack": "components",
+            "seq": 45,
+            "tick": 0,
+            "event": "set amount of an empty slot",
+            "error": "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+        },
+        {
+            "pack": "components",
+            "seq": 46,
+            "tick": 0,
+            "event": "getSlot past the end",
+            "error": "Error: Invalid container slot provided '36'. Maximum slot is '35'."
+        },
+        {
+            "pack": "components",
+            "seq": 47,
+            "tick": 0,
+            "event": "getSlot setItem",
+            "value": {
+                "typeId": "minecraft:stick",
+                "amount": 4,
+                "item": {
+                    "typeId": "minecraft:stick",
+                    "amount": 4
+                }
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 48,
+            "tick": 0,
+            "event": "slot amount set",
+            "value": {
+                "typeId": "minecraft:stick",
+                "amount": 9
+            }
+        },
+        {
+            "pack": "components",
+            "seq": 49,
+            "tick": 0,
+            "event": "slot amount set past the stack size",
+            "value": 64
+        },
+        {
+            "pack": "components",
+            "seq": 50,
+            "tick": 0,
+            "event": "slot amount set to 0",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: amount, Value: 0, Property bounds: [1, 255]"
+        },
+        {
+            "pack": "components",
+            "seq": 51,
+            "tick": 0,
+            "event": "slot nameTag set",
+            "value": [
+                "Wand",
+                "Wand"
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 52,
+            "tick": 0,
+            "event": "slot nameTag set to undefined",
+            "value": null
+        },
+        {
+            "pack": "components",
+            "seq": 53,
+            "tick": 0,
+            "event": "slot setLore and getLore",
+            "value": [
+                [
+                    "one",
+                    "two"
+                ],
+                [
+                    "one",
+                    "two"
+                ]
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 54,
+            "tick": 0,
+            "event": "slot follows the container",
+            "value": "minecraft:apple"
+        },
+        {
+            "pack": "components",
+            "seq": 55,
+            "tick": 0,
+            "event": "slot maxAmount and isStackable",
+            "value": [
+                64,
+                true
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 56,
+            "tick": 0,
+            "event": "slot setItem with none",
+            "value": false
+        },
+        {
+            "pack": "components",
+            "seq": 57,
+            "tick": 0,
+            "event": "spawnParticle"
+        },
+        {
+            "pack": "components",
+            "seq": 58,
+            "tick": 0,
+            "event": "Effect isValid",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 59,
+            "tick": 0,
+            "event": "zombie resetToMinValue",
+            "value": [
+                0,
+                true
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 60,
+            "tick": 4,
+            "event": "pig health a tick later",
+            "value": 10
+        },
+        {
+            "pack": "components",
+            "seq": 61,
+            "tick": 4,
+            "event": "zombie a tick after resetToMinValue",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 62,
+            "tick": 4,
+            "event": "removing"
+        },
+        {
+            "pack": "components",
+            "seq": 63,
+            "tick": 4,
+            "event": "getEquipment after removal",
+            "error": "Error: Failed to call function 'getEquipment'."
+        },
+        {
+            "pack": "components",
+            "seq": 64,
+            "tick": 4,
+            "event": "equippable isValid after removal",
+            "value": false
+        }
+    ]
+}
