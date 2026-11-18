@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ChatSendIntent, Guard } from '@jsprismarine/script-host/host/world';
+import type { ChatSendIntent, Guard, ScriptDebugShapeChange } from '@jsprismarine/script-host/host/world';
 
 import type { PlayerChatGuard } from '../chat/ChatManager';
 import { fakeLevel } from '../testing/level';
 import { LevelScriptWorld, NO_LEVEL_ACCESS } from './LevelScriptWorld';
-import type { ScriptWorldSources } from './LevelScriptWorld';
+import type { ScriptWorldPlayer, ScriptWorldSources } from './LevelScriptWorld';
 import type { ScriptEntityEvent } from './scriptEntityEvents';
 
 /** A level's script world over a test level's real weather. */
@@ -23,6 +23,35 @@ const scriptWorld = (overrides: Partial<ScriptWorldSources> = {}) => {
 };
 
 describe('LevelScriptWorld', () => {
+    it('sends debug shape changes to the players who saw the shapes, and every shape to a player who joins', () => {
+        const sent = new Map<string, (readonly ScriptDebugShapeChange[])[]>();
+        const player = (id: string): ScriptWorldPlayer => ({
+            id,
+            sendMessage: () => {},
+            drawDebugShapes: (changes) => sent.set(id, [...(sent.get(id) ?? []), changes])
+        });
+        let present = [player('1')];
+        const { world } = scriptWorld({ players: () => present });
+        const shape = {
+            location: { x: 0, y: 0, z: 0 },
+            color: { red: 1, green: 1, blue: 1, alpha: 1 },
+            scale: 1,
+            rotation: { x: 0, y: 0, z: 0 }
+        };
+        const box: ScriptDebugShapeChange = { id: 1, shape: { ...shape, kind: 'DebugBox' } };
+        const line: ScriptDebugShapeChange = { id: 2, shape: { ...shape, kind: 'DebugLine' } };
+
+        world.endFlush();
+        world.drawDebugShapes([box]);
+        world.endFlush();
+        present = [player('1'), player('2')];
+        world.drawDebugShapes([line, { id: 1 }]);
+        world.endFlush();
+
+        expect(sent.get('1')).toEqual([[box], [line, { id: 1 }]]);
+        expect(sent.get('2')).toEqual([[line]]);
+    });
+
     it("runs a script guard on the chat of the level's players only, by their script ids", () => {
         const guards: PlayerChatGuard[] = [];
         const { world } = scriptWorld({
