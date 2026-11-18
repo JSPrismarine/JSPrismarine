@@ -153,12 +153,13 @@ describe('formatLogLine', () => {
 
     it('hangs wrapped rows under the indent of their own line', () => {
         const message = 'Error: boom\n    at TeleportCommand.run (prismarine/src/command/Teleport.ts:88:19)';
-        const rows = text(formatLogLine(record({ message }), options({ width: 64, wrap: true, showNamespace: false })));
-        expect(rows).toEqual([
-            '12:05:33 INFO    Error: boom',
-            '                     at TeleportCommand.run',
-            '                     (prismarine/src/command/Teleport.ts:88:19)'
-        ]);
+        const rows = formatLogLine(record({ message }), options({ width: 64, wrap: true, showNamespace: false }));
+        const messageColumn = rows[0]!.sourceText.indexOf('Error');
+
+        expect(rows).toHaveLength(3);
+        // The frame starts at the message column; its wrapped tail hangs under the frame's text.
+        expect(rows[1]!.contentStart).toBe(messageColumn);
+        expect(rows[2]!.contentStart).toBe(messageColumn + 4);
     });
 
     it('breaks words longer than the message column', () => {

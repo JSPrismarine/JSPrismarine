@@ -26,6 +26,29 @@ const right: Segment[] = [
 const firstLine = (frame: string) => frame.split('\n')[0] ?? '';
 
 describe('createStatusBar', () => {
+    it('gives the right side the room a short left side leaves', async () => {
+        const setup = await createTestRenderer({ width: 40, height: 1 });
+        try {
+            const wide: Segment[] = ['first', 'second', 'third'].map((id, index) => ({
+                id,
+                text: id.padEnd(6, '.'),
+                tone: 'muted',
+                priority: 10 - index
+            }));
+            // 24 columns with separators: more than half of the 38 the bar has, less than what is left.
+            const bar = createStatusBar(ctx(setup.renderer), { left: [stateSegment('running')], right: wide });
+            setup.renderer.root.add(bar.renderable);
+            await setup.renderOnce();
+
+            for (const { id } of wide) {
+                expect(setup.renderer.root.findDescendantById(`status-right-${id}`), id).toBeDefined();
+            }
+            expect(setup.renderer.root.findDescendantById('status-left-state')).toBeDefined();
+        } finally {
+            await setup.dispose();
+        }
+    });
+
     it('renders every segment at 120 columns with the right side flush right', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {

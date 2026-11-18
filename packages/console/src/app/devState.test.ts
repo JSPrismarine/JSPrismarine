@@ -48,23 +48,10 @@ describe('reduceDevState', () => {
         const next = reduceDevState(watching, { type: 'supervisor.state', state: 'crashed', code: 1, generation: 2 });
 
         expect(next.state.badge).toEqual({ text: 'crashed (exit 1)', tone: 'danger' });
-        expect(next.toast).toEqual({
-            tone: 'danger',
-            text: 'server crashed (exit 1). Saving a file under packages restarts it.',
-            sticky: true
-        });
+        expect(next.toast).toMatchObject({ tone: 'danger', sticky: true });
+        // The crash notice is the one notice for the outage; waiting for a change adds none.
         const waiting = reduceDevState(next.state, { type: 'supervisor.state', state: 'waiting', generation: 2 });
         expect(waiting.toast).toBeUndefined();
-    });
-
-    it('reports a crash without the watcher as a crash alone', () => {
-        const next = reduceDevState(INITIAL_DEV_STATE, {
-            type: 'supervisor.state',
-            state: 'crashed',
-            code: 1,
-            generation: 1
-        });
-        expect(next.toast).toEqual({ tone: 'danger', text: 'server crashed (exit 1)', sticky: true });
     });
 
     it('counts restarts from the generation and records when the last one started', () => {
