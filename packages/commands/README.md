@@ -11,21 +11,23 @@ payload, and the target selector grammars for both editions.
 
 Mojang publishes Bedrock's whole command set as machine-readable data. The table under
 `src/tables/bedrockCommands.json` is generated from
-`metadata/command_modules/mojang-commands.json` in `Mojang/bedrock-samples`, pinned by
-`packages/bedrock-data/sources.json` to tag `v1.26.50.4`, commit
-`46ba6ea985fb5a92d79a9419198f10dda14c199d`.
+`metadata/command_modules/mojang-commands.json` in `Mojang/bedrock-samples`, at the tag and commit
+`bedrockSamples` pins in `packages/bedrock-data/sources.json`. The table records both in its
+`source` field.
 
-The generator measures what it emits, and `src/bedrockTable.test.ts` asserts the counts:
+The generator measures what it emits and records the counts in the table:
 
-|                       | Count |
-| --------------------- | ----- |
-| Commands              | 84    |
-| Overloads             | 279   |
-| Parameters            | 1186  |
-| Command enums         | 236   |
-| Enum values           | 14281 |
-| Basic parameter types | 26    |
-| Soft enums            | 4     |
+<!-- fact:commands.bedrockTable -->
+| In Mojang's Bedrock table | Count |
+| ------------------------- | ----- |
+| Commands                  | 84    |
+| Overloads                 | 281   |
+| Parameters                | 1189  |
+| Command enums             | 232   |
+| Enum values               | 14353 |
+| Basic parameter types     | 26    |
+| Soft enums                | 4     |
+<!-- /fact -->
 
 Nothing in the table is hand-written. A game version bump is a re-fetch and a re-run:
 
