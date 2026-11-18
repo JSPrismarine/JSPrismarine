@@ -507,6 +507,10 @@
             "jsprismarine:dist": "./dist/network/codec/CodecRegistry.js",
             "default": "./src/network/codec/CodecRegistry.ts"
         },
+        "./network/codec/ProtocolPolicy": {
+            "jsprismarine:dist": "./dist/network/codec/ProtocolPolicy.js",
+            "default": "./src/network/codec/ProtocolPolicy.ts"
+        },
         "./network/codec/describeCodecs": {
             "jsprismarine:dist": "./dist/network/codec/describeCodecs.js",
             "default": "./src/network/codec/describeCodecs.ts"
