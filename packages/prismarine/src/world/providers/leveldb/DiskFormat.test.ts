@@ -489,10 +489,10 @@ describe('world', () => {
 
         it('reads a record whose tail was left off', () => {
             // The game stops writing once every remaining sub chunk would inherit the one below,
-            // so a record can end after any whole palette. A uniform one is 9 bytes: the header,
-            // then the int32 count and its single int32 biome.
+            // so a record can end after any whole palette. A uniform one is 5 bytes: the header,
+            // then its single int32 biome.
             const full = encodeData3D(uniformData3D(1, Dimensions.Overworld), Dimensions.Overworld);
-            const truncated = full.subarray(0, HEIGHTMAP_BYTES + 9 * 3);
+            const truncated = full.subarray(0, HEIGHTMAP_BYTES + 5 * 3);
 
             const restored = decodeData3D(truncated, Dimensions.Overworld);
             expect(restored.palettes).toHaveLength(3);

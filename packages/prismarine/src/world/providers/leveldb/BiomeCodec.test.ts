@@ -28,11 +28,39 @@ describe('BiomeCodec', () => {
         const heightmap = Uint16Array.from({ length: 256 }, (_, index) => index % 200);
         const encoded = encodeData3D({ heightmap, palettes: biomes.sectionsToEncode() }, Dimensions.Overworld);
 
-        expect(digest(encoded)).toBe('c1eb7d8c471a86cc2ff389b29b5f986f151f8aef42f4a4d52e4f334556b2bb59');
+        expect(digest(encoded)).toBe('a5b95db0a855496e58957c9d1c4bcf7266be382905623947389e482d6d060492');
         expect(encodeData3D({ heightmap, palettes: biomes.toSectionIds() }, Dimensions.Overworld)).toEqual(encoded);
 
         const decoded = decodeData3D(encoded, Dimensions.Overworld);
         expect(ChunkBiomes.fromSectionIds(decoded.palettes, Dimensions.Overworld).get(3, 40, 9)).toBe(21);
+    });
+
+    describe('a section of one biome', () => {
+        /** A `Data3D` record: an empty heightmap, then the given section bytes. */
+        const record = (...sections: string[]): Buffer =>
+            Buffer.concat([Buffer.alloc(512), Buffer.from(sections.join(''), 'hex')]);
+
+        it('reads the header and the id the game writes, with no palette size between them', () => {
+            // As Bedrock Dedicated Server 1.26.51 wrote it: deep dark (24), then the rest inherit.
+            const decoded = decodeData3D(record('0118000000', '0101000000', 'ffff'), Dimensions.Overworld);
+
+            expect(decoded.palettes.slice(0, 4)).toEqual([24, 1, 1, 1]);
+        });
+
+        it('writes the bytes the game writes', () => {
+            const encoded = encodeData3D(
+                { heightmap: new Uint16Array(256), palettes: [24, 1] },
+                Dimensions.Overworld
+            ).subarray(512, 522);
+
+            expect(encoded.toString('hex')).toBe('0118000000' + '0101000000');
+        });
+
+        it('still reads a section this server wrote with a palette size before', () => {
+            const decoded = decodeData3D(record('000100000018000000', '000100000001000000'), Dimensions.Overworld);
+
+            expect(decoded.palettes.slice(0, 2)).toEqual([24, 1]);
+        });
     });
 
     it('keeps the network bytes of a mixed column unchanged', () => {

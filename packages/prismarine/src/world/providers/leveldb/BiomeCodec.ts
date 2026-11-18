@@ -29,6 +29,12 @@ const INHERIT_HEADER = 0xff;
 
 const VALID_BITS_PER_BLOCK = [0, 1, 2, 3, 4, 5, 6, 8, 16];
 
+/**
+ * The header's low bit, which the game sets on every biome section it writes: the palette holds
+ * plain ids. A uniform section with it set is the header and the one id, nothing between them.
+ */
+const RUNTIME_FLAG = 1;
+
 export interface Biomes {
     /** Column heights above the dimension floor, indexed `x * 16 + z`. */
     heightmap: Uint16Array;
@@ -40,16 +46,20 @@ export interface Biomes {
 }
 
 const writePalette = (biomes: number | ArrayLike<number> | PackedBiomePalette, stream: BinaryStream): void => {
-    if (typeof biomes === 'number') {
-        // Zero bits per block: no word data, and a palette holding the one id.
-        stream.writeByte(0);
-        stream.writeIntLE(1);
-        stream.writeIntLE(biomes);
+    const { palette, bitsPerBlock, words } =
+        typeof biomes === 'number'
+            ? { palette: [biomes], bitsPerBlock: 0, words: [] }
+            : 'words' in biomes
+              ? biomes
+              : packBiomePalette(biomes);
+    if (bitsPerBlock === 0) {
+        // Zero bits per block: no word data and no palette size, only the one id.
+        stream.writeByte(RUNTIME_FLAG);
+        stream.writeIntLE(palette[0] ?? PLAINS_BIOME);
         return;
     }
 
-    const { palette, bitsPerBlock, words } = 'words' in biomes ? biomes : packBiomePalette(biomes);
-    stream.writeByte(bitsPerBlock << 1);
+    stream.writeByte((bitsPerBlock << 1) | RUNTIME_FLAG);
     for (const word of words) stream.writeIntLE(word | 0);
     stream.writeIntLE(palette.length);
     for (const biome of palette) stream.writeIntLE(biome);
@@ -72,6 +82,10 @@ const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSec
     // Zero bits per block is a whole sub chunk of one biome, and no index data at all. Five out
     // of six sections of a real world are this, so it never spells 4096 copies of one number out.
     if (bitsPerBlock === 0) {
+        if ((header & RUNTIME_FLAG) !== 0) return stream.readIntLE();
+
+        // Without the flag, this server's own writer before it matched the game: a palette size,
+        // always 1, ahead of the id. Worlds it saved still hold sections written that way.
         const uniformSize = stream.readIntLE();
         if (uniformSize <= 0) throw new PrismarineWorldErrors.InvalidBiomePaletteCount({ uniformSize });
 
