@@ -1,10 +1,17 @@
 import { it } from 'vitest';
 
 import { describeWithJavaRegistries, expectRegistryCovered } from '../../../.test/javaRegistries';
+import { LOOT_CONDITION_TYPES } from './conditions';
 import { DiagnosticCollector } from './diagnostics';
+import { LOOT_FUNCTION_TYPES } from './modifiers';
 import { ParseContext } from './parse';
 import { entityPredicate, itemPredicate } from './subpredicates';
-import { UNHANDLED_DATA_COMPONENT_PREDICATE_TYPE, UNHANDLED_ENTITY_SUB_PREDICATE_TYPE } from './unhandledJavaTypes';
+import {
+    UNHANDLED_DATA_COMPONENT_PREDICATE_TYPE,
+    UNHANDLED_ENTITY_SUB_PREDICATE_TYPE,
+    UNHANDLED_LOOT_CONDITION_TYPE,
+    UNHANDLED_LOOT_FUNCTION_TYPE
+} from './unhandledJavaTypes';
 
 /**
  * What the dispatch reports for a type with no built-in parser: a registered type it does not
@@ -22,6 +29,22 @@ const reachesParser =
     };
 
 describeWithJavaRegistries('every type the pinned Java registry report lists', { tags: ['real-data'] }, () => {
+    it('has a loot condition or a reviewed entry', () => {
+        expectRegistryCovered({
+            registry: 'minecraft:loot_condition_type',
+            handles: (id) => LOOT_CONDITION_TYPES.some((type) => `minecraft:${type}` === id),
+            unhandled: UNHANDLED_LOOT_CONDITION_TYPE
+        });
+    });
+
+    it('has a loot function or a reviewed entry', () => {
+        expectRegistryCovered({
+            registry: 'minecraft:loot_function_type',
+            handles: (id) => LOOT_FUNCTION_TYPES.some((type) => `minecraft:${type}` === id),
+            unhandled: UNHANDLED_LOOT_FUNCTION_TYPE
+        });
+    });
+
     it('has a data component predicate or a reviewed entry', () => {
         expectRegistryCovered({
             registry: 'minecraft:data_component_predicate_type',
