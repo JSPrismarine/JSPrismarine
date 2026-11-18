@@ -1,0 +1,342 @@
+{
+    "$comment": [
+        "What the scripts of scenario `structures` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "structures",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "structures",
+            "seq": 1,
+            "tick": 0,
+            "event": "structureManager is the same object",
+            "value": true
+        },
+        {
+            "pack": "structures",
+            "seq": 2,
+            "tick": 0,
+            "event": "get of an unknown id",
+            "value": null
+        },
+        {
+            "pack": "structures",
+            "seq": 3,
+            "tick": 0,
+            "event": "delete of an unknown id",
+            "value": false
+        },
+        {
+            "pack": "structures",
+            "seq": 4,
+            "tick": 0,
+            "event": "createFromWorld",
+            "value": {
+                "id": "jsp:copy",
+                "size": {
+                    "z": 2,
+                    "y": 2,
+                    "x": 3
+                },
+                "isValid": true
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 5,
+            "tick": 0,
+            "event": "createFromWorld with the corners swapped",
+            "value": {
+                "id": "jsp:swapped",
+                "size": {
+                    "z": 2,
+                    "y": 2,
+                    "x": 3
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 6,
+            "tick": 0,
+            "event": "createFromWorld of an id in use",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Structure with identifier 'jsp:copy' already exists."
+        },
+        {
+            "pack": "structures",
+            "seq": 7,
+            "tick": 0,
+            "event": "createFromWorld without a namespace",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Invalid or missing namespace."
+        },
+        {
+            "pack": "structures",
+            "seq": 8,
+            "tick": 0,
+            "event": "getWorldStructureIds",
+            "value": [
+                "jsp:copy",
+                "jsp:swapped"
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 9,
+            "tick": 0,
+            "event": "get returns a new object",
+            "value": false
+        },
+        {
+            "pack": "structures",
+            "seq": 10,
+            "tick": 0,
+            "event": "get size",
+            "value": {
+                "z": 2,
+                "y": 2,
+                "x": 3
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 11,
+            "tick": 0,
+            "event": "getBlockPermutation 0 0 0",
+            "value": {
+                "type": "minecraft:stone",
+                "states": {
+                    "stone_type": "stone"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 12,
+            "tick": 0,
+            "event": "getBlockPermutation 1 0 0",
+            "value": {
+                "type": "minecraft:oak_planks",
+                "states": {
+                    "wood_type": "oak"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 13,
+            "tick": 0,
+            "event": "getBlockPermutation 2 0 1",
+            "value": {
+                "type": "minecraft:oak_log",
+                "states": {
+                    "pillar_axis": "x",
+                    "old_log_type": "oak"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 14,
+            "tick": 0,
+            "event": "getBlockPermutation 0 1 1",
+            "value": {
+                "type": "minecraft:glass",
+                "states": {}
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 15,
+            "tick": 0,
+            "event": "getBlockPermutation of air",
+            "value": {
+                "type": "minecraft:air",
+                "states": {}
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 16,
+            "tick": 0,
+            "event": "getBlockPermutation outside",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. The provided location (3, 0, 0) is outside the structure bounds (3, 2, 2)."
+        },
+        {
+            "pack": "structures",
+            "seq": 17,
+            "tick": 0,
+            "event": "getBlockPermutation negative",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. The provided location (-1, 0, 0) is outside the structure bounds (3, 2, 2)."
+        },
+        {
+            "pack": "structures",
+            "seq": 18,
+            "tick": 0,
+            "event": "getIsWaterlogged",
+            "value": false
+        },
+        {
+            "pack": "structures",
+            "seq": 19,
+            "tick": 0,
+            "event": "setBlockPermutation",
+            "value": {
+                "type": "minecraft:dirt",
+                "states": {
+                    "dirt_type": "normal"
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 20,
+            "tick": 0,
+            "event": "setBlockPermutation outside",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. The provided location (0, 2, 0) is outside the structure bounds (3, 2, 2)."
+        },
+        {
+            "pack": "structures",
+            "seq": 21,
+            "tick": 0,
+            "event": "setBlockPermutation with none",
+            "value": null
+        },
+        {
+            "pack": "structures",
+            "seq": 22,
+            "tick": 0,
+            "event": "place by id",
+            "value": [
+                "minecraft:stone",
+                "minecraft:oak_planks",
+                "minecraft:oak_log",
+                "minecraft:glass"
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 23,
+            "tick": 0,
+            "event": "place by object rotated 90",
+            "value": [
+                "6 8 minecraft:oak_log:z",
+                "7 6 minecraft:stone",
+                "7 7 minecraft:oak_planks"
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 24,
+            "tick": 0,
+            "event": "place without blocks",
+            "value": "minecraft:gold_block"
+        },
+        {
+            "pack": "structures",
+            "seq": 25,
+            "tick": 0,
+            "event": "place of an unknown id",
+            "error": "InvalidStructureError: Structure does not exist."
+        },
+        {
+            "pack": "structures",
+            "seq": 26,
+            "tick": 0,
+            "event": "saveAs",
+            "value": {
+                "id": "jsp:saved",
+                "size": {
+                    "z": 2,
+                    "y": 2,
+                    "x": 3
+                }
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 27,
+            "tick": 0,
+            "event": "saveAs of an id in use",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Structure with identifier 'jsp:copy' already exists."
+        },
+        {
+            "pack": "structures",
+            "seq": 28,
+            "tick": 0,
+            "event": "createEmpty",
+            "value": {
+                "id": "jsp:empty",
+                "size": {
+                    "z": 2,
+                    "y": 2,
+                    "x": 2
+                },
+                "block": null
+            }
+        },
+        {
+            "pack": "structures",
+            "seq": 29,
+            "tick": 0,
+            "event": "getWorldStructureIds after saving",
+            "value": [
+                "jsp:copy",
+                "jsp:empty",
+                "jsp:saved",
+                "jsp:swapped"
+            ]
+        },
+        {
+            "pack": "structures",
+            "seq": 30,
+            "tick": 0,
+            "event": "delete by id",
+            "value": true
+        },
+        {
+            "pack": "structures",
+            "seq": 31,
+            "tick": 0,
+            "event": "isValid after delete",
+            "value": false
+        },
+        {
+            "pack": "structures",
+            "seq": 32,
+            "tick": 0,
+            "event": "size after delete",
+            "error": "InvalidStructureError: Structure does not exist."
+        },
+        {
+            "pack": "structures",
+            "seq": 33,
+            "tick": 0,
+            "event": "get after delete",
+            "value": null
+        },
+        {
+            "pack": "structures",
+            "seq": 34,
+            "tick": 0,
+            "event": "delete by object",
+            "value": true
+        },
+        {
+            "pack": "structures",
+            "seq": 35,
+            "tick": 0,
+            "event": "getWorldStructureIds after deleting",
+            "value": [
+                "jsp:empty",
+                "jsp:saved"
+            ]
+        }
+    ]
+}
