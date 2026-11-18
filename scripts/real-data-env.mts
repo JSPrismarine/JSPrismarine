@@ -30,7 +30,8 @@ interface Sources {
     /** Pinned per Bedrock protocol version; the cache segment is `v<protocol>`. */
     bds: { defaultProtocolVersion: number };
     bedrockSamples: { tag: string };
-    javaServer: { version: string };
+    /** Pinned per Java Edition release; the cache segment is the release id. */
+    javaServer: { defaultVersion: string };
     geyserMappings: { commit: string };
 }
 
@@ -80,7 +81,7 @@ const paths: RequiredPath[] = [
     },
     {
         name: 'JSP_JAVA_JAR_PATH',
-        value: path.join(cacheRoot, 'java-server', sources.javaServer.version, 'server.jar'),
+        value: path.join(cacheRoot, 'java-server', sources.javaServer.defaultVersion, 'server.jar'),
         filledBy: FETCH
     },
     {
@@ -95,12 +96,12 @@ const paths: RequiredPath[] = [
     },
     {
         name: 'JSP_VANILLA_DATAPACK',
-        value: path.join(cacheRoot, 'vanilla-datapack', sources.javaServer.version),
+        value: path.join(cacheRoot, 'vanilla-datapack', sources.javaServer.defaultVersion),
         filledBy: DATAGEN
     },
     {
         name: 'JSP_JAVA_REPORTS',
-        value: path.join(cacheRoot, 'java-reports', sources.javaServer.version, 'generated'),
+        value: path.join(cacheRoot, 'java-reports', sources.javaServer.defaultVersion, 'generated'),
         filledBy: DATAGEN
     },
     {
@@ -110,10 +111,10 @@ const paths: RequiredPath[] = [
         value: path.join(
             cacheRoot,
             'java',
-            sources.javaServer.version,
+            sources.javaServer.defaultVersion,
             'extracted/META-INF/versions',
-            sources.javaServer.version,
-            `server-${sources.javaServer.version}.jar`
+            sources.javaServer.defaultVersion,
+            `server-${sources.javaServer.defaultVersion}.jar`
         ),
         filledBy: DUMP
     }

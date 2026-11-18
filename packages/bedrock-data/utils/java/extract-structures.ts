@@ -86,7 +86,7 @@ if (import.meta.filename === process.argv[1]) {
     } else {
         if (!existsSync(jarPath)) {
             throw new Error(
-                `${jarPath} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` first, ` +
+                `${jarPath} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${javaServer.version}\` first, ` +
                     `or set ${javaServer.envOverride} to a local copy of the Java ${javaServer.version} server jar.`
             );
         }

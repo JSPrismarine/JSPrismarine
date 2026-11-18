@@ -13,7 +13,7 @@ import { join } from 'node:path';
 
 /** The pins the table was generated from. */
 const sources = JSON.parse(readFileSync(join(import.meta.dirname, '../../bedrock-data/sources.json'), 'utf8')) as {
-    javaServer: { version: string };
+    javaServer: { defaultVersion: string };
     bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
 };
 
@@ -36,7 +36,7 @@ describe('the generated item type table', () => {
     });
 
     it('is pinned to the versions the sources name', () => {
-        expect(itemTypesTable.javaVersion).toBe(sources.javaServer.version);
+        expect(itemTypesTable.javaVersion).toBe(sources.javaServer.defaultVersion);
         expect(itemTypesTable.bedrockVersion).toBe(
             sources.bds.versions[String(sources.bds.defaultProtocolVersion)]?.serverVersion
         );

@@ -157,6 +157,14 @@ The Bedrock Dedicated Server is pinned once per Bedrock protocol version, under 
 generated tables once `pnpm run dump:bedrock --pass packets --protocol <n>` has captured it
 under `src/jsp/v<n>/`; `defaultProtocolVersion` picks which version the unversioned exports carry.
 
+### Picking a Java release
+
+The Java Edition server jar is pinned once per release id, under `javaServer.versions` in
+`sources.json`, and each release caches under its own `java-server/<release>/` directory.
+`defaultVersion` is the release the server runs. `--java <release>` on `fetch:sources`,
+`datagen:java`, `ensure:worldgen` and the other Java scripts picks another pinned release. One
+entry may be marked `"preview": true`, and it must be newer than `defaultVersion`.
+
 ## Running the Java data generator
 
 `pnpm run datagen:java` runs Mojang's own data generator against the fetched server jar, after

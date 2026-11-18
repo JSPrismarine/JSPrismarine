@@ -13,7 +13,8 @@
  * unchanged; this step only decides whether to run them and turns their failures into one
  * actionable line rather than a stack trace.
  *
- * Run as `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen`.
+ * Run as `pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen`, with `--java <release>`
+ * to prepare a pinned release other than the default.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -89,7 +90,7 @@ if (!existsSync(jarPath)) {
 
 console.log(`Building the Java ${source.version} world generation data; this takes a few minutes, once.`);
 try {
-    execFileSync(process.execPath, [join(here, 'datagen.ts')], { stdio: 'inherit' });
+    execFileSync(process.execPath, [join(here, 'datagen.ts'), '--java', source.version], { stdio: 'inherit' });
 } catch {
     fail(
         `The Java ${source.version} data generator failed; its output is above.\n` +

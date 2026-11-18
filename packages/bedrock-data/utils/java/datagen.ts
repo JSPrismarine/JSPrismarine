@@ -17,7 +17,8 @@
  * every reader above.
  *
  * Run as `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, after `fetch:sources` has
- * put the hash-verified jar in the cache. Pass `--force` to regenerate output that is already
+ * put the hash-verified jar in the cache. Pass `--java <release>` to generate a pinned release
+ * other than the default, and `--force` to regenerate output that is already
  * present. The output is Mojang's content, large and derived, so it stays in the gitignored
  * cache and is never committed.
  *
@@ -59,7 +60,7 @@ if (worldgenCacheComplete(paths) && !force) {
 
 if (!existsSync(jarPath)) {
     throw new Error(
-        `${jarPath} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` first, ` +
+        `${jarPath} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${version}\` first, ` +
             `or set ${javaServer.envOverride} to a local copy of the Java ${version} server jar.`
     );
 }

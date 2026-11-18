@@ -10,7 +10,19 @@ import { bedrockServerPath } from './bds.ts';
 import { fetchSource, hashSourceContent, resolveContentRoot, sourceCachePath } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
-import { bdsDescriptor, loadBdsData, parseProtocolArgument, type BdsData, type SourceDescriptor } from './manifest.ts';
+import {
+    bdsDescriptor,
+    compareJavaReleases,
+    javaServerDescriptor,
+    loadBdsData,
+    loadJavaServerData,
+    parseJavaArgument,
+    parseProtocolArgument,
+    type BdsData,
+    type JavaServerData,
+    type JavaVersion,
+    type SourceDescriptor
+} from './manifest.ts';
 import { cacheRoot as sharedCacheRoot } from './paths.ts';
 import { extractZip, readZipEntriesFrom, readZipEntry } from './unzip.ts';
 
@@ -307,6 +319,108 @@ describe('parseProtocolArgument', () => {
         expect(parseProtocolArgument(['node', 'script.ts', '--protocol', '2225'])).toBe(2225);
         expect(parseProtocolArgument(['node', 'script.ts'])).toBeUndefined();
         expect(() => parseProtocolArgument(['node', 'script.ts', '--protocol'])).toThrow(/--protocol needs/);
+    });
+});
+
+describe('compareJavaReleases', () => {
+    it('orders release ids by their numeric release, then snapshots, pre-releases, candidates and the release', () => {
+        const ascending = [
+            '26.3',
+            '26.4-snapshot-8',
+            '26.4-snapshot-10',
+            '26.4-pre1',
+            '26.4-pre2',
+            '26.4-rc1',
+            '26.4',
+            '26.10'
+        ];
+        expect([...ascending].reverse().sort(compareJavaReleases)).toEqual(ascending);
+        expect(compareJavaReleases('26.4-snapshot-8', '26.3')).toBeGreaterThan(0);
+        expect(compareJavaReleases('26.4-pre1', '26.3')).toBeGreaterThan(0);
+        expect(compareJavaReleases('26.4', '26.4-snapshot-8')).toBeGreaterThan(0);
+        expect(compareJavaReleases('26.3', '26.3.0')).toBe(0);
+    });
+});
+
+describe('javaServerDescriptor', () => {
+    const jar = (letter: string, preview?: boolean): JavaVersion => ({
+        url: `https://example.invalid/${letter}/server.jar`,
+        sha1: letter.repeat(40),
+        sha256: letter.repeat(64),
+        sizeInBytes: 1,
+        ...(preview === undefined ? {} : { preview })
+    });
+    const data: JavaServerData = {
+        defaultVersion: '26.3',
+        versions: { '26.3': jar('a'), '26.4-snapshot-8': jar('b', true) }
+    };
+
+    it('caches each release as java-server/<release>/server.jar, pinned by sha1', () => {
+        expect(javaServerDescriptor(data, '26.4-snapshot-8')).toMatchObject({
+            name: 'java-server',
+            version: '26.4-snapshot-8',
+            fileName: 'server.jar',
+            unpack: false,
+            hash: { algorithm: 'sha1', value: 'b'.repeat(40) },
+            envOverride: 'JSP_JAVA_JAR_PATH'
+        });
+    });
+
+    it('falls back to the manifest default', () => {
+        expect(javaServerDescriptor(data).version).toBe('26.3');
+    });
+
+    it('names the pinned releases when asked for one that is not pinned', () => {
+        expect(() => javaServerDescriptor(data, '1.21')).toThrow(/for 1\.21; pinned: 26\.3, 26\.4-snapshot-8/);
+    });
+
+    const load = async (javaServer: JavaServerData): Promise<JavaServerData> => {
+        const manifest = join(dir, 'sources.json');
+        await writeFile(manifest, JSON.stringify({ javaServer }));
+        return loadJavaServerData(manifest);
+    };
+
+    it('loads a manifest with one preview newer than the default', async () => {
+        await expect(load(data)).resolves.toEqual(data);
+    });
+
+    it('refuses a manifest with two previews', async () => {
+        await expect(load({ ...data, versions: { ...data.versions, '26.4-pre1': jar('c', true) } })).rejects.toThrow(
+            /more than one Java preview/
+        );
+    });
+
+    it('refuses a preview that is not newer than the default', async () => {
+        await expect(
+            load({ defaultVersion: '26.3', versions: { '26.3': jar('a'), '26.3-pre1': jar('c', true) } })
+        ).rejects.toThrow(/26\.3-pre1, which is not newer than the default 26\.3/);
+    });
+
+    it('refuses a default that is not pinned', async () => {
+        await expect(load({ defaultVersion: '26.2', versions: { '26.3': jar('a') } })).rejects.toThrow(
+            /defaultVersion 26\.2 is not among its versions/
+        );
+    });
+});
+
+describe('the pinned Java server jars in sources.json', () => {
+    it('pins the default and carries a sha1 that names each object', async () => {
+        const pinned = await loadJavaServerData(join(import.meta.dirname, '../../sources.json'));
+        expect(pinned.versions[pinned.defaultVersion]).toBeDefined();
+        for (const [release, version] of Object.entries(pinned.versions)) {
+            expect(version.sha1, release).toMatch(/^[0-9a-f]{40}$/);
+            expect(version.sha256, release).toMatch(/^[0-9a-f]{64}$/);
+            expect(version.url, release).toContain(version.sha1);
+        }
+    });
+});
+
+describe('parseJavaArgument', () => {
+    it('reads a release id and defaults to none', () => {
+        expect(parseJavaArgument(['node', 'script.ts', '--java', '26.4-snapshot-8'])).toBe('26.4-snapshot-8');
+        expect(parseJavaArgument(['node', 'script.ts'])).toBeUndefined();
+        expect(() => parseJavaArgument(['node', 'script.ts', '--java'])).toThrow(/--java needs/);
+        expect(() => parseJavaArgument(['node', 'script.ts', '--java', '--force'])).toThrow(/--java needs/);
     });
 });
 

@@ -39,13 +39,13 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 // ---------------------------------------------------------------------------
 
 interface SourcesManifest {
-    javaServer: { version: string };
+    javaServer: { defaultVersion: string };
     bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
 }
 
 // sources.json is parsed JSON; only the pins this generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
-const javaVersion = sources.javaServer.version;
+const javaVersion = sources.javaServer.defaultVersion;
 // The server the unversioned item table below was captured from.
 const bedrockVersion = sources.bds.versions[String(sources.bds.defaultProtocolVersion)]?.serverVersion;
 if (bedrockVersion === undefined) throw new Error('sources.json pins no server for its defaultProtocolVersion');

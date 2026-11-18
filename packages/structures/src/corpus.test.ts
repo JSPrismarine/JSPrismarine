@@ -30,7 +30,7 @@ const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 // The pinned versions are this repository's own manifest, parsed JSON.
 const sources = JSON.parse(readFileSync(join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8')) as {
     bds: { defaultProtocolVersion: number };
-    javaServer: { version: string };
+    javaServer: { defaultVersion: string };
 };
 const cache = join(repoRoot, 'node_modules/.cache/jsprismarine');
 
@@ -55,8 +55,8 @@ const bdsRoot = (): string | undefined => {
 const javaJar = (): string | undefined =>
     [
         process.env.JSP_JAVA_JAR_PATH,
-        join(cache, 'java-server', sources.javaServer.version, 'server.jar'),
-        join(cache, 'java', sources.javaServer.version, 'server.jar')
+        join(cache, 'java-server', sources.javaServer.defaultVersion, 'server.jar'),
+        join(cache, 'java', sources.javaServer.defaultVersion, 'server.jar')
     ]
         .filter((candidate): candidate is string => candidate !== undefined)
         .find((candidate) => existsSync(candidate));
@@ -64,7 +64,7 @@ const javaJar = (): string | undefined =>
 /** The `.nbt` templates inside the Java server jar, which is a bundler jar holding the real one. */
 const javaTemplates = (jarPath: string): Map<string, Uint8Array> => {
     const outer = readZip(readFileSync(jarPath));
-    const innerName = `META-INF/versions/${sources.javaServer.version}/server-${sources.javaServer.version}.jar`;
+    const innerName = `META-INF/versions/${sources.javaServer.defaultVersion}/server-${sources.javaServer.defaultVersion}.jar`;
     const inner = outer.get(innerName);
     if (inner === undefined) throw new Error(`${jarPath} has no ${innerName}`);
 

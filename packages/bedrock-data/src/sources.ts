@@ -16,7 +16,7 @@ export const defaultBdsCacheFolder: string = `v${sources.bds.defaultProtocolVers
 export const bedrockSamplesCacheFolder: string = sources.bedrockSamples.tag;
 
 /**
- * The Java Edition release `sources.json` pins, such as `26.3`, which names its folder under
- * `java-server/`, `vanilla-datapack/` and `java-reports/`.
+ * The default Java Edition release `sources.json` pins, such as `26.3`, which names its folder
+ * under `java-server/`, `vanilla-datapack/` and `java-reports/`.
  */
-export const javaServerCacheFolder: string = sources.javaServer.version;
+export const javaServerCacheFolder: string = sources.javaServer.defaultVersion;

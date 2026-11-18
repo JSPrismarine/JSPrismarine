@@ -78,9 +78,9 @@ const innerJarPath = (): string | undefined => {
 
     const sourcesPath = join(repoRoot, 'packages/bedrock-data/sources.json');
     if (!existsSync(sourcesPath)) return undefined;
-    // sources.json is parsed JSON; only the pinned version is read.
-    const sources = JSON.parse(readFileSync(sourcesPath, 'utf8')) as { javaServer: { version: string } };
-    const version = sources.javaServer.version;
+    // sources.json is parsed JSON; only the default Java release is read.
+    const sources = JSON.parse(readFileSync(sourcesPath, 'utf8')) as { javaServer: { defaultVersion: string } };
+    const version = sources.javaServer.defaultVersion;
     const path = join(
         repoRoot,
         'node_modules/.cache/jsprismarine/java',

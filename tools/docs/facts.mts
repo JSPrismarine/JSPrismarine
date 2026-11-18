@@ -58,7 +58,7 @@ interface Sources {
         versions: Record<string, { minecraftVersion: string; serverVersion: string; sizeInBytes: number }>;
     };
     bedrockSamples: { tag: string };
-    javaServer: { version: string; sizeInBytes: number };
+    javaServer: { defaultVersion: string; versions: Record<string, { sizeInBytes: number }> };
 }
 
 /** Megabytes as a reader sees them on a download, such as `95 MB`. */
@@ -544,7 +544,7 @@ interface FactSource {
 
 /** Counts read from the generated game data: the Java datapack and reports, bedrock-samples and BDS. */
 function dataSources(sources: Sources): FactSource[] {
-    const java = sources.javaServer.version;
+    const java = sources.javaServer.defaultVersion;
     return [
         {
             label: `the Java ${java} vanilla datapack`,
@@ -752,6 +752,7 @@ export async function loadFacts(): Promise<Facts> {
         readFileSync(path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json'), 'utf8')
     );
     const bds = sources.bds.versions[sources.bds.defaultProtocolVersion];
+    const javaJar = sources.javaServer.versions[sources.javaServer.defaultVersion];
     const newest = project.protocols[0];
     const oldest = project.protocols.at(-1) ?? newest;
     const minecraft = project.protocols.toReversed().flatMap(({ minecraft }) => minecraft);
@@ -796,8 +797,8 @@ export async function loadFacts(): Promise<Facts> {
             'cache.xdg': userCacheDir({ XDG_CACHE_HOME: '$XDG_CACHE_HOME' }, 'linux', '~'),
             'cache.linux': userCacheDir({}, 'linux', '~'),
             'samples.tag': sources.bedrockSamples.tag,
-            'java.version': sources.javaServer.version,
-            'java.size': megabytes(sources.javaServer.sizeInBytes),
+            'java.version': sources.javaServer.defaultVersion,
+            'java.size': megabytes(javaJar.sizeInBytes),
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
             'brand.components': `\n${table(
                 ['Component', 'Purpose'],
