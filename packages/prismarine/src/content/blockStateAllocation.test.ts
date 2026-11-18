@@ -27,7 +27,9 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
 
         // Captured from the complete pinned stack. Re-captured when the block families took over
         // the lamp, sponge, concrete powder, cactus and button rules, which changed their flags,
-        // and when water and lava stopped taking random ticks, which cleared their flag.
-        expect(digest).toBe('f5c34dc418e48c53aacf69a4680ff3a37da229a517a2cc1d050bcbb53d25b7ce');
+        // and when water and lava stopped taking random ticks, which cleared their flag, and
+        // when the catalog moved to 1.26.60, which added three blocks and gave fire, redstone
+        // wire and chorus plants their connection states.
+        expect(digest).toBe('08d035ebd452fe9435d29ba6efb62baa8f4a7fded2d606c765129c6631bc5075');
     });
 });

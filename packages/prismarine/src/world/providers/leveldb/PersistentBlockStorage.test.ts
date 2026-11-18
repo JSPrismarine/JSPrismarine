@@ -15,6 +15,8 @@ const encodedDigest = (storage: BlockStorage): string => {
     return createHash('sha256').update(stream.getBuffer()).digest('hex');
 };
 
+// Each palette entry carries the catalog's Minecraft version, so these digests are re-captured
+// when the default catalog moves to a new release, as they were for 1.26.60.
 describe('PersistentBlockStorage', () => {
     it('keeps sparse-column disk bytes unchanged', () => {
         const storage = new BlockStorage({});
@@ -24,7 +26,7 @@ describe('PersistentBlockStorage', () => {
         storage.setBlock(15, 15, 15, dirt);
         storage.setBlock(7, 8, 9, granite);
 
-        expect(encodedDigest(storage)).toBe('3c2fc7ca20842d4be5e07f757a8cc98491912a6fcf5d72392a59a578b3e51b77');
+        expect(encodedDigest(storage)).toBe('f9fd49d972d5df88353a923cdcf9004b471c6089eeb94e369761d8ff47d927b0');
     });
 
     it('keeps dense-column disk bytes unchanged', () => {
@@ -50,7 +52,7 @@ describe('PersistentBlockStorage', () => {
             }
         }
 
-        expect(encodedDigest(storage)).toBe('8dddcceb91fac84af031120ef85f4081d9f0f0f02cbf7258ad45c3143338589f');
+        expect(encodedDigest(storage)).toBe('4bcda7a2e0e1db1c0d3f6469e2505004ba307ef046ad5581465a6613b2c0f90e');
     });
 
     it('writes a packed section from its words, with the bytes an unpacked one writes', () => {
