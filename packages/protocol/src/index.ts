@@ -32,7 +32,7 @@ export type { ProtocolCodec, ProtocolCodecOptions, ProtocolPacketClass } from '.
 export { buildCodecRegistry, createProtocolCodecRegistry } from './ProtocolCodecRegistry';
 export type { ProtocolCodecRegistry } from './ProtocolCodecRegistry';
 export { createHandshakeCodec, HANDSHAKE_PACKET_NAMES } from './HandshakeCodec';
-export { ProtocolVersions } from './ProtocolVersion';
+export { newestRelease, ProtocolVersions } from './ProtocolVersion';
 export type { ProtocolVersionDefinition } from './ProtocolVersion';
 export * from './packet';
 export * from './structure';

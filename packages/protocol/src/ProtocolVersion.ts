@@ -49,3 +49,13 @@ export const ProtocolVersions = {
         preview: preview2259
     }
 } as const satisfies Record<string, ProtocolVersionDefinition>;
+
+/**
+ * The newest release in {@link ProtocolVersions}: the version a server advertises and the one a
+ * client announces unless told otherwise. A preview is never it, since a server negotiates a
+ * preview but advertises only releases. A packet no codec has stamped is still written in the
+ * oldest version's layout, which the newer versions are deltas over.
+ */
+export const newestRelease: ProtocolVersionDefinition = Object.values<ProtocolVersionDefinition>(ProtocolVersions)
+    .filter((definition) => definition.preview !== true)
+    .reduce((newest, definition) => (definition.protocolVersion > newest.protocolVersion ? definition : newest));
