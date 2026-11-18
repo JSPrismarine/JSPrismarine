@@ -41,6 +41,9 @@ import { keyOfPlayer } from '../playerIdentity';
 import { playerRecordOf } from './playerRecord';
 import type { PlayerRecordSource } from './playerRecord';
 import { Item } from '../item/Item';
+import PlayerBlockBrokenEvent from '../events/player/PlayerBlockBrokenEvent';
+import PlayerBreakBlockEvent from '../events/player/PlayerBreakBlockEvent';
+import type { BrokenBlock } from '../events/player/PlayerBreakBlockEvent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import type { Breaker } from './blockBreak';
@@ -548,6 +551,13 @@ export interface WorldData {
     /** Content redstone hooks and their power cache lifecycle. */
     redstoneUpdateHandlers?: WorldSystemsOptions['redstoneUpdateHandlers'];
 }
+
+/** The stack in a player's hand, or null for an empty hand. */
+const heldItem = (player: Pick<BlockBreaker, 'getInventory'>): Item | null => {
+    // A test double's hand may hold nothing at all.
+    const held: Item | null = player.getInventory().getItemInHand() ?? null;
+    return held === null || held.getName() === 'minecraft:air' || held.getAmount() <= 0 ? null : held;
+};
 
 /** The player who broke a block, as {@link World.breakBlock} reads one: the break's three reads and its id. */
 export interface BlockBreaker extends Breaker {
@@ -2812,6 +2822,20 @@ export class World implements Service {
         const state = chunk.getBlock(x, y, z);
         if (state.name === 'minecraft:air') return false;
 
+        // The guard stage of a player's break: a plugin or a script's
+        // `world.beforeEvents.playerBreakBlock` may keep the block, and the client, which already
+        // took it away, is told it is still there.
+        const brokenBlock: BrokenBlock = { x, y, z, name: state.name, states: { ...state.properties } };
+        const heldBefore = player === undefined ? null : heldItem(player);
+        if (player !== undefined) {
+            const guard = new PlayerBreakBlockEvent(player.getRuntimeId(), this, brokenBlock, heldBefore);
+            this.server.getKernel().events.post('playerBreakBlock', guard);
+            if (guard.isCanceled()) {
+                this.resendBlock(x, y, z);
+                return false;
+            }
+        }
+
         // The id of the exact state that was there, taken before it is replaced: it is what
         // the client resolves both the sound's material and the particles' texture from.
         const brokenRuntimeId = BlockRuntimeIds.get(state);
@@ -2875,6 +2899,14 @@ export class World implements Service {
             this.spillFromBlock({ x, y, z }, contentDrops ?? broken.getDrops(itemInHand, this.server));
         }
 
+        if (player !== undefined) {
+            this.server
+                .getKernel()
+                .events.post(
+                    'playerBlockBroken',
+                    new PlayerBlockBrokenEvent(player.getRuntimeId(), this, brokenBlock, heldBefore, heldItem(player))
+                );
+        }
         return true;
     }
 

@@ -37,6 +37,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import { fakeLevel } from '../testing/level';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -188,6 +189,7 @@ const liveWorld = (
     const store = runtime.runtime.store;
     const redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[] = [];
 
+    const kernel = testKernel();
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         level: fakeLevel({ spawn: new Vector3(8, 64, 8) }),
@@ -203,7 +205,9 @@ const liveWorld = (
             // Rolled for the pitch of an eye of ender's launch.
             getRandom: () => () => 0.5,
             getEntityRuntime: () => runtime,
-            hasEntityRuntime: () => true
+            hasEntityRuntime: () => true,
+            // Where an item use raises its guard and after events.
+            getKernel: () => kernel
         }
     });
 
@@ -741,6 +745,29 @@ describe('useItemOnBlock', () => {
             expect(eye?.target).toEqual({ x: 400, y: 0, z: -96 });
             expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('runs no behavior for a use a playerUseItem listener cancels, and reports a use that went on', () => {
+            strongholdAt({ x: 400, y: 0, z: -96 });
+            const player = eyes(2);
+            const heard: string[] = [];
+            const { events } = world.getServer().getKernel();
+            const stopGuard = events.on('playerUseItem', (event) => {
+                heard.push(`before ${event.getItem().getName()}`);
+                event.preventDefault();
+            });
+            const stopUsed = events.on('playerItemUsed', (event) => heard.push(`after ${event.getItem().getName()}`));
+            try {
+                expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+                expect(launched).toEqual([]);
+                stopGuard();
+                expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
+                expect(launched).toHaveLength(1);
+                expect(heard).toEqual(['before minecraft:ender_eye', 'after minecraft:ender_eye']);
+            } finally {
+                stopGuard();
+                stopUsed();
+            }
         });
 
         it('keeps the eye in a creative hand', () => {
