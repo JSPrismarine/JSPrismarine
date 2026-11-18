@@ -24,6 +24,10 @@ jobs:
     # typecheck when the merged pull request already passed it on the same tree. The Vitest jobs
     # never reuse a pull request's result: a pull request runs only the suites its diff reaches,
     # so master runs them all.
+    #
+    # The release pull request runs typecheck alone. Changesets rewrites it after every push to
+    # master, and it changes only versions, changelogs and consumed changesets, on top of code
+    # master already tested. Its merge is a push to master, which runs everything.
     changes:
         name: Detect code changes
         # runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -34,6 +38,7 @@ jobs:
             pull-requests: read
         outputs:
             code: ${{ steps.filter.outputs.code }}
+            tests: ${{ steps.filter.outputs.code == 'true' && github.head_ref != 'changeset-release/master' }}
             passed: ${{ steps.reuse.outputs.passed || '[]' }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
@@ -84,7 +89,7 @@ jobs:
     plan:
         name: Size the test shards
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         outputs:
@@ -141,7 +146,7 @@ jobs:
     tests-shard:
         name: 🧪 Tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
         needs: [changes, plan]
-        if: ${{ needs.changes.outputs.code == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 15
@@ -208,7 +213,7 @@ jobs:
     tests:
         name: 🧪 Tests (ubuntu-latest)
         needs: [changes, tests-shard]
-        if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+        if: ${{ !cancelled() && needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 15
@@ -278,7 +283,7 @@ jobs:
     generation-host:
         name: 🧵 Generation host (${{ matrix.os }})
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' }}
         strategy:
             fail-fast: false
             matrix:
@@ -330,7 +335,7 @@ jobs:
     real-data-setup:
         name: 🗃️ Prepare the real data
         needs: changes
-        if: ${{ needs.changes.outputs.code == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 30
@@ -514,7 +519,7 @@ jobs:
     bedrock-server:
         name: 🧱 Bedrock Dedicated Server suites
         needs: [changes, plan, real-data-setup]
-        if: ${{ needs.changes.outputs.code == 'true' && needs.plan.outputs.bedrock_server == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' && needs.plan.outputs.bedrock_server == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 45
@@ -549,7 +554,7 @@ jobs:
     real-data:
         name: 🗃️ Real data suites
         needs: [changes, real-data-setup, real-data-shard]
-        if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+        if: ${{ !cancelled() && needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         timeout-minutes: 15
