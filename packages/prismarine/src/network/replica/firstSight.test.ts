@@ -1,9 +1,14 @@
 import type { ProtocolContext } from '@jsprismarine/protocol';
+import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
 import Vec3 from '@jsprismarine/protocol/structure/Vec3';
 import { describe, expect, it } from 'vitest';
 
+import type { EntityView } from '../../entity/data/actorView';
+import type { ViewableEquipment } from '../../entity/predicateView';
+import { stub } from '../../testing/stub.test.helper';
+import Codec2193 from '../codec/Codec2193';
 import { firstSightPackets } from './firstSight';
 
 const context: ProtocolContext = { protocolVersion: 2193 };
@@ -31,5 +36,20 @@ describe('a painting first sight', () => {
             direction: 0,
             motif: 'Pool'
         });
+    });
+});
+
+describe('an actor first sight', () => {
+    it('shows a 1.26.51 client nothing of an actor type its release does not have', () => {
+        const sight = {
+            kind: 'actor',
+            runtimeId: 7n,
+            identifier: 'minecraft:ice_ball',
+            view: stub<EntityView>({}),
+            metadata: stub<Metadata>({}),
+            equipment: stub<ViewableEquipment>({})
+        } as const;
+
+        expect(firstSightPackets(sight, Codec2193.context)).toEqual([]);
     });
 });

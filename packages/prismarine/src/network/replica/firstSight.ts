@@ -39,6 +39,7 @@ import type { StatusEffect, StatusEffectChange } from '../../entity/StatusEffect
 import { bedrockMobEffectId } from '../../entity/StatusEffect';
 import { WindowIds } from '../../inventory/WindowIds';
 import { Item } from '../../item/Item';
+import { isMissingVanillaActor } from '../codec/actorTypes';
 import type Device from '../../utils/Device';
 
 /** Who a player is, as the session that speaks for it holds it, which no log entry carries. */
@@ -113,6 +114,9 @@ export const firstSightPackets = (sight: FirstSight, context: ProtocolContext): 
 };
 
 const actorSight = (sight: Extract<FirstSight, { kind: 'actor' }>, context: ProtocolContext) => {
+    // A type the viewer's release cannot draw, such as 1.26.60's ice ball for a 1.26.51 client.
+    // Later packets about it name a runtime id this client was never shown.
+    if (isMissingVanillaActor(context, sight.identifier)) return [];
     const { runtimeId, view } = sight;
     const packet = new AddActorPacket();
     packet.runtimeEntityId = runtimeId;
