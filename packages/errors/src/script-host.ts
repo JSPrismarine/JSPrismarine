@@ -312,6 +312,16 @@ export const ScriptHostErrors = defineErrors('script-host', {
         base: TypeError
     },
     /**
+     * A script passed an object that lacks a property the Script API's interface needs, such as
+     * an `RGB` color without `blue`. The script sees Bedrock Dedicated Server's `TypeError`. Pass
+     * an object with every property the interface lists.
+     */
+    InterfacePropertyMissing: {
+        message:
+            "Native setter cannot be assigned null or undefined. Interface property ['{property}'] expected type: {expected} (failed parsing interface to Function argument [{index}]).",
+        base: TypeError
+    },
+    /**
      * A script passed a value no dynamic property can hold, such as an object that is not a vector.
      * The script sees Bedrock Dedicated Server's `TypeError`.
      */

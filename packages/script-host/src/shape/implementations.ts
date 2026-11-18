@@ -23,6 +23,11 @@ export interface ScriptCall {
     setState(state: string): void;
     /** The state of an object the host made, such as a `BlockPermutation` argument; empty for any other value. */
     stateOf(value: ScriptValue): string;
+    /**
+     * Replaces the state of another object the host made, for a member that changes the object it
+     * belongs to, such as an item stack's component writing its stack. Leaves any other value alone.
+     */
+    setStateOf(value: ScriptValue, state: string): void;
     /** A plain argument, such as a `Record` of block states, as JSON; undefined when it has none. */
     stringify(value: ScriptValue): string | undefined;
     /**

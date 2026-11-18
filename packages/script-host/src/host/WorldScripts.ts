@@ -48,8 +48,8 @@ import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
 import { JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
-import type { EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
-import { serverImplementations } from './minecraftServer';
+import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
+import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
 import { SERVER_ADMIN, serverAdminImplementations } from './serverAdmin';
@@ -65,9 +65,13 @@ import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
 import { ScriptHttp } from './ScriptHttp';
 import { hookEventOf } from './serverCustom';
+import { JobQueue } from './jobs';
+import type { JobStep } from './jobs';
 import { TaskQueue } from './tasks';
 import type {
+    BlockBreakIntent,
     ChatSendIntent,
+    ItemUseIntent,
     ScriptBlockHook,
     ScriptBlockHookEvent,
     ScriptCommandArgument,
@@ -170,6 +174,21 @@ export interface ScriptDebugTarget {
     readonly context: ScriptContextId;
 }
 
+/**
+ * The interpreter steps the jobs of one tick may take together. A step is a fixed amount of
+ * interpreter work, so a replay advances every job as far
+ * ([ADR 0021](../../../../docs/adr/0021-the-script-watchdog-counts-steps.md)), and a job that
+ * never ends leaves the rest of the tick to everything else.
+ */
+export const JOB_STEPS_PER_TICK = 100;
+
+/**
+ * The first tag an event object gets. Event tags count up from here, past every fixed tag in
+ * `TAG`, so a member that tells objects apart by a fixed tag, such as a custom component hook's
+ * `BlockEvent`, never takes an event for one.
+ */
+const EVENT_TAG_START = 1_000_000;
+
 /** How many entity objects a pack holds before the first time the gone ones leave. */
 const ENTITY_PRUNE_START = 256;
 
@@ -210,6 +229,8 @@ interface Subscription {
     readonly signal: SignalName;
     readonly loaded: LoadedPack;
     readonly callback: ScriptHandle;
+    /** The entities an entity event's callback gets, from its `EntityEventOptions`. */
+    readonly filter?: EntityFilter;
 }
 
 /** A system task's callback and the pack that queued it. */
@@ -246,9 +267,10 @@ export class WorldScripts {
     private readonly byContext = new Map<ScriptContextId, LoadedPack>();
     private subscriptions: Subscription[] = [];
     private tasks = new TaskQueue<TaskCallback>();
+    private jobs = new JobQueue<TaskCallback>();
     private readonly lifecycleEvents: AfterEvent[] = [];
     private readonly events = new Map<number, EventData>();
-    private nextEventTag = 1;
+    private nextEventTag = EVENT_TAG_START;
     private privilege: Privilege = 'default';
     private tick = 0;
     private clock: number | undefined;
@@ -348,7 +370,9 @@ export class WorldScripts {
             this.releaseGuards = [
                 this.options.world.guardWeather((intent) => this.weatherGuard(intent)),
                 this.options.world.guardChat((intent) => this.chatGuard(intent)),
-                this.options.world.watchPlayerLeave((player) => this.playerLeaving(player))
+                this.options.world.watchPlayerLeave((player) => this.playerLeaving(player)),
+                this.options.world.guardBlockBreak?.((intent) => this.blockBreakGuard(intent)) ?? (() => {}),
+                this.options.world.guardItemUse?.((intent) => this.itemUseGuard(intent)) ?? (() => {})
             ];
         }
         this.refreshClock();
@@ -405,6 +429,7 @@ export class WorldScripts {
         // scripts' tasks: a test's function and its delays run ahead of every system task.
         this.gametests.step(this.tick);
         this.options.world.simulatedPlayers?.tick();
+        this.runJobsOfTick();
         const withinBudget = (): boolean => this.tickEntries < this.tickBudget();
         for (;;) {
             let work = this.runV2Jobs();
@@ -501,6 +526,8 @@ export class WorldScripts {
         this.custom.free();
         for (const task of this.tasks.drain()) this.engine.free(task.callback.callback);
         this.tasks = new TaskQueue();
+        this.jobs.dispose((job) => this.engine.free(job.callback));
+        this.jobs = new JobQueue();
         for (const subscription of this.subscriptions) this.engine.free(subscription.callback);
         this.subscriptions = [];
         // Tests belong to the packs that registered them; a reload registers them again.
@@ -585,8 +612,18 @@ export class WorldScripts {
                 const task = this.tasks.clear(id);
                 if (task !== undefined) engine.free(task.callback.callback);
             },
-            subscribe: (signal, callback) =>
-                this.subscriptions.push({ signal, loaded: self(), callback: engine.duplicate(callback) }),
+            runJob: (generator) => this.jobs.add({ loaded: self(), callback: engine.duplicate(generator) }),
+            clearJob: (id) => {
+                const job = this.jobs.clear(id);
+                if (job !== undefined) engine.free(job.callback);
+            },
+            subscribe: (signal, callback, filter) =>
+                this.subscriptions.push({
+                    signal,
+                    loaded: self(),
+                    callback: engine.duplicate(callback),
+                    ...(filter === undefined ? {} : { filter })
+                }),
             unsubscribe: (signal, callback) => this.unsubscribe(signal, self(), callback),
             world: this.options.world,
             instance: (className, tag, state) => this.instance(self(), className, tag, state),
@@ -851,9 +888,15 @@ export class WorldScripts {
      * event object made in its own pack. One that an earlier callback unsubscribed is skipped, as
      * its handle is already freed.
      */
-    private dispatch(signal: SignalName, privilege: Privilege, event: (loaded: LoadedPack) => ScriptHandle): void {
+    private dispatch(
+        signal: SignalName,
+        privilege: Privilege,
+        event: (loaded: LoadedPack) => ScriptHandle,
+        entity?: EntityKey
+    ): void {
         for (const subscription of this.subscriptions.filter((each) => each.signal === signal)) {
             if (!this.subscriptions.includes(subscription)) continue;
+            if (entity !== undefined && !passesFilter(subscription.filter, entity)) continue;
             const made = event(subscription.loaded);
             this.invoke(subscription.loaded, subscription.callback, privilege, [made]);
             this.engine.free(made);
@@ -908,17 +951,35 @@ export class WorldScripts {
                 cause: event.cause
             });
         } else if (event.type === 'entityHurt') {
-            this.dispatchWith('EntityHurtAfterEventSignal', 'EntityHurtAfterEvent', {
-                kind: 'entityHurt',
-                entity: event.entity,
-                damage: event.damage,
-                source: event.source
-            });
+            this.dispatchWith(
+                'EntityHurtAfterEventSignal',
+                'EntityHurtAfterEvent',
+                { kind: 'entityHurt', entity: event.entity, damage: event.damage, source: event.source },
+                event.entity
+            );
         } else if (event.type === 'entityDie') {
-            this.dispatchWith('EntityDieAfterEventSignal', 'EntityDieAfterEvent', {
-                kind: 'entityDie',
-                entity: event.entity,
-                source: event.source
+            this.dispatchWith(
+                'EntityDieAfterEventSignal',
+                'EntityDieAfterEvent',
+                { kind: 'entityDie', entity: event.entity, source: event.source },
+                event.entity
+            );
+        } else if (event.type === 'itemUse') {
+            this.dispatchWith('ItemUseAfterEventSignal', 'ItemUseAfterEvent', {
+                kind: 'itemUse',
+                cancel: false,
+                player: event.player,
+                item: event.item
+            });
+        } else if (event.type === 'playerBreakBlock') {
+            const { dimension, x, y, z } = event.block;
+            this.dispatchWith('PlayerBreakBlockAfterEventSignal', 'PlayerBreakBlockAfterEvent', {
+                kind: 'blockBreakAfter',
+                player: event.player,
+                block: { dimension, x, y, z },
+                broken: event.brokenBlockPermutation,
+                ...(event.itemBefore === undefined ? {} : { itemBefore: event.itemBefore }),
+                ...(event.itemAfter === undefined ? {} : { itemAfter: event.itemAfter })
             });
         } else {
             const tag = this.addEvent({
@@ -936,11 +997,14 @@ export class WorldScripts {
         }
     }
 
-    /** Sends an after-event whose object reads `data`, to every subscriber of its signal. */
-    private dispatchWith(signal: SignalName, className: string, data: EventData): void {
+    /**
+     * Sends an after-event whose object reads `data`, to every subscriber of its signal.
+     * @param entity - The entity the event is about, which a subscriber's `EntityEventOptions` may leave out.
+     */
+    private dispatchWith(signal: SignalName, className: string, data: EventData, entity?: EntityKey): void {
         if (!this.subscriptions.some((each) => each.signal === signal)) return;
         const tag = this.addEvent(data);
-        this.dispatch(signal, 'default', (loaded) => this.create(loaded, className, tag));
+        this.dispatch(signal, 'default', (loaded) => this.create(loaded, className, tag), entity);
         this.events.delete(tag);
     }
 
@@ -995,6 +1059,46 @@ export class WorldScripts {
         );
         this.events.delete(tag);
         return { veto: data.cancel };
+    }
+
+    /** The block breaking action's scripting guard: `world.beforeEvents.playerBreakBlock`. */
+    private blockBreakGuard(intent: BlockBreakIntent): VetoVerdict {
+        const signal = 'PlayerBreakBlockBeforeEventSignal';
+        if (this.stopped || !this.subscriptions.some((each) => each.signal === signal)) return { veto: false };
+        this.refreshClock();
+        const { dimension, x, y, z } = intent.block;
+        const data: EventData = {
+            kind: 'blockBreakBefore',
+            cancel: false,
+            player: intent.player,
+            block: { dimension, x, y, z },
+            item: intent.item
+        };
+        return { veto: this.dispatchBefore(signal, 'PlayerBreakBlockBeforeEvent', data) };
+    }
+
+    /** The item use action's scripting guard: `world.beforeEvents.itemUse`. */
+    private itemUseGuard(intent: ItemUseIntent): VetoVerdict {
+        const signal = 'ItemUseBeforeEventSignal';
+        if (this.stopped || !this.subscriptions.some((each) => each.signal === signal)) return { veto: false };
+        this.refreshClock();
+        const data: EventData = { kind: 'itemUse', cancel: false, player: intent.player, item: intent.item };
+        return { veto: this.dispatchBefore(signal, 'ItemUseBeforeEvent', data) };
+    }
+
+    /**
+     * Sends a before-event whose object reads and writes `data`, in restricted execution.
+     * @returns Whether a script canceled it.
+     */
+    private dispatchBefore(
+        signal: SignalName,
+        className: string,
+        data: EventData & { readonly cancel: boolean }
+    ): boolean {
+        const tag = this.addEvent(data);
+        this.dispatch(signal, 'restricted_execution', (loaded) => this.create(loaded, className, tag));
+        this.events.delete(tag);
+        return data.cancel;
     }
 
     /**
@@ -1402,6 +1506,47 @@ export class WorldScripts {
             this.stopped = true;
             this.options.onShutdown?.(kind);
         }
+    }
+
+    /**
+     * Advances the `system.runJob` jobs one tick, within {@link JOB_STEPS_PER_TICK}, each step
+     * followed by the promise jobs of version 2 packs.
+     */
+    private runJobsOfTick(): void {
+        if (this.jobs.size === 0) return;
+        const start = this.engine.stats().tickSteps;
+        this.jobs.run(
+            (job) => this.stepJob(job),
+            () => !this.stopped && this.engine.stats().tickSteps - start < JOB_STEPS_PER_TICK,
+            (job) => this.engine.free(job.callback)
+        );
+    }
+
+    /** Calls a job's `next()` once, in its pack's context. A job that throws is logged and over. */
+    private stepJob({ loaded, callback }: TaskCallback): JobStep {
+        if (this.stopped) return 'done';
+        this.lastEntered = loaded;
+        let step: JobStep = 'done';
+        this.withPrivilege('default', () =>
+            this.guarded(loaded, () => {
+                const result = this.engine.inContext(loaded.context, () => {
+                    const next = this.engine.get(callback, 'next');
+                    try {
+                        if (!(next instanceof ScriptHandle)) return undefined;
+                        return this.engine.call(next, callback);
+                    } finally {
+                        if (next instanceof ScriptHandle) this.engine.free(next);
+                    }
+                });
+                if (!(result instanceof ScriptHandle)) return;
+                const done = this.engine.get(result, 'done');
+                this.engine.free(result);
+                if (done instanceof ScriptHandle) this.engine.free(done);
+                step = done === true ? 'done' : 'more';
+            })
+        );
+        this.runV2Jobs();
+        return step;
     }
 
     /** Runs a pack's promise jobs until none is left. */

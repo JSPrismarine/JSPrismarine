@@ -347,7 +347,8 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         );
         for (let tick = 0; tick < 2; tick++) scripts.flush();
         expect(critical).toEqual(['Hang']);
-        expect(world.guardCount()).toBe(2);
+        // The weather, chat, block break and item use guards.
+        expect(world.guardCount()).toBe(4);
 
         scripts.shutdown();
 

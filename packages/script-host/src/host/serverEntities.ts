@@ -17,12 +17,14 @@ import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
 import type { EntityAccess, EntityKey } from './serverObjects';
 import {
+    blockKeyOf,
     COMMON,
     entityKeyOf,
     gameModeOf,
     invalidEntity,
     itemOf,
     itemState,
+    namesBlock,
     plainError,
     readMessage,
     SERVER,
@@ -178,6 +180,7 @@ const stacksWith = (a: ScriptItem, b: ScriptItem): boolean =>
     a.typeId === b.typeId &&
     a.nameTag === b.nameTag &&
     JSON.stringify(a.lore ?? []) === JSON.stringify(b.lore ?? []) &&
+    (a.damage ?? 0) === (b.damage ?? 0) &&
     (a.dynamicProperties?.size ?? 0) === 0 &&
     (b.dynamicProperties?.size ?? 0) === 0;
 
@@ -346,7 +349,8 @@ export const implementEntities = (implementations: ScriptApiImplementations, hos
             JSON.stringify(viewDirection(live(call, 'call', 'getViewDirection').rotation ?? { x: 0, y: 0 }))
         )
         .implement(SERVER, 'Entity', 'isSneaking', {
-            get: (call) => live(call, 'get', 'isSneaking').sneaking === true
+            get: (call) => live(call, 'get', 'isSneaking').sneaking === true,
+            set: (call) => world.setSneaking?.(live(call, 'set', 'isSneaking').id, call.args[0] === true)
         })
         .implement(SERVER, 'Entity', 'applyDamage', (call) => {
             const entity = live(call, 'call', 'applyDamage');
@@ -425,15 +429,31 @@ const damageSourceArgument = (call: ScriptCall, options: ScriptValue | undefined
     };
 };
 
-/** The inventory component and its container, both of which name their entity by its key. */
+/**
+ * The inventory components and their container. An entity's names its entity by its key, and a
+ * block's names its block by its position, as the `block-inventory` scenario reads a chest's.
+ */
 const implementInventory = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const { world } = host;
+    /** The slots of the container an object's state names, or undefined once it is gone. */
+    const slotsOf = (state: string): readonly (ScriptItem | null)[] | undefined => {
+        if (!namesBlock(state)) return world.inventory(entityKeyOf(state).id);
+        const block = blockKeyOf(state);
+        return world.blockInventory?.(block.dimension, block);
+    };
+    const writeSlot = (state: string, slot: number, item: ScriptItem | undefined): void => {
+        if (!namesBlock(state)) world.setInventoryItem(entityKeyOf(state).id, slot, item);
+        else {
+            const block = blockKeyOf(state);
+            world.setBlockInventoryItem?.(block.dimension, block, slot, item);
+        }
+    };
     /**
-     * The entity's slots, or BDS's error for a member of a container whose entity is gone: `Failed
-     * to get property 'size'.` for a property and `Failed to call function 'addItem'.` for a method.
+     * The container's slots, or BDS's error for a member of a container that is gone: `Failed to
+     * get property 'size'.` for a property and `Failed to call function 'addItem'.` for a method.
      */
     const slots = (call: ScriptCall, member: string, access: 'get' | 'call' = 'get') => {
-        const found = world.inventory(entityKeyOf(call.state).id);
+        const found = slotsOf(call.state);
         if (found === undefined) {
             throw plainError(`Failed to ${access === 'get' ? 'get property' : 'call function'} '${member}'.`);
         }
@@ -450,10 +470,25 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
 
     implementations
         .implement(SERVER, 'Component', 'typeId', {
-            get: (call) => (call.tag === TAG.inventory ? 'minecraft:inventory' : '')
+            get: (call) =>
+                call.tag === TAG.inventory || call.tag === TAG.blockInventory
+                    ? 'minecraft:inventory'
+                    : call.tag === TAG.durability
+                      ? 'minecraft:durability'
+                      : ''
         })
         .implement(SERVER, 'Component', 'isValid', {
-            get: (call) => world.entity(entityKeyOf(call.state).id) !== undefined
+            get: (call) => {
+                if (call.tag === TAG.durability) return true;
+                if (call.tag === TAG.blockInventory) return slotsOf(call.state) !== undefined;
+                return world.entity(entityKeyOf(call.state).id) !== undefined;
+            }
+        })
+        .implement(SERVER, 'BlockInventoryComponent', 'container', {
+            get: (call) => {
+                if (slotsOf(call.state) === undefined) throw plainError("Failed to get property 'container'.");
+                return host.engine.release(host.create('Container', TAG.container, call.state));
+            }
         })
         .implement(SERVER, 'EntityInventoryComponent', 'container', {
             get: (call) => {
@@ -463,9 +498,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
                 return host.engine.release(host.create('Container', TAG.container, call.state));
             }
         })
-        .implement(SERVER, 'Container', 'isValid', {
-            get: (call) => world.inventory(entityKeyOf(call.state).id) !== undefined
-        })
+        .implement(SERVER, 'Container', 'isValid', { get: (call) => slotsOf(call.state) !== undefined })
         .implement(SERVER, 'Container', 'size', { get: (call) => slots(call, 'size').length })
         .implement(SERVER, 'Container', 'emptySlotsCount', {
             get: (call) => slots(call, 'emptySlotsCount').filter((slot) => slot === null).length
@@ -483,8 +516,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
             const item = itemOf(call.stateOf(stack));
             const most = world.itemType(item.typeId)?.maxStackSize ?? item.amount;
             const { writes, left } = placeItem(all, item, Math.max(1, most));
-            const id = entityKeyOf(call.state).id;
-            for (const [slot, written] of writes) world.setInventoryItem(id, slot, written);
+            for (const [slot, written] of writes) writeSlot(call.state, slot, written);
             if (left <= 0) return undefined;
             return host.engine.release(host.create('ItemStack', TAG.itemStack, itemState({ ...item, amount: left })));
         })
@@ -493,7 +525,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
             const slot = slotArgument(call, all.length);
             const stack = call.args[1];
             const item = stack instanceof ScriptHandle ? itemOf(call.stateOf(stack)) : undefined;
-            world.setInventoryItem(entityKeyOf(call.state).id, slot, item);
+            writeSlot(call.state, slot, item);
             return undefined;
         });
 };

@@ -36,6 +36,8 @@ const HOST: PackHost = {
     currentTick: unreachable,
     schedule: unreachable,
     clearRun: unreachable,
+    runJob: unreachable,
+    clearJob: unreachable,
     subscribe: unreachable,
     unsubscribe: unreachable,
     instance: unreachable,
