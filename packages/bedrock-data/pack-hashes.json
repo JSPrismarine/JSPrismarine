@@ -54,18 +54,18 @@
         }
     },
     "bedrock-samples": {
-        "version": "v1.26.50.4",
+        "version": "v1.26.60.5",
         "entries": {
             ".github": "9e53b9adc7bd587e04c42d6759e7f715e3cad7e6b6a565fcc8063d5cbd69b04c",
             ".gitignore": "4d543c33deebd0bf72554a02c2f286cb48a134a4fa2a8c754a31d9fdeeab910a",
             "CONTRIBUTING.md": "7dd6105e0871bd28be7b87f520b6c44279f72e312ab19b78c154a9ab7b14ee22",
             "LICENSE.md": "ca18c0dede68ce24ea1cd6f9df0813579b6f9f979787983a50baec99345f975d",
             "README.md": "80622dcc831dfcd7fa2c44b524169ec0cfd6e6a0a00a66ff4b30c4b42670a438",
-            "behavior_pack": "8b69ce0e07b85920af5d77451fa271ffd9a1a7b6a1765588f8f641c384a0af7b",
-            "documentation": "615a791549fff4e79da5ceb5605e767424d8df4a7e62931d28463d0efd6879b3",
-            "metadata": "1a277f5c31cd163d12011473b9357c124493695bf4069610b59e60b1f66b86ca",
-            "resource_pack": "5cb622682100aa904ac2837571e236f78dce1daa9aa01d41922790c3f69dca10",
-            "version.json": "87d10cc94dad2eb95aba526812739a4136b2be46efc5b6bf0ee2aef4bedb2d13"
+            "behavior_pack": "cec186af3d2b503f0795ae3112c0312ffaaf472fbee1b2fbd155525f128d0805",
+            "documentation": "0eb3c405640545e36cb107cec8a5b223fec5ea6f08f6821931fb8ccb13b21f5a",
+            "metadata": "18671acfa40c53d66de2cf208a8749652f0a4dfe84483d7fec3edbcc187b8fe6",
+            "resource_pack": "9ac0bb90fd02cfd786c2c94eb3da857196d3064feb4d6e39b7dcfb4e8da9daac",
+            "version.json": "56463def52d8856253790d80c4b6332908292de550949b8af5929e526d15eae7"
         }
     },
     "geyser-mappings": {

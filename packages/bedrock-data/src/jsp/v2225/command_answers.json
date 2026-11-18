@@ -1,0 +1,86 @@
+{
+    "server": "1.26.60.6",
+    "leading": "console",
+    "answers": [
+        {
+            "command": "time set nonsense",
+            "level": "ERROR",
+            "message": "Cannot find time marker 'nonsense' on 'minecraft:overworld'"
+        },
+        {
+            "command": "time set",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"\": at \"/time set>><<\""
+        },
+        {
+            "command": "time nonsense",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"nonsense\": at \"/time >>nonsense<<\""
+        },
+        {
+            "command": "time set 100 extra",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"extra\": at \"e set 100 >>extra<<\""
+        },
+        {
+            "command": "time add abc",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"abc\": at \"/time add >>abc<<\""
+        },
+        {
+            "command": "time   set   nonsense",
+            "level": "ERROR",
+            "message": "Cannot find time marker 'nonsense' on 'minecraft:overworld'"
+        },
+        {
+            "command": "time set 1.5",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"1.5\": at \"/time set >>1.5<<\""
+        },
+        {
+            "command": "time set -5",
+            "level": "ERROR",
+            "message": "Cannot set time to before 0 ticks, the number must be at least 0"
+        },
+        {
+            "command": "time set day",
+            "level": "INFO",
+            "message": "Set the time of 'minecraft:overworld' to 1000"
+        },
+        {
+            "command": "give @s diamond abc",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"abc\": at \"s diamond >>abc<<\""
+        },
+        {
+            "command": "tp ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ x",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"~\": at \"~ ~ ~ ~ ~ >>~<< ~ ~ ~ ~ ~\""
+        },
+        {
+            "command": "gamerule doDaylightCycle notabool",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"notabool\": at \"ightCycle >>notabool<<\""
+        },
+        {
+            "command": "effect @a speed 10 1 notabool",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"notabool\": at \"peed 10 1 >>notabool<<\""
+        },
+        {
+            "command": "setblock 0 0 0 stone [\"a\"=1] replace extra",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"extra\": at \"] replace >>extra<<\""
+        },
+        {
+            "command": "weather clear abc",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"abc\": at \"her clear >>abc<<\""
+        },
+        {
+            "command": "difficulty bogus",
+            "level": "ERROR",
+            "message": "Syntax error: Unexpected \"bogus\": at \"ifficulty >>bogus<<\""
+        }
+    ]
+}

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import BinaryStream from '@jsprismarine/binaryutils';
@@ -6,8 +6,11 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-/** The golden itself, rather than the copy `utils/build.js` bakes into the package. */
-const jigsaw_structure_data = readFileSync(join(import.meta.dirname, 'jsp/v2193/jigsaw_structure_data.nbt'));
+/** Every committed golden itself, by version, rather than the copy `utils/build.js` bakes into the package. */
+const goldens = readdirSync(join(import.meta.dirname, 'jsp'))
+    .map((version) => join(import.meta.dirname, 'jsp', version, 'jigsaw_structure_data.nbt'))
+    .filter((file) => existsSync(file))
+    .map((file) => [file.split('/').at(-2)!, readFileSync(file)] as const);
 
 /**
  * Guards the canonical form of the jigsaw golden.
@@ -20,7 +23,7 @@ const jigsaw_structure_data = readFileSync(join(import.meta.dirname, 'jsp/v2193/
  * from a capture that skipped the sort.
  */
 
-const parse = (): NBTTagCompound => {
+const parse = (jigsaw_structure_data: Buffer): NBTTagCompound => {
     const stream = new BinaryStream(jigsaw_structure_data);
     const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
     reader.setUseVarint(true);
@@ -34,9 +37,13 @@ const identifierOf = (entry: NBTTagCompound): string =>
     entry.getCompound('description', false)?.getString('identifier', '') ?? '';
 
 describe('bedrock-data', () => {
-    describe('jigsaw_structure_data', () => {
-        it('carries the four registries a 2193 client reads', () => {
-            expect(registries(parse()).map(([name]) => name)).toEqual([
+    describe.each(goldens)('jigsaw_structure_data at %s', (_version, jigsaw_structure_data) => {
+        it('is captured for the two releases at least', () => {
+            expect(goldens.map(([version]) => version)).toEqual(expect.arrayContaining(['v2193', 'v2225']));
+        });
+
+        it('carries the four registries a client reads', () => {
+            expect(registries(parse(jigsaw_structure_data)).map(([name]) => name)).toEqual([
                 'jigsaws',
                 'processors',
                 'structure_sets',
@@ -45,13 +52,13 @@ describe('bedrock-data', () => {
         });
 
         it('names every entry, so nothing in it is found by position', () => {
-            for (const [name, registry] of registries(parse())) {
+            for (const [name, registry] of registries(parse(jigsaw_structure_data))) {
                 for (const entry of registry) expect(identifierOf(entry), `an entry of ${name}`).not.toBe('');
             }
         });
 
         it('lists every registry in identifier order', () => {
-            for (const [name, registry] of registries(parse())) {
+            for (const [name, registry] of registries(parse(jigsaw_structure_data))) {
                 const identifiers = [...registry].map(identifierOf);
                 expect(identifiers, name).toEqual([...identifiers].sort((a, b) => a.localeCompare(b)));
             }
@@ -63,7 +70,7 @@ describe('bedrock-data', () => {
             const out = new BinaryStream();
             const writer = new NBTWriter(out, ByteOrder.LITTLE_ENDIAN);
             writer.setUseVarint(true);
-            writer.writeCompound(parse());
+            writer.writeCompound(parse(jigsaw_structure_data));
 
             expect(out.getBuffer().equals(jigsaw_structure_data)).toBe(true);
         });

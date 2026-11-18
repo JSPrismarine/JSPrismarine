@@ -41,9 +41,13 @@ const capturedProtocolVersions = fs
  * Binary payloads, turned into JSON so that a bundler can carry them.
  *
  * Each becomes `src/generated/<name>.json` holding the bytes as base64, which `src/index.ts`
- * hands back as a Buffer. A `.nbt` or `.dat` file cannot be an import on its own.
+ * hands back as a Buffer. A `.nbt` or `.dat` file cannot be an import on its own. Each entry
+ * pairs the capture with the file it becomes.
  */
-const files = [`${jsp}/jigsaw_structure_data.nbt`, `${jsp}/biome_definitions_network.nbt`];
+const files = [
+    { source: `${jsp}/jigsaw_structure_data.nbt`, directory: '' },
+    { source: `${jsp}/biome_definitions_network.nbt`, directory: '' }
+];
 
 const force = process.argv.includes('--force');
 
@@ -96,30 +100,25 @@ const requireSource = (file) => {
 const wireFile = (directory, id) => `${directory}/wire/0x${id.toString(16).padStart(2, '0')}.bin`;
 
 /**
- * The same conversion for every other captured version, under `src/generated/v<protocol>/`.
+ * The same conversion for every captured version, the default included, under
+ * `src/generated/v<protocol>/`, so a session of any version reads its own module whichever one
+ * is the default.
  *
  * Only the payloads that version actually captured: a capture directory is written a file at
  * a time, and a version whose jigsaw rules have not been captured yet should be missing that
  * one export rather than silently carrying another version's bytes.
  */
 for (const protocolVersion of capturedProtocolVersions) {
-    if (protocolVersion === defaultProtocolVersion) continue;
-
     for (const name of ['jigsaw_structure_data.nbt', 'biome_definitions_network.nbt']) {
-        const source = path.resolve('src/jsp', `v${protocolVersion}`, name);
-        if (fs.existsSync(source)) files.push(path.join('jsp', `v${protocolVersion}`, name));
+        const source = path.join('jsp', `v${protocolVersion}`, name);
+        if (fs.existsSync(path.resolve('src', source))) files.push({ source, directory: `v${protocolVersion}` });
     }
 }
 
-for (const file of files) {
+for (const { source: file, directory } of files) {
     const filename = path.basename(file);
 
     const source = requireSource(file);
-    // A version's payloads land beside its item table; the default version's keep the
-    // unversioned path every consumer already imports.
-    const versionDirectory = file.match(/^jsp[/\\](v\d+)[/\\]/)?.[1];
-    const directory =
-        versionDirectory === undefined || versionDirectory === `v${defaultProtocolVersion}` ? '' : versionDirectory;
     const target = path.resolve('src/generated', directory, `${filename.split('.').slice(0, -1).join('.')}.json`);
 
     if (!force && isUpToDate(source, target)) {
@@ -140,17 +139,19 @@ for (const file of files) {
 // The actor list, as `AvailableActorIdentifiersPacket` carried it. A server replays the payload
 // verbatim, so it is copied as it came, once it is known to be the one compound it should be.
 // Each captured version gets its own, beside its item table: a release adds actor types, and a
-// session given another version's list cannot be told about them.
+// session given another version's list cannot be told about them. The default version's is also
+// written to the unversioned path.
 for (const protocolVersion of capturedProtocolVersions) {
-    const isDefault = protocolVersion === defaultProtocolVersion;
     const actorSource = requireSource(wireFile(`jsp/v${protocolVersion}`, JOIN_PACKET_IDS.availableActorIdentifiers));
-    const directory = isDefault ? '' : `v${protocolVersion}`;
-    const actorTarget = path.resolve('src/generated', directory, 'entity_identifiers.json');
-    if (force || !isUpToDate(actorSource, actorTarget)) {
-        console.log(`Generating ${path.join(directory, 'entity_identifiers.json')}...`);
-        const data = assertActorIdentifiers(fs.readFileSync(actorSource)).toString('base64');
-        fs.mkdirSync(path.dirname(actorTarget), { recursive: true });
-        fs.writeFileSync(actorTarget, JSON.stringify({ data }, null, 0));
+    const directories = [`v${protocolVersion}`, ...(protocolVersion === defaultProtocolVersion ? [''] : [])];
+    for (const directory of directories) {
+        const actorTarget = path.resolve('src/generated', directory, 'entity_identifiers.json');
+        if (force || !isUpToDate(actorSource, actorTarget)) {
+            console.log(`Generating ${path.join(directory, 'entity_identifiers.json')}...`);
+            const data = assertActorIdentifiers(fs.readFileSync(actorSource)).toString('base64');
+            fs.mkdirSync(path.dirname(actorTarget), { recursive: true });
+            fs.writeFileSync(actorTarget, JSON.stringify({ data }, null, 0));
+        }
     }
 }
 
@@ -336,15 +337,14 @@ if (force || !isUpToDate([itemListSource, registrySource], itemTableTarget)) {
 }
 
 /**
- * The same table for every other captured version, under `src/generated/v<protocol>/`.
+ * The same table for every captured version, the default included, under
+ * `src/generated/v<protocol>/`.
  *
  * The item registry is server-authoritative - the client adopts the numbering it is sent - so
- * these are not a drop-in replacement for the default table; they are what a session speaking
- * that protocol has to send to match what vanilla of that version sends.
+ * these are not interchangeable; each is what a session speaking that protocol has to send to
+ * match what vanilla of that version sends.
  */
 for (const protocolVersion of capturedProtocolVersions) {
-    if (protocolVersion === defaultProtocolVersion) continue;
-
     const directory = `jsp/v${protocolVersion}`;
     const itemList = requireSource(`${directory}/required_item_list.json`);
     const registry = requireSource(wireFile(directory, JOIN_PACKET_IDS.itemRegistry));

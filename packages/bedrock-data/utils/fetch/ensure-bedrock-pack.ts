@@ -21,22 +21,26 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { bedrockSamplesCacheFolder, defaultBdsCacheFolder } from '../../src/sources.ts';
 import { cacheRoot, packageDir } from './paths.ts';
 import { fetchSource } from './fetch.ts';
 import { bdsDescriptor, loadBdsData, loadSourceDescriptors } from './manifest.ts';
 
-/** The cache folders that hold each half of the pack, in the layouts the server's pack stack reads. */
-const versions = (directory: string): string[] => (existsSync(directory) ? readdirSync(directory) : []);
-
+/**
+ * Whether the pinned version of each half is cached, in the layouts the server's pack stack
+ * reads. Another version in the cache does not count: the server prefers the pinned one, and a
+ * checkout that fetched the previous pin would otherwise keep running the previous release.
+ */
 const bdsCached = (root: string): boolean =>
-    versions(join(root, 'bds')).some((version) => existsSync(join(root, 'bds', version, 'unpacked', 'behavior_packs')));
+    existsSync(join(root, 'bds', defaultBdsCacheFolder, 'unpacked', 'behavior_packs'));
 
-const samplesCached = (root: string): boolean =>
-    versions(join(root, 'bedrock-samples')).some((version) =>
-        versions(join(root, 'bedrock-samples', version, 'unpacked')).some((checkout) =>
-            existsSync(join(root, 'bedrock-samples', version, 'unpacked', checkout, 'behavior_pack', 'entities'))
-        )
+const samplesCached = (root: string): boolean => {
+    const unpacked = join(root, 'bedrock-samples', bedrockSamplesCacheFolder, 'unpacked');
+    return (
+        existsSync(unpacked) &&
+        readdirSync(unpacked).some((checkout) => existsSync(join(unpacked, checkout, 'behavior_pack', 'entities')))
     );
+};
 
 const override = process.env.JSP_VANILLA_BEHAVIOR_PACK;
 if (override !== undefined && override !== '') {

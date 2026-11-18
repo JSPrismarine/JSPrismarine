@@ -28,7 +28,8 @@
             "editing this file. Each entry caches under",
             "`node_modules/.cache/jsprismarine/bds/v<protocol>/`, so several versions coexist.",
             "`--protocol <n>` on `fetch:sources` and `dump:bedrock` selects one and",
-            "`defaultProtocolVersion` is used when nothing asks. These are ~95 MB each, so",
+            "`defaultProtocolVersion` is used when nothing asks; it is the newest release, the",
+            "version the server advertises. These are ~95 MB each, so",
             "`fetch:sources` downloads only the selected version rather than every pinned one.",
             "",
             "Mojang publishes no checksum beyond a content-md5 header, so each `sha256` was",
@@ -41,7 +42,7 @@
             "`minecraftVersion` is the game version the protocol belongs to; `serverVersion` is",
             "the BDS build number, which carries an extra component and moves independently."
         ],
-        "defaultProtocolVersion": 2193,
+        "defaultProtocolVersion": 2225,
         "versions": {
             "2193": {
                 "minecraftVersion": "1.26.51",
@@ -82,13 +83,14 @@
             "Mojang/bedrock-samples, the plain-JSON publication of the vanilla packs plus the",
             "`metadata/vanilladata_modules` files. Read for the 23 items, the item catalog, the",
             "shapes and the trade tables the BDS zip stores as undocumented binary MCB. Pinned",
-            "to the commit of the newest release tag; there is no v1.26.51 tag."
+            "to the commit of the release tag matching the default BDS. The archive hash was",
+            "measured from codeload on 2026-11-18, twice, with the same result."
         ],
         "repo": "Mojang/bedrock-samples",
-        "tag": "v1.26.50.4",
-        "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
-        "url": "https://codeload.github.com/Mojang/bedrock-samples/zip/46ba6ea985fb5a92d79a9419198f10dda14c199d",
-        "sha256": "62859463a2a4c430a70a6f396d89a2a596ae84d4569421f89bd10a3a8f426718"
+        "tag": "v1.26.60.5",
+        "commit": "15701fa9c13923f12662984c32c124327e40e3d3",
+        "url": "https://codeload.github.com/Mojang/bedrock-samples/zip/15701fa9c13923f12662984c32c124327e40e3d3",
+        "sha256": "79d3f0f25569cdcda48014d8393f9cc2ae9527c0a6ece459821cfcd9eb442dc9"
     },
     "javaServer": {
         "$comment": [

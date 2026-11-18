@@ -30,8 +30,9 @@ export interface ItemTypeEntry {
  * The authority on the mapping - the client builds its registry from what we send, so
  * everything naming an item has to agree with this one file.
  *
- * Captured from a Bedrock Dedicated Server 1.26.51.1, not taken from a third party: the
- * server sends it as `ItemRegistryPacket`, so a client that can log in can simply record it.
+ * Captured from the Bedrock Dedicated Server `sources.json` names as the default, not taken from
+ * a third party: the server sends it as `ItemRegistryPacket`, so a client that can log in can
+ * simply record it. Each protocol version's own table is in its `v<protocol>` module.
  * `packages/client/tools/capture-server-data.mjs` is that client, and its output is
  * `jsp/v<protocol>/required_item_list.json`.
  *
@@ -119,14 +120,14 @@ export const entity_identifiers: Buffer = toBuffer(entity_identifiers_data);
 
 /**
  * The jigsaw structure rules, as `JigsawStructureDataPacket` carries them: one network NBT
- * compound, the payload of the packet a Bedrock Dedicated Server 1.26.51.1 sent. A client at
- * protocol 2193 refuses to join a server that has not sent this before `StartGamePacket`.
+ * compound, the payload of the packet the default version's Bedrock Dedicated Server sent. A
+ * client refuses to join a server that has not sent this before `StartGamePacket`.
  */
 export const jigsaw_structure_data: Buffer = toBuffer(jigsaw_structure_data_data);
 
 /**
- * The vanilla biome definitions, as `BiomeDefinitionListPacket` carries them at protocol 2193:
- * the whole payload of the packet a Bedrock Dedicated Server 1.26.51.1 sends, replayed verbatim.
+ * The vanilla biome definitions, as `BiomeDefinitionListPacket` carries them: the whole payload
+ * of the packet the default version's Bedrock Dedicated Server sends, replayed verbatim.
  *
  * At 1.26.x the packet became a map of biome data plus a shared string table the entries index
  * into. An empty one is no longer enough - a client reaches the world-generation screen with no
