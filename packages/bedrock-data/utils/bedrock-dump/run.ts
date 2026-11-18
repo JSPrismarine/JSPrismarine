@@ -426,6 +426,8 @@ const runPalettePass = async (): Promise<void> => {
         'every block type to be placed',
         TIMEOUTS.dump
     );
+    const area = placeLines.find((line) => line.includes('PALETTE AREA '))?.trim();
+    if (area !== undefined) console.log(`  ${area}`);
     const summary = placeLines.find((line) => line.includes('PALETTE PLACED '))?.trim();
     console.log(`  ${summary ?? 'PALETTE PLACED (not reported)'}`);
 

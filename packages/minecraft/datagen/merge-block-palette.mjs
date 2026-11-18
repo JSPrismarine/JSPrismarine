@@ -11,9 +11,9 @@
  * for the block and the values it accepts. `README-palette.md` says how both are made.
  *
  * The merge checks what it can: every block the world saved must have been described by the
- * game, every network property must have a domain, and a block the game describes that the
- * world never saved is reported - it is a block the first pass lost, and the catalog is
- * short by one until it is placed somewhere it can stand.
+ * game, every network property must have a domain, and every block the game describes must
+ * have been saved by the world. A block missing from the save is one the first pass lost, and
+ * the merge writes nothing rather than a catalog short by it.
  */
 
 import fs from 'node:fs';
@@ -57,12 +57,17 @@ if (missingDomains.length > 0) {
     throw new Error(`The world saved blocks the game did not describe: ${missingDomains.join(', ')}`);
 }
 
+// A short capture is refused rather than written. Under load the placement once ran before its
+// area had loaded and the world saved no blocks at all, and a warning here still let the pass
+// write a golden of 0 or 413 blocks and exit 0.
 const missingStates = Object.keys(domains).filter((name) => !(name in states));
 if (missingStates.length > 0) {
-    console.warn(
+    console.error(
         `The game describes ${missingStates.length} block(s) the world never saved - the first pass lost them:`
     );
-    for (const name of missingStates) console.warn(`  ${name}`);
+    for (const name of missingStates) console.error(`  ${name}`);
+    console.error(`Nothing was written. Run the palette pass again, or see datagen/README-palette.md.`);
+    process.exit(1);
 }
 
 for (const [name, properties] of Object.entries(states)) {

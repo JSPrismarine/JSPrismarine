@@ -43,9 +43,18 @@ const Y = 100;
 const SIDE = 40;
 const ORIGIN = -20;
 
-/** Ticks to wait: one for the world to exist, one for the ticking area to have loaded. */
+/** Ticks to wait for the world to exist before adding the ticking area. */
 const BEFORE_AREA = 40;
-const BEFORE_PLACING = 200;
+
+/**
+ * How often to look whether the ticking area has loaded, and how long to keep looking.
+ *
+ * A fixed wait is not enough: on a busy host the area had not loaded after 200 ticks, every
+ * `getBlock` came back undefined, and the save held no blocks at all. So the placement waits
+ * until every chunk of the area answers, and gives up only after this long.
+ */
+const LOAD_POLL = 20;
+const LOAD_LIMIT = 6000;
 
 /** The settings, each a strip of rows south of the previous one. */
 const SETTINGS = [
@@ -77,7 +86,56 @@ system.runTimeout(() => {
     }
 }, BEFORE_AREA);
 
-system.runTimeout(() => {
+/** The area the placement writes to, floors and margins included. */
+const area = () => ({
+    minX: ORIGIN - 1,
+    maxX: ORIGIN + SIDE,
+    minZ: ORIGIN - 1,
+    maxZ: ORIGIN + SETTINGS.reduce((sum, setting) => sum + rows(setting), 0)
+});
+
+/** Whether the block at a position can be read, which it cannot in a chunk that has not loaded. */
+const readable = (dimension, location) => {
+    try {
+        return dimension.getBlock(location) !== undefined;
+    } catch {
+        return false;
+    }
+};
+
+/** Whether every chunk the placement writes to has loaded. */
+const loaded = (dimension) => {
+    const { minX, maxX, minZ, maxZ } = area();
+    // One position per chunk, plus the far edges, which a step of 16 can stop short of.
+    const xs = [];
+    for (let x = minX; x < maxX; x += 16) xs.push(x);
+    xs.push(maxX);
+    const zs = [];
+    for (let z = minZ; z < maxZ; z += 16) zs.push(z);
+    zs.push(maxZ);
+    return xs.every((x) => zs.every((z) => readable(dimension, { x, y: Y, z })));
+};
+
+const waitForArea = () => {
+    const overworld = world.getDimension('overworld');
+    let waited = 0;
+    const poll = system.runInterval(() => {
+        waited += LOAD_POLL;
+        if (loaded(overworld)) {
+            system.clearRun(poll);
+            line(`AREA loaded after ${waited} ticks`);
+            place();
+        } else if (waited >= LOAD_LIMIT) {
+            system.clearRun(poll);
+            // Placing anyway reports every type as failed, and the merge refuses the short
+            // capture that leaves, which is the error somebody should see.
+            line(`AREA not loaded after ${waited} ticks`);
+            place();
+        }
+    }, LOAD_POLL);
+};
+
+const place = () => {
     const overworld = world.getDimension('overworld');
     const types = BlockTypes.getAll();
     let placed = 0;
@@ -124,4 +182,6 @@ system.runTimeout(() => {
     }
 
     line(`PLACED ok=${placed} failed=${failed} types=${types.length}`);
-}, BEFORE_PLACING);
+};
+
+system.runTimeout(waitForArea, BEFORE_AREA + LOAD_POLL);

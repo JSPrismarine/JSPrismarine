@@ -56,7 +56,9 @@ it is staging and enables the pack for a fresh world, so neither the manifest no
    where it cannot stand pops before the save and is then simply missing from the catalog;
    seventeen went missing that way once and seven another time, and which ones depended on the
    tick order. With the four settings, 1.26.51 captured all 1477 of its block types. The
-   `PALETTE PLACED ok=… types=…` line the job echoes counts placements and types.
+   script places nothing until every chunk of its ticking area has loaded, and logs
+   `PALETTE AREA loaded after … ticks` when it starts. The `PALETTE PLACED ok=… types=…` line
+   the job echoes counts placements and types.
 
 2. **`extract-block-palette.mjs`** reads the palettes back out of the save. The number of
    distinct names it finds should equal `types=` from the first run. If it is short, some blocks
@@ -66,9 +68,9 @@ it is staging and enables the pack for a fresh world, so neither the manifest no
    per block type: every property the game knows for that block, and the values it accepts.
 
 4. **`merge-block-palette.mjs`** joins the two halves into the snapshot. It refuses a block the
-   world saved that the game did not describe, and a network property the game has no values
-   for. It warns about a block the game describes that the world never saved, which means the
-   first run lost one.
+   world saved that the game did not describe, a network property the game has no values for,
+   and a block the game describes that the world never saved, which means the first run lost
+   one. In each case it writes nothing and exits with an error.
 
 If you need to run a step by hand — to debug a short catalog, say — each script takes its inputs
 on the command line, and `--pass place` and `--pass domains` are not separately selectable;
