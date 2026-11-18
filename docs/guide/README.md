@@ -34,7 +34,7 @@ Start from what you are here to do.
 
 ## Build add-ons and plugins
 
-- [Extending JSPrismarine](extending.md): packs for content, and embedding the server for code.
+- [Extending JSPrismarine](extending.md): script packs for behavior, packs for content, and embedding the server.
 - [Using packs](../data-driven/using-packs.md): which pack formats load and how a stack composes.
 - [The JSPrismarine script module](jsprismarine-module.md): use JSPrismarine-only features from a
   pack script, and fall back on Bedrock Dedicated Server.

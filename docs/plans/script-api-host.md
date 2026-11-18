@@ -555,8 +555,17 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       outside its pack's context; it now runs in the pack's context.
     - Left: no member that acts on the world yet. A pack feature-tests a member a later version
       adds with `'name' in module`.
-17. [ ] [#3214](https://github.com/JSPrismarine/JSPrismarine/issues/3214) **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
+17. [x] [#3214](https://github.com/JSPrismarine/JSPrismarine/issues/3214) **The docs.** Rewrite [Extending JSPrismarine](../guide/extending.md) around script packs,
     with embedding as the lower-level option.
+    - Done (2026-11-18): the guide opens with script packs: building the script host, installing a
+      pack and BDS's `config/` folder, the Beta APIs experiment, the modules and versions served,
+      how to read the load-time coverage lines, and what replay changes for a script. Packs
+      without scripts and embedding follow, unchanged. The module table, the version a declared
+      major resolves to, the steps per millisecond, the build platforms and the Beta APIs
+      experiment id are docs facts read from `@jsprismarine/script-host` and `prismarine`.
+    - Left: the debugger section says only that support is in progress, until slice 7's VS Code
+      check runs; the page tells readers to build the script host from a checkout until slice 18
+      publishes it.
 18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists. Then drop `"private": true` from `@jsprismarine/script-host` and list it again in the docs site's
     `packageAreas.ts`.
 19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
