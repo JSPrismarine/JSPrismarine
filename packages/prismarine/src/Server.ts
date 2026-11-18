@@ -56,6 +56,7 @@ import { worldSeedOf } from './utils/Seed';
 import { attachProfiler, ServerProfiler } from './profiling/ServerProfiler';
 import { finishStartupPhase, startStartupPhase } from './profiling/startupPhase';
 import ChunkScheduler from './world/ChunkScheduler';
+import { GenerationStopped } from './world/Generator';
 import { RespawnRequests } from './world/RespawnRequests';
 import { WorldMessages } from './world/WorldMessages';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
@@ -132,6 +133,9 @@ export default class Server {
     private readonly chunkScheduler: ChunkScheduler = new ChunkScheduler(undefined, (error, coord) => {
         // Reported rather than thrown: see the comment on the scheduler's own catch. The
         // logger is read when the failure happens, not when this closure is built.
+        // A stopping generator refuses every chunk still queued, and a stopping server has
+        // nobody to send them to; `stop` logged a warning and a stack trace for each one.
+        if (error instanceof GenerationStopped) return;
         const reason = error instanceof Error ? error.message : String(error);
         this.logger.warn(
             coord

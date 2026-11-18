@@ -6,8 +6,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 import { Config } from './config/Config';
+import ChunkSender from './network/ChunkSender';
 import type { Transport } from './network/transport/Transport';
 import { stubRakNetListener } from './testing/rakNetListener.test.helper';
+import { GenerationStopped } from './world/Generator';
 
 stubRakNetListener();
 
@@ -125,6 +127,36 @@ describe('Server', () => {
         }
         // Only the newest is in the MOTD, so only it carries the marker.
         expect(banner.match(/advertised in the MOTD/g)).toHaveLength(1);
+    });
+
+    it('reports a failed chunk send but not one a stopped generator refused', async () => {
+        const logger = new Logger();
+        const warnings: string[] = [];
+        const errors: unknown[] = [];
+        vi.spyOn(logger, 'warn').mockImplementation((message) => void warnings.push(String(message)));
+        vi.spyOn(logger, 'error').mockImplementation((error) => void errors.push(error));
+        const server = new Server({ logger, config: debugConfig('test-world-chunk-failures') });
+
+        const sender = new ChunkSender();
+        sender.enqueue(3, 66);
+        sender.enqueue(4, 66);
+        const broken = new Error('the region file is unreadable');
+        const scheduler = server.getChunkScheduler();
+        scheduler.add({
+            sender,
+            deliver: async (x, z) => {
+                throw x === 3 ? new GenerationStopped(x, z) : broken;
+            },
+            flush: async () => {},
+            isConnected: () => true
+        });
+        await scheduler.tick();
+        await scheduler.close();
+
+        expect(warnings.filter((message) => message.startsWith('Failed to send chunk'))).toEqual([
+            'Failed to send chunk §b4, 66§r: the region file is unreadable'
+        ]);
+        expect(errors).toEqual([broken]);
     });
 
     it('starts and stops without crashing', async () => {
