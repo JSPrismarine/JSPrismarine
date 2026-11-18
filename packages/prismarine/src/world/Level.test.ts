@@ -561,6 +561,30 @@ describe('Level', () => {
             await level.disable();
         });
 
+        it('drops a field the last save left out of the fallback record', async () => {
+            const { level, provider } = buildLevel('player-record-whole');
+            Object.defineProperty(provider, 'writePlayerData', { value: undefined });
+            Object.defineProperty(provider, 'readPlayerData', { value: undefined });
+            await level.enable();
+            const record = {
+                username: 'Steve',
+                gamemode: 'survival',
+                position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 }
+            };
+
+            await level.savePlayerData('Steve', {
+                ...record,
+                spawn: { x: 1, y: 64, z: 1, dimension: 'minecraft:overworld' }
+            });
+            await level.savePlayerData('Steve', record);
+
+            const loaded = await level.getPlayerData('Steve');
+            expect(loaded).toMatchObject(record);
+            expect(loaded).not.toHaveProperty('spawn');
+
+            await level.disable();
+        });
+
         it('reads no record for a key holding NUL, rather than throwing', async () => {
             const { level, provider } = buildLevel('player-key-nul');
             Object.defineProperty(provider, 'readPlayerData', { value: undefined });

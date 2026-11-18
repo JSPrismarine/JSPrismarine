@@ -6,6 +6,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type BaseProvider from './providers/BaseProvider';
+import { isRecord } from '../utils/isRecord';
 import { PLAYER_DATA_FOLDER, playerDataFileName } from './WorldPaths';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
@@ -181,6 +182,12 @@ export class PlayerPersistence {
             const file = this.recordFile(key);
             await fs.promises.mkdir(path.dirname(file), { recursive: true });
             const document = await readJsonFile(file, '{}');
+            // The record is the player's whole state, so a field it leaves out, such as a spawn
+            // point the player no longer has, goes too. The document keeps its comments and schema.
+            const root = document.get([]);
+            for (const field of isRecord(root) ? Object.keys(root) : []) {
+                if (field !== '$schema' && !(field in record)) document.delete([field]);
+            }
             for (const [field, value] of Object.entries(record)) document.set([field], value);
             await writeJsonFile(file, document);
         } catch (error: unknown) {
