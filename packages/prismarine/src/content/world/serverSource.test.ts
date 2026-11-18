@@ -30,6 +30,7 @@ import type { ContentPosition } from './adapter';
 import { serverWorldSource } from './serverSource';
 import { fakeLevel } from '../../testing/level';
 import { QUIET_TICK_HEADER } from '../../testing/tickHeader.test.helper';
+import { testKernel } from '../../testing/kernel.test.helper';
 
 /**
  * The blocks this fixture declares, which are also the whole of its palette.
@@ -161,6 +162,7 @@ const liveWorld = (
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
+            getKernel: () => testKernel(),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
             // An entity reads its hitbox off the built content, and a spawn is what half of
             // these tests are about, so the double answers the same build the world does.

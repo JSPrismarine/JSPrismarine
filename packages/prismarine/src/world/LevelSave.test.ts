@@ -31,6 +31,7 @@ import LevelDB from './providers/leveldb/LevelDB';
 import BaseProvider from './providers/BaseProvider';
 import type { ProviderSavePass } from './providers/SavePass';
 import type { World } from './World';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /**
  * A level's save pass under ADR 0018, counted in batches, keys, encodes and bytes. Nothing here
@@ -70,6 +71,7 @@ afterEach(() => {
 
 const testServer = (): Server => {
     const server: Server = stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),

@@ -22,6 +22,7 @@ import Chunk from '../src/world/chunk/Chunk';
 import LevelDB from '../src/world/providers/leveldb/LevelDB';
 import type { World } from '../src/world/World';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { testKernel } from '../src/testing/kernel.test.helper';
 
 const main = async (): Promise<void> => {
     const savePath = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-entity-only-save-'));
@@ -32,6 +33,7 @@ const main = async (): Promise<void> => {
     const chunkCompletionQueue = new ChunkCompletionQueue();
     let server: Server;
     server = stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () => logger,
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
         getContent: () => entities.content(),

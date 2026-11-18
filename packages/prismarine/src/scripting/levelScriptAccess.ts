@@ -5,7 +5,8 @@
  * Everything leaves as plain data: ids, positions, type ids and states.
  *
  * Entities are found in the level's built worlds by runtime id, which is the id scripts know them
- * by. A player's inventory is their session's; no other entity has one a script can reach yet.
+ * by. A player's inventory is their session's, and any other entity's is the container its
+ * `minecraft:inventory` declares, such as a chest minecart's.
  */
 import type { ScriptLevelAccess } from './LevelScriptWorld';
 import type {
@@ -16,11 +17,16 @@ import type {
     ScriptItem
 } from '@jsprismarine/script-host/host/world';
 
-import { getGametypeId } from '@jsprismarine/minecraft';
+import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
+import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
 import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
+import type { ContentItemDrop } from '../content/world/adapter';
+import { ENTITY_EYE_HEIGHT_FRACTION } from '../entity/data/position';
 import type { StoreActor } from '../entity/data/storeActors';
+import { EYE_HEIGHT } from '../entity/playerEyes';
+import { WindowIds } from '../inventory/WindowIds';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type { Item } from '../item/Item';
 import { maxStackSizeOf } from '../item/Item';
@@ -36,6 +42,7 @@ import {
     dynamicPropertiesToNbt,
     withPropertyWrites
 } from '../world/dynamicProperties';
+import { damageSourceOfScript } from './scriptEntityEvents';
 import { scriptScoreboard } from './scriptScoreboard';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
@@ -49,6 +56,42 @@ const scriptItemOf = (item: Item | null): ScriptItem | null => {
         ...(nameTag === undefined ? {} : { nameTag }),
         ...(lore.length === 0 ? {} : { lore })
     };
+};
+
+/** A container slot's stack as a script reads it, or null for an empty one. */
+const scriptItemOfDrop = (drop: ContentItemDrop | undefined): ScriptItem | null => {
+    if (drop === undefined || drop.identifier === 'minecraft:air' || drop.count <= 0) return null;
+    return {
+        typeId: drop.identifier,
+        amount: drop.count,
+        ...(drop.customName === undefined ? {} : { nameTag: drop.customName }),
+        ...(drop.lore === undefined || drop.lore.length === 0 ? {} : { lore: drop.lore })
+    };
+};
+
+/**
+ * A script's stack as a container slot holds it. A stack the slot already held keeps what a
+ * script cannot see of it, such as its enchantments and durability, when only its count or its
+ * name changed.
+ */
+const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): ContentItemDrop => {
+    const { customName: _name, lore: _lore, ...kept } = held?.identifier === item.typeId ? held : { identifier: '' };
+    return {
+        ...kept,
+        identifier: item.typeId,
+        count: item.amount,
+        ...(item.nameTag === undefined ? {} : { customName: item.nameTag }),
+        ...(item.lore === undefined || item.lore.length === 0 ? {} : { lore: item.lore })
+    };
+};
+
+/** A player's game mode as the Script API names it, or undefined for one it has no name for. */
+const gameModeName = (gamemode: number) => {
+    try {
+        return getGametypeName(gamemode);
+    } catch {
+        return undefined;
+    }
 };
 
 /**
@@ -79,6 +122,11 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         const session = actor.getType() === 'minecraft:player' ? sessionOf(id) : undefined;
         const position = actor.getPosition();
         const name = session?.identity.name;
+        const feet = actor.getFeetY();
+        const eyes = session === undefined ? actor.getBox().height * ENTITY_EYE_HEIGHT_FRACTION : EYE_HEIGHT;
+        const player = session?.getPlayer();
+        const gameMode = player === undefined ? undefined : gameModeName(player.gamemode);
+        const capacity = actor.entity.body.containerCapacity;
         return {
             id,
             typeId: actor.getType(),
@@ -88,7 +136,19 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             nameTag: actor.getName() === '' && name !== undefined ? name : actor.getName(),
             tags: actor.getTags(),
             ...(name === undefined ? {} : { name }),
-            ...(session === undefined ? {} : { inventorySize: session.getPlayer().getInventory().getSlotCount() })
+            ...(player === undefined
+                ? capacity > 0
+                    ? { inventorySize: capacity }
+                    : {}
+                : {
+                      inventorySize: player.getInventory().getSlotCount(),
+                      selectedSlot: player.getInventory().getHandSlotIndex(),
+                      sneaking: player.isSneaking()
+                  }),
+            ...(gameMode === undefined ? {} : { gameMode }),
+            rotation: { x: actor.pitch, y: actor.yaw },
+            // BDS keeps a head's height as a 32-bit float.
+            headLocation: { x: position.getX(), y: Math.fround(feet + eyes), z: position.getZ() }
         };
     };
     /** The runtime id of the entity in the level whose saved id, its `UniqueID`, is `saved`. */
@@ -157,8 +217,16 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         addTag: (id, tag) => actorOf(id)?.addTag(tag) ?? false,
         removeTag: (id, tag) => actorOf(id)?.removeTag(tag) ?? false,
         inventory: (id) => {
-            const inventory = actorOf(id) === undefined ? undefined : sessionOf(id)?.getPlayer().getInventory();
-            if (inventory === undefined) return undefined;
+            const actor = actorOf(id);
+            if (actor === undefined) return undefined;
+            const inventory = sessionOf(id)?.getPlayer().getInventory();
+            if (inventory === undefined) {
+                const { body } = actor.entity;
+                if (body.containerCapacity <= 0) return undefined;
+                return Array.from({ length: body.containerCapacity }, (_, slot) =>
+                    scriptItemOfDrop(body.containerSlots[slot])
+                );
+            }
             const slots: (ScriptItem | null)[] = [];
             for (let slot = 0; slot < inventory.getSlotCount(); slot++) {
                 slots.push(inventory.isEmpty(slot) ? null : scriptItemOf(inventory.getItem(slot)));
@@ -168,7 +236,13 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         setInventoryItem: (id, slot, item) => {
             const session = sessionOf(id);
             const inventory = session?.getPlayer().getInventory();
-            if (session === undefined || inventory === undefined) return;
+            if (session === undefined || inventory === undefined) {
+                const body = actorOf(id)?.entity.body;
+                if (body === undefined || slot < 0 || slot >= body.containerCapacity) return;
+                const held = body.containerSlots[slot];
+                body.setContainerSlot(slot, item === undefined ? undefined : dropOfScriptItem(item, held));
+                return;
+            }
             if (item === undefined) inventory.removeItem(slot);
             else {
                 const stack = itemFromContent(item.typeId, server.getContent());
@@ -229,6 +303,28 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         setGameMode: (id, gameMode) => {
             const session = sessionOf(id);
             if (session !== undefined) session.released(session.setGamemode(getGametypeId(gameMode.toLowerCase())));
+        },
+        setSelectedSlot: (id, slot) => {
+            const session = sessionOf(id);
+            if (session === undefined) return;
+            session.getPlayer().getInventory().setHandSlot(slot);
+            session.released(
+                session.send(
+                    new PlayerHotbarPacket({
+                        selectedSlot: slot,
+                        containerId: WindowIds.INVENTORY,
+                        shouldSelectSlot: true
+                    })
+                )
+            );
+        },
+        applyDamage: (id, amount, source) => {
+            const actor = actorOf(id);
+            if (actor === undefined || !actor.isAlive() || !(amount > 0)) return false;
+            const blow = damageSourceOfScript(source, actorOf);
+            // A blow inside the grace period of a stronger one lands without taking health, and
+            // BDS still reports it as applied, as the `entity-events` scenario recorded.
+            return actor.getWorld().dataEntities().damageEntity(actor, amount, blow, 'command') !== undefined;
         },
         dynamicProperties: (owner, pack) => {
             if (owner === 'world') return level.getDynamicProperties().of(pack);

@@ -27,6 +27,7 @@ import { Position } from './Position';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /**
  * The autosave, and the fact that a tick must not wait for it.
@@ -58,6 +59,7 @@ let previousDirectory: string | undefined;
 
 const testServer = (): Server => {
     const server: Server = stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () =>
             stub<Logger>({
                 info: () => {},

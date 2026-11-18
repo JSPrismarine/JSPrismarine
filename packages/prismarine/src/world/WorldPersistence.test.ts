@@ -22,6 +22,7 @@ import type { WorldPersistenceData } from './WorldPersistence';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { testLevel } from '../testing/level';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
+import { testKernel } from '../testing/kernel.test.helper';
 
 const LEGACY_ITEM_COUNT = 1744;
 const NEXT_DROP_COUNT = World.ITEM_ENTITY_LIMIT - LEGACY_ITEM_COUNT + 1;
@@ -31,6 +32,7 @@ let previousDirectory: string | undefined;
 
 const testServer = (warnings: string[], entities = liveTestEntities(() => undefined)): Server =>
     stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () =>
             stub<Logger>({
                 info: () => {},
