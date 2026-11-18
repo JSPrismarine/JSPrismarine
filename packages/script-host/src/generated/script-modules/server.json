@@ -33,9 +33,10 @@
         {"version":"2.8.0","stability":"stable","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-v2-wrapper","dependencies":{"@minecraft/common":"1.2.0"}},
         {"version":"2.9.0","stability":"stable","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-v2-wrapper","dependencies":{"@minecraft/common":"1.2.0"}},
         {"version":"2.10.0","stability":"stable","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-v2-wrapper","dependencies":{"@minecraft/common":"1.2.0"}},
-        {"version":"2.11.0-beta","stability":"beta","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-wrapper","dependencies":{"@minecraft/common":"1.2.0"}}
+        {"version":"2.11.0","stability":"stable","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-v2-wrapper","dependencies":{"@minecraft/common":"1.2.0"}},
+        {"version":"2.12.0-beta","stability":"beta","bindings":"@minecraft/server-bindings","wrapper":"@minecraft/server-bindings-wrapper","dependencies":{"@minecraft/common":"1.2.0"}}
     ],
-    "resolves": {"1":"1.19.0","2":"2.10.0"},
+    "resolves": {"1":"1.19.0","2":"2.11.0"},
     "declarations": {
         "AABB": {
             "segments": [
@@ -108,20 +109,20 @@
                     {"from":"2.6.0","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "setBlockPriorities": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockPriorities","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftBlockTypes | string, number>"}}],"script":"setBlockPriorities(blockPriorities: Record<keyof typeof minecraftvanilladata.MinecraftBlockTypes | string, number>): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockPriorities","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftBlockTypes | string, number>"}}],"script":"setBlockPriorities(blockPriorities: Record<keyof typeof minecraftvanilladata.MinecraftBlockTypes | string, number>): void;","returns":"void"}
                 ],
                 "setBlockTagPriorities": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagPriorities","type":{"kind":"script","text":"Record<string, number>"}}],"script":"setBlockTagPriorities(blockTagPriorities: Record<string, number>): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagPriorities","type":{"kind":"script","text":"Record<string, number>"}}],"script":"setBlockTagPriorities(blockTagPriorities: Record<string, number>): void;","returns":"void"}
                 ],
                 "setEntityPriorities": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityPriorities","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftEntityTypes | string, number>"}}],"script":"setEntityPriorities(entityPriorities: Record<keyof typeof minecraftvanilladata.MinecraftEntityTypes | string, number>): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityPriorities","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftEntityTypes | string, number>"}}],"script":"setEntityPriorities(entityPriorities: Record<keyof typeof minecraftvanilladata.MinecraftEntityTypes | string, number>): void;","returns":"void"}
                 ],
                 "setEntityTypeFamilyPriorities": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyPriorities","type":{"kind":"script","text":"Record<string, number>"}}],"script":"setEntityTypeFamilyPriorities(entityTypeFamilyPriorities: Record<string, number>): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyPriorities","type":{"kind":"map","key":"string","value":"int32"}}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyPriorities","type":{"kind":"script","text":"Record<string, number>"}}],"script":"setEntityTypeFamilyPriorities(entityTypeFamilyPriorities: Record<string, number>): void;","returns":"void"}
                 ]
             }
         },
@@ -195,28 +196,28 @@
                     {"from":"2.6.0","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "setExcludedBlockTagTargets": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":"string"}}}],"script":"setExcludedBlockTagTargets(targets?: (string)[]): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTagTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":"string"}}}],"script":"setExcludedBlockTagTargets(targets?: (string)[]): void;","returns":"void"}
                 ],
                 "setExcludedBlockTargets": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftBlockTypes"},"string"]}}}}],"script":"setExcludedBlockTargets(targets?: (keyof typeof minecraftvanilladata.MinecraftBlockTypes | string)[]): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"blockTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftBlockTypes"},"string"]}}}}],"script":"setExcludedBlockTargets(targets?: (keyof typeof minecraftvanilladata.MinecraftBlockTypes | string)[]): void;","returns":"void"}
                 ],
                 "setExcludedEntityTargets": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftEntityTypes"},"string"]}}}}],"script":"setExcludedEntityTargets(targets?: (keyof typeof minecraftvanilladata.MinecraftEntityTypes | string)[]): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftEntityTypes"},"string"]}}}}],"script":"setExcludedEntityTargets(targets?: (keyof typeof minecraftvanilladata.MinecraftEntityTypes | string)[]): void;","returns":"void"}
                 ],
                 "setExcludedEntityTypeFamilyTargets": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":"string"}}}],"script":"setExcludedEntityTypeFamilyTargets(targets?: (string)[]): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"entityTypeFamilyTargets","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"targets","type":{"kind":"optional","type":{"kind":"array","element":"string"}}}],"script":"setExcludedEntityTypeFamilyTargets(targets?: (string)[]): void;","returns":"void"}
                 ],
                 "setItemSettings": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"itemSettings","type":{"kind":"map","key":"string","value":"string"}}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemSettings","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftItemTypes | string, string>"}}],"script":"setItemSettings(itemSettings: Record<keyof typeof minecraftvanilladata.MinecraftItemTypes | string, string>): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"itemSettings","type":{"kind":"map","key":"string","value":"string"}}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemSettings","type":{"kind":"script","text":"Record<keyof typeof minecraftvanilladata.MinecraftItemTypes | string, string>"}}],"script":"setItemSettings(itemSettings: Record<keyof typeof minecraftvanilladata.MinecraftItemTypes | string, string>): void;","returns":"void"}
                 ],
                 "setLiquidTargetingItems": [
-                    {"from":"2.6.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"items","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"items","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftItemTypes"},"string"]}}}}],"script":"setLiquidTargetingItems(items?: (keyof typeof minecraftvanilladata.MinecraftItemTypes | string)[]): void;","returns":"void"}
+                    {"from":"2.6.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"items","type":{"kind":"optional","type":{"kind":"array","element":"string"}},"default":null}],"returns":"undefined"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"items","type":{"kind":"optional","type":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftItemTypes"},"string"]}}}}],"script":"setLiquidTargetingItems(items?: (keyof typeof minecraftvanilladata.MinecraftItemTypes | string)[]): void;","returns":"void"}
                 ]
             }
         },
@@ -279,14 +280,14 @@
         },
         "BannerPattern": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "color": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "pattern": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
@@ -369,7 +370,7 @@
                     {"from":"1.18.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"liquidType","type":"LiquidType"}],"throws":["Error","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
                 "canPlace": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockToPlace","type":{"kind":"variant","types":["BlockPermutation","BlockType","string"]}},{"name":"faceToPlaceOn","type":{"kind":"optional","type":"Direction"},"default":null}],"throws":["Error","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"blockToPlace","type":{"kind":"variant","types":["BlockPermutation","BlockType","string"]}},{"name":"faceToPlaceOn","type":{"kind":"optional","type":"Direction"},"default":null}],"throws":["Error","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
                 "center": [
                     {"from":"1.7.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"Vector3"}
@@ -394,7 +395,7 @@
                     {"from":"2.3.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"LocationInUnloadedChunkError"],"returns":"int32"}
                 ],
                 "getMapColor": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"RGBA"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"RGBA"}
                 ],
                 "getParts": [
                     {"from":"2.9.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":{"kind":"optional","type":{"kind":"array","element":"Block"}}}
@@ -411,6 +412,9 @@
                 "hasComponent": [
                     {"from":"2.6.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"componentId","type":"string"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
+                "hasScheduledNamedTick": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"eventName","type":"string"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
+                ],
                 "hasTag": [
                     {"from":"1.8.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"tag","type":"string"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
@@ -424,7 +428,7 @@
                     {"from":"1.18.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"liquidType","type":"LiquidType"}],"throws":["Error","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
                 "isSolid": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"]}
                 ],
                 "isValid": [
                     {"from":"1.4.0","to":"1.19.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"boolean"},
@@ -457,6 +461,12 @@
                 "permutation": [
                     {"from":"1.1.0","kind":"property","type":"BlockPermutation","readOnly":true,"get":["restricted_execution"],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"]}
                 ],
+                "removeScheduledNamedTick": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"eventName","type":"string"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
+                ],
+                "scheduleNamedTick": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"eventName","type":"string"},{"name":"tickDelay","type":"uint32","min":1}],"throws":["Error","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
+                ],
                 "setPermutation": [
                     {"from":"1.1.0","kind":"method","privilege":["default"],"arguments":[{"name":"permutation","type":"BlockPermutation"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
                 ],
@@ -470,7 +480,7 @@
                     {"from":"1.7.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"steps","type":"int32","default":1}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":{"kind":"optional","type":"Block"}}
                 ],
                 "trySetPermutation": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"permutation","type":"BlockPermutation"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"permutation","type":"BlockPermutation"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
                 ],
                 "type": [
                     {"from":"1.11.0","kind":"property","type":"BlockType","readOnly":true,"get":["restricted_execution"],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"]}
@@ -507,41 +517,41 @@
         },
         "BlockBoundingBoxUtils": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "createValid": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"min","type":"Vector3"},{"name":"max","type":"Vector3"}],"returns":"BlockBoundingBox"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"min","type":"Vector3"},{"name":"max","type":"Vector3"}],"returns":"BlockBoundingBox"}
                 ],
                 "dilate": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"size","type":"Vector3"}],"returns":"BlockBoundingBox"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"size","type":"Vector3"}],"returns":"BlockBoundingBox"}
                 ],
                 "equals": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"boolean"}
                 ],
                 "expand": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"BlockBoundingBox"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"BlockBoundingBox"}
                 ],
                 "getCenter": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"Vector3"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"Vector3"}
                 ],
                 "getIntersection": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":{"kind":"optional","type":"BlockBoundingBox"}}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":{"kind":"optional","type":"BlockBoundingBox"}}
                 ],
                 "getSpan": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"Vector3"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"Vector3"}
                 ],
                 "intersects": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"other","type":"BlockBoundingBox"}],"returns":"boolean"}
                 ],
                 "isInside": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"pos","type":"Vector3"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"pos","type":"Vector3"}],"returns":"boolean"}
                 ],
                 "isValid": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"}],"returns":"boolean"}
                 ],
                 "translate": [
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"delta","type":"Vector3"}],"returns":"BlockBoundingBox"}
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["default"],"arguments":[{"name":"box","type":"BlockBoundingBox"},{"name":"delta","type":"Vector3"}],"returns":"BlockBoundingBox"}
                 ]
             }
         },
@@ -607,6 +617,26 @@
                 ],
                 "fallDistance": [
                     {"from":"1.12.0","kind":"property","type":"float","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "BlockComponentNamedTickEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockEvent"}
+            ],
+            "members": {
+                "isName": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"eventName","type":"string"}],"returns":"boolean"}
+                ]
+            }
+        },
+        "BlockComponentNeighborChangedAfterEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockEvent"}
+            ],
+            "members": {
+                "getChanges": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":{"kind":"array","element":"NeighborChange"}}
                 ]
             }
         },
@@ -692,7 +722,7 @@
             ],
             "members": {
                 "firstUpdate": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "powerLevel": [
                     {"from":"2.0.0","kind":"property","type":"int16","readOnly":true,"get":["restricted_execution"]}
@@ -746,6 +776,9 @@
                 "DynamicProperties": [
                     {"from":"2.10.0","kind":"constant","static":true,"type":"string","value":"minecraft:dynamic_properties"}
                 ],
+                "EntityStorage": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:entity_storage"}
+                ],
                 "FluidContainer": [
                     {"from":"1.16.0","to":"1.19.0","kind":"constant","static":true,"type":"string","value":"minecraft:fluidContainer"},
                     {"from":"2.0.0","kind":"constant","static":true,"type":"string","value":"minecraft:fluid_container"}
@@ -768,6 +801,12 @@
                 "PrecipitationInteractions": [
                     {"from":"2.5.0","kind":"constant","static":true,"type":"string","value":"minecraft:precipitation_interactions"}
                 ],
+                "RecipeCrafting": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:recipe_crafting"}
+                ],
+                "RecipeProcessing": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:recipe_processing"}
+                ],
                 "RecordPlayer": [
                     {"from":"1.14.0","kind":"constant","static":true,"type":"string","value":"minecraft:record_player"}
                 ],
@@ -776,6 +815,9 @@
                 ],
                 "Sign": [
                     {"from":"1.10.0","kind":"constant","static":true,"type":"string","value":"minecraft:sign"}
+                ],
+                "VibrationProperties": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:vibration_properties"}
                 ]
             }
         },
@@ -860,6 +902,12 @@
                     {"from":"1.12.0","to":"1.19.0","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentEntityFallOnEvent"],"returns":"undefined","privilege":["default"]}},"readOnly":false},
                     {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentEntityFallOnEvent","CustomComponentParameters"],"returns":"undefined","privilege":["default"]}},"readOnly":false}
                 ],
+                "onNamedTick": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentNamedTickEvent","CustomComponentParameters"],"returns":"undefined","privilege":["default"]}},"readOnly":false}
+                ],
+                "onNeighborChanged": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentNeighborChangedAfterEvent","CustomComponentParameters"],"returns":"undefined","privilege":["default"]}},"readOnly":false}
+                ],
                 "onPlace": [
                     {"from":"1.12.0","to":"1.19.0","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentOnPlaceEvent"],"returns":"undefined","privilege":["default"]}},"readOnly":false},
                     {"from":"2.0.0","kind":"property","type":{"kind":"optional","type":{"kind":"closure","arguments":["BlockComponentOnPlaceEvent","CustomComponentParameters"],"returns":"undefined","privilege":["default"]}},"readOnly":false}
@@ -941,6 +989,44 @@
                 ],
                 "totalByteCount": [
                     {"from":"2.10.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"int32"}
+                ]
+            }
+        },
+        "BlockEntityStorageComponent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockComponent"}
+            ],
+            "members": {
+                "componentId": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:entity_storage"}
+                ],
+                "getEntities": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":{"kind":"array","element":"BlockEntityStorageInfo"}}
+                ],
+                "release": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityId","type":"string"}],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"Entity"}
+                ],
+                "size": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"int32"}
+                ],
+                "store": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entity","type":"Entity"}],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"string"}
+                ],
+                "transfer": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"entityId","type":"string"},{"name":"targetBlock","type":"Block"}],"throws":["Error","InvalidBlockComponentError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
+                ]
+            }
+        },
+        "BlockEntityStorageInfo": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "definitionId": [
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "uniqueId": [
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
@@ -1114,7 +1200,7 @@
             ],
             "members": {
                 "isValid": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"boolean"}
                 ]
             }
         },
@@ -1314,6 +1400,50 @@
                 ]
             }
         },
+        "BlockRecipeCraftingComponent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockComponent"}
+            ],
+            "members": {
+                "componentId": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:recipe_crafting"}
+                ],
+                "getCraftingContext": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"player","type":"Player"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"],"returns":{"kind":"optional","type":"RecipeCraftingContext"}}
+                ],
+                "players": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"Player"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "BlockRecipeProcessingComponent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockComponent"}
+            ],
+            "members": {
+                "componentId": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:recipe_processing"}
+                ],
+                "getInputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"slot","type":"uint32"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},"InvalidBlockComponentError"],"returns":{"kind":"optional","type":"ItemStack"}}
+                ],
+                "getInputSlotEnabled": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"slot","type":"uint32"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},"InvalidBlockComponentError",{"kind":"external","module":"@minecraft/common","name":"UnsupportedFunctionalityError"}],"returns":"boolean"}
+                ],
+                "getOutputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["InvalidBlockComponentError"],"returns":{"kind":"optional","type":"ItemStack"}}
+                ],
+                "inputSlotCount": [
+                    {"from":"2.12.0-beta","kind":"property","type":"uint32","readOnly":true,"get":["restricted_execution"],"throws":["InvalidBlockComponentError"]}
+                ],
+                "setInputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"uint32"},{"name":"item","type":{"kind":"optional","type":"ItemStack"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},"InvalidBlockComponentError"],"returns":"undefined"}
+                ],
+                "setInputSlotEnabled": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"uint32"},{"name":"enabled","type":"boolean"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},"InvalidBlockComponentError",{"kind":"external","module":"@minecraft/common","name":"UnsupportedFunctionalityError"}],"returns":"undefined"}
+                ]
+            }
+        },
         "BlockRecordPlayerComponent": {
             "segments": [
                 {"from":"1.14.0","kind":"class","base":"BlockComponent"}
@@ -1444,6 +1574,22 @@
                 ]
             }
         },
+        "BlockVibrationPropertiesComponent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class","base":"BlockComponent"}
+            ],
+            "members": {
+                "componentId": [
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:vibration_properties"}
+                ],
+                "getCanDampenVibrations": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
+                ],
+                "getCanOccludeVibrations": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"boolean"}
+                ]
+            }
+        },
         "BlockVolume": {
             "segments": [
                 {"from":"1.15.0","kind":"class","base":"BlockVolumeBase"}
@@ -1478,7 +1624,7 @@
                     {"from":"1.15.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"BlockLocationIterator"}
                 ],
                 "getBoundingBox": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"BlockBoundingBox"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"BlockBoundingBox"}
                 ],
                 "getCapacity": [
                     {"from":"1.11.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"int32"}
@@ -1626,7 +1772,7 @@
                     {"from":"2.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"cameraPreset","type":"string"},{"name":"setOptions","type":{"kind":"optional","type":{"kind":"variant","types":["CameraFixedBoomOptions","CameraSetFacingOptions","CameraSetLocationOptions","CameraSetPosOptions","CameraSetRotOptions","CameraTargetOptions"]}},"default":null}],"returns":"undefined"}
                 ],
                 "setCameraWithEase": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"cameraPreset","type":"string"},{"name":"easeOptions","type":"EaseOptions"}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"cameraPreset","type":"string"},{"name":"easeOptions","type":"EaseOptions"}],"returns":"undefined"}
                 ],
                 "setDefaultCamera": [
                     {"from":"2.0.0","kind":"method","privilege":["default"],"arguments":[{"name":"cameraPreset","type":"string"},{"name":"easeOptions","type":{"kind":"optional","type":"EaseOptions"},"default":null}],"returns":"undefined"}
@@ -1839,11 +1985,11 @@
         },
         "CarryOverBlockEntityDataFunction": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","base":"LootItemFunction"}
+                {"from":"2.12.0-beta","kind":"class","base":"LootItemFunction"}
             ],
             "members": {
                 "dynamicProperties": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ]
             }
         },
@@ -1862,62 +2008,62 @@
         },
         "ChatSendAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "message": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "sender": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "targets": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"Player"}},"readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"Player"}},"readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "ChatSendAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
         "ChatSendBeforeEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "cancel": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "message": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "sender": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "targets": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"Player"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"Player"}},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ]
             }
         },
         "ChatSendBeforeEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["ChatSendBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -2310,7 +2456,7 @@
                     {"from":"2.1.0","kind":"constant","static":true,"type":"string","value":"RegistryReadOnly"}
                 ],
                 "UnexpectedEnumName": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"UnexpectedEnumName"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"UnexpectedEnumName"}
                 ]
             }
         },
@@ -2379,7 +2525,7 @@
             ],
             "members": {
                 "enumName": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
                 ],
                 "name": [
                     {"from":"2.1.0","kind":"property","type":"string","readOnly":false}
@@ -2572,7 +2718,7 @@
                     {"from":"1.8.0","kind":"property","type":{"kind":"array","element":"string"},"readOnly":false}
                 ],
                 "triggers": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"array","element":"Trigger"},"readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"Trigger"},"readOnly":false}
                 ]
             }
         },
@@ -2647,7 +2793,7 @@
                     {"from":"1.4.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"location","type":"Vector3"},{"name":"direction","type":"Vector3"},{"name":"options","type":{"kind":"optional","type":"EntityRaycastOptions"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError",{"kind":"external","module":"@minecraft/common","name":"UnsupportedFunctionalityError"}],"returns":{"kind":"array","element":"EntityRaycastHit"}}
                 ],
                 "getGeneratedStructures": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"script","text":"Vector3"}}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"script":"getGeneratedStructures(location: Vector3): (minecraftvanilladata.MinecraftFeatureTypes | string)[];","returns":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftFeatureTypes"},"string"]}}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"location","type":{"kind":"script","text":"Vector3"}}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"script":"getGeneratedStructures(location: Vector3): (minecraftvanilladata.MinecraftFeatureTypes | string)[];","returns":{"kind":"array","element":{"kind":"variant","types":[{"kind":"script","text":"minecraftvanilladata.MinecraftFeatureTypes"},"string"]}}}
                 ],
                 "getLightLevel": [
                     {"from":"2.3.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"location","type":"Vector3"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"LocationInUnloadedChunkError"],"returns":"int32"}
@@ -2662,7 +2808,7 @@
                     {"from":"1.13.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"locationXZ","type":"VectorXZ"},{"name":"minHeight","type":{"kind":"optional","type":"float"},"default":null}],"returns":{"kind":"optional","type":"Block"}}
                 ],
                 "getWeather": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"WeatherType"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"WeatherType"}
                 ],
                 "heightRange": [
                     {"from":"1.7.0","kind":"property","type":{"kind":"external","module":"@minecraft/common","name":"NumberRange"},"readOnly":true,"get":["restricted_execution"]}
@@ -2686,7 +2832,7 @@
                     {"from":"1.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"soundId","type":"string"},{"name":"location","type":"Vector3"},{"name":"soundOptions","type":{"kind":"optional","type":"WorldSoundOptions"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},{"kind":"external","module":"@minecraft/common","name":"PropertyOutOfBoundsError"}],"returns":"SoundInstance"}
                 ],
                 "poiManager": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PoiManager","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PoiManager","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "runCommand": [
                     {"from":"1.2.0","kind":"method","privilege":["default"],"arguments":[{"name":"commandString","type":"string"}],"throws":["CommandError"],"returns":"CommandResult"}
@@ -2705,8 +2851,8 @@
                 ],
                 "spawnEntity": [
                     {"from":"1.3.0","to":"1.19.0","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":"string"},{"name":"location","type":"Vector3"}],"throws":["EntitySpawnError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"Entity"},
-                    {"from":"2.0.0","to":"2.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":{"kind":"variant","types":["EntityType","string"]}},{"name":"location","type":"Vector3"},{"name":"options","type":{"kind":"optional","type":"SpawnEntityOptions"},"default":null}],"throws":["EntitySpawnError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"Entity"},
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":{"kind":"script","text":"EntityIdentifierType<NoInfer<T>>"}},{"name":"location","type":{"kind":"script","text":"Vector3"}},{"name":"options","type":{"kind":"optional","type":{"kind":"script","text":"SpawnEntityOptions"}}}],"throws":["EntitySpawnError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"script":"spawnEntity<T = never>(identifier: EntityIdentifierType<NoInfer<T>>, location: Vector3, options?: SpawnEntityOptions): Entity;","returns":{"kind":"script","text":"Entity"}}
+                    {"from":"2.0.0","to":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":{"kind":"variant","types":["EntityType","string"]}},{"name":"location","type":"Vector3"},{"name":"options","type":{"kind":"optional","type":"SpawnEntityOptions"},"default":null}],"throws":["EntitySpawnError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"Entity"},
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":{"kind":"script","text":"EntityIdentifierType<NoInfer<T>>"}},{"name":"location","type":{"kind":"script","text":"Vector3"}},{"name":"options","type":{"kind":"optional","type":{"kind":"script","text":"SpawnEntityOptions"}}}],"throws":["EntitySpawnError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"},"InvalidEntityError","LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"script":"spawnEntity<T = never>(identifier: EntityIdentifierType<NoInfer<T>>, location: Vector3, options?: SpawnEntityOptions): Entity;","returns":{"kind":"script","text":"Entity"}}
                 ],
                 "spawnItem": [
                     {"from":"1.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":"ItemStack"},{"name":"location","type":"Vector3"}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"Entity"}
@@ -2715,13 +2861,13 @@
                     {"from":"1.5.0","kind":"method","privilege":["default"],"arguments":[{"name":"effectName","type":"string"},{"name":"location","type":"Vector3"},{"name":"molangVariables","type":{"kind":"optional","type":"MolangVariableMap"},"default":null}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
                 ],
                 "spawnXp": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":"Vector3"},{"name":"amount","type":"int32","min":1,"max":12000}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":"Vector3"},{"name":"amount","type":"uint32","min":1,"max":12000}],"throws":["LocationInUnloadedChunkError","LocationOutOfWorldBoundariesError"],"returns":"undefined"}
                 ],
                 "stopAllSounds": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
                 ],
                 "stopSound": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"soundId","type":"string"}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"soundId","type":"string"}],"returns":"undefined"}
                 ]
             }
         },
@@ -3463,7 +3609,7 @@
                     {"from":"1.6.0","kind":"method","privilege":["default"],"arguments":[{"name":"rotation","type":"Vector2"}],"throws":["InvalidEntityError"],"returns":"undefined"}
                 ],
                 "target": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"Entity"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"Entity"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
                 ],
                 "teleport": [
                     {"from":"1.3.0","kind":"method","privilege":["default"],"arguments":[{"name":"location","type":"Vector3"},{"name":"teleportOptions","type":{"kind":"optional","type":"TeleportOptions"},"default":null}],"throws":["Error","InvalidEntityError",{"kind":"external","module":"@minecraft/common","name":"UnsupportedFunctionalityError"}],"returns":"undefined"}
@@ -3628,7 +3774,7 @@
             ],
             "members": {
                 "airSupply": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int16","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"int16","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "breathesAir": [
                     {"from":"1.15.0","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
@@ -3643,7 +3789,7 @@
                     {"from":"1.15.0","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "canBreathe": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "componentId": [
                     {"from":"1.15.0","kind":"constant","static":true,"type":"string","value":"minecraft:breathable"}
@@ -3903,7 +4049,7 @@
                     {"from":"1.11.0","kind":"constant","static":true,"type":"string","value":"minecraft:navigation.walk"}
                 ],
                 "Npc": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:npc"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:npc"}
                 ],
                 "OnFire": [
                     {"from":"1.10.0","kind":"constant","static":true,"type":"string","value":"minecraft:onfire"}
@@ -4939,10 +5085,10 @@
                     {"from":"1.2.0","kind":"constant","static":true,"type":"string","value":"minecraft:is_tamed"}
                 ],
                 "tamedToPlayer": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"Player"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"Player"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
                 ],
                 "tamedToPlayerId": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
                 ]
             }
         },
@@ -5398,20 +5544,20 @@
         },
         "EntityNpcComponent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","base":"EntityComponent"}
+                {"from":"2.12.0-beta","kind":"class","base":"EntityComponent"}
             ],
             "members": {
                 "componentId": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:npc"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"minecraft:npc"}
                 ],
                 "defaultScene": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "skinIndex": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ]
             }
         },
@@ -6034,8 +6180,8 @@
             ],
             "members": {
                 "get": [
-                    {"from":"1.10.0","to":"2.10.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"identifier","type":"string"}],"returns":{"kind":"optional","type":"EntityType"}},
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"identifier","type":{"kind":"script","text":"EntityIdentifierType<NoInfer<T>>"}}],"script":"static get<T = never>(identifier: EntityIdentifierType<NoInfer<T>>): EntityType | undefined;","returns":{"kind":"variant","types":[{"kind":"script","text":"EntityType"},"undefined"]}}
+                    {"from":"1.10.0","to":"2.11.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"identifier","type":"string"}],"returns":{"kind":"optional","type":"EntityType"}},
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"identifier","type":{"kind":"script","text":"EntityIdentifierType<NoInfer<T>>"}}],"script":"static get<T = never>(identifier: EntityIdentifierType<NoInfer<T>>): EntityType | undefined;","returns":{"kind":"variant","types":[{"kind":"script","text":"EntityType"},"undefined"]}}
                 ],
                 "getAll": [
                     {"from":"1.10.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[],"returns":{"kind":"array","element":"EntityType"}}
@@ -6152,7 +6298,7 @@
             ],
             "members": {
                 "Body": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Body"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Body"}
                 ],
                 "Chest": [
                     {"from":"1.5.0","kind":"constant","static":true,"type":"string","value":"Chest"}
@@ -6473,7 +6619,7 @@
                     {"from":"1.11.0","kind":"constant","static":true,"type":"string","value":"naturalRegeneration"}
                 ],
                 "PlayerWaypoints": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"playerWaypoints"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"playerWaypoints"}
                 ],
                 "PlayersSleepingPercentage": [
                     {"from":"1.11.0","kind":"constant","static":true,"type":"string","value":"playersSleepingPercentage"}
@@ -6620,7 +6766,7 @@
                     {"from":"1.11.0","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "playerWaypoints": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PlayerWaypointsMode","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerWaypointsMode","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "playersSleepingPercentage": [
                     {"from":"1.11.0","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["default"]}
@@ -7047,6 +7193,16 @@
             "segments": [
                 {"from":"2.4.0","kind":"error"}
             ]
+        },
+        "InvalidRecipeError": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"error"}
+            ],
+            "members": {
+                "recipeId": [
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ]
+            }
         },
         "InvalidStructureError": {
             "segments": [
@@ -8468,17 +8624,17 @@
         },
         "MessageReceiveAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "id": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "message": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "player": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
@@ -8617,6 +8773,22 @@
                 ]
             }
         },
+        "NeighborChange": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "blockPermutation": [
+                    {"from":"2.12.0-beta","kind":"property","type":"BlockPermutation","readOnly":false}
+                ],
+                "direction": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Direction","readOnly":false}
+                ],
+                "previousPermutation": [
+                    {"from":"2.12.0-beta","kind":"property","type":"BlockPermutation","readOnly":false}
+                ]
+            }
+        },
         "NotEqualsComparison": {
             "segments": [
                 {"from":"1.14.0","kind":"interface"}
@@ -8642,27 +8814,27 @@
         },
         "PackSettingChangeAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "settingName": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "settingValue": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"array","element":"string"},"boolean","float","string"]},"readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"variant","types":[{"kind":"array","element":"string"},"boolean","float","string"]},"readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "PackSettingChangeAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PackSettingChangeAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -8816,16 +8988,16 @@
                     {"from":"1.6.0","kind":"property","type":"Camera","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "chatDisplayName": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
                 ],
                 "chatMessagePrefix": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "chatNamePrefix": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "chatNameSuffix": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "clearPropertyOverridesForEntity": [
                     {"from":"1.19.0","kind":"method","privilege":["default"],"arguments":[{"name":"targetEntity","type":{"kind":"variant","types":["Entity","string"]}}],"returns":"undefined"}
@@ -8837,7 +9009,7 @@
                     {"from":"2.1.0","kind":"property","type":"CommandPermissionLevel","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "eatItem": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":"ItemStack"}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"itemStack","type":"ItemStack"}],"returns":"undefined"}
                 ],
                 "fogSettings": [
                     {"from":"2.10.0","kind":"property","type":"FogSettings","readOnly":true,"get":["restricted_execution"]}
@@ -8855,13 +9027,13 @@
                     {"from":"1.11.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"cooldownCategory","type":"string"}],"returns":"int32"}
                 ],
                 "getPing": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"],"returns":"int64"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"],"returns":"int64"}
                 ],
                 "getSpawnPoint": [
                     {"from":"1.4.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":{"kind":"optional","type":"DimensionLocation"}}
                 ],
                 "getSplitScreenSlot": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"],"returns":{"kind":"optional","type":"PlayerSplitScreenSlot"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"],"returns":{"kind":"optional","type":"PlayerSplitScreenSlot"}}
                 ],
                 "getTotalXp": [
                     {"from":"1.6.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"uint32"}
@@ -8900,7 +9072,7 @@
                     {"from":"1.4.0","kind":"property","type":"ScreenDisplay","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "persistentId": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidEntityError"]}
                 ],
                 "playMusic": [
                     {"from":"1.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"trackId","type":"string"},{"name":"musicOptions","type":{"kind":"optional","type":"MusicOptions"},"default":null}],"returns":"undefined"}
@@ -8912,7 +9084,7 @@
                     {"from":"2.1.0","kind":"property","type":"PlayerPermissionLevel","readOnly":true,"get":["restricted_execution"],"throws":["InvalidEntityError"]}
                 ],
                 "postClientMessage": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"id","type":"string"},{"name":"value","type":"string"}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"id","type":"string"},{"name":"value","type":"string"}],"returns":"undefined"}
                 ],
                 "queueMusic": [
                     {"from":"1.10.0","kind":"method","privilege":["default"],"arguments":[{"name":"trackId","type":"string"},{"name":"musicOptions","type":{"kind":"optional","type":"MusicOptions"},"default":null}],"returns":"undefined"}
@@ -8948,13 +9120,13 @@
                     {"from":"1.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"cooldownCategory","type":"string"},{"name":"tickDuration","type":"int32","min":0,"max":32767}],"returns":"undefined"}
                 ],
                 "stopAllSounds": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["InvalidEntityError"],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[],"throws":["InvalidEntityError"],"returns":"undefined"}
                 ],
                 "stopMusic": [
                     {"from":"1.10.0","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
                 ],
                 "stopSound": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"soundId","type":"string"}],"throws":["InvalidEntityError"],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"soundId","type":"string"}],"throws":["InvalidEntityError"],"returns":"undefined"}
                 ],
                 "totalXpNeededForNextLevel": [
                     {"from":"1.6.0","kind":"property","type":"int32","readOnly":true,"get":["restricted_execution"]}
@@ -9134,6 +9306,51 @@
                 ]
             }
         },
+        "PlayerCraftRecipeAfterEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "block": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"Block"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "itemStack": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"ItemStack"},"readOnly":true,"get":["restricted_execution"]}
+                ],
+                "player": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PlayerCraftRecipeAfterEventSignal": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCraftRecipeAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"PlayerCraftRecipeEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["PlayerCraftRecipeAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCraftRecipeAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "PlayerCraftRecipeEventOptions": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"interface"}
+            ],
+            "members": {
+                "blockFilter": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"BlockFilter"},"readOnly":false}
+                ],
+                "itemFilter": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"ItemFilter"},"readOnly":false}
+                ],
+                "playerFilter": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"EntityFilter"},"readOnly":false}
+                ]
+            }
+        },
         "PlayerCursorInventoryComponent": {
             "segments": [
                 {"from":"1.14.0","kind":"class","base":"EntityComponent"}
@@ -9147,6 +9364,58 @@
                 ],
                 "item": [
                     {"from":"1.14.0","kind":"property","type":{"kind":"optional","type":"ItemStack"},"readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PlayerCursorItemGrabAfterEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "item": [
+                    {"from":"2.12.0-beta","kind":"property","type":"ItemStack","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "player": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PlayerCursorItemGrabAfterEventSignal": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCursorItemGrabAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PlayerCursorItemGrabAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCursorItemGrabAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                ]
+            }
+        },
+        "PlayerCursorItemReleaseAfterEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "item": [
+                    {"from":"2.12.0-beta","kind":"property","type":"ItemStack","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "player": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PlayerCursorItemReleaseAfterEventSignal": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCursorItemReleaseAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PlayerCursorItemReleaseAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerCursorItemReleaseAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -9575,6 +9844,41 @@
                 ]
             }
         },
+        "PlayerItemAttackEntityBeforeEvent": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "aimDirection": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"Vector3"},"readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "cancel": [
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
+                "itemStack": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"ItemStack"},"readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "player": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ],
+                "target": [
+                    {"from":"2.12.0-beta","kind":"property","type":"Entity","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                ]
+            }
+        },
+        "PlayerItemAttackEntityBeforeEventSignal": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "subscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerItemAttackEntityBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":{"kind":"closure","arguments":["PlayerItemAttackEntityBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                ],
+                "unsubscribe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerItemAttackEntityBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                ]
+            }
+        },
         "PlayerJoinAfterEvent": {
             "segments": [
                 {"from":"1.3.0","kind":"class"}
@@ -9696,36 +10000,36 @@
         },
         "PlayerPlaceBlockBeforeEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","base":"BlockEvent"}
+                {"from":"2.12.0-beta","kind":"class","base":"BlockEvent"}
             ],
             "members": {
                 "cancel": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "face": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Direction","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Direction","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "faceLocation": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Vector3","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Vector3","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "permutationToPlace": [
-                    {"from":"2.11.0-beta","kind":"property","type":"BlockPermutation","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"BlockPermutation","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "player": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "PlayerPlaceBlockBeforeEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"BlockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"BlockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerPlaceBlockBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -9738,7 +10042,7 @@
                     {"from":"1.2.0","kind":"property","type":{"kind":"optional","type":"Vector3"},"readOnly":false}
                 ],
                 "loopCount": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
                 ],
                 "pitch": [
                     {"from":"1.2.0","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false}
@@ -9870,33 +10174,33 @@
         },
         "PlayerUseNameTagAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "entityNamed": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Entity","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Entity","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "newName": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "player": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Player","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Player","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "previousName": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ]
             }
         },
         "PlayerUseNameTagAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["PlayerUseNameTagAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -9931,145 +10235,145 @@
         },
         "PlayerWaypointsMode": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"enum"}
+                {"from":"2.12.0-beta","kind":"enum"}
             ],
             "members": {
                 "Everyone": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Everyone"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Everyone"}
                 ],
                 "Off": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Off"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Off"}
                 ]
             }
         },
         "PoiBlockInstance": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","conditions":["Poi"]}
+                {"from":"2.12.0-beta","kind":"class","conditions":["Poi"]}
             ],
             "members": {
                 "position": [
-                    {"from":"2.11.0-beta","kind":"property","type":"Vector3","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"Vector3","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "tickets": [
-                    {"from":"2.11.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "type": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PoiBlockType","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PoiBlockType","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "PoiBlockManager": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","conditions":["Poi"]}
+                {"from":"2.12.0-beta","kind":"class","conditions":["Poi"]}
             ],
             "members": {
                 "addTemporary": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"},{"name":"poi","type":{"kind":"variant","types":["PoiBlockType","string","uint16"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"},{"name":"poi","type":{"kind":"variant","types":["PoiBlockType","string","uint16"]}}],"returns":"undefined"}
                 ],
                 "at": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"}],"returns":{"kind":"optional","type":"PoiBlockType"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"}],"returns":{"kind":"optional","type":"PoiBlockType"}}
                 ],
                 "exists": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"},{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"position","type":"Vector3"},{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}}],"returns":"boolean"}
                 ],
                 "getInRange": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiBlockInstance"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiBlockInstance"}}
                 ],
                 "getInRangeSorted": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiDistancePair"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiDistancePair"}}
                 ],
                 "getInSquare": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiBlockInstance"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"},{"name":"occupancyFilter","type":{"kind":"optional","type":"PoiBlockOccupancyFilter"},"default":null}],"returns":{"kind":"array","element":"PoiBlockInstance"}}
                 ],
                 "release": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"center","type":"Vector3"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"center","type":"Vector3"}],"returns":"boolean"}
                 ],
                 "take": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"}],"returns":{"kind":"optional","type":"Vector3"}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"filter","type":{"kind":"variant","types":[{"kind":"closure","arguments":["PoiBlockType"],"returns":"boolean","privilege":["default"]},"PoiNameFilter","PoiTagFilter"]}},{"name":"center","type":"Vector3"},{"name":"blockRadius","type":"uint16"}],"returns":{"kind":"optional","type":"Vector3"}}
                 ]
             }
         },
         "PoiBlockOccupancyFilter": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"enum"}
+                {"from":"2.12.0-beta","kind":"enum"}
             ],
             "members": {
                 "Any": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Any"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Any"}
                 ],
                 "Full": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Full"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Full"}
                 ],
                 "HasVacancy": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"HasVacancy"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"HasVacancy"}
                 ]
             }
         },
         "PoiBlockType": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","conditions":["Poi"]}
+                {"from":"2.12.0-beta","kind":"class","conditions":["Poi"]}
             ],
             "members": {
                 "equals": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"other","type":"PoiBlockType"}],"returns":"boolean"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"other","type":"PoiBlockType"}],"returns":"boolean"}
                 ],
-                "has": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tag","type":"string"}],"returns":"boolean"}
+                "hasTag": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"tag","type":"string"}],"returns":"boolean"}
                 ],
                 "id": [
-                    {"from":"2.11.0-beta","kind":"property","type":"uint16","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"uint16","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "tickets": [
-                    {"from":"2.11.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "usableRange": [
-                    {"from":"2.11.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"uint8","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "PoiDistancePair": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.12.0-beta","kind":"interface"}
             ],
             "members": {
                 "distance": [
-                    {"from":"2.11.0-beta","kind":"property","type":"float","readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":"float","readOnly":false}
                 ],
                 "poi": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PoiBlockInstance","readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":"PoiBlockInstance","readOnly":false}
                 ]
             }
         },
         "PoiManager": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class","conditions":["Poi"]}
+                {"from":"2.12.0-beta","kind":"class","conditions":["Poi"]}
             ],
             "members": {
                 "blocks": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PoiBlockManager","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PoiBlockManager","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "PoiNameFilter": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.12.0-beta","kind":"interface"}
             ],
             "members": {
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":false}
                 ]
             }
         },
         "PoiTagFilter": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.12.0-beta","kind":"interface"}
             ],
             "members": {
                 "tags": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":false}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":false}
                 ]
             }
         },
@@ -10114,8 +10418,8 @@
                     {"from":"2.4.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"potionEffectId","type":"string"}],"returns":{"kind":"optional","type":"PotionEffectType"}}
                 ],
                 "resolve": [
-                    {"from":"2.4.0","to":"2.10.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"potionEffectType","type":{"kind":"variant","types":["PotionEffectType","string"]}},{"name":"potionDeliveryType","type":{"kind":"variant","types":["PotionDeliveryType","string"]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidPotionDeliveryTypeError","InvalidPotionEffectTypeError"],"returns":"ItemStack"},
-                    {"from":"2.11.0-beta","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"potionEffectType","type":{"kind":"variant","types":[{"kind":"script","text":"PotionEffectType"},{"kind":"script","text":"T"}]}},{"name":"potionDeliveryType","type":{"kind":"variant","types":[{"kind":"script","text":"PotionDeliveryType"},{"kind":"script","text":"U"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidPotionDeliveryTypeError","InvalidPotionEffectTypeError"],"script":"static resolve<T extends string = minecraftvanilladata.MinecraftPotionEffectTypes, U extends string = minecraftvanilladata.MinecraftPotionDeliveryTypes>(potionEffectType: PotionEffectType | T, potionDeliveryType: PotionDeliveryType | U): ItemStack;","returns":{"kind":"script","text":"ItemStack"}}
+                    {"from":"2.4.0","to":"2.11.0","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"potionEffectType","type":{"kind":"variant","types":["PotionEffectType","string"]}},{"name":"potionDeliveryType","type":{"kind":"variant","types":["PotionDeliveryType","string"]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidPotionDeliveryTypeError","InvalidPotionEffectTypeError"],"returns":"ItemStack"},
+                    {"from":"2.12.0-beta","kind":"method","static":true,"privilege":["restricted_execution"],"arguments":[{"name":"potionEffectType","type":{"kind":"variant","types":[{"kind":"script","text":"PotionEffectType"},{"kind":"script","text":"T"}]}},{"name":"potionDeliveryType","type":{"kind":"variant","types":[{"kind":"script","text":"PotionDeliveryType"},{"kind":"script","text":"U"}]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidPotionDeliveryTypeError","InvalidPotionEffectTypeError"],"script":"static resolve<T extends string = minecraftvanilladata.MinecraftPotionEffectTypes, U extends string = minecraftvanilladata.MinecraftPotionDeliveryTypes>(potionEffectType: PotionEffectType | T, potionDeliveryType: PotionDeliveryType | U): ItemStack;","returns":{"kind":"script","text":"ItemStack"}}
                 ]
             }
         },
@@ -10185,11 +10489,17 @@
                 "color": [
                     {"from":"2.8.0","kind":"property","type":"RGBA","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
+                "defaultVisibleToAll": [
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                ],
                 "dimension": [
                     {"from":"2.8.0","kind":"property","type":"Dimension","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "hasDuration": [
                     {"from":"2.8.0","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "hiddenFrom": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"Player"},"readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "location": [
                     {"from":"2.8.0","kind":"property","type":"Vector3","readOnly":true,"get":["restricted_execution"]}
@@ -10528,6 +10838,34 @@
                 ]
             }
         },
+        "RecipeCraftingContext": {
+            "segments": [
+                {"from":"2.12.0-beta","kind":"class"}
+            ],
+            "members": {
+                "getInputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"slot","type":"uint32"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":{"kind":"optional","type":"ItemStack"}}
+                ],
+                "getOutputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":{"kind":"optional","type":"ItemStack"}}
+                ],
+                "inputSlotCount": [
+                    {"from":"2.12.0-beta","kind":"property","type":"uint32","readOnly":true,"baked":true,"get":["restricted_execution"],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}]}
+                ],
+                "isValid": [
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":true,"get":["restricted_execution"]}
+                ],
+                "setInputItem": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"slot","type":"uint32"},{"name":"item","type":{"kind":"optional","type":"ItemStack"},"default":null}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
+                ],
+                "setSelectedRecipe": [
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"recipeId","type":"string"}],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"},"InvalidRecipeError"],"returns":"undefined"}
+                ],
+                "validRecipes": [
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"string"},"readOnly":true,"get":["restricted_execution"],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}]}
+                ]
+            }
+        },
         "RotationKeyFrame": {
             "segments": [
                 {"from":"2.6.0","kind":"interface"}
@@ -10807,14 +11145,14 @@
         },
         "ServerMessageAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["MessageReceiveAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
@@ -10837,10 +11175,10 @@
             ],
             "members": {
                 "baseColor": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"string","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "patterns": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"array","element":"BannerPattern"},"readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":{"kind":"array","element":"BannerPattern"},"readOnly":true,"get":["restricted_execution"]}
                 ],
                 "type": [
                     {"from":"2.4.0","kind":"property","type":"int32","readOnly":true,"get":["restricted_execution"]}
@@ -11128,28 +11466,28 @@
                     {"from":"2.10.0","kind":"property","type":{"kind":"optional","type":"SoundDurationInfo"},"readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "fade": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"duration","type":"float","min":0},{"name":"targetVolume","type":"float","min":0}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"duration","type":"float","min":0},{"name":"targetVolume","type":"float","min":0}],"returns":"undefined"}
                 ],
                 "id": [
                     {"from":"2.10.0","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "pause": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
                 ],
                 "recipient": [
                     {"from":"2.10.0","kind":"property","type":{"kind":"optional","type":"Player"},"readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "resume": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[],"returns":"undefined"}
                 ],
                 "seekTo": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"seconds","type":"float","min":0,"max":107374184}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"seconds","type":"float","min":0,"max":107374184}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"}],"returns":"undefined"}
                 ],
                 "setPitch": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"pitch","type":"float","min":0.009999999776482582,"max":10}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"pitch","type":"float","min":0.009999999776482582,"max":10}],"returns":"undefined"}
                 ],
                 "setVolume": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"volume","type":"float","min":0,"max":10}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"volume","type":"float","min":0,"max":10}],"returns":"undefined"}
                 ],
                 "soundEventId": [
                     {"from":"2.10.0","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
@@ -11229,7 +11567,7 @@
                     {"from":"2.0.0","kind":"property","type":"ItemComponentRegistry","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockRegistry": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockRegistry","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockRegistry","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ]
             }
         },
@@ -11498,7 +11836,7 @@
                     {"from":"2.0.0","kind":"property","type":"StartupBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "watchdogTerminate": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WatchdogTerminateBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"WatchdogTerminateBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ]
             }
         },
@@ -11587,7 +11925,7 @@
                     {"from":"2.8.0","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "lineGapHeight": [
-                    {"from":"2.11.0-beta","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"float","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "setText": [
                     {"from":"2.8.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"text","type":{"kind":"variant","types":["RawMessage","string"]}}],"throws":[{"kind":"external","module":"@minecraft/common","name":"ArgumentOutOfBoundsError"},"RawMessageError"],"returns":"undefined"}
@@ -11678,7 +12016,7 @@
                     {"from":"2.6.0","kind":"method","privilege":["default"],"arguments":[{"name":"identifier","type":"string"}],"returns":"boolean"}
                 ],
                 "maxChunkCount": [
-                    {"from":"2.6.0","kind":"property","type":"int32","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.6.0","kind":"property","type":"uint32","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "removeAllTickingAreas": [
                     {"from":"2.6.0","kind":"method","privilege":["default"],"arguments":[],"throws":[{"kind":"external","module":"@minecraft/common","name":"EngineError"}],"returns":"undefined"}
@@ -11716,33 +12054,33 @@
         },
         "TimeMarker": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "period": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":true,"get":["restricted_execution"],"throws":["WorldClockInvalidTimeMarkerError"]}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":true,"get":["restricted_execution"],"throws":["WorldClockInvalidTimeMarkerError"]}
                 ],
                 "time": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int32","readOnly":true,"get":["restricted_execution"],"throws":["WorldClockInvalidTimeMarkerError"]}
+                    {"from":"2.11.0","kind":"property","type":"int32","readOnly":true,"get":["restricted_execution"],"throws":["WorldClockInvalidTimeMarkerError"]}
                 ]
             }
         },
         "TimeMarkerOptions": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.11.0","kind":"interface"}
             ],
             "members": {
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":"string","readOnly":false}
                 ],
                 "period": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false,"min":0}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false,"min":0}
                 ],
                 "time": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int32","readOnly":false,"min":0}
+                    {"from":"2.11.0","kind":"property","type":"int32","readOnly":false,"min":0}
                 ]
             }
         },
@@ -11906,40 +12244,40 @@
         },
         "WatchdogTerminateBeforeEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "cancel": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "terminateReason": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WatchdogTerminateReason","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"WatchdogTerminateReason","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WatchdogTerminateBeforeEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.12.0-beta","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WatchdogTerminateBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WatchdogTerminateReason": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"enum"}
+                {"from":"2.12.0-beta","kind":"enum"}
             ],
             "members": {
                 "Hang": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"Hang"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"Hang"}
                 ],
                 "StackOverflow": [
-                    {"from":"2.11.0-beta","kind":"constant","static":true,"type":"string","value":"StackOverflow"}
+                    {"from":"2.12.0-beta","kind":"constant","static":true,"type":"string","value":"StackOverflow"}
                 ]
             }
         },
@@ -12099,13 +12437,13 @@
                     {"from":"1.4.0","kind":"property","type":"WorldAfterEvents","readOnly":true,"baked":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "allowCheats": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "beforeEvents": [
                     {"from":"1.4.0","kind":"property","type":"WorldBeforeEvents","readOnly":true,"baked":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "broadcastClientMessage": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"id","type":"string"},{"name":"value","type":"string"}],"returns":"undefined"}
+                    {"from":"2.12.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"id","type":"string"},{"name":"value","type":"string"}],"returns":"undefined"}
                 ],
                 "clearDynamicProperties": [
                     {"from":"1.7.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"undefined"}
@@ -12123,7 +12461,7 @@
                     {"from":"1.0.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"throws":["CommandError",{"kind":"external","module":"@minecraft/common","name":"InvalidArgumentError"}],"returns":{"kind":"array","element":"Player"}}
                 ],
                 "getClock": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"name","type":"string"}],"throws":["WorldClockNotFoundError"],"returns":"WorldClock"}
+                    {"from":"2.11.0","kind":"method","privilege":["restricted_execution"],"arguments":[{"name":"name","type":"string"}],"throws":["WorldClockNotFoundError"],"returns":"WorldClock"}
                 ],
                 "getDay": [
                     {"from":"1.4.0","kind":"method","privilege":["restricted_execution"],"arguments":[],"returns":"int32"}
@@ -12239,7 +12577,7 @@
                     {"from":"2.0.0","kind":"property","type":"ButtonPushAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "chatSend": [
-                    {"from":"2.11.0-beta","kind":"property","type":"ChatSendAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"ChatSendAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "dataDrivenEntityTrigger": [
                     {"from":"1.8.0","kind":"property","type":"DataDrivenEntityTriggerAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12334,10 +12672,10 @@
                     {"from":"2.0.0","kind":"property","type":"LeverActionAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "messageReceive": [
-                    {"from":"2.11.0-beta","kind":"property","type":"ServerMessageAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"ServerMessageAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "packSettingChange": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PackSettingChangeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PackSettingChangeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "pistonActivate": [
                     {"from":"1.9.0","kind":"property","type":"PistonActivateAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12350,6 +12688,15 @@
                 ],
                 "playerCancelBreakingBlock": [
                     {"from":"2.9.0","kind":"property","type":"PlayerCancelBreakingBlockAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "playerCraftRecipe": [
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerCraftRecipeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "playerCursorItemGrab": [
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerCursorItemGrabAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
+                "playerCursorItemRelease": [
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerCursorItemReleaseAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "playerDimensionChange": [
                     {"from":"1.6.0","kind":"property","type":"PlayerDimensionChangeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12400,7 +12747,7 @@
                     {"from":"2.5.0","kind":"property","type":"PlayerSwingStartAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "playerUseNameTag": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PlayerUseNameTagAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerUseNameTagAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "pressurePlatePop": [
                     {"from":"1.4.0","kind":"property","type":"PressurePlatePopAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12427,16 +12774,16 @@
                     {"from":"1.9.0","kind":"property","type":"WeatherChangeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockOnPaused": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockOnPausedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockOnPausedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockOnResumed": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockOnResumedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockOnResumedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockOnTimeMarker": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockOnTimeMarkerAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockOnTimeMarkerAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockOnTimeModified": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockOnTimeModifiedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockOnTimeModifiedAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldInitialize": [
                     {"from":"1.10.0","to":"1.19.0","kind":"property","type":"WorldInitializeAfterEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12452,7 +12799,7 @@
             ],
             "members": {
                 "chatSend": [
-                    {"from":"2.11.0-beta","kind":"property","type":"ChatSendBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"ChatSendBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "effectAdd": [
                     {"from":"1.9.0","kind":"property","type":"EffectAddBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12493,17 +12840,20 @@
                 "playerInteractWithEntity": [
                     {"from":"1.15.0","kind":"property","type":"PlayerInteractWithEntityBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
+                "playerItemAttackEntity": [
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerItemAttackEntityBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                ],
                 "playerLeave": [
                     {"from":"1.7.0","kind":"property","type":"PlayerLeaveBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "playerPlaceBlock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"PlayerPlaceBlockBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.12.0-beta","kind":"property","type":"PlayerPlaceBlockBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "weatherChange": [
                     {"from":"1.11.0","kind":"property","type":"WeatherChangeBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldClockOnRestart": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClockOnRestartBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClockOnRestartBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
                 ],
                 "worldInitialize": [
                     {"from":"1.12.0","to":"1.19.0","kind":"property","type":"WorldInitializeBeforeEventSignal","readOnly":true,"get":["early_execution","restricted_execution"]}
@@ -12512,253 +12862,253 @@
         },
         "WorldClock": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "addTimeMarker": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarkerOptions","type":"TimeMarkerOptions"}],"throws":["WorldClockAddTimeMarkerError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarkerOptions","type":"TimeMarkerOptions"}],"throws":["WorldClockAddTimeMarkerError"],"returns":"undefined"}
                 ],
                 "isPaused": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
+                    {"from":"2.11.0","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["default"]}
                 ],
                 "name": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"string","readOnly":true,"baked":true,"get":["restricted_execution"]}
                 ],
                 "removeTimeMarker": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockRemoveMinecraftTimeMarkerError","WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockRemoveMinecraftTimeMarkerError","WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
                 ],
                 "rewindTo": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockRewindError","WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockRewindError","WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
                 ],
                 "set": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
                 ],
                 "skipTo": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["default"],"arguments":[{"name":"timeMarker","type":{"kind":"variant","types":["string","TimeMarker"]}}],"throws":["WorldClockTimeMarkerNotFoundError"],"returns":"undefined"}
                 ],
                 "time": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["default"],"min":0}
+                    {"from":"2.11.0","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["default"],"min":0}
                 ],
                 "timeMarkers": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"array","element":"TimeMarker"},"readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"array","element":"TimeMarker"},"readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WorldClockAddTimeMarkerError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockEventOptions": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.11.0","kind":"interface"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":"string","readOnly":false}
                 ]
             }
         },
         "WorldClockInvalidRegistryError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockInvalidTimeMarkerError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockNotFoundError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockOnPausedAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WorldClockOnPausedAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnPausedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockOnRestartBeforeEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "cancel": [
-                    {"from":"2.11.0-beta","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"boolean","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"]}
                 ],
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "newTime": [
-                    {"from":"2.11.0-beta","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":0}
+                    {"from":"2.11.0","kind":"property","type":"int32","readOnly":false,"get":["restricted_execution"],"set":["restricted_execution"],"min":0}
                 ]
             }
         },
         "WorldClockOnRestartBeforeEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnRestartBeforeEvent"],"returns":"undefined","privilege":["restricted_execution"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockOnResumedAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WorldClockOnResumedAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnResumedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockOnTimeMarkerAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
                 ],
                 "timeMarker": [
-                    {"from":"2.11.0-beta","kind":"property","type":"TimeMarker","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"TimeMarker","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WorldClockOnTimeMarkerAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockTimeMarkerEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockTimeMarkerEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeMarkerAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockOnTimeModifiedAfterEvent": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
+                    {"from":"2.11.0","kind":"property","type":"WorldClock","readOnly":true,"get":["restricted_execution"]}
                 ]
             }
         },
         "WorldClockOnTimeModifiedAfterEventSignal": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "subscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}},{"name":"options","type":{"kind":"optional","type":"WorldClockEventOptions"},"default":null}],"returns":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}}
                 ],
                 "unsubscribe": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution"],"arguments":[{"name":"callback","type":{"kind":"closure","arguments":["WorldClockOnTimeModifiedAfterEvent"],"returns":"undefined","privilege":["default"]}}],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockRegistrationError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockRegistrationOptions": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.11.0","kind":"interface"}
             ],
             "members": {
                 "timeMarkers": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"TimeMarkerOptions"}},"readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":{"kind":"array","element":"TimeMarkerOptions"}},"readOnly":false}
                 ]
             }
         },
         "WorldClockRegistry": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"class"}
+                {"from":"2.11.0","kind":"class"}
             ],
             "members": {
                 "registerClock": [
-                    {"from":"2.11.0-beta","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"name","type":"string"},{"name":"registrationOptions","type":{"kind":"optional","type":"WorldClockRegistrationOptions"},"default":null}],"throws":["WorldClockInvalidRegistryError","WorldClockRegistrationError","WorldClockReloadNewWorldClockError","WorldClockReloadTimeMarkerError"],"returns":"undefined"}
+                    {"from":"2.11.0","kind":"method","privilege":["early_execution","restricted_execution"],"arguments":[{"name":"name","type":"string"},{"name":"registrationOptions","type":{"kind":"optional","type":"WorldClockRegistrationOptions"},"default":null}],"throws":["WorldClockInvalidRegistryError","WorldClockRegistrationError","WorldClockReloadNewWorldClockError","WorldClockReloadTimeMarkerError"],"returns":"undefined"}
                 ]
             }
         },
         "WorldClockReloadNewWorldClockError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockReloadTimeMarkerError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockRemoveMinecraftTimeMarkerError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockRewindError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldClockTimeMarkerEventOptions": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"interface"}
+                {"from":"2.11.0","kind":"interface"}
             ],
             "members": {
                 "clock": [
-                    {"from":"2.11.0-beta","kind":"property","type":"string","readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":"string","readOnly":false}
                 ],
                 "timeMarker": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"string"},"readOnly":false}
                 ]
             }
         },
         "WorldClockTimeMarkerNotFoundError": {
             "segments": [
-                {"from":"2.11.0-beta","kind":"error"}
+                {"from":"2.11.0","kind":"error"}
             ]
         },
         "WorldInitializeAfterEvent": {
@@ -12829,10 +13179,10 @@
             ],
             "members": {
                 "isBroadcast": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
+                    {"from":"2.10.0","kind":"property","type":{"kind":"optional","type":"boolean"},"readOnly":false}
                 ],
                 "loopCount": [
-                    {"from":"2.11.0-beta","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
+                    {"from":"2.11.0","kind":"property","type":{"kind":"optional","type":"int32"},"readOnly":false}
                 ],
                 "pitch": [
                     {"from":"1.2.0","kind":"property","type":{"kind":"optional","type":"float"},"readOnly":false}

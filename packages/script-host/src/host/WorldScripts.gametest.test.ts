@@ -32,7 +32,7 @@ const writePack = (body: string): ScriptPack => {
             header: { name: 'gametests', uuid: 'aac52733-889b-4c87-abcb-f064ea7735a2', version: [1, 0, 0] },
             modules: [{ type: 'script', uuid: '13f251b3-41c9-4271-b2d1-d4abde28890b', entry: 'scripts/main.js' }],
             dependencies: [
-                { module_name: '@minecraft/server', version: '2.11.0-beta' },
+                { module_name: '@minecraft/server', version: '2.12.0-beta' },
                 { module_name: '@minecraft/server-gametest', version: '1.0.0-beta' }
             ]
         })

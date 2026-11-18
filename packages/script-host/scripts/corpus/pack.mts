@@ -79,7 +79,7 @@ const stabilityOf = (version: string | undefined): VersionStability =>
  * ships when that beta has the same major version, whichever beta it names: BDS serves only that
  * one and refuses a pack that names another, so it is the closest shape to what the pack was
  * written against. A beta of another major version, such as `1.17.0-beta` beside a shipped
- * `2.11.0-beta`, gets the newest stable minor of its own major version.
+ * `2.12.0-beta`, gets the newest stable minor of its own major version.
  */
 export const shapeVersionFor = (history: ModuleHistory, declared: string | undefined): string | undefined => {
     const newest = history.versions.filter((entry) => entry.stability === 'stable').at(-1)?.version;

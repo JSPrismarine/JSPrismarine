@@ -12,6 +12,7 @@ import { reportProgress } from '../../../../.test/reportProgress';
 import { SCRIPT_MODULE_HISTORIES } from '../generated/scriptModules';
 import { shapeAt } from '../shape/history';
 import { implementationCoverage } from '../shape/implementations';
+import { currentBeta } from '../shape/resolve';
 import type { ScriptApiImplementations } from '../shape/implementations';
 import { isRecord } from '../isRecord';
 import { MemoryWorld } from '../testing/memoryWorld.test.helper';
@@ -103,7 +104,12 @@ describe('the implemented @minecraft/server members', () => {
     it('reports how many members of each served version have behavior', () => {
         const history = SCRIPT_MODULE_HISTORIES[SERVER];
         if (history === undefined) throw new Error(`${SERVER} has no generated shape`);
-        for (const version of ['1.19.0', '2.10.0', '2.11.0-beta']) {
+        // Every version a pack can be served: the newest stable minor of each major, and the shipped beta.
+        const served = [...Object.values(history.resolves), currentBeta(history)].filter(
+            (version) => version !== undefined
+        );
+        expect(served.length).toBeGreaterThan(1);
+        for (const version of served) {
             const { implemented, total } = implementationCoverage(shapeAt(history, version), implementations);
             expect(implemented).toBeLessThanOrEqual(total);
             reportProgress(

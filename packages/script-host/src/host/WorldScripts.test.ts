@@ -269,7 +269,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             system.runTimeout(() => { const recurse = () => recurse() + 1; try { recurse(); } catch {} }, 2);
             system.runTimeout(() => console.warn('still running'), 3);`;
         const critical: CriticalException[] = [];
-        const { scripts, log } = start([writePack(source, '2.11.0-beta')], {
+        const { scripts, log } = start([writePack(source, '2.12.0-beta')], {
             watchdog: { hangSteps: 40, shutdown: true },
             critical,
             betaApis: true
@@ -286,7 +286,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             system.beforeEvents.watchdogTerminate.subscribe((event) => console.warn('terminate', event.terminateReason));
             system.runTimeout(() => { while (true) {} }, 1);`;
         const critical: CriticalException[] = [];
-        const { scripts, log } = start([writePack(source, '2.11.0-beta')], {
+        const { scripts, log } = start([writePack(source, '2.12.0-beta')], {
             watchdog: { hangSteps: 40, shutdown: true },
             critical,
             betaApis: true
@@ -322,7 +322,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             system.beforeEvents.watchdogTerminate.subscribe(() => { console.warn('terminate'); while (true) {} });
             system.runTimeout(() => { while (true) {} }, 1);`;
         const critical: CriticalException[] = [];
-        const { scripts, log } = start([writePack(source, '2.11.0-beta')], {
+        const { scripts, log } = start([writePack(source, '2.12.0-beta')], {
             watchdog: { hangSteps: 40, shutdown: true },
             critical,
             betaApis: true
@@ -386,7 +386,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
                     });
                     system.run(() => { listed = world.getAllPlayers()[0]; });
                     system.runTimeout(() => console.warn('same listed', world.getAllPlayers()[0] === listed), 1);`,
-                    '2.11.0-beta'
+                    '2.12.0-beta'
                 )
             ],
             { world, betaApis: true }
@@ -413,7 +413,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
                         try { world.playMusic('record.cat'); } catch (error) { console.warn(String(error)); }
                         if (event.message === 'cancel me') event.cancel = true;
                     });`,
-                    '2.11.0-beta'
+                    '2.12.0-beta'
                 )
             ],
             { world, betaApis: true }
@@ -492,7 +492,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
         ]);
         const coverage = log.lines.find((line) => line.includes('Script API members'));
         expect(coverage).toMatch(
-            /^info \[Scripting\] \[probe\] uses 3 Script API members, 2 of them implemented \(@minecraft\/server 2\.10\.0: \d+ of \d+/
+            /^info \[Scripting\] \[probe\] uses 3 Script API members, 2 of them implemented \(@minecraft\/server 2\.11\.0: \d+ of \d+/
         );
         expect(log.lines).toContain('info [Scripting] [probe] not implemented yet: setDefaultSpawnLocation');
     });
@@ -609,21 +609,21 @@ system.run(() => {
 
     it('runs a pack that declares the beta BDS ships only while the Beta APIs experiment is on', () => {
         const source = `import { WorldBeforeEvents } from '@minecraft/server'; console.warn(typeof WorldBeforeEvents);`;
-        const on = start([writePack(source, '2.11.0-beta', 'beta')], { betaApis: true });
-        const off = start([writePack(source, '2.11.0-beta', 'beta')]);
+        const on = start([writePack(source, '2.12.0-beta', 'beta')], { betaApis: true });
+        const off = start([writePack(source, '2.12.0-beta', 'beta')]);
 
         expect(on.log.printed()).toEqual(['function']);
         expect(off.log.printed()).toEqual([]);
         expect(off.log.lines).toContain(
-            'error [Scripting] Plugin [beta - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.11.0-beta], but the Beta APIs experiment is not enabled.'
+            'error [Scripting] Plugin [beta - 1.0.0] - requesting dependency on beta APIs [@minecraft/server - 2.12.0-beta], but the Beta APIs experiment is not enabled.'
         );
     });
 
     it('logs that it made no context for a pack with an unknown version, and that the pack did not run', () => {
         const { log } = start(
             [
-                writePack('', '2.12.0-beta', 'newer'),
-                writePack('', '2.11.0', 'unshipped'),
+                writePack('', '2.13.0-beta', 'newer'),
+                writePack('', '2.12.0', 'unshipped'),
                 writePack(`console.warn('ran');`, '2.0.0', 'stable')
             ],
             { betaApis: true }
@@ -634,9 +634,9 @@ system.run(() => {
 
         expect(refusals).toEqual([
             'error [Scripting] Plugin [newer - 1.0.0] - failed to create context.',
-            'error [Scripting] Plugin [newer] - module [newer - 1.0.0] requested invalid version [2.12.0-beta] of [@minecraft/server].',
+            'error [Scripting] Plugin [newer] - module [newer - 1.0.0] requested invalid version [2.13.0-beta] of [@minecraft/server].',
             'error [Scripting] Plugin [unshipped - 1.0.0] - failed to create context.',
-            'error [Scripting] Plugin [unshipped] - module [unshipped - 1.0.0] requested invalid version [2.11.0] of [@minecraft/server].',
+            'error [Scripting] Plugin [unshipped] - module [unshipped - 1.0.0] requested invalid version [2.12.0] of [@minecraft/server].',
             'error [Scripting] Plugin [newer - 1.0.0] - run failed, no runtime or context available.',
             'error [Scripting] Plugin [unshipped - 1.0.0] - run failed, no runtime or context available.'
         ]);

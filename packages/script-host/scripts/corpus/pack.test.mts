@@ -9,6 +9,9 @@ import { countPack, shapeVersionFor } from './pack.mts';
 
 const server = SCRIPT_MODULE_HISTORIES['@minecraft/server'];
 if (server === undefined) throw new Error('No generated @minecraft/server history');
+// The beta the pinned server ships, its newest. `currentBeta` says the same, but `src/shape/resolve.ts`
+// imports without extensions, which this project's module resolution refuses.
+const shippedBeta = server.versions.filter((entry) => entry.stability === 'beta').at(-1)?.version;
 
 describe('shapeVersionFor', () => {
     it('gives a stable version what BDS serves: the newest minor of its major version', () => {
@@ -17,9 +20,10 @@ describe('shapeVersionFor', () => {
     });
 
     it('gives a beta version of the major version the shipped beta has that beta', () => {
-        expect(shapeVersionFor(server, '2.12.0-beta')).toBe('2.11.0-beta');
-        expect(shapeVersionFor(server, '2.8.0-beta')).toBe('2.11.0-beta');
-        expect(shapeVersionFor(server, 'beta')).toBe('2.11.0-beta');
+        expect(shippedBeta).toMatch(/^2\.\d+\.0-beta$/);
+        expect(shapeVersionFor(server, '2.99.0-beta')).toBe(shippedBeta);
+        expect(shapeVersionFor(server, '2.8.0-beta')).toBe(shippedBeta);
+        expect(shapeVersionFor(server, 'beta')).toBe(shippedBeta);
     });
 
     it('gives a beta version of another major version the newest stable minor of that major', () => {
@@ -70,7 +74,7 @@ describe('countPack', () => {
         expect(usage.files).toEqual({ javascript: 1, typescript: 1 });
         expect([...usage.modules.keys()]).toEqual(['@minecraft/server', '@minecraft/server-net']);
         const serverUse = usage.modules.get('@minecraft/server');
-        expect(serverUse).toMatchObject({ declared: '2.8.0-beta', stability: 'beta', shape: '2.11.0-beta' });
+        expect(serverUse).toMatchObject({ declared: '2.8.0-beta', stability: 'beta', shape: shippedBeta });
         expect([...(serverUse?.uses.keys() ?? [])].sort()).toEqual([
             'World.getDimension',
             'World.sendMessage',
