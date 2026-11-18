@@ -1,6 +1,11 @@
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import { ItemInstanceUserData, NetworkBinaryStream, NetworkItemStackDescriptor } from '@jsprismarine/protocol';
+import {
+    ItemInstanceUserData,
+    NetworkBinaryStream,
+    NetworkItemStackDescriptor,
+    blockRuntimeId as stateIdOf
+} from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -369,6 +374,14 @@ describe('the numbering a stack is written and read with', () => {
         expect(at2193.stackSize).toBe(1);
         expect(at2193.blockRuntimeId).toBe(BlockRuntimeIds.tryGetByName('minecraft:info_update'));
         expect(icicle.toStackDescriptor(slotAt(2225)).id).toBe(ItemTable['minecraft:icicle']!.runtime_id);
+    });
+
+    it('writes the block a stack places as the release of the session writes it', () => {
+        // 1.26.60 gave chorus plants six connection states, which 1.26.51 does not have.
+        const chorus = new Item({ name: 'minecraft:chorus_plant' });
+
+        expect(chorus.toStackDescriptor(slotAt(2193)).blockRuntimeId).toBe(stateIdOf('minecraft:chorus_plant'));
+        expect(chorus.toStackDescriptor(slotAt(2225)).blockRuntimeId).toBe(chorus.getBlockRuntimeId());
     });
 
     it('keeps the number a custom item was given at every version', () => {

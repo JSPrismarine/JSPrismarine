@@ -2,6 +2,9 @@ import type { MissingBlobData } from '@jsprismarine/protocol/packet/ClientCacheM
 
 import type Chunk from '../world/chunk/Chunk';
 import type { ReadonlySubChunk } from '../world/chunk/SubChunk';
+import { translateChunkPayload } from '../world/chunk/translateNetworkPalettes';
+import { IDENTITY_BLOCK_TRANSLATION } from './codec/blockTranslation';
+import type { BlockTranslation } from './codec/blockTranslation';
 import { xxHash64 } from './xxHash64';
 
 /** One content-addressed byte range named by a cached LevelChunk packet. */
@@ -59,6 +62,8 @@ interface CachedRequestBiomesBlob extends RequestBiomesBlob {
 const cachedByChunk = new WeakMap<Chunk, CachedChunkBlobs>();
 const requestBiomesByChunk = new WeakMap<Chunk, CachedRequestBiomesBlob>();
 const requestBlobsByChunk = new WeakMap<Chunk, Map<number, CachedRequestSubChunkBlob>>();
+/** A request blob's terrain as an older release writes it, built once per blob and translation. */
+const translatedRequestBlobs = new WeakMap<RequestSubChunkBlob, Map<BlockTranslation, RequestSubChunkBlob>>();
 
 /** Keeps missed chunk blobs for one connection until the client acknowledges them. */
 export class ClientBlobCache {
@@ -109,7 +114,32 @@ export class ClientBlobCache {
      * @param chunk - The requested chunk column.
      * @param y - Absolute subchunk index.
      */
-    public prepareRequestSubChunk(chunk: Chunk, y: number): RequestSubChunkBlob {
+    public prepareRequestSubChunk(
+        chunk: Chunk,
+        y: number,
+        translation: BlockTranslation = IDENTITY_BLOCK_TRANSLATION
+    ): RequestSubChunkBlob {
+        const blob = this.prepareWorldRequestSubChunk(chunk, y);
+        if (!translation.changes) return blob;
+
+        // The terrain is hashed after translating, so the client caches each release's bytes
+        // under their own id.
+        let byTranslation = translatedRequestBlobs.get(blob);
+        if (byTranslation === undefined) {
+            byTranslation = new Map();
+            translatedRequestBlobs.set(blob, byTranslation);
+        }
+        let translated = byTranslation.get(translation);
+        if (translated === undefined) {
+            const data = translateChunkPayload(blob.data, 1, translation.toClient);
+            translated = data === blob.data ? blob : { ...blob, id: xxHash64(data), data };
+            byTranslation.set(translation, translated);
+        }
+        return translated;
+    }
+
+    /** One requested sub chunk's terrain as the world holds it, shared by every session. */
+    private prepareWorldRequestSubChunk(chunk: Chunk, y: number): RequestSubChunkBlob {
         let cachedByY = requestBlobsByChunk.get(chunk);
         if (cachedByY === undefined) {
             cachedByY = new Map();

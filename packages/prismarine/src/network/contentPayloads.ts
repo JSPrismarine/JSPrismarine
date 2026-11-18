@@ -40,6 +40,7 @@ import {
 } from '@jsprismarine/protocol/payload';
 
 import { canonicalItemData } from './codec/itemData';
+import { blockTranslationFor } from './codec/blockTranslation';
 import { assertContentPaletteAgrees } from './contentPalette';
 
 import type { ProtocolItemData } from '@jsprismarine/protocol';
@@ -150,11 +151,15 @@ const userDataFor = (nbt: Buffer | undefined, blocksAttacks: boolean): Buffer =>
  * number the item table has for the name: `minecraft:air` is -158 there, and
  * writing that leaves the client holding a real item in every unused slot.
  */
-const creativeStack = (instance: WireItemInstance, content: ServerContent): ItemStackData => ({
+const creativeStack = (
+    instance: WireItemInstance,
+    content: ServerContent,
+    toClient: (runtimeId: number) => number
+): ItemStackData => ({
     runtimeId: instance.name === 'minecraft:air' ? 0 : instance.runtimeId,
     count: instance.count,
     meta: instance.meta,
-    blockRuntimeId: instance.blockRuntimeId,
+    blockRuntimeId: toClient(instance.blockRuntimeId),
     userData: userDataFor(
         instance.nbt,
         content.items.types.get(instance.name)?.hasComponent('minecraft:blocks_attacks') ?? false
@@ -170,7 +175,7 @@ const creativeStack = (instance: WireItemInstance, content: ServerContent): Item
  * shown and the block it ends up holding are the same thing.
  */
 const resultStack =
-    (items: ItemIdLookup, content: ServerContent) =>
+    (items: ItemIdLookup, content: ServerContent, toClient: (runtimeId: number) => number) =>
     (result: WireResult): ItemStackData => {
         const block = content.blocks.types.get(result.name);
 
@@ -178,7 +183,7 @@ const resultStack =
             runtimeId: items(result.name) ?? 0,
             count: result.count,
             meta: result.meta,
-            blockRuntimeId: block === undefined ? 0 : blockRuntimeId(result.name, block.state().values),
+            blockRuntimeId: block === undefined ? 0 : toClient(blockRuntimeId(result.name, block.state().values)),
             userData: EMPTY_USER_DATA
         };
     };
@@ -265,7 +270,9 @@ export const buildNetworkContentPayloads = (
         // Java tag alternative only when a known Bedrock tag names the exact same set.
         bedrockTagFor: (items) => bedrockItemTagsByItems.get(itemSetKey(items))
     });
-    const output = resultStack(itemIds, content);
+    // Block ids as the session's release writes them; the payloads are built per version.
+    const { toClient } = blockTranslationFor(versionOf(options));
+    const output = resultStack(itemIds, content, toClient);
 
     return {
         // Mojang's data-driven vanilla blocks first, in the order the capture
@@ -280,13 +287,13 @@ export const buildNetworkContentPayloads = (
             groups: creative.groups.map((group) => ({
                 category: group.category,
                 name: group.name,
-                icon: creativeStack(group.icon, content)
+                icon: creativeStack(group.icon, content, toClient)
             })),
             // The writer numbers entries one-based by position, which is the
             // same number `buildCreativeContent` put in `creativeNetId`, so
             // the order is the whole of the agreement and nothing renumbers.
             entries: creative.entries.map((entry) => ({
-                item: creativeStack(entry.item, content),
+                item: creativeStack(entry.item, content, toClient),
                 group: entry.group
             }))
         },
