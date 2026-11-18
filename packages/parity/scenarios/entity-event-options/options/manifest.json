@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario entity-event-options options",
+        "description": "Records which entity after-events reach a subscriber that names entities or entity types. Written for packages/parity.",
+        "uuid": "484a335c-6af2-4fdc-afe7-086399546845",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "c714fb22-3d61-48c5-b0a8-7094d71a8e77",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.0.0" }]
+}

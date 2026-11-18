@@ -1846,6 +1846,11 @@
         }
     },
     "scripting.blocks": {
+        "bds-record:block-inventory": {
+            "kind": "defect",
+            "reason": "A diamond sword with 7 damage, put into a chest and read back with getItem, throws \"Failed to get property 'damage'.\" from its durability component on BDS, where JSPrismarine returns 7. Every other container read and write, the inventory component of a chest, a barrel and stone, and the durability component of a new stack match BDS.",
+            "reference": "docs/plans/script-api-host.md slice 10 (#3207)"
+        },
         "bds-record:blocks": {
             "kind": "defect",
             "reason": "JSPrismarine's block palette has no old_log_type state on minecraft:oak_log and no stone_type on minecraft:stone, which the pinned BDS still lists, so getAllStates returns fewer states. Every block read, write and error matches BDS.",
@@ -1867,7 +1872,13 @@
         }
     },
     "scripting.engine": {},
-    "scripting.entities": {},
+    "scripting.entities": {
+        "bds-record:entity-effects": {
+            "kind": "defect",
+            "reason": "A pig's speed effect stays at 60 ticks five ticks after addEffect on JSPrismarine, where BDS counts it down to 55, because no player is near and JSPrismarine has no /tickingarea, so the pig never updates. A dying pig's getEffects throws InvalidEntityError on JSPrismarine, where BDS keeps it valid through its death animation and returns its one effect. Every other effect read and write, its errors and display names, the MolangVariableMap setters and spawnParticle match BDS.",
+            "reference": "issue #3251"
+        }
+    },
     "scripting.events": {
         "bds-record:entity-events": {
             "kind": "defect",

@@ -1,0 +1,247 @@
+{
+    "$comment": [
+        "What the scripts of scenario `block-inventory` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "block-inventory",
+    "server": {
+        "protocolVersion": 2193,
+        "serverVersion": "1.26.51.1"
+    },
+    "observations": [
+        {
+            "pack": "chest",
+            "seq": 1,
+            "tick": 0,
+            "event": "getComponent inventory",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 2,
+            "tick": 0,
+            "event": "getComponent minecraft:inventory typeId",
+            "value": "minecraft:inventory"
+        },
+        {
+            "pack": "chest",
+            "seq": 3,
+            "tick": 0,
+            "event": "hasComponent inventory",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 4,
+            "tick": 0,
+            "event": "component block",
+            "value": {
+                "x": 1,
+                "y": -60,
+                "z": 1
+            }
+        },
+        {
+            "pack": "chest",
+            "seq": 5,
+            "tick": 0,
+            "event": "component isValid",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 6,
+            "tick": 0,
+            "event": "stone getComponent inventory",
+            "value": null
+        },
+        {
+            "pack": "chest",
+            "seq": 7,
+            "tick": 0,
+            "event": "stone hasComponent inventory",
+            "value": false
+        },
+        {
+            "pack": "chest",
+            "seq": 8,
+            "tick": 0,
+            "event": "container size",
+            "value": 27
+        },
+        {
+            "pack": "chest",
+            "seq": 9,
+            "tick": 0,
+            "event": "container emptySlotsCount",
+            "value": 27
+        },
+        {
+            "pack": "chest",
+            "seq": 10,
+            "tick": 0,
+            "event": "container isValid",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 11,
+            "tick": 0,
+            "event": "setItem"
+        },
+        {
+            "pack": "chest",
+            "seq": 12,
+            "tick": 0,
+            "event": "getItem",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 5
+            }
+        },
+        {
+            "pack": "chest",
+            "seq": 13,
+            "tick": 0,
+            "event": "addItem",
+            "value": null
+        },
+        {
+            "pack": "chest",
+            "seq": 14,
+            "tick": 0,
+            "event": "slots after addItem",
+            "value": [
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 64
+                },
+                {
+                    "typeId": "minecraft:apple",
+                    "amount": 3
+                }
+            ]
+        },
+        {
+            "pack": "chest",
+            "seq": 15,
+            "tick": 0,
+            "event": "getItem past the end",
+            "error": "Error: Invalid container slot provided '27'. Maximum slot is '26'."
+        },
+        {
+            "pack": "chest",
+            "seq": 16,
+            "tick": 0,
+            "event": "a new block object reads the same slot",
+            "value": {
+                "typeId": "minecraft:apple",
+                "amount": 3
+            }
+        },
+        {
+            "pack": "chest",
+            "seq": 17,
+            "tick": 0,
+            "event": "setItem undefined",
+            "value": null
+        },
+        {
+            "pack": "chest",
+            "seq": 18,
+            "tick": 0,
+            "event": "getComponent of a barrel",
+            "value": 27
+        },
+        {
+            "pack": "chest",
+            "seq": 19,
+            "tick": 0,
+            "event": "sword getComponent durability",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 20,
+            "tick": 0,
+            "event": "sword durability typeId",
+            "value": "minecraft:durability"
+        },
+        {
+            "pack": "chest",
+            "seq": 21,
+            "tick": 0,
+            "event": "sword hasComponent durability",
+            "value": true
+        },
+        {
+            "pack": "chest",
+            "seq": 22,
+            "tick": 0,
+            "event": "sword maxDurability",
+            "value": 1561
+        },
+        {
+            "pack": "chest",
+            "seq": 23,
+            "tick": 0,
+            "event": "sword damage",
+            "value": 0
+        },
+        {
+            "pack": "chest",
+            "seq": 24,
+            "tick": 0,
+            "event": "set sword damage",
+            "value": [
+                10,
+                10
+            ]
+        },
+        {
+            "pack": "chest",
+            "seq": 25,
+            "tick": 0,
+            "event": "set sword damage past the max",
+            "error": "Error: Invalid damage value '5000' set on item 'minecraft:diamond_sword'. Damage values cannot be greater than maxDurability."
+        },
+        {
+            "pack": "chest",
+            "seq": 26,
+            "tick": 0,
+            "event": "apple getComponent durability",
+            "value": null
+        },
+        {
+            "pack": "chest",
+            "seq": 27,
+            "tick": 0,
+            "event": "apple hasComponent durability",
+            "value": false
+        },
+        {
+            "pack": "chest",
+            "seq": 28,
+            "tick": 0,
+            "event": "damaged sword in a chest",
+            "error": "Error: Failed to get property 'damage'."
+        },
+        {
+            "pack": "chest",
+            "seq": 29,
+            "tick": 0,
+            "event": "chest removed",
+            "value": false
+        },
+        {
+            "pack": "chest",
+            "seq": 30,
+            "tick": 0,
+            "event": "size of a removed chest",
+            "error": "Error: Failed to get property 'size'."
+        }
+    ]
+}
