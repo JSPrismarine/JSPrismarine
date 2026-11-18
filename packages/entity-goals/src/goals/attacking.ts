@@ -44,6 +44,9 @@ const REPATH_INTERVAL = 10;
 /** How far a melee swing reaches before `reach_multiplier`, in blocks. */
 const MELEE_REACH = 2;
 
+/** How many game ticks Java's `MeleeAttackGoal.canUse` waits between two path searches. */
+const CAN_USE_INTERVAL = 20;
+
 /** The shared chase-and-swing loop the melee goals are built from. */
 interface MeleeOptions {
     readonly speedMultiplier: number;
@@ -57,8 +60,6 @@ interface MeleeOptions {
     readonly attackOnce: boolean;
     /** One tick in this many ends the goal early; 0 never does. */
     readonly randomStopInterval: number;
-    /** Whether the goal refuses to start without a complete path to the target. */
-    readonly requireCompletePath: boolean;
     /** Ticks between the swing starting and the damage landing. */
     readonly hitDelay: number;
     readonly onAttack: GoalEvent | undefined;
@@ -75,6 +76,7 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
     let repath = 0;
     let pending = -1;
     let swung = false;
+    let lastCanUseCheck: number | undefined;
 
     const strike = (mob: GoalMob): void => {
         support.world.attack?.(mob);
@@ -83,18 +85,32 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
     };
 
     return {
+        // Java's `MeleeAttackGoal.canUse`: at most one path search every 20 game ticks, and a
+        // start only with a path to the target or the target already in reach. Starting without
+        // one began a walk that failed at once, so the goal stopped and started every pass.
         canStart: () => {
+            const now = support.world.gameTime?.();
+            // A clock that went back, as `/time set` moves this server's, opens the check again
+            // rather than holding it shut until the clock catches up.
+            const elapsed = now === undefined || lastCanUseCheck === undefined ? undefined : now - lastCanUseCheck;
+            if (elapsed !== undefined && elapsed >= 0 && elapsed < CAN_USE_INTERVAL) return false;
+            lastCanUseCheck = now;
+
             target = support.target();
             if (target === undefined) return false;
-            if (options.requireCompletePath && !support.navigator.canReach(target.position(), 1)) return false;
-            return true;
+            if (support.distanceTo(target.position()) <= options.reach) return true;
+            return support.navigator.canReach(target.position(), 1);
         },
         canContinue: () => {
             const current = support.target();
             if (current === undefined || target === undefined || current.id !== target.id) return false;
             if (options.attackOnce && swung) return false;
             if (options.randomStopInterval > 0 && support.chance(1 / options.randomStopInterval)) return false;
-            if (!options.trackTarget && !support.canSee(current)) return false;
+            // Java's `MeleeAttackGoal.canContinueToUse`: a goal that does not follow an unseen
+            // target runs while its walk does and never asks about sight. Asking `canSee`, which
+            // also refuses anything past the follow range, stopped a chase every selector pass
+            // against a target the targeting goal still held from further out.
+            if (!options.trackTarget && !support.navigator.walking) return false;
             return true;
         },
         start: () => {
@@ -144,6 +160,10 @@ export interface MeleeAttackParams {
     readonly speedMultiplier: number;
     readonly trackTarget: boolean;
     readonly attackOnce: boolean;
+    /**
+     * Read, and true in effect either way: a melee goal starts only with a route the navigator
+     * can walk, and the navigator walks only complete ones.
+     */
     readonly requireCompletePath: boolean;
     readonly randomStopInterval: number;
     /** How long between swings, in ticks. */
@@ -180,7 +200,6 @@ const meleeOptions = (params: MeleeAttackParams, hitDelay = 0): MeleeOptions => 
     trackTarget: params.trackTarget,
     attackOnce: params.attackOnce,
     randomStopInterval: params.randomStopInterval,
-    requireCompletePath: params.requireCompletePath,
     hitDelay,
     onAttack: params.onAttack
 });

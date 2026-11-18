@@ -945,9 +945,17 @@ describe('the data-driven entity runtime over a live world', () => {
         live = opened;
     });
 
-    /** Runs the runtime for a number of ticks, from tick 1. */
-    const run = async (ticks: number): Promise<void> => {
-        for (let tick = 1; tick <= ticks; tick += 1) await live.tick(tick);
+    /**
+     * Runs the runtime for a number of ticks, from tick 1. The level's clock stands still unless
+     * `clock` is set, which moves it on one tick each time as `Level.update` does; a goal that
+     * paces itself by game time, such as a melee goal's path check, waits on a clock that stands
+     * still.
+     */
+    const run = async (ticks: number, clock = false): Promise<void> => {
+        for (let tick = 1; tick <= ticks; tick += 1) {
+            if (clock) world.setTicks(world.getTicks() + 1);
+            await live.tick(tick);
+        }
     };
 
     /** Keeps long-running undead fixtures alive; these direct runtime ticks do not advance Level time. */
@@ -2247,7 +2255,7 @@ describe('the data-driven entity runtime over a live world', () => {
             );
             const zombies = groups.flat();
 
-            await run(200);
+            await run(200, true);
 
             expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
             expect(zombies.every((zombie) => !zombie.body.stuck)).toBe(true);
@@ -2268,7 +2276,7 @@ describe('the data-driven entity runtime over a live world', () => {
             );
             const zombies = groups.flat();
 
-            await run(200);
+            await run(200, true);
 
             expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
             expect(zombies.every((zombie) => !zombie.body.stuck)).toBe(true);

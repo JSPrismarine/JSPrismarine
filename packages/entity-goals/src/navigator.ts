@@ -154,6 +154,20 @@ export class Navigator {
     private radius = 1;
     private idleTicks = 0;
     private lastDistance = Number.POSITIVE_INFINITY;
+    /**
+     * The route {@link canReach} last found, which the next {@link moveTo} from the same block to
+     * the same block takes instead of searching again: Java's `MeleeAttackGoal` hands the path its
+     * `canUse` made to `moveTo` in `start`.
+     */
+    private checked:
+        | {
+              readonly path: Path;
+              readonly from: EntityPosition;
+              readonly to: EntityPosition;
+              readonly goalRadius: number;
+              readonly profile: NavigationProfile;
+          }
+        | undefined;
 
     public constructor(private readonly context: NavigatorContext) {}
 
@@ -228,11 +242,20 @@ export class Navigator {
 
         this.waypoint = 0;
         this.pathStart = blockOf(actuator.position());
-        this.path = findPath(view, profile, {
-            from: actuator.position(),
-            to: destination,
-            goalRadius: goalRadiusBlocks
-        });
+        const checked = this.checked;
+        this.checked = undefined;
+        this.path =
+            checked !== undefined &&
+            sameBlock(checked.from, this.pathStart) &&
+            sameBlock(checked.to, target) &&
+            checked.goalRadius === goalRadiusBlocks &&
+            sameProfile(checked.profile, profile)
+                ? checked.path
+                : findPath(view, profile, {
+                      from: actuator.position(),
+                      to: destination,
+                      goalRadius: goalRadiusBlocks
+                  });
         if (this.path === undefined) {
             this.destination = undefined;
             this.clearPlannedRoute();
@@ -264,13 +287,24 @@ export class Navigator {
         if (actuator === undefined) return false;
         const view = this.context.navigation();
         if (view === undefined) return true;
-        return (
-            findPath(view, this.context.profile(), {
-                from: actuator.position(),
-                to: destination,
-                goalRadius: Math.max(0, Math.floor(goalRadius))
-            }) !== undefined
-        );
+        const profile = this.context.profile();
+        const goalRadiusBlocks = Math.max(0, Math.floor(goalRadius));
+        const path = findPath(view, profile, {
+            from: actuator.position(),
+            to: destination,
+            goalRadius: goalRadiusBlocks
+        });
+        this.checked =
+            path === undefined
+                ? undefined
+                : {
+                      path,
+                      from: blockOf(actuator.position()),
+                      to: blockOf(destination),
+                      goalRadius: goalRadiusBlocks,
+                      profile
+                  };
+        return path !== undefined;
     }
 
     /**
@@ -326,6 +360,7 @@ export class Navigator {
     /** Abandons the walk. */
     public stop(): void {
         this.path = undefined;
+        this.checked = undefined;
         this.destination = undefined;
         this.waypoint = 0;
         this.clearPlannedRoute();

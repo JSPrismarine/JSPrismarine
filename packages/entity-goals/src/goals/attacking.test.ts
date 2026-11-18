@@ -68,6 +68,57 @@ describe('minecraft:behavior.melee_box_attack', () => {
         expect(passabilityReads).toBe(initialReads);
     });
 
+    it('keeps chasing a target it cannot see while its walk runs, as Java does without track_target', () => {
+        // Java's `MeleeAttackGoal.canContinueToUse` asks only whether the walk is done. Asking about
+        // sight, which also refuses a target past the follow range, stopped this goal and started
+        // it again every selector pass, dropping the path each time.
+        const victim = testMob('victim', { x: 12, y: 0, z: 0 });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.melee_box_attack': { priority: 4 } },
+            world: combatWorld(victim, { canSee: false })
+        });
+        harness.actuator.follow = false;
+
+        harness.tick(40);
+
+        expect(harness.isRunning('minecraft:behavior.melee_box_attack')).toBe(true);
+        expect(harness.actuator.log.filter((entry) => entry === 'stopMoving')).toEqual([]);
+    });
+
+    it('does not start without a route to a target out of reach, and retries every 20 game ticks', () => {
+        const victim = testMob('victim', { x: 6, y: 1, z: 0 });
+        // A wall across the corridor, so no route reaches the victim.
+        const blocks = voxelGrid([['##########'], ['.....#....'], ['.....#....']]);
+        let searches = 0;
+        let now = 0;
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+            components: { 'minecraft:collision_box': { width: 0.6, height: 1.8 } },
+            world: {
+                ...combatWorld(victim),
+                gameTime: () => now,
+                navigation: () => ({
+                    ...blocks,
+                    isPassable: (position) => {
+                        if (position.x === 0 && position.y === 1 && position.z === 0) searches += 1;
+                        return blocks.isPassable(position);
+                    }
+                })
+            },
+            at: { x: 0.5, y: 1, z: 0.5 }
+        });
+
+        for (let tick = 0; tick < 40; tick += 1) {
+            now = tick;
+            harness.tick();
+        }
+
+        expect(harness.isRunning('minecraft:behavior.melee_box_attack')).toBe(false);
+        expect(harness.actuator.log.filter((entry) => entry.startsWith('moveTo'))).toEqual([]);
+        // Ticks 0 and 20: Java's `canUse` checks once and then waits 20 game ticks.
+        expect(searches).toBe(2);
+    });
+
     it('claims move and look and walks at the target', () => {
         const victim = testMob('victim', { x: 8, y: 0, z: 0 });
         const world = combatWorld(victim);
