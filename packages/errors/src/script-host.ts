@@ -332,6 +332,16 @@ export const ScriptHostErrors = defineErrors('script-host', {
      */
     InfinityNotSupported: { message: 'Infinity value is not supported.', base: TypeError },
     /**
+     * A script passed `@minecraft/server-admin`'s `transferPlayer` an options object that is
+     * neither a `TransferPlayerIpPortOptions`, a hostname with a port from 0 to 65535, nor a
+     * `TransferPlayerNetherNetOptions` with a NetherNet id. The script sees Bedrock Dedicated
+     * Server's `TypeError`.
+     */
+    ArgumentVariantConversionFailed: {
+        message: 'Native variant type conversion failed. Function argument [{argument}] expected type: {type}',
+        base: TypeError
+    },
+    /**
      * A script closed the forms of a player who has left. The script sees Bedrock Dedicated
      * Server's `Error`.
      */

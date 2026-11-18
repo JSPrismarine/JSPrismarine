@@ -171,12 +171,23 @@ const readJsonObject = (path: string): Record<string, unknown> | undefined => {
 const stringList = (value: unknown): string[] | undefined =>
     Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? value : undefined;
 
-const stringValues = (value: Record<string, unknown> | undefined): Record<string, string> | undefined =>
-    value === undefined
-        ? undefined
-        : Object.fromEntries(
-              Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
-          );
+/**
+ * The secrets of a `secrets.json` that are strings. BDS drops any other value and warns, naming the
+ * file by its path under the server's folder.
+ */
+const secretValues = (
+    value: Record<string, unknown> | undefined,
+    file: string,
+    warn: (message: string) => void
+): Record<string, string> | undefined => {
+    if (value === undefined) return undefined;
+    const secrets: Record<string, string> = {};
+    for (const [name, secret] of Object.entries(value)) {
+        if (typeof secret === 'string') secrets[name] = secret;
+        else warn(`Secret '${name}' in file '${file}' is not a string. Secrets can only be strings.`);
+    }
+    return secrets;
+};
 
 /**
  * Reads a BDS `config/` folder: `default/` for every pack, and a folder named after a script
@@ -184,15 +195,19 @@ const stringValues = (value: Record<string, unknown> | undefined): Record<string
  * `default/`, as the `config-permissions` scenario of the parity suite records BDS doing for
  * `permissions.json`; BDS documents no merge for the other two files either.
  * @param directory - The `config/` folder, or undefined for a server without one.
+ * @param warn - Where BDS's warnings about the files go, such as a secret that is not a string.
  * @throws {Error} When a file there is not a JSON object.
  */
-export const readScriptConfig = (directory: string | undefined): ScriptConfig => {
+export const readScriptConfig = (
+    directory: string | undefined,
+    warn: (message: string) => void = () => {}
+): ScriptConfig => {
     const read = (folder: string, file: string): Record<string, unknown> | undefined =>
         directory === undefined ? undefined : readJsonObject(join(directory, folder, file));
     const defaults: ScriptModuleConfig = {
         allowedModules: stringList(read('default', 'permissions.json')?.allowed_modules) ?? DEFAULT_ALLOWED_MODULES,
         variables: read('default', 'variables.json') ?? {},
-        secrets: stringValues(read('default', 'secrets.json')) ?? {}
+        secrets: secretValues(read('default', 'secrets.json'), 'config/default/secrets.json', warn) ?? {}
     };
     // A module's folder is named by its UUID; anything else in the manifest could reach outside `config/`.
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -203,7 +218,9 @@ export const readScriptConfig = (directory: string | undefined): ScriptConfig =>
                 allowedModules:
                     stringList(read(moduleUuid, 'permissions.json')?.allowed_modules) ?? defaults.allowedModules,
                 variables: read(moduleUuid, 'variables.json') ?? defaults.variables,
-                secrets: stringValues(read(moduleUuid, 'secrets.json')) ?? defaults.secrets
+                secrets:
+                    secretValues(read(moduleUuid, 'secrets.json'), `config/${moduleUuid}/secrets.json`, warn) ??
+                    defaults.secrets
             };
         }
     };
