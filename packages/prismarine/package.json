@@ -905,7 +905,7 @@
         "@jsprismarine/structures": "workspace:*",
         "@jsprismarine/trading": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
-        "jose": "6.2.17",
+        "jose": "6.2.18",
         "jsonc-parser": "3.3.1"
     }
 }
