@@ -31,6 +31,10 @@ export const itemRestShape: Scenario = {
         // A full block and a bottom slab side by side, three blocks ahead, on the flat floor.
         const feet = vec3(await client.state(), 'feet');
         const [x, y, z] = [Math.floor(feet[0]), Math.floor(feet[1]), Math.floor(feet[2]) + 3];
+        // Clear the air the stacks fall through. Earlier scenarios in the suite build on these
+        // blocks: mining-drops leaves its stone ceiling two above the floor here, which would catch
+        // the stack meant for the stone.
+        server.command(`fill ${x} ${y + 1} ${z} ${x + 2} ${y + 4} ${z} minecraft:air`);
         server.command(`setblock ${x} ${y} ${z} minecraft:stone`);
         server.command(`setblock ${x + 2} ${y} ${z} minecraft:oak_slab`);
         // What mining this block would drop is what falls on each.

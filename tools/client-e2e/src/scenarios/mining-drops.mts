@@ -83,6 +83,8 @@ export const miningDrops: Scenario = {
             }
         }
 
+        // Take the ceiling down, so the scenarios after this one find open air over the floor.
+        server.command(`setblock ${x} ${y + 1} ${z} minecraft:air`);
         log('each block produced a visible item before the next break');
     }
 };
