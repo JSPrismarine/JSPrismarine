@@ -1776,14 +1776,14 @@
         }
     },
     "scripting.engine": {},
-    "scripting.entities": {
-        "bds-record:entities": {
+    "scripting.entities": {},
+    "scripting.events": {
+        "bds-record:entity-events": {
             "kind": "defect",
-            "reason": "No entity but a player has an inventory a script can reach on JSPrismarine, so a chest minecart's getComponent('minecraft:inventory') is undefined and the pack throws before it ends. The armor stand's members, queries, teleport and tags before that match BDS.",
-            "reference": "docs/plans/script-api-host.md slice 10"
+            "reason": "A mob that dies leaves JSPrismarine's script world at once, so its deadEntity and the dead pig read isValid false and applyDamage on it throws InvalidEntityError, where BDS keeps it valid through its death animation and returns false. Entity.kill on an armor stand raises entityHurt and entityDie on JSPrismarine, where BDS breaks it and raises neither. Every entitySpawn, the other blows, their damage after the grace period, their causes and the event order match BDS.",
+            "reference": "docs/plans/script-api-host.md slice 10 (#3207)"
         }
     },
-    "scripting.events": {},
     "scripting.gametest": {},
     "scripting.items": {},
     "scripting.lifecycle": {
@@ -1799,6 +1799,11 @@
         }
     },
     "scripting.world": {
+        "bds-record:script-event-console": {
+            "kind": "defect",
+            "reason": "The console trims the end of a line it runs, so /scriptevent jsp:last  two  spaces  gives the message \"two  spaces\" where BDS keeps \"two  spaces \". Every other id, message and source matches BDS.",
+            "reference": "docs/plans/script-api-host.md slice 10 (#3207)"
+        },
         "bds-record:world-basics": {
             "kind": "defect",
             "reason": "A command a script runs fails with Brigadier's message on JSPrismarine, such as \"Unknown command at position 0: <--[HERE]\", where BDS words it \"Syntax error: Unexpected \\\"jspnosuchcommand\\\": at \\\">>jspnosuchcommand<<\\\"\", and JSPrismarine's /time set takes \"nonsense\" where BDS refuses it. The players, dimensions, success counts and the scriptEventReceive event match BDS.",

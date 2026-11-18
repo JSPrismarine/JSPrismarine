@@ -69,6 +69,23 @@ register('jsp', 'players', (test) => {
     attempt('id is a string', () => typeof player.id);
     attempt('isValid', () => player.isValid);
     attempt('dimension', () => player.dimension.id);
+    attempt('getGameMode', () => player.getGameMode());
+    attempt('setGameMode creative', () => {
+        player.setGameMode('Creative');
+        return player.getGameMode();
+    });
+    attempt('selectedSlotIndex', () => player.selectedSlotIndex);
+    attempt('set selectedSlotIndex', () => {
+        player.selectedSlotIndex = 4;
+        return player.selectedSlotIndex;
+    });
+    attempt('set selectedSlotIndex out of range', () => {
+        player.selectedSlotIndex = 9;
+        return player.selectedSlotIndex;
+    });
+    attempt('isSneaking', () => player.isSneaking);
+    attempt('world.getEntity finds the player', () => world.getEntity(player.id) === player);
+    attempt('Dimension.getPlayers', () => player.dimension.getPlayers().map((each) => each.name));
     attempt('sendMessage', () => player.sendMessage('hello'));
     attempt('addTag', () => player.addTag('tested'));
     attempt('hasTag', () => player.hasTag('tested'));

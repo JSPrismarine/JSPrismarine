@@ -114,32 +114,90 @@
             "pack": "players",
             "seq": 15,
             "tick": 0,
-            "event": "sendMessage"
+            "event": "getGameMode",
+            "value": "Survival"
         },
         {
             "pack": "players",
             "seq": 16,
+            "tick": 0,
+            "event": "setGameMode creative",
+            "value": "Creative"
+        },
+        {
+            "pack": "players",
+            "seq": 17,
+            "tick": 0,
+            "event": "selectedSlotIndex",
+            "value": 0
+        },
+        {
+            "pack": "players",
+            "seq": 18,
+            "tick": 0,
+            "event": "set selectedSlotIndex",
+            "value": 4
+        },
+        {
+            "pack": "players",
+            "seq": 19,
+            "tick": 0,
+            "event": "set selectedSlotIndex out of range",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: selectedSlot, Value: 9, Property bounds: [0, 8]"
+        },
+        {
+            "pack": "players",
+            "seq": 20,
+            "tick": 0,
+            "event": "isSneaking",
+            "value": false
+        },
+        {
+            "pack": "players",
+            "seq": 21,
+            "tick": 0,
+            "event": "world.getEntity finds the player",
+            "value": true
+        },
+        {
+            "pack": "players",
+            "seq": 22,
+            "tick": 0,
+            "event": "Dimension.getPlayers",
+            "value": [
+                "Tester"
+            ]
+        },
+        {
+            "pack": "players",
+            "seq": 23,
+            "tick": 0,
+            "event": "sendMessage"
+        },
+        {
+            "pack": "players",
+            "seq": 24,
             "tick": 0,
             "event": "addTag",
             "value": true
         },
         {
             "pack": "players",
-            "seq": 17,
+            "seq": 25,
             "tick": 0,
             "event": "hasTag",
             "value": true
         },
         {
             "pack": "players",
-            "seq": 18,
+            "seq": 26,
             "tick": 0,
             "event": "runCommand",
             "value": 1
         },
         {
             "pack": "players",
-            "seq": 19,
+            "seq": 27,
             "tick": 0,
             "event": "getTags after runCommand",
             "value": [
@@ -149,27 +207,27 @@
         },
         {
             "pack": "players",
-            "seq": 20,
+            "seq": 28,
             "tick": 0,
             "event": "inventory size",
             "value": 36
         },
         {
             "pack": "players",
-            "seq": 21,
+            "seq": 29,
             "tick": 0,
             "event": "inventory emptySlotsCount",
             "value": 36
         },
         {
             "pack": "players",
-            "seq": 22,
+            "seq": 30,
             "tick": 0,
             "event": "inventory setItem"
         },
         {
             "pack": "players",
-            "seq": 23,
+            "seq": 31,
             "tick": 0,
             "event": "inventory getItem",
             "value": {
@@ -179,13 +237,13 @@
         },
         {
             "pack": "players",
-            "seq": 24,
+            "seq": 32,
             "tick": 0,
             "event": "teleport"
         },
         {
             "pack": "players",
-            "seq": 25,
+            "seq": 33,
             "tick": 0,
             "event": "location after teleport, from the target",
             "value": {
@@ -196,7 +254,7 @@
         },
         {
             "pack": "players",
-            "seq": 26,
+            "seq": 34,
             "tick": 0,
             "event": "world.afterEvents.playerJoin",
             "value": {
@@ -206,7 +264,7 @@
         },
         {
             "pack": "players",
-            "seq": 27,
+            "seq": 35,
             "tick": 0,
             "event": "world.afterEvents.playerSpawn",
             "value": {
@@ -216,13 +274,13 @@
         },
         {
             "pack": "players",
-            "seq": 28,
+            "seq": 36,
             "tick": 5,
             "event": "removing"
         },
         {
             "pack": "players",
-            "seq": 29,
+            "seq": 37,
             "tick": 5,
             "event": "world.beforeEvents.playerLeave",
             "value": {
@@ -231,14 +289,14 @@
         },
         {
             "pack": "players",
-            "seq": 30,
+            "seq": 38,
             "tick": 5,
             "event": "isValid after removal",
             "value": false
         },
         {
             "pack": "players",
-            "seq": 31,
+            "seq": 39,
             "tick": 6,
             "event": "world.afterEvents.playerLeave",
             "value": {
@@ -248,21 +306,21 @@
         },
         {
             "pack": "players",
-            "seq": 32,
+            "seq": 40,
             "tick": 10,
             "event": "isValid later",
             "value": false
         },
         {
             "pack": "players",
-            "seq": 33,
+            "seq": 41,
             "tick": 10,
             "event": "name later",
             "error": "Error: Failed to get property 'name'."
         },
         {
             "pack": "players",
-            "seq": 34,
+            "seq": 42,
             "tick": 10,
             "event": "world.getAllPlayers later",
             "value": 0
