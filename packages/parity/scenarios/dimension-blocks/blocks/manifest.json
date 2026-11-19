@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario dimension-blocks blocks",
+        "description": "Records a dimension's block writes, block searches, light, biomes, raycasts, spawned items and explosions. Written for packages/parity.",
+        "uuid": "380f4fc5-f778-4f70-ab7e-65b68d8afa21",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "742b177c-272a-4674-b56b-e11784d556ee",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.12.0-beta" }]
+}

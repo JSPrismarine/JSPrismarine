@@ -1,0 +1,840 @@
+{
+    "$comment": [
+        "What the scripts of scenario `dimension-blocks` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "dimension-blocks",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "blocks",
+            "seq": 1,
+            "tick": 0,
+            "event": "setBlockType",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "blocks",
+            "seq": 2,
+            "tick": 0,
+            "event": "setBlockType of a BlockType",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "blocks",
+            "seq": 3,
+            "tick": 0,
+            "event": "setBlockType of an unknown type",
+            "error": "Error: Block type jsp:missing not found."
+        },
+        {
+            "pack": "blocks",
+            "seq": 4,
+            "tick": 0,
+            "event": "setBlockType in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 5,
+            "tick": 0,
+            "event": "setBlockType above the world",
+            "value": "undefined"
+        },
+        {
+            "pack": "blocks",
+            "seq": 6,
+            "tick": 0,
+            "event": "setBlockPermutation",
+            "value": {
+                "type": "minecraft:oak_log",
+                "axis": "x"
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 7,
+            "tick": 0,
+            "event": "setBlockPermutation below the world",
+            "value": "undefined"
+        },
+        {
+            "pack": "blocks",
+            "seq": 8,
+            "tick": 0,
+            "event": "getBlockAbove",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 9,
+            "tick": 0,
+            "event": "getBlockAbove with liquids",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 10,
+            "tick": 0,
+            "event": "getBlockAbove without passable blocks",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 11,
+            "tick": 0,
+            "event": "getBlockAbove with passable blocks",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 12,
+            "tick": 0,
+            "event": "getBlockAbove within 1",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 13,
+            "tick": 0,
+            "event": "getBlockAbove of the top block",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 14,
+            "tick": 0,
+            "event": "getBlockAbove from water",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 15,
+            "tick": 0,
+            "event": "getBlockAbove from water without passable blocks",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 16,
+            "tick": 0,
+            "event": "getBlockAbove from water with liquids",
+            "value": {
+                "type": "minecraft:water",
+                "location": {
+                    "z": 4,
+                    "y": 26,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 17,
+            "tick": 0,
+            "event": "getBlockBelow from stone",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 18,
+            "tick": 0,
+            "event": "getBlockBelow from air",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 19,
+            "tick": 0,
+            "event": "getBlockBelow from air without passable blocks",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 20,
+            "tick": 0,
+            "event": "getBlockBelow from air with liquids",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 21,
+            "tick": 0,
+            "event": "getBlockFromRay down through grass and water, default",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 22,
+            "tick": 0,
+            "event": "getBlockFromRay up from water, default",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 23,
+            "tick": 0,
+            "event": "getBlockFromRay down through grass and water, passable",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 24,
+            "tick": 0,
+            "event": "getBlockFromRay up from water, passable",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 25,
+            "tick": 0,
+            "event": "getBlockFromRay down through grass and water, liquid",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 26,
+            "tick": 0,
+            "event": "getBlockFromRay up from water, liquid",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 27,
+            "tick": 0,
+            "event": "getBlockFromRay down through grass and water, both",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 28,
+            "tick": 0,
+            "event": "getBlockFromRay up from water, both",
+            "value": {
+                "type": "minecraft:short_grass",
+                "location": {
+                    "z": 4,
+                    "y": 27,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 29,
+            "tick": 0,
+            "event": "getBlockBelow",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 30,
+            "tick": 0,
+            "event": "getBlockBelow within 5",
+            "value": null
+        },
+        {
+            "pack": "blocks",
+            "seq": 31,
+            "tick": 0,
+            "event": "getBlockBelow fractional",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 32,
+            "tick": 0,
+            "event": "getTopmostBlock",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 33,
+            "tick": 0,
+            "event": "getTopmostBlock fractional",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 34,
+            "tick": 0,
+            "event": "getTopmostBlock from 35",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 35,
+            "tick": 0,
+            "event": "getTopmostBlock from 30",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 30,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 36,
+            "tick": 0,
+            "event": "getTopmostBlock from 28",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 4,
+                    "y": 25,
+                    "x": 4
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 37,
+            "tick": 0,
+            "event": "getTopmostBlock in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 319.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 38,
+            "tick": 0,
+            "event": "getLightLevel in the open",
+            "value": 15
+        },
+        {
+            "pack": "blocks",
+            "seq": 39,
+            "tick": 0,
+            "event": "getSkyLightLevel in the open",
+            "value": 15
+        },
+        {
+            "pack": "blocks",
+            "seq": 40,
+            "tick": 0,
+            "event": "getLightLevel in stone",
+            "value": 0
+        },
+        {
+            "pack": "blocks",
+            "seq": 41,
+            "tick": 0,
+            "event": "getSkyLightLevel in stone",
+            "value": 15
+        },
+        {
+            "pack": "blocks",
+            "seq": 42,
+            "tick": 0,
+            "event": "getLightLevel in an unloaded chunk",
+            "value": 15
+        },
+        {
+            "pack": "blocks",
+            "seq": 43,
+            "tick": 0,
+            "event": "getLightLevel above the world",
+            "value": 15
+        },
+        {
+            "pack": "blocks",
+            "seq": 44,
+            "tick": 0,
+            "event": "getBiome",
+            "value": "minecraft:plains"
+        },
+        {
+            "pack": "blocks",
+            "seq": 45,
+            "tick": 0,
+            "event": "getBiome in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 46,
+            "tick": 0,
+            "event": "BiomeTypes.get",
+            "value": "minecraft:plains"
+        },
+        {
+            "pack": "blocks",
+            "seq": 47,
+            "tick": 0,
+            "event": "BiomeTypes.get with the namespace",
+            "value": "minecraft:desert"
+        },
+        {
+            "pack": "blocks",
+            "seq": 48,
+            "tick": 0,
+            "event": "BiomeTypes.get of an unknown biome",
+            "value": null
+        },
+        {
+            "pack": "blocks",
+            "seq": 49,
+            "tick": 0,
+            "event": "BiomeTypes.getAll includes plains and desert",
+            "value": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 50,
+            "tick": 0,
+            "event": "BiomeType.getTags",
+            "value": [
+                "animal",
+                "bee_habitat",
+                "monster",
+                "overworld",
+                "plains"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 51,
+            "tick": 0,
+            "event": "BiomeType.hasTags",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 52,
+            "tick": 0,
+            "event": "getEntitiesAtBlockLocation",
+            "value": [
+                "minecraft:pig"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 53,
+            "tick": 0,
+            "event": "getEntitiesAtBlockLocation of an empty block",
+            "value": []
+        },
+        {
+            "pack": "blocks",
+            "seq": 54,
+            "tick": 0,
+            "event": "getEntitiesFromRay",
+            "value": [
+                {
+                    "type": "minecraft:pig",
+                    "same": true,
+                    "distance": 7
+                }
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 55,
+            "tick": 0,
+            "event": "getEntitiesFromRay within 5",
+            "value": 0
+        },
+        {
+            "pack": "blocks",
+            "seq": 56,
+            "tick": 0,
+            "event": "getEntitiesFromRay through a block",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 57,
+            "tick": 0,
+            "event": "getBlockFromRay down",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 0,
+                    "y": 25,
+                    "x": 0
+                },
+                "face": "Up",
+                "faceLocation": {
+                    "z": 0.5,
+                    "y": 0,
+                    "x": 0.5
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 58,
+            "tick": 0,
+            "event": "getBlockFromRay sideways",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 0,
+                    "y": 20,
+                    "x": 6
+                },
+                "face": "West",
+                "faceLocation": {
+                    "z": 0.5,
+                    "y": 0.5,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 59,
+            "tick": 0,
+            "event": "getBlockFromRay at an angle",
+            "value": {
+                "type": "minecraft:stone",
+                "location": {
+                    "z": 0,
+                    "y": 20,
+                    "x": 6
+                },
+                "face": "West",
+                "faceLocation": {
+                    "z": 0.5,
+                    "y": 0.39999961853027344,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 60,
+            "tick": 0,
+            "event": "getBlockFromRay within 3",
+            "value": null
+        },
+        {
+            "pack": "blocks",
+            "seq": 61,
+            "tick": 0,
+            "event": "getBlockFromRay up into nothing",
+            "value": null
+        },
+        {
+            "pack": "blocks",
+            "seq": 62,
+            "tick": 0,
+            "event": "getBlockFromRay through water",
+            "value": [
+                "minecraft:stone",
+                "minecraft:stone"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 63,
+            "tick": 0,
+            "event": "spawnItem",
+            "value": {
+                "type": "minecraft:item",
+                "valid": true
+            }
+        },
+        {
+            "pack": "blocks",
+            "seq": 64,
+            "tick": 0,
+            "event": "spawnItem in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 65,
+            "tick": 0,
+            "event": "spawnXp",
+            "value": "undefined"
+        },
+        {
+            "pack": "blocks",
+            "seq": 66,
+            "tick": 0,
+            "event": "spawnXp of nothing",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 0, Argument bounds: [1, 12000]"
+        },
+        {
+            "pack": "blocks",
+            "seq": 67,
+            "tick": 0,
+            "event": "spawnXp in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 68,
+            "tick": 0,
+            "event": "createExplosion without breaking blocks",
+            "value": [
+                true,
+                "minecraft:stone"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 69,
+            "tick": 0,
+            "event": "createExplosion",
+            "value": [
+                true,
+                "minecraft:air"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 70,
+            "tick": 0,
+            "event": "createExplosion of radius 0",
+            "value": false
+        },
+        {
+            "pack": "blocks",
+            "seq": 71,
+            "tick": 0,
+            "event": "createExplosion of radius 2000",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 2000, Argument bounds: [0, 1000]"
+        },
+        {
+            "pack": "blocks",
+            "seq": 72,
+            "tick": 0,
+            "event": "createExplosion in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 73,
+            "tick": 0,
+            "event": "placeFeature of an unknown feature",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature name jsp:missing cannot be found in the registry"
+        },
+        {
+            "pack": "blocks",
+            "seq": 74,
+            "tick": 0,
+            "event": "placeFeature of an unknown feature that throws",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature name jsp:missing cannot be found in the registry"
+        },
+        {
+            "pack": "blocks",
+            "seq": 75,
+            "tick": 0,
+            "event": "placeFeatureRule of an unknown rule",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature rule jsp:missing cannot be found"
+        },
+        {
+            "pack": "blocks",
+            "seq": 76,
+            "tick": 0,
+            "event": "getGeneratedStructures",
+            "value": []
+        },
+        {
+            "pack": "blocks",
+            "seq": 77,
+            "tick": 2,
+            "event": "entities after a tick",
+            "value": [
+                "minecraft:item",
+                "minecraft:xp_orb"
+            ]
+        },
+        {
+            "pack": "blocks",
+            "seq": 78,
+            "tick": 2,
+            "event": "experience orbs",
+            "value": true
+        }
+    ]
+}

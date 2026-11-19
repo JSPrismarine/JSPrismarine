@@ -1866,6 +1866,11 @@
             "reason": "JSPrismarine's block palette has no old_log_type state on minecraft:oak_log and no stone_type on minecraft:stone, which the pinned BDS still lists, so getAllStates returns fewer states. Every block read, write and error matches BDS.",
             "reference": "docs/plans/script-api-host.md slice 10"
         },
+        "bds-record:dimension-volumes": {
+            "kind": "defect",
+            "reason": "getBlocks with closest breaks distance ties in the volume's x, y, z order, so of two blocks the same distance away it returns 2 20 1 where BDS returns 2 21 0 (issue #3317). Every fill, find, biome and clone matches BDS.",
+            "reference": "issue #3317"
+        },
         "bds-record:structures": {
             "kind": "defect",
             "reason": "JSPrismarine's block palette has no stone_type on minecraft:stone, wood_type on minecraft:oak_planks, old_log_type on minecraft:oak_log or dirt_type on minecraft:dirt, which the pinned BDS still lists, so a structure's getBlockPermutation returns fewer states. Every copy, read, write, placement, turn, save, list, delete and error matches BDS.",
@@ -1900,8 +1905,8 @@
         },
         "bds-record:entity-effects": {
             "kind": "defect",
-            "reason": "A pig's speed effect stays at 60 ticks five ticks after addEffect on JSPrismarine, where BDS counts it down to 55, because no player is near and JSPrismarine has no /tickingarea, so the pig never updates. A dying pig's getEffects throws InvalidEntityError on JSPrismarine, where BDS keeps it valid through its death animation and returns its one effect. Every other effect read and write, its errors and display names, the MolangVariableMap setters and spawnParticle match BDS.",
-            "reference": "issue #3251"
+            "reason": "A dying pig's getEffects throws InvalidEntityError on JSPrismarine, where BDS keeps it valid through its death animation and returns its one effect. Every other effect read and write, the countdown of a pig's effect in a ticking area, its errors and display names, the MolangVariableMap setters and spawnParticle match BDS.",
+            "reference": "issue #3263"
         }
     },
     "scripting.events": {
@@ -1947,6 +1952,21 @@
             "kind": "defect",
             "reason": "A command a script runs fails with Brigadier's message on JSPrismarine, such as \"Unknown command at position 0: <--[HERE]\", where BDS words it \"Syntax error: Unexpected \\\"jspnosuchcommand\\\": at \\\">>jspnosuchcommand<<\\\"\", and JSPrismarine's /time set takes \"nonsense\" where BDS refuses it. The players, dimensions, success counts and the scriptEventReceive event match BDS.",
             "reference": "docs/plans/script-api-host.md slice 10"
+        },
+        "bds-record:world-clocks": {
+            "kind": "defect",
+            "reason": "A paused overworld clock keeps counting on JSPrismarine, so its time moves a tick in the tick after the pause where BDS holds it still, because the level's clock always advances. Every clock read and write, its time markers and errors, the splines, Trigger and the empty sound definition registry match BDS.",
+            "reference": "issue #3309"
+        },
+        "bds-record:world-pending": {
+            "kind": "deferred",
+            "reason": "A playing sound's pause, resume, volume, pitch, fade, seek and stop, StructureManager.getPackStructureIds and placeJigsawStructure throw NotImplementedError on JSPrismarine, which sets no sound handle and loads no pack structures or Bedrock jigsaws. Dimension.poiManager's runtime condition error and placeFeature of a pack's feature match BDS.",
+            "reference": "issues #3314 and #3315"
+        },
+        "bds-record:world-settings": {
+            "kind": "intentional",
+            "reason": "server defaults: JSPrismarine's random ticks follow Java's random_tick_speed, whose 3 draws per section a world starts with, since Bedrock's 1 names only a relative speed, and a level shows coordinates..",
+            "reference": "packages/engine-systems/src/randomTick.ts and packages/prismarine/src/world/Level.ts"
         }
     }
 }

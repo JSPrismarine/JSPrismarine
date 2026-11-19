@@ -1,0 +1,626 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-settings` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "world-settings",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "settings",
+            "seq": 1,
+            "tick": 0,
+            "event": "game rule defaults",
+            "value": {
+                "commandBlockOutput": true,
+                "commandBlocksEnabled": true,
+                "doDayLightCycle": true,
+                "doEntityDrops": true,
+                "doFireTick": true,
+                "doImmediateRespawn": false,
+                "doInsomnia": true,
+                "doLimitedCrafting": false,
+                "doMobLoot": true,
+                "doMobSpawning": true,
+                "doTileDrops": true,
+                "doWeatherCycle": true,
+                "drowningDamage": true,
+                "fallDamage": true,
+                "fireDamage": true,
+                "freezeDamage": true,
+                "functionCommandLimit": 10000,
+                "keepInventory": false,
+                "maxCommandChainLength": 65535,
+                "mobGriefing": true,
+                "naturalRegeneration": true,
+                "playerWaypoints": "Everyone",
+                "playersSleepingPercentage": 100,
+                "projectilesCanBreakBlocks": true,
+                "pvp": true,
+                "recipesUnlock": true,
+                "respawnBlocksExplode": true,
+                "sendCommandFeedback": true,
+                "showBorderEffect": true,
+                "showDaysPlayed": false,
+                "showDeathMessages": true,
+                "showRecipeMessages": true,
+                "showTags": true,
+                "spawnRadius": 0,
+                "tntExplodes": true,
+                "tntExplosionDropDecay": true
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 2,
+            "tick": 0,
+            "event": "gameRules is the same object",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 3,
+            "tick": 0,
+            "event": "server defaults",
+            "value": {
+                "randomTickSpeed": 1,
+                "showCoordinates": false
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 4,
+            "tick": 0,
+            "event": "setAbsoluteTime 0",
+            "value": {
+                "timeOfDay": 0,
+                "absolute": 0,
+                "day": 0,
+                "moon": 0
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 5,
+            "tick": 0,
+            "event": "setTimeOfDay Noon",
+            "value": {
+                "timeOfDay": 6000,
+                "absolute": 6000,
+                "day": 0,
+                "moon": 0
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 6,
+            "tick": 0,
+            "event": "setAbsoluteTime 3 days and 100",
+            "value": {
+                "timeOfDay": 100,
+                "absolute": 72100,
+                "day": 3,
+                "moon": 3
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 7,
+            "tick": 0,
+            "event": "setTimeOfDay Night keeps the day",
+            "value": {
+                "timeOfDay": 13000,
+                "absolute": 85000,
+                "day": 3,
+                "moon": 3
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 8,
+            "tick": 0,
+            "event": "setTimeOfDay past a day",
+            "error": "Error: timeOfDay must be between 0 and 23999 (inclusive)."
+        },
+        {
+            "pack": "settings",
+            "seq": 9,
+            "tick": 0,
+            "event": "setAbsoluteTime 9 days",
+            "value": {
+                "timeOfDay": 5,
+                "absolute": 216005,
+                "day": 9,
+                "moon": 1
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 10,
+            "tick": 0,
+            "event": "setAbsoluteTime negative",
+            "value": {
+                "timeOfDay": 23900,
+                "absolute": -100,
+                "day": -1,
+                "moon": 7
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 11,
+            "tick": 0,
+            "event": "setTimeOfDay negative",
+            "error": "Error: timeOfDay must be between 0 and 23999 (inclusive)."
+        },
+        {
+            "pack": "settings",
+            "seq": 12,
+            "tick": 0,
+            "event": "moon phases",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                0
+            ]
+        },
+        {
+            "pack": "settings",
+            "seq": 13,
+            "tick": 0,
+            "event": "getDefaultSpawnLocation",
+            "value": "number"
+        },
+        {
+            "pack": "settings",
+            "seq": 14,
+            "tick": 0,
+            "event": "setDefaultSpawnLocation",
+            "value": {
+                "z": -6,
+                "y": -60,
+                "x": 10
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 15,
+            "tick": 0,
+            "event": "setDefaultSpawnLocation above the world",
+            "error": "LocationOutOfWorldBoundariesError: Failed to set the default spawn location. Trying to access location (0.0, 1000.0, 0.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "settings",
+            "seq": 16,
+            "tick": 0,
+            "event": "setDefaultSpawnLocation below the world",
+            "error": "LocationOutOfWorldBoundariesError: Failed to set the default spawn location. Trying to access location (0.0, -1000.0, 0.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "settings",
+            "seq": 17,
+            "tick": 0,
+            "event": "setDifficulty Hard",
+            "value": "Hard"
+        },
+        {
+            "pack": "settings",
+            "seq": 18,
+            "tick": 0,
+            "event": "setDifficulty Peaceful",
+            "value": "Peaceful"
+        },
+        {
+            "pack": "settings",
+            "seq": 19,
+            "tick": 0,
+            "event": "setDifficulty of an unknown name",
+            "error": "TypeError: Native type conversion failed. Function argument [0] expected type: Difficulty"
+        },
+        {
+            "pack": "settings",
+            "seq": 20,
+            "tick": 0,
+            "event": "isHardcore",
+            "value": false
+        },
+        {
+            "pack": "settings",
+            "seq": 21,
+            "tick": 0,
+            "event": "seed is a string of digits",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 22,
+            "tick": 0,
+            "event": "allowCheats",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 23,
+            "tick": 0,
+            "event": "allowCheats set",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 24,
+            "tick": 0,
+            "event": "getPackSettings",
+            "value": {}
+        },
+        {
+            "pack": "settings",
+            "seq": 25,
+            "tick": 0,
+            "event": "broadcastClientMessage",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 26,
+            "tick": 0,
+            "event": "playMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 27,
+            "tick": 0,
+            "event": "queueMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 28,
+            "tick": 0,
+            "event": "playMusic too loud",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 29,
+            "tick": 0,
+            "event": "playMusic with a negative fade",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: fade, Value: -1, Property min: 0"
+        },
+        {
+            "pack": "settings",
+            "seq": 30,
+            "tick": 0,
+            "event": "stopMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 31,
+            "tick": 0,
+            "event": "set every game rule",
+            "value": {
+                "commandBlockOutput": false,
+                "commandBlocksEnabled": false,
+                "doDayLightCycle": true,
+                "doEntityDrops": false,
+                "doFireTick": false,
+                "doImmediateRespawn": true,
+                "doInsomnia": false,
+                "doLimitedCrafting": true,
+                "doMobLoot": false,
+                "doMobSpawning": false,
+                "doTileDrops": false,
+                "doWeatherCycle": false,
+                "drowningDamage": false,
+                "fallDamage": false,
+                "fireDamage": false,
+                "freezeDamage": false,
+                "functionCommandLimit": 10000,
+                "keepInventory": true,
+                "maxCommandChainLength": 65538,
+                "mobGriefing": false,
+                "naturalRegeneration": false,
+                "playerWaypoints": "Off",
+                "playersSleepingPercentage": 103,
+                "projectilesCanBreakBlocks": false,
+                "pvp": false,
+                "recipesUnlock": false,
+                "respawnBlocksExplode": false,
+                "sendCommandFeedback": false,
+                "showBorderEffect": false,
+                "showDaysPlayed": true,
+                "showDeathMessages": false,
+                "showRecipeMessages": false,
+                "showTags": false,
+                "spawnRadius": 3,
+                "tntExplodes": false,
+                "tntExplosionDropDecay": false
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 32,
+            "tick": 0,
+            "event": "randomTickSpeed negative",
+            "value": 4
+        },
+        {
+            "pack": "settings",
+            "seq": 33,
+            "tick": 0,
+            "event": "playersSleepingPercentage 200",
+            "value": 200
+        },
+        {
+            "pack": "settings",
+            "seq": 34,
+            "tick": 0,
+            "event": "spawnRadius fractional",
+            "value": 2
+        },
+        {
+            "pack": "settings",
+            "seq": 35,
+            "tick": 0,
+            "event": "playerWaypoints of an unknown mode",
+            "error": "TypeError: Native type conversion failed. Function return value expected type: PlayerWaypointsMode"
+        },
+        {
+            "pack": "settings",
+            "seq": 36,
+            "tick": 0,
+            "event": "showCoordinates a number",
+            "error": "TypeError: Native type conversion failed. Function return value expected type: boolean"
+        },
+        {
+            "pack": "settings",
+            "seq": 37,
+            "tick": 0,
+            "event": "the gamerule command sees a script write",
+            "value": 1
+        },
+        {
+            "pack": "settings",
+            "seq": 38,
+            "tick": 0,
+            "event": "a script sees the gamerule command",
+            "value": false
+        },
+        {
+            "pack": "settings",
+            "seq": 39,
+            "tick": 0,
+            "event": "game rules after the commands",
+            "value": {
+                "commandBlockOutput": false,
+                "commandBlocksEnabled": false,
+                "doDayLightCycle": true,
+                "doEntityDrops": false,
+                "doFireTick": false,
+                "doImmediateRespawn": true,
+                "doInsomnia": false,
+                "doLimitedCrafting": true,
+                "doMobLoot": false,
+                "doMobSpawning": false,
+                "doTileDrops": false,
+                "doWeatherCycle": false,
+                "drowningDamage": false,
+                "fallDamage": false,
+                "fireDamage": false,
+                "freezeDamage": false,
+                "functionCommandLimit": 10000,
+                "keepInventory": true,
+                "maxCommandChainLength": 65538,
+                "mobGriefing": false,
+                "naturalRegeneration": false,
+                "playerWaypoints": "Off",
+                "playersSleepingPercentage": 200,
+                "projectilesCanBreakBlocks": false,
+                "pvp": false,
+                "recipesUnlock": false,
+                "respawnBlocksExplode": false,
+                "sendCommandFeedback": false,
+                "showBorderEffect": false,
+                "showDaysPlayed": true,
+                "showDeathMessages": false,
+                "showRecipeMessages": false,
+                "showTags": false,
+                "spawnRadius": 2,
+                "tntExplodes": false,
+                "tntExplosionDropDecay": false,
+                "randomTickSpeed": 4,
+                "showCoordinates": false
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 40,
+            "tick": 0,
+            "event": "isEditorWorld",
+            "value": false
+        },
+        {
+            "pack": "settings",
+            "seq": 41,
+            "tick": 0,
+            "event": "serverSystemInfo is the same object",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 42,
+            "tick": 0,
+            "event": "memoryTier is a tier",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 43,
+            "tick": 0,
+            "event": "sendScriptEvent",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 44,
+            "tick": 0,
+            "event": "sendScriptEvent in the minecraft namespace",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:sent': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "settings",
+            "seq": 45,
+            "tick": 0,
+            "event": "sendScriptEvent without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'sent': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "settings",
+            "seq": 46,
+            "tick": 0,
+            "event": "sendScriptEvent with an empty message",
+            "value": "undefined"
+        },
+        {
+            "pack": "settings",
+            "seq": 47,
+            "tick": 0,
+            "event": "after sendScriptEvent"
+        },
+        {
+            "pack": "settings",
+            "seq": 48,
+            "tick": 0,
+            "event": "waitTicks 0",
+            "value": "queued"
+        },
+        {
+            "pack": "settings",
+            "seq": 49,
+            "tick": 0,
+            "event": "waitTicks 3",
+            "value": "queued"
+        },
+        {
+            "pack": "settings",
+            "seq": 50,
+            "tick": 0,
+            "event": "heightRange",
+            "value": [
+                {
+                    "max": 320,
+                    "min": -64
+                },
+                {
+                    "max": 128,
+                    "min": 0
+                },
+                {
+                    "max": 256,
+                    "min": 0
+                }
+            ]
+        },
+        {
+            "pack": "settings",
+            "seq": 51,
+            "tick": 0,
+            "event": "localizationKey",
+            "value": [
+                "dimension.dimensionName0",
+                "dimension.dimensionName1",
+                "dimension.dimensionName2"
+            ]
+        },
+        {
+            "pack": "settings",
+            "seq": 52,
+            "tick": 0,
+            "event": "getWeather",
+            "value": "Clear"
+        },
+        {
+            "pack": "settings",
+            "seq": 53,
+            "tick": 0,
+            "event": "isChunkLoaded at the origin",
+            "value": true
+        },
+        {
+            "pack": "settings",
+            "seq": 54,
+            "tick": 0,
+            "event": "isChunkLoaded far away",
+            "value": false
+        },
+        {
+            "pack": "settings",
+            "seq": 55,
+            "tick": 0,
+            "event": "isChunkLoaded in the nether",
+            "value": false
+        },
+        {
+            "pack": "settings",
+            "seq": 56,
+            "tick": 0,
+            "event": "waitTicks 0 resolved"
+        },
+        {
+            "pack": "settings",
+            "seq": 57,
+            "tick": 0,
+            "event": "scriptEventReceive",
+            "value": {
+                "id": "jsp:sent",
+                "message": "hello there",
+                "sourceType": "Server"
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 58,
+            "tick": 0,
+            "event": "scriptEventReceive",
+            "value": {
+                "id": "jsp:empty",
+                "message": "",
+                "sourceType": "Server"
+            }
+        },
+        {
+            "pack": "settings",
+            "seq": 59,
+            "tick": 3,
+            "event": "waitTicks 3 resolved"
+        },
+        {
+            "pack": "settings",
+            "seq": 60,
+            "tick": 3,
+            "event": "runTimeout 3 ran"
+        },
+        {
+            "pack": "settings",
+            "seq": 61,
+            "tick": 5,
+            "event": "game rules a tick later",
+            "value": {
+                "mobGriefing": false
+            }
+        }
+    ]
+}

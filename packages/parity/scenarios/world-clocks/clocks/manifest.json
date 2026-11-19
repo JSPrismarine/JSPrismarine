@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario world-clocks clocks",
+        "description": "Records world clocks, splines, triggers and the sound definition registry. Written for packages/parity.",
+        "uuid": "f2273084-3265-43b5-b9e4-1ab084099210",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3ecd0e43-c393-4ca9-822e-de837828fcec",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

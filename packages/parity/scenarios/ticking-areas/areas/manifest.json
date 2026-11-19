@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario ticking-areas areas",
+        "description": "Records world.tickingAreaManager and the /tickingarea command. Written for packages/parity.",
+        "uuid": "87304d1b-9dd6-4779-bf04-19a956dd1108",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "81716765-a619-4d10-baed-262f2bcdaf94",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.12.0-beta" }]
+}
