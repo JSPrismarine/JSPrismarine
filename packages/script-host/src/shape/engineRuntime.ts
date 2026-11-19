@@ -277,12 +277,13 @@ export function engineRuntime(host: RuntimeHost): EngineRuntime {
 
     /**
      * What BDS throws for a value set on a property outside its bounds, such as `ItemStack.amount
-     * = 0`. A float property's error leaves out the value and closes an open side with the float
-     * range ({@link RuntimeArgument.float}).
+     * = 0`. A float property with an open side leaves out the value and closes that side with the
+     * float range ({@link RuntimeArgument.float}); one with both bounds, as `PrimitiveShape.scale`,
+     * gives the value as an integer property does.
      */
     const propertyOutOfBounds = (name: string, value: number, argument: RuntimeArgument): Error => {
         const { min, max } = argument;
-        if (argument.float === true) {
+        if (argument.float === true && (min === undefined || max === undefined)) {
             const low = min ?? -FLOAT_MAX;
             const high = max ?? FLOAT_MAX;
             return makeError(

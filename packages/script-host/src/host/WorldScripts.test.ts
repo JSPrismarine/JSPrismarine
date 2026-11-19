@@ -487,14 +487,14 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
     it('prints how much of what a pack uses is implemented when it loads', () => {
         const { log } = start([
             writePack(
-                `import { system, world } from '@minecraft/server'; system.run(() => world.getAllPlayers()); world.setDefaultSpawnLocation;`
+                `import { system, world } from '@minecraft/server'; system.run(() => world.getAllPlayers()); world.structureManager.placeJigsaw;`
             )
         ]);
         const coverage = log.lines.find((line) => line.includes('Script API members'));
         expect(coverage).toMatch(
-            /^info \[Scripting\] \[probe\] uses 3 Script API members, 2 of them implemented \(@minecraft\/server 2\.11\.0: \d+ of \d+/
+            /^info \[Scripting\] \[probe\] uses 4 Script API members, 3 of them implemented \(@minecraft\/server 2\.11\.0: \d+ of \d+/
         );
-        expect(log.lines).toContain('info [Scripting] [probe] not implemented yet: setDefaultSpawnLocation');
+        expect(log.lines).toContain('info [Scripting] [probe] not implemented yet: placeJigsaw');
     });
 
     it("binds each pack's API in the pack's own context, so its errors and objects are of that context", () => {

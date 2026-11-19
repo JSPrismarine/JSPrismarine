@@ -60,6 +60,19 @@ const floatProperty = (call: RuntimeCall, type: ShapeType): RuntimeCall => {
     return { ...call, arguments: [{ ...value, float: true }] };
 };
 
+/**
+ * Closes the open side of an integer property's bounds with its type's range, as BDS words the
+ * bounds error of `WorldClock.time = -5`: `Property bounds: [0, 2147483647]`.
+ */
+const integerProperty = (call: RuntimeCall, type: ShapeType): RuntimeCall => {
+    const declared = typeof type === 'object' && type.kind === 'optional' ? type.type : type;
+    const [value] = call.arguments;
+    const range = typeof declared === 'string' && isNumberType(declared) ? INTEGER_BOUNDS[declared] : undefined;
+    if (range === undefined || value === undefined || (value.min === undefined) === (value.max === undefined))
+        return call;
+    return { ...call, arguments: [{ ...value, min: value.min ?? range[0], max: value.max ?? range[1] }] };
+};
+
 /** How BDS writes a privilege in its error. */
 const PRIVILEGE_NAMES: Readonly<Record<Privilege, string>> = {
     default: 'default execution',
@@ -543,7 +556,13 @@ export class ScriptApiContext {
                     const value = { name: 'value', type: member.type, min: member.min, max: member.max };
                     const set = member.readOnly
                         ? undefined
-                        : floatProperty(this.call(shape, name, memberName, 'set', [value], member.set), member.type);
+                        : integerProperty(
+                              floatProperty(
+                                  this.call(shape, name, memberName, 'set', [value], member.set),
+                                  member.type
+                              ),
+                              member.type
+                          );
                     runtimeMembers.push({
                         kind: 'property',
                         name: memberName,
