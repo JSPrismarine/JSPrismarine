@@ -90,14 +90,15 @@ empty for the default. A pinned release whose vanilla datapack is not generated 
 [`PRISMARINE_JAVA_RELEASE_NOT_GENERATED`](../errors/prismarine.md#prismarine-java-release-not-generated), which gives the `datagen:java --java <release>` command that generates
 it. Each world
 records the release's data version in its `level.dat`, and a world saved under a newer release
-refuses to open under an older one, as Java does.
+refuses to open under an older one, as Java does. [Java versions](../guide/java-versions.md)
+covers the setting, the preview release and the error messages.
 
 - **Format gating.** `pack.mcmeta` parses in both the current `min_format`/`max_format` form and
   the legacy single `pack_format`. A pack whose declared range does not cover that format gets an error
   diagnostic but still loads, so a normal load keeps going while a strict load rejects it.
 - **Overlays.** Overlay entries whose format range covers that format apply over the base files in
   declaration order, each overriding whole files.
-- **Directory names.** Files route into registries by the 26.3 singular directory names under
+- **Directory names.** Files route into registries by the singular directory names Java has used since 1.21 under
   `data/<namespace>/`: `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`,
   `predicate`, `item_modifier`, `function`, `dimension_type`, `dimension`, `tags`, and the
   `worldgen/<kind>` directories the package README lists. A file like
