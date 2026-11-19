@@ -16,7 +16,8 @@
 import type { Diagnostic } from '@jsprismarine/content';
 import { Registry, Tags } from '@jsprismarine/content';
 import type { TagMember, TagSource } from '@jsprismarine/content';
-import type { Definition } from '@jsprismarine/packs';
+import type { Definition, Definitions } from '@jsprismarine/packs';
+import type { ReferenceResolver } from '@jsprismarine/predicates';
 import { isRecord } from '../utils/isRecord';
 
 /**
@@ -156,5 +157,29 @@ export const buildContentTags = (
         has: (registry, tag) => built.get(registry)?.tags.has(tag) ?? false,
         members: (registry, tag) => built.get(registry)?.tags.get(tag)?.values() ?? [],
         includes: (registry, tag, identifier) => built.get(registry)?.tags.get(tag)?.has(identifier) ?? false
+    };
+};
+
+/**
+ * The reference resolver the Java grammars parse against.
+ *
+ * Elements come straight out of the loaded registries, and tags out of the
+ * merged `ContentTags` rather than out of the raw files: the merge has already
+ * applied Java Edition's cross-pack rule, so a tag two packs both add to
+ * expands to both halves here and to one of them through the files.
+ */
+export const contentResolver = (definitions: Definitions, tags: ContentTags): ReferenceResolver => {
+    const elements: Readonly<Record<string, ReadonlyMap<string, Definition> | undefined>> = {
+        loot_table: definitions.lootTablesJava,
+        predicate: definitions.predicates,
+        item_modifier: definitions.itemModifiers,
+        recipe: definitions.recipesJava,
+        advancement: definitions.advancements,
+        enchantment: definitions.enchantments
+    };
+
+    return {
+        element: (registry, id) => elements[registry]?.get(id)?.data,
+        tag: (registry, id) => (tags.has(registry, id) ? tags.members(registry, id) : undefined)
     };
 };

@@ -75,13 +75,14 @@ export interface BehaviorScenario<Subject> {
     readonly run: (subject: Subject) => ScenarioOutcome;
     /**
      * Sorts a difference into the kind recorded for it, with a replacement reason when the
-     * difference is a known edition difference rather than a defect. Absent means a defect, and a
+     * difference is a known edition difference rather than a defect, and the issue or source
+     * that tracks it when that is not the scenario's own reference. Absent means a defect, and a
      * scenario that threw is never classified.
      */
     readonly classify?: (
         subject: Subject,
         difference: string
-    ) => { readonly kind: GapKind; readonly reason: string } | undefined;
+    ) => { readonly kind: GapKind; readonly reason: string; readonly reference?: string } | undefined;
 }
 
 /** One observed row. */
@@ -132,7 +133,7 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
                         : {
                               kind: classified?.kind ?? 'defect',
                               reason: classified?.reason ?? `${scenario.java} Observed: ${difference}.`,
-                              reference: scenario.reference
+                              reference: classified?.reference ?? scenario.reference
                           }
             };
         })

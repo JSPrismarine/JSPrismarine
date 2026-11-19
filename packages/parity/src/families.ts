@@ -79,6 +79,14 @@ export const FAMILIES = {
     /** Bedrock pack layers compose to the same active definitions as loading each layer in order. */
     packsComposition: 'packs.composition',
 
+    /** The default Java release's vanilla datapack through the loader, against its own reports. */
+    datapack26_3: 'datapack.26.3',
+    /**
+     * The Java preview's vanilla datapack through the loader, against its own reports. The family
+     * follows the preview: a new preview replaces it, as the java-bringup skill says.
+     */
+    datapack26_4Snapshot10: 'datapack.26.4-snapshot-10',
+
     /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
     worldgenBiomes: 'worldgen.biomes',
     /** The Java climate-selected spawn chunk across representative world seeds. */
@@ -153,8 +161,11 @@ export const FAMILY_GROUPS: readonly string[] = [
     ...new Set(ALL_FAMILIES.map((family) => family.slice(0, family.indexOf('.'))))
 ].sort();
 
-/** What a family id looks like: at least two dot-separated lowercase segments. */
-export const FAMILY_ID_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;
+/**
+ * What a family id looks like: at least two dot-separated lowercase segments. Segments after the
+ * group may start with a digit, so a release id such as `26.4-snapshot-10` can be the domain.
+ */
+export const FAMILY_ID_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+$/;
 
 /**
  * Extracts the family from a test's top-level describe title, or undefined when the title is
