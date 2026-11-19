@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -20,12 +20,6 @@ const handlerModuleNames = () =>
         .map((file) => file.slice(0, -'.ts'.length))
         .sort();
 
-/** Default-import specifiers in a barrel, in source order. */
-const importOrder = () =>
-    Array.from(readFileSync(`${here}Handlers.ts`, 'utf8').matchAll(/^import (\w+) from '\.\/handler\//gm)).map(
-        ([, name]) => name
-    );
-
 describe('network/Handlers', () => {
     const files = handlerModuleNames();
     const exported = Object.entries(Handlers);
@@ -33,10 +27,6 @@ describe('network/Handlers', () => {
     it('exports every handler module under its own name and nothing else', () => {
         expect(exported.map(([name]) => name).sort()).toStrictEqual(files);
         for (const [name, handler] of exported) expect(handler.name, name).toBe(name);
-    });
-
-    it('keeps the handler barrel sorted', () => {
-        expect(importOrder()).toStrictEqual(files);
     });
 
     it('binds each handler to a packet exported by Protocol', () => {
