@@ -17,7 +17,7 @@ const assets = [
     { name: 'mapping/javaIdentifiers', file: 'packages/mapping/src/tables/26.3/javaIdentifiers.json' },
     { name: 'mapping/dimensions', file: 'packages/mapping/src/tables/dimensions.json' },
     { name: 'blocks/geometry', file: 'packages/blocks/src/tables/blockGeometry.json', nativeInCurrent: true },
-    { name: 'items/itemTypes', file: 'packages/items/src/tables/itemTypes.json', nativeInCurrent: true }
+    { name: 'items/itemTypes', file: 'packages/items/src/tables/26.3/itemTypes.json', nativeInCurrent: true }
 ];
 
 const HEADER_BYTES = 28;

@@ -17,7 +17,7 @@ const input = Object.fromEntries(
             '**/dist/**',
             '**/node_modules/**',
             '**/*.test.*',
-            '**/src/tables/itemTypes.json'
+            '**/src/tables/*/itemTypes.json'
         ]
     }).map((file) => {
         const filenameWithoutExt = file.slice(0, file.length - extname(file).length);
@@ -45,7 +45,7 @@ export default mergeConfig(
             }
         },
         plugins: [
-            preserveJsonAssets(__dirname, ['tables/itemTypes.json']),
+            preserveJsonAssets(__dirname, ['tables/26.3/itemTypes.json']),
             codecovVitePlugin({
                 enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
                 bundleName: pkg.name,

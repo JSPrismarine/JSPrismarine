@@ -7,7 +7,7 @@ import { cookingFuel, food, maxDamage, tool } from './components/defaults';
 import { itemName, maxStackSize } from './components/universal';
 import { loadItemTypes, vanillaItemDefinitions } from './itemTypes';
 import { itemTypesTable } from './tables';
-import itemTypesJson from './tables/itemTypes.json' with { type: 'json' };
+import itemTypesJson from './tables/26.3/itemTypes.json' with { type: 'json' };
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
