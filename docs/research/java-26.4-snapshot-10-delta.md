@@ -141,6 +141,9 @@ its projectile.
 Whether each has a Bedrock counterpart in the paired preview, protocol 2259, is undecided: the
 mapping tables for the pair need 2259's block palette, which has not been captured (#3283).
 
+Status, 2026-11-20: 2259's palette is captured, and every block, item and entity type above has a
+2259 counterpart of the same name. The preview's mapping and item type tables exist (#3283).
+
 ## What the gates are
 
 | Package     | Constant                              | Compared against                    | Test                                         |
@@ -165,7 +168,8 @@ new type ids rather than two spellings of one key, so they need no gate.
 - `domain_warp` and the four non-linear `upscale` modes: #3280.
 - `noise_biomes` chunk status: #3281.
 - A 26.4 material rule that leaves a solid block unplaced leaves air in Java and stone here: #3282.
-- The 2259 block palette, and so the preview pair's mapping and item type tables: #3283.
+- The 2259 block palette, and so the preview pair's mapping and item type tables: #3283. Done
+  2026-11-20.
 - Worldgen, feature and item behavior vectors for the preview: #3284. The worldgen oracle does not
   compile against 26.4 (`RandomState.create`, the `NoiseChunk` constructor and
   `NoiseGeneratorSettings.defaultBlock` changed).

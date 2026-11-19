@@ -13,6 +13,29 @@ format gates in the loaders, a bring-up skill and a parity family per version.
 The values below are as they were on this date and stay unmarked, as the repository rules say for
 dated plans.
 
+## Progress
+
+Branch `docs/java-datapack-version-support`, 2026-11-19.
+
+| Slice | State |
+| --- | --- |
+| 1. One pin, read everywhere | Done. `resolveJavaRelease`, `readJarVersion`; the pack stack picks the pinned release by name. |
+| 2. The registry | Done. `javaServer.defaultVersion` and `versions`, one preview, `--java` on every Java script, `version.json` beside each generated datapack. |
+| 3. The target | Done. `JavaDataTarget` in `@jsprismarine/packs`, `content-java-version`, the `level.dat` record and downgrade refusal. |
+| 4. Derived-list tests | Done. Every grammar package checks its handlers against the pinned `registries.json`; reviewed lists hold 11 component predicates and the `nbt` and `slots` sub-predicates. |
+| 5. The diff tool and the skill | Done. `java:diff`, `bringup:java` with eight stages, the java-bringup skill. |
+| 6. Per-version derived data | Done. Goldens, mapping and item tables and worldgen vectors live under `<release>/`; pairs derive from the manifest. |
+| 7. The first preview | Done for 26.4 Snapshot 10, format 128.0, data version 5130. Bring-up passes every stage. The preview's mapping and item tables map it onto the 2259 block palette capture ([#3283](https://github.com/JSPrismarine/JSPrismarine/issues/3283)); its vectors wait on [#3284](https://github.com/JSPrismarine/JSPrismarine/issues/3284). |
+| 8. Docs | Done. `docs/guide/java-versions.md`, the pipeline and pack pages read the target through facts. |
+
+Open follow-ups from the preview: [#3279](https://github.com/JSPrismarine/JSPrismarine/issues/3279) `crevasse`,
+[#3280](https://github.com/JSPrismarine/JSPrismarine/issues/3280) `domain_warp` and the other `upscale` modes,
+[#3281](https://github.com/JSPrismarine/JSPrismarine/issues/3281) `noise_biomes`,
+[#3282](https://github.com/JSPrismarine/JSPrismarine/issues/3282) material rules that place nothing,
+[#3286](https://github.com/JSPrismarine/JSPrismarine/issues/3286) `dispense_behavior` and `block_sound_set`,
+[#3287](https://github.com/JSPrismarine/JSPrismarine/issues/3287) the generators' data generator run, and
+[#3271](https://github.com/JSPrismarine/JSPrismarine/issues/3271) the vanilla-mcdoc pin.
+
 ## 1. What a Java version is here
 
 Three numbers describe a Java release, and they move at different rates.
