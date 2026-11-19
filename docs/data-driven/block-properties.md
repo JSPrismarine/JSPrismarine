@@ -107,19 +107,21 @@ passes. A conflict on any other field or block is a flattening regression to rev
 
 ## Regenerating after a version bump
 
-Update the Java pin in `packages/bedrock-data/utils/java-dump/run.mjs` (version and server jar
-sha1), then:
+Java releases are pinned under `javaServer.versions` in `packages/bedrock-data/sources.json`, each
+by its server jar's URL and sha1, and `javaServer.defaultVersion` names the one the commands use
+when `--java` is absent. The java-bringup skill (`.agents/skills/java-bringup/SKILL.md`) walks a
+whole bring-up. For the block properties of a pinned release `<release>`:
 
 ```sh
-pnpm --filter @jsprismarine/bedrock-data run dump:java
-pnpm --filter @jsprismarine/mapping run generate:block-properties
+pnpm --filter @jsprismarine/bedrock-data run dump:java --java <release>
+pnpm --filter @jsprismarine/mapping run generate:block-properties --java <release>
 ```
 
-The first command refreshes the golden from the new jar; the second reflattens the table. Both
-outputs are committed, so the diff shows exactly which values Mojang changed. If the Bedrock pin
-or the block mapping moved too, regenerate the mapping tables first
-(`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` followed by
-`pnpm --filter @jsprismarine/mapping run generate:tables`).
+The first command refreshes the golden from that release's jar; the second reflattens the table.
+Both outputs are committed, so the diff shows exactly which values Mojang changed. If the Bedrock
+pin or the block mapping moved too, regenerate the mapping tables first
+(`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java <release>` followed by
+`pnpm --filter @jsprismarine/mapping run generate:tables --java <release>`).
 
 ## In the table but not yet consumed
 
