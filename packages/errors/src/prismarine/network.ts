@@ -64,6 +64,11 @@ export const PrismarineNetworkErrors = defineErrors('prismarine', {
      * A packet reached its handler without the decoded body the handler reads. This is a bug in the
      * server; report it with the stack trace.
      */
+    ScriptMessageNotDecoded: 'Cannot handle a ScriptMessagePacket without decoded data',
+    /**
+     * A packet reached its handler without the decoded body the handler reads. This is a bug in the
+     * server; report it with the stack trace.
+     */
     LabTableNotDecoded: 'Cannot handle a LabTablePacket without decoded data',
     /**
      * A packet reached its handler without the decoded body the handler reads. This is a bug in the
