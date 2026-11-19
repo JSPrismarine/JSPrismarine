@@ -58,7 +58,9 @@ const BLOCK_TYPES: Readonly<Record<string, Readonly<Record<string, readonly (str
     'minecraft:grass_block': {},
     'minecraft:stone': {},
     'minecraft:oak_log': { pillar_axis: ['y', 'x', 'z'] },
-    'minecraft:chest': {}
+    'minecraft:chest': {},
+    'minecraft:water': {},
+    'minecraft:short_grass': {}
 };
 
 /** The block types that hold a container, with its size. */
@@ -94,7 +96,9 @@ const ENTITY_TYPES: Readonly<
     'minecraft:armor_stand': { health: 6, eyes: 1.5 },
     'minecraft:chest_minecart': { inventory: 27, health: 0, eyes: 0.5 },
     'minecraft:pig': { health: 10, eyes: 0.75 },
-    'minecraft:player': { inventory: 36, health: 20, eyes: 1.62 }
+    'minecraft:player': { inventory: 36, health: 20, eyes: 1.62 },
+    'minecraft:item': { health: 0, eyes: 0.125 },
+    'minecraft:xp_orb': { health: 0, eyes: 0.125 }
 };
 
 /** How far from the origin chunks are loaded, in blocks. */

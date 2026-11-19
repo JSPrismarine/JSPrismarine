@@ -82,7 +82,7 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements <!-- fact:commands.implemented -->61<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->56<!-- /fact --> of them:
+`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->57<!-- /fact --> of them:
 
 <!-- fact:commands.registered.list -->
 ```
@@ -90,7 +90,7 @@ execute summon kill teleport damage effect enchant gamemode give clear xp tag se
 time weather gamerule difficulty setworldspawn spawnpoint locate particle playsound stopsound
 spreadplayers loot function return schedule scoreboard random say me tell tellraw title op deop kick
 list stop reload transfer tick help recipe testfor testforblock testforblocks daylock titleraw
-replaceitem camerashake fog playanimation
+tickingarea replaceitem camerashake fog playanimation
 ```
 <!-- /fact -->
 

@@ -20,6 +20,7 @@ import type { ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import type { PackCustomContent } from './customContent';
+import type { DebugPackHost } from './debugUtilities';
 import { implementBlocks } from './serverBlocks';
 import { implementComponents } from './serverComponents';
 import { implementCustom } from './serverCustom';
@@ -37,6 +38,14 @@ import type { GameEventData } from './events/eventValues';
 import { damageSourceObject } from './events/eventValues';
 import { implementWorldEvents, WORLD_EVENT_SIGNALS } from './events/worldEvents';
 import { implementComponentEvents } from './events/componentEvents';
+import { implementDimension } from './worldsystem/serverDimension';
+import { implementClocks } from './worldsystem/serverClocks';
+import { implementFog } from './worldsystem/serverFog';
+import { implementVolumes } from './worldsystem/serverVolumes';
+import { implementLoot } from './worldsystem/serverLoot';
+import { implementPrimitiveShapes } from './worldsystem/serverPrimitiveShapes';
+import { implementTickingAreas } from './worldsystem/serverTickingAreas';
+import { implementWorldSettings } from './worldsystem/serverWorld';
 import type { BlockKey, EntityKey } from './serverObjects';
 import {
     entityKeyOf,
@@ -339,6 +348,16 @@ export interface PackHost {
     eventData(tag: number): EventData | undefined;
     /** The runtime's custom commands and components, which the pack registers into in `startup`. */
     readonly custom: PackCustomContent;
+    /**
+     * The pack's debug shape drawer and what its shapes reach, which `world.primitiveShapesManager`
+     * draws through. Read when a member runs, since it is made after the implementations.
+     */
+    readonly debugShapes?: () => DebugPackHost | undefined;
+    /**
+     * One of `@minecraft/server`'s exports in the pack's realm, such as a class whose constructor
+     * a member runs, or undefined when the pack has not bound the module. The caller frees it.
+     */
+    readonly serverExport?: (name: string) => ScriptValue | undefined;
 }
 
 /** Whether a value is a generator object, as `system.runJob` takes one. */
@@ -605,6 +624,14 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementCustom(implementations, host);
     implementStructures(implementations, host);
     implementFeedback(implementations, host);
+    implementWorldSettings(implementations, host);
+    implementDimension(implementations, host);
+    implementTickingAreas(implementations, host);
+    implementPrimitiveShapes(implementations, host);
+    implementLoot(implementations, host);
+    implementClocks(implementations, host);
+    implementFog(implementations, host);
+    implementVolumes(implementations, host);
     implementPlayerActions(implementations, host, data, signal);
     implementEntityArea(implementations, host);
     implementBlocksAndItems(implementations, host);

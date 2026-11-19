@@ -11,6 +11,7 @@
  * at the end of the tick.
  */
 import type { ScriptEntitySystems } from './entities/world';
+import type { ScriptWorldSystem } from './worldsystem/seam';
 
 /** The weather as the Script API's `WeatherType` names it. */
 export type ScriptWeather = 'Clear' | 'Rain' | 'Thunder';
@@ -743,7 +744,20 @@ export interface ScriptDebugShape {
     readonly depthTest?: boolean;
     readonly backfaceVisible?: boolean;
     readonly textBackfaceVisible?: boolean;
+    /** The players it is drawn for, by id. Absent or empty, it is drawn as `defaultVisibleToAll` says. */
+    readonly visibleTo?: readonly string[];
+    /** The players it is never drawn for, by id. */
+    readonly hiddenFrom?: readonly string[];
+    /** Whether a player `visibleTo` does not name sees it, when `visibleTo` names none; true when absent. */
+    readonly defaultVisibleToAll?: boolean;
 }
+
+/** Whether a player sees a debug shape, as its `visibleTo`, `hiddenFrom` and `defaultVisibleToAll` say. */
+export const shapeVisibleTo = (shape: ScriptDebugShape, player: string): boolean => {
+    if (shape.hiddenFrom?.includes(player) === true) return false;
+    if (shape.visibleTo !== undefined && shape.visibleTo.length > 0) return shape.visibleTo.includes(player);
+    return shape.defaultVisibleToAll !== false;
+};
 
 /**
  * One change to the debug shapes a world draws: a shape to draw, or to draw again as it now is,
@@ -1314,4 +1328,9 @@ export interface ScriptWorld {
      * @returns A function that removes the guard.
      */
     guardGameEvents?(guard: ScriptGameEventGuard): () => void;
+    /**
+     * The world's clock, spawn, difficulty, game rules and music, which the world and system
+     * members read and write. A world without it keeps them in memory for as long as its packs run.
+     */
+    readonly worldSystem?: ScriptWorldSystem;
 }

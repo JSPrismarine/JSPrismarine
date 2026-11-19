@@ -272,6 +272,11 @@ export class PackDebugDrawer {
         if (known !== undefined) known.removing = true;
     }
 
+    /** The shapes being drawn, in the order they were added, as handles the drawer keeps. */
+    public shapes(): ScriptHandle[] {
+        return [...this.drawn.values()].filter((entry) => !entry.removing).map((entry) => entry.handle);
+    }
+
     /** Takes every shape out, as {@link PackDebugDrawer.remove} does one. */
     public removeAll(): void {
         for (const entry of this.drawn.values()) entry.removing = true;
@@ -334,13 +339,10 @@ export class PackDebugDrawer {
 }
 
 /**
- * Registers the behavior of one pack's `@minecraft/debug-utilities` on its implementations.
- * @param implementations - The pack's implementations, which `@minecraft/server`'s are on too.
+ * The readers and writers of a shape's state, which every shape class's members are made from.
+ * @param host - What the pack's shapes reach.
  */
-export const debugUtilitiesImplementations = (
-    implementations: ScriptApiImplementations,
-    host: DebugPackHost
-): ScriptApiImplementations => {
+export const shapeHelpers = (host: DebugPackHost) => {
     /** Makes a shape's state from its constructor's location argument. */
     const made = (call: ScriptCall, kind: ScriptDebugShapeKind, own: Partial<ScriptDebugShape> = {}): string => {
         const { location, dimension } = locationArgument(call, host, 0);
@@ -402,6 +404,116 @@ export const debugUtilitiesImplementations = (
     const lineMade = (kind: 'DebugArrow' | 'DebugLine') => (call: ScriptCall) =>
         made(call, kind, { endLocation: numbers(jsonOf(call, call.args[1]), VECTOR3, 'Function argument [1]') });
 
+    /** A text's constructor: a location and the text. */
+    const textMade = (call: ScriptCall) => made(call, 'DebugText', textArgument(call, 1));
+    return { made, write, drop, read, optionalFloat, float, integer, flag, vector3, vector2, lineMade, textMade };
+};
+
+/**
+ * The members a drawn shape shares between `@minecraft/debug-utilities`' `DebugShape` and
+ * `DebugText` and `@minecraft/server`'s `PrimitiveShape` and `TextPrimitive`, which keep the
+ * same state and draw through the same drawer.
+ * @param host - What the pack's shapes reach.
+ */
+export const sharedShapeMembers = (host: DebugPackHost) => {
+    const { write, drop, read, optionalFloat, float, flag, vector3 } = shapeHelpers(host);
+    return {
+        text: {
+            get: (call: ScriptCall) => {
+                const { message } = read(call);
+                if (typeof message === 'string') return message;
+                const parsed = host.parse(JSON.stringify(message ?? ''));
+                return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
+            }
+        },
+        setText: (call: ScriptCall) => {
+            write(call, textArgument(call, 0));
+            return undefined;
+        },
+        backfaceVisible: flag('backfaceVisible'),
+        depthTest: flag('depthTest'),
+        textBackfaceVisible: flag('textBackfaceVisible'),
+        useRotation: flag('useRotation'),
+        lineGapHeight: float('lineGapHeight'),
+        backgroundColorOverride: {
+            get: (call: ScriptCall) => {
+                const color = read(call).backgroundColorOverride;
+                return color === undefined ? undefined : JSON.stringify(color);
+            },
+            set: (call: ScriptCall) => {
+                if (call.args[0] === undefined) drop(call, 'backgroundColorOverride');
+                else write(call, { backgroundColorOverride: setterNumbers(call, RGBA) });
+            }
+        },
+        location: {
+            get: (call: ScriptCall) => JSON.stringify(read(call).location)
+        },
+        setLocation: (call: ScriptCall) => {
+            const { location, dimension } = locationArgument(call, host, 0);
+            if (dimension === undefined) write(call, { location });
+            else write(call, { location, dimension });
+            return undefined;
+        },
+        dimension: {
+            get: (call: ScriptCall) => {
+                const { dimension } = read(call);
+                return dimension === undefined ? undefined : host.dimension(dimension);
+            }
+        },
+        color: {
+            get: (call: ScriptCall) => JSON.stringify(read(call).color),
+            set: (call: ScriptCall) => write(call, { color: setterNumbers(call, RGBA) })
+        },
+        scale: float('scale'),
+        rotation: vector3('rotation'),
+        maximumRenderDistance: optionalFloat('maximumRenderDistance'),
+        timeLeft: {
+            get: (call: ScriptCall) => read(call).timeLeft,
+            set: (call: ScriptCall) => {
+                const [value] = call.args;
+                if (typeof value !== 'number') drop(call, 'timeLeft', 'totalTimeLeft');
+                else write(call, { timeLeft: f32(value), totalTimeLeft: f32(value) });
+            }
+        },
+        totalTimeLeft: { get: (call: ScriptCall) => read(call).totalTimeLeft },
+        hasDuration: {
+            get: (call: ScriptCall) => read(call).timeLeft !== undefined
+        },
+        attachedTo: {
+            get: (call: ScriptCall) => {
+                const { attachedTo, attachedType } = read(call);
+                return attachedTo === undefined || attachedType === undefined
+                    ? undefined
+                    : host.entity({ id: attachedTo, typeId: attachedType });
+            },
+            set: (call: ScriptCall) => {
+                const [value] = call.args;
+                if (value === undefined) {
+                    drop(call, 'attachedTo', 'attachedType');
+                    return;
+                }
+                const { id, typeId } = entityKeyOf(call.stateOf(value));
+                write(call, { attachedTo: id, attachedType: typeId });
+            }
+        },
+        remove: (call: ScriptCall) => {
+            host.drawer.remove(call.self);
+            return undefined;
+        }
+    };
+};
+
+/**
+ * Registers the behavior of one pack's `@minecraft/debug-utilities` on its implementations.
+ * @param implementations - The pack's implementations, which `@minecraft/server`'s are on too.
+ */
+export const debugUtilitiesImplementations = (
+    implementations: ScriptApiImplementations,
+    host: DebugPackHost
+): ScriptApiImplementations => {
+    const { made, optionalFloat, float, integer, vector3, vector2, lineMade } = shapeHelpers(host);
+    const shared = sharedShapeMembers(host);
+
     return (
         implementations
             .implement(DEBUG_UTILITIES, 'DebugArrow', 'constructor', lineMade('DebugArrow'))
@@ -432,88 +544,26 @@ export const debugUtilitiesImplementations = (
             .implement(DEBUG_UTILITIES, 'DebugText', 'constructor', (call) =>
                 made(call, 'DebugText', textArgument(call, 1))
             )
-            .implement(DEBUG_UTILITIES, 'DebugText', 'text', {
-                get: (call) => {
-                    const { message } = read(call);
-                    if (typeof message === 'string') return message;
-                    const parsed = host.parse(JSON.stringify(message ?? ''));
-                    return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
-                }
-            })
-            .implement(DEBUG_UTILITIES, 'DebugText', 'setText', (call) => {
-                write(call, textArgument(call, 0));
-                return undefined;
-            })
-            .implement(DEBUG_UTILITIES, 'DebugText', 'backfaceVisible', flag('backfaceVisible'))
-            .implement(DEBUG_UTILITIES, 'DebugText', 'depthTest', flag('depthTest'))
-            .implement(DEBUG_UTILITIES, 'DebugText', 'textBackfaceVisible', flag('textBackfaceVisible'))
-            .implement(DEBUG_UTILITIES, 'DebugText', 'useRotation', flag('useRotation'))
-            .implement(DEBUG_UTILITIES, 'DebugText', 'lineGapHeight', float('lineGapHeight'))
-            .implement(DEBUG_UTILITIES, 'DebugText', 'backgroundColorOverride', {
-                get: (call) => {
-                    const color = read(call).backgroundColorOverride;
-                    return color === undefined ? undefined : JSON.stringify(color);
-                },
-                set: (call) => {
-                    if (call.args[0] === undefined) drop(call, 'backgroundColorOverride');
-                    else write(call, { backgroundColorOverride: setterNumbers(call, RGBA) });
-                }
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'location', {
-                get: (call) => JSON.stringify(read(call).location)
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'setLocation', (call) => {
-                const { location, dimension } = locationArgument(call, host, 0);
-                if (dimension === undefined) write(call, { location });
-                else write(call, { location, dimension });
-                return undefined;
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'dimension', {
-                get: (call) => {
-                    const { dimension } = read(call);
-                    return dimension === undefined ? undefined : host.dimension(dimension);
-                }
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'color', {
-                get: (call) => JSON.stringify(read(call).color),
-                set: (call) => write(call, { color: setterNumbers(call, RGBA) })
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'scale', float('scale'))
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'rotation', vector3('rotation'))
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'maximumRenderDistance', optionalFloat('maximumRenderDistance'))
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'timeLeft', {
-                get: (call) => read(call).timeLeft,
-                set: (call) => {
-                    const [value] = call.args;
-                    if (typeof value !== 'number') drop(call, 'timeLeft', 'totalTimeLeft');
-                    else write(call, { timeLeft: f32(value), totalTimeLeft: f32(value) });
-                }
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'totalTimeLeft', { get: (call) => read(call).totalTimeLeft })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'hasDuration', {
-                get: (call) => read(call).timeLeft !== undefined
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'attachedTo', {
-                get: (call) => {
-                    const { attachedTo, attachedType } = read(call);
-                    return attachedTo === undefined || attachedType === undefined
-                        ? undefined
-                        : host.entity({ id: attachedTo, typeId: attachedType });
-                },
-                set: (call) => {
-                    const [value] = call.args;
-                    if (value === undefined) {
-                        drop(call, 'attachedTo', 'attachedType');
-                        return;
-                    }
-                    const { id, typeId } = entityKeyOf(call.stateOf(value));
-                    write(call, { attachedTo: id, attachedType: typeId });
-                }
-            })
-            .implement(DEBUG_UTILITIES, 'DebugShape', 'remove', (call) => {
-                host.drawer.remove(call.self);
-                return undefined;
-            })
+            .implement(DEBUG_UTILITIES, 'DebugText', 'text', shared.text)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'setText', shared.setText)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'backfaceVisible', shared.backfaceVisible)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'depthTest', shared.depthTest)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'textBackfaceVisible', shared.textBackfaceVisible)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'useRotation', shared.useRotation)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'lineGapHeight', shared.lineGapHeight)
+            .implement(DEBUG_UTILITIES, 'DebugText', 'backgroundColorOverride', shared.backgroundColorOverride)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'location', shared.location)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'setLocation', shared.setLocation)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'dimension', shared.dimension)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'color', shared.color)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'scale', shared.scale)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'rotation', shared.rotation)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'maximumRenderDistance', shared.maximumRenderDistance)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'timeLeft', shared.timeLeft)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'totalTimeLeft', shared.totalTimeLeft)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'hasDuration', shared.hasDuration)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'attachedTo', shared.attachedTo)
+            .implement(DEBUG_UTILITIES, 'DebugShape', 'remove', shared.remove)
             .implement(DEBUG_UTILITIES, 'DebugDrawer', 'addShape', (call) => {
                 const [shape, dimension] = call.args;
                 host.drawer.add(shape, dimension === undefined ? undefined : host.dimensionOf(dimension));

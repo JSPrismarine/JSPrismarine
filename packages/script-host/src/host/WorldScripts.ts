@@ -52,6 +52,7 @@ import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateRe
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
 import { serverUiImplementations } from './minecraftServerUi';
+import type { DebugPackHost } from './debugUtilities';
 import { DEBUG_UTILITIES, debugUtilitiesImplementations, PackDebugDrawer } from './debugUtilities';
 import { SERVER_ADMIN, serverAdminImplementations } from './serverAdmin';
 import { PackNet } from './netKit';
@@ -232,8 +233,10 @@ interface LoadedPack {
     parseJson?: ScriptHandle;
     /** Its `@minecraft/server-net` request header lists, when it declares the module. */
     net?: PackNet;
-    /** Its `@minecraft/debug-utilities` drawer, when it declares the module. */
+    /** Its debug shape drawer, which `debugDrawer` and `world.primitiveShapesManager` draw through. */
     debug?: PackDebugDrawer;
+    /** What its debug shapes reach. */
+    debugHost?: DebugPackHost;
 }
 
 /** A callback a pack subscribed to a signal. */
@@ -662,7 +665,12 @@ export class WorldScripts {
                 () => self(),
                 shapes.find((shape) => shape.module === SERVER_MODULE),
                 () => this.registering === (lifecycle === 2 ? 'startup' : 'worldInitialize')
-            )
+            ),
+            debugShapes: () => self().debugHost,
+            serverExport: (name) => {
+                const namespace = self().api.namespace(SERVER_MODULE);
+                return namespace === undefined ? undefined : engine.get(namespace, name);
+            }
         } satisfies PackHost);
         // Made in the pack's context, so the API's classes and errors belong to the pack's realm
         // and no two packs share a prototype.
@@ -713,13 +721,13 @@ export class WorldScripts {
                 simulated: (id) => this.simulated.add(id)
             });
         }
-        if (shapes.some((shape) => shape.module === SERVER_ADMIN || shape.module === DEBUG_UTILITIES)) {
-            entry.parseJson = engine.inContext(context, () => {
-                const parse = engine.evaluate('JSON.parse', '<jsp server-admin>');
-                if (!(parse instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
-                return parse;
-            });
-        }
+        // Every pack can draw debug text, through `world.primitiveShapesManager` or `debugDrawer`,
+        // whose texts read back as parsed JSON.
+        entry.parseJson = engine.inContext(context, () => {
+            const parse = engine.evaluate('JSON.parse', '<jsp JSON.parse>');
+            if (!(parse instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
+            return parse;
+        });
         const parse = (json: string): ScriptValue => {
             const parseJson = entry.parseJson;
             if (parseJson === undefined) throw new ScriptHostErrors.NotAFunction({ what: 'JSON.parse' });
@@ -734,20 +742,21 @@ export class WorldScripts {
                 player: (value) => this.formPlayer(entry, value)
             });
         }
+        const drawer = new PackDebugDrawer(engine, api);
+        entry.debug = drawer;
+        entry.debugHost = {
+            drawer,
+            nextId: () => this.nextShapeId++,
+            dimensionOf: (value) => {
+                const found = api.identify(value);
+                return found?.tag === TAG.dimension ? found.state : undefined;
+            },
+            dimension: (id) => this.instance(entry, 'Dimension', TAG.dimension, id),
+            entity: (key) => this.entityObject(entry, key),
+            parse
+        };
         if (shapes.some((shape) => shape.module === DEBUG_UTILITIES)) {
-            const drawer = new PackDebugDrawer(engine, api);
-            entry.debug = drawer;
-            debugUtilitiesImplementations(implementations, {
-                drawer,
-                nextId: () => this.nextShapeId++,
-                dimensionOf: (value) => {
-                    const found = api.identify(value);
-                    return found?.tag === TAG.dimension ? found.state : undefined;
-                },
-                dimension: (id) => this.instance(entry, 'Dimension', TAG.dimension, id),
-                entity: (key) => this.entityObject(entry, key),
-                parse
-            });
+            debugUtilitiesImplementations(implementations, entry.debugHost);
         }
         if (shapes.some((shape) => shape.module === SERVER_NET)) {
             const lists = new PackNet(engine, context);

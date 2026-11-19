@@ -555,6 +555,49 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       on a block, and `DefinitionModifier.triggers` is always empty. The events a client or a
       redstone circuit raises have unit tests but no BDS capture, which needs a client or a
       GameTest simulated player that does each action.
+    - World and system (2026-11-19): the world's time of day, day, moon phase, spawn,
+      difficulty, cheats, music and every game rule, `system.sendScriptEvent`, `waitTicks` and
+      `serverSystemInfo`, a dimension's block writes, searches, rays, light, biomes, spawned items
+      and experience, explosions, fills and clones, `BiomeTypes`, `world.tickingAreaManager` with
+      a new `/tickingarea` ([#3251](https://github.com/JSPrismarine/JSPrismarine/issues/3251)),
+      `world.primitiveShapesManager` and `TextPrimitive` over the debug drawer
+      ([#3261](https://github.com/JSPrismarine/JSPrismarine/issues/3261)), the loot table
+      manager and every loot class, the overworld clock and its time markers, the splines,
+      `Trigger` and a player's `fogSettings`. They reach the level through one optional
+      `ScriptWorld.worldSystem` seam. Members implemented in `@minecraft/server` 2.12.0-beta went
+      from 396 to 635, and the corpus's share of pack members with behavior from 70.7% to 73.3%
+      and of member uses from 88.2% to 89.5%. The `world-settings`, `ticking-areas`,
+      `dimension-blocks`, `primitive-shapes` and `loot-tables` scenarios match BDS but for the
+      intended differences.
+    - Learned: BDS's flat world lies at y 0 to 3 while JSPrismarine's lies at y -64 to -61, so a
+      scenario that writes blocks places its own at y 20 and up. Two captures cannot share a BDS
+      run directory, and `capture:scripting --port` gives one its own.
+    - Learned: a block search or ray counts the block it starts in, counts a passable block such
+      as short grass unless `includePassableBlocks` is false, and counts a liquid only with
+      `includeLiquidBlocks`, water being passable too; `getTopmostBlock`'s second argument is
+      where its downward search starts. A ray's `faceLocation` is the fractional part of the hit
+      point, so a block's top face reads y 0.
+    - Learned: the overworld's clock is the world's absolute time with a pause of its own,
+      apart from `doDayLightCycle`; `skipTo` goes to a marker's next time and `rewindTo` to its
+      last. A spline reads back no control points, and a server lists no sound definitions.
+      Ticking areas count the chunks they share once, a script's are kept apart from the
+      command's, and a refused one throws at once rather than rejecting its promise.
+    - Learned: a loot table's legacy item names, such as `record_13` and `dye`, read under their
+      current names with aux 0, an entry's nested `pools` become a `LootTableEntry` sub-table of
+      path `''`, and a condition with no class is left out.
+    - Left: a paused clock and `doDayLightCycle` false do not stop JSPrismarine's time
+      ([#3309](https://github.com/JSPrismarine/JSPrismarine/issues/3309)); the sound instance
+      controls ([#3314](https://github.com/JSPrismarine/JSPrismarine/issues/3314)), pack
+      structures and jigsaw placement ([#3315](https://github.com/JSPrismarine/JSPrismarine/issues/3315)),
+      the locator bar and waypoints ([#3313](https://github.com/JSPrismarine/JSPrismarine/issues/3313)),
+      the point-of-interest classes behind BDS's runtime condition
+      ([#3312](https://github.com/JSPrismarine/JSPrismarine/issues/3312)), and `registerClock`
+      and `registerCustomDimension` ([#3316](https://github.com/JSPrismarine/JSPrismarine/issues/3316))
+      have no behavior. Ticking areas, clock markers and world settings are not saved with the
+      level (#3316). Sky light under an overhang differs from BDS
+      ([#3311](https://github.com/JSPrismarine/JSPrismarine/issues/3311)), `/gamerule dofiretick`
+      does not parse ([#3310](https://github.com/JSPrismarine/JSPrismarine/issues/3310)), and the
+      `dimension-volumes` row waits on `BlockVolume`.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.

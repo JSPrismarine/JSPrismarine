@@ -725,7 +725,7 @@ const implementCamera = (
         });
 };
 
-/** The plain classes beside an entity: `EntityHealSource`, the entity loot conditions and the entity waypoints. */
+/** The plain classes beside an entity: `EntityHealSource` and the entity waypoints. The entity loot conditions are the loot tables'. */
 const implementReferences = (implementations: ScriptApiImplementations, host: PackHost): void => {
     const fields = (call: ScriptCall): Readonly<Record<string, unknown>> => {
         // The host wrote the state with JSON.stringify.
@@ -733,12 +733,7 @@ const implementReferences = (implementations: ScriptApiImplementations, host: Pa
         return isRecord(parsed) ? parsed : {};
     };
     const text = (call: ScriptCall, key: string): string => String(fields(call)[key] ?? '');
-    const number = (call: ScriptCall, key: string): number => Number(fields(call)[key] ?? 0);
-    implementations
-        .implement(SERVER, 'EntityHealSource', 'cause', { get: (call) => text(call, 'cause') })
-        .implement(SERVER, 'EntityHasMarkVariantCondition', 'value', { get: (call) => number(call, 'value') })
-        .implement(SERVER, 'EntityHasVariantCondition', 'value', { get: (call) => number(call, 'value') })
-        .implement(SERVER, 'EntityKilledCondition', 'entityType', { get: (call) => text(call, 'entityType') });
+    implementations.implement(SERVER, 'EntityHealSource', 'cause', { get: (call) => text(call, 'cause') });
 
     const waypoint = (kind: 'entity' | 'player') => (call: ScriptCall) => {
         const entity = entityArgument(call, 0);

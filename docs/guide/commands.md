@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->64<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->65<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -94,6 +94,7 @@ does the same thing.
 | `/testforblock`       | Tests whether a certain block is in a specific location.                                                  | `minecraft.command.testforblock`  | 1     | Operators  |
 | `/testforblocks`      | Tests whether the blocks in two regions match.                                                            | `minecraft.command.testforblocks` | 1     | Operators  |
 | `/tick`               | Queries or changes the tick rate, freezes the world, steps it or sprints.                                 | `minecraft.command.tick`          | 2     | Operators  |
+| `/tickingarea`        | Add, remove, or list ticking areas.                                                                       | `minecraft.command.tickingarea`   | 1     | Operators  |
 | `/time`               | Changes or queries the world time.                                                                        | `minecraft.command.time`          | 1     | Operators  |
 | `/title`              | Shows a title, subtitle or action bar.                                                                    | `minecraft.command.title`         | 1     | Operators  |
 | `/titleraw`           | Controls screen titles with JSON messages.                                                                | `minecraft.command.titleraw`      | 1     | Operators  |

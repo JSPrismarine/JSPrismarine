@@ -101,6 +101,16 @@
                 "import": "./dist/host/world.js",
                 "module": "./dist/host/world.js"
             },
+            "./host/worldsystem/seam": {
+                "types": "./dist/host/worldsystem/seam.d.ts",
+                "import": "./dist/host/worldsystem/seam.js",
+                "module": "./dist/host/worldsystem/seam.js"
+            },
+            "./host/worldsystem/gameRules": {
+                "types": "./dist/host/worldsystem/gameRules.d.ts",
+                "import": "./dist/host/worldsystem/gameRules.js",
+                "module": "./dist/host/worldsystem/gameRules.js"
+            },
             "./host/pack": {
                 "types": "./dist/host/pack.d.ts",
                 "import": "./dist/host/pack.js",
@@ -205,6 +215,14 @@
         "./host/world": {
             "jsprismarine:dist": "./dist/host/world.js",
             "default": "./src/host/world.ts"
+        },
+        "./host/worldsystem/seam": {
+            "jsprismarine:dist": "./dist/host/worldsystem/seam.js",
+            "default": "./src/host/worldsystem/seam.ts"
+        },
+        "./host/worldsystem/gameRules": {
+            "jsprismarine:dist": "./dist/host/worldsystem/gameRules.js",
+            "default": "./src/host/worldsystem/gameRules.ts"
         },
         "./host/pack": {
             "jsprismarine:dist": "./dist/host/pack.js",
