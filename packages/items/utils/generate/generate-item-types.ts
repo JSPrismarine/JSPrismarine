@@ -27,8 +27,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 
-import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
-
 // The pair resolver of the package that owns `sources.json`; generator scripts are not published.
 import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
 import { ITEM_TABLE_EXCEPTIONS } from '../../src/exceptions.ts';
@@ -56,22 +54,22 @@ const javaVersion = pair.java;
 const bedrockVersion = sources.bds.versions[String(pair.protocol)]?.serverVersion;
 if (bedrockVersion === undefined) throw new Error(`sources.json pins no server for protocol ${pair.protocol}`);
 
-// The built mapping package resolves through the default release's tables only, so another
-// release's item types would be mapped with the wrong tables.
-if (pair.java !== javaServerCacheFolder) {
-    throw new Error(
-        `@jsprismarine/mapping maps items through the default Java release's tables (${javaServerCacheFolder}), ` +
-            `not ${pair.java}'s; generate the default release`
-    );
-}
-
 // Node cannot load another package's TypeScript sources, which import each
-// other without file extensions, so the generator reads the built mapping.
+// other without file extensions, so the generator reads the built mapping. The
+// lookup runs over the paired release's own generated item table, read here
+// rather than through the build, which bundles only the default release's.
 const mappingDist = resolve(packageDir, '../mapping/dist');
 if (!existsSync(mappingDist)) {
     throw new Error('Build the mapping package first: pnpm exec turbo run build --filter=@jsprismarine/mapping');
 }
-const { javaItemToBedrock } = await import(`${mappingDist}/index.js`);
+const itemsTablePath = resolve(packageDir, '../mapping/src/tables', pair.java, 'items.json');
+if (!existsSync(itemsTablePath)) {
+    throw new Error(
+        `${itemsTablePath} is missing. Run \`pnpm --filter @jsprismarine/mapping run generate:tables --java ${pair.java}\` first.`
+    );
+}
+const { createJavaItemMapping } = await import(`${mappingDist}/itemMapping.js`);
+const javaItemToBedrock = createJavaItemMapping(readJson(itemsTablePath));
 
 /** The item table captured from a Bedrock Dedicated Server, the Bedrock side's authority. */
 const bedrockItemTable = readJson(
