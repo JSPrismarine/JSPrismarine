@@ -173,6 +173,26 @@ for (const protocolVersion of capturedProtocolVersions) {
     }
 }
 
+// The camera presets and the aim assist registry, as `CameraPresetsPacket` and
+// `CameraAimAssistPresetsPacket` carried them to a joining client. A server sends both verbatim,
+// and the aim assist one is also the registry a script reads through `world.getAimAssist()`.
+for (const protocolVersion of capturedProtocolVersions) {
+    for (const [name, id] of [
+        ['camera_presets', JOIN_PACKET_IDS.cameraPresets],
+        ['aim_assist_presets', JOIN_PACKET_IDS.cameraAimAssistPresets]
+    ]) {
+        const source = requireSource(wireFile(`jsp/v${protocolVersion}`, id));
+        const directories = [`v${protocolVersion}`, ...(protocolVersion === defaultProtocolVersion ? [''] : [])];
+        for (const directory of directories) {
+            const target = path.resolve('src/generated', directory, `${name}.json`);
+            if (!force && isUpToDate(source, target)) continue;
+            console.log(`Generating ${path.join(directory, `${name}.json`)}...`);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, JSON.stringify({ data: fs.readFileSync(source).toString('base64') }, null, 0));
+        }
+    }
+}
+
 /** The base64 little endian compound `{ network_id }` the catalog carries a block state as. */
 const blockStatesOf = (blockRuntimeId) => {
     const name = Buffer.from('network_id');
