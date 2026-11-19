@@ -115,6 +115,158 @@ export interface ScriptItem {
      * them.
      */
     readonly dynamicProperties?: ReadonlyMap<string, ScriptProperties>;
+    /** The blocks an adventure-mode player may break with the stack. Absent or empty for none. */
+    readonly canDestroy?: readonly string[];
+    /** The blocks an adventure-mode player may place the stack on. Absent or empty for none. */
+    readonly canPlaceOn?: readonly string[];
+    /** Whether the stack stays in its owner's inventory when they die. Absent for false. */
+    readonly keepOnDeath?: boolean;
+    /** Where the stack is locked, as `ItemLockMode` names it. Absent for `none`. */
+    readonly lockMode?: 'inventory' | 'slot';
+    /** The enchantments on the stack, by the Script API's id without a namespace, such as `sharpness`. */
+    readonly enchantments?: readonly ScriptEnchantment[];
+    /** The stack's aux value, which picks a potion's effect. Absent for 0. */
+    readonly data?: number;
+    /** A book's pages, title and author. Absent for a book with nothing written. */
+    readonly book?: ScriptBook;
+    /** The color a dyeable item was dyed, as red, green and blue from 0 to 1. Absent for its own. */
+    readonly dyeColor?: ScriptRgb;
+    /** Whether the stack takes no damage from use. Absent for false. */
+    readonly unbreakable?: boolean;
+    /** The dynamic properties the stack gives the block it places, by id. Absent or empty for none. */
+    readonly blockProperties?: ScriptProperties;
+}
+
+/** An enchantment on a stack. */
+export interface ScriptEnchantment {
+    readonly id: string;
+    readonly level: number;
+}
+
+/** One page of a book: its text, or the JSON of the `RawMessage` a script wrote on it. */
+export type ScriptBookPage = { readonly text: string } | { readonly raw: string };
+
+/** What a book holds: its pages, and once signed, its title and author. */
+export interface ScriptBook {
+    readonly pages: readonly ScriptBookPage[];
+    readonly title?: string;
+    readonly author?: string;
+}
+
+/** A color without alpha, each part from 0 to 1. */
+export interface ScriptRgb {
+    readonly red: number;
+    readonly green: number;
+    readonly blue: number;
+}
+
+/** A block state's value. */
+export type ScriptStateValue = string | number | boolean;
+
+/** What water does to a permutation, by the four `LiquidType.Water` questions of the Script API. */
+export interface ScriptWaterAnswers {
+    readonly contain: boolean;
+    readonly blocking: boolean;
+    readonly destroyed: boolean;
+    readonly spawns: boolean;
+}
+
+/** A block type as the Script API describes it. */
+export interface ScriptBlockTypeInfo {
+    readonly localizationKey: string;
+    readonly tags: readonly string[];
+    /** The item a block of the type gives, or null for none. */
+    readonly item: string | null;
+    readonly water: ScriptWaterAnswers;
+    /** The permutations whose water answers differ from the type's. */
+    readonly waterPermutations: readonly {
+        readonly states: Readonly<Record<string, ScriptStateValue>>;
+        readonly water: ScriptWaterAnswers;
+    }[];
+    readonly liquid: boolean;
+    readonly air: boolean;
+    /** Whether a block of the type is solid and stops movement, as `Block.isSolid` answers. */
+    readonly solid: boolean;
+    /** The color a block of the type shows on a map, as `Block.getMapColor` answers in the capture's biome. */
+    readonly mapColor?: ScriptRgba;
+    /** The components a block of the type has, by id. */
+    readonly components: readonly string[];
+    readonly movable?: { readonly movementType: string; readonly stickyType: string };
+    readonly precipitation?: {
+        readonly accumulatesSnow: boolean;
+        readonly isSnowLoggable: boolean;
+        readonly obstructsRain: boolean;
+    };
+    readonly mapColorComponent?: {
+        readonly color: ScriptRgba;
+        readonly tintedColor: ScriptRgba;
+        readonly tintMethod: string;
+    };
+    readonly vibration?: { readonly dampens: boolean; readonly occludes: boolean };
+}
+
+/** An item type as the Script API describes it. */
+export interface ScriptItemInfo {
+    readonly localizationKey: string;
+    readonly maxAmount: number;
+    readonly stackable: boolean;
+    readonly weight: number;
+    readonly tags: readonly string[];
+    /** The components a new stack of the type has, by id. */
+    readonly components: readonly string[];
+    readonly durability?: { readonly maxDurability: number; readonly damageChance: readonly number[] };
+    readonly food?: {
+        readonly nutrition: number;
+        readonly saturationModifier: number;
+        readonly canAlwaysEat: boolean;
+        readonly usingConvertsTo: string;
+    };
+    readonly cooldown?: { readonly category: string; readonly ticks: number };
+    /** The enchantment slots of the type, one entry each, which BDS hands back as undefined. */
+    readonly enchantable?: { readonly slots: readonly unknown[] };
+    readonly potion?: { readonly effect: string; readonly delivery: string };
+    readonly dyeable?: { readonly defaultColor?: ScriptRgb };
+    readonly compostable?: { readonly chance: number };
+    readonly inventorySize?: number;
+    readonly containerRules?: {
+        readonly weightLimit?: number;
+        readonly allowedItems: readonly string[];
+        readonly bannedItems: readonly string[];
+        readonly allowNestedStorageItems: boolean;
+    } | null;
+}
+
+/** An enchantment type, the items it goes on and the enchantments it refuses beside it. */
+export interface ScriptEnchantmentInfo {
+    readonly id: string;
+    readonly maxLevel: number;
+    readonly items: readonly string[];
+    readonly conflicts: readonly string[];
+}
+
+/**
+ * The game's block, item, enchantment and potion types as the Script API describes them, which
+ * `BlockTypes`, `ItemTypes`, `EnchantmentTypes`, `Potions` and the type facts of blocks and stacks
+ * read. Every list is in the order BDS lists it.
+ */
+export interface ScriptCatalog {
+    /** Every block type's id. */
+    blockTypes(): readonly string[];
+    blockType(typeId: string): ScriptBlockTypeInfo | undefined;
+    /** Every block state and the values the game declares for it. */
+    blockStates(): readonly { readonly id: string; readonly validValues: readonly ScriptStateValue[] }[];
+    /** Every item type's id. */
+    itemTypes(): readonly string[];
+    itemType(typeId: string): ScriptItemInfo | undefined;
+    enchantments(): readonly ScriptEnchantmentInfo[];
+    /** Every potion effect, and how long it lasts when it is timed. */
+    potionEffects(): readonly { readonly effect: string; readonly durationTicks: number | null }[];
+    /** Every potion delivery, such as `Consume`. */
+    potionDeliveries(): readonly string[];
+    /** The item and data value a potion of an effect and a delivery is, or undefined when none is. */
+    potionItem(effect: string, delivery: string): { readonly typeId: string; readonly data: number } | undefined;
+    /** The effect and delivery a potion item's data value holds, or undefined when it holds none. */
+    potionOf(typeId: string, data: number): { readonly effect: string; readonly delivery: string } | undefined;
 }
 
 /** How a scoreboard participant is known, as `ScoreboardIdentityType` names it. */
@@ -1078,4 +1230,17 @@ export interface ScriptWorld {
     bindComponents?(sink: ScriptComponentSink): () => void;
     /** The entity and player systems the entity members reach. A world without them gives those members no behavior. */
     readonly entitySystems?: ScriptEntitySystems;
+    /** The game's block, item, enchantment and potion types. A world without it has only the types it resolves. */
+    readonly catalog?: ScriptCatalog;
+    /** The block light and sky light at a loaded block, each from 0 to 15, or undefined where its chunk is not loaded. */
+    blockLight?(
+        dimension: string,
+        location: ScriptVector3
+    ): { readonly block: number; readonly sky: number } | undefined;
+    /** Whether a loaded block holds water in its liquid layer. */
+    waterlogged?(dimension: string, location: ScriptVector3): boolean | undefined;
+    /** Puts water into a loaded block's liquid layer, or takes it out. */
+    setWaterlogged?(dimension: string, location: ScriptVector3, waterlogged: boolean): void;
+    /** The redstone power a loaded block holds, or undefined for a block that carries none. */
+    redstonePower?(dimension: string, location: ScriptVector3): number | undefined;
 }

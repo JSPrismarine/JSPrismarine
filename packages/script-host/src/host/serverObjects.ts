@@ -24,6 +24,7 @@ import type {
     ScriptVector3
 } from './world';
 import { isRecord } from '../isRecord';
+import { blockPropertiesState, itemExtrasOf } from './blocksItems/itemExtras';
 
 /** The module every implementation here belongs to. */
 export const SERVER = '@minecraft/server';
@@ -203,7 +204,8 @@ const propertyOfState = (entry: unknown): readonly [string, ScriptPropertyValue]
 
 /** The item stack an object stands for. */
 export const itemOf = (state: string): ScriptItem => {
-    const { typeId, amount, nameTag, lore, damage, properties } = parseState(state, 'item stack');
+    const parsed = parseState(state, 'item stack');
+    const { typeId, amount, nameTag, lore, damage, properties } = parsed;
     if (typeof typeId !== 'string' || typeof amount !== 'number')
         throw new ScriptHostErrors.ObjectCarriesNoState({ what: 'item' });
     const dynamicProperties = new Map<string, ScriptProperties>();
@@ -222,7 +224,8 @@ export const itemOf = (state: string): ScriptItem => {
         ...(typeof nameTag === 'string' ? { nameTag } : {}),
         ...(Array.isArray(lore) ? { lore: lore.filter((line) => typeof line === 'string') } : {}),
         ...(typeof damage === 'number' && damage > 0 ? { damage } : {}),
-        ...(dynamicProperties.size > 0 ? { dynamicProperties } : {})
+        ...(dynamicProperties.size > 0 ? { dynamicProperties } : {}),
+        ...itemExtrasOf(parsed)
     };
 };
 
@@ -242,18 +245,21 @@ export const gameModeOf = (value: ScriptValue): ScriptGameMode => {
     return value === 1 ? 'Creative' : value === 2 ? 'Adventure' : value === 6 ? 'Spectator' : 'Survival';
 };
 /** The state an item stack object carries, which {@link itemOf} reads. */
-export const itemState = ({ dynamicProperties, ...item }: ScriptItem): string =>
-    JSON.stringify(
-        dynamicProperties === undefined || dynamicProperties.size === 0
-            ? item
+export const itemState = ({ dynamicProperties, blockProperties, ...item }: ScriptItem): string =>
+    JSON.stringify({
+        ...item,
+        ...(dynamicProperties === undefined || dynamicProperties.size === 0
+            ? {}
             : {
-                  ...item,
                   properties: [...dynamicProperties].map(([pack, values]) => [
                       pack,
                       [...values].map(([id, value]) => stateProperty(id, value))
                   ])
-              }
-    );
+              }),
+        ...(blockProperties === undefined || blockProperties.size === 0
+            ? {}
+            : { blockProperties: blockPropertiesState(blockProperties) })
+    });
 
 /** Adds `minecraft:` to an id given without a namespace, as BDS reads one. */
 export const withNamespace = (id: string): string => (id.includes(':') ? id : `minecraft:${id}`);

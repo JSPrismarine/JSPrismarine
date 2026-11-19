@@ -482,6 +482,46 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       the world area's list and is registered here, so the two batches must keep one
       registration. `Player.fogSettings` and `locatorBar` return the world area's classes with the
       player's entity key as their state.
+    - Blocks, items and containers (2026-11-19): `BlockBoundingBoxUtils`, `BlockVolume`,
+      `ListBlockVolume` and their iterator; `BlockTypes`, `BlockStates`, `ItemTypes`,
+      `EnchantmentTypes` and `Potions`; a block's neighbors, type facts, liquid answers, light,
+      `isSolid`, `getMapColor`, `getParts`, `canPlace`, `trySetPermutation` and components;
+      `BlockPermutation.withState`; an item stack's type facts, block lists, lock, `clone` and the
+      enchantable, food, cooldown, compostable, dyeable, potion, book and block property components;
+      and `Container`'s find, move, swap and transfer members with `ContainerSlot`'s stack members.
+      The answers about types come from new tables the BDS dump pack captures, which
+      `@jsprismarine/bedrock-data/script-catalog` serves and a world hands the host as its
+      `catalog`. 2.12.0-beta went from 396 to 591 members with behavior, and the corpus's share of
+      member uses from 88.2% to 90.3%, of pack members from 70.7% to 76.4%. The new `block-volumes`
+      and `item-members` scenarios match BDS; `block-members`, `containers` and
+      `block-world-components` match but for the gaps below.
+    - Learned: BDS frees an item stack no variable holds, and a component read from it then throws
+      `InvalidItemStackError`, so a scenario keeps every stack in a variable. `BlockBoundingBoxUtils`
+      truncates toward zero where `BlockVolume` floors; a volume's iterator walks y, then z, then x,
+      while `getClosest` weighs x, then y, then z and orders ties as `std::partial_sort` leaves them.
+      `canAddEnchantment` adds the level asked to the level the stack has and throws past the
+      maximum, and one that conflicts with an enchantment the stack has throws
+      `EnchantmentLevelOutOfBoundsError` rather than returning false. `Container.moveItem` overwrites the slot it moves to, and `transferItem` leaves what did
+      not fit where it was. `getDamageChanceRange` throws on every item, and a stack's weight is its
+      type's weight times its amount.
+    - Left: the sign, piston, jukebox and cauldron components
+      ([#3302](https://github.com/JSPrismarine/JSPrismarine/issues/3302)), the redstone producer and
+      instrument components ([#3303](https://github.com/JSPrismarine/JSPrismarine/issues/3303)),
+      `liquidCanFlowFromDirection` ([#3304](https://github.com/JSPrismarine/JSPrismarine/issues/3304)),
+      item containers ([#3305](https://github.com/JSPrismarine/JSPrismarine/issues/3305)), the
+      crafter, entity storage, block property and custom component instance classes
+      ([#3306](https://github.com/JSPrismarine/JSPrismarine/issues/3306)) and named ticks
+      ([#3307](https://github.com/JSPrismarine/JSPrismarine/issues/3307)) have no behavior, nor do
+      the `Enchant*` loot functions and `BannerPattern`, which only loot tables and banners hand
+      out. Light reads 15 where BDS reads 0 in a chunk only a ticking area loads
+      ([#3298](https://github.com/JSPrismarine/JSPrismarine/issues/3298)), `getMapColor` ignores the
+      biome and the permutation ([#3299](https://github.com/JSPrismarine/JSPrismarine/issues/3299)),
+      `setWaterlogged` writes nothing ([#3300](https://github.com/JSPrismarine/JSPrismarine/issues/3300)),
+      a chest slot loses a stack's lock, block lists and dynamic properties
+      ([#3301](https://github.com/JSPrismarine/JSPrismarine/issues/3301)), and a `setCanDestroy` of a
+      block with legacy variants, such as stone, lists only the block where BDS lists every variant.
+      `EnchantmentTypes.getAll` lists every enchantment, where BDS listed two in one scenario by no
+      rule found.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
