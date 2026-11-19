@@ -754,6 +754,16 @@ Thrown as `WorldgenErrors.NoiseParametersNotObject`, which extends `TypeError`.
 A world generation file, from a datapack or the generated Java data, defines a noise that is
 not a JSON object.
 
+## `WORLDGEN_NON_POSITIVE_UPSCALE_CELL`
+
+`{path}: expected a positive upscale cell size, got {size}`
+
+Thrown as `WorldgenErrors.NonPositiveUpscaleCell`, which extends `RangeError`.
+
+A 26.4 `upscale` density function gives an axis a `cell_size` of zero or less. Interpolation
+divides by the cell size, so give each axis a positive whole number, as every vanilla
+`upscale` does.
+
 ## `WORLDGEN_NUMBER_OUT_OF_RANGE`
 
 `{path} has to be between {min} and {max}, got {value}`
@@ -953,6 +963,16 @@ Thrown as `WorldgenErrors.UncompilableDensityFunction`, which extends `TypeError
 The density function compiler met a node it cannot compile. This is a bug in world
 generation; report it with the stack trace.
 
+## `WORLDGEN_UNEVEN_UPSCALE_CELLS`
+
+`{path}: upscale cell sizes differ across x ({x}) and z ({z}); only equal sizes are implemented`
+
+Thrown as `WorldgenErrors.UnevenUpscaleCells`, which extends `TypeError`.
+
+A 26.4 `upscale` density function gives its x and z axes different cell sizes. The chunk
+sampler fills square horizontal cells, as every vanilla `upscale` uses, so give `x` and `z`
+the same `cell_size`.
+
 ## `WORLDGEN_UNKNOWN_BIOME_PARAMETER_PRESET`
 
 `{path}.preset: no multi_noise_biome_source_parameter_list named {preset}`
@@ -1042,6 +1062,16 @@ Thrown as `WorldgenErrors.UnknownUnaryDensityFunction`, which extends `TypeError
 
 The density function compiler met a single-input function it does not know. This is a bug in
 world generation; report it with the stack trace.
+
+## `WORLDGEN_UNSUPPORTED_UPSCALE_MODE`
+
+`{path}: upscale mode {mode} is not implemented; only "interpolate_linear" is`
+
+Thrown as `WorldgenErrors.UnsupportedUpscaleMode`, which extends `TypeError`.
+
+A 26.4 `upscale` density function names a mode other than `interpolate_linear` on one axis.
+Every vanilla `upscale` interpolates linearly, and this server implements only that mode;
+change the axis's `mode` to `interpolate_linear` or leave the function out.
 
 ## `WORLDGEN_WORLD_PRESET_HAS_NO_OVERWORLD`
 

@@ -5,6 +5,7 @@ import type { DensityFunctionNode } from '../density/DensityFunction';
 import type { DensityFunctionResolver } from '../density/parse';
 import { parseDensityFunction } from '../density/parse';
 import { asObject, boolean, integer } from '../json';
+import { readsSince } from '../dataPackFormat';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /**
@@ -92,6 +93,21 @@ export interface SpawnTargetFunction {
 /** The target point with the lowest climate fitness wins at each spawn candidate. */
 export type SpawnTargetPoint = readonly SpawnTargetFunction[];
 
+/**
+ * 26.4 (format 128) dropped `default_block`: the noise pass fills solid density with no block of
+ * its own, and the dimension's material rule places every solid block, ending in an
+ * unconditional `block` rule (`minecraft:stone` in the overworld).
+ */
+export const SINCE_MATERIAL_RULE_PLACES_SOLID = 128;
+
+/**
+ * The block the noise pass fills solid density with when the settings name none. The surface
+ * pass asks the material rule for every solid block, and every vanilla rule tree ends in an
+ * unconditional `block` rule, so this stone is replaced wherever the 26.4 rules place a block.
+ * Where a rule tree leaves a block unplaced, 26.4 leaves air and this generator leaves stone.
+ */
+const SOLID_PLACEHOLDER = 'minecraft:stone';
+
 const blockState = (value: unknown, path: string): string => {
     if (typeof value === 'string') return normalizeIdentifier(value);
     const raw = asObject(value, path);
@@ -101,7 +117,8 @@ const blockState = (value: unknown, path: string): string => {
 const parseSpawnTargets = (
     value: unknown,
     resolve: DensityFunctionResolver,
-    path: string
+    path: string,
+    format: number | undefined
 ): readonly SpawnTargetPoint[] => {
     if (value === undefined) return [];
     if (!Array.isArray(value)) throw new WorldgenErrors.ExpectedList({ path });
@@ -119,7 +136,7 @@ const parseSpawnTargets = (
             }
             const reference = normalizeIdentifier(id);
             return {
-                density: parseDensityFunction(reference, resolve, `${path}[${targetIndex}].${id}`),
+                density: parseDensityFunction(reference, resolve, `${path}[${targetIndex}].${id}`, format),
                 parameter: climateSpan(min, max)
             } satisfies SpawnTargetFunction;
         });
@@ -130,14 +147,18 @@ const parseSpawnTargets = (
  * Reads one `worldgen/noise_settings` JSON document.
  *
  * @param resolve - Looks up a referenced density function by identifier.
+ * @param format - The target's data pack format major, which picks between grammars that
+ *   changed; undefined reads the default release's grammar.
  * @throws When a required field is missing or has the wrong shape. The router's eight slots,
- *   `noise`, `sea_level`, `default_block`, `default_fluid`, `material_rule`,
- *   `disable_mob_generation` and `legacy_random_source` are all required, as in Java.
+ *   `noise`, `sea_level`, `default_fluid`, `material_rule`, `disable_mob_generation` and
+ *   `legacy_random_source` are all required, as in Java, and so is `default_block` before
+ *   {@link SINCE_MATERIAL_RULE_PLACES_SOLID}.
  */
 export const parseNoiseGeneratorSettings = (
     source: unknown,
     resolve: DensityFunctionResolver,
-    path = '<noise_settings>'
+    path = '<noise_settings>',
+    format?: number
 ): NoiseGeneratorSettings => {
     const raw = asObject(source, path);
     const noise = asObject(raw['noise'], `${path}.noise`);
@@ -148,7 +169,7 @@ export const parseNoiseGeneratorSettings = (
 
     const routerSource = asObject(raw['noise_router'], `${path}.noise_router`);
     const parseSlot = (name: string): DensityFunctionNode =>
-        parseDensityFunction(routerSource[name], resolve, `${path}.noise_router.${name}`);
+        parseDensityFunction(routerSource[name], resolve, `${path}.noise_router.${name}`, format);
 
     const aquiferSource = raw['aquifers'];
     const aquifers =
@@ -157,7 +178,7 @@ export const parseNoiseGeneratorSettings = (
             : (() => {
                   const fields = asObject(aquiferSource, `${path}.aquifers`);
                   const parseAquifer = (name: string): DensityFunctionNode =>
-                      parseDensityFunction(fields[name], resolve, `${path}.aquifers.${name}`);
+                      parseDensityFunction(fields[name], resolve, `${path}.aquifers.${name}`, format);
                   return {
                       barrierNoise: parseAquifer('barrier'),
                       fluidLevelFloodednessNoise: parseAquifer('fluid_level_floodedness'),
@@ -170,7 +191,9 @@ export const parseNoiseGeneratorSettings = (
 
     return {
         noiseSettings: { minY, height },
-        defaultBlock: blockState(raw['default_block'], `${path}.default_block`),
+        defaultBlock: readsSince(format, SINCE_MATERIAL_RULE_PLACES_SOLID)
+            ? SOLID_PLACEHOLDER
+            : blockState(raw['default_block'], `${path}.default_block`),
         defaultFluid: blockState(raw['default_fluid'], `${path}.default_fluid`),
         noiseRouter: {
             temperature: parseSlot('temperature'),
@@ -182,7 +205,7 @@ export const parseNoiseGeneratorSettings = (
             chunkSurfaceLevel: parseSlot('chunk_surface_level'),
             finalDensity: parseSlot('final_density')
         },
-        spawnTargets: parseSpawnTargets(raw['spawn_target'], resolve, `${path}.spawn_target`),
+        spawnTargets: parseSpawnTargets(raw['spawn_target'], resolve, `${path}.spawn_target`, format),
         materialRule: normalizeIdentifier(raw['material_rule']),
         seaLevel: integer(raw['sea_level'], `${path}.sea_level`),
         disableMobGeneration: boolean(raw['disable_mob_generation'], `${path}.disable_mob_generation`),

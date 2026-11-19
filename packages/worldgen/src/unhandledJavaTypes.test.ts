@@ -1,7 +1,12 @@
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 import { it } from 'vitest';
 
-import { describeWithJavaRegistries, expectRegistryCovered, recognizesType } from '../../../.test/javaRegistries';
+import {
+    describeWithJavaRegistries,
+    expectRegistryCovered,
+    javaReportFormat,
+    recognizesType
+} from '../../../.test/javaRegistries';
 import { parseCarver } from './carver/Carver';
 import { parseDensityFunction } from './density/parse';
 import { MaterialRuleData } from './surface/MaterialRule';
@@ -46,7 +51,7 @@ describeWithJavaRegistries('every type the pinned Java registry report lists', {
         expectRegistryCovered({
             registry: 'minecraft:worldgen/density_function_type',
             handles: recognizesType(
-                (type, path) => parseDensityFunction({ type }, noReferences, path),
+                (type, path) => parseDensityFunction({ type }, noReferences, path, javaReportFormat),
                 (error) => error instanceof WorldgenErrors.UnknownDensityFunctionType
             ),
             unhandled: UNHANDLED_DENSITY_FUNCTION_TYPE

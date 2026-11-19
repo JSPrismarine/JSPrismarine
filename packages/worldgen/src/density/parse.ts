@@ -9,10 +9,20 @@ import type {
     TilingMode,
     UnaryDensityType
 } from './DensityFunction';
+import { readsSince } from '../dataPackFormat';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** Resolves a `worldgen/density_function` reference to its parsed tree. */
 export type DensityFunctionResolver = (id: string) => DensityFunctionNode;
+
+/**
+ * 26.4 (format 128) replaced `interpolated`, with its `cell_size_xz` and `cell_size_y`, by
+ * `upscale`, which gives each axis its own `{ cell_size, mode }`.
+ */
+export const SINCE_UPSCALE_DENSITY_FUNCTION = 128;
+
+/** The `upscale` mode that reads the same as the `interpolated` it replaced. */
+const LINEAR_UPSCALE_MODE = 'interpolate_linear';
 
 const ZERO: DensityFunctionNode = { type: 'constant', value: 0 };
 
@@ -116,13 +126,16 @@ const parseSpline = (
  * returned tree has no indirection left for the compiler to chase.
  *
  * @param resolve - Looks up another density function by identifier.
+ * @param format - The target's data pack format major, which picks between grammars that
+ *   changed; undefined reads the default release's grammar.
  * @throws When a type is unknown, a field is missing, or a value has the wrong shape. Nothing
  *   falls back to zero, because a silently zeroed subtree changes terrain without failing.
  */
 export const parseDensityFunction = (
     source: unknown,
     resolve: DensityFunctionResolver,
-    path = '<root>'
+    path = '<root>',
+    format?: number
 ): DensityFunctionNode => {
     if (typeof source === 'number') {
         if (!Number.isFinite(source)) return fail(new WorldgenErrors.ExpectedFiniteNumber({ path, value: source }));
@@ -132,7 +145,7 @@ export const parseDensityFunction = (
 
     const raw = asObject(source, path);
     const parse = (value: unknown, childPath: string): DensityFunctionNode =>
-        parseDensityFunction(value, resolve, childPath);
+        parseDensityFunction(value, resolve, childPath, format);
     const type = typeName(raw['type']);
 
     if (UNARY_TYPES.has(type)) {
@@ -235,12 +248,51 @@ export const parseDensityFunction = (
                 cellHeight: integer(raw['cell_height'], `${path}.cell_height`, 1)
             };
         case 'interpolated':
+            if (readsSince(format, SINCE_UPSCALE_DENSITY_FUNCTION)) {
+                return fail(new WorldgenErrors.UnknownDensityFunctionType({ path, type }));
+            }
             return {
                 type: 'interpolated',
                 input: parse(raw['input'], `${path}.input`),
                 cellSizeXz: integer(raw['cell_size_xz'], `${path}.cell_size_xz`, 4),
                 cellSizeY: integer(raw['cell_size_y'], `${path}.cell_size_y`, 4)
             };
+        case 'upscale': {
+            if (!readsSince(format, SINCE_UPSCALE_DENSITY_FUNCTION)) {
+                return fail(new WorldgenErrors.UnknownDensityFunctionType({ path, type }));
+            }
+            // Every vanilla `upscale` interpolates linearly with equal x and z cells, which is
+            // the `interpolated` node the chunk sampler already fills cell by cell.
+            const cellSize = (axis: 'x' | 'y' | 'z'): number => {
+                const axisPath = `${path}.${axis}`;
+                const fields = asObject(raw[axis], axisPath);
+                if (fields['mode'] !== LINEAR_UPSCALE_MODE) {
+                    return fail(
+                        new WorldgenErrors.UnsupportedUpscaleMode({
+                            path: `${axisPath}.mode`,
+                            mode: JSON.stringify(fields['mode'])
+                        })
+                    );
+                }
+                const size = integer(fields['cell_size'], `${axisPath}.cell_size`);
+                // Interpolation divides by the cell size, so zero would sample NaN.
+                if (size <= 0) {
+                    return fail(new WorldgenErrors.NonPositiveUpscaleCell({ path: `${axisPath}.cell_size`, size }));
+                }
+                return size;
+            };
+            const cellSizeX = cellSize('x');
+            const cellSizeZ = cellSize('z');
+            if (cellSizeX !== cellSizeZ) {
+                return fail(new WorldgenErrors.UnevenUpscaleCells({ path, x: cellSizeX, z: cellSizeZ }));
+            }
+            return {
+                type: 'interpolated',
+                input: parse(raw['input'], `${path}.input`),
+                cellSizeXz: cellSizeX,
+                cellSizeY: cellSize('y')
+            };
+        }
         case 'interval_select': {
             const thresholdSource = raw['thresholds'];
             const functionSource = raw['functions'];

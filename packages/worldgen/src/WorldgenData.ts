@@ -14,6 +14,11 @@ export interface WorldgenDataSource {
     readonly noises: ReadonlyMap<string, unknown>;
     /** `worldgen/noise_settings`, keyed by identifier. */
     readonly noiseSettings: ReadonlyMap<string, unknown>;
+    /**
+     * The data pack format major of the release the documents come from, such as 121 for 26.3,
+     * which picks between grammars that changed. Undefined reads the default release's grammar.
+     */
+    readonly format?: number;
 }
 
 /**
@@ -68,7 +73,7 @@ export class WorldgenData {
 
         this.resolving.add(id);
         try {
-            const parsed = parseDensityFunction(raw, (child) => this.densityFunction(child), id);
+            const parsed = parseDensityFunction(raw, (child) => this.densityFunction(child), id, this.source.format);
             this.densityFunctionCache.set(id, parsed);
             return parsed;
         } finally {
@@ -103,7 +108,7 @@ export class WorldgenData {
         if (cached) return cached;
         const raw = this.source.noiseSettings.get(id);
         if (raw === undefined) throw new WorldgenErrors.NoNoiseSettingsAreRegistered({ id });
-        const parsed = parseNoiseGeneratorSettings(raw, (child) => this.densityFunction(child), id);
+        const parsed = parseNoiseGeneratorSettings(raw, (child) => this.densityFunction(child), id, this.source.format);
         this.settingsCache.set(id, parsed);
         return parsed;
     }
