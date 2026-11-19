@@ -592,6 +592,14 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return effects;
     }
 
+    /**
+     * Queues a property write for the entity's next tick, as a Bedrock Dedicated Server lands a
+     * script's `setProperty` after the script's tick.
+     */
+    public queuePropertyWrite(name: string, value: PropertyValue): void {
+        this.pending.push({ ...noEffects('script:set_property'), propertyWrites: [{ name, value }] });
+    }
+
     /** The events waiting for the next tick, oldest first. */
     public queued(): readonly EventEffects[] {
         return this.pending;
