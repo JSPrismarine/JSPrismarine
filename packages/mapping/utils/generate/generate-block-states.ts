@@ -1,5 +1,5 @@
 /**
- * Generates `src/tables/blockStates.json`: the per-block state vocabularies, which say how a
+ * Generates `src/tables/<release>/blockStates.json`: the per-block state vocabularies, which say how a
  * Bedrock block spells the values Java spells as words (plan section 5, the state half of the
  * seam).
  *
@@ -25,8 +25,13 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BLOCK_STATE_LOSSES } from '../../src/lossList.ts';
+// The pair resolver of the package that owns `sources.json`; generator scripts are not published.
+import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+// `--java <release>` picks the tables' release directory, the default release when absent.
+const pair = resolveJavaBedrockPair(process.argv);
+const tablesDir = join(packageDir, 'src/tables', pair.java);
 
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
 
@@ -41,7 +46,7 @@ interface BlocksTable {
 }
 
 // The vendored block table; `src/tables.ts` documents the shape the table generator guarantees.
-const blocksTable = readJson(join(packageDir, 'src/tables/blocks.json')) as BlocksTable;
+const blocksTable = readJson(join(tablesDir, 'blocks.json')) as BlocksTable;
 
 /** The Bedrock target states in palette-index order, mirroring `src/blockMapping.ts`. */
 const targetPalette = blocksTable.statePalette.flatMap(([name, keys, tuples]) =>
@@ -261,7 +266,7 @@ const table = {
     blocks
 };
 
-const path = join(packageDir, 'src/tables/blockStates.json');
+const path = join(tablesDir, 'blockStates.json');
 writeFileSync(path, `${render(table, 3, '')}\n`);
 console.log(
     `Wrote ${path}: ${Object.keys(blocks).length} blocks over ${distinct.length} distinct vocabularies, ` +

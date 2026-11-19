@@ -2,11 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { resolveJavaRelease } from './release.ts';
+import { resolveJavaBedrockPair, resolveJavaRelease } from './release.ts';
 import { packageDir } from './worldgen-cache.ts';
 
 // This package's own manifest, parsed JSON.
 const sources = JSON.parse(readFileSync(join(packageDir, 'sources.json'), 'utf8')) as {
+    bds: { defaultProtocolVersion: number };
     javaServer: { defaultVersion: string; versions: Record<string, { sha1: string }> };
 };
 
@@ -32,5 +33,20 @@ describe('resolveJavaRelease', () => {
     it('rejects a --java without a release, and a release that is not pinned', async () => {
         await expect(resolveJavaRelease(['node', 'x.ts', '--java'])).rejects.toThrow(/--java needs/);
         await expect(resolveJavaRelease(['node', 'x.ts', '--java', '0.0'])).rejects.toThrow(/pins no Java/);
+    });
+});
+
+describe('resolveJavaBedrockPair', () => {
+    it('pairs the default release with the default protocol when no --java is given', () => {
+        expect(resolveJavaBedrockPair([])).toEqual({
+            java: sources.javaServer.defaultVersion,
+            protocol: sources.bds.defaultProtocolVersion
+        });
+    });
+
+    it('rejects a release that is not pinned', () => {
+        expect(() => resolveJavaBedrockPair(['node', 'x.ts', '--java', '0.0'])).toThrow(
+            /pins no Java Edition release 0\.0/
+        );
     });
 });

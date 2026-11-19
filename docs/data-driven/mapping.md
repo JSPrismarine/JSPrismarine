@@ -193,7 +193,9 @@ occurring. That keeps the loss list exact rather than a growing pile of stale ex
 
 ## Regenerating the tables after a version bump
 
-The tables under `packages/mapping/src/tables/` are generated and committed. After bumping the
+The tables under `packages/mapping/src/tables/<release>/` are generated and committed, one
+directory per Java release `sources.json` pairs with a Bedrock protocol; `pair.json` in each names
+the protocol. After bumping the
 pinned versions in `packages/bedrock-data/sources.json`:
 
 ```sh
@@ -201,7 +203,7 @@ pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 pnpm --filter @jsprismarine/mapping run generate:tables
 ```
 
-The generator joins GeyserMC's `blocks.nbt` against the output of Mojang's Java data generator,
+`--java <release>` picks the release, the default when absent. The generator joins GeyserMC's `blocks.nbt` against the output of Mojang's Java data generator,
 which it runs against the hash-verified server jar when the reports are missing from the cache.
 That step needs a JDK of at least version 25, found through `JAVA_HOME` or `JSP_JAVA_HOME`. The
 generator refuses to emit when any Java identifier has neither a mapping nor a loss entry, or when

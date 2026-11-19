@@ -1,5 +1,5 @@
 /**
- * Generates `src/tables/blockProperties.json`: the Java-sourced per-state block
+ * Generates `src/tables/<release>/blockProperties.json`: the Java-sourced per-state block
  * property table keyed by Bedrock block state, which is the server's identity
  * (plan section 7, the flattening paragraph; section 14 slice 4).
  *
@@ -18,10 +18,15 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
+// The pair resolver of the package that owns `sources.json`; generator scripts are not published.
+import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
+
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+// `--java <release>` picks the tables' release directory, the default release when absent.
+const pair = resolveJavaBedrockPair(process.argv);
+const tablesDir = join(packageDir, 'src/tables', pair.java);
 const repoRoot = resolve(packageDir, '../..');
 
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
@@ -36,7 +41,7 @@ interface BlocksTable {
 }
 
 // The vendored block table; `src/tables.ts` documents the shape the table generator guarantees.
-const blocksTable = readJson(join(packageDir, 'src/tables/blocks.json')) as BlocksTable;
+const blocksTable = readJson(join(tablesDir, 'blocks.json')) as BlocksTable;
 
 /** The Bedrock target states in palette-index order, mirroring `src/blockMapping.ts`. */
 const targetPalette = blocksTable.statePalette.flatMap(([name, keys, tuples]) =>
@@ -88,7 +93,7 @@ interface GoldenEntry {
 
 // The golden is parsed JSON; `javaGoldens.test.ts` in bedrock-data verifies this shape.
 const golden = readJson(
-    join(repoRoot, 'packages/bedrock-data/src/jsp/java', javaServerCacheFolder, 'block_properties.json')
+    join(repoRoot, 'packages/bedrock-data/src/jsp/java', pair.java, 'block_properties.json')
 ) as Record<string, GoldenEntry>;
 
 interface PaletteFile {
@@ -97,7 +102,7 @@ interface PaletteFile {
 }
 
 // The repository's own BDS capture; see packages/minecraft/datagen/README-palette.md.
-const palette = readJson(blockPaletteSnapshotPath()) as PaletteFile;
+const palette = readJson(blockPaletteSnapshotPath(pair.protocol)) as PaletteFile;
 
 // ---------------------------------------------------------------------------
 // Flattening
@@ -368,7 +373,7 @@ const table = {
     conflicts
 };
 
-const path = join(packageDir, 'src/tables/blockProperties.json');
+const path = join(tablesDir, 'blockProperties.json');
 writeFileSync(path, `${render(table, 3, '')}\n`);
 console.log(
     `Wrote ${path}: ${Object.keys(blocks).length} blocks over ${accumulated.size} states, ` +

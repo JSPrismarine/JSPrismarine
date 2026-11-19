@@ -83,7 +83,7 @@ datapack can reference:
 - Items, blocks, entity types, biomes (`worldgen/biome`), enchantments, mob effects and potions go
   through their lookup. `mapped` and `passthrough` report as `known`, reviewed losses as `loss`.
 - The registries with no Bedrock side go to the generated Java 26.3 census in
-  `src/tables/javaIdentifiers.json`, which says only that the identifier is a real entry of that
+  `src/tables/<release>/javaIdentifiers.json`, which says only that the identifier is a real entry of that
   registry. That reports as `known` for the nine registries the server evaluates in Java's own
   shape, which `src/packRegistries.ts` lists with a reason each, and as `loss` for the three in
   `UNTRANSLATED_REGISTRIES`: banner patterns, goat horn instruments and painting variants reach a
@@ -105,7 +105,13 @@ still verifies each referenced identifier against the generated census.
 
 ## The tables
 
-The tables under `src/tables/` are generated and committed. They come from the pinned sources in
+Each generated table lives under `src/tables/<release>/`, keyed by Java release id, beside a
+`pair.json` naming the Bedrock protocol `sources.json` pairs with that release: the default
+release with the default protocol, and a Java preview with the Bedrock preview, or with the
+default protocol when no Bedrock preview is pinned. The package exports the default release's
+tables. `src/tables/dimensions.json` is hand-maintained and stays unversioned.
+
+The generated tables are committed. They come from the pinned sources in
 `packages/bedrock-data/sources.json`: GeyserMC/mappings `blocks.nbt` (positional over Java block
 state ids) joined against Mojang's `reports/blocks.json`, GeyserMC `items.json` and `biomes.json`,
 and this repository's own captures of the default pinned BDS as the Bedrock source of truth. Geyser's
@@ -119,7 +125,8 @@ pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 pnpm --filter @jsprismarine/mapping run generate:tables
 ```
 
-The generator runs Mojang's Java data generator against the hash-verified server jar when its
+`--java <release>` generates another pinned release's directory, against the Bedrock capture
+and block palette of the protocol it is paired with. The generator runs Mojang's Java data generator against the hash-verified server jar when its
 reports are missing from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or
 `JSP_JAVA_HOME`). It refuses to emit when any Java identifier has neither a mapping nor a loss
 entry, or when any produced Bedrock state is missing from the pinned palette.

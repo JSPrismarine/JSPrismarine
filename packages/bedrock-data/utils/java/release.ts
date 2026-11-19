@@ -8,7 +8,12 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { GENERATED_JAVA_VERSION_FILE, type GeneratedJavaVersion } from '../../src/sources.ts';
+import {
+    GENERATED_JAVA_VERSION_FILE,
+    javaBedrockPair,
+    type GeneratedJavaVersion,
+    type JavaBedrockPair
+} from '../../src/sources.ts';
 
 import {
     javaServerDescriptor,
@@ -30,6 +35,22 @@ import { packageDir } from './worldgen-cache.ts';
  */
 export const resolveJavaRelease = async (argv: readonly string[] = process.argv): Promise<SourceDescriptor> =>
     javaServerDescriptor(await loadJavaServerData(join(packageDir, 'sources.json')), parseJavaArgument(argv));
+
+/**
+ * The (Java release, Bedrock protocol) pair a table generator should work on: the pair of the
+ * release `--java <release>` names, or of `javaServer.defaultVersion` when the flag is absent.
+ *
+ * @param argv - The script's command line arguments.
+ * @returns The pair, whose `java` names the tables' release directory and whose `protocol` names
+ * the Bedrock capture they map onto.
+ * @throws Error when `--java` has no value or names a release `sources.json` does not pin.
+ */
+export const resolveJavaBedrockPair = (argv: readonly string[] = process.argv): JavaBedrockPair => {
+    const release = parseJavaArgument(argv);
+    const pair = javaBedrockPair(release);
+    if (pair === undefined) throw new Error(`sources.json pins no Java Edition release ${release}`);
+    return pair;
+};
 
 /** The fields of a server jar's `version.json` the Java scripts read. */
 export interface JarVersion {

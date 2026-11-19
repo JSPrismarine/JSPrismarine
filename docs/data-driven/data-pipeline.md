@@ -183,7 +183,9 @@ build). It downloads nothing, and it refuses to emit when two captures disagree 
 pnpm --filter @jsprismarine/mapping run generate:tables
 ```
 
-regenerates the committed mapping tables under `packages/mapping/src/tables/` from the fetched
+regenerates the committed mapping tables under `packages/mapping/src/tables/<release>/` for the
+Java release `--java` names, the default when absent, and the Bedrock protocol `sources.json`
+pairs with it, from the fetched
 sources: GeyserMC's `blocks.nbt` joined against Mojang's `reports/blocks.json`, GeyserMC's
 `items.json` and `biomes.json`, and this repository's own BDS captures as the Bedrock source of
 truth. When the Java reports are missing from the cache, the generator runs Mojang's data generator
@@ -196,7 +198,7 @@ pnpm --filter @jsprismarine/mapping run generate:block-properties
 ```
 
 flattens the Java block property golden through the block mapping into
-`packages/mapping/src/tables/blockProperties.json`, keyed by Bedrock state. It needs only committed
+`packages/mapping/src/tables/<release>/blockProperties.json`, keyed by Bedrock state. It needs only committed
 inputs, no fetched sources.
 
 ## Running the server from the pipeline

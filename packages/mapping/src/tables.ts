@@ -1,19 +1,21 @@
 /**
- * The vendored tables under `src/tables/`, loaded once and given the shapes
- * the generator guarantees. Everything else in the package reads the tables
+ * The vendored tables, loaded once and given the shapes the generator
+ * guarantees. The generated ones live under `src/tables/<release>/`, one
+ * directory per paired Java release; this module reads the default release's
+ * directory by name, so flipping the default edits these imports. Everything else in the package reads the tables
  * through this module, so the parsed-JSON boundary is cast exactly once per
  * table. `dimensions.json` is the one hand-maintained table; its test checks
  * the shape the cast asserts.
  */
 import type { Generator } from '@jsprismarine/minecraft';
 
-import blockStatesTableJson from './tables/blockStates.json';
-import blocksTableJson from './tables/blocks.json';
+import blockStatesTableJson from './tables/26.3/blockStates.json';
+import blocksTableJson from './tables/26.3/blocks.json';
 import dimensionsTableJson from './tables/dimensions.json';
-import entitiesTableJson from './tables/entities.json';
-import itemsTableJson from './tables/items.json';
-import javaIdentifiersTableJson from './tables/javaIdentifiers.json';
-import registriesTableJson from './tables/registries.json';
+import entitiesTableJson from './tables/26.3/entities.json';
+import itemsTableJson from './tables/26.3/items.json';
+import javaIdentifiersTableJson from './tables/26.3/javaIdentifiers.json';
+import registriesTableJson from './tables/26.3/registries.json';
 
 /** The generated block table: the target palette and one entry per Java block. */
 export interface BlocksTable {

@@ -28,7 +28,7 @@ small dumper in this repository reads the properties out of it:
 2. **The flattening.** `pnpm --filter @jsprismarine/mapping run generate:block-properties` runs
    `packages/mapping/utils/generate/generate-block-properties.ts`, which pushes every Java state's
    property row through the Java-to-Bedrock block mapping and files it under the Bedrock state it
-   resolves to. The output is `packages/mapping/src/tables/blockProperties.json`, generated and
+   resolves to. The output is `packages/mapping/src/tables/<release>/blockProperties.json`, generated and
    committed, keyed by Bedrock state because the Bedrock state is the server's identity. The
    flattening needs only committed inputs, no network.
 
