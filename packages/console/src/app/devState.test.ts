@@ -1,91 +1,96 @@
+import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { describe, expect, it } from 'vitest';
 
-import { INITIAL_DEV_STATE, reduceDevState } from './devState';
+import type { DevState } from './devState';
+import { activityText, INITIAL_DEV_STATE, reduceDevState } from './devState';
+
+/** Folds events in order, each at the next whole second. */
+const fold = (events: readonly SupervisorEvent[], from: DevState = INITIAL_DEV_STATE): DevState =>
+    events.reduce((state, event, index) => reduceDevState(state, event, (index + 1) * 1000), from);
+
+const watching = fold([{ type: 'supervisor.watching', root: '/repo/packages' }]);
+const change = 'packages/prismarine/dist/Server.js';
 
 describe('reduceDevState', () => {
     it('stays off until the supervisor reports a watch root', () => {
-        const next = reduceDevState(INITIAL_DEV_STATE, {
-            type: 'supervisor.state',
-            state: 'running',
-            generation: 1
-        });
-
-        expect(next.state.badge).toBeUndefined();
-        expect(next.toast).toBeUndefined();
+        const next = fold([{ type: 'supervisor.state', state: 'running', generation: 1 }]);
+        expect(next.activity).toBeUndefined();
+        expect(next.watchRoot).toBeUndefined();
     });
 
-    it('shows the watch root once watching starts', () => {
-        const next = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.watching', root: '/repo/packages' });
-
-        expect(next.state.badge).toEqual({ text: 'watching packages', tone: 'muted' });
+    it('starts watching under the root directory name', () => {
+        expect(watching.watchRoot).toBe('packages');
+        expect(watching.activity).toMatchObject({ kind: 'watching', tone: 'muted', at: 1000 });
     });
 
-    it('reports a change and a toast with the path', () => {
-        const watching = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.watching', root: 'packages' }).state;
-        const next = reduceDevState(watching, {
-            type: 'supervisor.changed',
-            path: 'packages/prismarine/src/Server.ts'
-        });
+    it('carries the changed file through the restart it causes, and drops it once the server runs', () => {
+        const states: DevState[] = [];
+        const events: SupervisorEvent[] = [
+            { type: 'supervisor.changed', path: change },
+            { type: 'supervisor.state', state: 'restarting', generation: 1 },
+            { type: 'supervisor.state', state: 'starting', generation: 2 },
+            { type: 'supervisor.state', state: 'running', generation: 2 }
+        ];
+        let state = watching;
+        for (const event of events) {
+            state = reduceDevState(state, event, 5000);
+            states.push(state);
+        }
 
-        expect(next.state.badge).toEqual({ text: 'change detected', tone: 'warning' });
-        expect(next.toast).toEqual({ tone: 'warning', text: 'change detected: packages/prismarine/src/Server.ts' });
+        expect(states.map((step) => [step.activity?.kind, step.activity?.path])).toEqual([
+            ['changed', change],
+            ['restarting', change],
+            ['starting', change],
+            ['running', change]
+        ]);
+        expect(state.cause).toBeUndefined();
+        expect(state.restarts).toBe(1);
+        expect(state.lastRestartAt).toBe(5000);
     });
 
     it('tracks bedrock-data generation through start, success, and failure', () => {
-        const started = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.generating' });
-        expect(started.state.badge).toEqual({ text: 'generating bedrock-data', tone: 'warning' });
+        const generating = fold([{ type: 'supervisor.generating' }], watching);
+        const generated = fold([{ type: 'supervisor.generating', ok: true }], generating);
+        const failed = fold([{ type: 'supervisor.generating', ok: false }], generating);
 
-        const ok = reduceDevState(started.state, { type: 'supervisor.generating', ok: true });
-        expect(ok.state.badge).toEqual({ text: 'bedrock-data generated', tone: 'ok' });
-
-        const failed = reduceDevState(started.state, { type: 'supervisor.generating', ok: false });
-        expect(failed.state.badge).toEqual({ text: 'bedrock-data generation failed', tone: 'danger' });
-        expect(failed.toast?.sticky).toBe(true);
+        expect(generating.activity).toMatchObject({ kind: 'generating', tone: 'warning' });
+        expect(generated.activity).toMatchObject({ kind: 'generated', tone: 'ok' });
+        expect(failed.activity).toMatchObject({ kind: 'generationFailed', tone: 'danger' });
     });
 
-    it('describes a crash with its exit code and keeps the toast until dismissed', () => {
-        const watching = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.watching', root: 'packages' }).state;
-        const next = reduceDevState(watching, { type: 'supervisor.state', state: 'crashed', code: 1, generation: 2 });
-
-        expect(next.state.badge).toEqual({ text: 'crashed (exit 1)', tone: 'danger' });
-        expect(next.toast).toMatchObject({ tone: 'danger', sticky: true });
-        // The crash notice is the one notice for the outage; waiting for a change adds none.
-        const waiting = reduceDevState(next.state, { type: 'supervisor.state', state: 'waiting', generation: 2 });
-        expect(waiting.toast).toBeUndefined();
-    });
-
-    it('counts restarts from the generation and records when the last one started', () => {
-        const first = reduceDevState(
-            INITIAL_DEV_STATE,
-            { type: 'supervisor.state', state: 'starting', generation: 1 },
-            1000
+    it('reports a crash with how it ended, and keeps it while the supervisor waits', () => {
+        const crashed = fold([{ type: 'supervisor.state', state: 'crashed', code: 1, generation: 2 }], watching);
+        const waiting = fold([{ type: 'supervisor.state', state: 'waiting', generation: 2 }], crashed);
+        const killed = fold(
+            [{ type: 'supervisor.state', state: 'crashed', signal: 'SIGKILL', generation: 2 }],
+            watching
         );
-        expect(first.state.restarts).toBe(0);
-        expect(first.state.lastRestartAt).toBeUndefined();
 
-        const second = reduceDevState(
-            first.state,
-            { type: 'supervisor.state', state: 'starting', generation: 2 },
-            2000
-        );
-        expect(second.state.restarts).toBe(1);
-        expect(second.state.lastRestartAt).toBe(2000);
-    });
-
-    it('returns to watching when the server is running again in dev mode', () => {
-        const watching = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.watching', root: 'packages' }).state;
-        const restarting = reduceDevState(watching, { type: 'supervisor.state', state: 'restarting', generation: 1 });
-        expect(restarting.state.badge).toEqual({ text: 'restarting', tone: 'accent' });
-        expect(restarting.toast).toEqual({ tone: 'accent', text: 'restarting server' });
-
-        const running = reduceDevState(restarting.state, { type: 'supervisor.state', state: 'running', generation: 2 });
-        expect(running.state.badge).toEqual({ text: 'watching packages', tone: 'muted' });
+        expect(crashed.activity).toMatchObject({ kind: 'crashed', tone: 'danger', exit: 'exit 1' });
+        expect(waiting.activity).toEqual(crashed.activity);
+        expect(killed.activity?.exit).toBe('SIGKILL');
     });
 
     it('ignores child output', () => {
-        const next = reduceDevState(INITIAL_DEV_STATE, { type: 'supervisor.output', stream: 'stdout', text: 'x' });
+        expect(fold([{ type: 'supervisor.output', stream: 'stderr', text: 'oops\n' }], watching)).toEqual(watching);
+    });
+});
 
-        expect(next.state).toBe(INITIAL_DEV_STATE);
-        expect(next.toast).toBeUndefined();
+describe('activityText', () => {
+    it('names the changed file and, after a crash, the directory a save restarts from', () => {
+        const restarting = fold(
+            [
+                { type: 'supervisor.changed', path: change },
+                { type: 'supervisor.state', state: 'restarting', generation: 1 }
+            ],
+            watching
+        ).activity!;
+        const crashed = fold(
+            [{ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 }],
+            watching
+        ).activity!;
+
+        expect(activityText(restarting, 'packages')).toContain(change);
+        expect(activityText(crashed, 'packages')).toContain('packages');
     });
 });

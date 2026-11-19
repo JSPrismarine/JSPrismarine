@@ -1,3 +1,4 @@
+import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
 import { TextRenderable, parseColor } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
@@ -67,6 +68,13 @@ function tileIs(t: AppHarness, role: 'ok' | 'warning' | 'danger'): boolean {
     const title = byId(t, 'title-left');
     if (!(title instanceof TextRenderable)) throw new Error('the title bar has no left text');
     return title.content.chunks[0]?.bg?.equals(parseColor(defaultTheme[role])) === true;
+}
+
+/** Whether the theme color `role` is the activity line's bullet. */
+function activityIs(t: AppHarness, role: 'ok' | 'warning' | 'danger'): boolean {
+    const line = byId(t, 'activity-line');
+    if (!(line instanceof TextRenderable)) throw new Error('the app has no activity line');
+    return line.content.chunks[0]?.fg?.equals(parseColor(defaultTheme[role])) === true;
 }
 
 /** Levels of the log records the view shows. */
@@ -199,15 +207,17 @@ describe('createApp', () => {
         expect(byId(t, 'status-left-state')).toBeDefined();
     });
 
-    it('shows a toast and the state tile when the supervisor reports a crash', async () => {
+    it('reports a crash on the state tile and the activity line, without a notice', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
+        t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages' });
         t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
         await t.renderOnce();
 
-        expect(byId(t, 'toast-stack')?.getChildren()).toHaveLength(1);
         expect(tileIs(t, 'danger')).toBe(true);
+        expect(activityIs(t, 'danger')).toBe(true);
+        expect(byId(t, 'toast-stack')?.getChildren()).toHaveLength(0);
     });
 
     it('appends child output as raw lines', async () => {
@@ -234,17 +244,39 @@ describe('createApp', () => {
         expect(t.store.generation).toBe(2);
     });
 
-    it('shows the dev badge in the title bar once the supervisor watches', async () => {
+    it('shows the activity line once the supervisor watches, taking a row from the log', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
+        const logRows = byId(t, 'log-view')!.height;
+        expect(byId(t, 'activity-line')?.visible).toBe(false);
 
         t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages' });
         await t.renderOnce();
 
-        const frame = t.captureCharFrame();
-        expect(frame.split('\n')[0]).toContain('dev ● watching packages');
+        expect(byId(t, 'activity-line')?.visible).toBe(true);
+        expect(byId(t, 'log-view')!.height).toBe(logRows - 1);
         // The pane adds restart history only once there is some.
         expect(byId(t, 'side-pane-dev')).toBeUndefined();
+    });
+
+    it('moves a restart through the activity line in the tone of each step', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+        t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages' });
+
+        const steps: [SupervisorEvent, 'ok' | 'warning'][] = [
+            [{ type: 'supervisor.changed', path: 'packages/prismarine/dist/Server.js' }, 'warning'],
+            [{ type: 'supervisor.state', state: 'restarting', generation: 1 }, 'warning'],
+            [{ type: 'supervisor.state', state: 'starting', generation: 2 }, 'warning'],
+            [{ type: 'supervisor.state', state: 'running', generation: 2 }, 'ok']
+        ];
+        for (const [event, tone] of steps) {
+            t.app.applySupervisorEvent(event);
+            await t.renderOnce();
+            expect(activityIs(t, tone), event.type).toBe(true);
+        }
+        expect(byId(t, 'toast-stack')?.getChildren()).toHaveLength(0);
+        expect(byId(t, 'side-pane-dev')).toBeDefined();
     });
 
     it('sends a typed command to onCommand', async () => {
@@ -896,18 +928,30 @@ describe('createApp', () => {
         });
 
         it('keeps toasts readable above the page', async () => {
-            const t = await setup({ width: 120, height: 40 });
+            // The command fails only once the page is open, and a failed command raises a notice.
+            let answer: (outcome: CommandOutcome) => void = () => {};
+            const t = await setup(
+                { width: 120, height: 40 },
+                { onCommand: () => new Promise<CommandOutcome>((resolve) => (answer = resolve)) }
+            );
             dispose = t.dispose;
+            await t.mockInput.typeText('nonsense');
+            t.mockInput.pressEnter();
             await focusLog(t);
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
-            t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
+            answer({ ok: false, error: 'Unknown command' });
+            await t.waitForFrame(() => (byId(t, 'toast-stack')?.getChildren().length ?? 0) > 0);
+            // The frame that added the notice laid it out; the next one draws it in place.
             await t.renderOnce();
 
-            const frame = t.captureCharFrame();
-            expect(frame).toContain(SPAN_ROW);
-            expect(frame).toContain('server crashed (exit 1)');
+            const [toast] = byId(t, 'toast-stack')!.getChildren();
+            expect(toast).toBeDefined();
+            expect(byId(t, 'tps-page')?.visible).toBe(true);
+            // The notice's top left corner is drawn, not the page under it.
+            const row = t.captureCharFrame().split('\n')[toast!.y] ?? '';
+            expect([...row][toast!.x]).toBe('╭');
         });
 
         it('keeps the side pane beside the page', async () => {

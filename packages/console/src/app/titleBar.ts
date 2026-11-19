@@ -3,7 +3,6 @@ import { BoxRenderable, StyledText, TextRenderable, bg, bold, fg } from '@opentu
 import type { ConsoleContext } from '../context';
 import { stateLabel, stateTone } from '../status/segments';
 import type { ServerState } from '../status/segments';
-import type { DevBadge } from './devState';
 
 /** Static text of the title bar. */
 export interface TitleBarProps {
@@ -14,8 +13,6 @@ export interface TitleBarProps {
 /** The one-row title at the top of the console. */
 export interface TitleBar {
     renderable: BoxRenderable;
-    /** Shows the dev badge on the right, or clears it with `undefined`. */
-    setBadge(badge: DevBadge | undefined): void;
     /** Paints the state tile at the left edge in the state's tone. */
     setState(state: ServerState): void;
     dispose(): void;
@@ -28,8 +25,8 @@ const titleText = ({ serverName, version }: TitleBarProps): string => {
 
 /**
  * Creates the title bar: a solid tile naming the server state, then the product name, version,
- * and server name, and the dev badge on the right. The app hides it below 30 rows, and the
- * status bar shows the state instead.
+ * and server name. The app hides it below 30 rows, and the status bar shows the state instead.
+ * What the dev supervisor is doing is the activity line's job.
  */
 export function createTitleBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: TitleBarProps): TitleBar {
     const { renderer, theme } = ctx;
@@ -39,7 +36,6 @@ export function createTitleBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         width: '100%',
         height: 1,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         paddingRight: 1,
         backgroundColor: theme.surface
     });
@@ -51,18 +47,10 @@ export function createTitleBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         left.content = new StyledText([tile, fg(theme.accent)(` ${titleText(props)}`)]);
     };
     paintLeft('starting');
-    const right = new TextRenderable(renderer, { id: 'title-right', fg: theme.textMuted });
     renderable.add(left);
-    renderable.add(right);
 
     return {
         renderable,
-        setBadge(badge) {
-            right.content =
-                badge === undefined
-                    ? ''
-                    : new StyledText([fg(theme.textMuted)('dev '), fg(theme[badge.tone])(`● ${badge.text}`)]);
-        },
         setState(state) {
             paintLeft(state);
         },
