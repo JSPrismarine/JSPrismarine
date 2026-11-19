@@ -30,7 +30,7 @@ import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generate
 import { JSPRISMARINE_SERVER } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
 import { STEPS_PER_MILLISECOND } from '../../packages/script-host/src/host/WorldScripts.ts';
-import { NATIVE_BUILD_PLATFORMS } from '../../packages/script-host/src/platform.ts';
+import { PUBLISHED_PLATFORMS } from '../../packages/script-host/src/platform.ts';
 import { currentBeta } from '../../packages/script-host/src/shape/resolve.ts';
 import {
     HEIGHT_BLENDING_RANGE_CHUNKS,
@@ -340,7 +340,14 @@ async function bstatsFacts() {
     };
 /** The beta Script API versions a pack can declare, read from the generated script module histories. */
 /** Operating systems as `process.platform` names them, by the names readers know them by. */
-const PLATFORM_NAMES: Partial<Record<NodeJS.Platform, string>> = { linux: 'Linux', darwin: 'macOS', win32: 'Windows' };
+const OS_NAMES: Record<string, string> = { linux: 'Linux', darwin: 'macOS', win32: 'Windows' };
+
+/** A platform key such as `linux-x64-musl`, in words: "Linux on x64 with musl". */
+const platformName = (key: string) => {
+    const [os = '', arch = '', libc] = key.split('-');
+    const processor = os === 'darwin' && arch === 'arm64' ? 'Apple silicon' : arch;
+    return `${OS_NAMES[os] ?? os} on ${processor}${libc === undefined ? '' : ` with ${libc === 'gnu' ? 'glibc' : libc}`}`;
+};
 
 /**
  * The Script API modules and versions a pack can declare, read from the generated script module
@@ -385,9 +392,7 @@ function scriptingFacts() {
             modules
         )}\n`,
         'scripting.stepsPerMillisecond': String(STEPS_PER_MILLISECOND),
-        'scripting.buildPlatforms': list(
-            NATIVE_BUILD_PLATFORMS.map((platform) => PLATFORM_NAMES[platform] ?? platform)
-        ),
+        'scripting.buildPlatforms': list(PUBLISHED_PLATFORMS.map(platformName)),
         'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`
     };
 }

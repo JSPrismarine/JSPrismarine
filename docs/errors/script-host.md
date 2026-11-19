@@ -214,6 +214,15 @@ Thrown as `ScriptHostErrors.DependencyHasNoShape`, which extends `Error`.
 A bound Script API module depends on a module version the generated shapes do not have.
 Regenerate the shapes with `pnpm --filter
 
+## `SCRIPT_HOST_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD`
+
+`{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}`
+
+Thrown as `ScriptHostErrors.DigestDoesNotMatchPublishedBuild`, which extends `NativeLibraryError`.
+
+The library file is not the build the package publishes, so it was altered or comes from
+another version. Reinstall the package.
+
 ## `SCRIPT_HOST_DISPLAY_OPTIONS_NOT_AN_OBJECT`
 
 `The display options are not an object`
@@ -222,6 +231,24 @@ Thrown as `ScriptHostErrors.DisplayOptionsNotAnObject`, which extends `TypeError
 
 The display options a script passed to `Scoreboard.setObjectiveAtDisplaySlot` are not an
 object, although the binding checked them. This is a bug in the script host.
+
+## `SCRIPT_HOST_DOWNLOAD_DIGEST_MISMATCH`
+
+`{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}`
+
+Thrown as `ScriptHostErrors.DownloadDigestMismatch`, which extends `Error`.
+
+The downloaded library does not match the digest the package publishes, so it was corrupted
+in transit or replaced. Retry the install.
+
+## `SCRIPT_HOST_DOWNLOAD_FAILED`
+
+`{url} answered {status}`
+
+Thrown as `ScriptHostErrors.DownloadFailed`, which extends `Error`.
+
+Downloading the script host library failed with that HTTP status. Retry, or point
+`JSP_SCRIPT_HOST_LIBRARY` at a library you built.
 
 ## `SCRIPT_HOST_ENGINE_DESTROYED`
 
@@ -414,6 +441,24 @@ Thrown as `ScriptHostErrors.InvalidFrameHeader`, which extends `DebuggerFramingE
 Bytes from the debugger connection do not start with a frame header, so the peer is not the
 Minecraft Bedrock Debugger extension. The connection is closed.
 
+## `SCRIPT_HOST_INVALID_NATIVE_MANIFEST`
+
+`` The native manifest needs `build` and `baseUrl` strings ``
+
+Thrown as `ScriptHostErrors.InvalidNativeManifest`, which extends `Error`.
+
+The package's native manifest is malformed, so the package was published broken. Reinstall
+it, or report it.
+
+## `SCRIPT_HOST_INVALID_NATIVE_MANIFEST_ENTRY`
+
+`The native manifest's entry for {key} is malformed`
+
+Thrown as `ScriptHostErrors.InvalidNativeManifestEntry`, which extends `Error`.
+
+The package's native manifest has a malformed platform entry, so the package was published
+broken. Reinstall it, or report it.
+
 ## `SCRIPT_HOST_INVALID_PLAYER_HANDLE`
 
 `Invalid Player handle.`
@@ -432,14 +477,14 @@ Thrown as `ScriptHostErrors.LibraryInterfaceMismatch`, which extends `NativeLibr
 The native library was built for a different version of this package. Rebuild it with
 `pnpm --filter
 
-## `SCRIPT_HOST_LIBRARY_NOT_BUILT`
+## `SCRIPT_HOST_LIBRARY_NOT_INSTALLED`
 
-`` {packageName} has no build for {platform} at {built}. `pnpm --filter {packageName} run build:native` builds it, or set {libraryEnv} to a build of the library. ``
+`{packageName} has no build for {platform} at {installed}. {advice}`
 
-Thrown as `ScriptHostErrors.LibraryNotBuilt`, which extends `NativeLibraryError`.
+Thrown as `ScriptHostErrors.LibraryNotInstalled`, which extends `NativeLibraryError`.
 
-The package has no native library for this platform. Build it with
-`pnpm --filter
+The package has no native library for this platform: its install script has not run, or in a
+checkout, `build:native` has not. The message says how to get it.
 
 ## `SCRIPT_HOST_LIBRARY_OVERRIDE_MISSING`
 
@@ -448,7 +493,7 @@ The package has no native library for this platform. Build it with
 Thrown as `ScriptHostErrors.LibraryOverrideMissing`, which extends `NativeLibraryError`.
 
 `JSP_SCRIPT_HOST_LIBRARY` names a library file that does not exist. Point it at a build of the
-library, or unset it to use the one `build:native` wrote into the package.
+library, or unset it to use the one the package installed.
 
 ## `SCRIPT_HOST_LISTEN_FAILED`
 
@@ -536,6 +581,24 @@ pack gets one version of each module; make its manifest and its dependencies agr
 Thrown as `ScriptHostErrors.ModuleVersionMissing`, which extends `RangeError`.
 
 Code asked for a Script API module version that its generated history does not have.
+
+## `SCRIPT_HOST_NO_BUILD_FOR_PLATFORM`
+
+`{packageName} publishes no build for {platform}.`
+
+Thrown as `ScriptHostErrors.NoBuildForPlatform`, which extends `NativeLibraryError`.
+
+No prebuilt script host library exists for this platform. Build it from a checkout with
+`pnpm --filter
+
+## `SCRIPT_HOST_NO_PUBLISHED_BUILD_TO_CHECK`
+
+`{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against`
+
+Thrown as `ScriptHostErrors.NoPublishedBuildToCheck`, which extends `NativeLibraryError`.
+
+The library file has no published digest to check against for this platform, and it was not
+built locally either, so it is refused.
 
 ## `SCRIPT_HOST_NO_SCRIPT_STOPPED`
 

@@ -414,6 +414,31 @@ describe.skipIf(!scriptHostAvailable())('a script engine', () => {
             expect(engine.evaluate('1 + 1')).toBe(2);
         });
 
+        it('survives running out of memory while it writes the stack of the error it throws', () => {
+            // Each limit fails a different allocation. Across these, one is the string for the
+            // stack of the out-of-memory error, whose failure freed that error before
+            // quickjs-backtrace-oom.patch, and the stack was then written to freed memory.
+            const source = `function down(n) { return n > 0 ? down(n - 1) : grow(); }
+                function grow() { const chunks = []; while (true) chunks.push(new Array(16).fill(0)); }
+                let stack;
+                try { down(40); } catch (error) { stack = error.stack; }
+                typeof stack === 'string' ? 'a string' : String(stack)`;
+            const outcomes = new Set<unknown>();
+            for (let memoryLimit = 256 * 1024; memoryLimit < 260 * 1024; memoryLimit += 8) {
+                const engine = library.createEngine({ memoryLimit });
+                try {
+                    outcomes.add(engine.evaluate(source));
+                } catch (error) {
+                    if (!(error instanceof ScriptOutOfMemoryError)) throw error;
+                    outcomes.add('out of memory');
+                } finally {
+                    engine.destroy();
+                }
+            }
+
+            for (const outcome of outcomes) expect(['a string', 'null', 'out of memory']).toContain(outcome);
+        });
+
         it('counts a stack overflow even when the script catches it', () => {
             const engine = create();
 

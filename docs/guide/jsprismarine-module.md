@@ -96,7 +96,10 @@ Add it to `types` in your `tsconfig.json`, and `import('@jsprismarine/server')` 
 }
 ```
 
-The package is not on npm yet. It ships together with the script host, once the host has prebuilt
-libraries for every platform. Until then, build it from this repository with
-`pnpm --filter @jsprismarine/script-types run build`, which writes `dist/index.d.ts` from the same
-definition the server builds the module from.
+Install it as a development dependency of your pack's project:
+
+```bash
+npm install --save-dev @jsprismarine/script-types
+```
+
+Its `dist/index.d.ts` comes from the same definition the server builds the module from.

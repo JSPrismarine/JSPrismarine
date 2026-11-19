@@ -70,7 +70,7 @@ const options = (packDirectories: string[], lines: string[], onShutdown = () => 
 });
 
 describe('LevelScripts', () => {
-    it('warns once, naming the package and the issue, when the script host is not installed', async () => {
+    it('warns once, naming the package and how to install it, when the script host is not installed', async () => {
         vi.doMock('@jsprismarine/script-host', () => {
             throw new Error("Cannot find package '@jsprismarine/script-host'");
         });
@@ -86,11 +86,11 @@ describe('LevelScripts', () => {
         expect(scripted[0]).toMatch(
             /^warn 1 behavior pack\(s\) have scripts, but @jsprismarine\/script-host is not installed/
         );
-        expect(scripted[0]).toContain('https://github.com/JSPrismarine/JSPrismarine/issues/3215');
+        expect(scripted[0]).toContain('optional dependency');
         expect(plain).toEqual([]);
     });
 
-    it('warns once, naming the platform and the issue, when the script host has no library for it', async () => {
+    it('warns once, naming the platform and the reason, when the script host has no library for it', async () => {
         vi.doMock('@jsprismarine/script-host', async (importOriginal) => {
             const original = await importOriginal<typeof import('@jsprismarine/script-host')>();
             const ScriptHostLibrary = {
@@ -107,7 +107,6 @@ describe('LevelScripts', () => {
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain(`@jsprismarine/script-host has no library for ${process.platform}-${process.arch}`);
         expect(lines[0]).toContain('no build for this platform');
-        expect(lines[0]).toContain('https://github.com/JSPrismarine/JSPrismarine/issues/3215');
     });
 
     it.skipIf(!scriptHostAvailable())(

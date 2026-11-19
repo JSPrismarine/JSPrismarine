@@ -74,9 +74,6 @@ export interface ScriptPhaseWorld {
     setScriptPhase(phase: (() => void) | undefined): void;
 }
 
-/** Where a script host that cannot run here says to look for when it will. */
-const PREBUILT_LIBRARIES_ISSUE = 'https://github.com/JSPrismarine/JSPrismarine/issues/3215';
-
 /**
  * Whether a pack's manifest has a script module, read without the script host, so a server that
  * lacks it can tell whether that costs the world anything. The script host reads the module in
@@ -132,7 +129,7 @@ export class LevelScripts {
             if (scripted > 0) {
                 options.log.warn(
                     `${scripted} behavior pack(s) have scripts, but @jsprismarine/script-host is not installed, so they ` +
-                        `do not run. npm cannot install it until it ships prebuilt libraries: ${PREBUILT_LIBRARIES_ISSUE}`
+                        'do not run. It is an optional dependency: install it, or reinstall without omitting optional dependencies.'
                 );
             }
             return undefined;
@@ -148,8 +145,7 @@ export class LevelScripts {
         } catch (error: unknown) {
             options.log.warn(
                 `${packs.length} behavior pack(s) have scripts, but @jsprismarine/script-host has no library for ` +
-                    `${process.platform}-${process.arch}, so they do not run: ${String(error)}. Prebuilt libraries ` +
-                    `for every platform: ${PREBUILT_LIBRARIES_ISSUE}`
+                    `${process.platform}-${process.arch}, so they do not run: ${String(error)}`
             );
             return undefined;
         }
