@@ -9,7 +9,7 @@ import {
     BLOCK_PROPERTY_VERSIONS,
     bedrockBlockPropertiesOf
 } from './blockProperties';
-import blockPropertiesJson from './tables/blockProperties.json';
+import blockPropertiesJson from './tables/26.3/blockProperties.json';
 
 // The pinned BDS palette capture; parsed JSON, shape documented in the generator.
 const palette = JSON.parse(readFileSync(blockPaletteSnapshotPath(), 'utf8')) as {

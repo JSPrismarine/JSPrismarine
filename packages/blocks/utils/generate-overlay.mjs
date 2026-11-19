@@ -41,7 +41,14 @@ const target = join(packageDir, 'vanilla_overlay');
 
 // The generated table is parsed JSON; @jsprismarine/mapping's generator
 // guarantees the `blocks` and `bedrockOnly` shape this reads.
-const table = JSON.parse(readFileSync(join(repoRoot, 'packages/mapping/src/tables/blockProperties.json'), 'utf8'));
+// The property table lives under the default Java release's directory, which `sources.json` names.
+const { javaServer } = JSON.parse(readFileSync(join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8'));
+const table = JSON.parse(
+    readFileSync(
+        join(repoRoot, 'packages/mapping/src/tables', javaServer.defaultVersion, 'blockProperties.json'),
+        'utf8'
+    )
+);
 
 const identifiers = Object.keys(blockSchemas.blocks).sort();
 

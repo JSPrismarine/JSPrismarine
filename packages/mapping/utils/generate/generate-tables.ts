@@ -1,9 +1,14 @@
 /**
- * Generates the vendored mapping tables under `src/tables/` from the pinned
- * sources (plan section 5, decision 4): the GeyserMC/mappings join for blocks
- * and items, Mojang's Java data generator reports for the Java side, this
- * repository's own BDS 1.26.51.1 captures for the Bedrock side, and the
+ * Generates the vendored mapping tables under `src/tables/<release>/` from the
+ * pinned sources (plan section 5, decision 4): the GeyserMC/mappings join for
+ * blocks and items, Mojang's Java data generator reports for the Java side,
+ * this repository's own BDS captures for the Bedrock side, and the
  * bedrock-samples metadata for biome and enchantment names.
+ *
+ * `--java <release>` picks the Java release, the default when absent. The
+ * Bedrock side is the protocol `sources.json` pairs with that release
+ * (`javaBedrockPairs`): its `jsp/v<protocol>/` capture and its block palette
+ * snapshot. `pair.json` beside the tables records the pair.
  *
  * Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` first; it
  * populates `node_modules/.cache/jsprismarine/`. This script runs the Java
@@ -22,6 +27,9 @@ import { fileURLToPath } from 'node:url';
 
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
+// The pair resolver of the package that owns `sources.json`; generator scripts are not published.
+import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
+
 import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
 import { SERVER_SIDE_REGISTRIES } from '../../src/packRegistries.ts';
 import type { JavaNbtCompound } from './java-nbt.ts';
@@ -30,7 +38,8 @@ import { readGzippedJavaNbt } from './java-nbt.ts';
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
 const cacheRoot = join(repoRoot, 'node_modules/.cache/jsprismarine');
-const tablesDir = join(packageDir, 'src/tables');
+const pair = resolveJavaBedrockPair(process.argv);
+const tablesDir = join(packageDir, 'src/tables', pair.java);
 
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
 
@@ -39,14 +48,13 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 // ---------------------------------------------------------------------------
 
 interface SourcesManifest {
-    javaServer: { defaultVersion: string };
     bedrockSamples: { tag: string; commit: string };
     geyserMappings: { commit: string };
 }
 
 // sources.json is parsed JSON; only the pins the generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
-const javaVersion = sources.javaServer.defaultVersion;
+const javaVersion = pair.java;
 const geyserCommit = sources.geyserMappings.commit;
 
 const geyserDir = join(cacheRoot, 'geyser-mappings', geyserCommit, 'unpacked', `mappings-${geyserCommit}`);
@@ -150,7 +158,7 @@ interface PaletteFile {
     domains: Record<string, Record<string, { values: (string | number | boolean)[] }>>;
 }
 // The repository's own BDS capture; see packages/minecraft/datagen/README-palette.md.
-const palette = readJson(blockPaletteSnapshotPath()) as PaletteFile;
+const palette = readJson(blockPaletteSnapshotPath(pair.protocol)) as PaletteFile;
 const bedrockVersion = palette.minecraftVersion;
 
 interface GeyserBlockEntry {
@@ -175,20 +183,17 @@ const bedrockMobEffects = readJson(join(samplesDir, 'mojang-effects.json')) as V
 const bedrockPotions = readJson(join(samplesDir, 'mojang-potion-effects.json')) as VanillaDataModule;
 
 // The Bedrock captures are keyed by protocol version; the tables are generated from the
-// version `sources.json` names as the default, the same one the package exports unversioned.
-const bedrockSources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as {
-    bds: { defaultProtocolVersion: number };
-};
+// protocol `sources.json` pairs with the Java release.
 const bedrockItemTable = readJson(
-    join(
-        repoRoot,
-        'packages/bedrock-data/src/jsp',
-        `v${bedrockSources.bds.defaultProtocolVersion}`,
-        'required_item_list.json'
-    )
+    join(repoRoot, 'packages/bedrock-data/src/jsp', `v${pair.protocol}`, 'required_item_list.json')
 ) as Record<string, unknown>;
 
-const entityIdentifiersPath = join(repoRoot, 'packages/bedrock-data/src/generated/entity_identifiers.json');
+const entityIdentifiersPath = join(
+    repoRoot,
+    'packages/bedrock-data/src/generated',
+    `v${pair.protocol}`,
+    'entity_identifiers.json'
+);
 if (!existsSync(entityIdentifiersPath)) {
     throw new Error(
         `${entityIdentifiersPath} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run generate\`.`
@@ -764,3 +769,7 @@ writeTable('javaIdentifiers.json', {
 console.log(
     `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments, ${Object.keys(mobEffectsTable).length} mob effects, ${Object.keys(potionsTable).length} potions, and a census of ${Object.values(census).reduce((total, ids) => total + ids.length, 0)} identifiers over ${censusRegistries.length} registries with no Bedrock table.`
 );
+
+mkdirSync(tablesDir, { recursive: true });
+writeFileSync(join(tablesDir, 'pair.json'), `${JSON.stringify(pair, null, 4)}\n`);
+console.log(`Wrote ${join(tablesDir, 'pair.json')}`);

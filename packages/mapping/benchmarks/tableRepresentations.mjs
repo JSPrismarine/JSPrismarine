@@ -8,13 +8,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const assets = [
-    { name: 'mapping/blocks', file: 'packages/mapping/src/tables/blocks.json' },
-    { name: 'mapping/blockStates', file: 'packages/mapping/src/tables/blockStates.json' },
-    { name: 'mapping/blockProperties', file: 'packages/mapping/src/tables/blockProperties.json' },
-    { name: 'mapping/items', file: 'packages/mapping/src/tables/items.json' },
-    { name: 'mapping/entities', file: 'packages/mapping/src/tables/entities.json' },
-    { name: 'mapping/registries', file: 'packages/mapping/src/tables/registries.json' },
-    { name: 'mapping/javaIdentifiers', file: 'packages/mapping/src/tables/javaIdentifiers.json' },
+    { name: 'mapping/blocks', file: 'packages/mapping/src/tables/26.3/blocks.json' },
+    { name: 'mapping/blockStates', file: 'packages/mapping/src/tables/26.3/blockStates.json' },
+    { name: 'mapping/blockProperties', file: 'packages/mapping/src/tables/26.3/blockProperties.json' },
+    { name: 'mapping/items', file: 'packages/mapping/src/tables/26.3/items.json' },
+    { name: 'mapping/entities', file: 'packages/mapping/src/tables/26.3/entities.json' },
+    { name: 'mapping/registries', file: 'packages/mapping/src/tables/26.3/registries.json' },
+    { name: 'mapping/javaIdentifiers', file: 'packages/mapping/src/tables/26.3/javaIdentifiers.json' },
     { name: 'mapping/dimensions', file: 'packages/mapping/src/tables/dimensions.json' },
     { name: 'blocks/geometry', file: 'packages/blocks/src/tables/blockGeometry.json', nativeInCurrent: true },
     { name: 'items/itemTypes', file: 'packages/items/src/tables/itemTypes.json', nativeInCurrent: true }

@@ -6,7 +6,7 @@
  * {@link BEDROCK_ONLY_BLOCKS} and have no row; the engine keeps its own values for them. The
  * reviewed collapse disagreements are listed in {@link BLOCK_PROPERTY_CONFLICTS}.
  */
-import blockPropertiesJson from './tables/blockProperties.json';
+import blockPropertiesJson from './tables/26.3/blockProperties.json';
 
 /** The Java-sourced properties of one Bedrock block state. */
 export interface BedrockBlockProperties {
