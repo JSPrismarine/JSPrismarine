@@ -218,6 +218,10 @@
             "jsprismarine:dist": "./dist/host/jsprismarineServer.js",
             "default": "./src/host/jsprismarineServer.ts"
         },
+        "./host/entities/world": {
+            "jsprismarine:dist": "./dist/host/entities/world.js",
+            "default": "./src/host/entities/world.ts"
+        },
         "./package.json": "./package.json"
     },
     "scripts": {

@@ -10,6 +10,7 @@
  * and an after-event is a change the world committed, which the host takes in the script flush
  * at the end of the tick.
  */
+import type { ScriptEntitySystems } from './entities/world';
 
 /** The weather as the Script API's `WeatherType` names it. */
 export type ScriptWeather = 'Clear' | 'Rain' | 'Thunder';
@@ -1075,4 +1076,6 @@ export interface ScriptWorld {
      * @returns A function that stops it.
      */
     bindComponents?(sink: ScriptComponentSink): () => void;
+    /** The entity and player systems the entity members reach. A world without them gives those members no behavior. */
+    readonly entitySystems?: ScriptEntitySystems;
 }
