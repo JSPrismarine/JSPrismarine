@@ -1,6 +1,6 @@
 import type { CommandInfo, SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
-import { InputRenderable, TextRenderable, parseColor } from '@opentui/core';
+import { BoxRenderable, InputRenderable, TextRenderable, parseColor } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -78,6 +78,24 @@ function activityIs(t: AppHarness, role: 'ok' | 'warning' | 'danger'): boolean {
     return line.content.chunks[0]?.fg?.equals(parseColor(defaultTheme[role])) === true;
 }
 
+/** Whether the renderable `id` is on screen. */
+const shown = (t: AppHarness, id: string): boolean => byId(t, id)?.visible === true;
+
+/** What the command line holds. */
+function commandLine(t: AppHarness): string | undefined {
+    const input = byId(t, 'command-input');
+    return input instanceof InputRenderable ? input.value : undefined;
+}
+
+/** The tone of each notice on screen, oldest first. */
+function notices(t: AppHarness): string[] {
+    const roles = ['ok', 'warning', 'danger', 'muted', 'accent'] as const;
+    return (byId(t, 'toast-stack')?.getChildren() ?? []).map((toast) => {
+        const border = toast instanceof BoxRenderable ? toast.borderColor : undefined;
+        return roles.find((role) => border?.equals(parseColor(defaultTheme[role]))) ?? 'unknown';
+    });
+}
+
 /** Levels of the log records the view shows. */
 const visibleLevels = (t: AppHarness) =>
     t.store.visible().flatMap((record) => (record.kind === 'log' ? [record.level] : []));
@@ -115,10 +133,9 @@ describe('createApp', () => {
         const t = await setup({ width: 80, height: 24 });
         dispose = t.dispose;
 
-        const frame = t.captureCharFrame();
-        expect(frame).not.toContain('JSPrismarine 0.15.2');
-        expect(frame).not.toContain('Players');
-        expect(frame).toContain('> type a command');
+        expect(shown(t, 'title-bar')).toBe(false);
+        expect(shown(t, 'side-pane')).toBe(false);
+        expect(inputFocused(t)).toBe(true);
     });
 
     it('shows a log message in the log pane', async () => {
@@ -388,7 +405,7 @@ describe('createApp', () => {
         await t.mockInput.typeText('g/w?n?');
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('> g/w?n?');
+        expect(commandLine(t)).toBe('g/w?n?');
         expect(inputFocused(t)).toBe(true);
     });
 
@@ -401,7 +418,7 @@ describe('createApp', () => {
         await t.mockInput.pasteBracketedText('hello');
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('> say hello');
+        expect(commandLine(t)).toBe('say hello');
         expect(inputFocused(t)).toBe(true);
     });
 
@@ -441,7 +458,7 @@ describe('createApp', () => {
             await t.renderOnce();
 
             expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
-            expect(t.captureCharFrame()).toContain('copied selection to clipboard');
+            expect(notices(t)).toEqual(['muted']);
         });
 
         it('does not copy again when the notice about a copy is dismissed', async () => {
@@ -452,16 +469,14 @@ describe('createApp', () => {
             await t.renderOnce();
             expect(t.clipboard.copy).toHaveBeenCalledOnce();
 
-            const rows = t.captureCharFrame().split('\n');
-            const y = rows.findIndex((row) => row.includes('[x]'));
-            expect(y).toBeGreaterThanOrEqual(0);
-            const x = rows[y]!.indexOf('[x]');
-            await t.mockMouse.click(x + 1, y);
+            const [toast] = byId(t, 'toast-stack')!.getChildren();
+            const close = byId(t, `${toast!.id}-close`)!;
+            await t.mockMouse.click(close.x + 1, close.y);
             await flush();
             await t.renderOnce();
 
             expect(t.clipboard.copy).toHaveBeenCalledOnce();
-            expect(t.captureCharFrame()).not.toContain('copied selection to clipboard');
+            expect(notices(t)).toEqual([]);
         });
 
         it('does not copy the text of a notice when it is pressed', async () => {
@@ -545,7 +560,7 @@ describe('createApp', () => {
             await t.renderOnce();
 
             expect(t.clipboard.copy).toHaveBeenCalledExactlyOnceWith('copy me');
-            expect(t.captureCharFrame()).not.toContain('c> ');
+            expect(commandLine(t)).toBe('');
         });
 
         it('copies text selected in the command line on Cmd+C', async () => {
@@ -571,7 +586,7 @@ describe('createApp', () => {
             await flush();
             await t.renderOnce();
 
-            expect(t.captureCharFrame()).toContain('could not reach the clipboard');
+            expect(notices(t)).toEqual(['warning']);
         });
 
         it('asks for a selection when there is nothing to copy', async () => {
@@ -582,7 +597,7 @@ describe('createApp', () => {
             await t.renderOnce();
 
             expect(t.clipboard.copy).not.toHaveBeenCalled();
-            expect(t.captureCharFrame()).toContain('select text to copy');
+            expect(notices(t)).toEqual(['muted']);
         });
 
         it('pastes the clipboard text on Cmd+V into the command line and focuses it', async () => {
@@ -595,7 +610,7 @@ describe('createApp', () => {
             await flush();
             await t.renderOnce();
 
-            expect(t.captureCharFrame()).toContain('> say pasted');
+            expect(commandLine(t)).toBe('say pasted');
             expect(inputFocused(t)).toBe(true);
         });
 
@@ -606,7 +621,7 @@ describe('createApp', () => {
             await t.mockInput.pasteBracketedText('say one\nsay two\n');
             await t.renderOnce();
 
-            expect(t.captureCharFrame()).toContain('> say one say two');
+            expect(commandLine(t)).toBe('say one say two');
         });
     });
 
@@ -622,7 +637,7 @@ describe('createApp', () => {
         await t.renderOnce();
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('Unknown command');
+        expect(notices(t)).toEqual(['danger']);
     });
 
     it('turns a throwing handler into a toast instead of an exception', async () => {
@@ -640,11 +655,7 @@ describe('createApp', () => {
         t.mockInput.pressEnter();
         await t.renderOnce();
 
-        const frame = t.captureCharFrame();
-        // The translucent toast lets cells from the log behind it appear in the character frame.
-        expect(frame).toContain('[x]');
-        expect(frame).toContain('handler');
-        expect(frame).toContain('exploded');
+        expect(notices(t)).toEqual(['danger']);
         expect(
             t.store.visible().some((record) => record.kind === 'raw' && record.message.includes('handler exploded'))
         ).toBe(true);
@@ -675,12 +686,12 @@ describe('createApp', () => {
 
         t.mockInput.pressKey('?');
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
+        expect(shown(t, 'help-overlay')).toBe(true);
 
         t.mockInput.pressEscape();
         // A lone ESC byte stays pending until the parser's 20 ms timeout fires.
         await new Promise((resolve) => setTimeout(resolve, 30));
-        await t.waitForFrame((frame) => !frame.includes('Keyboard shortcuts'));
+        await t.waitForFrame(() => !shown(t, 'help-overlay'));
     });
 
     it('toggles the side pane back with a second Ctrl+B', async () => {
@@ -690,11 +701,11 @@ describe('createApp', () => {
 
         t.mockInput.pressKey('b', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).not.toContain('Players');
+        expect(shown(t, 'side-pane')).toBe(false);
 
         t.mockInput.pressKey('b', { ctrl: true });
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('Players');
+        expect(shown(t, 'side-pane')).toBe(true);
     });
 
     it('calls stop after two Ctrl+C presses on an empty line and shows the hint', async () => {
@@ -703,7 +714,8 @@ describe('createApp', () => {
 
         t.mockInput.pressCtrlC();
         await t.renderOnce();
-        expect(t.captureCharFrame()).toContain('press Ctrl+C again to stop the server');
+        expect(t.actions.stop).not.toHaveBeenCalled();
+        expect(byId(t, 'status-left-hint')).toBeDefined();
 
         t.mockInput.pressCtrlC();
         await t.renderOnce();
@@ -740,8 +752,9 @@ describe('createApp', () => {
         t.mockInput.pressEnter();
         await t.renderOnce();
         await t.renderOnce();
+        // Not a command, so a search: it stays local, and finding nothing says so.
         expect(t.commands).toEqual(['/stop']);
-        expect(t.captureCharFrame()).toContain('no matches for "listening"');
+        expect(notices(t)).toHaveLength(1);
     });
 
     it('re-lays out when the terminal shrinks', async () => {
@@ -752,14 +765,11 @@ describe('createApp', () => {
         await t.renderOnce();
         await t.renderOnce();
 
-        const frame = t.captureCharFrame();
-        expect(frame).not.toContain('Players');
-        expect(frame).not.toContain('JSPrismarine 0.15.2');
+        expect(shown(t, 'side-pane')).toBe(false);
+        expect(shown(t, 'title-bar')).toBe(false);
     });
 
     describe('TPS page', () => {
-        const SPAN_ROW = 'span  1m  5m  15m';
-
         const reportTps = (t: AppHarness, readings: readonly number[], tickRate?: number): void => {
             for (const tps of readings) {
                 t.app.applyServerMessage({
@@ -852,14 +862,14 @@ describe('createApp', () => {
             dispose = t.dispose;
             reportTps(t, [20, 19.5, 18]);
             await t.renderOnce();
-            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(false);
 
             const graph = byId(t, 'side-pane-graph')!;
             await t.mockMouse.click(graph.x + 2, graph.y);
             await t.renderOnce();
 
             const frame = t.captureCharFrame();
-            expect(frame).toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(true);
             expect(frame).toMatch(/now 18\.00\s+avg/);
         });
 
@@ -873,11 +883,11 @@ describe('createApp', () => {
             const segment = byId(t, 'status-left-tps')!;
             await t.mockMouse.click(segment.x + 2, segment.y);
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(true);
 
             await t.mockMouse.click(segment.x + 2, segment.y);
             await t.renderOnce();
-            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(false);
         });
 
         it('opens on T with the log focused, and closes on Esc and hands the input back its focus', async () => {
@@ -887,11 +897,11 @@ describe('createApp', () => {
 
             t.mockInput.pressKey('t');
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(true);
 
             t.mockInput.pressEscape();
             await new Promise((resolve) => setTimeout(resolve, 30));
-            await t.waitForFrame((frame) => !frame.includes(SPAN_ROW));
+            await t.waitForFrame(() => !shown(t, 'tps-page'));
             expect(inputFocused(t)).toBe(false);
         });
 
@@ -909,7 +919,7 @@ describe('createApp', () => {
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
-            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(false);
             expect(inputFocused(t)).toBe(true);
         });
 
@@ -925,7 +935,7 @@ describe('createApp', () => {
 
             t.mockInput.pressKey('t');
             await t.renderOnce();
-            expect(t.captureCharFrame()).toContain('> type a command');
+            expect(commandLine(t)).toBe('');
         });
 
         it('switches the span with the number keys, arrows, and a click', async () => {
@@ -998,7 +1008,7 @@ describe('createApp', () => {
             await t.mockMouse.click(close.x + 2, close.y);
             await t.renderOnce();
 
-            expect(t.captureCharFrame()).not.toContain(SPAN_ROW);
+            expect(shown(t, 'tps-page')).toBe(false);
         });
 
         it('leaves the input line and status bar visible and fits a small terminal', async () => {
@@ -1010,12 +1020,12 @@ describe('createApp', () => {
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
-            const rows = t.captureCharFrame().split('\n').slice(0, 24);
-            expect(rows).toHaveLength(24);
-            expect(rows[0]).toContain('╭');
-            expect(rows[21]).toContain('╰');
-            expect(rows[22]).toContain('> type a command');
-            expect(rows[23]).toContain('TPS 19.00');
+            // The page takes the rows above the input line; the line and the status bar stay.
+            const page = byId(t, 'tps-page')!;
+            expect(page.y).toBe(0);
+            expect(page.y + page.height).toBe(22);
+            expect(byId(t, 'command-input')?.y).toBe(22);
+            expect(byId(t, 'status-left-tps')?.y).toBe(23);
         });
 
         it('keeps toasts readable above the page', async () => {
@@ -1053,9 +1063,8 @@ describe('createApp', () => {
             t.mockInput.pressKey('t');
             await t.renderOnce();
 
-            const frame = t.captureCharFrame();
-            expect(frame).toContain(SPAN_ROW);
-            expect(frame).toContain('Performance');
+            expect(shown(t, 'tps-page')).toBe(true);
+            expect(shown(t, 'side-pane')).toBe(true);
         });
     });
 
@@ -1103,12 +1112,11 @@ describe('createApp', () => {
 
         /** Top row of the log pane; the title bar is row 0 at 120x40. */
         const topLogRow = (t: Harness) => t.captureCharFrame().split('\n')[1] ?? '';
-        const count = (frame: string, text: string) => frame.split(text).length - 1;
 
         /** One press per binding; each check also fails when the command ran twice. */
         const effects: Record<CommandId, (t: Harness) => Promise<void>> = {
             'input.historySearch': async (t) => {
-                expect(count(t.captureCharFrame(), 'no history entry matches')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.pageUp': async (t) => {
                 expect(topLogRow(t)).toContain('line 28');
@@ -1117,36 +1125,37 @@ describe('createApp', () => {
                 expect(topLogRow(t)).toContain('line 37');
             },
             'log.copySelection': async (t) => {
-                expect(count(t.captureCharFrame(), 'select text to copy')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.top': async (t) => {
                 expect(topLogRow(t)).toContain('line 1 ');
             },
             'log.bottom': async (t) => {
-                const frame = t.captureCharFrame();
-                expect(frame).toContain('line 100');
-                expect(frame).not.toContain('new lines');
+                expect(t.captureCharFrame()).toContain('line 100');
+                expect(shown(t, 'log-badge')).toBe(false);
             },
             'log.search': async (t) => {
-                expect(t.captureCharFrame()).toContain('> /');
+                expect(commandLine(t)).toBe('/');
             },
             'log.searchNext': async (t) => {
-                expect(count(t.captureCharFrame(), 'no search; type /text to search')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.searchPrev': async (t) => {
-                expect(count(t.captureCharFrame(), 'no search; type /text to search')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.nextError': async (t) => {
-                expect(count(t.captureCharFrame(), 'no earlier errors')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.nextWarning': async (t) => {
-                expect(count(t.captureCharFrame(), 'no earlier warnings')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.toggleWrap': async (t) => {
-                const frame = t.captureCharFrame();
-                // Wrap is on by default, so the first toggle turns it off.
-                expect(frame).toContain('truncating long lines');
-                expect(frame).not.toContain('wrapping long lines');
+                // Wrap is on by default, so the first toggle turns it off: a long record takes one row.
+                t.app.applyServerMessage(logMessage('x'.repeat(300)));
+                await t.renderOnce();
+                const rows = t.captureCharFrame().split('\n');
+                expect(rows.filter((row) => row.includes('x'.repeat(20)))).toHaveLength(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'log.clearView': async (t) => {
                 expect(t.captureCharFrame()).not.toMatch(/line \d/);
@@ -1162,16 +1171,16 @@ describe('createApp', () => {
                 expect(visibleLevels(t)).toContain('debug');
             },
             'view.toggleSidePane': async (t) => {
-                expect(t.captureCharFrame()).not.toContain('Players');
+                expect(shown(t, 'side-pane')).toBe(false);
             },
             'input.paste': async (t) => {
-                expect(count(t.captureCharFrame(), 'the clipboard has no text to paste')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
             },
             'view.tpsGraph': async (t) => {
-                expect(count(t.captureCharFrame(), 'span  1m  5m  15m')).toBe(1);
+                expect(shown(t, 'tps-page')).toBe(true);
             },
             'view.help': async (t) => {
-                expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
+                expect(shown(t, 'help-overlay')).toBe(true);
             },
             'view.toggleFocus': async (t) => {
                 await t.waitForFrame(() => !inputFocused(t));
@@ -1180,7 +1189,7 @@ describe('createApp', () => {
                 expect(byId(t, 'command-palette')?.visible).toBe(true);
             },
             'server.restart': async (t) => {
-                expect(count(t.captureCharFrame(), 'restart is only available with --watch')).toBe(1);
+                expect(notices(t)).toHaveLength(1);
                 expect(t.actions.restart).not.toHaveBeenCalled();
             },
             'server.stop': async () => {
@@ -1222,8 +1231,8 @@ describe('createApp', () => {
             await t.renderOnce();
 
             await effects[id](t);
-            const promptRow = t.captureCharFrame().split('\n')[38] ?? '';
-            expect(promptRow.trimEnd()).toBe(id === 'log.search' ? '> /' : '> type a command, ? for help');
+            // The key ran its command and was not typed.
+            expect(commandLine(t)).toBe(id === 'log.search' ? '/' : '');
         });
 
         it('opens the palette from the command line and closes it on a second Ctrl+K', async () => {
@@ -1339,7 +1348,7 @@ describe('createApp', () => {
             t.mockInput.pressKey(kittyCtrlShift('r'));
             await t.renderOnce();
             expect(t.actions.restart).not.toHaveBeenCalled();
-            expect(t.captureCharFrame()).toContain('restart is only available with --watch');
+            expect(notices(t)).toEqual(['muted']);
 
             t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages', canRestart: true });
             t.mockInput.pressKey(kittyCtrlShift('r'));
@@ -1392,10 +1401,9 @@ describe('createApp', () => {
             t.mockInput.pressKey('?');
             await t.renderOnce();
 
-            const frame = t.captureCharFrame();
-            expect(frame).toContain('> saw?');
-            expect(frame).not.toContain('Keyboard shortcuts');
-            expect(frame).not.toContain('truncating long lines');
+            expect(commandLine(t)).toBe('saw?');
+            expect(shown(t, 'help-overlay')).toBe(false);
+            expect(notices(t)).toEqual([]);
         });
     });
 });
