@@ -227,7 +227,9 @@ const describeDiagnostic = (diagnostic: Diagnostic): string =>
     `  ${diagnostic.code} ${diagnostic.path ?? ''}: ${diagnostic.message}`;
 
 try {
-    const { definitions, diagnostics } = load([{ kind: 'datapack', path: paths.datapack }], { strict: true });
+    // The release's own format, so the pack's `pack.mcmeta` range is checked against it.
+    const java = { release, format: recorded.dataPackFormat, dataVersion: recorded.dataVersion };
+    const { definitions, diagnostics } = load([{ kind: 'datapack', path: paths.datapack }], { strict: true, java });
     const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === 'warning').length;
     report(
         'strict load',
