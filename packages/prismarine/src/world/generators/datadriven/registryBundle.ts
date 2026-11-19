@@ -79,6 +79,8 @@ type BundleEntry = readonly [id: string, byteOffset: number, byteLength: number]
 /** The index, itself UTF-8 JSON, sitting between the header and the documents. */
 interface BundleIndex {
     readonly registries: ReadonlyArray<readonly [registry: string, entries: readonly BundleEntry[]]>;
+    /** {@link JavaWorldgenRegistries.format}, so a worker parses with the same grammar. */
+    readonly format?: number;
 }
 
 /**
@@ -105,7 +107,9 @@ export const buildRegistryBundle = (registries: JavaWorldgenRegistries): ArrayBu
         index.push([registry, entries]);
     }
 
-    const indexBytes = encoder.encode(JSON.stringify({ registries: index } satisfies BundleIndex));
+    const indexBytes = encoder.encode(
+        JSON.stringify({ registries: index, format: registries.format } satisfies BundleIndex)
+    );
     const buffer = new ArrayBuffer(HEADER_BYTES + indexBytes.byteLength + offset);
     const header = new DataView(buffer);
     header.setUint32(0, MAGIC, true);
@@ -224,6 +228,7 @@ export const readRegistryBundle = (
         blockTags: registryOf('blockTags'),
         biomeTags: registryOf('biomeTags'),
         structureTags: registryOf('structureTags'),
-        biomeParameters: registryOf('biomeParameters')
+        biomeParameters: registryOf('biomeParameters'),
+        format: index.format
     };
 };

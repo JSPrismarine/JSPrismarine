@@ -25,6 +25,7 @@ import { join } from 'node:path';
 
 import type { Definitions, WorldgenRegistryKind } from '@jsprismarine/packs';
 import { load } from '@jsprismarine/packs';
+import { readGeneratedJavaVersion } from '@jsprismarine/bedrock-data/sources';
 import type { JavaWorldgenSources } from './javaWorldgenSources';
 import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources } from './javaWorldgenSources';
 import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
@@ -73,6 +74,11 @@ export interface JavaWorldgenRegistries {
     readonly structureTags: JavaRegistry;
     /** `reports/biome_parameters`, keyed by dimension identifier such as `minecraft:overworld`. */
     readonly biomeParameters: JavaRegistry;
+    /**
+     * The data pack format major of the Java release the documents come from, which picks
+     * between worldgen grammars that changed. Undefined reads the default release's grammar.
+     */
+    readonly format?: number;
 }
 
 /**
@@ -145,8 +151,14 @@ const readBiomeParameterReports = (reports: string): Map<string, unknown> => {
  *   read.
  * @param reports - The data generator output root, the directory holding `reports/`, for the
  *   biome parameter reports no datapack carries.
+ * @param format - The data pack format major of the Java release the stack targets.
  */
-export const loadJavaWorldgenRegistriesFrom = (definitions: Definitions, reports: string): JavaWorldgenRegistries => ({
+export const loadJavaWorldgenRegistriesFrom = (
+    definitions: Definitions,
+    reports: string,
+    format?: number
+): JavaWorldgenRegistries => ({
+    format,
     densityFunctions: worldgenKind(definitions, 'density_function'),
     noises: worldgenKind(definitions, 'noise'),
     noiseSettings: worldgenKind(definitions, 'noise_settings'),
@@ -181,8 +193,17 @@ export const loadJavaWorldgenRegistriesFrom = (definitions: Definitions, reports
  * Loading the vanilla datapack costs about 300 ms, so a generator builds this once and shares
  * it across every chunk and every world.
  */
-export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWorldgenRegistries =>
-    loadJavaWorldgenRegistriesFrom(load([{ kind: 'datapack', path: sources.datapack }]).definitions, sources.reports);
+export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWorldgenRegistries => {
+    // The release record `datagen:java` writes beside the datapack, so its own format gates the
+    // load and the worldgen grammar.
+    const record = readGeneratedJavaVersion(sources.datapack);
+    const java =
+        record === undefined
+            ? undefined
+            : { release: record.release, format: record.dataPackFormat, dataVersion: record.dataVersion };
+    const { definitions } = load([{ kind: 'datapack', path: sources.datapack }], java === undefined ? {} : { java });
+    return loadJavaWorldgenRegistriesFrom(definitions, sources.reports, java?.format[0]);
+};
 
 /**
  * Where the Java data sits, or an explanation of what to fetch.
