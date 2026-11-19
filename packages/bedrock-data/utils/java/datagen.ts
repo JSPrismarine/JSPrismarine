@@ -20,7 +20,8 @@
  * Run as `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, after `fetch:sources` has
  * put the hash-verified jar in the cache. Pass `--java <release>` to generate a pinned release
  * other than the default, and `--force` to regenerate output that is already
- * present. The output is Mojang's content, large and derived, so it stays in the gitignored
+ * present. `--output-root <dir>` lays the output out under `<dir>` instead of the cache root, with
+ * the same directory names; `bringup:java` uses it to regenerate into scratch space and compare. The output is Mojang's content, large and derived, so it stays in the gitignored
  * cache and is never committed.
  *
  * Nothing from inside the jar is executed beyond the official `net.minecraft.data.Main` entry
@@ -28,7 +29,8 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 import { hashFile } from '../fetch/hash.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
@@ -37,7 +39,16 @@ import { findJdkHome, jdkBinaryPath } from './jdk.ts';
 import { readJarVersion, resolveJavaRelease, writeGeneratedJavaVersion } from './release.ts';
 import { cacheRoot, javaServerJarPath, worldgenCacheComplete, worldgenCachePaths } from './worldgen-cache.ts';
 
-const force = process.argv.includes('--force');
+const { values: flags } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+        java: { type: 'string' },
+        force: { type: 'boolean', default: false },
+        'output-root': { type: 'string' }
+    }
+});
+const force = flags.force;
+const outputRoot = flags['output-root'] === undefined ? cacheRoot : resolve(flags['output-root']);
 
 // ---------------------------------------------------------------------------
 // The pinned jar
@@ -48,12 +59,12 @@ const javaServer = await resolveJavaRelease(process.argv);
 const version = javaServer.version;
 const jarPath = javaServerJarPath(javaServer);
 
-const paths = worldgenCachePaths(version);
+const paths = worldgenCachePaths(version, outputRoot);
 const { datapack: datapackDir, reports: reportsDir, structures: structuresDir, work: workDir } = paths;
 
 if (worldgenCacheComplete(paths) && !force) {
     console.log(
-        `Java ${version} datapack, reports and structure templates are already in ${cacheRoot}; ` +
+        `Java ${version} datapack, reports and structure templates are already in ${outputRoot}; ` +
             'pass --force to regenerate.'
     );
     process.exit(0);
@@ -140,9 +151,9 @@ rmSync(workDir, { recursive: true, force: true });
 // it here means one command leaves a complete world generation cache behind.
 const templateCount = await extractJavaStructures(jarPath, structuresDir);
 // The English strings, which the server names an advancement with.
-await extractJavaLang(jarPath, javaLangPath(version));
+await extractJavaLang(jarPath, javaLangPath(version, outputRoot));
 
 console.log(`Wrote the vanilla datapack to ${datapackDir} (pack format ${major}.${minor})`);
 console.log(`Wrote the data reports to ${join(reportsDir, 'reports')}`);
 console.log(`Wrote ${templateCount} structure templates to ${structuresDir}`);
-console.log(`Wrote the English strings to ${javaLangPath(version)}`);
+console.log(`Wrote the English strings to ${javaLangPath(version, outputRoot)}`);
