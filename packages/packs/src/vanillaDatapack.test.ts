@@ -153,6 +153,27 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', { tags: ['real-data'] }, 
                 code: 'definition.schema',
                 path: 'data/minecraft/recipe/map_extending.json',
                 message: expect.stringContaining('/result Missing key')
+            }),
+            // Vanilla-mcdoc's wolf sound schema has no `step_sound` yet, on
+            // either the adult or the baby set.
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.schema',
+                path: 'data/minecraft/wolf_sound_variant/angry.json',
+                message: expect.stringContaining('/adult_sounds/step_sound Unknown key')
+            }),
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.schema',
+                path: 'data/minecraft/wolf_sound_variant/angry.json',
+                message: expect.stringContaining('/baby_sounds/step_sound Unknown key')
+            }),
+            // Vanilla writes the NBT byte `1` where the schema types a boolean.
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.schema',
+                path: 'data/minecraft/trial_spawner/trial_chamber/small_melee/baby_zombie/normal.json',
+                message: expect.stringContaining('/IsBaby Expected a boolean')
             })
         ]);
         expect(definitions.recipesJava.has('minecraft:map_extending')).toBe(true);
