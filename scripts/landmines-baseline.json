@@ -133,9 +133,6 @@
     "packages/entity-brains/src/testWorld.ts": {
         "landmines-testing/no-flake-masking": 1
     },
-    "packages/features/src/corpus.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
     "packages/kernel/src/events.test.ts": {
         "landmines-testing/no-unsignaled-poll": 1
     },
@@ -178,9 +175,6 @@
     },
     "packages/packs/src/load.test.ts": {
         "landmines-testing/no-test-doubles": 1
-    },
-    "packages/packs/src/mcdocValidator.test.ts": {
-        "landmines-testing/no-flake-masking": 2
     },
     "packages/packs/src/vanillaBehaviorPack.test.ts": {
         "landmines-testing/no-flake-masking": 2

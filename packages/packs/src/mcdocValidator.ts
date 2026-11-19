@@ -14,6 +14,7 @@ import * as mcdoc from '@spyglassmc/mcdoc';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import type { DiagnosticSeverity } from './diagnostics';
+import type { JavaDataTarget } from './javaDataTarget';
 import type { DefinitionValidator, ValidationFinding } from './validation';
 import { PacksErrors } from '@jsprismarine/errors/packs';
 
@@ -34,15 +35,25 @@ import { PacksErrors } from '@jsprismarine/errors/packs';
  * use for.
  */
 
-/** The Java release the loader targets, which is what data pack format 121.0 corresponds to. */
+/**
+ * The Java release of the default target, which is what data pack format 121.0 corresponds to.
+ *
+ * @deprecated Pass `target` to {@link createMcdocValidator}, or read the `release` of a
+ *   {@link JavaDataTarget}; this is the release of `DEFAULT_JAVA_DATA_TARGET` and will be removed.
+ */
 export const DATA_PACK_RELEASE = '26.3' satisfies ReleaseVersion;
 
 /** Options for {@link createMcdocValidator}. */
 export interface McdocValidatorOptions {
     /** A `vanilla-mcdoc` checkout; every `.mcdoc` file under it is read. */
     root: string;
-    /** The Java release to gate `#[since]` and `#[until]` on. Defaults to {@link DATA_PACK_RELEASE}. */
+    /**
+     * The Java release to gate `#[since]` and `#[until]` on. Defaults to the `release` of
+     * {@link McdocValidatorOptions.target}, then to {@link DATA_PACK_RELEASE}.
+     */
     release?: ReleaseVersion;
+    /** The Java data target the datapacks are loaded for; its `release` is the default `release`. */
+    target?: JavaDataTarget;
     /**
      * The severity a schema violation reports at. `warning`, the default,
      * keeps a definition loading and out of a strict load's way; `error`
@@ -104,6 +115,26 @@ const pointerAt = (node: core.AstNode, range: core.Range): string => {
     return '';
 };
 
+/** Whether a release id is one Spyglass's `ReleaseVersion.cmp` orders: digits and dots. */
+const isReleaseVersion = (release: string): release is ReleaseVersion => /^\d+\.\d+(?:\.\d+)?$/.test(release);
+
+/**
+ * The release a target's release id gates `#[since]` and `#[until]` as.
+ *
+ * Spyglass compares releases as numbers, so a snapshot id such as `26.4-snapshot-10` compares as
+ * `NaN` and every gated field drops out of the schema. A snapshot, pre-release or release
+ * candidate builds toward the release its id starts with and already carries the fields that
+ * release adds, which vanilla-mcdoc marks `#[since]` that release, so it gates as that release.
+ *
+ * @throws {PacksErrors.UncomparableJavaRelease} When the id is none of those forms, such as an
+ *   old-style snapshot like `24w14a`.
+ */
+const comparableRelease = (release: string): ReleaseVersion => {
+    const base = /^(.+)-(?:snapshot|pre|rc)-\d+$/.exec(release)?.[1] ?? release;
+    if (!isReleaseVersion(base)) throw new PacksErrors.UncomparableJavaRelease({ release });
+    return base;
+};
+
 /**
  * Builds a validator that checks each Java definition against vanilla-mcdoc.
  *
@@ -121,7 +152,9 @@ const pointerAt = (node: core.AstNode, range: core.Range): string => {
  * @returns A validator reporting one finding per schema violation.
  */
 export const createMcdocValidator = async (options: McdocValidatorOptions): Promise<DefinitionValidator> => {
-    const release = options.release ?? DATA_PACK_RELEASE;
+    const release =
+        options.release ??
+        (options.target === undefined ? DATA_PACK_RELEASE : comparableRelease(options.target.release));
     const worst = options.severity ?? 'warning';
     const limit = options.limit ?? 10;
 

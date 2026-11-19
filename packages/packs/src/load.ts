@@ -3,6 +3,8 @@ import type { Diagnostic, DiagnosticSeverity } from './diagnostics';
 import { DiagnosticCollector } from './diagnostics';
 import type { FormatVersion } from './formatVersion';
 import { parseVersion } from './formatVersion';
+import { DEFAULT_JAVA_DATA_TARGET } from './javaDataTarget';
+import type { JavaDataTarget } from './javaDataTarget';
 import type { JavaRegistryId } from './javaRegistries';
 import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
@@ -45,6 +47,11 @@ export interface LoadOptions {
     validator?: DefinitionValidator;
     /** Caches an immutable leading prefix as one V8 file, then composes later sources on every load. */
     cache?: PrefixCacheOptions;
+    /**
+     * The Java release the datapacks are read for. Its data pack format gates each datapack's
+     * `pack.mcmeta` range and overlays. Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
+     */
+    java?: JavaDataTarget;
 }
 
 /** What {@link load} returns: the composed definitions plus the full report. */
@@ -216,14 +223,15 @@ const composeUnits = (
     units: readonly StackUnit[],
     registries: DefinitionRegistries,
     collector: DiagnosticCollector,
-    validator: DefinitionValidator
+    validator: DefinitionValidator,
+    target: JavaDataTarget
 ): void => {
     const loadablePacks = packsWithLoadableManifest(units);
     const lastProvider = lastProviderOfPath(units, loadablePacks);
 
     for (const unit of units) {
         if (unit.kind === 'datapack') {
-            loadDatapack(unit.path, registries, validator, collector);
+            loadDatapack(unit.path, registries, validator, collector, target);
             continue;
         }
 
@@ -247,14 +255,19 @@ const composeUnits = (
 };
 
 /** Loads one stack without applying strict mode, so cached prefixes can be checked with their suffix. */
-const loadUncached = (stack: PackStack, validator: DefinitionValidator): LoadResult => {
+const loadUncached = (stack: PackStack, validator: DefinitionValidator, target: JavaDataTarget): LoadResult => {
     const collector = new DiagnosticCollector();
     const definitions = emptyRegistries();
-    composeUnits(expandStack(stack), definitions, collector, validator);
+    composeUnits(expandStack(stack), definitions, collector, validator, target);
     return { definitions, diagnostics: collector.diagnostics };
 };
 
-const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cache: PrefixCacheOptions): LoadResult => {
+const loadCachedPrefix = (
+    stack: PackStack,
+    validator: DefinitionValidator,
+    cache: PrefixCacheOptions,
+    target: JavaDataTarget
+): LoadResult => {
     if (!Number.isSafeInteger(cache.prefixLength) || cache.prefixLength < 1 || cache.prefixLength > stack.length) {
         throw new PacksErrors.CachePrefixOutOfRange({ prefixLength: cache.prefixLength });
     }
@@ -263,7 +276,7 @@ const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cach
     const suffixUnits = expandStack(stack.slice(cache.prefixLength));
     const suffixLoadablePacks = packsWithLoadableManifest(suffixUnits);
     const suffixPaths = lastProviderOfPath(suffixUnits, suffixLoadablePacks);
-    const key = prefixCacheKeyFor(stack, cache);
+    const key = prefixCacheKeyFor(stack, cache, undefined, target);
     const cached = readPrefixCache(cache.filePath, key);
     let prefixResult: LoadResult;
 
@@ -278,7 +291,7 @@ const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cach
             );
         }
 
-        prefixResult = loadUncached(prefix, validator);
+        prefixResult = loadUncached(prefix, validator, target);
         try {
             writePrefixCache(cache.filePath, key, prefixResult);
         } catch (error) {
@@ -370,7 +383,7 @@ const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cach
             if (definition.path === path) definitions[registry].delete(identifier);
         }
     }
-    composeUnits(suffixUnits, definitions, collector, validator);
+    composeUnits(suffixUnits, definitions, collector, validator, target);
     return { definitions, diagnostics: collector.diagnostics };
 };
 
@@ -394,10 +407,11 @@ const loadCachedPrefix = (stack: PackStack, validator: DefinitionValidator, cach
  */
 export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult => {
     const validator = options.validator ?? structuralValidator;
+    const target = options.java ?? DEFAULT_JAVA_DATA_TARGET;
     const result =
         options.cache === undefined
-            ? loadUncached(stack, validator)
-            : loadCachedPrefix(stack, validator, options.cache);
+            ? loadUncached(stack, validator, target)
+            : loadCachedPrefix(stack, validator, options.cache, target);
     const failed = result.diagnostics.some((diagnostic) => diagnostic.severity === 'error');
     if (options.strict && failed) throw new PackLoadError(result.diagnostics);
 

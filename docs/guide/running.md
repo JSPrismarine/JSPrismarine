@@ -370,7 +370,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->42<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->43<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->

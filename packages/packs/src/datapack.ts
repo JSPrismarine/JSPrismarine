@@ -6,8 +6,10 @@ import type { DiagnosticCollector } from './diagnostics';
 import { MERGE_MODES, routeDatapackPath } from './javaRegistries';
 import type { MergeMode } from './javaRegistries';
 import type { DefinitionRegistries } from './load';
-import { DATA_PACK_FORMAT, coversFormat, formatToString, parseMcmeta } from './mcmeta';
-import type { PackMcmeta } from './mcmeta';
+import { DEFAULT_JAVA_DATA_TARGET } from './javaDataTarget';
+import type { JavaDataTarget } from './javaDataTarget';
+import { coversFormat, formatToString, parseMcmeta } from './mcmeta';
+import type { PackFormat, PackMcmeta } from './mcmeta';
 import type { DefinitionValidator } from './validation';
 import { isZip, readZip } from './zip';
 import { isRecord } from './isRecord';
@@ -90,10 +92,11 @@ const readDatapackFiles = (path: string): DatapackContents => {
     return { paths, files };
 };
 
-/** Parses `pack.mcmeta` and reports the format gate; the pack loads either way. */
+/** Parses `pack.mcmeta` and reports the gate on the target's format; the pack loads either way. */
 const readMcmeta = (
     files: Map<string, Uint8Array>,
     pack: string,
+    format: PackFormat,
     collector: DiagnosticCollector
 ): PackMcmeta | undefined => {
     const bytes = files.get('pack.mcmeta');
@@ -125,7 +128,7 @@ const readMcmeta = (
     for (const diagnostic of diagnostics) collector.add(diagnostic);
     if (!mcmeta) return undefined;
 
-    if (mcmeta.formats && !coversFormat(mcmeta.formats, DATA_PACK_FORMAT)) {
+    if (mcmeta.formats && !coversFormat(mcmeta.formats, format)) {
         collector.add({
             severity: 'error',
             code: 'mcmeta.format-mismatch',
@@ -133,7 +136,7 @@ const readMcmeta = (
             path: 'pack.mcmeta',
             message:
                 `the pack supports formats ${formatToString(mcmeta.formats.min)} to ` +
-                `${formatToString(mcmeta.formats.max)}, which does not cover ${formatToString(DATA_PACK_FORMAT)}`
+                `${formatToString(mcmeta.formats.max)}, which does not cover ${formatToString(format)}`
         });
     }
 
@@ -145,7 +148,7 @@ const readMcmeta = (
  *
  * A declared overlay directory is never content on its own: it is dropped
  * from the base view whether or not its range applies, which is how the
- * engine reads it. The overlays whose range covers 121.0 then apply in
+ * engine reads it. The overlays whose range covers the target's format then apply in
  * declaration order, each overriding whole files, so a later entry wins over
  * an earlier one and every entry wins over the base. Within one pack an
  * overlay replaces the base file outright, tags included; merging is what
@@ -159,6 +162,7 @@ const applyOverlays = (
     contents: DatapackContents,
     mcmeta: PackMcmeta | undefined,
     pack: string,
+    format: PackFormat,
     collector: DiagnosticCollector
 ): Map<string, Uint8Array> => {
     const { files, paths } = contents;
@@ -173,7 +177,7 @@ const applyOverlays = (
 
     for (const overlay of overlays) {
         const prefix = `${overlay.directory}/`;
-        const applies = coversFormat(overlay.formats, DATA_PACK_FORMAT);
+        const applies = coversFormat(overlay.formats, format);
         // Counted over every path rather than over the files that were read, so an overlay of
         // registries this loader skips is still an overlay that holds something.
         let found = 0;
@@ -228,12 +232,16 @@ export const mergeJavaDefinition = (mode: MergeMode, previous: unknown, data: un
  * Within the Java half a later pack wins per file, except tags, which merge:
  * values concatenate across packs and a pack that sets `replace` discards the
  * earlier ones, which is vanilla's rule.
+ *
+ * @param target - The Java release whose data pack format gates `pack.mcmeta` and its overlays.
+ *   Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
  */
 export const loadDatapack = (
     path: string,
     registries: DefinitionRegistries,
     validator: DefinitionValidator,
-    collector: DiagnosticCollector
+    collector: DiagnosticCollector,
+    target: JavaDataTarget = DEFAULT_JAVA_DATA_TARGET
 ): void => {
     const pack = basename(path);
 
@@ -250,9 +258,9 @@ export const loadDatapack = (
         return;
     }
 
-    const mcmeta = readMcmeta(contents.files, pack, collector);
+    const mcmeta = readMcmeta(contents.files, pack, target.format, collector);
 
-    for (const [filePath, bytes] of applyOverlays(contents, mcmeta, pack, collector)) {
+    for (const [filePath, bytes] of applyOverlays(contents, mcmeta, pack, target.format, collector)) {
         const route = routeDatapackPath(filePath);
         if (!route) continue;
 

@@ -138,6 +138,13 @@ export const PacksErrors = defineErrors('packs', {
      */
     NoMcdocFiles: 'no .mcdoc files under {root}',
     /**
+     * The Java data validator was given a target release it cannot place among Java releases, so
+     * it cannot decide which `#[since]` and `#[until]` schema fields apply. It reads releases such
+     * as `26.3` and `1.21.5`, and the snapshot, pre-release and release candidate ids of a release,
+     * such as `26.4-snapshot-10`. Pass `release` to the validator to name the release to gate on.
+     */
+    UncomparableJavaRelease: 'cannot place Java {release} among releases to gate the schema on; pass `release`',
+    /**
      * A file read as a `.brarchive` does not start with the format's signature, so it is another
      * format.
      */

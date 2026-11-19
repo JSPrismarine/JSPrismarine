@@ -67,13 +67,20 @@ definitions.lootTablesJava.get('minecraft:blocks/stone');
 const referenced = reportIdentifiers(definitions);
 ```
 
-The Java side targets data pack format 121.0 (Java 26.3) exactly. `pack.mcmeta` parses in both the
-current `min_format`/`max_format` form and the legacy single `pack_format`. A pack whose range
-misses 121.0 is reported and still loaded, so a strict load rejects it while a normal load keeps
-going.
+The Java side targets one release at a time, the `JavaDataTarget` that `load` takes as its `java`
+option (`@jsprismarine/packs/javaDataTarget`): a release id, its data pack format and its world data
+version. Without one, a load targets `DEFAULT_JAVA_DATA_TARGET`, Java <!-- fact:java.version -->26.3<!-- /fact --> at data pack format <!-- fact:java.dataPackFormat -->121.0<!-- /fact -->.
+`pack.mcmeta` parses in both the current `min_format`/`max_format` form and the legacy single
+`pack_format`. A pack whose range misses the target's format is reported and still loaded, so a
+strict load rejects it while a normal load keeps going. The target is part of the composed prefix
+cache key, so a cache built for one release is not reused for another.
+
+`DATA_PACK_FORMAT` and `DATA_PACK_RELEASE` are deprecated: they name the default target's format
+and release, and a caller that runs another release reads both from its target. `createMcdocValidator`
+takes the same target as `target` and gates on its release unless `release` is given.
 
 A declared overlay directory is never content on its own: it leaves the base view whether or not
-its range applies. The overlays whose range covers 121.0 then apply in declaration order, each
+its range applies. The overlays whose range covers the target's format then apply in declaration order, each
 overriding whole files, so a later entry wins over an earlier one and every entry wins over the
 base. Within one pack an overlay replaces the base file outright, tags included, because merging is
 what happens between packs. A declared overlay holding no files is reported as a warning, since a

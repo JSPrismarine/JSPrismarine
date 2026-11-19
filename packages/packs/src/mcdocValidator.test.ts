@@ -45,9 +45,26 @@ const damageType = (data: unknown) => ({
 const valid = { message_id: 'laser', exhaustion: 0.1, scaling: 'never' };
 
 describe('createMcdocValidator', () => {
+    // Each validator loads its schemas, which is slow, so all of them are built once here.
     let validator: DefinitionValidator;
+    let strict: DefinitionValidator;
+    let release121: DefinitionValidator;
+    let target121: DefinitionValidator;
+    let snapshot: DefinitionValidator;
     beforeAll(async () => {
-        validator = await createMcdocValidator({ root: schemaRoot() });
+        [validator, strict, release121, target121, snapshot] = await Promise.all([
+            createMcdocValidator({ root: schemaRoot() }),
+            createMcdocValidator({ root: schemaRoot(), severity: 'error' }),
+            createMcdocValidator({ root: schemaRoot(), release: '1.21' }),
+            createMcdocValidator({
+                root: schemaRoot(),
+                target: { release: '1.21', format: [48, 0], dataVersion: 3953 }
+            }),
+            createMcdocValidator({
+                root: schemaRoot(),
+                target: { release: '26.4-snapshot-10', format: [128, 0], dataVersion: 5100 }
+            })
+        ]);
     }, 60_000);
 
     it('accepts a definition the schema allows', () => {
@@ -83,23 +100,44 @@ describe('createMcdocValidator', () => {
         ]);
     });
 
-    it('reads a finding as an error when the caller asks for the strict reading', async () => {
-        const strict = await createMcdocValidator({ root: schemaRoot(), severity: 'error' });
+    it('reads a finding as an error when the caller asks for the strict reading', () => {
         expect(strict(damageType({ ...valid, exhaustion: 'lots' }))).toEqual([
             { severity: 'error', code: 'definition.schema', message: '/exhaustion Expected a float' }
         ]);
         // An unknown key stays a warning whatever the caller asks for, so an
         // unrecognized field never keeps a definition from loading.
         expect(strict(damageType({ ...valid, extra: 1 }))).toEqual([expect.objectContaining({ severity: 'warning' })]);
-    }, 60_000);
+    });
 
-    it('gates a field on the release', async () => {
-        const old = await createMcdocValidator({ root: schemaRoot(), release: '1.21' });
+    it('gates a field on the release', () => {
         expect(validator(damageType({ ...valid, death_message_type: 'default' }))).toEqual([]);
-        expect(old(damageType({ ...valid, death_message_type: 'default' }))).toEqual([
+        expect(release121(damageType({ ...valid, death_message_type: 'default' }))).toEqual([
             expect.objectContaining({ message: expect.stringContaining('Unknown key') })
         ]);
-    }, 60_000);
+    });
+
+    it('gates on the target release when given a target and no release', () => {
+        expect(target121(damageType({ ...valid, death_message_type: 'default' }))).toEqual([
+            expect.objectContaining({ message: expect.stringContaining('Unknown key') })
+        ]);
+    });
+
+    it('gates a snapshot target as the release it builds toward', () => {
+        // Both the dispatch (since 1.21) and the field (since 26.0) apply to a 26.4 snapshot.
+        expect(snapshot(damageType({ ...valid, death_message_type: 'default' }))).toEqual([]);
+        expect(snapshot(damageType({ ...valid, exhaustion: 'lots' }))).toEqual([
+            expect.objectContaining({ message: '/exhaustion Expected a float' })
+        ]);
+    });
+
+    it('refuses a target release it cannot place among releases', () => {
+        return expect(
+            createMcdocValidator({
+                root: schemaRoot(),
+                target: { release: '24w14a', format: [41, 0], dataVersion: 3827 }
+            })
+        ).rejects.toThrow(/cannot place Java 24w14a/);
+    });
 
     it('rejects a root with no schemas', () => {
         const empty = mkdtempSync(join(tmpdir(), 'jsp-mcdoc-empty-'));

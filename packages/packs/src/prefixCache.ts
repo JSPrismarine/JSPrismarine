@@ -10,6 +10,8 @@ import type { Definition, Definitions, LoadResult } from './load';
 import type { PackStack } from './sources';
 import { REGISTRY_IDS } from './registries';
 import { isRecord } from './isRecord';
+import { DEFAULT_JAVA_DATA_TARGET } from './javaDataTarget';
+import type { JavaDataTarget } from './javaDataTarget';
 import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /** Identifies the vanilla source prefix to cache while the rest of the stack stays live. */
@@ -92,14 +94,18 @@ const isPrefixCacheFile = (value: unknown): value is PrefixCacheFile =>
     isLoadResult(value.result);
 
 /**
- * Keys a cache by the package version, the resolved prefix sources, validator, and caller fingerprint.
+ * Keys a cache by the package version, the resolved prefix sources, validator, caller fingerprint
+ * and Java data target.
  *
  * @param packageVersionOverride - A test seam for proving version changes invalidate a cache key.
+ * @param target - The Java release the prefix was loaded for, since its format decides which
+ *   datapack overlays applied. Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
  */
 export const prefixCacheKeyFor = (
     stack: PackStack,
     options: PrefixCacheOptions,
-    packageVersionOverride = PACKS_VERSION
+    packageVersionOverride = PACKS_VERSION,
+    target: JavaDataTarget = DEFAULT_JAVA_DATA_TARGET
 ): string => {
     if (
         !Number.isSafeInteger(options.prefixLength) ||
@@ -117,7 +123,8 @@ export const prefixCacheKeyFor = (
                 packageVersion: packageVersionOverride,
                 sources,
                 fingerprint: options.fingerprint,
-                validatorKey: options.validatorKey
+                validatorKey: options.validatorKey,
+                java: target
             })
         )
         .digest('hex');
