@@ -94,7 +94,8 @@ describe('the command set', () => {
         // `/effect` then took Bedrock's `effect <player> <effect>` and `effect <player> clear` forms.
         // The Bedrock command data then moved to bedrock-samples v1.26.60.5, whose enums list the
         // 1.26.60 blocks, entities, biome and effect.
-        expect(digest).toBe('ad8e7e21100877a244fc0d0cd090b84e55b99b6a');
+        // `/tickingarea` then joined the Bedrock-only commands.
+        expect(digest).toBe('9de6f95df8e371d874a6e024f41986613e8cc25e');
     });
 });
 

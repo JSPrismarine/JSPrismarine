@@ -38,6 +38,7 @@ import { gameRule } from '../gamerules';
 import type { CommandSource } from '../host';
 import type { CommandRegistry } from '../tree';
 import { registerTitleRaw } from './server';
+import { registerTickingArea } from './tickingarea';
 import type { Context } from './support';
 import { arg, command, lit, report, resolvePosition, select, source, value } from './support';
 import { parseBlockStates } from './world';
@@ -144,6 +145,7 @@ export const registerBedrockCommands = (registry: CommandRegistry<CommandSource>
     );
 
     registerTitleRaw(registry);
+    registerTickingArea(registry);
 
     /**
      * The `<slotId> [oldItemHandling] <itemName> [amount]` tail both
