@@ -47,10 +47,12 @@ import {
     withPropertyWrites
 } from '../world/dynamicProperties';
 import { blockContainerAt } from '../command/host/containers';
-import { bedrockMobEffectId, bedrockMobEffectIdentifiers, normalizeStatusEffectId } from '../entity/StatusEffect';
+import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
 import { containerEntryOf, levelActors, presentActor } from './levelActors';
 import { scriptScoreboard } from './scriptScoreboard';
+import { levelCatalog } from './blocksItems/levelCatalog';
+import { scriptEffectTypes } from '@jsprismarine/bedrock-data/script-catalog';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
 export const scriptItemOf = (item: Item | null): ScriptItem | null => {
@@ -326,6 +328,24 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             );
         },
         resolveBlock: (typeId, states) => resolveBlock(server, typeId, states),
+        catalog: levelCatalog({
+            blockTypes: () => server.getContent().blocks.types.keys(),
+            itemTypes: () => server.getContent().items.types.keys()
+        }),
+        blockLight: (dimension, { x, y, z }) => {
+            const world = worldOf(dimension);
+            if (world === undefined || world.getLoadedChunk(x >> 4, z >> 4) === null) return undefined;
+            const systems = world.getSystems();
+            return {
+                block: systems.getBlockLight?.(x, y, z) ?? systems.lighting.getBlockLight(x, y, z),
+                sky: systems.getSkyLight?.(x, y, z) ?? systems.lighting.getSkyLight(x, y, z)
+            };
+        },
+        waterlogged: (dimension, { x, y, z }) => {
+            const world = worldOf(dimension);
+            if (world === undefined || world.getLoadedChunk(x >> 4, z >> 4) === null) return undefined;
+            return world.loadedLiquidAt(x, y, z) !== undefined;
+        },
         itemType: (typeId) => {
             const content = server.getContent();
             if (!content.items.types.has(typeId)) return undefined;
@@ -419,7 +439,8 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                 .map((type) => type.bedrockName),
         // BDS lists `minecraft:empty`, the effect with id 0, among its types, as the
         // `entity-components` scenario recorded.
-        effectTypes: () => ['minecraft:empty', ...bedrockMobEffectIdentifiers()],
+        // The types the pinned BDS lists, minecraft:freezing among them, which has no network id here.
+        effectTypes: () => scriptEffectTypes,
         setSneaking: (id, sneaking) => {
             const session = sessionOf(id);
             if (session === undefined) return;
