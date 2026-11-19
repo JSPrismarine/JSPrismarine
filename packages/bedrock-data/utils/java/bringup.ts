@@ -20,10 +20,12 @@
  *    prints the first 20 error diagnostics on a failure.
  * 5. **corpus**: runs the Java corpus suites and the `unhandledJavaTypes.test.ts` registry checks
  *    with `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` pointed at the release.
- * 6. **server boot**: starts a server on a flat world through the client-e2e harness, with the same
- *    variables pointing the content stack at the release, waits for it to listen and stops it.
- *    The variables are the probe until the server has a `content-java-version` config key; once it
- *    exists this stage sets that key instead.
+ * 6. **noise chunks**: generates chunk 0, 0 of the Overworld, the Nether and the End through the
+ *    data-driven generator, with the release's datapack, reports and data pack format.
+ * 7. **server boot**: starts a server on a flat world through the client-e2e harness with
+ *    `content-java-version` set to the release, waits for it to listen and stops it.
+ * 8. **command tree**: checks that the booted server built its vanilla command tree, whose
+ *    registry arguments validate against the release's loaded content.
  *
  * A failed pins or generate stage stops the run, since every later stage reads what they produce.
  * The rest all run, so one report shows every failure. The exit status is 0 only when every stage
@@ -40,6 +42,9 @@ import { parseArgs } from 'node:util';
 import { load, PackLoadError } from '../../../packs/src/load.ts';
 import type { Diagnostic } from '../../../packs/src/diagnostics.ts';
 import { startServer } from '../../../../tools/client-e2e/src/jsp-server.mts';
+import { Dimensions } from '../../../prismarine/src/world/DimensionType.ts';
+import { DataDrivenGenerator } from '../../../prismarine/src/world/generators/datadriven/DataDrivenGenerator.ts';
+import { loadJavaWorldgenRegistries } from '../../../prismarine/src/world/generators/datadriven/javaWorldgenData.ts';
 import { readGeneratedJavaVersion } from '../../src/sources.ts';
 import { fetchSource } from '../fetch/fetch.ts';
 import { verifyFileHash } from '../fetch/hash.ts';
@@ -277,18 +282,73 @@ const corpus = spawnSync('pnpm', ['exec', 'vitest', 'run', ...suites], {
 report('corpus', corpus.status === 0, `${suites.length} suites ${corpus.status === 0 ? 'passed' : 'failed'}`);
 
 // ---------------------------------------------------------------------------
-// Stage 6: server boot
+// Stage 6: noise chunks
 // ---------------------------------------------------------------------------
 
-// The harness hands its own environment to the server it spawns.
-Object.assign(process.env, releaseEnvironment);
+/** The seed the noise chunks are generated at; any seed exercises the grammar. */
+const NOISE_SEED = 1234n;
+
+/** The three vanilla noise dimensions, each with the settings and biome source Java gives it. */
+const NOISE_STEMS = [
+    {
+        noiseSettings: 'minecraft:overworld',
+        biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:overworld' },
+        dimension: Dimensions.Overworld
+    },
+    {
+        noiseSettings: 'minecraft:nether',
+        biomeSource: { type: 'minecraft:multi_noise', preset: 'minecraft:nether' },
+        dimension: Dimensions.Nether
+    },
+    { noiseSettings: 'minecraft:end', biomeSource: { type: 'minecraft:the_end' }, dimension: Dimensions.TheEnd }
+] as const;
+
 try {
-    const server = await startServer({ seconds: 180 });
+    // In-thread, with no worker pool, so the stage reads this release's data and nothing else.
+    const registries = loadJavaWorldgenRegistries({ datapack: paths.datapack, reports: paths.reports });
+    const generator = new DataDrivenGenerator({ registries });
+    const generated: string[] = [];
+    try {
+        for (const stem of NOISE_STEMS) {
+            const chunk = await generator.forStem(stem).generateChunk(0, 0, NOISE_SEED);
+            const surface = chunk.getHighestBlockAt(0, 0);
+            generated.push(`${stem.dimension.id} (top block at y ${surface ?? 'none'})`);
+        }
+    } finally {
+        generator.stopGenerating();
+    }
+    report('noise chunks', true, `chunk 0, 0 of ${generated.join(', ')}`);
+} catch (error) {
+    report('noise chunks', false, message(error));
+}
+
+// ---------------------------------------------------------------------------
+// Stage 7: server boot, and stage 8: command tree
+// ---------------------------------------------------------------------------
+
+/** The line `CommandManager.enable` logs once it has built the vanilla command tree. */
+const COMMAND_TREE_LINE = /Registered \S*?(\d+)\S* command\(s\)/;
+
+try {
+    // Only the config key names the release. The harness hands this process's environment to the
+    // server, where an exported `JSP_VANILLA_DATAPACK` would choose the datapack in the key's
+    // place, so it is removed first and the boot exercises the release resolution itself.
+    delete process.env.JSP_VANILLA_DATAPACK;
+    const server = await startServer({ seconds: 180, javaVersion: release });
     const listening = server.lines.find((line) => line.includes('now listening on port'));
+    const commandTree = server.lines.map((line) => COMMAND_TREE_LINE.exec(line)).find((match) => match !== null);
     await server.stop();
     report('server boot', true, listening?.trim() ?? `listening on port ${server.port}`);
+    report(
+        'command tree',
+        commandTree !== undefined,
+        commandTree === undefined
+            ? 'the server logged no built command tree'
+            : `${commandTree[1]} vanilla commands registered against the loaded registries`
+    );
 } catch (error) {
     report('server boot', false, message(error));
+    report('command tree', false, 'the server did not boot');
 }
 
 finish();
