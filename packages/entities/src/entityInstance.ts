@@ -203,6 +203,11 @@ export interface EntityEnvironment {
      */
     componentGroupsWritten?(entity: EntityInstance, write: ComponentGroupsWrite): void;
     /**
+     * Called as an event's effects apply to the entity, before any of them is written: the
+     * event's name and the component groups it adds and removes.
+     */
+    eventApplied?(entity: EntityInstance, effects: EventEffects): void;
+    /**
      * Builds the filter context for one evaluation. The entity fills in its
      * own facts (properties, components, type families, attributes) over
      * whatever this returns.
@@ -1061,6 +1066,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     /** Applies one event's effects now, outside the tick loop. */
     public applyEffects(effects: EventEffects): void {
+        this.environment.eventApplied?.(this, effects);
         if (effects.removeGroups.length > 0 || effects.addGroups.length > 0) {
             const before = this.activeComponentGroups();
             this.rebuild(effects.removeGroups, effects.addGroups);
