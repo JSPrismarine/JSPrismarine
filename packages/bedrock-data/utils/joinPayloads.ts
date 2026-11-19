@@ -21,7 +21,9 @@ import { join } from 'node:path';
 export const JOIN_PACKET_IDS = {
     availableActorIdentifiers: 0x77,
     creativeContent: 0x91,
-    itemRegistry: 0xa2
+    itemRegistry: 0xa2,
+    cameraPresets: 0xc6,
+    cameraAimAssistPresets: 0x140
 } as const;
 
 /** The captured payload of one packet id from a version's capture directory. */

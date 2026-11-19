@@ -7,6 +7,8 @@
  * session that picks its tables by the protocol it negotiated.
  */
 import biome_definitions_network_data from './generated/v2225/biome_definitions_network.json';
+import aim_assist_presets_data from './generated/v2225/aim_assist_presets.json';
+import camera_presets_data from './generated/v2225/camera_presets.json';
 import entity_identifiers_data from './generated/v2225/entity_identifiers.json';
 import item_table_data from './generated/v2225/item_table.json';
 import jigsaw_structure_data_data from './generated/v2225/jigsaw_structure_data.json';
@@ -55,3 +57,17 @@ export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.da
  * the four registries in identifier order.
  */
 export const jigsaw_structure_data: Buffer = Buffer.from(jigsaw_structure_data_data.data, 'base64');
+
+/**
+ * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
+ * in this list.
+ */
+export const camera_presets: Buffer = Buffer.from(camera_presets_data.data, 'base64');
+
+/**
+ * The aim assist categories and presets a Bedrock Dedicated Server sends a joining client, as the
+ * payload of `CameraAimAssistPresetsPacket`, replayed verbatim. A script reads the same registry
+ * through `world.getAimAssist()`.
+ */
+export const aim_assist_presets: Buffer = Buffer.from(aim_assist_presets_data.data, 'base64');

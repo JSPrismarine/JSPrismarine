@@ -107,6 +107,8 @@ export {
 export const item_tags: Readonly<Record<string, readonly string[]>> = item_tags_data;
 
 import biome_definitions_network_data from './generated/biome_definitions_network.json';
+import aim_assist_presets_data from './generated/aim_assist_presets.json';
+import camera_presets_data from './generated/camera_presets.json';
 import entity_identifiers_data from './generated/entity_identifiers.json';
 import jigsaw_structure_data_data from './generated/jigsaw_structure_data.json';
 
@@ -117,6 +119,20 @@ const toBuffer = ({ data }: { data: string }) => Buffer.from(data, 'base64');
  * carries it: one network NBT compound holding an `idlist`, replayed verbatim.
  */
 export const entity_identifiers: Buffer = toBuffer(entity_identifiers_data);
+
+/**
+ * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
+ * in this list.
+ */
+export const camera_presets: Buffer = toBuffer(camera_presets_data);
+
+/**
+ * The aim assist categories and presets a Bedrock Dedicated Server sends a joining client, as the
+ * payload of `CameraAimAssistPresetsPacket`, replayed verbatim. A script reads the same registry
+ * through `world.getAimAssist()`.
+ */
+export const aim_assist_presets: Buffer = toBuffer(aim_assist_presets_data);
 
 /**
  * The jigsaw structure rules, as `JigsawStructureDataPacket` carries them: one network NBT

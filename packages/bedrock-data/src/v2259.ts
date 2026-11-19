@@ -9,6 +9,8 @@
  * the default version's rules.
  */
 import biome_definitions_network_data from './generated/v2259/biome_definitions_network.json';
+import aim_assist_presets_data from './generated/v2259/aim_assist_presets.json';
+import camera_presets_data from './generated/v2259/camera_presets.json';
 import entity_identifiers_data from './generated/v2259/entity_identifiers.json';
 import item_table_data from './generated/v2259/item_table.json';
 import block_definitions_data from './jsp/v2259/block_definitions.json';
@@ -35,3 +37,17 @@ export const biome_definitions_network: Buffer = Buffer.from(biome_definitions_n
  * carries it: one network NBT compound holding an `idlist`, replayed verbatim.
  */
 export const entity_identifiers: Buffer = Buffer.from(entity_identifiers_data.data, 'base64');
+
+/**
+ * The camera presets a Bedrock Dedicated Server 1.26.60.6 sends a joining client, as the payload
+ * of `CameraPresetsPacket`, replayed verbatim. A camera instruction names a preset by its place
+ * in this list.
+ */
+export const camera_presets: Buffer = Buffer.from(camera_presets_data.data, 'base64');
+
+/**
+ * The aim assist categories and presets a Bedrock Dedicated Server sends a joining client, as the
+ * payload of `CameraAimAssistPresetsPacket`, replayed verbatim. A script reads the same registry
+ * through `world.getAimAssist()`.
+ */
+export const aim_assist_presets: Buffer = Buffer.from(aim_assist_presets_data.data, 'base64');
