@@ -27,8 +27,14 @@ const LANG_ENTRY = 'assets/minecraft/lang/en_us.json';
 /** The inner jar a bundler jar holds, which is where the assets actually are. */
 const INNER_JAR = /^META-INF\/versions\/[^/]+\/server-[^/]+\.jar$/;
 
-/** The file one Java Edition version's English strings are written to. */
-export const javaLangPath = (version: string): string => join(cacheRoot, 'java-lang', version, 'en_us.json');
+/**
+ * The file one Java Edition version's English strings are written to.
+ *
+ * @param version - The release id.
+ * @param root - The cache root, a scratch one when `datagen:java --output-root` names one.
+ */
+export const javaLangPath = (version: string, root: string = cacheRoot): string =>
+    join(root, 'java-lang', version, 'en_us.json');
 
 /**
  * Writes a server jar's English strings to a file.

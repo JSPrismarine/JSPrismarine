@@ -37,12 +37,18 @@ export interface WorldgenCachePaths {
     readonly work: string;
 }
 
-/** Where a given Java Edition version's generated data belongs. */
-export const worldgenCachePaths = (version: string): WorldgenCachePaths => ({
-    datapack: join(cacheRoot, 'vanilla-datapack', version),
-    reports: join(cacheRoot, 'java-reports', version, 'generated'),
-    structures: join(cacheRoot, 'java-structures', version),
-    work: join(cacheRoot, 'java-datagen', version)
+/**
+ * Where a given Java Edition version's generated data belongs.
+ *
+ * @param version - The release id.
+ * @param root - The cache root to lay the directories out under. `bringup:java` passes a scratch
+ * root to regenerate beside the installed data and compare the two.
+ */
+export const worldgenCachePaths = (version: string, root: string = cacheRoot): WorldgenCachePaths => ({
+    datapack: join(root, 'vanilla-datapack', version),
+    reports: join(root, 'java-reports', version, 'generated'),
+    structures: join(root, 'java-structures', version),
+    work: join(root, 'java-datagen', version)
 });
 
 /**
