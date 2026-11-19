@@ -1,0 +1,50 @@
+name: Script host
+
+# Builds @jsprismarine/script-host's QuickJS library for every platform it ships.
+# native-library.yml builds, tests and publishes it; this workflow says when.
+on:
+    pull_request:
+        paths:
+            - 'packages/script-host/**'
+            - 'scripts/native/**'
+            - '.github/workflows/script-host.yml'
+            - '.github/workflows/native-library.yml'
+            - '.github/common/native-library/**'
+            - '.github/common/mingw/**'
+    push:
+        branches:
+            - master
+        paths:
+            - 'packages/script-host/**'
+            - 'scripts/native/**'
+            - '.github/workflows/script-host.yml'
+            - '.github/workflows/native-library.yml'
+    workflow_dispatch:
+        inputs:
+            publish:
+                description: 'Attach the builds to a release and commit the manifest to this branch'
+                required: false
+                type: boolean
+                default: false
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    native:
+        name: Native
+        # The release pull request changes only the package's version and changelog, which no build
+        # reads. Skipping the builds skips every job after them.
+        if: ${{ github.head_ref != 'changeset-release/master' }}
+        uses: ./.github/workflows/native-library.yml
+        # The publish job attaches builds to a release and pushes the manifest.
+        permissions:
+            contents: write
+        secrets: inherit
+        with:
+            package: script-host
+            publish: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}

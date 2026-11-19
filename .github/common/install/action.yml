@@ -29,6 +29,13 @@ inputs:
             from the published builds. A job that brings its own build turns it off.
         required: false
         default: 'true'
+    script-host:
+        description: >-
+            Build the script host's library for this runner when the native sources differ from
+            the published builds, and make the tests that need it fail rather than skip without
+            it. A job that brings its own build turns it off.
+        required: false
+        default: 'true'
 
 runs:
     using: 'composite'
@@ -100,12 +107,21 @@ runs:
 
         - name: 🔌 Native networking library
           if: ${{ inputs.root-only != 'true' && inputs.native-network == 'true' }}
-          uses: ./.github/common/native-network
+          uses: ./.github/common/native-library
+          with:
+              package: native-network
 
-        # The script host builds on Linux x64 only so far; elsewhere its tests skip.
         - name: 📜 Script host library
-          if: ${{ inputs.root-only != 'true' && runner.os == 'Linux' && runner.arch == 'X64' }}
-          uses: ./.github/common/script-host
+          if: ${{ inputs.root-only != 'true' && inputs.script-host == 'true' }}
+          uses: ./.github/common/native-library
+          with:
+              package: script-host
+
+        # With the library in place, a suite that cannot load it fails instead of skipping.
+        - name: 📌 Require the script host library in tests
+          if: ${{ inputs.root-only != 'true' && inputs.script-host == 'true' }}
+          shell: bash
+          run: echo "JSP_SCRIPT_HOST_REQUIRE=1" >> "$GITHUB_ENV"
 
         # A pull request never saves the store. Its entry is visible to that pull request alone,
         # and a copy per pull request pushed master's entries, the ones every pull request
