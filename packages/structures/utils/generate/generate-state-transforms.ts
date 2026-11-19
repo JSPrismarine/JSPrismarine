@@ -44,7 +44,7 @@ interface BlockTransformDump {
     blocks: Record<string, { properties: string[]; states: string[][] } & Record<string, number[]>>;
 }
 
-const dump = JSON.parse(readFileSync(dumpBlockTransforms(), 'utf8')) as BlockTransformDump;
+const dump = JSON.parse(readFileSync(await dumpBlockTransforms(), 'utf8')) as BlockTransformDump;
 
 /**
  * Each Bedrock identifier's state keys in alphabetical order with the value

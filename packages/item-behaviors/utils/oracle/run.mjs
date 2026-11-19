@@ -3,8 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findJdkHome } from '../../../bedrock-data/utils/java/jdk.ts';
+import { readJarVersion, resolveJavaRelease } from '../../../bedrock-data/utils/java/release.ts';
+
 /**
- * Compiles and runs the formula oracle against the pinned Java Edition server jar, then writes
+ * Compiles and runs the formula oracle against a pinned Java Edition server jar, then writes
  * `vectors/formulas.json`. This is a capture-time task, run on a Java version bump rather than
  * on every build; the committed vectors are what the test suite reads.
  *
@@ -16,16 +19,15 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, '../..');
 const repoRoot = path.resolve(packageRoot, '../..');
 
-const sources = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8'));
-const javaVersion = sources.javaServer.defaultVersion;
-// The 26.3 manifest declares Java 25, and the dumper compiles against the server classes.
-const requiredJdkMajor = 25;
+// `--java <release>` picks a pinned Java Edition release, `javaServer.defaultVersion` when absent.
+const javaVersion = (await resolveJavaRelease(process.argv)).version;
 
 const cacheDir = path.join(repoRoot, 'node_modules/.cache/jsprismarine/java', javaVersion);
 const serverJar = path.join(cacheDir, 'extracted/META-INF/versions', javaVersion, `server-${javaVersion}.jar`);
 const librariesDir = path.join(cacheDir, 'libraries');
+const bundlerJar = path.join(cacheDir, 'server.jar');
 
-for (const required of [serverJar, librariesDir]) {
+for (const required of [bundlerJar, serverJar, librariesDir]) {
     if (!fs.existsSync(required)) {
         throw new Error(
             `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run dump:java --java ${javaVersion}\` first; ` +
@@ -34,36 +36,9 @@ for (const required of [serverJar, librariesDir]) {
     }
 }
 
-/** Finds a JDK of at least the required major version, or explains how to point at one. */
-const findJdk = () => {
-    const candidates = [];
-    if (process.env.JSP_JAVA_HOME) candidates.push(process.env.JSP_JAVA_HOME);
-    if (process.env.JAVA_HOME) candidates.push(process.env.JAVA_HOME);
-    if (process.platform === 'darwin') {
-        try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', `${requiredJdkMajor}+`], {
-                encoding: 'utf8'
-            }).trim();
-            if (home) candidates.push(home);
-        } catch {
-            // No matching JVM registered; the error below explains what to install.
-        }
-    }
-
-    for (const home of candidates) {
-        const javac = path.join(home, 'bin/javac');
-        if (!fs.existsSync(javac)) continue;
-        const major = Number(
-            execFileSync(javac, ['-version'], { encoding: 'utf8' }).replace('javac ', '').split('.')[0]
-        );
-        if (major >= requiredJdkMajor) return home;
-    }
-    throw new Error(
-        `No JDK ${requiredJdkMajor} or newer found. Install one (for example Temurin) or set JSP_JAVA_HOME.`
-    );
-};
-
-const jdkHome = findJdk();
+// The dumper compiles against the server classes, so it needs the JDK the jar declares it was built for.
+const { java_version: requiredJdkMajor } = await readJarVersion(bundlerJar);
+const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac'] });
 const classpath = [serverJar, path.join(librariesDir, '*')].join(path.delimiter);
 const classesDir = path.join(cacheDir, 'item-formula-classes');
 const outputDir = path.join(cacheDir, 'item-formula-out');
