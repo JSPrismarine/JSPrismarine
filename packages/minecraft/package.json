@@ -21,6 +21,11 @@
                 "import": "./dist/ActorFlags.js",
                 "module": "./dist/ActorFlags.js"
             },
+            "./BlockSchemaCatalog": {
+                "types": "./dist/BlockSchemaCatalog.d.ts",
+                "import": "./dist/BlockSchemaCatalog.js",
+                "module": "./dist/BlockSchemaCatalog.js"
+            },
             "./generated/block-schemas": {
                 "types": "./dist/generated/block-schemas.d.ts",
                 "import": "./dist/generated/block-schemas.js",
@@ -36,6 +41,11 @@
                 "import": "./dist/generated/v2193/ContainerUiId.js",
                 "module": "./dist/generated/v2193/ContainerUiId.js"
             },
+            "./generated/v2193/block-schemas": {
+                "types": "./dist/generated/v2193/block-schemas.d.ts",
+                "import": "./dist/generated/v2193/block-schemas.js",
+                "module": "./dist/generated/v2193/block-schemas.js"
+            },
             "./generated/v2225/ActorEvent": {
                 "types": "./dist/generated/v2225/ActorEvent.d.ts",
                 "import": "./dist/generated/v2225/ActorEvent.js",
@@ -45,6 +55,11 @@
                 "types": "./dist/generated/v2225/ContainerUiId.d.ts",
                 "import": "./dist/generated/v2225/ContainerUiId.js",
                 "module": "./dist/generated/v2225/ContainerUiId.js"
+            },
+            "./generated/v2225/block-schemas": {
+                "types": "./dist/generated/v2225/block-schemas.d.ts",
+                "import": "./dist/generated/v2225/block-schemas.js",
+                "module": "./dist/generated/v2225/block-schemas.js"
             },
             "./package.json": "./package.json"
         }
@@ -71,6 +86,10 @@
             "jsprismarine:dist": "./dist/ActorFlags.js",
             "default": "./src/ActorFlags.ts"
         },
+        "./BlockSchemaCatalog": {
+            "jsprismarine:dist": "./dist/BlockSchemaCatalog.js",
+            "default": "./src/BlockSchemaCatalog.ts"
+        },
         "./generated/block-schemas": {
             "jsprismarine:dist": "./dist/generated/block-schemas.js",
             "default": "./src/generated/block-schemas.ts"
@@ -83,6 +102,10 @@
             "jsprismarine:dist": "./dist/generated/v2193/ContainerUiId.js",
             "default": "./src/generated/v2193/ContainerUiId.ts"
         },
+        "./generated/v2193/block-schemas": {
+            "jsprismarine:dist": "./dist/generated/v2193/block-schemas.js",
+            "default": "./src/generated/v2193/block-schemas.ts"
+        },
         "./generated/v2225/ActorEvent": {
             "jsprismarine:dist": "./dist/generated/v2225/ActorEvent.js",
             "default": "./src/generated/v2225/ActorEvent.ts"
@@ -90,6 +113,10 @@
         "./generated/v2225/ContainerUiId": {
             "jsprismarine:dist": "./dist/generated/v2225/ContainerUiId.js",
             "default": "./src/generated/v2225/ContainerUiId.ts"
+        },
+        "./generated/v2225/block-schemas": {
+            "jsprismarine:dist": "./dist/generated/v2225/block-schemas.js",
+            "default": "./src/generated/v2225/block-schemas.ts"
         },
         "./package.json": "./package.json"
     },
