@@ -14,7 +14,7 @@ import path from 'node:path';
 import { Logger } from '@jsprismarine/logger';
 import type { ScriptHttpRequest } from '@jsprismarine/script-host/host/world';
 import { locateLibrary } from '@jsprismarine/script-host/library';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Config } from '../config/Config';
 import Server from '../Server';
@@ -155,51 +155,52 @@ const runSession = async (
     }
 };
 
-describe.skipIf(!scriptHostAvailable())('a session that sends HTTP requests', () => {
-    it(
-        'replays to the same digest at every tick from the recorded results, without the network',
-        { tags: ['real-data'], timeout: 180_000 },
-        async () => {
-            // The captured network answers the oldest request on two ticks of every three, a 500
-            // for every third request and a failure for every fifth.
-            const waiting: { readonly request: ScriptHttpRequest; readonly answer: (o: ScriptHttpOutcome) => void }[] =
-                [];
-            let answered = 0;
-            const network: ScriptHttpTransport = (request) =>
-                new Promise((answer) => {
-                    waiting.push({ request, answer });
-                });
-            const recorded: ScriptHttpAdmissionRecord[] = [];
-            const captured = await runSession(
-                network,
-                (tick) => {
-                    if (tick % 3 === 2) return;
-                    const next = waiting.shift();
-                    if (next === undefined) return;
-                    answered += 1;
-                    next.answer(
-                        answered % 5 === 0
-                            ? { errorCode: 111 }
-                            : { status: answered % 3 === 0 ? 500 : 200, headers: [], body: next.request.uri }
-                    );
-                },
-                undefined,
-                recorded
-            );
+describe.skipIf(!scriptHostAvailable())('a session that sends HTTP requests', { tags: ['real-data'] }, () => {
+    let captured: Awaited<ReturnType<typeof runSession>>;
+    let replay: Awaited<ReturnType<typeof runSession>>;
+    const recorded: ScriptHttpAdmissionRecord[] = [];
+    let reached = 0;
 
-            let reached = 0;
-            const offline: ScriptHttpTransport = () => {
-                reached += 1;
-                return Promise.resolve({ errorCode: 0 });
-            };
-            const replay = await runSession(offline, () => {}, recorded, []);
+    // Each run boots a server, whose content build is the slow part, so both run once, up front.
+    beforeAll(async () => {
+        // The captured network answers the oldest request on two ticks of every three, a 500
+        // for every third request and a failure for every fifth.
+        const waiting: { readonly request: ScriptHttpRequest; readonly answer: (o: ScriptHttpOutcome) => void }[] = [];
+        let answered = 0;
+        const network: ScriptHttpTransport = (request) =>
+            new Promise((answer) => {
+                waiting.push({ request, answer });
+            });
+        captured = await runSession(
+            network,
+            (tick) => {
+                if (tick % 3 === 2) return;
+                const next = waiting.shift();
+                if (next === undefined) return;
+                answered += 1;
+                next.answer(
+                    answered % 5 === 0
+                        ? { errorCode: 111 }
+                        : { status: answered % 3 === 0 ? 500 : 200, headers: [], body: next.request.uri }
+                );
+            },
+            undefined,
+            recorded
+        );
 
-            // The results changed the weather, so the digests compare their work.
-            expect(new Set(captured.weather).size).toBeGreaterThan(2);
-            expect(recorded.length).toBeGreaterThan(5);
-            expect(reached).toBe(0);
-            expect(replay.weather).toEqual(captured.weather);
-            expect(replay.digests).toEqual(captured.digests);
-        }
-    );
+        const offline: ScriptHttpTransport = () => {
+            reached += 1;
+            return Promise.resolve({ errorCode: 0 });
+        };
+        replay = await runSession(offline, () => {}, recorded, []);
+    }, 180_000);
+
+    it('replays to the same digest at every tick from the recorded results, without the network', () => {
+        // The results changed the weather, so the digests compare their work.
+        expect(new Set(captured.weather).size).toBeGreaterThan(2);
+        expect(recorded.length).toBeGreaterThan(5);
+        expect(reached).toBe(0);
+        expect(replay.weather).toEqual(captured.weather);
+        expect(replay.digests).toEqual(captured.digests);
+    });
 });

@@ -18,7 +18,7 @@ import type {
     DebuggerExtensionCommand,
     DebuggerExtensionReport,
     DebuggerExtensionScript
-} from '../testing/debuggerExtension.test.helper';
+} from '../testing/debuggerExtension.test-utils';
 import { fakeLevel } from '../testing/level';
 import { isRecord } from '../utils/isRecord';
 import { LevelScripts } from './LevelScripts';
@@ -66,7 +66,7 @@ class Extension {
     private waiters: (() => void)[] = [];
 
     public constructor(script: DebuggerExtensionScript) {
-        this.worker = new Worker(new URL('../testing/debuggerExtension.test.helper.ts', import.meta.url), {
+        this.worker = new Worker(new URL('../testing/debuggerExtension.test-utils.ts', import.meta.url), {
             workerData: script,
             execArgv: ['--import', loader]
         });
@@ -223,9 +223,7 @@ describe('parseConnectAddress', () => {
     });
 });
 
-// Each test starts two worker threads that load TypeScript source, which a busy host can take a
-// while to do; the budget guards against a hang, not a slow machine.
-describe.skipIf(!scriptHostAvailable())('the script debugger', { timeout: 120_000 }, () => {
+describe.skipIf(!scriptHostAvailable())('the script debugger', () => {
     it('refuses both directions while the properties keep them off, with BDS’s messages', async () => {
         const scripts = await load({}, new Lines());
 

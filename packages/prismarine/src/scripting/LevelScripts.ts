@@ -117,13 +117,19 @@ export class LevelScripts {
 
     /**
      * Loads the script host and the level's script packs.
+     * @param options - The level's packs, sources, log and settings.
+     * @param importHost - Imports the optional `@jsprismarine/script-host` package, and rejects
+     *   where it is not installed.
      * @returns The level's scripts, or undefined when no pack has a script module or the script
      *   host cannot run on this machine.
      */
-    public static async load(options: LevelScriptsOptions): Promise<LevelScripts | undefined> {
-        let host: Awaited<ReturnType<typeof importScriptHost>>;
+    public static async load(
+        options: LevelScriptsOptions,
+        importHost: () => Promise<ScriptHostModules> = importScriptHost
+    ): Promise<LevelScripts | undefined> {
+        let host: ScriptHostModules;
         try {
-            host = await importScriptHost();
+            host = await importHost();
         } catch {
             const scripted = options.packDirectories.filter(hasScriptModule).length;
             if (scripted > 0) {
@@ -333,3 +339,6 @@ const importScriptHost = async () => {
     };
     return { ScriptHostLibrary, WorldScripts, watchdogSettings, readScriptConfig, readScriptPack, debuggerHost };
 };
+
+/** The parts of the script host a level uses. */
+type ScriptHostModules = Awaited<ReturnType<typeof importScriptHost>>;

@@ -23,8 +23,8 @@ import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
-import { scriptHostAvailable } from '../../../script-host/src/testing/library.test.helper.ts';
-import { afterAll, describe, expect, it } from 'vitest';
+import { scriptHostAvailable } from '../../../script-host/src/testing/library.test-utils.ts';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { stageBehaviorPacks } from '../../../bedrock-data/utils/bedrock-dump/pack.ts';
 import { spawnProbe } from '../../../bedrock-data/utils/bedrock-dump/probe.ts';
@@ -132,26 +132,33 @@ describe.skipIf(!enabled || !scriptHostAvailable())(
             return server.lines;
         };
 
-        it(
-            'reads on JSPrismarine what a BDS script saved, and BDS reads what a JSPrismarine script saved',
-            async () => {
-                const fromBds = join(scratch, 'bds');
-                const first = await runOnBds(fromBds);
-                expect(readOf(first)).toEqual({ gen: 0, world: {}, stand: null, objective: null, sidebar: null });
+        let first: unknown;
+        let jsp: unknown;
+        let back: unknown;
 
-                const fromJsp = join(scratch, 'jsp');
-                const jsp = await runPacksOnHeadlessServer({
+        // Each step boots a server and runs the pack to its write, minutes on BDS, so the three run
+        // here, one after another, and the test reads what each read.
+        beforeAll(async () => {
+            const fromBds = join(scratch, 'bds');
+            first = readOf(await runOnBds(fromBds));
+
+            const fromJsp = join(scratch, 'jsp');
+            jsp = readOf(
+                await runPacksOnHeadlessServer({
                     packDirectories: [PACK],
                     world: fromBds,
                     keepWorld: fromJsp,
                     ended: (lines) => lines.some((line) => line.includes(WRITTEN_LINE))
-                });
-                expect(readOf(jsp)).toEqual(generation(1));
+                })
+            );
 
-                const back = await runOnBds(join(scratch, 'back'), fromJsp);
-                expect(readOf(back)).toEqual(generation(2));
-            },
-            STEP_MS
-        );
+            back = readOf(await runOnBds(join(scratch, 'back'), fromJsp));
+        }, STEP_MS);
+
+        it('reads on JSPrismarine what a BDS script saved, and BDS reads what a JSPrismarine script saved', () => {
+            expect(first).toEqual({ gen: 0, world: {}, stand: null, objective: null, sidebar: null });
+            expect(jsp).toEqual(generation(1));
+            expect(back).toEqual(generation(2));
+        });
     }
 );

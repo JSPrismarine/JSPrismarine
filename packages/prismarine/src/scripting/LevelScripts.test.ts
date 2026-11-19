@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { locateLibrary } from '@jsprismarine/script-host/library';
+import { LIBRARY_ENV, locateLibrary } from '@jsprismarine/script-host/library';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fakeLevel } from '../testing/level';
@@ -22,8 +22,7 @@ const scriptHostAvailable = (): boolean => {
 
 const directories: string[] = [];
 afterEach(() => {
-    vi.doUnmock('@jsprismarine/script-host');
-    vi.resetModules();
+    vi.unstubAllEnvs();
     for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 
@@ -71,16 +70,15 @@ const options = (packDirectories: string[], lines: string[], onShutdown = () => 
 
 describe('LevelScripts', () => {
     it('warns once, naming the package and how to install it, when the script host is not installed', async () => {
-        vi.doMock('@jsprismarine/script-host', () => {
-            throw new Error("Cannot find package '@jsprismarine/script-host'");
-        });
+        // What Node.js rejects the import with when an install left the optional package out.
+        const uninstalled = () => Promise.reject(new Error("Cannot find package '@jsprismarine/script-host'"));
         const scripted: string[] = [];
         const plain: string[] = [];
 
         await expect(
-            LevelScripts.load(options([writePack('// a script'), writePack(undefined)], scripted))
+            LevelScripts.load(options([writePack('// a script'), writePack(undefined)], scripted), uninstalled)
         ).resolves.toBeUndefined();
-        await expect(LevelScripts.load(options([writePack(undefined)], plain))).resolves.toBeUndefined();
+        await expect(LevelScripts.load(options([writePack(undefined)], plain), uninstalled)).resolves.toBeUndefined();
 
         expect(scripted).toHaveLength(1);
         expect(scripted[0]).toMatch(
@@ -91,22 +89,17 @@ describe('LevelScripts', () => {
     });
 
     it('warns once, naming the platform and the reason, when the script host has no library for it', async () => {
-        vi.doMock('@jsprismarine/script-host', async (importOriginal) => {
-            const original = await importOriginal<typeof import('@jsprismarine/script-host')>();
-            const ScriptHostLibrary = {
-                load: (): never => {
-                    throw new Error('no build for this platform');
-                }
-            };
-            return { ...original, ScriptHostLibrary };
-        });
+        // The override names a file that is not there, so locating the library fails as it does
+        // on a platform with no build, wherever the tests run.
+        const missing = path.join(tmpdir(), 'jsp-level-scripts-no-library', 'libjsp_script_host.so');
+        vi.stubEnv(LIBRARY_ENV, missing);
         const lines: string[] = [];
 
         await expect(LevelScripts.load(options([writePack('// a script')], lines))).resolves.toBeUndefined();
 
         expect(lines).toHaveLength(1);
         expect(lines[0]).toContain(`@jsprismarine/script-host has no library for ${process.platform}-${process.arch}`);
-        expect(lines[0]).toContain('no build for this platform');
+        expect(lines[0]).toContain(`${LIBRARY_ENV} names ${missing}, which does not exist`);
     });
 
     it.skipIf(!scriptHostAvailable())(

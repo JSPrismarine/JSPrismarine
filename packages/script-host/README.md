@@ -387,7 +387,7 @@ dynamic properties on the world and on an entity live in the world, keyed by the
 UUID, and a script writes them through `ScriptWorld.setDynamicProperties`; an item stack keeps
 its own in its state, keyed by the script module UUID, as BDS keys them on disk. The scripts'
 `world.scoreboard` is `ScriptWorld.scoreboard`, which the server shares with `/scoreboard`.
-`src/testing/memoryWorld.test.helper.ts` is a `ScriptWorld`
+`src/testing/memoryWorld.test-utils.ts` is a `ScriptWorld`
 in memory, which counts what the host reads, for tests that bound the world calls a member makes.
 
 ```ts

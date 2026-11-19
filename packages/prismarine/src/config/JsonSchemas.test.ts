@@ -5,7 +5,6 @@ import Ajv from 'ajv';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import pkg from '../../package.json' with { type: 'json' };
-import { WORLD_EXPERIMENTS } from '../world/WorldExperiments';
 
 const schemaFiles = [
     'config.schema.json',
@@ -151,8 +150,9 @@ describe('JSON schemas', () => {
             expect(validate({ seed: 1, generator: 'Flat', layers: [{ block: 'stone', size: 1 }] })).toBe(false);
         });
 
+        // `gametest` is Bedrock's id for the Beta APIs experiment, the one the server implements.
         it('takes only the experiments the server implements', () => {
-            expect(validate({ seed: 1, experiments: [...WORLD_EXPERIMENTS] })).toBe(true);
+            expect(validate({ seed: 1, experiments: ['gametest'] })).toBe(true);
             expect(validate({ seed: 1, experiments: ['data_driven_items'] })).toBe(false);
         });
 

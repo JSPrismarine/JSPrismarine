@@ -15,7 +15,7 @@ import { implementationCoverage } from '../shape/implementations';
 import { currentBeta } from '../shape/resolve';
 import type { ScriptApiImplementations } from '../shape/implementations';
 import { isRecord } from '../isRecord';
-import { MemoryWorld } from '../testing/memoryWorld.test.helper';
+import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import { serverImplementations } from './minecraftServer';
 import type { PackHost } from './minecraftServer';
 

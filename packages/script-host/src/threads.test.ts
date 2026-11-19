@@ -1,7 +1,7 @@
 import { Worker } from 'node:worker_threads';
 import { describe, expect, it } from 'vitest';
 
-import { scriptHostAvailable } from './testing/library.test.helper';
+import { scriptHostAvailable } from './testing/library.test-utils';
 import type { EngineWorkerReport } from './testing/engineWorker';
 
 /** Node.js strips the worker's types; the repository's resolver adds its extensionless imports. */

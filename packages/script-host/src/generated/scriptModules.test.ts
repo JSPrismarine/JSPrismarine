@@ -4,12 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-// Imported so a change to any generated file selects this suite under `vitest --changed`.
-import { SCRIPT_MODULE_HISTORIES } from '../../src/generated/scriptModules.ts';
-import { emitShape } from './emit.mts';
-import { generateShape } from './generate.mts';
-import { directorySource, findScriptModules, readSamplesPin } from './locate.mts';
-import { SHAPE_OVERRIDES } from './overrides.mts';
+import { emitShape } from '../../scripts/shape/emit.mts';
+import { generateShape } from '../../scripts/shape/generate.mts';
+import { directorySource, findScriptModules, readSamplesPin } from '../../scripts/shape/locate.mts';
+import { SHAPE_OVERRIDES } from '../../scripts/shape/overrides.mts';
+import { SCRIPT_MODULE_HISTORIES } from './scriptModules.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const metadata = await findScriptModules();

@@ -72,9 +72,7 @@ const start = (): { thread: DebuggerThread; events: Events } => {
     return { thread, events };
 };
 
-// Each test starts a worker that loads TypeScript source, which a busy host can take a while to
-// do; the budget guards against a hang, not a slow machine.
-describe('the debugger thread', { timeout: 120_000 }, () => {
+describe('the debugger thread', () => {
     it('listens on its own thread and hands a connection to this thread as a channel', async () => {
         const { thread, events } = start();
         const port = await thread.listen({ port: 0 });

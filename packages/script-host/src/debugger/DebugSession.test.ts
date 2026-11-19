@@ -2,7 +2,7 @@ import { DebuggerConnectionError } from '@jsprismarine/errors/script-host';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from '../testing/library.test-utils';
 import { ScriptDebugSession } from './DebugSession';
 import type { DebuggerChannel, DebugSessionOptions } from './DebugSession';
 import { DEBUGGER_PROTOCOL_VERSION } from './protocol';

@@ -1,46 +1,38 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { DebuggerChannelBridge, PortDebuggerChannel } from './channel';
 
 describe('the debugger channel', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     /**
-     * Makes the engine's end close the connection after `receive` has seen it open and before
-     * `receive` waits, the order a thread switch can produce. The wait itself never blocks: it
-     * reports whether it would have returned at once.
+     * What a `receive` that saw the connection open and had not yet started to wait would wait on:
+     * the first word of the shared signal, which counts deliveries and closes, as it read it.
      */
-    const closeBeforeWait = (close: () => void): string[] => {
-        const wait = Atomics.wait.bind(Atomics);
-        const outcomes: string[] = [];
-        vi.spyOn(Atomics, 'wait').mockImplementation((array, index, value) => {
-            close();
-            const outcome = wait(array, index, value, 0);
-            outcomes.push(outcome);
-            return outcome;
-        });
-        return outcomes;
+    const waitedOn = (bridge: DebuggerChannelBridge) => {
+        const signal = new Int32Array(bridge.endpoint.signal);
+        const seen = Atomics.load(signal, 0);
+        // A zero timeout, so a wait that would block reports `timed-out` instead of hanging the test.
+        return { wait: () => Atomics.wait(signal, 0, seen, 0) };
     };
 
     it('wakes a receive whose wait starts after the connection side closed', () => {
         const bridge = new DebuggerChannelBridge();
         const channel = new PortDebuggerChannel(bridge.endpoint);
-        const outcomes = closeBeforeWait(() => bridge.close());
+        const before = waitedOn(bridge);
+        bridge.close();
 
+        expect(before.wait()).toBe('not-equal');
         expect(channel.receive()).toBeUndefined();
-        expect(outcomes).toEqual(['not-equal']);
         channel.close();
     });
 
     it('wakes a receive whose wait starts after the engine side closed', () => {
         const bridge = new DebuggerChannelBridge();
         const channel = new PortDebuggerChannel(bridge.endpoint);
-        const outcomes = closeBeforeWait(() => channel.close());
+        const before = waitedOn(bridge);
+        channel.close();
 
+        expect(before.wait()).toBe('not-equal');
         expect(channel.receive()).toBeUndefined();
-        expect(outcomes).toEqual(['not-equal']);
         bridge.close();
     });
 

@@ -2,7 +2,7 @@ import { ScriptError, ScriptOutOfMemoryError, ScriptTerminatedError } from '@jsp
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptEngineOptions, ScriptHostLibrary } from './ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from './testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from './testing/library.test-utils';
 import { ScriptHandle } from './values';
 
 describe.skipIf(!scriptHostAvailable())('a script engine', () => {
