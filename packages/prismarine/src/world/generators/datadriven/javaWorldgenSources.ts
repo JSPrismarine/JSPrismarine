@@ -1,14 +1,17 @@
 /**
  * Where the fetched Java Edition world generation data sits on this machine.
  *
- * This module imports nothing but `node:fs` and `node:path` on purpose. `packages/parity`
+ * This module imports nothing but `node:fs`, `node:path` and `@jsprismarine/bedrock-data/sources`,
+ * which itself reads only `sources.json`, on purpose. `packages/parity`
  * asks it whether a checkout has the data from `scripts/capture-corpus.ts`, which runs under
  * node's own type stripping before Vite is up, and strip-only mode cannot load
  * `@jsprismarine/packs`. The loader that reads the data lives in
  * [`javaWorldgenData.ts`](javaWorldgenData.ts).
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 
 /** Points the loader at a local copy of one fetched source. */
 export const JAVA_WORLDGEN_ENV = {
@@ -39,16 +42,14 @@ export const cacheRoot = (): string => {
     }
 };
 
-/** The one version directory under a cache folder, or undefined when there is none. */
-const onlyVersionIn = (root: string, holds: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-
-    for (const entry of readdirSync(root).sort().reverse()) {
-        const candidate = join(root, entry);
-        if (existsSync(join(candidate, holds))) return candidate;
-    }
-
-    return undefined;
+/**
+ * The default Java release's directory under a cache folder, or undefined when it does not hold
+ * `holds`. The cache keeps one directory per pinned release, so it is picked by name: the
+ * newest-named one could be a preview the server does not run.
+ */
+const defaultReleaseIn = (root: string, holds: string): string | undefined => {
+    const candidate = join(root, javaServerCacheFolder);
+    return existsSync(join(candidate, holds)) ? candidate : undefined;
 };
 
 /**
@@ -70,10 +71,10 @@ const sourcePath = (override: string | undefined, found: () => string | undefine
 export const findJavaWorldgenSources = (): JavaWorldgenSources | undefined => {
     const root = cacheRoot();
     const datapack = sourcePath(process.env[JAVA_WORLDGEN_ENV.datapack], () =>
-        onlyVersionIn(join(root, 'vanilla-datapack'), 'data')
+        defaultReleaseIn(join(root, 'vanilla-datapack'), 'data')
     );
     const reports = sourcePath(process.env[JAVA_WORLDGEN_ENV.reports], () =>
-        onlyVersionIn(join(root, 'java-reports'), join('generated', 'reports'))
+        defaultReleaseIn(join(root, 'java-reports'), join('generated', 'reports'))
     );
 
     if (datapack === undefined || reports === undefined) return undefined;
