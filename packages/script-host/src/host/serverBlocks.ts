@@ -8,7 +8,6 @@
  * `blocks` scenario recorded on BDS.
  */
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
-import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
 import type { BlockKey } from './serverObjects';
@@ -24,11 +23,38 @@ import {
     vectorArgument,
     withNamespace
 } from './serverObjects';
-import type { ScriptBlockPermutation } from './world';
+import type { ScriptBlockPermutation, ScriptVector3, ScriptWorld } from './world';
 import { isRecord } from '../isRecord';
+import { blockComponent, blockComponents, componentBlockState } from './blocksItems/blockComponents';
+import { objectArray } from './blocksItems/handles';
 
 /** A state value as `BlockPermutation.resolve` takes it. */
 type StateValue = string | number | boolean;
+
+/**
+ * The block a block object stands for, as the world holds it now.
+ * @throws {ScriptApiError} BDS's error when its chunk is not loaded.
+ */
+export const blockAt = (world: ScriptWorld, key: BlockKey): ScriptBlockPermutation => {
+    const permutation = world.block(key.dimension, key);
+    if (permutation === undefined) throw unloadedChunk(key);
+    return permutation;
+};
+
+/**
+ * A new `Block` object for a location of a dimension, or undefined where its chunk is not loaded,
+ * as `Dimension.getBlock` returns it.
+ * @throws {ScriptApiError} BDS's error for a location above or below the dimension.
+ */
+export const blockObjectAt = (host: PackHost, dimension: string, at: ScriptVector3): ScriptHandle | undefined => {
+    const location = blockPosition(at);
+    const { min, max } = host.world.heightRange(dimension);
+    // BDS answers the height just above the top with air, and refuses anything past it.
+    if (location.y < min || location.y > max) throw outsideWorld(location);
+    if (host.world.block(dimension, location) === undefined) return undefined;
+    const key: BlockKey = { dimension, ...location };
+    return host.engine.release(host.create('Block', TAG.block, JSON.stringify(key)));
+};
 
 /**
  * Registers the block members.
@@ -42,14 +68,8 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
     /** The block an object stands for, as the world holds it now. */
     const read = (call: ScriptCall): { readonly key: BlockKey; readonly permutation: ScriptBlockPermutation } => {
         const key = blockKeyOf(call.state);
-        const permutation = world.block(key.dimension, key);
-        if (permutation === undefined) throw unloadedChunk(key);
-        return { key, permutation };
+        return { key, permutation: blockAt(world, key) };
     };
-    /** Whether a component id names the inventory and the block holds a container. Only the inventory has behavior yet. */
-    const holdsInventory = (key: BlockKey, component: ScriptValue | undefined): boolean =>
-        withNamespace(String(component)) === 'minecraft:inventory' &&
-        world.blockInventory?.(key.dimension, key) !== undefined;
     /** Completes a type's permutation, or throws BDS's error for a type it does not have. */
     const resolveType = (call: ScriptCall): ScriptBlockPermutation => {
         const [type] = call.args;
@@ -60,15 +80,7 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
     };
 
     implementations
-        .implement(SERVER, 'Dimension', 'getBlock', (call) => {
-            const location = blockPosition(vectorArgument(call, 0));
-            const { min, max } = world.heightRange(call.state);
-            // BDS answers the height just above the top with air, and refuses anything past it.
-            if (location.y < min || location.y > max) throw outsideWorld(location);
-            if (world.block(call.state, location) === undefined) return undefined;
-            const key: BlockKey = { dimension: call.state, ...location };
-            return host.engine.release(host.create('Block', TAG.block, JSON.stringify(key)));
-        })
+        .implement(SERVER, 'Dimension', 'getBlock', (call) => blockObjectAt(host, call.state, vectorArgument(call, 0)))
         .implement(SERVER, 'Block', 'typeId', { get: (call) => read(call).permutation.typeId })
         .implement(SERVER, 'Block', 'location', {
             get: (call) => {
@@ -84,13 +96,19 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
         })
         .implement(SERVER, 'Block', 'permutation', { get: (call) => permutationObject(read(call).permutation) })
         .implement(SERVER, 'Block', 'getComponent', (call) => {
-            const { key } = read(call);
-            if (!holdsInventory(key, call.args[0])) return undefined;
-            return host.engine.release(host.create('BlockInventoryComponent', TAG.blockInventory, JSON.stringify(key)));
+            const component = blockComponent(host, read(call).key, String(call.args[0]));
+            return component === undefined ? undefined : host.engine.release(component);
         })
-        .implement(SERVER, 'Block', 'hasComponent', (call) => holdsInventory(read(call).key, call.args[0]))
+        .implement(SERVER, 'Block', 'hasComponent', (call) => {
+            const component = blockComponent(host, read(call).key, String(call.args[0]));
+            if (component === undefined) return false;
+            call.engine.free(component);
+            return true;
+        })
+        .implement(SERVER, 'Block', 'getComponents', (call) => objectArray(host, blockComponents(host, read(call).key)))
         .implement(SERVER, 'BlockComponent', 'block', {
-            get: (call) => host.engine.release(host.create('Block', TAG.block, call.state))
+            get: (call) =>
+                host.engine.release(host.create('Block', TAG.block, componentBlockState(call.tag, call.state)))
         })
         .implement(SERVER, 'Block', 'setType', (call) => {
             const { key } = read(call);

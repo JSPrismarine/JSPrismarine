@@ -43,6 +43,8 @@ import type {
     ScriptVector3
 } from './world';
 import { isRecord } from '../isRecord';
+import { sameExtras } from './blocksItems/itemExtras';
+import { blockItemComponentFacts } from './blocksItems/componentFacts';
 
 /** The `EntityQueryOptions` fields the host filters by. */
 export interface EntityQuery {
@@ -176,13 +178,14 @@ export const viewDirection = ({ x: pitch, y: yaw }: { readonly x: number; readon
 const HOTBAR = { min: 0, max: 8 } as const;
 
 /** Whether two stacks merge into one slot: the same type, name, lore and dynamic properties. */
-const stacksWith = (a: ScriptItem, b: ScriptItem): boolean =>
+export const stacksWith = (a: ScriptItem, b: ScriptItem): boolean =>
     a.typeId === b.typeId &&
     a.nameTag === b.nameTag &&
     JSON.stringify(a.lore ?? []) === JSON.stringify(b.lore ?? []) &&
     (a.damage ?? 0) === (b.damage ?? 0) &&
     (a.dynamicProperties?.size ?? 0) === 0 &&
-    (b.dynamicProperties?.size ?? 0) === 0;
+    (b.dynamicProperties?.size ?? 0) === 0 &&
+    sameExtras(a, b);
 
 /**
  * Where `Container.addItem` puts a stack: onto the stacks it merges with, in slot order, then
@@ -464,6 +467,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
                       ? 'minecraft:durability'
                       : (componentFacts(world, call.tag, call.state)?.typeId ??
                         areaComponentFacts(host, call.tag, call.state)?.typeId ??
+                        blockItemComponentFacts(world, call.tag, call.state)?.typeId ??
                         '')
         })
         .implement(SERVER, 'Component', 'isValid', {
@@ -471,6 +475,7 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
                 if (call.tag === TAG.durability) return true;
                 const facts =
                     componentFacts(world, call.tag, call.state) ?? areaComponentFacts(host, call.tag, call.state);
+                componentFacts(world, call.tag, call.state) ?? blockItemComponentFacts(world, call.tag, call.state);
                 if (facts !== undefined) return facts.isValid;
                 if (call.tag === TAG.blockInventory) return slotsOf(call.state) !== undefined;
                 return world.entity(entityKeyOf(call.state).id) !== undefined;

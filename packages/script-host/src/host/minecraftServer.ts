@@ -30,6 +30,7 @@ import { implementDynamicProperties } from './serverProperties';
 import { implementScoreboard } from './serverScoreboard';
 import { implementStructures } from './serverStructures';
 import { implementFeedback } from './serverFeedback';
+import { implementBlocksAndItems } from './blocksItems/implement';
 import type { BlockKey, EntityKey } from './serverObjects';
 import {
     entityKeyOf,
@@ -607,6 +608,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementFeedback(implementations, host);
     implementPlayerActions(implementations, host, data, signal);
     implementEntityArea(implementations, host);
+    implementBlocksAndItems(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {

@@ -93,7 +93,7 @@ export const propertyValueOf = (call: ScriptCall, id: string, value: ScriptValue
 };
 
 /** A stored value as a script reads it: a vector becomes a new object in the engine. */
-const scriptValueOf = (call: ScriptCall, value: ScriptPropertyValue | undefined): ScriptValue => {
+export const scriptValueOf = (call: ScriptCall, value: ScriptPropertyValue | undefined): ScriptValue => {
     if (value === undefined || typeof value !== 'object') return value;
     // BDS stores a part a float cannot hold as infinity and refuses to read it back.
     if (![value.x, value.y, value.z].every(Number.isFinite)) throw new ScriptHostErrors.InfinityNotSupported();
@@ -110,13 +110,14 @@ const vectorObject = (call: ScriptCall, { x, y, z }: ScriptVector3): ScriptHandl
 };
 
 /** A list of ids as a script reads it, which the binding parses. */
-const idList = (properties: ScriptProperties | undefined): string => JSON.stringify([...(properties?.keys() ?? [])]);
+export const idList = (properties: ScriptProperties | undefined): string =>
+    JSON.stringify([...(properties?.keys() ?? [])]);
 
 /**
  * Reads the entries of a `setDynamicProperties` record, each value as {@link propertyValueOf}
  * converts it, before anything is written, so one bad value writes none, as on BDS.
  */
-const recordArgument = (call: ScriptCall): Map<string, ScriptPropertyValue | undefined> => {
+export const recordArgument = (call: ScriptCall): Map<string, ScriptPropertyValue | undefined> => {
     const [record] = call.args;
     if (!(record instanceof ScriptHandle)) throw conversionFailed();
     const { engine } = call;
@@ -144,12 +145,13 @@ const recordArgument = (call: ScriptCall): Map<string, ScriptPropertyValue | und
     return values;
 };
 
-/** Which arguments the property setters convert themselves, with BDS's own errors. */
-const CONVERTS_VALUE = { converts: ['value'] } as const;
-const CONVERTS_VALUES = { converts: ['values'] } as const;
+/** The argument `setDynamicProperty` converts itself, with BDS's own errors. */
+export const CONVERTS_VALUE = { converts: ['value'] } as const;
+/** The argument `setDynamicProperties` converts itself, with BDS's own errors. */
+export const CONVERTS_VALUES = { converts: ['values'] } as const;
 
 /** BDS's error for a dynamic property set on a stack of an item type that stacks. */
-const stackableItem = (): ScriptApiError =>
+export const stackableItem = (): ScriptApiError =>
     new ScriptApiError(
         COMMON,
         'UnsupportedFunctionalityError',

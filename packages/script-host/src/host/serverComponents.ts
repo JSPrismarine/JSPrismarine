@@ -91,7 +91,7 @@ const attributeKeyOf = (state: string): AttributeKey => {
 };
 
 /** Where a `ContainerSlot` is: a slot of a container, or one of an entity's equipment slots. */
-type SlotKey =
+export type SlotKey =
     | { readonly container: string; readonly slot: number }
     | { readonly entity: EntityKey; readonly equipment: ScriptEquipmentSlot };
 
@@ -108,7 +108,8 @@ const EQUIPMENT_SLOTS: readonly ScriptEquipmentSlot[] = [
 const isEquipmentSlot = (value: unknown): value is ScriptEquipmentSlot =>
     EQUIPMENT_SLOTS.some((slot) => slot === value);
 
-const slotKeyOf = (state: string): SlotKey => {
+/** Where a `ContainerSlot` object's state says its slot is. */
+export const slotKeyOf = (state: string): SlotKey => {
     // The host wrote the state with JSON.stringify.
     const parsed: unknown = JSON.parse(state);
     if (isRecord(parsed) && typeof parsed.container === 'string' && typeof parsed.slot === 'number') {
@@ -121,12 +122,31 @@ const slotKeyOf = (state: string): SlotKey => {
 };
 
 /** BDS's error for a member of a slot that holds nothing or whose container is gone. */
-const invalidSlot = (): ScriptApiError =>
+export const invalidSlot = (): ScriptApiError =>
     new ScriptApiError(
         SERVER,
         'InvalidContainerSlotError',
         'The container slot is either empty or is no longer loaded.'
     );
+
+/** What a slot holds now: its stack, null when it is empty, or undefined when its container is gone. */
+export const slotItemOf = (world: ScriptWorld, key: SlotKey): ScriptItem | null | undefined => {
+    if ('container' in key) {
+        const slots = containerSlots(world, key.container);
+        return slots === undefined ? undefined : (slots[key.slot] ?? null);
+    }
+    const equipment = world.equipment?.(key.entity.id);
+    return equipment === undefined ? undefined : (equipment.slots[key.equipment] ?? null);
+};
+
+/** Writes a slot's stack. Returns whether the slot took it. */
+export const writeSlotOf = (world: ScriptWorld, key: SlotKey, item: ScriptItem | undefined): boolean => {
+    if ('container' in key) {
+        writeContainerSlot(world, key.container, key.slot, item);
+        return true;
+    }
+    return world.setEquipment?.(key.entity.id, key.equipment, item) ?? false;
+};
 
 /**
  * The component an entity has under an id, as `Entity.getComponent` returns it, or undefined
@@ -220,22 +240,8 @@ export const implementComponents = (implementations: ScriptApiImplementations, h
         world.setAttribute?.(key.id, key.attribute, value(attribute));
     };
 
-    /** What a slot holds now: its stack, null when it is empty, or undefined when its container is gone. */
-    const slotItem = (key: SlotKey): ScriptItem | null | undefined => {
-        if ('container' in key) {
-            const slots = containerSlots(world, key.container);
-            return slots === undefined ? undefined : (slots[key.slot] ?? null);
-        }
-        const equipment = world.equipment?.(key.entity.id);
-        return equipment === undefined ? undefined : (equipment.slots[key.equipment] ?? null);
-    };
-    const writeSlot = (key: SlotKey, item: ScriptItem | undefined): boolean => {
-        if ('container' in key) {
-            writeContainerSlot(world, key.container, key.slot, item);
-            return true;
-        }
-        return world.setEquipment?.(key.entity.id, key.equipment, item) ?? false;
-    };
+    const slotItem = (key: SlotKey): ScriptItem | null | undefined => slotItemOf(world, key);
+    const writeSlot = (key: SlotKey, item: ScriptItem | undefined): boolean => writeSlotOf(world, key, item);
     /** The stack a slot holds, or BDS's error for an empty slot or one whose container is gone. */
     const held = (call: ScriptCall): { readonly key: SlotKey; readonly item: ScriptItem } => {
         const key = slotKeyOf(call.state);
