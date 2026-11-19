@@ -31,7 +31,9 @@ import { Level } from './Level';
 import { DimensionTravel } from './portal/DimensionTravel';
 import type { LevelOptions } from './Level';
 import { readLevelDat } from './providers/leveldb/LevelDat';
-import LevelDB from './providers/leveldb/LevelDB';
+import LevelDB, { JAVA_DATA_VERSION_TAG } from './providers/leveldb/LevelDB';
+import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
+import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
 const NETHER_STEM_ID = 'minecraft:the_nether';
@@ -151,6 +153,75 @@ afterEach(() => {
 });
 
 describe('Level', () => {
+    describe('its Java data version', () => {
+        const newer: JavaDataTarget = {
+            release: '26.4-snapshot-8',
+            format: [127, 0],
+            dataVersion: DEFAULT_JAVA_DATA_TARGET.dataVersion + 1
+        };
+        const storedVersion = (folder: string): number | undefined =>
+            readLevelDat(folder)?.root.getNumber(JAVA_DATA_VERSION_TAG, -1);
+
+        it('records the target data version in level.dat when it saves', async () => {
+            const { level, folder } = buildLevel('java-record');
+            await level.enable();
+            await level.saveLevelData();
+            await level.disable();
+
+            expect(storedVersion(folder)).toBe(DEFAULT_JAVA_DATA_TARGET.dataVersion);
+        });
+
+        it('refuses to open a save recorded by a newer target, and opens it under that target or a newer one', async () => {
+            const saved = buildLevel('java-downgrade', { javaTarget: newer });
+            await saved.level.enable();
+            await saved.level.saveLevelData();
+            await saved.level.disable();
+            expect(storedVersion(saved.folder)).toBe(newer.dataVersion);
+
+            await expect(buildLevel('java-downgrade').level.enable()).rejects.toThrowError(
+                `the world java-downgrade was saved with Java data version ${newer.dataVersion}, newer than Java 26.3 (${DEFAULT_JAVA_DATA_TARGET.dataVersion})`
+            );
+
+            const reopened = buildLevel('java-downgrade', { javaTarget: newer });
+            await reopened.level.enable();
+            await reopened.level.disable();
+        });
+
+        it('raises the recorded version when it opens, before any chunk of the newer target is durable', async () => {
+            const older: JavaDataTarget = { ...DEFAULT_JAVA_DATA_TARGET, dataVersion: 4997 };
+            const saved = buildLevel('java-bound', { javaTarget: older });
+            await saved.level.enable();
+            await saved.level.saveLevelData();
+            await saved.level.disable();
+            expect(storedVersion(saved.folder)).toBe(older.dataVersion);
+
+            const upgraded = buildLevel('java-bound', { javaTarget: newer });
+            await upgraded.level.enable();
+            // No save has run: a crash from here on leaves a bound no older than the chunks.
+            expect(storedVersion(upgraded.folder)).toBe(newer.dataVersion);
+            await upgraded.level.disable();
+
+            await expect(buildLevel('java-bound', { javaTarget: older }).level.enable()).rejects.toThrowError(
+                'newer than Java'
+            );
+        });
+
+        it('opens a save recorded by an older target and records the newer version on save', async () => {
+            const older: JavaDataTarget = { ...DEFAULT_JAVA_DATA_TARGET, dataVersion: 4997 };
+            const saved = buildLevel('java-upgrade', { javaTarget: older });
+            await saved.level.enable();
+            await saved.level.saveLevelData();
+            await saved.level.disable();
+
+            const upgraded = buildLevel('java-upgrade');
+            await upgraded.level.enable();
+            await upgraded.level.saveLevelData();
+            await upgraded.level.disable();
+
+            expect(storedVersion(upgraded.folder)).toBe(DEFAULT_JAVA_DATA_TARGET.dataVersion);
+        });
+    });
+
     describe('its dimensions', () => {
         it('needs an Overworld stem and a type for every stem', () => {
             expect(() =>

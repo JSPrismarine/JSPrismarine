@@ -8,7 +8,12 @@
  *
  * Both numbers come from the pinned jar. `vectors/blending.json` records what the jar reports and
  * `blending.test.ts` fails when these drift from it, which is the reminder to update them after a
- * Java version bump.
+ * Java version bump. *
+ * They stay constants rather than reading the server's Java data target: the chunk generation
+ * record is encoded and decoded below the level, where no target reaches, and the second number
+ * is the release's `BlendingDataFix` version, which a target does not carry. A level records the
+ * target's own data version in `level.dat` instead, and `@jsprismarine/prismarine` tests that
+ * {@link GENERATION_DATA_VERSION} is the default target's.
  */
 
 /** The `DataVersion` of the Java release this package generates, 26.3's. */

@@ -26,6 +26,11 @@ export interface LevelDatInputs {
     readonly stems?: Readonly<Record<string, LevelStem>>;
     /** The Nether's `coordinate_scale`, written as `NetherScale`. Defaults to Java's 8. */
     readonly netherScale?: number;
+    /**
+     * The data version of the Java release the level was last saved under, written as
+     * `JSPrismarineJavaDataVersion`. A level refuses to open under an older release.
+     */
+    readonly javaDataVersion?: number;
 }
 
 /**

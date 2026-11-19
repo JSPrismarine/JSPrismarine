@@ -43,6 +43,9 @@ import { PlayerPersistence } from './PlayerPersistence';
 import { LevelSave } from './LevelSave';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
 import type { LevelDataAtCut } from './LevelSave';
+import { assertJavaDataVersionOpens } from './javaDataVersion';
+import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
+import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
 import { RespawnSearch } from './RespawnSearch';
 import { outsideTick } from './TickContext';
 import type { WorldData } from './World';
@@ -106,6 +109,12 @@ export interface LevelOptions {
     /** The generator kinds this server can build a stem with. */
     readonly factories: GeneratorFactories;
     /**
+     * The Java release the server's content was loaded for. Its data version is recorded in
+     * `level.dat`, and a save recording a newer one refuses to open. Defaults to
+     * `DEFAULT_JAVA_DATA_TARGET`.
+     */
+    readonly javaTarget?: JavaDataTarget;
+    /**
      * Java's world generation registries, read when a stem's factory asks for them. Defaults to
      * the Java data cache on disk, which a flat or void level never touches.
      */
@@ -150,6 +159,8 @@ export class Level {
 
     /** The seed every generated chunk, structure placement and carver in this level comes from. */
     public readonly seed: bigint;
+    /** The Java release the level is opened and saved under; see {@link LevelOptions.javaTarget}. */
+    private readonly javaTarget: JavaDataTarget;
 
     private readonly path: string;
     private readonly server: Server;
@@ -239,6 +250,7 @@ export class Level {
             worldSpawn: () => this.server.getWorldManager().getDefaultWorld()
         });
         this.seed = options.seed;
+        this.javaTarget = options.javaTarget ?? DEFAULT_JAVA_DATA_TARGET;
         this.stems = options.stems;
         this.load = options.load ?? new Map();
         this.factories = options.factories;
@@ -831,6 +843,24 @@ export class Level {
     private async open(): Promise<void> {
         await this.provider.enable();
 
+        // Before anything is migrated or written, so a refused save is left as it was.
+        const levelDat = this.provider.readLevelData();
+        try {
+            assertJavaDataVersionOpens(this.name, levelDat?.javaDataVersion, this.javaTarget);
+        } catch (error: unknown) {
+            // The database lock would outlive the refusal and keep the save from opening again.
+            await this.provider.disable();
+            throw error;
+        }
+        // Raised now, before any chunk this target writes can be committed. A save pass commits
+        // its chunks first and writes `level.dat` last, so a crash between the two would leave
+        // newer chunks under an older bound, which an older release would then open. A bound
+        // ahead of the chunks only refuses that older release, which is the safe side.
+        const storedDataVersion = levelDat?.javaDataVersion;
+        if (storedDataVersion === undefined || storedDataVersion < this.javaTarget.dataVersion) {
+            this.provider.saveLevelData({ javaDataVersion: this.javaTarget.dataVersion });
+        }
+
         const legacy = await this.readLegacyLevelData();
         if (legacy !== null) {
             await this.provider.migrateLegacyWorldData(legacy);
@@ -855,8 +885,7 @@ export class Level {
 
         // The clock is written to `level.dat` alone, so it is read back from there; without it
         // every boot started the day over at tick zero.
-        const time = this.provider.readLevelData()?.time;
-        if (time !== undefined) this.currentTick = time;
+        if (levelDat?.time !== undefined) this.currentTick = levelDat.time;
     }
 
     private async readLegacyLevelData(): Promise<WorldPersistenceData | null> {
@@ -1024,7 +1053,10 @@ export class Level {
                 ...(position === undefined ? {} : { spawn: position }),
                 time: this.currentTick,
                 stems,
-                netherScale: this.netherScale()
+                netherScale: this.netherScale(),
+                // Java rewrites a save's data version to its own on every save, and so does this.
+                // Opening refused an older target, so this never lowers the stored version.
+                javaDataVersion: this.javaTarget.dataVersion
             }
         };
     }

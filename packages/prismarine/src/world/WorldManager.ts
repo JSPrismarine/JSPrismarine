@@ -298,6 +298,7 @@ export default class WorldManager implements Service {
             dimensionTypes: dimensionTypesOf(stems, () => dimensionTypeDefinitions),
             load,
             factories: this.generatorFactories,
+            javaTarget: content.javaTarget,
             worldgen: registries,
             chunkWorkers: this.server.getConfig().getChunkWorkers(),
             chunkHost: this.server.getConfig().getChunkHost(),
