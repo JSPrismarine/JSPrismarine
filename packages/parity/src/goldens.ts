@@ -308,7 +308,7 @@ export interface JavaColumnVectors {
 /** Reads the nine Java overworld columns the worldgen oracle dumped for seed 1234. */
 export const loadJavaColumns = (): JavaColumnVectors =>
     // Parsed JSON boundary; JavaColumnVectors is the dumper's documented shape.
-    readJson(join(worldgenRoot, 'vectors/chunk.json')) as JavaColumnVectors;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'chunk.json')) as JavaColumnVectors;
 
 /** One selected Java spawn block and its containing origin chunk. */
 export interface JavaSpawnPosition {
@@ -326,7 +326,7 @@ export interface JavaSpawnVectors {
 /** Reads the pinned Java server's noise spawn positions. */
 export const loadJavaSpawnPositions = (): JavaSpawnVectors =>
     // Parsed JSON boundary; JavaSpawnVectors is the dumper's documented shape.
-    readJson(join(worldgenRoot, 'vectors/spawn.json')) as JavaSpawnVectors;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'spawn.json')) as JavaSpawnVectors;
 
 /** The worldgen registry documents the oracle copied out of the jar, each one a JSON string. */
 export interface JavaWorldgenRegistries {
@@ -341,7 +341,7 @@ export interface JavaWorldgenRegistries {
 /** Reads Java's density function, noise, noise settings and biome climate registries. */
 export const loadJavaWorldgenRegistries = (): JavaWorldgenRegistries =>
     // Parsed JSON boundary; the dumper writes each registry as a map of documents.
-    readJson(join(worldgenRoot, 'vectors/surface-registries.json')) as JavaWorldgenRegistries;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'surface-registries.json')) as JavaWorldgenRegistries;
 
 /** Java's climate parameter lists with the biome each sampled target resolves to. */
 export interface JavaBiomePointVectors {
@@ -363,7 +363,7 @@ export interface JavaBiomePointVectors {
 /** Reads Java's multi-noise biome lookups, the oracle's own answers for sampled climates. */
 export const loadJavaBiomePoints = (): JavaBiomePointVectors =>
     // Parsed JSON boundary; the dumper writes one entry per climate parameter list.
-    readJson(join(worldgenRoot, 'vectors/biome-points.json')) as JavaBiomePointVectors;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'biome-points.json')) as JavaBiomePointVectors;
 
 /** Overworld cells where two climate boxes tie, and what Java answers with and without history. */
 export interface JavaClimateTieVectors {
@@ -384,7 +384,7 @@ export interface JavaClimateTieVectors {
 /** Reads the tie cells the oracle dumped from Java's search tree. */
 export const loadJavaClimateTies = (): JavaClimateTieVectors =>
     // Parsed JSON boundary; the dumper writes this file.
-    readJson(join(worldgenRoot, 'vectors/climate-ties.json')) as JavaClimateTieVectors;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'climate-ties.json')) as JavaClimateTieVectors;
 
 /** The biome Java reads a chunk's carvers from, and the jittered biome at the same corner. */
 export interface JavaCarverBiomeVectors {
@@ -402,7 +402,7 @@ export interface JavaCarverBiomeVectors {
 /** Reads the carver-selection biomes the oracle dumped for a window of overworld chunks. */
 export const loadJavaCarverBiomes = (): JavaCarverBiomeVectors =>
     // Parsed JSON boundary; the dumper writes this file.
-    readJson(join(worldgenRoot, 'vectors/carver-biomes.json')) as JavaCarverBiomeVectors;
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'carver-biomes.json')) as JavaCarverBiomeVectors;
 
 /**
  * Unpacks one climate parameter point out of the biome vector file.

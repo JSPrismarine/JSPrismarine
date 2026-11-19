@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import chunkVectors from '../../vectors/chunk.json' with { type: 'json' };
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import chunkVectors from '../../vectors/26.3/chunk.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { CHUNK_SIZE, ChunkSampler } from './ChunkSampler';

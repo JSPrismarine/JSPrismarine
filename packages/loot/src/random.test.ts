@@ -4,7 +4,7 @@ import { LootSequences, lootSequenceRandom } from './random';
 
 /**
  * The expected numbers are Java's own. They come from the oracle vectors in
- * `packages/worldgen/vectors/random.json`, produced by running Java 26.3's
+ * `packages/worldgen/vectors/26.3/random.json`, produced by running Java 26.3's
  * `XoroshiroRandomSource` over fixed seeds. A loot table with no
  * `random_sequence` seeds exactly the way `RandomSource.create(worldSeed)`
  * does, so those vectors apply to this package unchanged.

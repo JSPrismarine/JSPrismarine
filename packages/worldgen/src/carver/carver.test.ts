@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
-import carverBiomeVectors from '../../vectors/carver-biomes.json' with { type: 'json' };
-import carverVectors from '../../vectors/surface-carver.json' with { type: 'json' };
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import biomeVectors from '../../vectors/26.3/biome-points.json' with { type: 'json' };
+import carverBiomeVectors from '../../vectors/26.3/carver-biomes.json' with { type: 'json' };
+import carverVectors from '../../vectors/26.3/surface-carver.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { BiomeManager } from '../biome/BiomeManager';
 import type { BiomeResolver } from '../biome/BiomeSource';
 import { MultiNoiseBiomeSource } from '../biome/BiomeSource';

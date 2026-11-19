@@ -2,8 +2,8 @@ import { Session } from 'node:inspector/promises';
 import { performance } from 'node:perf_hooks';
 import { parentPort, workerData } from 'node:worker_threads';
 
-import chunkVectors from '../vectors/chunk.json' with { type: 'json' };
-import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
+import chunkVectors from '../vectors/26.3/chunk.json' with { type: 'json' };
+import registryVectors from '../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';
 import { RandomState } from '../src/RandomState';
 import { WorldgenData } from '../src/WorldgenData';

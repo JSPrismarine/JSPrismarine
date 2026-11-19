@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { DensityFunctionCompiler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import { densityInputsOf } from '../density/DensityFunction';

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { expectedFloat, vectors } from '../../vectors/vectors';
 import { f32, lerp3F } from '../math';
 import type { Noise } from '../noise/GradientNoise';

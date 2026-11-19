@@ -13,7 +13,7 @@
  * - `density`: the density pass alone, so a change can be charged to one half or the other.
  * - `generated`: the whole fill with the optional JavaScript density compiler enabled.
  */
-import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
+import registryVectors from '../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';
 import { RandomState } from '../src/RandomState';
 import { WorldgenData } from '../src/WorldgenData';

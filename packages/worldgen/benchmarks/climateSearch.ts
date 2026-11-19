@@ -1,6 +1,6 @@
 import { PerformanceObserver, performance } from 'node:perf_hooks';
 
-import biomeVectors from '../vectors/biome-points.json' with { type: 'json' };
+import biomeVectors from '../vectors/26.3/biome-points.json' with { type: 'json' };
 import { ClimateParameterList } from '../src/biome/Climate';
 import type { ClimateEntry, ClimateTargetPoint } from '../src/biome/Climate';
 
