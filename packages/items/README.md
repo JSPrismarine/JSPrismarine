@@ -180,7 +180,8 @@ is how a maintainer accepts a new gap, and a row that stops matching fails the b
 
 ## Regenerating the table
 
-`src/tables/itemTypes.json` is generated and committed. After a Java or Bedrock version bump:
+`src/tables/<release>/itemTypes.json` is generated and committed, keyed by Java release id; the
+package reads the default release's. After a Java or Bedrock version bump:
 
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources

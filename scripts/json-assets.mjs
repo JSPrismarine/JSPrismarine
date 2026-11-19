@@ -1,12 +1,25 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    readdirSync,
+    rmSync,
+    statSync,
+    writeFileSync
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// The item type table sits in the default Java release's directory, which sources.json names.
+const { defaultVersion: javaRelease } = JSON.parse(
+    readFileSync(path.join(root, 'packages', 'bedrock-data', 'sources.json'), 'utf8')
+).javaServer;
 const cases = [
     {
         packageDirectory: 'packages/blocks',
@@ -16,7 +29,7 @@ const cases = [
     },
     {
         packageDirectory: 'packages/items',
-        asset: 'tables/itemTypes.json',
+        asset: `tables/${javaRelease}/itemTypes.json`,
         wrapper: 'tables/itemTypes.js',
         runtime: 'tables.js'
     }

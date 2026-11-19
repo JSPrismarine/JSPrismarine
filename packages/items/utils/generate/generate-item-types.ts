@@ -1,6 +1,8 @@
 /**
- * Generates `src/tables/itemTypes.json`: every Bedrock item identifier with
- * the Java 26.3 default components of the Java item that maps onto it.
+ * Generates `src/tables/<release>/itemTypes.json`: every Bedrock item
+ * identifier with the default components of the Java item that maps onto it.
+ * `--java <release>` picks the Java release, the default when absent, and the
+ * Bedrock side is the item table of the protocol `sources.json` pairs with it.
  *
  * Item identity stays Bedrock-shaped and item properties come from Java, which
  * is the plan's decision for phase 1 (docs/plans/data-driven-vanilla.md
@@ -25,12 +27,17 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
+
+// The pair resolver of the package that owns `sources.json`; generator scripts are not published.
+import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
 import { ITEM_TABLE_EXCEPTIONS } from '../../src/exceptions.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
 const cacheRoot = join(repoRoot, 'node_modules/.cache/jsprismarine');
-const tablePath = join(packageDir, 'src/tables/itemTypes.json');
+const pair = resolveJavaBedrockPair(process.argv);
+const tablePath = join(packageDir, 'src/tables', pair.java, 'itemTypes.json');
 
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
 
@@ -39,16 +46,24 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 // ---------------------------------------------------------------------------
 
 interface SourcesManifest {
-    javaServer: { defaultVersion: string };
-    bds: { defaultProtocolVersion: number; versions: Record<string, { serverVersion: string }> };
+    bds: { versions: Record<string, { serverVersion: string }> };
 }
 
 // sources.json is parsed JSON; only the pins this generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
-const javaVersion = sources.javaServer.defaultVersion;
-// The server the unversioned item table below was captured from.
-const bedrockVersion = sources.bds.versions[String(sources.bds.defaultProtocolVersion)]?.serverVersion;
-if (bedrockVersion === undefined) throw new Error('sources.json pins no server for its defaultProtocolVersion');
+const javaVersion = pair.java;
+// The server the paired protocol's item table below was captured from.
+const bedrockVersion = sources.bds.versions[String(pair.protocol)]?.serverVersion;
+if (bedrockVersion === undefined) throw new Error(`sources.json pins no server for protocol ${pair.protocol}`);
+
+// The built mapping package resolves through the default release's tables only, so another
+// release's item types would be mapped with the wrong tables.
+if (pair.java !== javaServerCacheFolder) {
+    throw new Error(
+        `@jsprismarine/mapping maps items through the default Java release's tables (${javaServerCacheFolder}), ` +
+            `not ${pair.java}'s; generate the default release`
+    );
+}
 
 // Node cannot load another package's TypeScript sources, which import each
 // other without file extensions, so the generator reads the built mapping.
@@ -59,10 +74,9 @@ if (!existsSync(mappingDist)) {
 const { javaItemToBedrock } = await import(`${mappingDist}/index.js`);
 
 /** The item table captured from a Bedrock Dedicated Server, the Bedrock side's authority. */
-const bedrockItemTable = readJson(join(repoRoot, 'packages/bedrock-data/src/generated/item_table.json')) as Record<
-    string,
-    unknown
->;
+const bedrockItemTable = readJson(
+    join(repoRoot, 'packages/bedrock-data/src/generated', `v${pair.protocol}`, 'item_table.json')
+) as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // The Java data generator reports
@@ -356,6 +370,8 @@ const table = {
 // The table is not in `.prettierignore`, so the generator formats it the way
 // `pnpm run lint` expects rather than leaving a 1.6 MB reformat in the diff.
 const prettierConfig = await resolveConfig(tablePath);
+// A release generated for the first time has no `src/tables/<release>/` yet.
+mkdirSync(dirname(tablePath), { recursive: true });
 writeFileSync(tablePath, await format(JSON.stringify(table), { ...prettierConfig, filepath: tablePath }));
 
 console.log(`Java ${javaVersion} to Bedrock ${bedrockVersion}`);

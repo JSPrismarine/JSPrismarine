@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { canUsePortal } from '@jsprismarine/prismarine/entity/portalUse';
@@ -103,7 +104,7 @@ const nutritionOf = (javaItem: string): number | undefined => {
         const manifest = createRequire(import.meta.url).resolve('@jsprismarine/items/package.json');
         // Parsed JSON boundary: the item table the items package generates from Java's data.
         const table: unknown = JSON.parse(
-            readFileSync(join(dirname(manifest), 'src', 'tables', 'itemTypes.json'), 'utf-8')
+            readFileSync(join(dirname(manifest), 'src', 'tables', javaServerCacheFolder, 'itemTypes.json'), 'utf-8')
         );
         const items = field(table, 'items');
         const found = new Map<string, number>();
