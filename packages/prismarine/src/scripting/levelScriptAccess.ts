@@ -32,16 +32,13 @@ import { ENTITY_EYE_HEIGHT_FRACTION } from '../entity/data/position';
 import type { StoreActor } from '../entity/data/storeActors';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { WindowIds } from '../inventory/WindowIds';
-import ContainerEntry from '../inventory/ContainerEntry';
 import type Inventory from '../inventory/Inventory';
 import { mobEquipmentSlotOf } from '../entity/equipment';
 import type { Item } from '../item/Item';
 import { maxStackSizeOf } from '../item/Item';
 import { itemFromContent } from '../item/itemFromContent';
-import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
-import type { World } from '../world/World';
 import type { DynamicProperties, DynamicPropertyValue } from '../world/dynamicProperties';
 import {
     DYNAMIC_PROPERTIES_TAG,
@@ -52,6 +49,7 @@ import {
 import { blockContainerAt } from '../command/host/containers';
 import { bedrockMobEffectId, bedrockMobEffectIdentifiers, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
+import { containerEntryOf, levelActors, presentActor } from './levelActors';
 import { scriptScoreboard } from './scriptScoreboard';
 
 /** A slot's stack as a script reads it, or null for an empty one. */
@@ -107,6 +105,31 @@ const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): 
 /** The equipment slots of a player's armor container, in the order the client numbers them. */
 const ARMOR_ORDER: readonly ScriptEquipmentSlot[] = ['Head', 'Chest', 'Legs', 'Feet'];
 
+/**
+ * A player's hunger, saturation and exhaustion, which BDS gives the attribute components
+ * `minecraft:player.hunger`, `player.saturation` and `player.exhaustion`: the field each is kept
+ * in and its default, as the `entity-attributes` scenario recorded.
+ */
+const PLAYER_VITALS: Readonly<
+    Record<
+        string,
+        { readonly field: 'vitals.food' | 'vitals.saturation' | 'vitals.exhaustion'; readonly default: number }
+    >
+> = {
+    'minecraft:player.hunger': { field: 'vitals.food', default: 20 },
+    'minecraft:player.saturation': { field: 'vitals.saturation', default: 5 },
+    'minecraft:player.exhaustion': { field: 'vitals.exhaustion', default: 0 }
+};
+
+/** The largest a player's hunger, saturation or exhaustion reads. */
+const VITAL_MAX = 20;
+
+/** The attributes BDS gives every mob, whatever its definition says. */
+const LIQUID_SPEEDS: ReadonlySet<AttributeName> = new Set(['underwater_movement', 'lava_movement']);
+
+/** A mob's speed in water and in lava when its definition gives it none. */
+const LIQUID_SPEED = 0.02;
+
 /** The largest 32-bit float, which bounds an attribute BDS gives no maximum. */
 const FLOAT_MAX = 3.4028234663852886e38;
 
@@ -125,23 +148,8 @@ const gameModeName = (gamemode: number) => {
  * @param level - The level the scripts run in.
  */
 export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAccess => {
-    /** Whether an actor is in the world: alive, or of a type with no health, such as a minecart. */
-    const present = (actor: StoreActor): boolean => actor.isAlive() || actor.getMaxHealth() <= 0;
-    const worldOf = (dimension: string): World | undefined =>
-        [...level.worlds()].find((world) => world.getDimension().bedrockName === dimension);
-    const actorOf = (id: string): StoreActor | undefined => {
-        if (!/^\d+$/.test(id)) return undefined;
-        for (const world of level.worlds()) {
-            const actor = world.getActor(BigInt(id));
-            if (actor !== null && present(actor)) return actor;
-        }
-        return undefined;
-    };
-    const sessionOf = (id: string): PlayerSession | undefined =>
-        server
-            .getSessionManager()
-            .getSessions()
-            .find((session) => String(session.runtimeId) === id && session.getWorld().getLevel() === level);
+    const present = presentActor;
+    const { worldOf, actorOf, sessionOf } = levelActors(server, level);
     const stateOf = (actor: StoreActor): ScriptEntityState => {
         const id = String(actor.getRuntimeId());
         const session = actor.getType() === 'minecraft:player' ? sessionOf(id) : undefined;
@@ -199,14 +207,18 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         dimension: actor.getWorld().getDimension().id
     });
     const javaDimension = (dimension: string): string => worldOf(dimension)?.getDimension().id ?? dimension;
-    /** A script's stack as a player's inventory slot holds it, or undefined for a type the content lacks. */
-    const entryOf = (item: ScriptItem): ContainerEntry | undefined => {
-        const stack = itemFromContent(item.typeId, server.getContent());
-        if (stack === null) return undefined;
-        const shown = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
-        const most = shown.getMaxDurability();
-        const written = most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
-        return new ContainerEntry({ item: written, count: item.amount });
+    const entryOf = (item: ScriptItem) => containerEntryOf(server, item);
+    /**
+     * An entity's attribute. A mob whose definition gives it no speed in water or lava has BDS's
+     * default of 0.02 for each, as the `entity-values` scenario recorded, which is declared on it
+     * the first time a script reads it.
+     */
+    const liquidSpeedOf = (actor: StoreActor | undefined, name: AttributeName) => {
+        const attributes = actor?.entity.instance.attributes;
+        const found = attributes?.get(name);
+        if (found !== undefined || attributes === undefined || !LIQUID_SPEEDS.has(name)) return found;
+        const mob = attributes.get('health') !== undefined || attributes.get('movement') !== undefined;
+        return mob ? attributes.define(name, { base: LIQUID_SPEED }) : undefined;
     };
     /** The attribute a component id names, such as `health` for `minecraft:health`. */
     const attributeName = (component: string): AttributeName | undefined =>
@@ -366,8 +378,19 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             return true;
         },
         attribute: (id, component) => {
+            const vital = PLAYER_VITALS[component];
+            if (vital !== undefined) {
+                const components = sessionOf(id)?.getPlayer().getComponents();
+                if (components === undefined) return undefined;
+                return {
+                    current: Math.fround(components.get(vital.field)),
+                    default: vital.default,
+                    min: 0,
+                    max: VITAL_MAX
+                };
+            }
             const name = attributeName(component);
-            const found = name === undefined ? undefined : actorOf(id)?.entity.instance.attributes.get(name);
+            const found = name === undefined ? undefined : liquidSpeedOf(actorOf(id), name);
             if (found === undefined) return undefined;
             // BDS keeps attributes as 32-bit floats, and bounds a speed only by the largest of them.
             return {
@@ -378,9 +401,14 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             };
         },
         setAttribute: (id, component, value) => {
+            const vital = PLAYER_VITALS[component];
+            if (vital !== undefined) {
+                sessionOf(id)?.getPlayer().getComponents().set(vital.field, value);
+                return;
+            }
             const name = attributeName(component);
             const attributes = actorOf(id)?.entity.instance.attributes;
-            const found = name === undefined ? undefined : attributes?.get(name);
+            const found = name === undefined ? undefined : liquidSpeedOf(actorOf(id), name);
             if (name === undefined || attributes === undefined || found === undefined) return;
             if (value > found.max) attributes.setMax(name, value);
             attributes.set(name, value);

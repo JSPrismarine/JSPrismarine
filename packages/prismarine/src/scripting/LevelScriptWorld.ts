@@ -33,6 +33,7 @@ import type {
     VetoGuard,
     WeatherChangeIntent
 } from '@jsprismarine/script-host/host/world';
+import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entities/world';
 
 import type { ChatManager } from '../chat/ChatManager';
 import { Scoreboard } from '../world/Scoreboard';
@@ -158,6 +159,8 @@ export interface ScriptWorldSources {
     readonly access?: ScriptLevelAccess;
     /** The channel the scripts' HTTP requests travel over. Without one, each request fails. */
     readonly http?: ScriptHttpChannel;
+    /** The level's entity and player systems, which the entity members reach. */
+    readonly entitySystems?: ScriptEntitySystems;
     /**
      * Calls `listener` with a player's id as they leave, before their entity goes.
      * @returns A function that stops it.
@@ -288,6 +291,9 @@ export class LevelScriptWorld implements ScriptWorld {
     /** The channel the level's scripts' HTTP requests travel over, when the server gives one. */
     public readonly http: ScriptWorld['http'];
 
+    /** The level's entity and player systems, when the server gives them. */
+    public readonly entitySystems: ScriptWorld['entitySystems'];
+
     /** The forms of the level's scripts, which travel to the level's players and back. */
     public readonly forms: ScriptFormChannel = {
         show: (player, formId, json) => this.player(player)?.showForm?.(formId, json),
@@ -321,6 +327,7 @@ export class LevelScriptWorld implements ScriptWorld {
         this.effectTypes = this.access.effectTypes;
         this.dimensionTypes = this.access.dimensionTypes;
         this.http = sources.http;
+        this.entitySystems = sources.entitySystems;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
             this.committed.push({
                 type: 'weatherChange',

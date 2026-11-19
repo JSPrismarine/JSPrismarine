@@ -70,6 +70,7 @@ import { javaBabyFoods, withJavaBabyFood } from '../entity/javaBabyFood';
 import { brainGoalsOf, withBrainGoals } from '../entity/brainGoals';
 import { withoutMountPathing } from '../entity/data/riderControl';
 import { withJavaComponentRules } from '../entity/javaComponentRules';
+import { isRecord } from '@jsprismarine/entities';
 import { javaSpawnRulings, withJavaSpawnEvents } from '../entity/javaSpawnEvents';
 import { javaBreedingFoods, withJavaBreedingFood } from '../entity/javaBreedingFood';
 import { javaGoalOverlay } from '../entity/javaGoalArguments';
@@ -124,6 +125,11 @@ export interface ServerContentEntities {
     readonly javaStats?: JavaStatSource;
     /** Java's navigation classes, path costs, and pushability for each mob. */
     readonly javaNavigation?: JavaNavigationSource;
+    /**
+     * Each entity file as its pack wrote it, before the Java overlays, by identifier: what a
+     * script's entity components read, as on a Bedrock Dedicated Server.
+     */
+    readonly packData?: ReadonlyMap<string, unknown>;
 }
 
 /**
@@ -620,7 +626,15 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             components: entityComponents,
             brains,
             javaStats: java_entity_attributes,
-            javaNavigation: java_entity_navigation
+            javaNavigation: java_entity_navigation,
+            packData: new Map(
+                entityFiles.flatMap(({ data }) => {
+                    const body = isRecord(data) ? data['minecraft:entity'] : undefined;
+                    const description = isRecord(body) ? body.description : undefined;
+                    const identifier = isRecord(description) ? description.identifier : undefined;
+                    return typeof identifier === 'string' ? [[identifier, data] as const] : [];
+                })
+            )
         },
         recipes: recipes.book,
         loot,

@@ -793,3 +793,21 @@ export const consumeHeldItem = (interaction: AirInteraction): boolean => {
         return true;
     });
 };
+
+/**
+ * Eats or drinks an item the player is not holding, as a script's `Player.eatItem` does: the item
+ * runs `onConsume`, which feeds the player and applies its effects, and nothing in the inventory
+ * changes.
+ *
+ * @returns Whether a behavior took the meal.
+ */
+export const consumeItem = ({ content, actors, player }: AirInteraction, item: Item): boolean => {
+    const stack = contentStackOf(content, item, 1);
+    if (stack === undefined) return false;
+    const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
+    return actors.duringInteraction(
+        source,
+        undefined,
+        () => stack.dispatchFirst('onConsume', { itemStack: stack, source }) !== undefined
+    );
+};

@@ -32,6 +32,7 @@ import { sendCachedJoinPacket } from '../joinPacketCache';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import { aimAssistPresetsPacket, cameraPresetsPacket } from '../cameraJoinPackets';
 
 /** The spawn of a world and its level's Overworld spawn, when both are found. */
 const knownSpawns = (world: World): { readonly world: Vector3; readonly overworld: Vector3 } | undefined => {
@@ -390,6 +391,9 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
         sends.push(
             sendCachedJoinPacket(connection, content, recipeLimit, compressionLevel, new BiomeDefinitionListPacket())
         );
+        // The camera presets and aim assist registry BDS sends, which a script's camera and aim assist name.
+        sends.push(connection.sendDataPacket(cameraPresetsPacket(connection.codec.context.protocolVersion)));
+        sends.push(connection.sendDataPacket(aimAssistPresetsPacket(connection.codec.context.protocolVersion)));
         sends.push(
             sendCachedJoinPacket(
                 connection,
