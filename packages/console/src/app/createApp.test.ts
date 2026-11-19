@@ -11,6 +11,7 @@ import { LogStore } from '../log/logStore';
 import { defaultTheme } from '../theme';
 import { createApp } from './createApp';
 import type { AppProps, CommandOutcome } from './createApp';
+import type { SourceLocation } from '../log/sourceLocation';
 
 const AT = new Date(2026, 0, 1, 12, 0, 1).getTime();
 
@@ -218,6 +219,78 @@ describe('createApp', () => {
         expect(tileIs(t, 'danger')).toBe(true);
         expect(activityIs(t, 'danger')).toBe(true);
         expect(byId(t, 'toast-stack')?.getChildren()).toHaveLength(0);
+    });
+
+    describe('crash card', () => {
+        const trace = [
+            'RangeError: The chunk at 12, -4 has no reference left to release.',
+            '    at ChunkHolder.release (file:///repo/packages/chunkgen/dist/ChunkHolder.js:133:19)',
+            '    at ChunkHolderMap.release (file:///repo/packages/chunkgen/dist/ChunkHolderMap.js:73:20)'
+        ];
+
+        async function crashed(overrides: Partial<AppProps> = {}) {
+            const t = await setup({ width: 120, height: 40 }, overrides);
+            t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages', canRestart: true });
+            t.app.applySupervisorEvent({ type: 'supervisor.output', stream: 'stderr', text: `${trace.join('\n')}\n` });
+            t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
+            await t.renderOnce();
+            return t;
+        }
+
+        it('shows the crash and restarts on r', async () => {
+            const t = await crashed();
+            dispose = t.dispose;
+            expect(byId(t, 'crash-card')?.visible).toBe(true);
+
+            t.mockInput.pressKey('r');
+            await t.renderOnce();
+            expect(t.actions.restart).toHaveBeenCalledOnce();
+        });
+
+        it('copies the trace on c and opens the first frame on o', async () => {
+            const opened: SourceLocation[] = [];
+            const t = await crashed({
+                openSourceLocation: async (location) => void opened.push(location)
+            });
+            dispose = t.dispose;
+
+            t.mockInput.pressKey('c');
+            t.mockInput.pressKey('o');
+            await t.renderOnce();
+
+            expect(t.clipboard.copy).toHaveBeenCalledWith(trace.join('\n'));
+            expect(opened).toEqual([{ path: '/repo/packages/chunkgen/dist/ChunkHolder.js', line: 133, column: 19 }]);
+        });
+
+        it('leaves the keys to a line that has text', async () => {
+            const t = await crashed();
+            dispose = t.dispose;
+
+            await t.mockInput.typeText('sa');
+            t.mockInput.pressKey('r');
+            await t.renderOnce();
+
+            expect(t.actions.restart).not.toHaveBeenCalled();
+        });
+
+        it('goes away on Esc or the next start', async () => {
+            const t = await crashed();
+            dispose = t.dispose;
+
+            // Escape in the kitty keyboard encoding, which parses at once; a lone ESC byte waits
+            // on the parser's timeout.
+            t.mockInput.pressKey('\u001B[27u');
+            await t.renderOnce();
+            expect(byId(t, 'crash-card')?.visible).toBe(false);
+
+            t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
+            await t.renderOnce();
+            expect(byId(t, 'crash-card')?.visible).toBe(true);
+            t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'starting', generation: 2 });
+            await t.renderOnce();
+            expect(byId(t, 'crash-card')?.visible).toBe(false);
+            expect(t.actions.restart).not.toHaveBeenCalled();
+        });
     });
 
     it('appends child output as raw lines', async () => {

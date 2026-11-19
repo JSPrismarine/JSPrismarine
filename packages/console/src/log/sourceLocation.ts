@@ -30,3 +30,12 @@ export function sourceLocationAtColumn(text: string, column: number): SourceLoca
     }
     return undefined;
 }
+
+/** The first source location written anywhere in `text`, such as the file of a stack frame. */
+export function sourceLocationIn(text: string): SourceLocation | undefined {
+    for (const match of text.matchAll(SOURCE_REFERENCE)) {
+        const location = sourceLocationFromNamespace(match[0]);
+        if (location !== undefined) return location;
+    }
+    return undefined;
+}

@@ -32,7 +32,10 @@ import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
 import type { ConsoleContext } from '../context';
 import { createActivityLine } from './activityLine';
-import { INITIAL_DEV_STATE, reduceDevState } from './devState';
+import { createCrashCard } from './crashCard';
+import { parseCrash } from './crashReport';
+import type { Crash } from './crashReport';
+import { INITIAL_DEV_STATE, exitText, reduceDevState } from './devState';
 import type { DevState } from './devState';
 import { SIDE_PANE_RESIZER_WIDTH, SIDE_PANE_WIDTH, computeLayout } from './layout';
 import type { Layout } from './layout';
@@ -97,6 +100,9 @@ const LEVEL_CYCLE: readonly (LogLevel | undefined)[] = ['error', 'warn', 'info',
 const DEFAULT_LEVEL: LogLevel = 'info';
 
 /** The level filter as the footer names it: the levels it lets through. */
+/** Lines of stderr and error logs the console keeps per generation for the crash card. */
+const CRASH_LINES = 400;
+
 const levelFilterLabel = (level: LogLevel | undefined): string => {
     if (level === undefined) return 'all levels';
     return level === 'error' ? 'errors only' : `${level} and up`;
@@ -292,15 +298,15 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         showNamespace: layout.showNamespace,
         levelStyle: layout.levelStyle,
         onFocus: focusLog,
-        onOpenSourceLocation(location) {
-            if (props.openSourceLocation === undefined) {
-                toasts.push({ tone: 'muted', text: 'set VISUAL or EDITOR to open source locations' });
-                return;
-            }
-            void props.openSourceLocation(location).catch(report);
-        }
+        onOpenSourceLocation: (location) => openSourceLocation(location)
     });
     logColumn.add(view.renderable);
+    const crashCard = createCrashCard(components);
+    logColumn.add(crashCard.renderable);
+    /** What the current server generation printed to stderr or logged as errors, newest last. */
+    let crashLines: string[] = [];
+    /** The crash the card shows, while it shows one. */
+    let crash: Crash | undefined;
 
     const input = createInputBar(components, {
         history,
@@ -827,6 +833,53 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         return fromLog === '' ? input.getSelectedText() : fromLog;
     }
 
+    function openSourceLocation(location: SourceLocation): void {
+        if (props.openSourceLocation === undefined) {
+            toasts.push({ tone: 'muted', text: 'set VISUAL or EDITOR to open source locations' });
+            return;
+        }
+        void props.openSourceLocation(location).catch(report);
+    }
+
+    /** Keeps the tail of what the server says about errors, for the crash card. */
+    function rememberCrashLines(lines: readonly string[]): void {
+        crashLines.push(...lines);
+        if (crashLines.length > CRASH_LINES) crashLines = crashLines.slice(-CRASH_LINES);
+    }
+
+    /** Runs a crash card key: `r` restarts, `o` opens the first frame that names a file, `c` copies. */
+    function crashCardKey(name: string): boolean {
+        if (crash === undefined) return false;
+        switch (name) {
+            case 'r':
+                run('server.restart');
+                return true;
+            case 'o': {
+                const location = crash.frames.find((frame) => frame.location !== undefined)?.location;
+                if (location !== undefined) openSourceLocation(location);
+                return location !== undefined;
+            }
+            case 'c': {
+                if (crash.trace === '') return false;
+                void clipboard.copy(crash.trace).then(
+                    guard((copied: boolean) => {
+                        toasts.push(
+                            copied
+                                ? { tone: 'muted', text: 'copied the trace to the clipboard' }
+                                : {
+                                      tone: 'warning',
+                                      text: 'could not reach the clipboard; copy from your terminal instead'
+                                  }
+                        );
+                    })
+                );
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
     function copySelection(): void {
         const text = selectedText();
         if (text === '') {
@@ -947,6 +1000,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             palette.close();
             return true;
         }
+        // The card covers the newest log lines; Esc puts it away until the next crash.
+        if (crashCard.isVisible) {
+            crashCard.hide();
+            return true;
+        }
         if (dropdown.isOpen) {
             dropdown.close();
             return true;
@@ -1003,6 +1061,13 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             tpsPage.handleKeyPress(key);
             return;
         }
+        // The crash card's keys work while it shows, unless the user is typing a line.
+        if (crashCard.isVisible && !key.ctrl && !key.meta && !key.super && input.getValue() === '') {
+            if (crashCardKey(key.name)) {
+                key.preventDefault();
+                return;
+            }
+        }
         if (!inputFocused && key.ctrl && !key.shift && !key.meta && key.name === 'c') {
             key.preventDefault();
             run('log.copySelection');
@@ -1048,6 +1113,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'log': {
                 const { seq, level, namespace, at, message: text, formatted } = message;
                 store.append({ seq, level, namespace, at, message: text, formatted });
+                if (level === 'error') rememberCrashLines(text.split('\n'));
                 refreshStatus();
                 return;
             }
@@ -1088,6 +1154,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             const lines = event.text.split(/\r?\n/);
             if (lines.at(-1) === '') lines.pop();
             for (const line of lines) store.appendRaw(event.stream, line, store.generation);
+            if (event.stream === 'stderr') rememberCrashLines(lines);
             return;
         }
         if (event.type === 'supervisor.watching') canRestart = event.canRestart === true;
@@ -1101,6 +1168,21 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
             state = event.state;
             titleBar.setState(state);
+            if (event.state === 'starting') {
+                crashLines = [];
+                crash = undefined;
+                crashCard.hide();
+            }
+            if (event.state === 'crashed') {
+                crash = parseCrash(crashLines);
+                crashCard.show({
+                    crash,
+                    exit: exitText(event.code, event.signal),
+                    at: now(),
+                    canRestart,
+                    canOpen: props.openSourceLocation !== undefined
+                });
+            }
         }
         setDev(reduceDevState(dev, event, now()));
     }
@@ -1128,6 +1210,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             toasts.dispose();
             help.dispose();
             palette.dispose();
+            crashCard.dispose();
             tpsPage.dispose();
             sidePane.dispose();
             titleBar.dispose();
