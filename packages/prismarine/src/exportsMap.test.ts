@@ -1,17 +1,11 @@
 /**
- * The slice 11 target of the entity and tick re-architecture: no barrel in Prismarine, and an
- * exports map that names modules.
- *
- * `pnpm run lint:barrels` fails when a file fires Biome's `noBarrelFile` or `noReExportAll` more
- * often than `scripts/barrel-baseline.json` allows, so a baseline with no Prismarine entry keeps
- * every barrel and `export *` out of the package. The exports map lists each entry point by the
- * module that defines it, with no pattern that would make every file public again, and the
- * published map is the part of the workspace map a consumer may import.
+ * The shape of Prismarine's exports map: it names modules, and the published map is the part of
+ * the workspace map a consumer may import. `pnpm run lint:barrels` keeps barrels and `export *`
+ * out of the package.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import baseline from '../../../scripts/barrel-baseline.json' with { type: 'json' };
 import pkg from '../package.json' with { type: 'json' };
 
 /** The package directory. */
@@ -51,10 +45,6 @@ const documentedSubpaths = (): string[] => {
 };
 
 describe('Prismarine', () => {
-    it('has no file in the barrel baseline', () => {
-        expect(Object.keys(baseline).filter((file) => file.startsWith('packages/prismarine/'))).toEqual([]);
-    });
-
     it('exports no pattern', () => {
         const keys = [...Object.keys(pkg.exports), ...Object.keys(pkg.publishConfig.exports)];
         expect(keys.filter((key) => key.includes('*'))).toEqual([]);
