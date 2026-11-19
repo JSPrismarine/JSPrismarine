@@ -1141,7 +1141,12 @@ describe('createApp', () => {
 
             t.mockInput.pressKey('k', { ctrl: true });
             await t.renderOnce();
-            expect(byId(t, 'command-palette')?.visible).toBe(true);
+            const box = byId(t, 'command-palette')!;
+            expect(box.visible).toBe(true);
+            // Centered inside the terminal, not pushed off its right edge.
+            const right = 120 - (box.x + box.width);
+            expect(right).toBeGreaterThanOrEqual(0);
+            expect(Math.abs(box.x - right)).toBeLessThanOrEqual(1);
 
             t.mockInput.pressKey('k', { ctrl: true });
             await t.renderOnce();
