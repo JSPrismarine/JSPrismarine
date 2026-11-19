@@ -17,6 +17,7 @@
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
         "bringup": "pnpm --filter @jsprismarine/bedrock-data run bringup",
+        "bringup:java": "pnpm --filter @jsprismarine/bedrock-data run bringup:java",
         "e2e:client": "c8 pnpm --filter @jsprismarine/client-e2e run e2e",
         "e2e:client:dist": "cross-env JSP_E2E_SERVER_ENTRY=dist c8 pnpm --filter @jsprismarine/client-e2e run e2e",
         "fetch:java-server": "node packages/bedrock-data/utils/java/fetch-server.ts",
