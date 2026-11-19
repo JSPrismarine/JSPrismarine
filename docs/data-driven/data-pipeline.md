@@ -106,7 +106,8 @@ pnpm --filter @jsprismarine/bedrock-data run dump:java
 This is a capture-time task, run on a Java version bump rather than on every build. It downloads
 the pinned server jar through the piston-meta manifest chain, verifies its sha1, unpacks the
 bundler, compiles `utils/java-dump/DumpJavaData.java` against the server classes, runs it, and
-rewrites the goldens under `packages/bedrock-data/src/jsp/java/`:
+rewrites the goldens under `packages/bedrock-data/src/jsp/java/<release>/`, the default release
+unless `--java <release>` names another:
 
 - `block_properties.json`: the per-state block properties no Mojang report carries (hardness, blast
   resistance, friction, light, map color, sound type, push reaction and the rest) for all 1286

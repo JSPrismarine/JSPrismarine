@@ -169,7 +169,7 @@ const JAVA_HIT_POINTS: Readonly<Record<string, number>> = {
 const statScenario = ({ component, stat }: StatAspect): BehaviorScenario<EntitySubject> => ({
     name: `spawn-${component.replace('minecraft:', '').replace('.', '-')}`,
     java: `An entity spawns with the ${stat} its Java attribute supplier publishes, unless ADR 0001 gives the stat or the row to Bedrock.`,
-    reference: `Java ${SHARED_STATS[stat].javaAttribute ?? stat} in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md`,
+    reference: `Java ${SHARED_STATS[stat].javaAttribute ?? stat} in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md`,
     subjects: () => entitiesDeclaring(component),
     idOf: (subject) => subject.javaId,
     aspects: () => [component],
@@ -414,7 +414,7 @@ const turnScenario: BehaviorScenario<EntitySubject> = {
     name: 'move-control-turn',
     java: "A mob turns toward its waypoint by at most its Java move control's step a tick (90 degrees, 10 for a smooth swimmer, at once for the vex, phantom and ghast) and moves along the heading it reached.",
     reference:
-        "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/entity_navigation.json",
+        "Java MoveControl.tick and FlyingMoveControl.tick (rotlerp(yaw, target, 90)), SmoothSwimmingMoveControl.tick (rotlerp by maxTurnY), and each mob's move control in packages/bedrock-data/src/jsp/java/26.3/entity_navigation.json",
     subjects: () =>
         MOVE_CONTROLS.flatMap((component) =>
             entitiesDeclaring(component).filter((subject) => moveControlOf(subject.bedrock) === component)
@@ -574,7 +574,7 @@ const navigationScenario: BehaviorScenario<EntitySubject> = {
     name: 'path-through',
     java: "A mob's path enters water, lava, a closed wooden door or an open door exactly when Java's node evaluator gives that path type a cost of zero or more for it, opening wooden doors only for a navigator that can.",
     reference:
-        'Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json',
+        'Java Mob.getPathfindingMalus and WalkNodeEvaluator/NodeEvaluator canOpenDoors and canPassDoors, per mob in packages/bedrock-data/src/jsp/java/26.3/entity_navigation.json',
     subjects: () =>
         NAVIGATIONS.flatMap((component) =>
             entitiesDeclaring(component).map((subject) => ({ ...subject, tag: component }))

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 import BinaryStream from '@jsprismarine/binaryutils';
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 import type { ClimateEntry } from '@jsprismarine/worldgen';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
@@ -258,10 +259,13 @@ export interface JavaBlockPropertyRow {
     stateOverrides?: Record<string, Record<string, string | number | boolean>>;
 }
 
-/** Reads the Java 26.3 block property dump. */
+/** Reads the default Java release's block property dump. */
 export const loadJavaBlockProperties = (): Record<string, JavaBlockPropertyRow> =>
     // Parsed JSON boundary; JavaBlockPropertyRow is the dumper's documented shape.
-    readJson(join(bedrockDataRoot, 'src/jsp/java/block_properties.json')) as Record<string, JavaBlockPropertyRow>;
+    readJson(join(bedrockDataRoot, 'src/jsp/java', javaServerCacheFolder, 'block_properties.json')) as Record<
+        string,
+        JavaBlockPropertyRow
+    >;
 
 /** One Java entity type as the 26.3 attribute supplier dump records it. */
 export interface JavaEntityAttributeRow {
@@ -273,10 +277,13 @@ export interface JavaEntityAttributeRow {
     attributes: Record<string, number>;
 }
 
-/** Reads the Java 26.3 attribute supplier dump. */
+/** Reads the default Java release's attribute supplier dump. */
 export const loadJavaEntityAttributes = (): Record<string, JavaEntityAttributeRow> =>
     // Parsed JSON boundary; JavaEntityAttributeRow is the dumper's documented shape.
-    readJson(join(bedrockDataRoot, 'src/jsp/java/entity_attributes.json')) as Record<string, JavaEntityAttributeRow>;
+    readJson(join(bedrockDataRoot, 'src/jsp/java', javaServerCacheFolder, 'entity_attributes.json')) as Record<
+        string,
+        JavaEntityAttributeRow
+    >;
 
 /** One run of identical blocks in a dumped Java column, bottom to top. */
 export interface JavaColumnRun {

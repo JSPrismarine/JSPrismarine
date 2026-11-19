@@ -536,272 +536,272 @@
         "spawn-flying_speed:minecraft:bee": {
             "kind": "intentional",
             "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-flying_speed:minecraft:ender_dragon": {
             "kind": "intentional",
             "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-flying_speed:minecraft:happy_ghast": {
             "kind": "intentional",
             "reason": "Same as movement speed. The flying move controls scale the attribute differently in the two editions, and the happy ghast is ridden.",
-            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:flying_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:donkey": {
             "kind": "intentional",
             "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:horse": {
             "kind": "intentional",
             "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:llama": {
             "kind": "intentional",
             "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:magma_cube": {
             "kind": "intentional",
             "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:mule": {
             "kind": "intentional",
             "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:slime": {
             "kind": "intentional",
             "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:sulfur_cube": {
             "kind": "intentional",
             "reason": "Java sets a cube's max health from its size at spawn, so the dumped 20 is the living-entity default. Bedrock writes the same per-size values as component groups.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-health:minecraft:trader_llama": {
             "kind": "intentional",
             "reason": "Java's horse supplier publishes 53 and randomizes the attribute at spawn to a draw from 15 to 30, which is the range Bedrock's health component already writes.",
-            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:max_health in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-knockback_resistance:minecraft:armor_stand": {
             "kind": "intentional",
             "reason": "Java makes both immune to knockback in code and leaves the attribute at 0. Taking that 0 would make them knockbackable, which is neither edition's behavior.",
-            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-knockback_resistance:minecraft:ender_dragon": {
             "kind": "intentional",
             "reason": "Java makes both immune to knockback in code and leaves the attribute at 0. Taking that 0 would make them knockbackable, which is neither edition's behavior.",
-            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:knockback_resistance in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:axolotl": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:bat": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:breeze": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:cod": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:cow": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:creeper": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:dolphin": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:ender_dragon": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:frog": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:ghast": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:glow_squid": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:goat": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:guardian": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:happy_ghast": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:horse": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:llama": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:magma_cube": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:mooshroom": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:nautilus": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:parrot": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:phantom": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:pufferfish": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:ravager": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:salmon": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:sheep": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:shulker": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:slime": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:sniffer": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:squid": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:strider": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:sulfur_cube": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:tadpole": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:trader_llama": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:tropical_fish": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:turtle": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:vex": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:wandering_trader": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:wither": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:zoglin": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:zombie_horse": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawn-movement:minecraft:zombie_nautilus": {
             "kind": "intentional",
             "reason": "The Java dump cannot tell a declared speed from the inherited 0.7 default, which 17 of the 93 types carry, and the client predicts the speed of a mob the player rides.",
-            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
+            "reference": "Java minecraft:movement_speed in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md"
         },
         "spawns-on-a-clock:minecraft:ocelot": {
             "kind": "intentional",

@@ -688,7 +688,7 @@ function dataSources(sources: Sources): FactSource[] {
         },
         {
             label: 'the Java entity attribute and goal captures',
-            dir: path.join(repoRoot, 'packages', 'bedrock-data', 'src', 'jsp', 'java'),
+            dir: path.join(repoRoot, 'packages', 'bedrock-data', 'src', 'jsp', 'java', java),
             names: ['java.entityAttributes', 'java.entityGoals'],
             read: (dir) => {
                 const attributes: unknown = JSON.parse(readFileSync(path.join(dir, 'entity_attributes.json'), 'utf8'));

@@ -1,10 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../.test/reportProgress';
 
-import blockPropertiesJson from './jsp/java/block_properties.json';
-import entityAttributesJson from './jsp/java/entity_attributes.json';
-import entityNavigationJson from './jsp/java/entity_navigation.json';
+import sources from '../sources.json' with { type: 'json' };
+
+/**
+ * One golden of the default Java release, read by path so the suite follows
+ * `javaServer.defaultVersion` and still loads once an older release's directory is removed.
+ */
+const readGolden = (name: string): unknown =>
+    JSON.parse(readFileSync(join(import.meta.dirname, 'jsp/java', sources.javaServer.defaultVersion, name), 'utf8'));
 
 /**
  * Validates the Java Edition goldens that `utils/java-dump/run.mjs` captures from the pinned
@@ -24,10 +32,11 @@ interface EntityEntry {
     attributes: Record<string, number>;
 }
 
-// The imported JSON is too large for useful literal inference; these casts give it the shape
-// the dumper writes, which the structural assertions below then verify.
-const blocks = blockPropertiesJson as Record<string, BlockEntry>;
-const entities = entityAttributesJson as Record<string, EntityEntry>;
+// Parsed JSON has no type; these casts give it the shape the dumper writes, which the structural
+// assertions below then verify.
+const blocks = readGolden('block_properties.json') as Record<string, BlockEntry>;
+const entities = readGolden('entity_attributes.json') as Record<string, EntityEntry>;
+const navigation = readGolden('entity_navigation.json') as Record<string, unknown>;
 
 const blockEntries = Object.entries(blocks);
 const entityEntries = Object.entries(entities);
@@ -176,7 +185,7 @@ describe('entity_attributes.json', () => {
 describe('entity_navigation.json', () => {
     it("holds the villager, whose constructor reads the level's environment attributes", () => {
         // `Villager.registerBrainGoals` asks the level which activity its schedule starts in.
-        expect(entityNavigationJson['minecraft:villager']).toMatchObject({
+        expect(navigation['minecraft:villager']).toMatchObject({
             navigationClass: 'net.minecraft.world.entity.ai.navigation.GroundPathNavigation',
             canOpenDoors: true,
             moveControlClass: 'net.minecraft.world.entity.ai.control.MoveControl'

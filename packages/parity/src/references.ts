@@ -11,6 +11,7 @@ import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generato
 // The datagen manifest decides which protocol version's block palette the unversioned exports
 // are generated from. Asking it is what keeps this reference on the same capture `registry.blocks`
 // and the block schemas read. The module reads one JSON file and imports nothing else.
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 /**
@@ -170,17 +171,17 @@ export const REFERENCES = {
             return existsSync(snapshot) ? snapshot : undefined;
         }
     },
-    /** The Java 26.3 jar dump: per-state hardness, light, friction and related properties. */
+    /** The default Java release's jar dump: per-state hardness, light, friction and related properties. */
     javaBlockProperties: committed(
         'java-block-properties',
-        'packages/bedrock-data/src/jsp/java/block_properties.json',
+        `packages/bedrock-data/src/jsp/java/${javaServerCacheFolder}/block_properties.json`,
         'per-state properties for Java blocks'
     ),
 
-    /** The Java 26.3 attribute supplier dump: entity sizes and attributes. */
+    /** The default Java release's attribute supplier dump: entity sizes and attributes. */
     javaEntityAttributes: committed(
         'java-entity-attributes',
-        'packages/bedrock-data/src/jsp/java/entity_attributes.json',
+        `packages/bedrock-data/src/jsp/java/${javaServerCacheFolder}/entity_attributes.json`,
         'attribute suppliers for Java entity types'
     ),
 

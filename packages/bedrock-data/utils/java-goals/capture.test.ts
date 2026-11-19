@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { java_entity_goals } from '../../src/index.ts';
-import { CAPTURE_PATH, captureFromJar, formatCapture, pinnedServerJar } from './run.ts';
+import { captureFromJar, capturePath, formatCapture, pinnedServerJar } from './run.ts';
 
 const jar = await pinnedServerJar();
 
@@ -17,6 +17,8 @@ describe('entity_goals.json', () => {
     });
 
     it.skipIf(!jar.exists)('matches what the pinned jar holds', () => {
-        expect(formatCapture(captureFromJar(readFileSync(jar.path)))).toBe(readFileSync(CAPTURE_PATH, 'utf8'));
+        expect(formatCapture(captureFromJar(readFileSync(jar.path)))).toBe(
+            readFileSync(capturePath(jar.version), 'utf8')
+        );
     });
 });

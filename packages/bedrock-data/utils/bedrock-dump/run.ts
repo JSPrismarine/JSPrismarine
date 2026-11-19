@@ -4,7 +4,7 @@
  *
  * This is step 4 of [the pipeline](../../../../docs/plans/data-driven-vanilla.md), the one that
  * runs on a version bump and weekly rather than on every build. `dump:java` is its Java
- * counterpart; it writes `src/jsp/java/`, which tracks Java releases and is not keyed by
+ * counterpart; it writes `src/jsp/java/<release>/`, keyed by Java Edition release rather than
  * Bedrock protocol version.
  *
  * The passes, each a fresh world in the same staged server:

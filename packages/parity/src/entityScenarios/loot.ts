@@ -1857,7 +1857,7 @@ export const lootScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         name: 'opens-doors',
         java: "A mob that opens doors plans its path through a closed wooden door in a wall, as Java's WalkNodeEvaluator does for a navigator that can open doors, and a brain mob opens the door on its path and walks through.",
         reference:
-            'Java GroundPathNavigation.setCanOpenDoors (Villager, AbstractPiglin), WalkNodeEvaluator.getPathTypeFromState (DOOR_WOOD_CLOSED, WALKABLE_DOOR), per mob in packages/bedrock-data/src/jsp/java/entity_navigation.json, and InteractWithDoor (MOB_INTERACTABLE_DOORS, closeDoorsThatIHaveOpenedOrPassedThrough); issue #3180',
+            'Java GroundPathNavigation.setCanOpenDoors (Villager, AbstractPiglin), WalkNodeEvaluator.getPathTypeFromState (DOOR_WOOD_CLOSED, WALKABLE_DOOR), per mob in packages/bedrock-data/src/jsp/java/26.3/entity_navigation.json, and InteractWithDoor (MOB_INTERACTABLE_DOORS, closeDoorsThatIHaveOpenedOrPassedThrough); issue #3180',
         subjects: () => entitiesDeclaring('minecraft:annotation.open_door'),
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:annotation.open_door'],

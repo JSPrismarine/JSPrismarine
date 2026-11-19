@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { peekAmount } from '@jsprismarine/entities/components/peek';
 
@@ -53,6 +54,7 @@ const javaTargetGoals = (javaId: string): readonly JavaTargetGoal[] | undefined 
             'src',
             'jsp',
             'java',
+            javaServerCacheFolder,
             'entity_goals.json'
         );
         // Parsed JSON boundary: the goal capture `packages/bedrock-data/utils/java-goals` writes.
