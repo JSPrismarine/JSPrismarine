@@ -7,13 +7,11 @@
  * A plugin and a script cancel the same action, through the same event
  * ([ADR 0013](../../../../docs/adr/0013-vetoable-actions-are-staged.md)).
  */
-import type { BlockFace } from '@jsprismarine/blocks';
 import type {
     BlockBreakIntent,
     BlockInteractIntent,
     EntityInteractIntent,
     ItemUseIntent,
-    ScriptDirection,
     ScriptItem,
     ScriptWorldEvent,
     VetoGuard
@@ -27,6 +25,7 @@ import type Server from '../Server';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 import { scriptItemOf } from './levelScriptAccess';
+import { DIRECTIONS } from './events/values';
 
 /** The after-events of a player's actions. */
 export type ScriptPlayerActionEvent = Extract<
@@ -54,16 +53,6 @@ export interface ScriptPlayerActions {
 
 /** A stack as a script reads it, or undefined for an empty hand. */
 const itemOf = (item: Item | null): ScriptItem | undefined => scriptItemOf(item) ?? undefined;
-
-/** A block face as the Script API's `Direction` names it. */
-const DIRECTIONS: Readonly<Record<BlockFace, ScriptDirection>> = {
-    down: 'Down',
-    up: 'Up',
-    north: 'North',
-    south: 'South',
-    west: 'West',
-    east: 'East'
-};
 
 /**
  * Builds the player actions of one level's scripts.

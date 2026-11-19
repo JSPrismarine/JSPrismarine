@@ -32,6 +32,7 @@ import type { ServerItemActorPort } from '../../item/actorPort';
 import type { ContentEffectSink, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import type { ContentLookup } from './views';
 import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
+import RedstoneActivatedEvent from '../../events/other/RedstoneActivatedEvent';
 
 /** What {@link serverWorldSource} is built over. */
 export interface ServerWorldSourceOptions {
@@ -90,7 +91,13 @@ const worldEffectSink = (world: () => World | undefined, dimension: string): Con
     return {
         playSound: (at, sound) => live().playNamedSound(at.x, at.y, at.z, sound),
         spawnParticle: (at, particle) => live().spawnNamedParticle(at.x, at.y, at.z, particle),
-        emitGameEvent: (event, at, sourceId) => world()?.emitGameEvent(event, at, sourceId)
+        emitGameEvent: (event, at, sourceId) => world()?.emitGameEvent(event, at, sourceId),
+        redstoneActivated: (activation) => {
+            const loaded = world();
+            const { events } = loaded?.getServer().getKernel() ?? {};
+            if (loaded !== undefined && events?.hasListeners('redstoneActivated') === true)
+                events.post('redstoneActivated', new RedstoneActivatedEvent(loaded, activation));
+        }
     };
 };
 

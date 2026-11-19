@@ -28,6 +28,10 @@ import { mayFlyIn } from '../entity/playerComponents';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import PlayerDespawnEvent from '../events/player/PlayerDespawnEvent';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
+import PlayerGamemodeChangedEvent from '../events/player/PlayerGamemodeChangedEvent';
+import PlayerDimensionChangedEvent from '../events/player/PlayerDimensionChangedEvent';
+import PlayerContainerEvent from '../events/player/PlayerContainerEvent';
+import type { ContainerOwner } from '../events/player/PlayerContainerEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import { loadAdvancements } from '../advancement/progress';
@@ -1824,6 +1828,7 @@ export default class PlayerSession {
             bookshelfPower: 0
         };
         this.blockContainer = opened;
+        this.reportContainer(opened, true);
 
         try {
             await this.connection.sendDataPacket(packet);
@@ -1920,6 +1925,7 @@ export default class PlayerSession {
             trade
         };
         this.blockContainer = opened;
+        this.reportContainer(opened, true);
 
         try {
             await this.connection.sendDataPacket(packet);
@@ -2025,12 +2031,30 @@ export default class PlayerSession {
         const open = this.blockContainer;
         if (open?.windowId === windowId) {
             this.blockContainer = undefined;
+            this.reportContainer(open, false);
             this.containerData.clear();
             if (open.trade === undefined) this.showLid(open);
             else open.trade.release();
         }
 
         return this.openWindows.delete(windowId);
+    }
+
+    /** Raises `playerContainer` for a block's or a trader's screen this session opened or closed. */
+    private reportContainer(window: OpenBlockContainer, opened: boolean): void {
+        const { events } = this.server.getKernel();
+        if (!events.hasListeners('playerContainer')) return;
+        const world = this.getWorld();
+        const trader = window.trade?.trader;
+        let owner: ContainerOwner;
+        if (trader === undefined) {
+            const x = window.position.getX();
+            const y = window.position.getY();
+            const z = window.position.getZ();
+            const block = world.loadedBlockAt(x, y, z);
+            owner = { block: { x, y, z, name: block?.name ?? window.identifier, states: block?.states ?? {} } };
+        } else owner = { entity: { runtimeId: trader.getRuntimeId(), type: trader.getType() } };
+        events.post('playerContainer', new PlayerContainerEvent(this, world, opened, owner));
     }
 
     /**
@@ -2635,6 +2659,8 @@ export default class PlayerSession {
         }
         const from = this.world;
         const left = from.getDimension();
+        const eyesBefore = player.getPosition();
+        const feetBefore = new Vector3(eyesBefore.getX(), eyesBefore.getY() - EYE_HEIGHT, eyesBefore.getZ());
 
         // The cracks belong to a block in the world being left.
         this.stopMining();
@@ -2716,6 +2742,14 @@ export default class PlayerSession {
 
         sends.push(this.sendInitialSpawnChunks());
         sends.push(this.sendPlayStatus(PlayStatus.PlayerSpawn));
+        if (left.name !== target.name) {
+            this.server
+                .getKernel()
+                .events.post(
+                    'playerDimensionChanged',
+                    new PlayerDimensionChangedEvent(this, from, feetBefore, world, arrival.position)
+                );
+        }
         options.then?.();
         return allSent(sends);
     }
@@ -3676,7 +3710,8 @@ export default class PlayerSession {
         const player = this.getPlayer();
         mode ??= player.gamemode;
 
-        const event = new PlayerSetGamemodeEvent(this, mode);
+        const previous = player.gamemode;
+        const event = new PlayerSetGamemodeEvent(this, mode, previous);
         this.server.getKernel().events.post('playerSetGamemode', event);
         if (event.isCanceled()) return allSent([]);
 
@@ -3690,6 +3725,14 @@ export default class PlayerSession {
         sends.push(this.sendGameTypeChange());
         if (!mayFlyIn(player.gamemode)) sends.push(this.setFlying(false));
         sends.push(this.sendAbilityChange());
+        if (event.getGamemode() !== previous) {
+            this.server
+                .getKernel()
+                .events.post(
+                    'playerGamemodeChanged',
+                    new PlayerGamemodeChangedEvent(this, previous, event.getGamemode())
+                );
+        }
         return allSent(sends);
     }
 

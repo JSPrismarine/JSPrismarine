@@ -18,6 +18,8 @@ import { seededRandom } from '@jsprismarine/predicates';
 import PlayerSession from './PlayerSession';
 import type { TradingActor } from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
+import type Server from '../Server';
+import { testKernel } from '../testing/kernel.test.helper';
 
 const protocolCodec = stub<ProtocolCodec>({ context: { protocolVersion: 2193 } });
 
@@ -56,6 +58,8 @@ const sessionFor = () => {
         openWindows: new Map<number, number>(),
         containerData: new Map<number, number>(),
         blockContainer: undefined,
+        // A server whose bus no one listens on, so opening a screen raises nothing.
+        server: stub<Server>({ getKernel: () => testKernel() }),
         sendInventory: async (windowId: number = WindowIds.INVENTORY) =>
             void inventories.push({ windowId, after: sent.length }),
         // The world the lid is counted in is not part of this double.

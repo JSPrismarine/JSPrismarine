@@ -3,6 +3,7 @@ import { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { isUuid } from '../../utils/isUuid';
+import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';
 
 /**
  * A client asking to play an emote.
@@ -20,7 +21,7 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
     public readonly lane = 'input';
 
     /** Relays the emote to the players that have the sender on screen and logs it at debug level. */
-    public handle(packet: EmotePacket, { session, log }: InputContext): undefined {
+    public handle(packet: EmotePacket, { session, log, services }: InputContext): undefined {
         if (packet.actorRuntimeId !== session.runtimeId) {
             log.debug(
                 `${session.identity.name} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`,
@@ -53,6 +54,8 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
             platformId: packet.platformId,
             flags: packet.flags | EmoteFlags.ServerSide
         });
+
+        services.events.post('playerEmote', new PlayerEmoteEvent(session, packet.emoteId));
 
         log.debug(
             `${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks`,

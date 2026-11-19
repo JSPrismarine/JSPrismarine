@@ -213,12 +213,25 @@ export const registerScriptComponentBehaviors = (
 ): void => {
     registries.blocks.register({
         name: SCRIPT_COMPONENTS_BEHAVIOR,
-        hooks: ['onBreak', 'onPlayerInteract', 'onRandomTick', 'onTick', 'beforeOnPlayerPlace'],
+        hooks: [
+            'onBreak',
+            'onPlayerInteract',
+            'onRandomTick',
+            'onTick',
+            'beforeOnPlayerPlace',
+            'onStepOn',
+            'onEntityFallOn',
+            'onEntity',
+            'onRedstoneUpdate',
+            'onBlockStateChange'
+        ],
         create: (context) => {
             const type = scriptComponentType(context.definition, 'minecraft:block');
             if (type === undefined) return {};
             bridge.addBlock(context.identifier, type);
             const { uses, tick } = type;
+            // The power each block of this type last heard, which the next update reports as the previous.
+            const powers = new Map<string, number>();
             const handlers: Partial<BlockHooks> = {
                 onBreak: (event) => {
                     const player = actorOf(event.brokenBy);
@@ -247,6 +260,60 @@ export const registerScriptComponentBehaviors = (
                 },
                 onRandomTick: (event) =>
                     void bridge.block({ hook: 'onRandomTick', components: uses, block: locationOf(event.block) }),
+                onStepOn: (event) => {
+                    const entity = actorOf(event.entity);
+                    bridge.block({
+                        hook: 'onStepOn',
+                        components: uses,
+                        block: locationOf(event.block),
+                        ...(entity === undefined ? {} : { entity })
+                    });
+                },
+                onEntityFallOn: (event) => {
+                    const entity = actorOf(event.entity);
+                    bridge.block({
+                        hook: 'onEntityFallOn',
+                        components: uses,
+                        block: locationOf(event.block),
+                        fallDistance: event.fallDistance,
+                        ...(entity === undefined ? {} : { entity })
+                    });
+                },
+                onEntity: (event) => {
+                    const entitySource = actorOf(event.entitySource);
+                    bridge.block({
+                        hook: 'onEntity',
+                        components: uses,
+                        block: locationOf(event.block),
+                        name: event.name,
+                        blockPermutation: permutationOf(event.block),
+                        ...(entitySource === undefined ? {} : { entitySource })
+                    });
+                },
+                onRedstoneUpdate: (event) => {
+                    const block = locationOf(event.block);
+                    const key = `${block.dimension} ${block.x} ${block.y} ${block.z}`;
+                    const previous = powers.get(key);
+                    powers.set(key, event.power);
+                    bridge.block({
+                        hook: 'onRedstoneUpdate',
+                        components: uses,
+                        block,
+                        powerLevel: event.power,
+                        previousPowerLevel: previous ?? 0,
+                        firstUpdate: previous === undefined
+                    });
+                },
+                onBlockStateChange: (event) =>
+                    void bridge.block({
+                        hook: 'onBlockStateChange',
+                        components: uses,
+                        block: locationOf(event.block),
+                        previousPermutation: permutationOf({
+                            identifier: event.block.identifier,
+                            states: { ...event.block.states, [event.state]: event.previousValue }
+                        })
+                    }),
                 beforeOnPlayerPlace: (event) => {
                     const player = actorOf(event.player);
                     const refused = bridge.block({

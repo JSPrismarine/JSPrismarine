@@ -30,6 +30,8 @@ import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { EyeOfEnderEcho } from './eyeOfEnderEcho';
 import type { HandlerLog, HandlerServices, InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import PlayerAttackEntityEvent from '../../events/player/PlayerAttackEntityEvent';
+import { endItemUse, HELD_USE_TICKS, startItemUse } from '../../item/itemUse';
 
 /**
  * What sprinting is worth in knockback levels.
@@ -391,7 +393,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                         )
                     );
                     // The stack enters the world before the drop first waits.
-                    step.output(session.getWorld().dropFromPlayer(player, [dropped]));
+                    step.output(session.getWorld().dropFromPlayer(player, [dropped], session.runtimeId));
                     return;
                 }
             }
@@ -451,6 +453,10 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         if (attacker === undefined) return;
         const player = session.getPlayer();
         const components = player.getComponents();
+        const held = player.getInventory().getItemInHand();
+        const swing = new PlayerAttackEntityEvent(attacker, target, held.getName() === 'minecraft:air' ? null : held);
+        context.services.events.post('playerAttackEntity', swing);
+        if (swing.isCanceled()) return;
         // In this input's unit: the blow, its sounds and the hunger it costs are all written
         // before `meleeAttack` returns, so a throw anywhere undoes the swing whole.
         const landed = meleeAttack(attacker, target, {
@@ -478,12 +484,13 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
      * The client reports the start of a meal and nothing at its end, so the player finishes it
      * itself once the item's `consume_seconds` have passed.
      */
-    private startMeal({ services }: Pick<InputContext, 'services'>, session: PlayerSession): void {
+    private startMeal({ services, step }: Pick<InputContext, 'services' | 'step'>, session: PlayerSession): void {
         const player = session.getPlayer();
         const ticks = consumeTicksOf(services.content, player);
         if (ticks === undefined) return;
 
-        session.inputs().beginPlayerMeal(player, ticks);
+        if (session.inputs().beginPlayerMeal(player, ticks))
+            startItemUse(session, player.getInventory().getItemInHand(), ticks, step.tick);
     }
 
     /**
@@ -504,9 +511,11 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         session.inputs().cancelPlayerMeal(player);
         // The draw's clock, which the store player keeps.
         const drawn = player.takeItemUseTicks(step.tick);
+        const bow = player.getInventory().getItemInHand().getName() === BOW;
+        endItemUse(session, bow && data.actionType === ItemReleaseActionType.RELEASE ? 'release' : 'stop', step.tick);
 
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
-        if (player.getInventory().getItemInHand().getName() !== BOW) return;
+        if (!bow) return;
 
         // The arrow and the bow's sound are written in this input's unit.
         const shooter = session.getActor();
@@ -593,6 +602,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 // charge. So the clock starts here.
                 if (player.getInventory().getItemInHand().getName() === BOW) {
                     session.getPlayer().beginItemUse(step.tick);
+                    startItemUse(session, player.getInventory().getItemInHand(), HELD_USE_TICKS, step.tick);
                 }
 
                 // The item's own `onUse`, which is how an eye of ender or a snowball leaves the

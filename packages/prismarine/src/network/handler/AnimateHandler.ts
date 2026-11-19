@@ -2,6 +2,7 @@ import type AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
 import { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
+import PlayerSwingEvent from '../../events/player/PlayerSwingEvent';
 
 /**
  * The animations a client plays on itself and asks to have shown to everyone else.
@@ -31,7 +32,7 @@ export default class AnimateHandler implements InputLaneHandler<AnimatePacket> {
      * and dropped: a client animates itself, and relaying it as anyone else would let one
      * player make another swing.
      */
-    public handle(packet: AnimatePacket, { session, log }: InputContext): undefined {
+    public handle(packet: AnimatePacket, { session, log, services }: InputContext): undefined {
         if (packet.runtimeEntityId !== session.runtimeId) {
             log.debug(
                 `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`,
@@ -57,5 +58,8 @@ export default class AnimateHandler implements InputLaneHandler<AnimatePacket> {
             data: packet.data,
             swingSource: packet.swingSource
         });
+        if (packet.action === AnimateAction.Swing) {
+            services.events.post('playerSwing', new PlayerSwingEvent(session, packet.swingSource));
+        }
     }
 }

@@ -45,6 +45,9 @@ import PlayerEntityInteractedEvent from '../events/player/PlayerEntityInteracted
 import PlayerInteractBlockEvent from '../events/player/PlayerInteractBlockEvent';
 import PlayerInteractEntityEvent from '../events/player/PlayerInteractEntityEvent';
 import PlayerItemUsedEvent from '../events/player/PlayerItemUsedEvent';
+import PlayerBlockPlacedEvent from '../events/player/PlayerBlockPlacedEvent';
+import PlayerPlaceBlockEvent from '../events/player/PlayerPlaceBlockEvent';
+import PlayerItemUseStageEvent from '../events/player/PlayerItemUseStageEvent';
 import PlayerUseItemEvent from '../events/player/PlayerUseItemEvent';
 import type { Item } from './Item';
 import type { ItemStack } from '@jsprismarine/items';
@@ -343,6 +346,11 @@ const placeBlock = (
             face
         });
     if (refused === true) return undefined;
+    const { events } = player.getServer().getKernel();
+    const placing = { ...target, name: identifier, states };
+    const guard = new PlayerPlaceBlockEvent(player.getRuntimeId(), world, placing, face, interaction.faceLocation);
+    events.post('playerPlaceBlock', guard);
+    if (guard.isCanceled()) return undefined;
 
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
@@ -356,6 +364,7 @@ const placeBlock = (
     // holds what it was carrying rather than what a fresh one holds.
     restorePlacedContents(blocks, target, identifier, placed);
     blocks.playSound(target, 'place');
+    events.post('playerBlockPlaced', new PlayerBlockPlacedEvent(player.getRuntimeId(), world, placing));
     return target;
 };
 
@@ -553,6 +562,17 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     if (click.isCanceled()) {
         refusePlacement(interaction, face);
         return 'handled';
+    }
+    // A click with something in hand is a use of it on the block, which begins and, as the client
+    // reports no hold on a block, ends with the click.
+    if (held.getName() !== 'minecraft:air' && held.getAmount() > 0 && events.hasListeners('playerItemUseStage')) {
+        const on = { at: { x, y, z, name: block.identifier, states: block.states }, face };
+        for (const stage of ['startOn', 'stopOn'] as const) {
+            events.post(
+                'playerItemUseStage',
+                new PlayerItemUseStageEvent(player.getRuntimeId(), player.getWorld(), stage, held, 0, on)
+            );
+        }
     }
 
     // A block interaction landed on no entity, which is what `targetOf` has to say while the

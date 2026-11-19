@@ -105,9 +105,14 @@ describe('ScriptComponentBridge', () => {
         const [bound] = blocks.bind({ identifier: 'jsp:ticker', definition: TICKER });
         expect(Object.keys(bound?.handlers ?? {}).sort()).toEqual([
             'beforeOnPlayerPlace',
+            'onBlockStateChange',
             'onBreak',
+            'onEntity',
+            'onEntityFallOn',
             'onPlayerInteract',
             'onRandomTick',
+            'onRedstoneUpdate',
+            'onStepOn',
             'onTick'
         ]);
         // A block without minecraft:tick never ticks a script's component, as on BDS.
@@ -138,5 +143,15 @@ describe('ScriptComponentBridge', () => {
         expect(raised.map((event) => event.hook)).toEqual(['beforeOnPlayerPlace', 'onPlayerInteract', 'onPlayerBreak']);
         expect(raised[0]).toMatchObject({ face: 'Up', player: { id: '5', typeId: 'minecraft:player' } });
         expect(raised[1]).toMatchObject({ face: 'North' });
+
+        // The redstone hook reports the power before, and whether it is the block's first update.
+        bound?.handlers.onRedstoneUpdate?.({ block, power: 7 });
+        bound?.handlers.onRedstoneUpdate?.({ block, power: 0 });
+        bound?.handlers.onBlockStateChange?.({ block, state: 'open_bit', previousValue: true, newValue: false });
+        expect(raised.slice(3)).toMatchObject([
+            { hook: 'onRedstoneUpdate', powerLevel: 7, previousPowerLevel: 0, firstUpdate: true },
+            { hook: 'onRedstoneUpdate', powerLevel: 0, previousPowerLevel: 7, firstUpdate: false },
+            { hook: 'onBlockStateChange', previousPermutation: { typeId: 'jsp:ticker', states: { open_bit: true } } }
+        ]);
     });
 });

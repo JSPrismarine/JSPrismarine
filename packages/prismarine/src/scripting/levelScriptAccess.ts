@@ -136,7 +136,7 @@ const LIQUID_SPEED = 0.02;
 const FLOAT_MAX = 3.4028234663852886e38;
 
 /** A player's game mode as the Script API names it, or undefined for one it has no name for. */
-const gameModeName = (gamemode: number) => {
+export const gameModeName = (gamemode: number) => {
     try {
         return getGametypeName(gamemode);
     } catch {

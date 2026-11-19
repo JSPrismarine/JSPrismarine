@@ -24,6 +24,7 @@ import { EYE_HEIGHT } from './playerEyes';
 import { StorePlayer } from './storePlayer';
 import { DamageSource } from './DamageSource';
 import { deathMessage } from './DeathMessages';
+import { testKernel } from '../testing/kernel.test.helper';
 
 /** A world on the real prototype over a real entity runtime, which holds its players' entities. */
 const emptyWorld = (): World => {
@@ -37,6 +38,8 @@ const emptyWorld = (): World => {
         // PvP on, so only the identity of the two sides decides a swing.
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
         server: stub<Server>({
+            // A bus no one listens on.
+            getKernel: () => testKernel(),
             getEntityRuntime: () => live,
             getStorePlayers: () => entities.players,
             getContent: () => entities.content(),

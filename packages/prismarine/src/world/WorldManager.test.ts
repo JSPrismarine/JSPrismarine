@@ -23,6 +23,7 @@ import type { NetworkWorldReplicator, WorldReplicators } from '../network/Networ
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 import { withCwd } from '../utils/cwd';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';
@@ -143,7 +144,9 @@ const buildManager = (
         debug: () => {},
         verbose: (message) => void logged.push(String(message))
     });
+    const kernel = testKernel();
     const server = stub<Server>({
+        getKernel: () => kernel,
         getLogger: () => logger,
         getConfig: () =>
             stub<Config>({

@@ -10,6 +10,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
+import { testKernel } from '../testing/kernel.test.helper';
 import Chunk from './chunk/Chunk';
 import type { DimensionType } from './DimensionType';
 import { Dimensions } from './DimensionType';
@@ -54,6 +55,7 @@ let previousDirectory: string | undefined;
 
 const testServer = (): Server =>
     stub<Server>({
+        getKernel: () => testKernel(),
         getLogger: () =>
             stub<Logger>({
                 info: () => {},

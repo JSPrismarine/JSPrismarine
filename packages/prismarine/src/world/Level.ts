@@ -58,6 +58,7 @@ import type { WorldExperiment } from './WorldExperiments';
 import { levelExperiments } from './WorldExperiments';
 import { LevelDynamicProperties } from './dynamicProperties';
 import { Scoreboard } from './Scoreboard';
+import GameRuleChangedEvent from '../events/other/GameRuleChangedEvent';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
@@ -289,6 +290,9 @@ export class Level {
             for (const world of this.worlds()) {
                 world.announceGameRule(name, value, editable);
             }
+            const { events } = this.server.getKernel();
+            if (events.hasListeners('gameRuleChanged'))
+                events.post('gameRuleChanged', new GameRuleChangedEvent(this, name, value));
         });
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
 

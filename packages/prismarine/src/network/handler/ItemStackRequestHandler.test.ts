@@ -35,6 +35,7 @@ import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/p
 import { ContainerUiId, ItemStackRequestActionType, newestRelease } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testContent } from '../../testing/entityServer';
+import { testKernel } from '../../testing/kernel.test.helper';
 
 /**
  * A slot of the inventory's own two by two grid, as the client numbers it.
@@ -88,6 +89,8 @@ const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
 
     // A refusal says why it refused, and says it through the logger.
     return stub<Server>({
+        // A bus no one listens on.
+        getKernel: () => testKernel(),
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getContent: () => testContent(),
         getCreativeInventory: () => menu,
