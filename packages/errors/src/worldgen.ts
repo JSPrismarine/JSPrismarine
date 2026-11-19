@@ -651,6 +651,33 @@ export const WorldgenErrors = defineErrors('worldgen', {
         base: TypeError
     },
     /**
+     * A 26.4 `upscale` density function names a mode other than `interpolate_linear` on one axis.
+     * Every vanilla `upscale` interpolates linearly, and this server implements only that mode;
+     * change the axis's `mode` to `interpolate_linear` or leave the function out.
+     */
+    UnsupportedUpscaleMode: {
+        message: '{path}: upscale mode {mode} is not implemented; only "interpolate_linear" is',
+        base: TypeError
+    },
+    /**
+     * A 26.4 `upscale` density function gives its x and z axes different cell sizes. The chunk
+     * sampler fills square horizontal cells, as every vanilla `upscale` uses, so give `x` and `z`
+     * the same `cell_size`.
+     */
+    UnevenUpscaleCells: {
+        message: '{path}: upscale cell sizes differ across x ({x}) and z ({z}); only equal sizes are implemented',
+        base: TypeError
+    },
+    /**
+     * A 26.4 `upscale` density function gives an axis a `cell_size` of zero or less. Interpolation
+     * divides by the cell size, so give each axis a positive whole number, as every vanilla
+     * `upscale` does.
+     */
+    NonPositiveUpscaleCell: {
+        message: '{path}: expected a positive upscale cell size, got {size}',
+        base: RangeError
+    },
+    /**
      * A world generation file, from a datapack or the generated Java data, uses a float provider
      * type this server does not implement.
      */
