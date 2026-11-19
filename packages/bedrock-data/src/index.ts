@@ -135,9 +135,9 @@ export const jigsaw_structure_data: Buffer = toBuffer(jigsaw_structure_data_data
  */
 export const biome_definitions_network: Buffer = toBuffer(biome_definitions_network_data);
 
-import java_entity_attributes_data from './jsp/java/entity_attributes.json';
-import java_entity_navigation_data from './jsp/java/entity_navigation.json';
-import java_entity_goals_data from './jsp/java/entity_goals.json';
+import java_entity_attributes_data from './jsp/java/entity_attributes';
+import java_entity_navigation_data from './jsp/java/entity_navigation';
+import java_entity_goals_data from './jsp/java/entity_goals';
 
 /** One Java entity type's hitbox, the attributes its class declares and its peaceful rule. */
 export interface JavaEntityAttributes {

@@ -22,7 +22,7 @@ small dumper in this repository reads the properties out of it:
 1. **The dump.** `pnpm --filter @jsprismarine/bedrock-data run dump:java` downloads the pinned
    Java 26.3 server jar, verifies its sha1, compiles
    `packages/bedrock-data/utils/java-dump/DumpJavaData.java` against it, and runs the dumper. The
-   result is a committed golden, `packages/bedrock-data/src/jsp/java/block_properties.json`, with
+   result is a committed golden, `packages/bedrock-data/src/jsp/java/<release>/block_properties.json`, with
    one row per Java block state. This is a capture-time task, run on a Java version bump rather
    than on every build, and it needs a JDK matching the jar (Java 25 for 26.3).
 2. **The flattening.** `pnpm --filter @jsprismarine/mapping run generate:block-properties` runs

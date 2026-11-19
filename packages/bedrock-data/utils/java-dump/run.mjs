@@ -10,7 +10,7 @@ import { extractServer } from './extract.ts';
 
 /**
  * Compiles and runs the Java property, attribute, and navigation dumper against the pinned Java
- * Edition server jar, then writes the goldens under `src/jsp/java/`.
+ * Edition server jar, then writes the goldens under `src/jsp/java/<release>/`.
  *
  * This is a capture-time task, run on a Java version bump rather than on every build. The jar
  * and everything extracted from it are untrusted data and stay under the cache directory; the
@@ -28,7 +28,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, '../..');
 const repoRoot = path.resolve(packageRoot, '../..');
 const cacheDir = path.join(repoRoot, 'node_modules/.cache/jsprismarine/java', JAVA_VERSION);
-const goldenDir = path.join(packageRoot, 'src/jsp/java');
+const goldenDir = path.join(packageRoot, 'src/jsp/java', JAVA_VERSION);
 
 const fetchJson = async (url) => {
     const response = await fetch(url);

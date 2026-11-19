@@ -21,8 +21,9 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
   is read.
 - `src/vendor/` is data the server does not send, copied from projects that publish it. See
   [its README](src/vendor/README.md) for the source and license of each file.
-- `src/jsp/java/` is dumped from the Java Edition 26.3 server jar, which Mojang ships
-  unobfuscated since 26.1. `block_properties.json` holds the per-state block properties no
+- `src/jsp/java/<release>/` is dumped from that Java Edition release's server jar, which Mojang
+  ships unobfuscated since 26.1. `src/jsp/java/<name>.ts` re-exports the default release's
+  files; `utils/build.js` writes those modules from `javaServer.defaultVersion`. `block_properties.json` holds the per-state block properties no
   Mojang report carries (hardness, blast resistance, friction, light, map color, sound type,
   push reaction, instrument, fire odds and the rest), with state-invariant values once per
   block and per-state differences under `stateOverrides`. `entity_attributes.json` holds the
@@ -36,10 +37,11 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
 `pnpm run dump:java` is a capture-time task, run on a Java version bump rather than as part of
 the build. It downloads the pinned server jar through the piston-meta manifest chain, verifies
 its sha1, unpacks the bundler, compiles `utils/java-dump/DumpJavaData.java` against the server
-classes, runs it, and rewrites the two files under `src/jsp/java/`. Everything downloaded stays
+classes, runs it, and rewrites the three files under `src/jsp/java/<release>/`. `--java <release>`
+picks a pinned release other than the default. Everything downloaded stays
 under `node_modules/.cache/jsprismarine/java/`.
 
-`pnpm run dump:java-goals` rewrites `entity_goals.json` from the jar `fetch:sources` caches. It
+`pnpm run dump:java-goals` rewrites `src/jsp/java/<release>/entity_goals.json` from the jar `fetch:sources` caches. It
 needs no JDK, because it reads the class files and never runs them.
 
 The pinned version, its sha1 and the manifest URL are constants at the top of

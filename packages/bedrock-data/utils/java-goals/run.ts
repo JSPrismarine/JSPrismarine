@@ -1,12 +1,12 @@
 /**
- * Writes `src/jsp/java/entity_goals.json`: the goals each Java mob registers and the arguments it
+ * Writes `src/jsp/java/<release>/entity_goals.json`: the goals each Java mob registers and the arguments it
  * passes them, read out of the pinned Java Edition server jar's bytecode.
  *
  * This is a capture-time task, run on a Java version bump. It needs only the jar that
  * `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` caches, and no JDK: nothing here
  * loads or runs a class, it only reads class files.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,8 +27,13 @@ export const readServerClasses = (bundlerJar: Buffer): Map<string, Buffer> => {
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** Where the committed capture lives. */
-export const CAPTURE_PATH = join(packageDir, 'src/jsp/java/entity_goals.json');
+/**
+ * Where the committed capture of one Java Edition release lives.
+ *
+ * @param release - The release id, such as `26.3`.
+ * @returns The absolute path of that release's `entity_goals.json`.
+ */
+export const capturePath = (release: string): string => join(packageDir, 'src/jsp/java', release, 'entity_goals.json');
 
 /**
  * The pinned Java server jar: `JSP_JAVA_SERVER_JAR` when set, otherwise the copy
@@ -85,6 +90,8 @@ if (import.meta.filename === process.argv[1]) {
     }
 
     const capture = captureFromJar(readFileSync(jar.path));
-    writeFileSync(CAPTURE_PATH, formatCapture(capture));
-    console.log(`Wrote ${relative(packageDir, CAPTURE_PATH)} (${Object.keys(capture).length} entity types)`);
+    const target = capturePath(jar.version);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, formatCapture(capture));
+    console.log(`Wrote ${relative(packageDir, target)} (${Object.keys(capture).length} entity types)`);
 }

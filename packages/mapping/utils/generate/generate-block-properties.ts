@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -86,10 +87,9 @@ interface GoldenEntry {
 }
 
 // The golden is parsed JSON; `javaGoldens.test.ts` in bedrock-data verifies this shape.
-const golden = readJson(join(repoRoot, 'packages/bedrock-data/src/jsp/java/block_properties.json')) as Record<
-    string,
-    GoldenEntry
->;
+const golden = readJson(
+    join(repoRoot, 'packages/bedrock-data/src/jsp/java', javaServerCacheFolder, 'block_properties.json')
+) as Record<string, GoldenEntry>;
 
 interface PaletteFile {
     minecraftVersion: string;

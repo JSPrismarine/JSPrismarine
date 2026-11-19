@@ -4,6 +4,7 @@
 // sibling import only through the hook that script registers.
 import { existsSync, readFileSync } from 'node:fs';
 
+import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
 import type { SharedStat } from '@jsprismarine/entities/javaStats';
 import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
 import {
@@ -232,7 +233,10 @@ const entityStatEntries = (): readonly AllowListEntry[] => [
  */
 const javaStatTypes = (): ReadonlySet<string> => {
     const dump: Record<string, unknown> = JSON.parse(
-        readFileSync(new URL('../../bedrock-data/src/jsp/java/entity_attributes.json', import.meta.url), 'utf8')
+        readFileSync(
+            new URL(`../../bedrock-data/src/jsp/java/${javaServerCacheFolder}/entity_attributes.json`, import.meta.url),
+            'utf8'
+        )
     );
     return new Set(Object.keys(dump));
 };

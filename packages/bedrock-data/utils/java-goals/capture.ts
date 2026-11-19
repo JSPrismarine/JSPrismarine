@@ -4,7 +4,7 @@ import type { JavaGoal, JavaGoalReader, JavaValue } from './goals.ts';
 
 /**
  * Turns the goals a {@link JavaGoalReader} reads out of the jar into the JSON the runtime reads
- * without the jar: `src/jsp/java/entity_goals.json`.
+ * without the jar: `src/jsp/java/<release>/entity_goals.json`.
  *
  * Each argument is written as what it means rather than how the bytecode built it. A class
  * literal also lists every entity type whose class is, or extends, it, because a runtime cannot
