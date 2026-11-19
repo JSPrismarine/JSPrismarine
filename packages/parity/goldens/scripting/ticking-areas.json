@@ -1,0 +1,348 @@
+{
+    "$comment": [
+        "What the scripts of scenario `ticking-areas` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "ticking-areas",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "areas",
+            "seq": 1,
+            "tick": 0,
+            "event": "tickingAreaManager is the same object",
+            "value": true
+        },
+        {
+            "pack": "areas",
+            "seq": 2,
+            "tick": 0,
+            "event": "maxChunkCount",
+            "value": 300
+        },
+        {
+            "pack": "areas",
+            "seq": 3,
+            "tick": 0,
+            "event": "chunkCount",
+            "value": 0
+        },
+        {
+            "pack": "areas",
+            "seq": 4,
+            "tick": 0,
+            "event": "getAllTickingAreas",
+            "value": []
+        },
+        {
+            "pack": "areas",
+            "seq": 5,
+            "tick": 0,
+            "event": "hasCapacity of one chunk",
+            "value": true
+        },
+        {
+            "pack": "areas",
+            "seq": 6,
+            "tick": 0,
+            "event": "hasCapacity of a large area",
+            "value": false
+        },
+        {
+            "pack": "areas",
+            "seq": 7,
+            "tick": 0,
+            "event": "createTickingArea",
+            "value": {
+                "identifier": "jsp:near",
+                "dimension": "minecraft:overworld",
+                "boundingBox": {
+                    "max": {
+                        "z": 47,
+                        "y": 320,
+                        "x": 31
+                    },
+                    "min": {
+                        "z": -16,
+                        "y": -64,
+                        "x": -32
+                    }
+                },
+                "chunkCount": 16,
+                "isFullyLoaded": false
+            }
+        },
+        {
+            "pack": "areas",
+            "seq": 8,
+            "tick": 0,
+            "event": "createTickingArea far away",
+            "value": {
+                "identifier": "jsp:far",
+                "dimension": "minecraft:overworld",
+                "boundingBox": {
+                    "max": {
+                        "z": 1023,
+                        "y": 320,
+                        "x": 1023
+                    },
+                    "min": {
+                        "z": 992,
+                        "y": -64,
+                        "x": 992
+                    }
+                },
+                "chunkCount": 4,
+                "isFullyLoaded": false
+            }
+        },
+        {
+            "pack": "areas",
+            "seq": 9,
+            "tick": 0,
+            "event": "createTickingArea of an id in use",
+            "error": "TickingAreaError: Identifier 'jsp:near' already exists."
+        },
+        {
+            "pack": "areas",
+            "seq": 10,
+            "tick": 0,
+            "event": "createTickingArea too large",
+            "error": "TickingAreaError: Adding 'jsp:large' pushes the ticking chunks over the limit of '300'."
+        },
+        {
+            "pack": "areas",
+            "seq": 11,
+            "tick": 0,
+            "event": "createTickingArea without a namespace",
+            "value": "called"
+        },
+        {
+            "pack": "areas",
+            "seq": 12,
+            "tick": 0,
+            "event": "hasTickingArea",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "areas",
+            "seq": 13,
+            "tick": 0,
+            "event": "getTickingArea of an unknown id",
+            "value": null
+        },
+        {
+            "pack": "areas",
+            "seq": 14,
+            "tick": 0,
+            "event": "getTickingArea of an area",
+            "value": {
+                "identifier": "jsp:near",
+                "dimension": "minecraft:overworld",
+                "boundingBox": {
+                    "max": {
+                        "z": 47,
+                        "y": 320,
+                        "x": 31
+                    },
+                    "min": {
+                        "z": -16,
+                        "y": -64,
+                        "x": -32
+                    }
+                },
+                "chunkCount": 16,
+                "isFullyLoaded": false
+            }
+        },
+        {
+            "pack": "areas",
+            "seq": 15,
+            "tick": 0,
+            "event": "getAllTickingAreas after creating",
+            "value": [
+                "jsp:far",
+                "jsp:near",
+                "plain"
+            ]
+        },
+        {
+            "pack": "areas",
+            "seq": 16,
+            "tick": 0,
+            "event": "chunkCount after creating",
+            "value": 20
+        },
+        {
+            "pack": "areas",
+            "seq": 17,
+            "tick": 0,
+            "event": "the tickingarea command adds",
+            "value": 1
+        },
+        {
+            "pack": "areas",
+            "seq": 18,
+            "tick": 0,
+            "event": "getAllTickingAreas after the command",
+            "value": [
+                "jsp:far",
+                "jsp:near",
+                "plain"
+            ]
+        },
+        {
+            "pack": "areas",
+            "seq": 19,
+            "tick": 0,
+            "event": "the tickingarea command adds a circle",
+            "value": 1
+        },
+        {
+            "pack": "areas",
+            "seq": 20,
+            "tick": 0,
+            "event": "the tickingarea command lists",
+            "value": 1
+        },
+        {
+            "pack": "areas",
+            "seq": 21,
+            "tick": 0,
+            "event": "the tickingarea command removes by name",
+            "value": 1
+        },
+        {
+            "pack": "areas",
+            "seq": 22,
+            "tick": 0,
+            "event": "the tickingarea command removes by position",
+            "value": 1
+        },
+        {
+            "pack": "areas",
+            "seq": 23,
+            "tick": 60,
+            "event": "settled",
+            "value": {
+                "plain": {
+                    "identifier": "plain",
+                    "dimension": "minecraft:overworld",
+                    "boundingBox": {
+                        "max": {
+                            "z": 15,
+                            "y": 320,
+                            "x": 15
+                        },
+                        "min": {
+                            "z": 0,
+                            "y": -64,
+                            "x": 0
+                        }
+                    },
+                    "chunkCount": 1,
+                    "isFullyLoaded": true
+                },
+                "near": {
+                    "identifier": "jsp:near",
+                    "dimension": "minecraft:overworld",
+                    "boundingBox": {
+                        "max": {
+                            "z": 47,
+                            "y": 320,
+                            "x": 31
+                        },
+                        "min": {
+                            "z": -16,
+                            "y": -64,
+                            "x": -32
+                        }
+                    },
+                    "chunkCount": 16,
+                    "isFullyLoaded": true
+                },
+                "far": {
+                    "identifier": "jsp:far",
+                    "dimension": "minecraft:overworld",
+                    "boundingBox": {
+                        "max": {
+                            "z": 1023,
+                            "y": 320,
+                            "x": 1023
+                        },
+                        "min": {
+                            "z": 992,
+                            "y": -64,
+                            "x": 992
+                        }
+                    },
+                    "chunkCount": 4,
+                    "isFullyLoaded": true
+                }
+            }
+        },
+        {
+            "pack": "areas",
+            "seq": 24,
+            "tick": 65,
+            "event": "a pig in the far area",
+            "value": 55
+        },
+        {
+            "pack": "areas",
+            "seq": 25,
+            "tick": 65,
+            "event": "chunkCount later",
+            "value": 20
+        },
+        {
+            "pack": "areas",
+            "seq": 26,
+            "tick": 65,
+            "event": "removeTickingArea",
+            "value": [
+                "jsp:far",
+                "plain"
+            ]
+        },
+        {
+            "pack": "areas",
+            "seq": 27,
+            "tick": 65,
+            "event": "removeTickingArea of an unknown id",
+            "error": "TickingAreaError: Unknown identifier 'jsp:none'."
+        },
+        {
+            "pack": "areas",
+            "seq": 28,
+            "tick": 65,
+            "event": "removeTickingArea of an area",
+            "value": [
+                "plain"
+            ]
+        },
+        {
+            "pack": "areas",
+            "seq": 29,
+            "tick": 65,
+            "event": "removeAllTickingAreas",
+            "value": []
+        },
+        {
+            "pack": "areas",
+            "seq": 30,
+            "tick": 65,
+            "event": "chunkCount after removing",
+            "value": 0
+        }
+    ]
+}

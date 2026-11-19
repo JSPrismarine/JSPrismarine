@@ -1,0 +1,4228 @@
+{
+    "$comment": [
+        "What the scripts of scenario `loot-tables` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.items",
+    "scenario": "loot-tables",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "loot",
+            "seq": 1,
+            "tick": 0,
+            "event": "getLootTableManager is the same object",
+            "value": true
+        },
+        {
+            "pack": "loot",
+            "seq": 2,
+            "tick": 0,
+            "event": "getLootTable loot_tables/entities/pig.json",
+            "value": null
+        },
+        {
+            "pack": "loot",
+            "seq": 3,
+            "tick": 0,
+            "event": "getLootTable entities/pig",
+            "value": "loot_tables/entities/pig.json"
+        },
+        {
+            "pack": "loot",
+            "seq": 4,
+            "tick": 0,
+            "event": "getLootTable entities/pig.json",
+            "value": null
+        },
+        {
+            "pack": "loot",
+            "seq": 5,
+            "tick": 0,
+            "event": "getLootTable loot_tables/entities/pig",
+            "value": null
+        },
+        {
+            "pack": "loot",
+            "seq": 6,
+            "tick": 0,
+            "event": "getLootTable jsp/missing",
+            "value": null
+        },
+        {
+            "pack": "loot",
+            "seq": 7,
+            "tick": 0,
+            "event": "getLootTable is a new object",
+            "value": false
+        },
+        {
+            "pack": "loot",
+            "seq": 8,
+            "tick": 0,
+            "event": "table entities/pig",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/pig.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:porkchop",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SmeltItemFunction",
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 9,
+            "tick": 0,
+            "event": "table entities/zombie",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/zombie.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:rotten_flesh",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_ingot",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:carrot",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:potato",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByPlayerOrPetsCondition"
+                            },
+                            {
+                                "class": "RandomChanceWithLootingCondition",
+                                "chance": 0.025,
+                                "lootingMultiplier": 0.01
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_lava_chicken",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByPlayerOrPetsCondition"
+                            },
+                            {
+                                "class": "PassengerOfEntityCondition",
+                                "entityType": "minecraft:chicken"
+                            },
+                            {
+                                "class": "IsBabyCondition"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 10,
+            "tick": 0,
+            "event": "table entities/ghast",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/ghast.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:ghast_tear",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:gunpowder",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_tears",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByEntityCondition",
+                                "entityType": "minecraft:player"
+                            },
+                            {
+                                "class": "DamagedByEntityCondition",
+                                "entityType": "minecraft:fireball"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 11,
+            "tick": 0,
+            "event": "table entities/creeper",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/creeper.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:gunpowder",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_13",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_cat",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_blocks",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_chirp",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_far",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mall",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mellohi",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_stal",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_strad",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_ward",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_11",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_wait",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByEntityCondition",
+                                "entityType": "minecraft:skeleton"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_13",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_cat",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_blocks",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_chirp",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_far",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mall",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mellohi",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_stal",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_strad",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_ward",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_11",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_wait",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByEntityCondition",
+                                "entityType": "minecraft:stray"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_13",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_cat",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_blocks",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_chirp",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_far",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mall",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mellohi",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_stal",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_strad",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_ward",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_11",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_wait",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByEntityCondition",
+                                "entityType": "minecraft:bogged"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_13",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_cat",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_blocks",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_chirp",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_far",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mall",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_mellohi",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_stal",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_strad",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_ward",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_11",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_wait",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByEntityCondition",
+                                "entityType": "minecraft:parched"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 12,
+            "tick": 0,
+            "event": "table entities/frog",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/frog.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:slime_ball",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityKilledCondition",
+                                "entityType": "minecraft:slime"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:ochre_froglight",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasVariantCondition"
+                            },
+                            {
+                                "class": "EntityKilledCondition",
+                                "entityType": "minecraft:magma_cube"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:verdant_froglight",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasVariantCondition"
+                            },
+                            {
+                                "class": "EntityKilledCondition",
+                                "entityType": "minecraft:magma_cube"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:pearlescent_froglight",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasVariantCondition"
+                            },
+                            {
+                                "class": "EntityKilledCondition",
+                                "entityType": "minecraft:magma_cube"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 13,
+            "tick": 0,
+            "event": "table entities/husk_rider",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/husk_rider.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:rotten_flesh",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:rabbit_foot",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_ingot",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:carrot",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:potato",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByPlayerOrPetsCondition"
+                            },
+                            {
+                                "class": "RandomChanceWithLootingCondition",
+                                "chance": 0.025,
+                                "lootingMultiplier": 0.01
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_lava_chicken",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByPlayerOrPetsCondition"
+                            },
+                            {
+                                "class": "PassengerOfEntityCondition",
+                                "entityType": "minecraft:chicken"
+                            },
+                            {
+                                "class": "IsBabyCondition"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 14,
+            "tick": 0,
+            "event": "table entities/piglin_gear_melee",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/piglin_gear_melee.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:golden_sword",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "EnchantRandomEquipmentFunction"
+                                    }
+                                ],
+                                "weight": 95,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:golden_spear",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "EnchantRandomEquipmentFunction"
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootTableReference",
+                                "path": "loot_tables/entities/armor_set_gold.json",
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": {
+                            "class": "LootPoolTiers",
+                            "initialRange": 1,
+                            "bonusRolls": 0,
+                            "bonusChance": 0
+                        },
+                        "conditions": [
+                            {
+                                "class": "RandomDifficultyChanceCondition",
+                                "chances": [
+                                    0,
+                                    0,
+                                    1,
+                                    1
+                                ]
+                            },
+                            {
+                                "class": "RandomRegionalDifficultyChanceCondition",
+                                "maxChance": 0.15
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 15,
+            "tick": 0,
+            "event": "table entities/armor_set_chain",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/armor_set_chain.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:chainmail_helmet",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomEquipmentFunction"
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": {
+                                    "class": "LootTableEntry",
+                                    "lootTable": "LootTable ",
+                                    "weight": 0,
+                                    "quality": 0,
+                                    "subTable": "undefined"
+                                }
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 16,
+            "tick": 0,
+            "event": "table entities/pillager_captain_equipment",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/pillager_captain_equipment.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:banner",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetBannerDetailsFunction",
+                                        "type": 1,
+                                        "baseColor": "white",
+                                        "patterns": [],
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:crossbow",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "EnchantRandomEquipmentFunction"
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 17,
+            "tick": 0,
+            "event": "table entities/bogged",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/entities/bogged.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:arrow",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:bone",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:arrow",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "LootingEnchantFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetPotionFunction",
+                                        "id": "poison",
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "KilledByPlayerOrPetsCondition"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 18,
+            "tick": 0,
+            "event": "table equipment/trial_chamber_chainmail",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/equipment/trial_chamber_chainmail.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:chainmail_helmet",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetArmorTrimFunction",
+                                        "material": "copper",
+                                        "pattern": "bolt",
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SpecificEnchantFunction",
+                                        "enchantments": [
+                                            {
+                                                "class": "EnchantInfo"
+                                            },
+                                            {
+                                                "class": "EnchantInfo"
+                                            },
+                                            {
+                                                "class": "EnchantInfo"
+                                            }
+                                        ],
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "RandomChanceCondition",
+                                "chance": 0.5
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:chainmail_chestplate",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetArmorTrimFunction",
+                                        "material": "copper",
+                                        "pattern": "bolt",
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SpecificEnchantFunction",
+                                        "enchantments": [
+                                            {
+                                                "class": "EnchantInfo"
+                                            },
+                                            {
+                                                "class": "EnchantInfo"
+                                            },
+                                            {
+                                                "class": "EnchantInfo"
+                                            }
+                                        ],
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "RandomChanceCondition",
+                                "chance": 0.5
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 19,
+            "tick": 0,
+            "event": "table chests/shipwreck",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/shipwreck.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:filled_map",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "ExplorationMapFunction",
+                                        "destination": "buriedtreasure",
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 3,
+                            "min": 3
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:compass",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:filled_map",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:clock",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:paper",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 10,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 20,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:feather",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 5,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:book",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 5,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "EmptyLootItem",
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:coast_armor_trim_smithing_template",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 20,
+            "tick": 0,
+            "event": "table chests/shipwrecksupply",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/shipwrecksupply.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 10,
+                            "min": 3
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:paper",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 12,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 8,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:potato",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 6,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:moss_block",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:poisonous_potato",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 6,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:carrot",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:wheat",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 21,
+                                            "min": 8
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:coal",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 6,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:rotten_flesh",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 24,
+                                            "min": 5
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:bamboo",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:pumpkin",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:gunpowder",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 5,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:tnt",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:leather_helmet",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:leather_chestplate",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:leather_leggings",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:leather_boots",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "RandomAuxValueFunction",
+                                        "values": {
+                                            "max": 6,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "EmptyLootItem",
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:coast_armor_trim_smithing_template",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:copper_nautilus_armor",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 100,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_nautilus_armor",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 50,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:golden_nautilus_armor",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 25,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond_nautilus_armor",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "RandomChanceCondition",
+                                "chance": 0.2
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 21,
+            "tick": 0,
+            "event": "table chests/trial_chambers/reward",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/trial_chambers/reward.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootTableReference",
+                                "path": "loot_tables/chests/trial_chambers/reward_common.json",
+                                "weight": 8,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootTableReference",
+                                "path": "loot_tables/chests/trial_chambers/reward_rare.json",
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 3,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootTableReference",
+                                "path": "loot_tables/chests/trial_chambers/reward_common.json",
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootTableReference",
+                                "path": "loot_tables/chests/trial_chambers/reward_unique.json",
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "RandomChanceCondition",
+                                "chance": 0.25
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 22,
+            "tick": 0,
+            "event": "table chests/trial_chambers/reward_common",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/trial_chambers/reward_common.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:arrow",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:arrow",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetPotionFunction",
+                                        "id": "poison",
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:emerald",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:wind_charge",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_ingot",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:honey_bottle",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:ominous_bottle",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetOminousBottleFunction",
+                                        "amplifier": {
+                                            "max": 1,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:wind_charge",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 12,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 23,
+            "tick": 0,
+            "event": "table chests/ancient_city",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/ancient_city.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 10,
+                            "min": 5
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:enchanted_golden_apple",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_otherside",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:compass",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:sculk_catalyst",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond_hoe",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetItemDamageFunction",
+                                        "damage": {
+                                            "max": 1,
+                                            "min": 0.8
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "EnchantWithLevelsFunction"
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:lead",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond_horse_armor",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:leather",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 5,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_13",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_cat",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond_leggings",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantWithLevelsFunction"
+                                    }
+                                ],
+                                "weight": 2,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:book",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SpecificEnchantFunction",
+                                        "enchantments": [
+                                            {
+                                                "class": "EnchantInfo"
+                                            }
+                                        ],
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:sculk",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 10,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:sculk_sensor",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:candle",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:amethyst_shard",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 15,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:experience_bottle",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:glow_berries",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 15,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_leggings",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantWithLevelsFunction"
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:echo_shard",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:disc_fragment_5",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:potion",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetPotionFunction",
+                                        "id": "strong_regeneration",
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:book",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:book",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 10,
+                                            "min": 3
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:bone",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 15,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:soul_torch",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 15,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:coal",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 15,
+                                            "min": 6
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 7,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "EmptyLootItem",
+                                "weight": 75,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:ward_armor_trim_smithing_template",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 4,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:silence_armor_trim_smithing_template",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 24,
+            "tick": 0,
+            "event": "table chests/abandoned_mineshaft",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/chests/abandoned_mineshaft.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:golden_apple",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 20,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:enchanted_golden_apple",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:name_tag",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 30,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:book",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "EnchantRandomlyFunction"
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_pickaxe",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "EmptyLootItem",
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 4,
+                            "min": 2
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:iron_ingot",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 5,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:gold_ingot",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:redstone",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 9,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:ink_sac",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 4,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    },
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 9,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:diamond",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 2,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 3,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:coal",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 3
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:bread",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 3,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 15,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:melon_seeds",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:pumpkin_seeds",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:beetroot_seeds",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:glow_berries",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 6,
+                                            "min": 3
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 15,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 3,
+                            "min": 3
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:music_disc_bounce",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 10,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:rail",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 8,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 20,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:golden_rail",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:detector_rail",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:activator_rail",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 4,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 5,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            },
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:torch",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemCountFunction",
+                                        "count": {
+                                            "max": 16,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 15,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 25,
+            "tick": 0,
+            "event": "table blocks/black_concrete_slab",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/blocks/black_concrete_slab.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:black_concrete_slab",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "ExplosionDecayFunction",
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": []
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 26,
+            "tick": 0,
+            "event": "table gameplay/entities/mooshroom_milking",
+            "value": {
+                "class": "LootTable",
+                "path": "loot_tables/gameplay/entities/mooshroom_milking.json",
+                "pools": [
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:mushroom_stew",
+                                "conditions": [],
+                                "functions": [],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 0,
+                                            "min": 0
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 1,
+                                            "min": 1
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 2,
+                                            "min": 2
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 3,
+                                            "min": 3
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 4,
+                                            "min": 4
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 5,
+                                            "min": 5
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 6,
+                                            "min": 6
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 7,
+                                            "min": 7
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 8,
+                                            "min": 8
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 9,
+                                            "min": 9
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 10,
+                                            "min": 10
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 11,
+                                            "min": 11
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    },
+                    {
+                        "class": "LootPool",
+                        "rolls": {
+                            "max": 1,
+                            "min": 1
+                        },
+                        "bonusRolls": {
+                            "max": 0,
+                            "min": 0
+                        },
+                        "entries": [
+                            {
+                                "class": "LootItem",
+                                "name": "ItemType minecraft:suspicious_stew",
+                                "conditions": [],
+                                "functions": [
+                                    {
+                                        "class": "SetItemDataFunction",
+                                        "data": {
+                                            "max": 12,
+                                            "min": 12
+                                        },
+                                        "conditions": []
+                                    }
+                                ],
+                                "weight": 1,
+                                "quality": 0,
+                                "subTable": "undefined"
+                            }
+                        ],
+                        "tiers": "undefined",
+                        "conditions": [
+                            {
+                                "class": "EntityHasMarkVariantCondition"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "loot",
+            "seq": 27,
+            "tick": 0,
+            "event": "generateLootFromTable",
+            "value": [
+                "minecraft:porkchop"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 28,
+            "tick": 0,
+            "event": "generateLootFromBlockPermutation dirt",
+            "value": [
+                [
+                    "minecraft:dirt",
+                    1
+                ]
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 29,
+            "tick": 0,
+            "event": "generateLootFromBlockPermutation grass",
+            "value": [
+                "minecraft:dirt"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 30,
+            "tick": 0,
+            "event": "generateLootFromBlockPermutation stone",
+            "value": "undefined"
+        },
+        {
+            "pack": "loot",
+            "seq": 31,
+            "tick": 0,
+            "event": "generateLootFromBlockPermutation stone with a pickaxe",
+            "value": [
+                "minecraft:cobblestone"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 32,
+            "tick": 0,
+            "event": "generateLootFromBlockPermutation air",
+            "value": []
+        },
+        {
+            "pack": "loot",
+            "seq": 33,
+            "tick": 0,
+            "event": "generateLootFromBlockType",
+            "value": [
+                "minecraft:oak_log"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 34,
+            "tick": 0,
+            "event": "generateLootFromBlock",
+            "value": [
+                "minecraft:oak_planks"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 35,
+            "tick": 0,
+            "event": "generateLootFromEntity",
+            "value": [
+                "minecraft:porkchop"
+            ]
+        },
+        {
+            "pack": "loot",
+            "seq": 36,
+            "tick": 0,
+            "event": "generateLootFromEntity of an armor stand",
+            "value": []
+        }
+    ]
+}

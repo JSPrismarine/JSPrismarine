@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario world-settings settings",
+        "description": "Records the world's time, spawn, difficulty, game rules, music and system members. Written for packages/parity.",
+        "uuid": "b2dc53fa-b02d-4e73-ad5e-c2c96a8f3c61",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "238d6331-e4f1-4c6b-a0bd-a1d629814049",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.12.0-beta" }]
+}

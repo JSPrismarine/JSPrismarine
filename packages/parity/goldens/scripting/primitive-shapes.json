@@ -1,0 +1,299 @@
+{
+    "$comment": [
+        "What the scripts of scenario `primitive-shapes` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.debug",
+    "scenario": "primitive-shapes",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "text",
+            "seq": 1,
+            "tick": 0,
+            "event": "primitiveShapesManager is the same object",
+            "value": true
+        },
+        {
+            "pack": "text",
+            "seq": 2,
+            "tick": 0,
+            "event": "maxShapes",
+            "value": 1000
+        },
+        {
+            "pack": "text",
+            "seq": 3,
+            "tick": 0,
+            "event": "a new text",
+            "value": {
+                "attachedTo": "undefined",
+                "backfaceVisible": true,
+                "backgroundColorOverride": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "defaultVisibleToAll": true,
+                "depthTest": false,
+                "dimension": "undefined",
+                "hasDuration": false,
+                "hiddenFrom": [],
+                "lineGapHeight": 0,
+                "location": {
+                    "z": 3,
+                    "y": 2,
+                    "x": 1.5
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "text": "hello",
+                "textBackfaceVisible": false,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "useRotation": false,
+                "visibleTo": []
+            }
+        },
+        {
+            "pack": "text",
+            "seq": 4,
+            "tick": 0,
+            "event": "a new text in a dimension",
+            "value": {
+                "attachedTo": "undefined",
+                "backfaceVisible": true,
+                "backgroundColorOverride": "undefined",
+                "color": {
+                    "green": 1,
+                    "red": 1,
+                    "blue": 1,
+                    "alpha": 1
+                },
+                "defaultVisibleToAll": true,
+                "depthTest": false,
+                "dimension": "dimension minecraft:overworld",
+                "hasDuration": false,
+                "hiddenFrom": [],
+                "lineGapHeight": 0,
+                "location": {
+                    "z": 3,
+                    "y": 2,
+                    "x": 1
+                },
+                "maximumRenderDistance": "undefined",
+                "rotation": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                "scale": 1,
+                "text": {
+                    "rawtext": [
+                        {
+                            "text": "raw"
+                        }
+                    ]
+                },
+                "textBackfaceVisible": false,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "useRotation": false,
+                "visibleTo": []
+            }
+        },
+        {
+            "pack": "text",
+            "seq": 5,
+            "tick": 0,
+            "event": "a new text of a bad location",
+            "error": "TypeError: Native variant type conversion failed. Function argument [0] expected type: DimensionLocation | Vector3"
+        },
+        {
+            "pack": "text",
+            "seq": 6,
+            "tick": 0,
+            "event": "a new text of a number",
+            "error": "TypeError: Native variant type conversion failed. Function argument [1] expected type: string | RawMessage"
+        },
+        {
+            "pack": "text",
+            "seq": 7,
+            "tick": 0,
+            "event": "setters",
+            "value": {
+                "attachedTo": "undefined",
+                "backfaceVisible": false,
+                "backgroundColorOverride": {
+                    "green": 0.25,
+                    "red": 0.5,
+                    "blue": 0,
+                    "alpha": 1
+                },
+                "color": {
+                    "green": 0,
+                    "red": 1,
+                    "blue": 0,
+                    "alpha": 0.5
+                },
+                "defaultVisibleToAll": false,
+                "depthTest": true,
+                "dimension": "undefined",
+                "hasDuration": false,
+                "hiddenFrom": [],
+                "lineGapHeight": 0.3,
+                "location": {
+                    "z": 9,
+                    "y": 8,
+                    "x": 7
+                },
+                "maximumRenderDistance": 40,
+                "rotation": {
+                    "z": 30,
+                    "y": 20,
+                    "x": 10
+                },
+                "scale": 2.5,
+                "text": "changed",
+                "textBackfaceVisible": true,
+                "timeLeft": "undefined",
+                "totalTimeLeft": "undefined",
+                "useRotation": true,
+                "visibleTo": []
+            }
+        },
+        {
+            "pack": "text",
+            "seq": 8,
+            "tick": 0,
+            "event": "scale out of bounds",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: scale, Value: 5000, Property bounds: [-1000, 1000]"
+        },
+        {
+            "pack": "text",
+            "seq": 9,
+            "tick": 0,
+            "event": "timeLeft set",
+            "value": [
+                2,
+                2,
+                true
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 10,
+            "tick": 0,
+            "event": "getShapes before adding",
+            "value": 0
+        },
+        {
+            "pack": "text",
+            "seq": 11,
+            "tick": 0,
+            "event": "addText",
+            "value": "undefined"
+        },
+        {
+            "pack": "text",
+            "seq": 12,
+            "tick": 0,
+            "event": "addText again",
+            "value": "undefined"
+        },
+        {
+            "pack": "text",
+            "seq": 13,
+            "tick": 0,
+            "event": "addText without a dimension",
+            "value": "undefined"
+        },
+        {
+            "pack": "text",
+            "seq": 14,
+            "tick": 0,
+            "event": "getShapes",
+            "value": [
+                "drawn",
+                "kept"
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 15,
+            "tick": 0,
+            "event": "getShapes is the same objects",
+            "value": true
+        },
+        {
+            "pack": "text",
+            "seq": 16,
+            "tick": 0,
+            "event": "getShapes near the origin",
+            "value": [
+                "drawn"
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 17,
+            "tick": 0,
+            "event": "getShapes away from the origin",
+            "value": [
+                "kept"
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 18,
+            "tick": 0,
+            "event": "the drawn text",
+            "value": [
+                "undefined",
+                5
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 19,
+            "tick": 1,
+            "event": "timeLeft a tick later",
+            "value": "down"
+        },
+        {
+            "pack": "text",
+            "seq": 20,
+            "tick": 1,
+            "event": "removeText",
+            "value": [
+                "kept"
+            ]
+        },
+        {
+            "pack": "text",
+            "seq": 21,
+            "tick": 1,
+            "event": "remove",
+            "value": 0
+        },
+        {
+            "pack": "text",
+            "seq": 22,
+            "tick": 1,
+            "event": "removeAll",
+            "value": 0
+        }
+    ]
+}

@@ -1,0 +1,107 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-pending` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "world-pending",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "pending",
+            "seq": 1,
+            "tick": 0,
+            "event": "poiManager blocks in range",
+            "error": "RuntimeConditionError: Dimension::poiManager is missing these runtime conditions: Poi"
+        },
+        {
+            "pack": "pending",
+            "seq": 2,
+            "tick": 0,
+            "event": "poiManager block at",
+            "error": "RuntimeConditionError: Dimension::poiManager is missing these runtime conditions: Poi"
+        },
+        {
+            "pack": "pending",
+            "seq": 3,
+            "tick": 0,
+            "event": "SoundInstance.pause",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 4,
+            "tick": 0,
+            "event": "SoundInstance.resume",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 5,
+            "tick": 0,
+            "event": "SoundInstance.setVolume",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 6,
+            "tick": 0,
+            "event": "SoundInstance.setPitch",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 7,
+            "tick": 0,
+            "event": "SoundInstance.fade",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 8,
+            "tick": 0,
+            "event": "SoundInstance.seekTo",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 9,
+            "tick": 0,
+            "event": "SoundInstance.stop",
+            "value": "undefined"
+        },
+        {
+            "pack": "pending",
+            "seq": 10,
+            "tick": 0,
+            "event": "placeFeature of a pack feature",
+            "value": false
+        },
+        {
+            "pack": "pending",
+            "seq": 11,
+            "tick": 0,
+            "event": "getPackStructureIds",
+            "value": []
+        },
+        {
+            "pack": "pending",
+            "seq": 12,
+            "tick": 0,
+            "event": "placeJigsaw of an unknown pool",
+            "error": "TypeError: Incorrect number of arguments to function. Expected 5-6, received 4"
+        },
+        {
+            "pack": "pending",
+            "seq": 13,
+            "tick": 0,
+            "event": "placeJigsawStructure of an unknown structure",
+            "error": "PlaceJigsawError: Invalid structure name."
+        }
+    ]
+}

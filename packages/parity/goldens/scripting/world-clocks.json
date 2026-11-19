@@ -1,0 +1,370 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-clocks` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "world-clocks",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "clocks",
+            "seq": 1,
+            "tick": 0,
+            "event": "linear spline",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "pack": "clocks",
+            "seq": 2,
+            "tick": 0,
+            "event": "catmull-rom spline",
+            "value": []
+        },
+        {
+            "pack": "clocks",
+            "seq": 3,
+            "tick": 0,
+            "event": "trigger",
+            "value": [
+                "minecraft:grow_up",
+                "jsp:other"
+            ]
+        },
+        {
+            "pack": "clocks",
+            "seq": 4,
+            "tick": 0,
+            "event": "getClock minecraft:overworld",
+            "value": {
+                "name": "minecraft:overworld",
+                "isPaused": false,
+                "timeMarkers": [
+                    {
+                        "name": "minecraft:day",
+                        "time": 1000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:midnight",
+                        "time": 18000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:night",
+                        "time": 13000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:noon",
+                        "time": 6000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunrise",
+                        "time": 23000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunset",
+                        "time": 12000,
+                        "period": 24000
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "clocks",
+            "seq": 5,
+            "tick": 0,
+            "event": "getClock minecraft:day",
+            "error": "WorldClockNotFoundError: Failed to find world clock 'minecraft:day'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 6,
+            "tick": 0,
+            "event": "getClock day",
+            "error": "WorldClockNotFoundError: Failed to find world clock 'day'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 7,
+            "tick": 0,
+            "event": "getClock minecraft:the_end",
+            "error": "WorldClockNotFoundError: Failed to find world clock 'minecraft:the_end'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 8,
+            "tick": 0,
+            "event": "getClock jsp:missing",
+            "error": "WorldClockNotFoundError: Failed to find world clock 'jsp:missing'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 9,
+            "tick": 0,
+            "event": "getClock is the same object",
+            "value": true
+        },
+        {
+            "pack": "clocks",
+            "seq": 10,
+            "tick": 0,
+            "event": "set time",
+            "value": {
+                "name": "minecraft:overworld",
+                "time": 100,
+                "isPaused": false,
+                "timeMarkers": [
+                    {
+                        "name": "minecraft:day",
+                        "time": 1000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:midnight",
+                        "time": 18000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:night",
+                        "time": 13000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:noon",
+                        "time": 6000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunrise",
+                        "time": 23000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunset",
+                        "time": 12000,
+                        "period": 24000
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "clocks",
+            "seq": 11,
+            "tick": 0,
+            "event": "the world time follows the clock",
+            "value": [
+                100,
+                100
+            ]
+        },
+        {
+            "pack": "clocks",
+            "seq": 12,
+            "tick": 0,
+            "event": "the clock follows the world time",
+            "value": 29000
+        },
+        {
+            "pack": "clocks",
+            "seq": 13,
+            "tick": 0,
+            "event": "set a negative time",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: time, Value: -5, Property bounds: [0, 2147483647]"
+        },
+        {
+            "pack": "clocks",
+            "seq": 14,
+            "tick": 0,
+            "event": "pause",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "clocks",
+            "seq": 15,
+            "tick": 0,
+            "event": "the daylight cycle rule pauses the clock",
+            "value": false
+        },
+        {
+            "pack": "clocks",
+            "seq": 16,
+            "tick": 0,
+            "event": "addTimeMarker",
+            "value": {
+                "name": "minecraft:overworld",
+                "time": 29000,
+                "isPaused": true,
+                "timeMarkers": [
+                    {
+                        "name": "jsp:noon",
+                        "time": 6000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "jsp:once",
+                        "time": 500,
+                        "period": null
+                    },
+                    {
+                        "name": "minecraft:day",
+                        "time": 1000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:midnight",
+                        "time": 18000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:night",
+                        "time": 13000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:noon",
+                        "time": 6000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunrise",
+                        "time": 23000,
+                        "period": 24000
+                    },
+                    {
+                        "name": "minecraft:sunset",
+                        "time": 12000,
+                        "period": 24000
+                    }
+                ]
+            }
+        },
+        {
+            "pack": "clocks",
+            "seq": 17,
+            "tick": 0,
+            "event": "addTimeMarker of a name in use",
+            "error": "WorldClockAddTimeMarkerError: Failed to add time marker 'jsp:noon' on world clock 'minecraft:overworld' Time marker name already exists."
+        },
+        {
+            "pack": "clocks",
+            "seq": 18,
+            "tick": 0,
+            "event": "set to a marker",
+            "value": 6000
+        },
+        {
+            "pack": "clocks",
+            "seq": 19,
+            "tick": 0,
+            "event": "skipTo a marker",
+            "value": 30000
+        },
+        {
+            "pack": "clocks",
+            "seq": 20,
+            "tick": 0,
+            "event": "rewindTo a marker",
+            "value": 500
+        },
+        {
+            "pack": "clocks",
+            "seq": 21,
+            "tick": 0,
+            "event": "set to an unknown marker",
+            "error": "WorldClockTimeMarkerNotFoundError: Failed to find time marker 'jsp:missing' in world clock 'minecraft:overworld'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 22,
+            "tick": 0,
+            "event": "removeTimeMarker",
+            "value": [
+                "jsp:noon",
+                "minecraft:day",
+                "minecraft:midnight",
+                "minecraft:night",
+                "minecraft:noon",
+                "minecraft:sunrise",
+                "minecraft:sunset"
+            ]
+        },
+        {
+            "pack": "clocks",
+            "seq": 23,
+            "tick": 0,
+            "event": "removeTimeMarker of an unknown marker",
+            "error": "WorldClockTimeMarkerNotFoundError: Failed to find time marker 'jsp:missing' in world clock 'minecraft:overworld'."
+        },
+        {
+            "pack": "clocks",
+            "seq": 24,
+            "tick": 0,
+            "event": "removeTimeMarker of a built-in marker",
+            "error": "WorldClockRemoveMinecraftTimeMarkerError: Failed to remove time marker 'minecraft:sunrise' from world clock 'minecraft:overworld'. A time marker with the 'minecraft' namespace cannot be removed."
+        },
+        {
+            "pack": "clocks",
+            "seq": 25,
+            "tick": 1,
+            "event": "paused a tick later",
+            "value": 0
+        },
+        {
+            "pack": "clocks",
+            "seq": 26,
+            "tick": 3,
+            "event": "running two ticks later",
+            "value": 2
+        },
+        {
+            "pack": "clocks",
+            "seq": 27,
+            "tick": 3,
+            "event": "soundDefinitionRegistry is the same object",
+            "value": true
+        },
+        {
+            "pack": "clocks",
+            "seq": 28,
+            "tick": 3,
+            "event": "getDefinitions has many",
+            "value": false
+        },
+        {
+            "pack": "clocks",
+            "seq": 29,
+            "tick": 3,
+            "event": "getDefinitions of random.orb",
+            "value": []
+        },
+        {
+            "pack": "clocks",
+            "seq": 30,
+            "tick": 3,
+            "event": "getDefinitions by title",
+            "value": []
+        },
+        {
+            "pack": "clocks",
+            "seq": 31,
+            "tick": 3,
+            "event": "getDefinitions of music",
+            "value": false
+        }
+    ]
+}

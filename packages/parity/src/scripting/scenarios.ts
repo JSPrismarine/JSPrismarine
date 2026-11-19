@@ -868,5 +868,107 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:attributes'] },
         needs: 'server'
+    },
+    {
+        id: 'dimension-blocks',
+        family: 'scripting.blocks',
+        description:
+            'A dimension sets blocks by type and permutation, finds the block above, below and on top of a ' +
+            'location, reads its light and biome, casts rays at blocks and entities, lists the entities at a block, ' +
+            'spawns items and experience, makes explosions and refuses unknown features, with fixed errors for a ' +
+            'location outside the world or its loaded chunks.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['blocks'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'ticking-areas',
+        family: 'scripting.world',
+        description:
+            'world.tickingAreaManager makes, finds, lists and removes ticking areas, resolves a new area once its ' +
+            'chunks load, refuses an id in use or an area past its capacity, and the /tickingarea command adds and ' +
+            "removes areas beside it, whose chunks tick with no player: a pig's effect counts down.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['areas'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'primitive-shapes',
+        family: 'scripting.debug',
+        description:
+            "A TextPrimitive starts with BDS's defaults and keeps what its setters are given, and " +
+            'world.primitiveShapesManager draws, lists, filters and removes texts.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['text'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
+        id: 'loot-tables',
+        family: 'scripting.items',
+        description:
+            "world.getLootTableManager() reads the behavior pack's loot tables as objects whose pools, entries, " +
+            'functions and conditions report the properties of their classes, and generates loot from a table, a ' +
+            'block, a block type, a permutation and an entity.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['loot'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'world-clocks',
+        family: 'scripting.world',
+        description:
+            'world.getClock finds a clock whose time, pause and time markers a script reads and writes, the spline ' +
+            'classes and Trigger keep what they are given, and world.soundDefinitionRegistry lists sound definitions.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['clocks'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
+        id: 'dimension-volumes',
+        family: 'scripting.blocks',
+        description:
+            'A dimension fills a block volume, finds the blocks and biomes it holds, and clones one region of blocks ' +
+            'to another, copying or moving them and keeping only the blocks a filter names.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['volumes'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'world-pending',
+        family: 'scripting.world',
+        description:
+            "The world members JSPrismarine has no system for yet answer as on BDS: a dimension's points of " +
+            "interest, a playing sound's controls, a pack's features and structures, and jigsaw placement.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['pending'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'world-settings',
+        family: 'scripting.world',
+        description:
+            "The world's time of day, day and moon phase follow setTimeOfDay and setAbsoluteTime, its default spawn, " +
+            'difficulty and every game rule read back what a script or a command wrote, and system.sendScriptEvent ' +
+            'and waitTicks raise and resolve on the ticks BDS uses.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['settings'],
+        experiments: ['gametest'],
+        needs: 'server',
+        jsprismarineDiffers: {
+            'server defaults': {
+                observed: { value: { randomTickSpeed: 3, showCoordinates: true } },
+                because:
+                    "JSPrismarine's random ticks follow Java's random_tick_speed, whose 3 draws per section a world " +
+                    "starts with, since Bedrock's 1 names only a relative speed, and a level shows coordinates.",
+                reference: 'packages/engine-systems/src/randomTick.ts and packages/prismarine/src/world/Level.ts'
+            }
+        }
     }
 ];

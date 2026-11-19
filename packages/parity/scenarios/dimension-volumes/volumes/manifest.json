@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario dimension-volumes volumes",
+        "description": "Records a dimension's fills, block queries, biome checks and clones over volumes. Written for packages/parity.",
+        "uuid": "8370df20-487a-47c3-80eb-69066220e932",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "15d662e9-eda9-4762-af3e-46f76a74482e",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

@@ -1,0 +1,160 @@
+{
+    "$comment": [
+        "What the scripts of scenario `dimension-volumes` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "dimension-volumes",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "volumes",
+            "seq": 1,
+            "tick": 0,
+            "event": "fillBlocks",
+            "value": [
+                "ListBlockVolume",
+                12
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 2,
+            "tick": 0,
+            "event": "fillBlocks of a permutation",
+            "value": "z"
+        },
+        {
+            "pack": "volumes",
+            "seq": 3,
+            "tick": 0,
+            "event": "fillBlocks with a filter",
+            "value": [
+                "0 20 0",
+                "0 20 1",
+                "1 20 0",
+                "1 20 1",
+                "1 21 0",
+                "1 21 1",
+                "2 20 0",
+                "2 20 1",
+                "2 21 0",
+                "2 21 1"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 4,
+            "tick": 0,
+            "event": "fillBlocks of an unknown type",
+            "error": "Error: Dimension.fillBlocks: Could not resolve passed in block [jsp:missing]."
+        },
+        {
+            "pack": "volumes",
+            "seq": 5,
+            "tick": 0,
+            "event": "fillBlocks in an unloaded chunk",
+            "error": "UnloadedChunksError: Block Volume contains (1) unloaded chunk(s) out of (1)."
+        },
+        {
+            "pack": "volumes",
+            "seq": 6,
+            "tick": 0,
+            "event": "containsBlock",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 7,
+            "tick": 0,
+            "event": "containsBlock in an unloaded chunk",
+            "error": "UnloadedChunksError: Block Volume contains (1) unloaded chunk(s) out of (1)."
+        },
+        {
+            "pack": "volumes",
+            "seq": 8,
+            "tick": 0,
+            "event": "getBlocks",
+            "value": [
+                "0 21 0",
+                "0 21 1"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 9,
+            "tick": 0,
+            "event": "getBlocks closest",
+            "value": [
+                "2 20 0",
+                "2 21 0"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 10,
+            "tick": 0,
+            "event": "containsBiomes",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 11,
+            "tick": 0,
+            "event": "cloneBlocks",
+            "value": [
+                "5 20 0 minecraft:dirt",
+                "5 21 1 minecraft:oak_log",
+                "7 21 1 minecraft:dirt"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 12,
+            "tick": 0,
+            "event": "cloneBlocks moving",
+            "value": [
+                "5 21 0 minecraft:air",
+                "9 21 0 minecraft:oak_log",
+                "9 21 1 minecraft:oak_log"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 13,
+            "tick": 0,
+            "event": "cloneBlocks overlapping without force",
+            "error": "Error: Source and destination can not overlap."
+        },
+        {
+            "pack": "volumes",
+            "seq": 14,
+            "tick": 0,
+            "event": "cloneBlocks with a filter",
+            "value": [
+                "12 20 0 minecraft:air",
+                "12 21 0 minecraft:oak_log"
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 15,
+            "tick": 0,
+            "event": "cloneBlocks above the world",
+            "error": "LocationOutOfWorldBoundariesError: One of the provided locations caused the operation to go out of world bounds.. Trying to access location (0.0, 400.0, 0.0) which is outside of the world boundaries."
+        }
+    ]
+}
