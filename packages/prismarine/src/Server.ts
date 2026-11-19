@@ -299,7 +299,11 @@ export default class Server {
         tickClock?: () => number;
         statsProviders?: readonly StatsProvider[];
     }) {
-        this.kernel = new Kernel<ServerEvents>({ logger });
+        this.kernel = new Kernel<ServerEvents>({
+            logger,
+            // Read when a module starts: the host attaches the remote console after construction.
+            onStart: ({ id, state }) => this.remoteConsole?.reportBoot(id, state)
+        });
 
         this.chunkCompletionQueue = new ChunkCompletionQueue(undefined, {
             tick: () => this.getTick(),

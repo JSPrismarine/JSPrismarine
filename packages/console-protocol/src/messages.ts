@@ -37,6 +37,17 @@ export const LIFECYCLE_STATES = ['starting', 'running', 'stopping'] as const;
 /** One of {@link LIFECYCLE_STATES}. */
 export type LifecycleState = (typeof LIFECYCLE_STATES)[number];
 
+/** Where a startup step is: begun, or done. */
+export const BOOT_STATES = ['starting', 'started'] as const;
+
+/** One of {@link BOOT_STATES}. */
+export type BootState = (typeof BOOT_STATES)[number];
+
+/** Whether a decoded value names one of {@link BOOT_STATES}. */
+export function isBootState(value: unknown): value is BootState {
+    return typeof value === 'string' && (BOOT_STATES as readonly string[]).includes(value);
+}
+
 /** Whether a decoded value names one of {@link LIFECYCLE_STATES}. */
 export function isLifecycleState(value: unknown): value is LifecycleState {
     return typeof value === 'string' && (LIFECYCLE_STATES as readonly string[]).includes(value);
@@ -73,6 +84,8 @@ export type ServerMessage =
           uptimeMs: number;
       })
     | (Envelope<'lifecycle'> & { state: LifecycleState })
+    /** One step of the server's startup, such as `prismarine:content`, as it begins and ends. */
+    | (Envelope<'boot'> & { step: string; state: BootState })
     | (Envelope<'command.result'> & { id: string; ok: boolean; error?: string })
     | (Envelope<'complete.result'> & { id: string; completions: readonly string[]; replace: string })
     | (Envelope<'commands.result'> & { id: string; commands: readonly CommandInfo[] });
@@ -178,6 +191,7 @@ const SERVER_FIELDS = {
         uptimeMs: 'number'
     },
     lifecycle: { state: isLifecycleState },
+    boot: { step: 'string', state: isBootState },
     'command.result': { id: 'string', ok: 'boolean' },
     'complete.result': { id: 'string', completions: 'array', replace: 'string' },
     'commands.result': { id: 'string', commands: 'array' }

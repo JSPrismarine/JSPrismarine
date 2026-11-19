@@ -1,4 +1,4 @@
-import type { ConsoleMessage, LifecycleState, ServerMessage } from '@jsprismarine/console-protocol';
+import type { BootState, ConsoleMessage, LifecycleState, ServerMessage } from '@jsprismarine/console-protocol';
 import { PROTOCOL_VERSION } from '@jsprismarine/console-protocol';
 import type Server from '../Server';
 import { completeCommand } from '../Console';
@@ -108,6 +108,11 @@ export class RemoteConsole implements Service {
 
         this.statusTimer = setInterval(() => this.sendStatus(), this.statusIntervalMs);
         this.statusTimer.unref();
+    }
+
+    /** Reports one step of the server's startup as it begins and once it is done. */
+    public reportBoot(step: string, state: BootState): void {
+        this.send({ type: 'boot', v: PROTOCOL_VERSION, step, state });
     }
 
     /** Reports `lifecycle running`. The server calls it once it listens on its port. */

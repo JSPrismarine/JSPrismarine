@@ -9,6 +9,7 @@ describe('isServerMessage', () => {
             { type: 'log.dropped', v: 1, count: 3 },
             { type: 'status', v: 1, tps: 20, tickMs: 2, players: 0, maxPlayers: 20, rssBytes: 1, uptimeMs: 1 },
             { type: 'lifecycle', v: 1, state: 'running' },
+            { type: 'boot', v: 1, step: 'prismarine:content', state: 'starting' },
             { type: 'command.result', v: 1, id: 'a', ok: true },
             { type: 'command.result', v: 1, id: 'a', ok: false, error: 'nope' },
             { type: 'complete.result', v: 1, id: 'a', completions: ['help'], replace: 'he' },
@@ -69,6 +70,11 @@ describe('isServerMessage', () => {
             false
         );
         expect(isServerMessage({ ...result, commands: [{ name: 'op', aliases: [], usage: [] }] })).toBe(true);
+    });
+
+    it('rejects a boot step in a state the protocol does not define', () => {
+        expect(isServerMessage({ type: 'boot', v: 1, step: 'prismarine:content', state: 'done' })).toBe(false);
+        expect(isServerMessage({ type: 'boot', v: 1, state: 'started' })).toBe(false);
     });
 
     it('rejects console messages', () => {
