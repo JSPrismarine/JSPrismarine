@@ -150,6 +150,23 @@ export const DEFAULT_BLOCK_PROPERTIES: BlockProperties = (() => {
 })();
 
 /**
+ * A redstone component acting, as a host's scripts hear it: a piston moving, a lever flipped, a
+ * button pressed, and a pressure plate's signal changing. `source` is the runtime id of the
+ * entity that did it, when one did.
+ */
+export type RedstoneActivation =
+    | { readonly kind: 'piston'; readonly position: BlockPosition; readonly extending: boolean }
+    | { readonly kind: 'lever'; readonly position: BlockPosition; readonly powered: boolean; readonly source?: string }
+    | { readonly kind: 'button'; readonly position: BlockPosition; readonly source?: string }
+    | {
+          readonly kind: 'pressurePlate';
+          readonly position: BlockPosition;
+          readonly power: number;
+          readonly previousPower: number;
+          readonly source?: string;
+      };
+
+/**
  * Everything a block does to the world, for one dimension.
  *
  * Every position is in world coordinates and in this instance's dimension.
@@ -157,6 +174,11 @@ export const DEFAULT_BLOCK_PROPERTIES: BlockProperties = (() => {
  * {@link BlockWorld.at} for the other one.
  */
 export interface WorldActions {
+    /**
+     * Tells the host a redstone component acted, after the change is written. A host without it
+     * hears nothing.
+     */
+    redstoneActivated?(activation: RedstoneActivation): void;
     /** The block at a position, or undefined when the position is not loaded. */
     getBlock(position: BlockPosition): HookBlock | undefined;
     /**

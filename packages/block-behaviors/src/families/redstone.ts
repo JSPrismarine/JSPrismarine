@@ -192,6 +192,7 @@ const updatePiston = (world: WorldActions, block: HookBlock, receivedPower?: num
         world.setBlock(headPosition, head, { facing_direction: stateNumber(block, 'facing_direction') }, false);
         setPistonArmState(world, block, true);
         world.playSound(block.position, 'minecraft:piston.out');
+        world.redstoneActivated?.({ kind: 'piston', position: block.position, extending: true });
         notifyPistonChanges(world, [
             block.position,
             headPosition,
@@ -204,6 +205,7 @@ const updatePiston = (world: WorldActions, block: HookBlock, receivedPower?: num
         const pulled = sticky && performPull(world, block.position, facing, false);
         setPistonArmState(world, block, false);
         world.playSound(block.position, 'minecraft:piston.in');
+        world.redstoneActivated?.({ kind: 'piston', position: block.position, extending: false });
         notifyPistonChanges(
             world,
             pulled ? [block.position, headPosition, offset(block.position, facing, 2)] : [block.position, headPosition]
@@ -687,6 +689,12 @@ export const redstoneFamily = defineFamily(
                     // The lever powers the block it hangs on, so what sits against that block
                     // has to hear about the flip too, as Java's `updateNeighbours` sends it.
                     world.notifyNeighbors(offset(block.position, leverSupportFace(block)));
+                    world.redstoneActivated?.({
+                        kind: 'lever',
+                        position: block.position,
+                        powered: open,
+                        ...(event.player.entityId === undefined ? {} : { source: event.player.entityId })
+                    });
                     return true;
                 }
                 case 'powered_repeater':
@@ -760,6 +768,11 @@ export const buttonFamily = defineFamily(
             const name = bareName(context.identifier);
             const wooden = !name.startsWith('stone_') && !name.startsWith('polished_blackstone_');
             world.scheduleTick(event.block.position, BUTTON_PRESS_TICKS[wooden ? 'wooden' : 'stone']);
+            world.redstoneActivated?.({
+                kind: 'button',
+                position: event.block.position,
+                ...(event.player.entityId === undefined ? {} : { source: event.player.entityId })
+            });
             return true;
         },
         onPlace: (event, world) => {
@@ -795,22 +808,37 @@ export const pressurePlateFamily = defineFamily(
             const weight = PLATE_WEIGHTS[bareName(context.identifier)];
             const standing = world.entitiesAt(event.block.position).length;
             const signal = weight === undefined ? MAX_POWER : weightedPlateSignal(Math.max(standing, 1), weight);
-            if (signal === stateNumber(event.block, 'redstone_signal')) return;
+            const previousPower = stateNumber(event.block, 'redstone_signal');
+            if (signal === previousPower) return;
             setStates(world, event.block, { redstone_signal: signal });
             world.notifyNeighbors(event.block.position);
             world.scheduleTick(event.block.position, PRESSURE_PLATE_RELEASE_TICKS);
+            world.redstoneActivated?.({
+                kind: 'pressurePlate',
+                position: event.block.position,
+                power: signal,
+                previousPower,
+                ...(event.entity.entityId === undefined ? {} : { source: event.entity.entityId })
+            });
         },
         onTick: (event, world, context) => {
             const weight = PLATE_WEIGHTS[bareName(context.identifier)];
             const standing = world.entitiesAt(event.block.position).length;
             const signal =
                 standing === 0 ? 0 : weight === undefined ? MAX_POWER : weightedPlateSignal(standing, weight);
-            if (signal === stateNumber(event.block, 'redstone_signal')) {
+            const previousPower = stateNumber(event.block, 'redstone_signal');
+            if (signal === previousPower) {
                 if (signal > 0) world.scheduleTick(event.block.position, PRESSURE_PLATE_RELEASE_TICKS);
                 return;
             }
             setStates(world, event.block, { redstone_signal: signal });
             world.notifyNeighbors(event.block.position);
+            world.redstoneActivated?.({
+                kind: 'pressurePlate',
+                position: event.block.position,
+                power: signal,
+                previousPower
+            });
             if (signal > 0) world.scheduleTick(event.block.position, PRESSURE_PLATE_RELEASE_TICKS);
         },
         onNeighborChanged: (event, world) => {
