@@ -136,9 +136,11 @@ export function createCommandPalette(
             list.add(row);
         });
 
-        renderable.width = width + 4;
+        // Centered from the width set here: the renderable reports its new width only after layout.
+        const outerWidth = width + 4;
+        renderable.width = outerWidth;
         renderable.height = Math.max(1, shown.length) + CHROME_ROWS;
-        renderable.left = Math.max(0, Math.floor((renderer.terminalWidth - renderable.width) / 2));
+        renderable.left = Math.max(0, Math.floor((renderer.terminalWidth - outerWidth) / 2));
         renderable.top = Math.max(0, Math.floor(renderer.terminalHeight / 6));
     };
 
