@@ -1,0 +1,107 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-event-gaps` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "world-event-gaps",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "gaps",
+            "seq": 1,
+            "tick": 0,
+            "event": "startup dimensionRegistry",
+            "value": "DimensionRegistry"
+        },
+        {
+            "pack": "gaps",
+            "seq": 2,
+            "tick": 0,
+            "event": "startup worldClockRegistry",
+            "value": "WorldClockRegistry"
+        },
+        {
+            "pack": "gaps",
+            "seq": 3,
+            "tick": 0,
+            "event": "subscribe afterEvents.worldClockOnPaused",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 4,
+            "tick": 0,
+            "event": "subscribe afterEvents.worldClockOnResumed",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 5,
+            "tick": 0,
+            "event": "subscribe afterEvents.worldClockOnTimeMarker",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 6,
+            "tick": 0,
+            "event": "subscribe afterEvents.worldClockOnTimeModified",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 7,
+            "tick": 0,
+            "event": "subscribe afterEvents.packSettingChange",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 8,
+            "tick": 0,
+            "event": "subscribe afterEvents.soundCompleted",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 9,
+            "tick": 0,
+            "event": "subscribe afterEvents.tripWireTrip",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 10,
+            "tick": 0,
+            "event": "subscribe afterEvents.targetBlockHit",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 11,
+            "tick": 0,
+            "event": "subscribe afterEvents.playerInputPermissionCategoryChange",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 12,
+            "tick": 0,
+            "event": "subscribe afterEvents.entityUpgrade",
+            "value": "function"
+        },
+        {
+            "pack": "gaps",
+            "seq": 13,
+            "tick": 0,
+            "event": "subscribe beforeEvents.worldClockOnRestart",
+            "value": "function"
+        }
+    ]
+}
