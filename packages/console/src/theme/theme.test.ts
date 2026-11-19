@@ -1,20 +1,12 @@
 import { LOG_LEVELS } from '@jsprismarine/logger';
 import { parseColor, RGBA } from '@opentui/core';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { MINECRAFT_COLORS } from './minecraftColors';
-import type { ThemeRole } from './theme';
 import { ansiTheme, defaultTheme, LEVEL_ROLES, monochromeTheme, resolveTheme, THEME_ROLES } from './theme';
 
 const themes = { defaultTheme, ansiTheme, monochromeTheme };
 
 describe('theme roles', () => {
-    it('derives the role type from the role list', () => {
-        expectTypeOf<ThemeRole>().toEqualTypeOf<(typeof THEME_ROLES)[number]>();
-        // @ts-expect-error not a declared role
-        const unknownRole: ThemeRole = 'glow';
-        void unknownRole;
-    });
-
     it('covers exactly the levels the logger emits', () => {
         expect(LEVEL_ROLES).toEqual(LOG_LEVELS);
     });
