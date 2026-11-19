@@ -25,11 +25,12 @@ run yet. [The script host plan](../plans/script-api-host.md) tracks the work.
 List the packs in `config.json` and restart the server:
 
 <!-- fact:config.contentTable -->
-| Setting               | What it does                                                                    |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `content-strict`      | Whether a pack that reports an error stops the server instead of loading short. |
-| `content-world-packs` | Extra behavior pack directories this world loads, after the vanilla ones.       |
-| `content-datapacks`   | Java datapack directories this world loads, after the vanilla one.              |
+| Setting                | What it does                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `content-strict`       | Whether a pack that reports an error stops the server instead of loading short.                                            |
+| `content-world-packs`  | Extra behavior pack directories this world loads, after the vanilla ones.                                                  |
+| `content-datapacks`    | Java datapack directories this world loads, after the vanilla one.                                                         |
+| `content-java-version` | The pinned Java release whose datapack, world generation and data version the server runs. Empty runs the default release. |
 <!-- /fact -->
 
 ```jsonc

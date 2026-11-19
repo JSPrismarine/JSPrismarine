@@ -502,6 +502,7 @@ export default class Server {
                 world: this.contentWorld,
                 withheld: this.withheld,
                 packs: {
+                    ...(settings.javaVersion === undefined ? {} : { javaVersion: settings.javaVersion }),
                     worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
                     pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
                 }

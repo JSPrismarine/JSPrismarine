@@ -24,11 +24,16 @@ import { dirname, join, relative, sep } from 'node:path';
 import type { Diagnostic } from '@jsprismarine/content';
 import type { BedrockPackSource, PackSource, PackStack, PrefixCacheOptions } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
+import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
+import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
 import {
     bedrockSamplesCacheFolder,
     defaultBdsCacheFolder,
-    javaServerCacheFolder
+    javaServerCacheFolder,
+    pinnedJavaReleases,
+    readGeneratedJavaVersion
 } from '@jsprismarine/bedrock-data/sources';
+import { PrismarineContentErrors } from '@jsprismarine/errors/prismarine/content';
 
 /** Points the resolver at a local copy of one fetched source. */
 export const PACK_STACK_ENV = {
@@ -65,6 +70,12 @@ export interface PackStackRequest {
     readonly overlay?: boolean;
     /** Whether to include the Java vanilla datapack. Defaults to true. */
     readonly javaVanilla?: boolean;
+    /**
+     * The pinned Java release whose vanilla datapack to load, from `content-java-version`.
+     * Defaults to the release `sources.json` names as `defaultVersion`. A named release must be
+     * pinned and generated; {@link resolvePackStack} throws otherwise.
+     */
+    readonly javaVersion?: string;
     /** The world's own behavior packs and datapacks, applied after the vanilla members. */
     readonly worldPacks?: readonly PackSource[];
     /** Plugin packs, applied last so a plugin overrides a world. */
@@ -77,6 +88,11 @@ export interface ResolvedPackStack {
     readonly diagnostics: readonly Diagnostic[];
     /** The immutable vanilla prefix cache used by the default content loader, when available. */
     readonly cache?: PrefixCacheOptions;
+    /**
+     * The Java release the vanilla datapack was generated for, read from its `version.json`.
+     * Undefined when the stack holds no vanilla datapack, which loads under the default target.
+     */
+    readonly java?: JavaDataTarget;
 }
 
 const nodeModuleResolver = createRequire(import.meta.url);
@@ -214,6 +230,47 @@ const vanillaDatapack = (root: string): string | undefined => {
     return undefined;
 };
 
+/** The target a generated datapack's `version.json` describes, or undefined when it has none. */
+const generatedTarget = (datapack: string): JavaDataTarget | undefined => {
+    const record = readGeneratedJavaVersion(datapack);
+    return record === undefined
+        ? undefined
+        : { release: record.release, format: record.dataPackFormat, dataVersion: record.dataVersion };
+};
+
+/**
+ * Checks that `sources.json` pins a release.
+ *
+ * @returns The pinned releases, comma separated, for an error message.
+ * @throws {PrismarineContentErrors.UnknownJavaRelease} When it does not.
+ */
+const pinnedJavaRelease = (release: string): string => {
+    const pinned = pinnedJavaReleases.join(', ');
+    if (!pinnedJavaReleases.includes(release))
+        throw new PrismarineContentErrors.UnknownJavaRelease({ release, pinned });
+    return pinned;
+};
+
+/**
+ * The vanilla datapack of the release `content-java-version` names.
+ *
+ * A named release is a statement of intent, like an environment override: running the default
+ * release's data instead would generate a world for a release nobody asked for, so a name that is
+ * not pinned, or a release that is not generated, stops the server.
+ *
+ * @throws {PrismarineContentErrors.UnknownJavaRelease} When `sources.json` does not pin it.
+ * @throws {PrismarineContentErrors.JavaReleaseNotGenerated} When its datapack or `version.json`
+ *   is not in the cache.
+ */
+const namedJavaRelease = (release: string): string => {
+    const pinned = pinnedJavaRelease(release);
+    const path = join(cacheRoot(), 'vanilla-datapack', release);
+    if (!existsSync(join(path, 'pack.mcmeta')) || generatedTarget(path) === undefined) {
+        throw new PrismarineContentErrors.JavaReleaseNotGenerated({ release, path, pinned });
+    }
+    return path;
+};
+
 /**
  * Reads one Bedrock path as the pack or packs it holds.
  *
@@ -318,12 +375,33 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         } else missing('the jsprismarine entity overlay', 'reinstall @jsprismarine/entities');
     }
 
+    let java: JavaDataTarget | undefined;
     if (request.javaVanilla !== false) {
         const override = process.env[PACK_STACK_ENV.vanillaDatapack];
-        const datapack = sourcePath(override, () => vanillaDatapack(join(cacheRoot(), 'vanilla-datapack')));
+        const overridden = override !== undefined && override !== '';
+        // The override names the datapack outright, so a named release is only checked for being
+        // pinned; whether the cache holds it does not matter.
+        if (overridden && request.javaVersion !== undefined) pinnedJavaRelease(request.javaVersion);
+        const named =
+            overridden || request.javaVersion === undefined ? undefined : namedJavaRelease(request.javaVersion);
+        const datapack = overridden
+            ? sourcePath(override, () => undefined)
+            : (named ?? vanillaDatapack(join(cacheRoot(), 'vanilla-datapack')));
         if (datapack) {
             stack.push({ kind: 'datapack', path: datapack });
             prefixLength = stack.length;
+            java = generatedTarget(datapack);
+            if (java === undefined) {
+                // A cache generated before `datagen:java` wrote the record, or a datapack somebody
+                // pointed the override at. Its format is unknown, so the default target gates it.
+                java = DEFAULT_JAVA_DATA_TARGET;
+                diagnostics.push({
+                    severity: 'warning',
+                    code: 'pack.java-version-missing',
+                    pack: datapack,
+                    message: `the Java vanilla datapack has no version.json; loading it as Java ${java.release} (format ${java.format.join('.')})`
+                });
+            }
         } else {
             missing(
                 'the Java vanilla datapack',
@@ -346,5 +424,10 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
 
     stack.push(...(request.worldPacks ?? []), ...(request.pluginPacks ?? []));
 
-    return cache === undefined ? { stack, diagnostics } : { stack, diagnostics, cache };
+    return {
+        stack,
+        diagnostics,
+        ...(cache === undefined ? {} : { cache }),
+        ...(java === undefined ? {} : { java })
+    };
 };

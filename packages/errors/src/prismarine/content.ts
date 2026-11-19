@@ -18,6 +18,20 @@ export const PrismarineContentErrors = defineErrors('prismarine', {
      */
     RandomSourceNotSavable: 'The {key} content random source cannot be saved for replay',
     /**
+     * `content-java-version` in `config.json` names a Java release that `sources.json` in
+     * `@jsprismarine/bedrock-data` does not pin. Set it to one of the pinned releases the message
+     * lists, or clear it to run the default release.
+     */
+    UnknownJavaRelease:
+        'content-java-version names Java {release}, which is not pinned; the pinned releases are {pinned}',
+    /**
+     * `content-java-version` names a pinned Java release whose vanilla datapack, or the
+     * `version.json` beside it, is not in the download cache. Generate it with the command the
+     * message gives, or set `content-java-version` to a release that is generated.
+     */
+    JavaReleaseNotGenerated:
+        'the Java {release} vanilla datapack is not generated at {path}; run `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java {release}` (pinned releases: {pinned})',
+    /**
      * Game content reached into the world before the content finished building. This is a bug in
      * the server; report it with the stack trace.
      */

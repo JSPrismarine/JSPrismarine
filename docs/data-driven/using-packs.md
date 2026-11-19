@@ -81,12 +81,18 @@ This is vanilla Java's rule, applied unchanged.
 
 ## Datapack specifics
 
-The Java side targets data pack format 121.0, the format Java 26.3 declares, exactly.
+The Java side targets the data pack format of the Java release the server runs, and only that
+format. The release is the default pinned one, Java <!-- fact:java.version -->26.3<!-- /fact --> at data pack format <!-- fact:java.dataPackFormat -->121.0<!-- /fact -->, unless
+`content-java-version` in `config.json` names another pinned release. The server stops at startup when
+that setting names a release `sources.json` does not pin, or one whose vanilla datapack is not
+generated; the error gives the `datagen:java --java <release>` command that generates it. Each world
+records the release's data version in its `level.dat`, and a world saved under a newer release
+refuses to open under an older one, as Java does.
 
 - **Format gating.** `pack.mcmeta` parses in both the current `min_format`/`max_format` form and
-  the legacy single `pack_format`. A pack whose declared range does not cover 121.0 gets an error
+  the legacy single `pack_format`. A pack whose declared range does not cover that format gets an error
   diagnostic but still loads, so a normal load keeps going while a strict load rejects it.
-- **Overlays.** Overlay entries whose format range covers 121.0 apply over the base files in
+- **Overlays.** Overlay entries whose format range covers that format apply over the base files in
   declaration order, each overriding whole files.
 - **Directory names.** Files route into registries by the 26.3 singular directory names under
   `data/<namespace>/`: `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`,

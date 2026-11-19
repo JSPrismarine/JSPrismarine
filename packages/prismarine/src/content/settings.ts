@@ -26,7 +26,9 @@ const COMMENTS = {
         "Which release in protocol-window the world's blocks, items and mobs come from: newest, or oldest so every accepted client has all of them. With newest and a wider window, older clients see a placeholder for what their release lacks.",
     'content-strict': 'Whether a pack that reports an error stops the server instead of loading short.',
     'content-world-packs': 'Extra behavior pack directories this world loads, after the vanilla ones.',
-    'content-datapacks': 'Java datapack directories this world loads, after the vanilla one.'
+    'content-datapacks': 'Java datapack directories this world loads, after the vanilla one.',
+    'content-java-version':
+        'The pinned Java release whose datapack, world generation and data version the server runs. Empty runs the default release.'
 } as const satisfies Record<ContentConfigKey, string>;
 
 /** What the content settings say. */
@@ -39,6 +41,8 @@ export interface ContentSettings {
     readonly datapacks: readonly string[];
     /** Which protocols to accept and which release's content the world holds. */
     readonly protocols: ProtocolSettings;
+    /** The pinned Java release the config names, or undefined for the default release. */
+    readonly javaVersion?: string;
 }
 
 /** Reads the content settings, writing any key the file lacks. */
@@ -46,6 +50,9 @@ export const readContentSettings = (): ContentSettings => {
     const config = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
     const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
+    // A number such as `26.3` written without quotes still names a release, so the value is read
+    // as text; one that names no pinned release fails when the pack stack resolves it.
+    const javaVersion = String(read<unknown>('content-java-version', '')).trim();
     return {
         strict: read('content-strict', false),
         worldPacks: read<string[]>('content-world-packs', []),
@@ -55,6 +62,7 @@ export const readContentSettings = (): ContentSettings => {
             // Anything but `oldest` is the default, so a misspelling never hides content.
             content:
                 read<string>('protocol-content', DEFAULT_PROTOCOL_SETTINGS.content) === 'oldest' ? 'oldest' : 'newest'
-        }
+        },
+        ...(javaVersion === '' ? {} : { javaVersion })
     };
 };

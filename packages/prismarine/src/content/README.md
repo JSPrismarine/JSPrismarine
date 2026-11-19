@@ -10,7 +10,8 @@ implement, out of which the nine world interfaces those packages declare are pro
 Every server builds this. There is no setting that turns it off, and a stack that will not load
 stops the server rather than leaving it running on nothing. `content-strict` decides whether a
 single pack that reports an error also fails the build; `content-world-packs` and
-`content-datapacks` add to the stack.
+`content-datapacks` add to the stack. `content-java-version` picks which pinned Java release's vanilla datapack the stack
+loads, and `ServerContent.javaTarget` carries that release to the levels.
 
 ## What one build produces
 

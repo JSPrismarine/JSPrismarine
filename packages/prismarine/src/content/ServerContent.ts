@@ -48,6 +48,9 @@ import type { TradeTable } from '@jsprismarine/trading';
 
 import type { ContentOptions } from './ContentOptions';
 import { resolvePackStack } from './packStack';
+import type { ResolvedPackStack } from './packStack';
+import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
+import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
 import { parseBlockTransformers } from '../item/blockTransformers';
 import type { BlockTransformerRegistry } from '../item/blockTransformers';
 import { buildContentTags } from './tags';
@@ -136,6 +139,11 @@ export interface ServerContent {
     readonly strict: boolean;
     /** The vanilla content the build left out, because `protocol-content` holds the world to an older release. */
     readonly withheld: WithheldContent;
+    /**
+     * The Java release the stack's datapacks were loaded for. A level records its data version in
+     * `level.dat` and refuses to open under an older one.
+     */
+    readonly javaTarget: JavaDataTarget;
     /** The composed pack stack, before any domain resolved it. */
     readonly definitions: Definitions;
     /** Everything the load and every resolve reported, in build order. */
@@ -334,13 +342,18 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const strict = options.strict ?? false;
     const diagnostics: Diagnostic[] = [];
 
-    const resolved = options.stack ? { stack: options.stack, diagnostics: [] } : resolvePackStack(options.packs);
+    const resolved: ResolvedPackStack = options.stack
+        ? { stack: options.stack, diagnostics: [] }
+        : resolvePackStack(options.packs);
     diagnostics.push(...resolved.diagnostics);
+    const javaTarget = resolved.java ?? DEFAULT_JAVA_DATA_TARGET;
 
     // Custom loaders may use a different validator or cache format and must opt into caching themselves.
     const loaded = (options.load ?? loadPacks)(
         resolved.stack,
-        options.load === undefined && resolved.cache !== undefined ? { strict, cache: resolved.cache } : { strict }
+        options.load === undefined && resolved.cache !== undefined
+            ? { strict, cache: resolved.cache, java: javaTarget }
+            : { strict, java: javaTarget }
     );
     diagnostics.push(...loaded.diagnostics);
     const withheld = options.withheld;
@@ -574,6 +587,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         contentFingerprint,
         strict,
         withheld: withheld ?? NOTHING_WITHHELD,
+        javaTarget,
         definitions,
         diagnostics,
         world,

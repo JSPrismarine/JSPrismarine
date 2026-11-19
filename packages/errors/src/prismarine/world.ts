@@ -503,5 +503,13 @@ export const PrismarineWorldErrors = defineErrors('prismarine', {
      * The chunk was not generated because the generator stopped, which happens while the server
      * shuts down.
      */
-    GenerationStopped: 'Chunk {cx},{cz} was not generated: the generator has stopped'
+    GenerationStopped: 'Chunk {cx},{cz} was not generated: the generator has stopped',
+    /**
+     * The world's `level.dat` records a Java data version newer than the one the server runs, so
+     * an older Java release would read chunks and data written by a newer one. Java has no
+     * downgrade path, and neither does the server. Run the release the world was saved with, by
+     * setting `content-java-version`, or start the server on another world.
+     */
+    JavaDataDowngrade:
+        'the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one'
 });
