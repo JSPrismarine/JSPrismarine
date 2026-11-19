@@ -80,6 +80,7 @@
         "ensure:worldgen": "node utils/java/ensure-worldgen.ts",
         "fetch:sources": "node utils/fetch/fetch-sources.ts",
         "generate": "node utils/build.js",
+        "java:diff": "node utils/java/diff.ts",
         "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "pnpm run build",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
