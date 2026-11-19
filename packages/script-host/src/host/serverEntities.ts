@@ -14,6 +14,7 @@ import { ScriptApiError } from '../errors';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import type { ScriptValue } from '../values';
 import { ScriptHandle } from '../values';
+import { areaComponentFacts } from './entities/components';
 import type { PackHost } from './minecraftServer';
 import { componentFacts, containerSlots, entityComponent, slotPastEnd, writeContainerSlot } from './serverComponents';
 import type { EntityAccess, EntityKey } from './serverObjects';
@@ -461,12 +462,15 @@ const implementInventory = (implementations: ScriptApiImplementations, host: Pac
                     ? 'minecraft:inventory'
                     : call.tag === TAG.durability
                       ? 'minecraft:durability'
-                      : (componentFacts(world, call.tag, call.state)?.typeId ?? '')
+                      : (componentFacts(world, call.tag, call.state)?.typeId ??
+                        areaComponentFacts(host, call.tag, call.state)?.typeId ??
+                        '')
         })
         .implement(SERVER, 'Component', 'isValid', {
             get: (call) => {
                 if (call.tag === TAG.durability) return true;
-                const facts = componentFacts(world, call.tag, call.state);
+                const facts =
+                    componentFacts(world, call.tag, call.state) ?? areaComponentFacts(host, call.tag, call.state);
                 if (facts !== undefined) return facts.isValid;
                 if (call.tag === TAG.blockInventory) return slotsOf(call.state) !== undefined;
                 return world.entity(entityKeyOf(call.state).id) !== undefined;

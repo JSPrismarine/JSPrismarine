@@ -443,6 +443,45 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `Entity.getBlockFromViewDirection`, `PistonActivateAfterEvent`, `Player.inputPermissions`,
       `Entity.isOnGround` and `triggerEvent`, `BlockVolume`, `Dimension.createExplosion` and
       `setBlockType`, and `world.afterEvents.playerPlaceBlock`.
+    - Entities and players (2026-11-19): every member of the entity and player classes that had
+      none, 307 in all: each `Entity*Component` with a component id, `Entity.getComponents`, the
+      motion, state, box, raycast, property, event, fire, rotation, `matches`, `tryTeleport` and
+      `addItem` members of `Entity`, `EntityTypes`, and `Player`'s experience, spawn point,
+      permission levels, `Camera`, `ScreenDisplay`'s HUD members, `InputInfo`,
+      `PlayerInputPermissions`, `ClientSystemInfo`, `PlayerAimAssist`, cooldowns, control scheme,
+      chat names, sounds and music, with the aim assist registry and the feed, seat, waypoint, heal
+      source and loot condition classes. A world reaches them through
+      `ScriptWorld.entitySystems`. The level reads an entity's components from its pack's own
+      file, before the Java overlays, and a joining client now gets BDS's camera presets and aim
+      assist registry. The 2.12.0-beta shape went from 396 to 704 implemented members, and the
+      corpus's share of member uses with behavior from 88.2% to 90.6%, of pack members from 70.7%
+      to 76.6%. The new `entity-values` scenario matches BDS on all 303 observations.
+    - Learned: a component reads its definition's JSON with BDS's defaults: a leash's hard, soft
+      and max distances are 7, 4 and 12, a seat locks rotation at 181, and a navigation without
+      `can_float` floats with a float goal, or when it both swims and is amphibious. BDS reads
+      `canPathOverWater` from `can_walk_in_lava`. A healable item named without a namespace keeps
+      its name in a file of format 1.26.60 or later and gets `minecraft:` in lower case in an older
+      one; a tame item resolves a legacy name, so a cat's `fish` reads `minecraft:cod`. Every mob
+      has water and lava speeds of 0.02, which closes the script side of
+      [#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264).
+    - Learned: BDS lands `setProperty` and `triggerEvent` after the tick, so a read in the same
+      tick sees the old value, and a rider thrown off or a fire put out still shows until the tick
+      ends. `extinguishFire` returns true whether or not the entity burned. `addLevels` keeps the
+      bar's share of the next level, and a level below 0 is 0 with an empty bar. A first-person
+      camera allows only `LockedPlayerRelativeStrafe`. A simulated player's `getPing` throws BDS's
+      engine error. `getEntitiesFromViewDirection` skips an entity that overlaps the looker.
+      `addCategory` works after `startup`. BDS lists a type's families and an entity's components
+      in no fixed order, so the scenario sorts them, and it respawns a mob that spawned a baby.
+    - Left: an NPC has no health attribute and an armor stand no movement attribute
+      ([#3289](https://github.com/JSPrismarine/JSPrismarine/issues/3289), the
+      `entity-attributes` gap). Music, property overrides, `postClientMessage` and camera
+      splines do not reach the client
+      ([#3308](https://github.com/JSPrismarine/JSPrismarine/issues/3308)). Chat name prefixes
+      change `chatDisplayName` but not the chat line, and the name plate settings reach no client.
+      A raycast treats every block but air and liquids as solid. `World.getAimAssist` belongs to
+      the world area's list and is registered here, so the two batches must keep one
+      registration. `Player.fogSettings` and `locatorBar` return the world area's classes with the
+      player's entity key as their state.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.

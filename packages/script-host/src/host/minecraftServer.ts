@@ -23,6 +23,7 @@ import type { PackCustomContent } from './customContent';
 import { implementBlocks } from './serverBlocks';
 import { implementComponents } from './serverComponents';
 import { implementCustom } from './serverCustom';
+import { implementEntityArea } from './entities/area';
 import { implementEntities } from './serverEntities';
 import { implementItems } from './serverItems';
 import { implementDynamicProperties } from './serverProperties';
@@ -605,6 +606,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementStructures(implementations, host);
     implementFeedback(implementations, host);
     implementPlayerActions(implementations, host, data, signal);
+    implementEntityArea(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {

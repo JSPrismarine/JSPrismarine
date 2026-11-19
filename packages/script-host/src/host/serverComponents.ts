@@ -30,10 +30,12 @@ import {
     TAG,
     withNamespace
 } from './serverObjects';
+import { areaComponent, namesEnderChest } from './entities/components';
 import type { ScriptAttribute, ScriptEquipmentSlot, ScriptItem, ScriptWorld } from './world';
 
 /** The slots of the container an object's state names: an entity's inventory or a block's container. */
 export const containerSlots = (world: ScriptWorld, state: string): readonly (ScriptItem | null)[] | undefined => {
+    if (namesEnderChest(state)) return world.entitySystems?.enderChest(entityKeyOf(state).id);
     if (!namesBlock(state)) return world.inventory(entityKeyOf(state).id);
     const block = blockKeyOf(state);
     return world.blockInventory?.(block.dimension, block);
@@ -46,7 +48,8 @@ export const writeContainerSlot = (
     slot: number,
     item: ScriptItem | undefined
 ): void => {
-    if (!namesBlock(state)) world.setInventoryItem(entityKeyOf(state).id, slot, item);
+    if (namesEnderChest(state)) world.entitySystems?.setEnderChestItem(entityKeyOf(state).id, slot, item);
+    else if (!namesBlock(state)) world.setInventoryItem(entityKeyOf(state).id, slot, item);
     else {
         const block = blockKeyOf(state);
         world.setBlockInventoryItem?.(block.dimension, block, slot, item);
@@ -143,7 +146,8 @@ export const entityComponent = (host: PackHost, key: EntityKey, id: string): Scr
         return host.engine.release(host.create('EntityEquippableComponent', TAG.equippable, state));
     }
     const attributeClass = ATTRIBUTE_COMPONENTS.get(component);
-    if (attributeClass === undefined || world.attribute?.(key.id, component) === undefined) return undefined;
+    if (attributeClass === undefined) return areaComponent(host, key, component);
+    if (world.attribute?.(key.id, component) === undefined) return undefined;
     return host.engine.release(
         host.create(attributeClass, TAG.attribute, JSON.stringify({ ...key, attribute: component }))
     );
