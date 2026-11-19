@@ -1924,6 +1924,15 @@ Thrown as `PrismarineNetworkErrors.RespawnNotDecoded`, which extends `Error`.
 A packet reached its handler without the decoded body the handler reads. This is a bug in the
 server; report it with the stack trace.
 
+### `PRISMARINE_SCRIPT_MESSAGE_NOT_DECODED`
+
+`Cannot handle a ScriptMessagePacket without decoded data`
+
+Thrown as `PrismarineNetworkErrors.ScriptMessageNotDecoded`, which extends `Error`.
+
+A packet reached its handler without the decoded body the handler reads. This is a bug in the
+server; report it with the stack trace.
+
 ### `PRISMARINE_SET_DIFFICULTY_NOT_DECODED`
 
 `Cannot handle SetDifficultyPacket without decoded data`
