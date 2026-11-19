@@ -11,10 +11,35 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./argumentTypes": {
+                "types": "./dist/argumentTypes.d.ts",
+                "import": "./dist/argumentTypes.js",
+                "module": "./dist/argumentTypes.js"
+            },
+            "./commands/support": {
+                "types": "./dist/commands/support.d.ts",
+                "import": "./dist/commands/support.js",
+                "module": "./dist/commands/support.js"
+            },
+            "./flatten": {
+                "types": "./dist/flatten.d.ts",
+                "import": "./dist/flatten.js",
+                "module": "./dist/flatten.js"
+            },
             "./gamerules": {
                 "types": "./dist/gamerules.d.ts",
                 "import": "./dist/gamerules.js",
                 "module": "./dist/gamerules.js"
+            },
+            "./host": {
+                "types": "./dist/host.d.ts",
+                "import": "./dist/host.js",
+                "module": "./dist/host.js"
+            },
+            "./selector": {
+                "types": "./dist/selector.d.ts",
+                "import": "./dist/selector.js",
+                "module": "./dist/selector.js"
             },
             "./syntaxError": {
                 "types": "./dist/syntaxError.d.ts",
@@ -25,6 +50,11 @@
                 "types": "./dist/testing.d.ts",
                 "import": "./dist/testing.js",
                 "module": "./dist/testing.js"
+            },
+            "./tree": {
+                "types": "./dist/tree.d.ts",
+                "import": "./dist/tree.js",
+                "module": "./dist/tree.js"
             },
             "./package.json": "./package.json"
         }
@@ -42,9 +72,29 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
+        "./argumentTypes": {
+            "jsprismarine:dist": "./dist/argumentTypes.js",
+            "default": "./src/argumentTypes.ts"
+        },
+        "./commands/support": {
+            "jsprismarine:dist": "./dist/commands/support.js",
+            "default": "./src/commands/support.ts"
+        },
+        "./flatten": {
+            "jsprismarine:dist": "./dist/flatten.js",
+            "default": "./src/flatten.ts"
+        },
         "./gamerules": {
             "jsprismarine:dist": "./dist/gamerules.js",
             "default": "./src/gamerules.ts"
+        },
+        "./host": {
+            "jsprismarine:dist": "./dist/host.js",
+            "default": "./src/host.ts"
+        },
+        "./selector": {
+            "jsprismarine:dist": "./dist/selector.js",
+            "default": "./src/selector.ts"
         },
         "./syntaxError": {
             "jsprismarine:dist": "./dist/syntaxError.js",
@@ -53,6 +103,10 @@
         "./testing": {
             "jsprismarine:dist": "./dist/testing.js",
             "default": "./src/testing.ts"
+        },
+        "./tree": {
+            "jsprismarine:dist": "./dist/tree.js",
+            "default": "./src/tree.ts"
         },
         "./package.json": "./package.json"
     },

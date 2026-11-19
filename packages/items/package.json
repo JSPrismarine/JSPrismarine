@@ -11,6 +11,16 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./ItemStack": {
+                "types": "./dist/ItemStack.d.ts",
+                "import": "./dist/ItemStack.js",
+                "module": "./dist/ItemStack.js"
+            },
+            "./hooks": {
+                "types": "./dist/hooks.d.ts",
+                "import": "./dist/hooks.js",
+                "module": "./dist/hooks.js"
+            },
             "./tables": {
                 "types": "./dist/tables.d.ts",
                 "import": "./dist/tables.js",
@@ -31,6 +41,14 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./ItemStack": {
+            "jsprismarine:dist": "./dist/ItemStack.js",
+            "default": "./src/ItemStack.ts"
+        },
+        "./hooks": {
+            "jsprismarine:dist": "./dist/hooks.js",
+            "default": "./src/hooks.ts"
         },
         "./tables": {
             "jsprismarine:dist": "./dist/tables.js",

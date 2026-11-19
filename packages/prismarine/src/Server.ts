@@ -310,7 +310,6 @@ export default class Server {
         onStopCommandComplete,
         tickClock,
         statsProviders = [],
-        wallClock = Date.now
         wallClock = Date.now,
         replay = false,
         scriptHttpTransport

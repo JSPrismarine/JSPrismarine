@@ -11,6 +11,16 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./behaviors": {
+                "types": "./dist/behaviors.d.ts",
+                "import": "./dist/behaviors.js",
+                "module": "./dist/behaviors.js"
+            },
+            "./definitions": {
+                "types": "./dist/definitions.d.ts",
+                "import": "./dist/definitions.js",
+                "module": "./dist/definitions.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -26,6 +36,14 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./behaviors": {
+            "jsprismarine:dist": "./dist/behaviors.js",
+            "default": "./src/behaviors.ts"
+        },
+        "./definitions": {
+            "jsprismarine:dist": "./dist/definitions.js",
+            "default": "./src/definitions.ts"
         },
         "./package.json": "./package.json"
     },
