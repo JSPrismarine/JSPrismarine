@@ -165,6 +165,11 @@ export class RemoteConsole implements Service {
                 this.send({ type: 'complete.result', v: PROTOCOL_VERSION, id: message.id, completions, replace });
                 return;
             }
+            case 'commands': {
+                const commands = this.server.getCommandManager().commandReference();
+                this.send({ type: 'commands.result', v: PROTOCOL_VERSION, id: message.id, commands });
+                return;
+            }
             case 'subscribe':
                 this.transport.setLevel(message.level);
                 return;

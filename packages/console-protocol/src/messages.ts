@@ -42,6 +42,19 @@ export function isLifecycleState(value: unknown): value is LifecycleState {
     return typeof value === 'string' && (LIFECYCLE_STATES as readonly string[]).includes(value);
 }
 
+/**
+ * One server command as the console's palette and usage card show it.
+ *
+ * `usage` lists the forms the command takes, each written from the command's name with its
+ * arguments as Brigadier prints them, such as `teleport <targets> <position>`.
+ */
+export interface CommandInfo {
+    name: string;
+    description?: string;
+    aliases: readonly string[];
+    usage: readonly string[];
+}
+
 /** Messages the server sends to the console. */
 export type ServerMessage =
     | (Envelope<'hello'> & { serverVersion: string; pid: number })
@@ -61,12 +74,14 @@ export type ServerMessage =
       })
     | (Envelope<'lifecycle'> & { state: LifecycleState })
     | (Envelope<'command.result'> & { id: string; ok: boolean; error?: string })
-    | (Envelope<'complete.result'> & { id: string; completions: readonly string[]; replace: string });
+    | (Envelope<'complete.result'> & { id: string; completions: readonly string[]; replace: string })
+    | (Envelope<'commands.result'> & { id: string; commands: readonly CommandInfo[] });
 
 /** Messages the console sends to the server. */
 export type ConsoleMessage =
     | (Envelope<'command'> & { id: string; line: string })
     | (Envelope<'complete'> & { id: string; line: string; cursor: number })
+    | (Envelope<'commands'> & { id: string })
     | Envelope<'shutdown'>
     | (Envelope<'subscribe'> & { level: LogLevel });
 
@@ -164,12 +179,14 @@ const SERVER_FIELDS = {
     },
     lifecycle: { state: isLifecycleState },
     'command.result': { id: 'string', ok: 'boolean' },
-    'complete.result': { id: 'string', completions: 'array', replace: 'string' }
+    'complete.result': { id: 'string', completions: 'array', replace: 'string' },
+    'commands.result': { id: 'string', commands: 'array' }
 } as const satisfies FieldTable<ServerMessage>;
 
 const CONSOLE_FIELDS = {
     command: { id: 'string', line: 'string' },
     complete: { id: 'string', line: 'string', cursor: 'number' },
+    commands: { id: 'string' },
     shutdown: {},
     subscribe: { level: isLogLevel }
 } as const satisfies FieldTable<ConsoleMessage>;
@@ -178,6 +195,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const isCommandInfo = (value: unknown): value is CommandInfo =>
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    (value.description === undefined || typeof value.description === 'string') &&
+    isStringArray(value.aliases) &&
+    isStringArray(value.usage);
 
 const hasKind = (value: unknown, kind: FieldKind): boolean => {
     if (typeof kind === 'function') return kind(value);
@@ -198,6 +222,9 @@ const matchesTable = (value: unknown, table: Record<string, Record<string, Field
  */
 export function isServerMessage(value: unknown): value is ServerMessage {
     if (!matchesTable(value, SERVER_FIELDS)) return false;
+    if (isRecord(value) && value.type === 'commands.result') {
+        return Array.isArray(value.commands) && value.commands.every(isCommandInfo);
+    }
     if (!isRecord(value) || value.type !== 'status') return true;
     if (Object.hasOwn(value, 'tickRate') && typeof value.tickRate !== 'number') return false;
     return !Object.hasOwn(value, 'playerNames') || isStringArray(value.playerNames);

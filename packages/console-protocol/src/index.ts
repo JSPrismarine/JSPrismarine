@@ -3,6 +3,7 @@ export { childProcessLink } from './childProcessLink';
 export type { LinkOptions, MessageLink } from './link';
 export { memoryLinkPair } from './memoryLink';
 export type {
+    CommandInfo,
     ConsoleMessage,
     ConsoleMessageType,
     LifecycleState,

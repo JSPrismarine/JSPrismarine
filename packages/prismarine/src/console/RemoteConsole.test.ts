@@ -45,7 +45,14 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         getTickControl: () => stub<TickControl>({ getTickRate: () => tickRate }),
         getConsole: () => undefined,
         getConsoleSender: () => sender,
-        getCommandManager: () => stub<CommandManager>({ dispatchCommand, getVanillaCommands: () => commands }),
+        getCommandManager: () =>
+            stub<CommandManager>({
+                dispatchCommand,
+                getVanillaCommands: () => commands,
+                commandReference: () => [
+                    { name: 'stop', description: 'Stops the server.', aliases: [], usage: ['stop'] }
+                ]
+            }),
         getSessionManager: () =>
             stub<SessionManager>({
                 getSessions: () =>
@@ -180,6 +187,24 @@ describe('RemoteConsole', () => {
         await setImmediate();
 
         expect(received.at(-1)).toEqual({ type: 'complete.result', v, id: 'k1', completions: ['stop'], replace: 'st' });
+        await remote.disable();
+    });
+
+    it('answers a commands request with the command reference', async () => {
+        const { server } = fakeServer();
+        const { serverEnd, consoleEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+        await remote.enable();
+
+        consoleEnd.send({ type: 'commands', v, id: 'c1' });
+        await setImmediate();
+
+        expect(received.at(-1)).toEqual({
+            type: 'commands.result',
+            v,
+            id: 'c1',
+            commands: server.getCommandManager().commandReference()
+        });
         await remote.disable();
     });
 

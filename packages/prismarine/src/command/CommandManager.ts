@@ -50,6 +50,15 @@ type VanillaCommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandSour
 
 const HELP_PAGE_SIZE = 7;
 const MAX_HELP_SYNTAX_LINES = 18;
+
+/** One command as {@link CommandManager.commandReference} describes it. */
+export interface CommandReference {
+    name: string;
+    description?: string;
+    aliases: readonly string[];
+    /** The forms the command takes, from its name, such as `teleport <targets> <position>`. */
+    usage: readonly string[];
+}
 const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
 
 /**
@@ -348,6 +357,28 @@ export class CommandManager implements Service {
         if (/^[+-]?\d+$/.test(request)) return this.helpPage(Number(request));
 
         return this.commandHelp(request);
+    }
+
+    /**
+     * Every vanilla command with its description, aliases and the forms it takes, sorted by
+     * name, for a console that lists commands or shows a command's usage while it is typed.
+     * Each form starts with the command's name and has no leading slash, as the console
+     * takes commands.
+     */
+    public commandReference(): readonly CommandReference[] {
+        const registry = this.vanillaRegistry();
+        return registry
+            .getNames()
+            .sort((left, right) => left.localeCompare(right))
+            .map((name) => {
+                const root = registry.getRoot().getChild(name);
+                return {
+                    name,
+                    description: this.helpDescription(name),
+                    aliases: registry.getMetadata(name)?.aliases ?? [],
+                    usage: root === undefined ? [name] : this.commandSyntax(root, root, [name]).lines
+                };
+            });
     }
 
     private helpPage(page: number): readonly string[] {

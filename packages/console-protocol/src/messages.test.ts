@@ -11,7 +11,20 @@ describe('isServerMessage', () => {
             { type: 'lifecycle', v: 1, state: 'running' },
             { type: 'command.result', v: 1, id: 'a', ok: true },
             { type: 'command.result', v: 1, id: 'a', ok: false, error: 'nope' },
-            { type: 'complete.result', v: 1, id: 'a', completions: ['help'], replace: 'he' }
+            { type: 'complete.result', v: 1, id: 'a', completions: ['help'], replace: 'he' },
+            {
+                type: 'commands.result',
+                v: 1,
+                id: 'a',
+                commands: [
+                    {
+                        name: 'teleport',
+                        description: 'Teleports entities.',
+                        aliases: ['tp'],
+                        usage: ['teleport <destination>']
+                    }
+                ]
+            }
         ];
         for (const message of messages) expect(isServerMessage(message), message.type).toBe(true);
     });
@@ -49,6 +62,15 @@ describe('isServerMessage', () => {
         );
     });
 
+    it('rejects a command list whose entries are not commands', () => {
+        const result = { type: 'commands.result', v: 1, id: 'a' };
+        expect(isServerMessage({ ...result, commands: [{ name: 'op', aliases: [], usage: 'op' }] })).toBe(false);
+        expect(isServerMessage({ ...result, commands: [{ name: 'op', aliases: [], usage: [], description: 1 }] })).toBe(
+            false
+        );
+        expect(isServerMessage({ ...result, commands: [{ name: 'op', aliases: [], usage: [] }] })).toBe(true);
+    });
+
     it('rejects console messages', () => {
         expect(isServerMessage({ type: 'command', v: 1, id: 'a', line: 'help' })).toBe(false);
     });
@@ -73,6 +95,7 @@ describe('isConsoleMessage', () => {
         const messages = [
             { type: 'command', v: 1, id: 'a', line: 'help' },
             { type: 'complete', v: 1, id: 'a', line: 'he', cursor: 2 },
+            { type: 'commands', v: 1, id: 'a' },
             { type: 'shutdown', v: 1 },
             { type: 'subscribe', v: 1, level: 'debug' }
         ];
