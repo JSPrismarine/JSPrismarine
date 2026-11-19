@@ -9,6 +9,7 @@ import type { BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import { unpackVanillaDatapack } from './javaDatapack.ts';
+import { JAVA_ONLY_REGISTRIES } from './javaReleaseDatapack.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -58,18 +59,6 @@ const LOADED: Readonly<Record<string, LoadedRegistry>> = {
     }
 };
 
-/** Registries that exist only for Java's own client, tooling or internals, which a Bedrock player never sees. */
-const JAVA_ONLY: Readonly<Record<string, string>> = {
-    chat_type: "Chat formatting is the Bedrock client's; the server sends chat as Bedrock text packets.",
-    dialog: 'Java dialogs are a Java client screen with no Bedrock packet.',
-    test_environment: 'Java game tests are a development tool, not gameplay.',
-    test_instance: 'Java game tests are a development tool, not gameplay.',
-    context_float_provider:
-        'A number provider grammar other registries use, loaded through the registries that name it.',
-    context_int_provider: 'A number provider grammar other registries use, loaded through the registries that name it.',
-    datapacks: 'Built-in pack manifests, which select registry entries rather than defining any.'
-};
-
 const walk = (directory: string): string[] =>
     readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
         entry.isDirectory()
@@ -105,7 +94,7 @@ const scenarios: readonly BehaviorScenario<DatapackEntry>[] = [
         // has no loader for is its own row, because each is a Java behavior the server lacks.
         covers: (entry) => (LOADED[entry.registry] === undefined ? undefined : entry.registry),
         classify: (entry) => {
-            const reason = JAVA_ONLY[entry.registry];
+            const reason = JAVA_ONLY_REGISTRIES[entry.registry];
             return reason === undefined
                 ? {
                       kind: 'deferred',

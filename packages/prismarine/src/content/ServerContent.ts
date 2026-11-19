@@ -53,7 +53,7 @@ import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
 import type { JavaDataTarget } from '@jsprismarine/packs/javaDataTarget';
 import { parseBlockTransformers } from '../item/blockTransformers';
 import type { BlockTransformerRegistry } from '../item/blockTransformers';
-import { buildContentTags } from './tags';
+import { buildContentTags, contentResolver } from './tags';
 import type { ContentTags } from './tags';
 import { bedrockEntityTypeTagsFor } from './entityTypeTags';
 import { javaBlockTagsForBedrock, javaItemTagsForBedrock } from './javaTags';
@@ -686,30 +686,6 @@ const itemStackOpsFor = (types: ReadonlyMap<string, ItemType>): ItemStackOps => 
 
 /** What an item that names no `minecraft:max_stack_size` stacks to, which is Java's default. */
 const DEFAULT_MAX_STACK_SIZE = 64;
-
-/**
- * The reference resolver the Java grammars parse against.
- *
- * Elements come straight out of the loaded registries, and tags out of the
- * merged `ContentTags` rather than out of the raw files: the merge has already
- * applied Java Edition's cross-pack rule, so a tag two packs both add to
- * expands to both halves here and to one of them through the files.
- */
-const contentResolver = (definitions: Definitions, tags: ContentTags): ReferenceResolver => {
-    const elements: Readonly<Record<string, ReadonlyMap<string, Definition> | undefined>> = {
-        loot_table: definitions.lootTablesJava,
-        predicate: definitions.predicates,
-        item_modifier: definitions.itemModifiers,
-        recipe: definitions.recipesJava,
-        advancement: definitions.advancements,
-        enchantment: definitions.enchantments
-    };
-
-    return {
-        element: (registry, id) => elements[registry]?.get(id)?.data,
-        tag: (registry, id) => (tags.has(registry, id) ? tags.members(registry, id) : undefined)
-    };
-};
 
 /** Parses every advancement file, reporting rather than throwing on a bad one. */
 const parseAdvancements = (

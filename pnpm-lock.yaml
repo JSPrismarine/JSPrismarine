@@ -1427,6 +1427,9 @@ importers:
 
   packages/parity:
     devDependencies:
+      '@jsprismarine/advancements':
+        specifier: workspace:*
+        version: link:../advancements
       '@jsprismarine/bedrock-data':
         specifier: workspace:*
         version: link:../bedrock-data

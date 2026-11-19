@@ -26,6 +26,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/parity",
     "devDependencies": {
+        "@jsprismarine/advancements": "workspace:*",
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/block-behaviors": "workspace:*",

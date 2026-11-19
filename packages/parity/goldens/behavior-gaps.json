@@ -252,6 +252,90 @@
         }
     },
     "commands.answers": {},
+    "datapack.26.3": {
+        "registry-entry-count:minecraft:chat_type": {
+            "kind": "intentional",
+            "reason": "Chat formatting is the Bedrock client's; the server sends chat as Bedrock text packets.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:context_float_provider": {
+            "kind": "intentional",
+            "reason": "A number provider grammar other registries use, loaded through the registries that name it.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:context_int_provider": {
+            "kind": "intentional",
+            "reason": "A number provider grammar other registries use, loaded through the registries that name it.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:dialog": {
+            "kind": "intentional",
+            "reason": "Java dialogs are a Java client screen with no Bedrock packet.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:test_environment": {
+            "kind": "intentional",
+            "reason": "Java game tests are a development tool, not gameplay.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:test_instance": {
+            "kind": "intentional",
+            "reason": "Java game tests are a development tool, not gameplay.",
+            "reference": "issue #2912"
+        }
+    },
+    "datapack.26.4-snapshot-10": {
+        "registry-entry-count:minecraft:block_sound_set": {
+            "kind": "deferred",
+            "reason": "26.4's block sound sets have no loader yet.",
+            "reference": "issue #3286"
+        },
+        "registry-entry-count:minecraft:chat_type": {
+            "kind": "intentional",
+            "reason": "Chat formatting is the Bedrock client's; the server sends chat as Bedrock text packets.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:context_float_provider": {
+            "kind": "intentional",
+            "reason": "A number provider grammar other registries use, loaded through the registries that name it.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:context_int_provider": {
+            "kind": "intentional",
+            "reason": "A number provider grammar other registries use, loaded through the registries that name it.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:dialog": {
+            "kind": "intentional",
+            "reason": "Java dialogs are a Java client screen with no Bedrock packet.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:dispense_behavior": {
+            "kind": "deferred",
+            "reason": "26.4's data-driven dispenser behaviors have no loader yet.",
+            "reference": "issue #3286"
+        },
+        "registry-entry-count:minecraft:test_environment": {
+            "kind": "intentional",
+            "reason": "Java game tests are a development tool, not gameplay.",
+            "reference": "issue #2912"
+        },
+        "registry-entry-count:minecraft:test_instance": {
+            "kind": "intentional",
+            "reason": "Java game tests are a development tool, not gameplay.",
+            "reference": "issue #2912"
+        },
+        "type-has-reader:minecraft:worldgen/density_function_type minecraft:domain_warp": {
+            "kind": "deferred",
+            "reason": "26.4's domain_warp density function has no reader yet; no vanilla function uses it.",
+            "reference": "issue #3280"
+        },
+        "type-has-reader:minecraft:worldgen/feature_type minecraft:crevasse": {
+            "kind": "deferred",
+            "reason": "26.4's water-filled crevasses in the ice caves have no reader yet.",
+            "reference": "issue #3279"
+        }
+    },
     "entities.behavior": {
         "breeze-ground-sound:minecraft:breeze": {
             "kind": "intentional",
