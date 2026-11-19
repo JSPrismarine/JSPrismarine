@@ -39,18 +39,4 @@ describe('floatumentTypeTest', () => {
         }
         assert.fail();
     });
-
-    it.todo('testEquals', () => {
-        /*testEquality(float(), float());
-        testEquality(float(-100, 100), float(-100, 100));
-        testEquality(float(-100, 50), float(-100, 50));
-        testEquality(float(-50, 100), float(-50, 100));*/
-    });
-
-    it.todo('testToString', () => {
-        /*assert.equal(float() + '', 'float()');
-        assert.equal(float(-100) + '', 'float(-100)');
-        assert.equal(float(-100, 100) + '', 'float(-100, 100)');
-        assert.equal(float(Number.MIN_SAFE_INTEGER, 100) + '', 'float(-9007199254740991, 100)');*/
-    });
 });

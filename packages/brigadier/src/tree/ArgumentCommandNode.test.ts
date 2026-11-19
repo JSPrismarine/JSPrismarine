@@ -39,20 +39,6 @@ describe('ArgumentCommandNodeTest', () => {
         assert.equal(result.isEmpty(), true);
     });
 
-    it.todo('testEquals', () => {
-        /*testEquality(argument('foo', integer()).build(), argument('foo', integer()).build());
-        testEquality(
-            argument('foo', integer()).executes(command).build(),
-            argument('foo', integer()).executes(command).build()
-        );
-        testEquality(argument('bar', integer(-100, 100)).build(), argument('bar', integer(-100, 100)).build());
-        testEquality(argument('foo', integer(-100, 100)).build(), argument('foo', integer(-100, 100)).build());
-        testEquality(
-            argument('foo', integer()).then(argument('bar', integer())).build(),
-            argument('foo', integer()).then(argument('bar', integer())).build()
-        );*/
-    });
-
     it('testCreateBuilder', () => {
         const builder: RequiredArgumentBuilder<Object, number> = node.createBuilder();
         assert.equal(builder.getName(), node.getName());

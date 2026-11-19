@@ -41,18 +41,4 @@ describe('integerumentTypeTest', () => {
 
         assert.fail();
     });
-
-    it.todo('testEquals', () => {
-        /*testEquality(integer(), integer());
-        testEquality(integer(-100, 100), integer(-100, 100));
-        testEquality(integer(-100, 50), integer(-100, 50));
-        testEquality(integer(-50, 100), integer(-50, 100));*/
-    });
-
-    it.todo('testToString', () => {
-        /*assert.equal(integer() + '', 'integer()');
-        assert.equal(integer(-100) + '', 'integer(-100)');
-        assert.equal(integer(-100, 100) + '', 'integer(-100, 100)');
-        assert.equal(integer(Number.MIN_SAFE_INTEGER, 100) + '', 'integer(-9007199254740991, 100)');*/
-    });
 });

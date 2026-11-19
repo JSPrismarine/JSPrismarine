@@ -75,15 +75,6 @@ describe('LiteralCommandNodeTest', () => {
         assert.equal(b.isEmpty(), true);
     });
 
-    it.todo('testEquals', () => {
-        /*const command = async () => 0;
-
-        testEquality(literal('foo').build(), literal('foo').build());
-        testEquality(literal('bar').executes(command).build(), literal('bar').executes(command).build());
-        testEquality(literal('bar').build(), literal('bar').build());
-        testEquality(literal('foo').then(literal('bar')).build(), literal('foo').then(literal('bar')).build());*/
-    });
-
     it('testCreateBuilder', () => {
         const builder = node.createBuilder();
         assert.deepEqual(builder.getLiteral(), node.getLiteral());
