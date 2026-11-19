@@ -15,6 +15,24 @@ Script API, every module, class and member of `@minecraft/server` and the other 
 beta, generated from Mojang's metadata; and the runtime that loads a world's behavior packs and runs
 their scripts, with the first members that have behavior.
 
+## Installing
+
+```bash
+npm install @jsprismarine/script-host
+```
+
+The package holds no native code. Its install script downloads the library's build for the
+machine from the project's GitHub releases, checks its SHA-256 against `native/manifest.json`, and
+writes it to `prebuilds/<platform>/`. Loading the library downloads nothing. Builds exist for
+<!-- fact:scripting.buildPlatforms -->macOS on Apple silicon, Linux on arm64 with glibc, Linux on arm64 with musl, Linux on x64 with glibc, Linux on x64 with musl and Windows on x64<!-- /fact -->.
+
+npm 12, pnpm and Bun run a dependency's install script only once the project approves it. Until
+then, loading the library throws a `NativeLibraryError` that names the command for each:
+`npm install-scripts approve @jsprismarine/script-host`, `pnpm approve-builds`, or
+`trustedDependencies` in Bun's `package.json`. Set `JSP_SCRIPT_HOST_LIBRARY` to a library file to
+load it instead; the file must be the published build or a local build. [Building it](#building-it)
+covers a local build.
+
 ## Running a script
 
 ```ts
@@ -588,20 +606,29 @@ shipped `permissions.json` allows neither.
 
 ## Building it
 
-The package is private, and not published to npm, until each platform has a prebuilt library that
-an install can fetch ([#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215)). Until
-then it runs from a checkout. `pnpm --filter @jsprismarine/script-host run build:native`
-builds the library for this machine into `prebuilds/<platform>-<arch>/`, and the binding loads it
-from there. Set `JSP_SCRIPT_HOST_LIBRARY` to load another file instead.
+In a checkout, `pnpm install` runs the install script too, and downloads the published build while
+the native sources match the manifest. After a change to them, build the library for this machine:
 
-The build needs a C compiler (`CC` names one; the default is `cc`), `tar` that reads `.tar.xz`, and
-`git`. It runs on Linux for now. The script downloads the QuickJS release that
-`native/sources.json` pins into `node_modules/.cache/jsprismarine/script-host`, checks its SHA-256,
-applies `native/patches/quickjs-host-hooks.patch`, and compiles QuickJS with `native/src/engine.c`
-into one shared library that exports only the `jsh_` interface.
+```bash
+pnpm --filter @jsprismarine/script-host run build:native
+```
 
-CI builds the library on each Linux x64 runner that installs the repository, and runs this
-package's tests against it.
+The build needs a C compiler, `tar` that reads `.tar.xz`, and `git`. The compiler is `cc` on Linux
+and macOS and MinGW-w64's `gcc` on Windows, unless `CC` names another. Bellard's QuickJS includes
+`<sys/time.h>` and uses pthreads, so MSVC cannot build it. The script downloads the QuickJS release
+that `native/sources.json` pins into `node_modules/.cache/jsprismarine/script-host`, checks its
+SHA-256, applies the patches in `native/patches/`, and compiles QuickJS with `native/src/engine.c`
+into one shared library that exports only the `jsh_` interface. It writes the library to
+`prebuilds/<platform>/` with a `build.json` that records its digest, and the binding accepts that
+digest as well as the published one.
+
+The native sources' hash, from `src/nativeHash.ts`, names a set of builds. The Script host workflow
+builds every platform in CI, on Debian 12 for a glibc floor of 2.36 and on Alpine for musl, loads
+each build, fails one that needs a library a bare machine lacks, runs this package's tests against
+the builds, and installs the packed package from an npm project. When a push to `master` changes
+the native sources, it attaches the builds to a GitHub release named for the hash and opens a pull
+request that points the manifest at them. Until that merges, every CI job that installs the
+repository builds its own library, or restores the one built for the same sources from the cache.
 
 ## The QuickJS patch
 
@@ -637,3 +664,10 @@ no extra work. The patch adds:
   frame's variables in scope. A variable no closure captures has no reference in its frame, so
   the evaluation borrows the variable's slot and leaves any closure it made with a copy.
 - `JS_GetDebugClassName`, an object's class name without running script.
+
+`native/patches/quickjs-backtrace-oom.patch` fixes a use-after-free in QuickJS. When a script
+runs out of memory, the interpreter adds the stack to the error it throws, and the string for the
+stack can be the allocation that fails. That failure throws a new error, which frees the one the
+stack was for, and the stack was then written to freed memory. The patch keeps a reference to the
+error until its stack is set, and leaves the stack `null` when its string cannot be made. The
+memory limit is hit at a different allocation on each C library, and Windows's was this one.

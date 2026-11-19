@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 
-import { NATIVE_BUILD_PLATFORMS } from '../../../../packages/script-host/src/platform.ts';
+import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_TELEPORT_DISTANCE } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep, vec3 } from '../scenario.mts';
@@ -18,10 +18,10 @@ export const scriptTeleport: Scenario = {
     name: 'script-teleport',
     description: "a behavior pack script's Entity.teleport moves the player, and the client's position follows",
     run: async ({ client, server, log }) => {
-        // The script host builds on Linux only for now (issue #3215); elsewhere the server runs
+        // A platform without a published script host build runs the server
         // without scripts, which this scenario cannot check.
-        if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
-            log(`skipped: the script host has no build for ${process.platform}, so the server runs no scripts`);
+        if (!isPublishedPlatform()) {
+            log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }
         const [startX, , startZ] = vec3(await client.state(), 'feet');
