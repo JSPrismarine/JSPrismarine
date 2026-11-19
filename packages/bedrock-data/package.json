@@ -68,6 +68,7 @@
     },
     "scripts": {
         "bringup": "node utils/bedrock-dump/bringup.ts",
+        "bringup:java": "node --import tsx utils/java/bringup.ts",
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "datagen:java": "node utils/java/datagen.ts",
         "dump:bedrock": "node utils/bedrock-dump/run.ts",
