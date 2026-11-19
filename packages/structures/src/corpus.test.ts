@@ -61,18 +61,26 @@ const javaJar = (): string | undefined =>
         .filter((candidate): candidate is string => candidate !== undefined)
         .find((candidate) => existsSync(candidate));
 
-/** The `.nbt` templates inside the Java server jar, which is a bundler jar holding the real one. */
-const javaTemplates = (jarPath: string): Map<string, Uint8Array> => {
+/** The bundler's inner server jar entry, `META-INF/versions/<release>/server-<release>.jar`. */
+const INNER_JAR = /^META-INF\/versions\/([^/]+)\/server-\1\.jar$/;
+
+/**
+ * The `.nbt` templates inside a Java server jar, which is a bundler jar holding the real one, and
+ * the release the bundler names. The inner jar's name comes from the bundler itself, so the corpus
+ * reads whichever pinned release `JSP_JAVA_JAR_PATH` points at.
+ */
+const javaTemplates = (jarPath: string): { release: string; templates: Map<string, Uint8Array> } => {
     const outer = readZip(readFileSync(jarPath));
-    const innerName = `META-INF/versions/${sources.javaServer.defaultVersion}/server-${sources.javaServer.defaultVersion}.jar`;
-    const inner = outer.get(innerName);
-    if (inner === undefined) throw new Error(`${jarPath} has no ${innerName}`);
+    const inner = [...outer].find(([name]) => INNER_JAR.test(name));
+    if (inner === undefined) throw new Error(`${jarPath} has no META-INF/versions/<release>/server-<release>.jar`);
+    const [innerName, innerBytes] = inner;
+    const release = INNER_JAR.exec(innerName)?.[1] ?? innerName;
 
     const templates = new Map<string, Uint8Array>();
-    for (const [name, bytes] of readZip(inner)) {
+    for (const [name, bytes] of readZip(innerBytes)) {
         if (name.startsWith('data/minecraft/structure/') && name.endsWith('.nbt')) templates.set(name, bytes);
     }
-    return templates;
+    return { release, templates };
 };
 
 interface Measurement {
@@ -127,12 +135,13 @@ const report = (label: string, measurement: Measurement): void => {
 };
 
 describe.skipIf(!enabled)('the shipped structure template corpus', { tags: ['real-data'] }, () => {
-    it('reads every Java Edition 26.3 template in the server jar with no error', { timeout: 300000 }, () => {
+    it('reads every Java Edition template in the server jar with no error', { timeout: 300000 }, () => {
         const jarPath = javaJar();
         expect(jarPath, 'the pinned Java server jar is not in the cache').toBeDefined();
 
-        const measurement = measure(javaTemplates(jarPath as string));
-        report('java 26.3', measurement);
+        const { release, templates } = javaTemplates(jarPath as string);
+        const measurement = measure(templates);
+        report(`java ${release}`, measurement);
 
         expect(measurement.errors).toEqual([]);
         expect(measurement.files).toBeGreaterThan(0);
