@@ -3,6 +3,7 @@ import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { commandSyntaxError } from './scenarios/command-syntax-error.mts';
 import { scriptForm } from './scenarios/script-form.mts';
+import { scriptRotation } from './scenarios/script-rotation.mts';
 import { scriptTeleport } from './scenarios/script-teleport.mts';
 import { scriptCustomCommand } from './scenarios/script-custom-command.mts';
 import { scriptWorldMessage } from './scenarios/script-world-message.mts';
@@ -98,6 +99,7 @@ export const suites: ScenarioSuite[] = [
             scriptCustomCommand,
             scriptForm,
             scriptTeleport,
+            scriptRotation,
             miningDrops,
             spectatorPickup,
             itemDropPickup,

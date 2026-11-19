@@ -761,5 +761,29 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:components'] },
         needs: 'server'
+    },
+    {
+        id: 'entity-values',
+        family: 'scripting.entities',
+        description:
+            "An entity's components read back what its definition gives it, Entity's members read and move it, and " +
+            "Player's members read and write a player's experience, spawn point, permissions, camera, HUD and input.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['values'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:values'] },
+        needs: 'server'
+    },
+    {
+        id: 'entity-attributes',
+        family: 'scripting.entities',
+        description:
+            'A player lists its hunger, saturation and exhaustion components, and an NPC and an armor stand list ' +
+            'health and movement, with the values each reads.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['attributes'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:attributes'] },
+        needs: 'server'
     }
 ];

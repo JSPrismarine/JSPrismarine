@@ -1878,9 +1878,14 @@
     },
     "scripting.engine": {},
     "scripting.entities": {
+        "bds-record:entity-attributes": {
+            "kind": "defect",
+            "reason": "An NPC has no health attribute and an armor stand no movement attribute on JSPrismarine, so getComponents leaves them out and getComponent returns undefined, where BDS gives both entities both (issue #3289). A player's hunger, saturation and exhaustion components and every other entity's speed in water and lava match BDS.",
+            "reference": "issue #3289"
+        },
         "bds-record:entity-components": {
             "kind": "defect",
-            "reason": "A pig has no underwater_movement attribute on JSPrismarine, where BDS gives every mob 0.02 (issue #3264). A zombie set to 0 health with resetToMinValue leaves the script world at once on JSPrismarine, so its health component throws and it reads isValid false, where BDS keeps it valid through its death animation (issue #3263). Every equipment slot, armor total, other attribute read and write with its bounds, container slot, dimension and effect type, Effect.isValid and spawnParticle match BDS.",
+            "reason": "EffectTypes lists no minecraft:freezing on JSPrismarine, where BDS 1.26.60.6 lists it. A zombie set to 0 health with resetToMinValue leaves the script world at once on JSPrismarine, so its health component throws and it reads isValid false, where BDS keeps it valid through its death animation (issue #3263). Every equipment slot, armor total, attribute read and write with its bounds, a mob's speed in water and lava, container slot, dimension type, Effect.isValid and spawnParticle match BDS.",
             "reference": "issue #3263"
         },
         "bds-record:entity-effects": {

@@ -1,0 +1,4443 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-values` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "entity-values",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "values",
+            "seq": 1,
+            "tick": 0,
+            "event": "EntityTypes.get pig early",
+            "error": "ReferenceError: Native function [EntityTypes::get] cannot be used in early execution."
+        },
+        {
+            "pack": "values",
+            "seq": 2,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "values",
+            "seq": 3,
+            "tick": 0,
+            "event": "startup aimAssistRegistry",
+            "value": false
+        },
+        {
+            "pack": "values",
+            "seq": 4,
+            "tick": 0,
+            "event": "EntityTypes.get pig",
+            "value": {
+                "id": "minecraft:pig",
+                "localizationKey": "entity.pig.name"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 5,
+            "tick": 0,
+            "event": "EntityTypes.get pig without a namespace",
+            "value": "minecraft:pig"
+        },
+        {
+            "pack": "values",
+            "seq": 6,
+            "tick": 0,
+            "event": "EntityTypes.get of an unknown type",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 7,
+            "tick": 0,
+            "event": "EntityTypes.getAll",
+            "value": {
+                "hasPig": true,
+                "hasPlayer": true,
+                "sorted": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 8,
+            "tick": 0,
+            "event": "EntityTypes.get zombie localizationKey",
+            "value": "entity.zombie.name"
+        },
+        {
+            "pack": "values",
+            "seq": 9,
+            "tick": 0,
+            "event": "aim assist presets",
+            "value": [
+                "minecraft:aim_assist_default"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 10,
+            "tick": 0,
+            "event": "aim assist categories",
+            "value": [
+                "minecraft:empty_hand",
+                "minecraft:default",
+                "minecraft:bucket"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 11,
+            "tick": 0,
+            "event": "aim assist default preset",
+            "value": {
+                "defaultItemSettings": "minecraft:default",
+                "getExcludedBlockTagTargets": [],
+                "getExcludedBlockTargets": [
+                    "minecraft:bedrock"
+                ],
+                "getExcludedEntityTargets": [
+                    "minecraft:arrow"
+                ],
+                "getExcludedEntityTypeFamilyTargets": [],
+                "getItemSettings": {
+                    "minecraft:bucket": "minecraft:bucket"
+                },
+                "getLiquidTargetingItems": [
+                    "minecraft:bucket",
+                    "minecraft:oak_boat",
+                    "minecraft:birch_boat",
+                    "minecraft:spruce_boat",
+                    "minecraft:jungle_boat",
+                    "minecraft:acacia_boat",
+                    "minecraft:dark_oak_boat",
+                    "minecraft:mangrove_boat",
+                    "minecraft:cherry_boat",
+                    "minecraft:bamboo_raft",
+                    "minecraft:oak_chest_boat",
+                    "minecraft:birch_chest_boat",
+                    "minecraft:spruce_chest_boat",
+                    "minecraft:jungle_chest_boat",
+                    "minecraft:acacia_chest_boat",
+                    "minecraft:dark_oak_chest_boat",
+                    "minecraft:mangrove_chest_boat",
+                    "minecraft:cherry_chest_boat",
+                    "minecraft:bamboo_chest_raft"
+                ],
+                "handSettings": "minecraft:empty_hand",
+                "identifier": "minecraft:aim_assist_default"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 12,
+            "tick": 0,
+            "event": "aim assist default category",
+            "value": {
+                "defaultBlockPriority": 1,
+                "defaultEntityPriority": 1,
+                "getBlockPriorities": {
+                    "minecraft:birch_button": 60,
+                    "minecraft:dark_oak_button": 60,
+                    "minecraft:lever": 60,
+                    "minecraft:oak_button": 60,
+                    "minecraft:spruce_button": 60
+                },
+                "getBlockTagPriorities": {},
+                "getEntityPriorities": {},
+                "getEntityTypeFamilyPriorities": {},
+                "identifier": "minecraft:default"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 13,
+            "tick": 0,
+            "event": "AimAssistCategorySettings",
+            "value": {
+                "after": {
+                    "defaultBlockPriority": 3,
+                    "defaultEntityPriority": 1,
+                    "identifier": "jsp:category"
+                },
+                "before": {
+                    "defaultBlockPriority": 1,
+                    "defaultEntityPriority": 1,
+                    "identifier": "jsp:category"
+                },
+                "blocks": {
+                    "minecraft:stone": 5
+                },
+                "entities": {
+                    "minecraft:pig": 7
+                },
+                "families": {
+                    "mob": 4
+                },
+                "tags": {
+                    "wood": 2
+                }
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 14,
+            "tick": 0,
+            "event": "AimAssistPresetSettings",
+            "value": {
+                "after": {
+                    "defaultItemSettings": "jsp:category",
+                    "handSettings": "jsp:category",
+                    "identifier": "jsp:preset"
+                },
+                "before": {
+                    "blocks": null,
+                    "defaultItemSettings": null,
+                    "handSettings": null,
+                    "identifier": "jsp:preset",
+                    "items": {},
+                    "liquid": null
+                },
+                "blocks": [
+                    "minecraft:stone"
+                ],
+                "entities": [
+                    "minecraft:pig"
+                ],
+                "items": {
+                    "minecraft:stick": "jsp:category"
+                },
+                "liquid": [
+                    "minecraft:bucket"
+                ]
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 15,
+            "tick": 0,
+            "event": "addCategory after startup",
+            "value": {
+                "defaultBlockPriority": 1,
+                "defaultEntityPriority": 1,
+                "identifier": "jsp:late"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 16,
+            "tick": 0,
+            "event": "getPreset of an unknown preset",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 17,
+            "tick": 0,
+            "event": "minecraft:pig getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 18,
+            "tick": 0,
+            "event": "minecraft:horse getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:healable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:mark_variant",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:tamemount",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 19,
+            "tick": 0,
+            "event": "minecraft:wolf getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:healable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:tameable",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 20,
+            "tick": 0,
+            "event": "minecraft:cat getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:healable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:tameable",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 21,
+            "tick": 0,
+            "event": "minecraft:parrot getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_fly",
+                "minecraft:healable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.fly",
+                "minecraft:navigation.fly",
+                "minecraft:tameable",
+                "minecraft:type_family",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 22,
+            "tick": 0,
+            "event": "minecraft:sheep getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:color",
+                "minecraft:is_dyeable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 23,
+            "tick": 0,
+            "event": "minecraft:zombie getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 24,
+            "tick": 0,
+            "event": "minecraft:chest_minecart getComponents",
+            "value": [
+                "minecraft:inventory",
+                "minecraft:is_stackable",
+                "minecraft:type_family"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 25,
+            "tick": 0,
+            "event": "minecraft:npc getComponents",
+            "value": [
+                "minecraft:fire_immune",
+                "minecraft:lava_movement",
+                "minecraft:npc",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 26,
+            "tick": 0,
+            "event": "minecraft:arrow getComponents",
+            "value": [
+                "minecraft:projectile",
+                "minecraft:type_family"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 27,
+            "tick": 0,
+            "event": "minecraft:snowball getComponents",
+            "value": [
+                "minecraft:projectile",
+                "minecraft:type_family"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 28,
+            "tick": 0,
+            "event": "minecraft:chicken getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 29,
+            "tick": 0,
+            "event": "minecraft:llama getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:healable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:mark_variant",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:rideable",
+                "minecraft:strength",
+                "minecraft:tamemount",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 30,
+            "tick": 0,
+            "event": "minecraft:boat getComponents",
+            "value": [
+                "minecraft:is_stackable",
+                "minecraft:leashable",
+                "minecraft:rideable",
+                "minecraft:type_family"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 31,
+            "tick": 0,
+            "event": "minecraft:minecart getComponents",
+            "value": [
+                "minecraft:is_stackable",
+                "minecraft:rideable",
+                "minecraft:type_family"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 32,
+            "tick": 0,
+            "event": "minecraft:cod getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:movement.sway",
+                "minecraft:navigation.generic",
+                "minecraft:scale",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 33,
+            "tick": 0,
+            "event": "minecraft:phantom getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:movement.glide",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 34,
+            "tick": 0,
+            "event": "minecraft:tropicalfish getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:color",
+                "minecraft:color2",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:mark_variant",
+                "minecraft:movement.sway",
+                "minecraft:navigation.generic",
+                "minecraft:scale",
+                "minecraft:type_family",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 35,
+            "tick": 0,
+            "event": "minecraft:strider getComponents",
+            "value": [
+                "minecraft:fire_immune",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.basic",
+                "minecraft:navigation.walk",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 36,
+            "tick": 0,
+            "event": "minecraft:armor_stand getComponents",
+            "value": [
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 37,
+            "tick": 0,
+            "event": "minecraft:axolotl getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:leashable",
+                "minecraft:movement.amphibious",
+                "minecraft:navigation.generic",
+                "minecraft:underwater_movement",
+                "minecraft:variant"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 38,
+            "tick": 0,
+            "event": "minecraft:bat getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_fly",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:movement.basic",
+                "minecraft:navigation.float",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 39,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 40,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 41,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 42,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 43,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 44,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 45,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": true,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 46,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 0.7,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 47,
+            "tick": 0,
+            "event": "minecraft:pig minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 48,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 49,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:healable",
+            "value": {
+                "forceUse": false,
+                "getFeedItems()": [
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "wheat",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 1,
+                        "item": "sugar",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 20,
+                        "item": "hay_block",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 3,
+                        "item": "apple",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 3,
+                        "item": "carrot",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 4,
+                        "item": "golden_carrot",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 10,
+                        "item": "golden_apple",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 10,
+                        "item": "enchanted_golden_apple",
+                        "resultItem": null
+                    }
+                ],
+                "isValid": true,
+                "typeId": "minecraft:healable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 50,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 51,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 52,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 53,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 54,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": true,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 55,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "player",
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 1.1,
+                            "z": -0.2
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "action.interact.mount",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 56,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:tamemount",
+            "value": {
+                "isTamed": false,
+                "isTamedToPlayer": false,
+                "isValid": true,
+                "tamedToPlayer": null,
+                "tamedToPlayerId": null,
+                "typeId": "minecraft:tamemount"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 57,
+            "tick": 0,
+            "event": "minecraft:horse minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 58,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 59,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 60,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:healable",
+            "value": {
+                "forceUse": false,
+                "getFeedItems()": [
+                    {
+                        "effects": [],
+                        "healAmount": 6,
+                        "item": "minecraft:porkchop",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 16,
+                        "item": "minecraft:cooked_porkchop",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 4,
+                        "item": "minecraft:fish",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 4,
+                        "item": "minecraft:salmon",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "minecraft:clownfish",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "minecraft:pufferfish",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 10,
+                        "item": "minecraft:cooked_fish",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 12,
+                        "item": "minecraft:cooked_salmon",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 6,
+                        "item": "minecraft:beef",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 16,
+                        "item": "minecraft:cooked_beef",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 4,
+                        "item": "minecraft:chicken",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 12,
+                        "item": "minecraft:cooked_chicken",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 4,
+                        "item": "minecraft:muttonraw",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 12,
+                        "item": "minecraft:muttoncooked",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 8,
+                        "item": "minecraft:rotten_flesh",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 6,
+                        "item": "minecraft:rabbit",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 10,
+                        "item": "minecraft:cooked_rabbit",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 20,
+                        "item": "minecraft:rabbit_stew",
+                        "resultItem": null
+                    }
+                ],
+                "isValid": true,
+                "typeId": "minecraft:healable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 61,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 62,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 63,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 64,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 65,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 66,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 0.625,
+                            "z": -0.1
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 67,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:tameable",
+            "value": {
+                "getTameItems": [
+                    {
+                        "amount": 1,
+                        "item": "minecraft:bone"
+                    }
+                ],
+                "isTamed": false,
+                "isValid": true,
+                "probability": 0.33,
+                "tamedToPlayer": null,
+                "tamedToPlayerId": null,
+                "typeId": "minecraft:tameable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 68,
+            "tick": 0,
+            "event": "minecraft:wolf minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 69,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 70,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 71,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:healable",
+            "value": {
+                "forceUse": false,
+                "getFeedItems()": [
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "minecraft:fish",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "minecraft:salmon",
+                        "resultItem": null
+                    }
+                ],
+                "isValid": true,
+                "typeId": "minecraft:healable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 72,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 73,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 74,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 75,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 76,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": true,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 77,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 0.35,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 78,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:tameable",
+            "value": {
+                "getTameItems": [
+                    {
+                        "amount": 1,
+                        "item": "minecraft:cod"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:salmon"
+                    }
+                ],
+                "isTamed": false,
+                "isValid": true,
+                "probability": 0.33,
+                "tamedToPlayer": null,
+                "tamedToPlayerId": null,
+                "typeId": "minecraft:tameable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 79,
+            "tick": 0,
+            "event": "minecraft:cat minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 80,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 81,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:can_fly",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_fly"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 82,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:healable",
+            "value": {
+                "forceUse": true,
+                "getFeedItems()": [
+                    {
+                        "effects": [
+                            "[object Object]"
+                        ],
+                        "healAmount": 0,
+                        "item": "minecraft:cookie",
+                        "resultItem": null
+                    }
+                ],
+                "isValid": true,
+                "typeId": "minecraft:healable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 83,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 84,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 85,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 86,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:movement.fly",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.fly"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 87,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:navigation.fly",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": true,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.fly"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 88,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:tameable",
+            "value": {
+                "getTameItems": [
+                    {
+                        "amount": 1,
+                        "item": "minecraft:wheat_seeds"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:pumpkin_seeds"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:melon_seeds"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:beetroot_seeds"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:pitcher_pod"
+                    },
+                    {
+                        "amount": 1,
+                        "item": "minecraft:torchflower_seeds"
+                    }
+                ],
+                "isTamed": false,
+                "isValid": true,
+                "probability": 0.33,
+                "tamedToPlayer": null,
+                "tamedToPlayerId": null,
+                "typeId": "minecraft:tameable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 89,
+            "tick": 0,
+            "event": "minecraft:parrot minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 90,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 91,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 92,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:color",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:color",
+                "value": 0
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 93,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:is_dyeable",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_dyeable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 94,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 95,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 96,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 97,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 98,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": true,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 99,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 0.975,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 100,
+            "tick": 0,
+            "event": "minecraft:sheep minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 101,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": true,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 102,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 103,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 104,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 105,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 106,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": true,
+                "canFloat": false,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": true,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 107,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 0,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 1.175,
+                            "z": -0.35
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 108,
+            "tick": 0,
+            "event": "minecraft:zombie minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 109,
+            "tick": 0,
+            "event": "minecraft:chest_minecart minecraft:inventory",
+            "value": {
+                "additionalSlotsPerStrength": 0,
+                "canBeSiphonedFrom": true,
+                "containerType": "minecart_chest",
+                "inventorySize": 27,
+                "isValid": true,
+                "private": false,
+                "restrictToOwner": false,
+                "typeId": "minecraft:inventory"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 110,
+            "tick": 0,
+            "event": "minecraft:chest_minecart minecraft:is_stackable",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_stackable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 111,
+            "tick": 0,
+            "event": "minecraft:chest_minecart minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "inanimate",
+                    "minecart"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 112,
+            "tick": 0,
+            "event": "minecraft:npc minecraft:fire_immune",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:fire_immune"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 113,
+            "tick": 0,
+            "event": "minecraft:npc minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 114,
+            "tick": 0,
+            "event": "minecraft:npc minecraft:npc",
+            "value": {
+                "defaultScene": "",
+                "isValid": true,
+                "name": "NPC",
+                "skinIndex": -1,
+                "typeId": "minecraft:npc"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 115,
+            "tick": 0,
+            "event": "minecraft:npc minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "mob",
+                    "npc"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 116,
+            "tick": 0,
+            "event": "minecraft:npc minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 117,
+            "tick": 0,
+            "event": "minecraft:arrow minecraft:projectile",
+            "value": {
+                "airInertia": 0.99,
+                "catchFireOnHurt": false,
+                "critParticlesOnProjectileHurt": false,
+                "destroyOnProjectileHurt": false,
+                "gravity": 0.05,
+                "hitEntitySound": "bow.hit",
+                "hitGroundSound": "bow.hit",
+                "hitParticle": "iconcrack",
+                "isValid": true,
+                "lightningStrikeOnHit": false,
+                "liquidInertia": 0.6,
+                "onFireTime": 5,
+                "owner": null,
+                "shouldBounceOnHit": true,
+                "stopOnHit": false,
+                "typeId": "minecraft:projectile"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 118,
+            "tick": 0,
+            "event": "minecraft:arrow minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "arrow",
+                    "projectile"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 119,
+            "tick": 0,
+            "event": "minecraft:snowball minecraft:projectile",
+            "value": {
+                "airInertia": 0.99,
+                "catchFireOnHurt": false,
+                "critParticlesOnProjectileHurt": false,
+                "destroyOnProjectileHurt": false,
+                "gravity": 0.03,
+                "hitEntitySound": null,
+                "hitGroundSound": null,
+                "hitParticle": "iconcrack",
+                "isValid": true,
+                "lightningStrikeOnHit": false,
+                "liquidInertia": 0.6,
+                "onFireTime": 5,
+                "owner": null,
+                "shouldBounceOnHit": false,
+                "stopOnHit": false,
+                "typeId": "minecraft:projectile"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 120,
+            "tick": 0,
+            "event": "minecraft:snowball minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "projectile",
+                    "snowball"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 121,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 122,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:can_climb",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_climb"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 123,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 124,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 125,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 126,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 127,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 128,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "baby_undead"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 0.48,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 129,
+            "tick": 0,
+            "event": "minecraft:chicken minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 130,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 131,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:healable",
+            "value": {
+                "forceUse": false,
+                "getFeedItems()": [
+                    {
+                        "effects": [],
+                        "healAmount": 2,
+                        "item": "wheat",
+                        "resultItem": null
+                    },
+                    {
+                        "effects": [],
+                        "healAmount": 10,
+                        "item": "hay_block",
+                        "resultItem": null
+                    }
+                ],
+                "isValid": true,
+                "typeId": "minecraft:healable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 132,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 133,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 134,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 135,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 136,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 137,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [
+                    "player"
+                ],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": 1.17,
+                            "z": -0.3
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "action.interact.mount",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": false,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 138,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:tamemount",
+            "value": {
+                "isTamed": false,
+                "isTamedToPlayer": false,
+                "isValid": true,
+                "tamedToPlayer": null,
+                "tamedToPlayerId": null,
+                "typeId": "minecraft:tamemount"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 139,
+            "tick": 0,
+            "event": "minecraft:llama minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 140,
+            "tick": 0,
+            "event": "minecraft:boat minecraft:is_stackable",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_stackable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 141,
+            "tick": 0,
+            "event": "minecraft:boat minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 4,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 2,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 142,
+            "tick": 0,
+            "event": "minecraft:boat minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 90,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": -0.2,
+                            "z": 0
+                        },
+                        "seatRotation": -90
+                    },
+                    {
+                        "lockRiderRotation": 90,
+                        "maxRiderCount": 2,
+                        "minRiderCount": 2,
+                        "position": {
+                            "x": 0.2,
+                            "y": -0.2,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    },
+                    {
+                        "lockRiderRotation": 90,
+                        "maxRiderCount": 2,
+                        "minRiderCount": 2,
+                        "position": {
+                            "x": -0.6,
+                            "y": -0.2,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "action.interact.ride.boat",
+                "isValid": true,
+                "passengerMaxWidth": 1.375,
+                "pullInEntities": true,
+                "riderCanInteract": false,
+                "seatCount": 2,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 143,
+            "tick": 0,
+            "event": "minecraft:boat minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "boat",
+                    "inanimate"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 144,
+            "tick": 0,
+            "event": "minecraft:minecart minecraft:is_stackable",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_stackable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 145,
+            "tick": 0,
+            "event": "minecraft:minecart minecraft:rideable",
+            "value": {
+                "controllingSeat": 0,
+                "crouchingSkipInteract": true,
+                "getFamilyTypes()": [],
+                "getRiders()": [],
+                "getSeats()": [
+                    {
+                        "lockRiderRotation": 181,
+                        "maxRiderCount": 1,
+                        "minRiderCount": 0,
+                        "position": {
+                            "x": 0,
+                            "y": -0.2,
+                            "z": 0
+                        },
+                        "seatRotation": 0
+                    }
+                ],
+                "interactText": "action.interact.ride.minecart",
+                "isValid": true,
+                "passengerMaxWidth": 0,
+                "pullInEntities": true,
+                "riderCanInteract": false,
+                "seatCount": 1,
+                "typeId": "minecraft:rideable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 146,
+            "tick": 0,
+            "event": "minecraft:minecart minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "inanimate",
+                    "minecart"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 147,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": false,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": true,
+                "canBreathe": false,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 148,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 149,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 150,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:movement.sway",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "swayAmplitude": 0,
+                "swayFrequency": 0.5,
+                "typeId": "minecraft:movement.sway"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 151,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:navigation.generic",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": false,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": false,
+                "canSwim": true,
+                "canWalk": false,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.generic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 152,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:scale",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:scale",
+                "value": 1
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 153,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "aquatic",
+                    "cod",
+                    "fish"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 154,
+            "tick": 0,
+            "event": "minecraft:cod minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.1,
+                "defaultValue": 0.1,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 155,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": true,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 156,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 157,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 158,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:movement.glide",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "speedWhenTurning": 0.2,
+                "startSpeed": 0.1,
+                "typeId": "minecraft:movement.glide"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 159,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "mob",
+                    "monster",
+                    "phantom",
+                    "undead"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 160,
+            "tick": 0,
+            "event": "minecraft:phantom minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 161,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": false,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": true,
+                "canBreathe": false,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 162,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 163,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 164,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:movement.sway",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "swayAmplitude": 0,
+                "swayFrequency": 0.5,
+                "typeId": "minecraft:movement.sway"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 165,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:navigation.generic",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": false,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": false,
+                "canSwim": true,
+                "canWalk": false,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.generic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 166,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:scale",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:scale",
+                "value": 1.3
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 167,
+            "tick": 0,
+            "event": "minecraft:tropicalfish minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.12,
+                "defaultValue": 0.12,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 168,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:fire_immune",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:fire_immune"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 169,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 170,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.32,
+                "defaultValue": 0.32,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 171,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 172,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 173,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:navigation.walk",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": true,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": false,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": true,
+                "canPathOverWater": true,
+                "canSink": false,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": true,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.walk"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 174,
+            "tick": 0,
+            "event": "minecraft:strider minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 175,
+            "tick": 0,
+            "event": "minecraft:armor_stand minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 176,
+            "tick": 0,
+            "event": "minecraft:armor_stand minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 177,
+            "tick": 0,
+            "event": "minecraft:armor_stand minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "armor_stand",
+                    "inanimate",
+                    "mob"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 178,
+            "tick": 0,
+            "event": "minecraft:armor_stand minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 179,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": true,
+                "canBreathe": true,
+                "generatesBubbles": false,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 180,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 181,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 182,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:leashable",
+            "value": {
+                "canBeStolen": true,
+                "hardDistance": 7,
+                "isLeashed": false,
+                "isValid": true,
+                "leashHolder": null,
+                "leashHolderEntityId": null,
+                "maxDistance": 12,
+                "softDistance": 4,
+                "typeId": "minecraft:leashable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 183,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:movement.amphibious",
+            "value": {
+                "isValid": true,
+                "maxTurn": 15,
+                "typeId": "minecraft:movement.amphibious"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 184,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:navigation.generic",
+            "value": {
+                "avoidDamageBlocks": true,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": false,
+                "canSwim": true,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": true,
+                "isValid": true,
+                "typeId": "minecraft:navigation.generic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 185,
+            "tick": 0,
+            "event": "minecraft:axolotl minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.2,
+                "defaultValue": 0.2,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 186,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:breathable",
+            "value": {
+                "airSupply": 15,
+                "breathesAir": true,
+                "breathesLava": true,
+                "breathesSolids": false,
+                "breathesWater": false,
+                "canBreathe": true,
+                "generatesBubbles": true,
+                "getBreatheBlocks()": [],
+                "getNonBreatheBlocks()": [],
+                "inhaleTime": 0,
+                "isValid": true,
+                "suffocateTime": 0,
+                "totalSupply": 15,
+                "typeId": "minecraft:breathable"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 187,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:can_fly",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:can_fly"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 188,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:is_hidden_when_invisible",
+            "value": {
+                "isValid": true,
+                "typeId": "minecraft:is_hidden_when_invisible"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 189,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:lava_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:lava_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 190,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:movement.basic",
+            "value": {
+                "isValid": true,
+                "maxTurn": 30,
+                "typeId": "minecraft:movement.basic"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 191,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:navigation.float",
+            "value": {
+                "avoidDamageBlocks": false,
+                "avoidPortals": false,
+                "avoidSun": false,
+                "avoidWater": false,
+                "canBreach": false,
+                "canBreakDoors": false,
+                "canFloat": true,
+                "canJump": true,
+                "canOpenDoors": false,
+                "canOpenIronDoors": false,
+                "canPassDoors": true,
+                "canPathFromAir": false,
+                "canPathOverLava": false,
+                "canPathOverWater": false,
+                "canSink": true,
+                "canSwim": false,
+                "canWalk": true,
+                "canWalkInLava": false,
+                "isAmphibious": false,
+                "isValid": true,
+                "typeId": "minecraft:navigation.float"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 192,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:type_family",
+            "value": {
+                "getTypeFamilies()": [
+                    "bat",
+                    "mob"
+                ],
+                "isValid": true,
+                "typeId": "minecraft:type_family"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 193,
+            "tick": 0,
+            "event": "minecraft:bat minecraft:underwater_movement",
+            "value": {
+                "currentValue": 0.02,
+                "defaultValue": 0.02,
+                "effectiveMax": 3.4028234663852886e+38,
+                "effectiveMin": 0,
+                "isValid": true,
+                "typeId": "minecraft:underwater_movement"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 194,
+            "tick": 0,
+            "event": "pig component entity",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 195,
+            "tick": 0,
+            "event": "pig hasTypeFamily mob",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 196,
+            "tick": 0,
+            "event": "pig hasTypeFamily zombie",
+            "value": false
+        },
+        {
+            "pack": "values",
+            "seq": 197,
+            "tick": 0,
+            "event": "pig localizationKey",
+            "value": "entity.pig.name"
+        },
+        {
+            "pack": "values",
+            "seq": 198,
+            "tick": 0,
+            "event": "pig nameplate",
+            "value": [
+                false,
+                64
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 199,
+            "tick": 0,
+            "event": "pig nameplate set",
+            "value": [
+                false,
+                12.5
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 200,
+            "tick": 0,
+            "event": "pig target",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 201,
+            "tick": 0,
+            "event": "pig states",
+            "value": {
+                "isClimbing": false,
+                "isInWater": false,
+                "isSleeping": false,
+                "isSprinting": false,
+                "isSwimming": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 202,
+            "tick": 0,
+            "event": "pig getAABB",
+            "value": {
+                "centerAboveFeet": 0.45,
+                "centered": true,
+                "extent": {
+                    "x": 0.45,
+                    "y": 0.45,
+                    "z": 0.45
+                }
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 203,
+            "tick": 0,
+            "event": "pig getProperty climate_variant",
+            "value": "temperate"
+        },
+        {
+            "pack": "values",
+            "seq": 204,
+            "tick": 0,
+            "event": "pig getProperty of an unknown property",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 205,
+            "tick": 0,
+            "event": "pig setProperty climate_variant warm",
+            "value": "temperate"
+        },
+        {
+            "pack": "values",
+            "seq": 206,
+            "tick": 0,
+            "event": "pig setProperty climate_variant to a value it lacks",
+            "error": "InvalidArgumentError: Invalid type passed to argument [1]. Expected type: enum property"
+        },
+        {
+            "pack": "values",
+            "seq": 207,
+            "tick": 0,
+            "event": "pig setProperty climate_variant to a number",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: string property"
+        },
+        {
+            "pack": "values",
+            "seq": 208,
+            "tick": 0,
+            "event": "pig setProperty of an unknown property",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Property \"jsp:nothing\" does not exist on Entity of type \"minecraft:pig\"."
+        },
+        {
+            "pack": "values",
+            "seq": 209,
+            "tick": 0,
+            "event": "pig resetProperty climate_variant",
+            "value": [
+                "temperate",
+                "temperate"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 210,
+            "tick": 0,
+            "event": "pig resetProperty of an unknown property",
+            "error": "Error: Property \"jsp:nothing\" does not exist on Entity of type \"minecraft:pig\"."
+        },
+        {
+            "pack": "values",
+            "seq": 211,
+            "tick": 0,
+            "event": "pig matches type",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 212,
+            "tick": 0,
+            "event": "pig matches families",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 213,
+            "tick": 0,
+            "event": "pig matches location",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 214,
+            "tick": 0,
+            "event": "pig triggerEvent of an unknown event",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. The event jsp:nothing does not exist on minecraft:pig"
+        },
+        {
+            "pack": "values",
+            "seq": 215,
+            "tick": 0,
+            "event": "pig triggerEvent entity_born",
+            "value": false
+        },
+        {
+            "pack": "values",
+            "seq": 216,
+            "tick": 0,
+            "event": "pig ageable after entity_born",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 217,
+            "tick": 0,
+            "event": "pig triggerEvent ageable_grow_up",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. The event ageable_grow_up does not exist on minecraft:pig"
+        },
+        {
+            "pack": "values",
+            "seq": 218,
+            "tick": 0,
+            "event": "pig setOnFire",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 219,
+            "tick": 0,
+            "event": "pig onfire",
+            "value": 100
+        },
+        {
+            "pack": "values",
+            "seq": 220,
+            "tick": 0,
+            "event": "pig extinguishFire",
+            "value": [
+                true,
+                {
+                    "entity": {
+                        "entity": "minecraft:pig"
+                    },
+                    "isValid": true,
+                    "onFireTicksRemaining": -1,
+                    "typeId": "minecraft:onfire"
+                }
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 221,
+            "tick": 0,
+            "event": "pig extinguishFire when not burning",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 222,
+            "tick": 0,
+            "event": "pig setRotation",
+            "value": {
+                "x": 10,
+                "y": 90
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 223,
+            "tick": 0,
+            "event": "pig lookAt",
+            "value": {
+                "x": 0,
+                "y": -90
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 224,
+            "tick": 0,
+            "event": "pig getVelocity at rest",
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 225,
+            "tick": 0,
+            "event": "pig applyImpulse",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 226,
+            "tick": 0,
+            "event": "pig clearVelocity",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 227,
+            "tick": 0,
+            "event": "pig applyKnockback",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 228,
+            "tick": 0,
+            "event": "pig tryTeleport",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 229,
+            "tick": 0,
+            "event": "pig tryTeleport into the ground",
+            "value": false
+        },
+        {
+            "pack": "values",
+            "seq": 230,
+            "tick": 0,
+            "event": "pig playAnimation",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 231,
+            "tick": 0,
+            "event": "pig addItem",
+            "error": "InvalidEntityComponentError: Attempting to access invalid entity component minecraft:inventory."
+        },
+        {
+            "pack": "values",
+            "seq": 232,
+            "tick": 0,
+            "event": "wolf tame",
+            "value": {
+                "id": true,
+                "isTamed": true,
+                "isTamedComponent": false,
+                "result": true,
+                "toPlayer": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 233,
+            "tick": 0,
+            "event": "wolf is_tamed component",
+            "value": {
+                "id": false,
+                "toPlayer": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 234,
+            "tick": 0,
+            "event": "horse tamemount tameToPlayer",
+            "value": {
+                "isTamed": true,
+                "isTamedToPlayer": true,
+                "result": true,
+                "toPlayer": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 235,
+            "tick": 0,
+            "event": "pig leashTo",
+            "value": {
+                "holder": true,
+                "holderId": false,
+                "isLeashed": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 236,
+            "tick": 0,
+            "event": "pig unleash",
+            "value": {
+                "holder": null,
+                "isLeashed": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 237,
+            "tick": 0,
+            "event": "horse addRider",
+            "value": {
+                "result": true,
+                "riders": [
+                    "minecraft:player"
+                ],
+                "riding": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 238,
+            "tick": 0,
+            "event": "horse ejectRider",
+            "value": {
+                "riders": 1,
+                "riding": null
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 239,
+            "tick": 0,
+            "event": "boat addRider pig and ejectRiders",
+            "value": {
+                "added": true,
+                "after": 1,
+                "count": 1
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 240,
+            "tick": 0,
+            "event": "arrow projectile owner",
+            "value": {
+                "after": true,
+                "before": null
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 241,
+            "tick": 0,
+            "event": "arrow projectile set",
+            "value": [
+                0.1,
+                0.5,
+                "iconcrack"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 242,
+            "tick": 0,
+            "event": "snowball shoot",
+            "value": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 243,
+            "tick": 0,
+            "event": "npc set",
+            "value": [
+                "Guide",
+                3,
+                "jsp:scene"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 244,
+            "tick": 0,
+            "event": "sheep color set",
+            "value": 5
+        },
+        {
+            "pack": "values",
+            "seq": 245,
+            "tick": 0,
+            "event": "cod airSupply set",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: airSupply, Value: 40, Property bounds: [0, 15]"
+        },
+        {
+            "pack": "values",
+            "seq": 246,
+            "tick": 0,
+            "event": "player experience",
+            "value": {
+                "earned": 0,
+                "level": 0,
+                "needed": 7,
+                "total": 0
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 247,
+            "tick": 0,
+            "event": "player addExperience 10",
+            "value": [
+                10,
+                1,
+                10,
+                3,
+                9
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 248,
+            "tick": 0,
+            "event": "player addLevels 3",
+            "value": [
+                4,
+                4,
+                45
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 249,
+            "tick": 0,
+            "event": "player addLevels -10",
+            "value": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 250,
+            "tick": 0,
+            "event": "player addExperience -5",
+            "value": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 251,
+            "tick": 0,
+            "event": "player addLevels 31",
+            "value": [
+                31,
+                1507,
+                121
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 252,
+            "tick": 0,
+            "event": "player resetLevel",
+            "value": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 253,
+            "tick": 0,
+            "event": "player states",
+            "value": {
+                "isEmoting": false,
+                "isFlying": false,
+                "isGliding": false,
+                "isJumping": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 254,
+            "tick": 0,
+            "event": "player localizationKey",
+            "value": "entity.player.name"
+        },
+        {
+            "pack": "values",
+            "seq": 255,
+            "tick": 0,
+            "event": "player setSpawnPoint",
+            "value": {
+                "dimension": "minecraft:overworld",
+                "x": 3,
+                "y": -60,
+                "z": 4
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 256,
+            "tick": 0,
+            "event": "player setSpawnPoint out of the world",
+            "error": "LocationOutOfWorldBoundariesError: Failed to set the player spawn location. Trying to access location (3.0, 1000.0, 4.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "values",
+            "seq": 257,
+            "tick": 0,
+            "event": "player setSpawnPoint undefined",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 258,
+            "tick": 0,
+            "event": "player permission levels",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 259,
+            "tick": 0,
+            "event": "player commandPermissionLevel set",
+            "value": 1
+        },
+        {
+            "pack": "values",
+            "seq": 260,
+            "tick": 0,
+            "event": "player clientSystemInfo",
+            "value": {
+                "locale": "en_US",
+                "maxRenderDistance": 32,
+                "platformType": "Desktop"
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 261,
+            "tick": 0,
+            "event": "player inputInfo",
+            "value": {
+                "jump": "Released",
+                "lastInputModeUsed": "KeyboardAndMouse",
+                "movement": {
+                    "x": 0,
+                    "y": 0
+                },
+                "sneak": "Released",
+                "touchOnlyAffectsHotbar": false
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 262,
+            "tick": 0,
+            "event": "player inputPermissions",
+            "value": {
+                "Camera": true,
+                "Dismount": true,
+                "Jump": true,
+                "LateralMovement": true,
+                "Mount": true,
+                "MoveBackward": true,
+                "MoveForward": true,
+                "MoveLeft": true,
+                "MoveRight": true,
+                "Movement": true,
+                "Sneak": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 263,
+            "tick": 0,
+            "event": "player setPermissionCategory Movement off",
+            "value": [
+                false,
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 264,
+            "tick": 0,
+            "event": "player setPermissionCategory Movement on",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 265,
+            "tick": 0,
+            "event": "player camera isValid",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 266,
+            "tick": 0,
+            "event": "player camera calls",
+            "value": "ok"
+        },
+        {
+            "pack": "values",
+            "seq": 267,
+            "tick": 0,
+            "event": "player camera setCamera of an unknown preset",
+            "error": "Error: Invalid camera preset."
+        },
+        {
+            "pack": "values",
+            "seq": 268,
+            "tick": 0,
+            "event": "player camera addShake out of bounds",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]: shakeCameraOptions.intensity, Value: 9, Argument max: 4"
+        },
+        {
+            "pack": "values",
+            "seq": 269,
+            "tick": 0,
+            "event": "player camera addShake",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 270,
+            "tick": 0,
+            "event": "player getItemCooldown",
+            "value": 0
+        },
+        {
+            "pack": "values",
+            "seq": 271,
+            "tick": 0,
+            "event": "player startItemCooldown",
+            "value": 40
+        },
+        {
+            "pack": "values",
+            "seq": 272,
+            "tick": 0,
+            "event": "player getControlScheme",
+            "value": "LockedPlayerRelativeStrafe"
+        },
+        {
+            "pack": "values",
+            "seq": 273,
+            "tick": 0,
+            "event": "player setControlScheme",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Control Scheme 'CameraRelative' is not allowed for current camera: [minecraft:first_person]"
+        },
+        {
+            "pack": "values",
+            "seq": 274,
+            "tick": 0,
+            "event": "player setControlScheme undefined",
+            "value": "LockedPlayerRelativeStrafe"
+        },
+        {
+            "pack": "values",
+            "seq": 275,
+            "tick": 0,
+            "event": "player getPing",
+            "error": "EngineError: An internal engine error occurred."
+        },
+        {
+            "pack": "values",
+            "seq": 276,
+            "tick": 0,
+            "event": "player getSplitScreenSlot",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 277,
+            "tick": 0,
+            "event": "player graphicsMode",
+            "value": "Fancy"
+        },
+        {
+            "pack": "values",
+            "seq": 278,
+            "tick": 0,
+            "event": "player persistentId",
+            "value": "string"
+        },
+        {
+            "pack": "values",
+            "seq": 279,
+            "tick": 0,
+            "event": "player chat names",
+            "value": [
+                "Tester",
+                null,
+                null,
+                null
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 280,
+            "tick": 0,
+            "event": "player chat names set",
+            "value": [
+                "[a] Tester [b]",
+                "[a] ",
+                " [b]",
+                "> "
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 281,
+            "tick": 0,
+            "event": "player getAimAssist",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 282,
+            "tick": 0,
+            "event": "player getAimAssist set",
+            "value": {
+                "distance": 8,
+                "presetId": "minecraft:aim_assist_default",
+                "targetMode": "Angle",
+                "viewAngle": {
+                    "x": 50,
+                    "y": 50
+                }
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 283,
+            "tick": 0,
+            "event": "player getAimAssist set an unknown preset",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Invalid provided value to argument 'jsp:nothing'."
+        },
+        {
+            "pack": "values",
+            "seq": 284,
+            "tick": 0,
+            "event": "player hud",
+            "value": {
+                "allBut": [
+                    0,
+                    1,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ],
+                "before": [],
+                "forced": [
+                    true,
+                    false
+                ],
+                "hidden": [
+                    1,
+                    3
+                ],
+                "reset": [],
+                "shown": [
+                    0,
+                    1,
+                    3,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 285,
+            "tick": 0,
+            "event": "player cursor_inventory",
+            "value": {
+                "clear": null,
+                "item": null
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 286,
+            "tick": 0,
+            "event": "player ender_inventory",
+            "value": {
+                "empty": 27,
+                "size": 27
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 287,
+            "tick": 0,
+            "event": "player inventory component",
+            "value": {
+                "additionalSlotsPerStrength": 0,
+                "canBeSiphonedFrom": false,
+                "containerType": "inventory",
+                "inventorySize": 36,
+                "private": false,
+                "restrictToOwner": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 288,
+            "tick": 0,
+            "event": "player getComponents",
+            "value": [
+                "minecraft:breathable",
+                "minecraft:can_climb",
+                "minecraft:cursor_inventory",
+                "minecraft:ender_inventory",
+                "minecraft:equippable",
+                "minecraft:inventory",
+                "minecraft:is_hidden_when_invisible",
+                "minecraft:lava_movement",
+                "minecraft:rideable",
+                "minecraft:type_family",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 289,
+            "tick": 0,
+            "event": "player sounds and music",
+            "value": "ok"
+        },
+        {
+            "pack": "values",
+            "seq": 290,
+            "tick": 0,
+            "event": "player eatItem",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 291,
+            "tick": 0,
+            "event": "player addItem",
+            "value": [
+                null,
+                "minecraft:stick"
+            ]
+        },
+        {
+            "pack": "values",
+            "seq": 292,
+            "tick": 0,
+            "event": "player property override",
+            "value": "temperate"
+        },
+        {
+            "pack": "values",
+            "seq": 293,
+            "tick": 0,
+            "event": "player getBlockFromViewDirection",
+            "value": "Up"
+        },
+        {
+            "pack": "values",
+            "seq": 294,
+            "tick": 0,
+            "event": "player getBlockFromViewDirection too short",
+            "value": null
+        },
+        {
+            "pack": "values",
+            "seq": 295,
+            "tick": 0,
+            "event": "player getEntitiesFromViewDirection",
+            "value": []
+        },
+        {
+            "pack": "values",
+            "seq": 296,
+            "tick": 20,
+            "event": "armor stand states",
+            "value": {
+                "isFalling": false,
+                "isInWater": false,
+                "isOnGround": true
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 297,
+            "tick": 20,
+            "event": "armor stand getVelocity",
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
+        {
+            "pack": "values",
+            "seq": 298,
+            "tick": 20,
+            "event": "armor stand getBlockStandingOn",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 299,
+            "tick": 20,
+            "event": "armor stand getAllBlocksStandingOn",
+            "value": true
+        },
+        {
+            "pack": "values",
+            "seq": 300,
+            "tick": 20,
+            "event": "player cooldown after 20 ticks",
+            "value": 20
+        },
+        {
+            "pack": "values",
+            "seq": 301,
+            "tick": 20,
+            "event": "removing"
+        },
+        {
+            "pack": "values",
+            "seq": 302,
+            "tick": 20,
+            "event": "camera isValid after removal",
+            "value": false
+        },
+        {
+            "pack": "values",
+            "seq": 303,
+            "tick": 20,
+            "event": "level after removal",
+            "error": "Error: Failed to get property 'level'."
+        }
+    ]
+}

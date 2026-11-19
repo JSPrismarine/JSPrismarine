@@ -1,0 +1,29 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario entity-values values",
+        "description": "Records the entity components, entity members and player members a script reads and writes. Written for packages/parity.",
+        "uuid": "e987288d-50f7-4b0e-a4e7-77b968dde80b",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "0d6ac6b3-e98f-4337-8bd5-8941ea419dd4",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        },
+        {
+            "module_name": "@minecraft/server-gametest",
+            "version": "1.0.0-beta"
+        }
+    ]
+}
