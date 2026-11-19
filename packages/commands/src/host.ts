@@ -235,6 +235,51 @@ export interface WorldCommandHost {
     isLoaded(dimension: string, position: Vector3): boolean;
     /** The dimensions `/execute in` and `/teleport` accept. */
     dimensions(): readonly string[];
+    /**
+     * The ticking areas `/tickingarea` adds, lists and removes. A host without them leaves the
+     * command out.
+     */
+    readonly tickingAreas?: TickingAreaCommandHost;
+}
+
+/** A ticking area as `/tickingarea list` reports it. */
+export interface CommandTickingArea {
+    readonly name: string;
+    readonly dimension: string;
+    /** The lowest corner of the chunks it covers, in blocks. */
+    readonly from: Vector3;
+    /** The highest corner of the chunks it covers, in blocks. */
+    readonly to: Vector3;
+    readonly preload: boolean;
+}
+
+/** The ticking area verbs `/tickingarea` needs, over the command's own areas. */
+export interface TickingAreaCommandHost {
+    /**
+     * Adds an area over the chunks a block box covers.
+     * @param name - The area's name, or undefined for one the host picks.
+     * @returns The area's name, `in-use` for a name taken, or `limit` when the command has as
+     *   many areas as it may.
+     */
+    add(
+        dimension: string,
+        from: Vector3,
+        to: Vector3,
+        name: string | undefined,
+        preload: boolean
+    ): string | 'in-use' | 'limit';
+    /** Removes the areas with a name, or the ones over a position, and returns the names removed. */
+    remove(dimension: string, target: { readonly name: string } | { readonly position: Vector3 }): readonly string[];
+    /** Removes every area of a dimension, and returns the names removed. */
+    removeAll(dimension: string): readonly string[];
+    /** The areas of a dimension, or of every dimension when it is undefined. */
+    list(dimension: string | undefined): readonly CommandTickingArea[];
+    /** Sets whether the areas named, or over a position, preload, and returns the names changed. */
+    setPreload(
+        dimension: string,
+        target: { readonly name: string } | { readonly position: Vector3 },
+        preload: boolean
+    ): readonly string[];
 }
 
 /** The scoreboard verbs a command needs. */

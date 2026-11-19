@@ -95,6 +95,7 @@ export const BEDROCK_ONLY_COMMAND_NAMES: readonly string[] = [
     'testfor',
     'testforblock',
     'testforblocks',
+    'tickingarea',
     'titleraw'
 ];
 
