@@ -1,0 +1,57 @@
+name: 🔌 Native library
+description: >-
+    Builds a package's native library for this runner when the checkout's native sources differ
+    from the builds the package's manifest points at, so a change to them is tested before its
+    builds are published. Otherwise the package's install script has downloaded the published
+    build. scripts/native/packages.mts names the packages.
+
+inputs:
+    package:
+        description: 'The package id in scripts/native/packages.mts, such as script-host'
+        required: true
+
+runs:
+    using: 'composite'
+    steps:
+        - name: 🔍 Compare the native sources with the published builds
+          id: sources
+          shell: bash
+          run: |
+              described=$(node scripts/native/describe.mts '${{ inputs.package }}')
+              printf '%s\n' "$described" >> "$GITHUB_OUTPUT"
+              hash=$(printf '%s\n' "$described" | sed -n 's/^hash=//p')
+              published=$(printf '%s\n' "$described" | sed -n 's/^published=//p')
+              if [ "$hash" != "$published" ]; then
+                  echo "::notice title=${{ inputs.package }} native library::The native sources ($hash) differ from the published builds (${published:-none}), so this job builds its own."
+              fi
+
+        # One build per runner kind and set of sources, shared by every job that needs it.
+        - name: ♻️ Restore this runner's build of these sources
+          id: cache
+          if: ${{ steps.sources.outputs.stale == 'true' }}
+          uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+          with:
+              path: ${{ steps.sources.outputs.dir }}/prebuilds
+              key: ${{ inputs.package }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.sources.outputs.hash }}
+
+        - name: 🪟 Use the MSVC tools
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' && runner.os == 'Windows' && steps.sources.outputs.windows-toolchain == 'msvc' }}
+          uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+          with:
+              arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
+
+        - name: 🪟 Use the MinGW-w64 tools
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' && runner.os == 'Windows' && steps.sources.outputs.windows-toolchain == 'mingw' }}
+          uses: ./.github/common/mingw
+
+        - name: 🔨 Build the library
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+          shell: bash
+          run: node '${{ steps.sources.outputs.dir }}/scripts/build-native.mts'
+
+        - name: 💾 Save the build
+          if: ${{ steps.sources.outputs.stale == 'true' && steps.cache.outputs.cache-hit != 'true' }}
+          uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+          with:
+              path: ${{ steps.sources.outputs.dir }}/prebuilds
+              key: ${{ inputs.package }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.sources.outputs.hash }}

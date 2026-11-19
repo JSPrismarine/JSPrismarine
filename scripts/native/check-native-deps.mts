@@ -1,23 +1,28 @@
 /**
- * Fails when a build of the native library depends on anything a bare machine of its platform
- * lacks, so no user has to install a system package to run NetherNet:
+ * Fails when a build of a native library depends on anything a bare machine of its platform
+ * lacks, so no user has to install a system package to run it:
  *
  * - Linux glibc: `readelf -d` names only libc, libm and the dynamic loader, and `objdump -T`
  *   names no glibc symbol version above 2.36 (Debian 12).
  * - Linux musl: only musl's libc.
  * - macOS: `otool -L` names only libSystem and the system's libc++.
- * - Windows: `dumpbin /dependents` names only system DLLs.
+ * - Windows: `dumpbin /dependents`, or `objdump -p` from MinGW-w64, names only system DLLs.
  *
- *     node scripts/check-native-deps.mts <library> <platform-key>
+ *     node scripts/native/check-native-deps.mts <library> <platform-key>
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { basename } from 'node:path';
 
 /** The newest glibc symbol version a Linux glibc build may need: Debian 12's. */
 export const GLIBC_FLOOR = [2, 36] as const;
 
 const run = (command: string, args: string[]): string => execFileSync(command, args, { encoding: 'utf8' });
 
-/** Libraries every Windows install has; the C runtime is linked in, so no `VCRUNTIME` or `MSVCP`. */
+/**
+ * Libraries every Windows install has, beside the `api-ms-win-` API sets. An MSVC build links its C
+ * runtime in, so no `VCRUNTIME` or `MSVCP`; a MinGW-w64 build links libgcc and winpthreads in and
+ * calls the Universal C Runtime through the `api-ms-win-crt-` API sets.
+ */
 const WINDOWS_SYSTEM = new Set([
     'kernel32.dll',
     'ws2_32.dll',
@@ -67,17 +72,21 @@ export const dependencyProblems = (library: string, platform: string): string[] 
         for (const line of lines) {
             const name = line.trim().split(' ')[0];
             if (name === undefined || name === '') continue;
-            if (name.endsWith('libjsp_native_network.dylib')) continue;
+            if (basename(name) === basename(library)) continue;
             if (!/^\/usr\/lib\/(libSystem\.B|libc\+\+\.1)\.dylib$/.test(name))
                 problems.push(`${library} needs ${name}`);
         }
     } else if (platform.startsWith('win32-')) {
-        const output = run('dumpbin', ['/NOLOGO', '/DEPENDENTS', library]);
-        const names = [...output.matchAll(/^\s+([A-Za-z0-9_.-]+\.dll)\s*$/gim)].map((match) => match[1]!.toLowerCase());
+        // MSVC's dumpbin where the job set up MSVC, otherwise MinGW-w64's objdump.
+        const matches =
+            spawnSync('dumpbin', ['/NOLOGO'], { stdio: 'ignore' }).error === undefined
+                ? [...run('dumpbin', ['/NOLOGO', '/DEPENDENTS', library]).matchAll(/^\s+([A-Za-z0-9_.-]+\.dll)\s*$/gim)]
+                : [...run('objdump', ['-p', library]).matchAll(/^\s*DLL Name:\s*(\S+\.dll)\s*$/gim)];
+        const names = matches.map((match) => match[1]!.toLowerCase());
         for (const name of names) {
             if (!WINDOWS_SYSTEM.has(name) && !name.startsWith('api-ms-win-')) problems.push(`${library} needs ${name}`);
         }
-        if (names.length === 0) problems.push(`dumpbin listed no dependencies for ${library}`);
+        if (names.length === 0) problems.push(`The import table of ${library} names no DLL`);
     } else {
         problems.push(`No dependency rule for ${platform}`);
     }
@@ -87,7 +96,7 @@ export const dependencyProblems = (library: string, platform: string): string[] 
 if (import.meta.main) {
     const [library, platform] = process.argv.slice(2);
     if (library === undefined || platform === undefined) {
-        throw new Error('Usage: node scripts/check-native-deps.mts <library> <platform-key>');
+        throw new Error('Usage: node scripts/native/check-native-deps.mts <library> <platform-key>');
     }
     const problems = dependencyProblems(library, platform);
     for (const problem of problems) console.error(problem);

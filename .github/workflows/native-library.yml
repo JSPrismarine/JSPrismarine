@@ -1,0 +1,297 @@
+name: Native library
+
+# Builds one package's native library for every platform it publishes and checks that each build
+# depends on nothing a bare machine lacks and loads under Node.js. The package's test suite runs
+# against the builds on the platforms it lists, and the packed package is installed from an npm
+# project. scripts/native/packages.mts names the packages and their platforms.
+#
+# On master, when the native sources no longer match the manifest, it attaches the builds to a
+# GitHub release named for the sources' hash and opens a pull request, set to merge once its
+# checks pass, that points the manifest at them. Called with `publish`, it does the same, and
+# commits the manifest straight to any branch but master. A pull request that changes the
+# sources needs neither: every job that installs builds its own library meanwhile
+# (.github/common/native-library).
+#
+# Each package's own workflow (native-network.yml, script-host.yml) calls this one with its id.
+on:
+    workflow_call:
+        inputs:
+            package:
+                description: 'The package id in scripts/native/packages.mts'
+                required: true
+                type: string
+            publish:
+                description: 'Attach the builds to a release and commit the manifest to this branch'
+                required: false
+                type: boolean
+                default: false
+
+permissions:
+    contents: read
+
+env:
+    HUSKY: 0
+
+jobs:
+    describe:
+        name: 🔍 Describe ${{ inputs.package }}
+        runs-on: ubuntu-latest
+        outputs:
+            dir: ${{ steps.describe.outputs.dir }}
+            name: ${{ steps.describe.outputs.name }}
+            library: ${{ steps.describe.outputs.library }}
+            require-env: ${{ steps.describe.outputs.require-env }}
+            windows-toolchain: ${{ steps.describe.outputs.windows-toolchain }}
+            alpine-packages: ${{ steps.describe.outputs.alpine-packages }}
+            debian-packages: ${{ steps.describe.outputs.debian-packages }}
+            build-matrix: ${{ steps.describe.outputs.build-matrix }}
+            test-matrix: ${{ steps.describe.outputs.test-matrix }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: 🔍 Read the package's platforms and sources
+              id: describe
+              # bash, so pipefail fails the step when the script does.
+              shell: bash
+              run: node scripts/native/describe.mts '${{ inputs.package }}' | tee -a "$GITHUB_OUTPUT"
+
+    build:
+        name: 🔨 Build (${{ matrix.platform }})
+        needs: describe
+        strategy:
+            fail-fast: false
+            matrix: ${{ fromJSON(needs.describe.outputs.build-matrix) }}
+        runs-on: ${{ matrix.runner }}
+        # NATIVE_ in front, as the MSVC developer environment sets PLATFORM.
+        env:
+            PACKAGE: ${{ inputs.package }}
+            PACKAGE_DIR: ${{ needs.describe.outputs.dir }}
+            NATIVE_LIBRARY: ${{ needs.describe.outputs.library }}
+            NATIVE_PLATFORM: ${{ matrix.platform }}
+        steps:
+            # The machine user's token, so the manifest's pull request runs the required checks.
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  token: ${{ secrets.MACHINE_USER }}
+
+            # Linux builds run in containers: Debian 12 sets the glibc floor at 2.36, and Alpine
+            # builds against musl. Their compilers are build tools, not user ones.
+            - name: 🐧 Build in ${{ matrix.image }}
+              if: ${{ matrix.image != '' }}
+              env:
+                  ALPINE_PACKAGES: ${{ needs.describe.outputs.alpine-packages }}
+                  DEBIAN_PACKAGES: ${{ needs.describe.outputs.debian-packages }}
+              run: |
+                  docker run --rm -v "$PWD:/work" -w /work \
+                      -e PACKAGE -e PACKAGE_DIR -e NATIVE_LIBRARY -e NATIVE_PLATFORM -e ALPINE_PACKAGES -e DEBIAN_PACKAGES \
+                      ${{ matrix.image }} sh -euc '
+                      if command -v apk >/dev/null; then
+                          apk add --no-cache $ALPINE_PACKAGES
+                      elif [ -n "$DEBIAN_PACKAGES" ]; then
+                          apt-get update -qq && apt-get install -y -qq $DEBIAN_PACKAGES >/dev/null
+                      fi
+                      git config --global --add safe.directory /work
+                      node "$PACKAGE_DIR/scripts/build-native.mts" --out /work/out
+                      node scripts/native/check-native-deps.mts "out/$NATIVE_LIBRARY.so" "$NATIVE_PLATFORM"
+                      node scripts/native/load-library.mts "$PACKAGE" "out/$NATIVE_LIBRARY.so"
+                  '
+
+            - name: 🏎️ Setup Node
+              if: ${{ matrix.image == '' }}
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: 🪟 Use the MSVC tools
+              if: ${{ runner.os == 'Windows' && needs.describe.outputs.windows-toolchain == 'msvc' }}
+              uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+              with:
+                  arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
+
+            - name: 🪟 Use the MinGW-w64 tools
+              if: ${{ runner.os == 'Windows' && needs.describe.outputs.windows-toolchain == 'mingw' }}
+              uses: ./.github/common/mingw
+
+            - name: 🔨 Build
+              if: ${{ matrix.image == '' }}
+              shell: bash
+              run: |
+                  node "$PACKAGE_DIR/scripts/build-native.mts" --out "$PWD/out"
+                  # The shared library, whichever extension this platform gives it.
+                  for candidate in "out/$NATIVE_LIBRARY.so" "out/$NATIVE_LIBRARY.dylib" "out/$NATIVE_LIBRARY.dll"; do
+                      if [ -f "$candidate" ]; then library="$candidate"; fi
+                  done
+                  node scripts/native/check-native-deps.mts "$library" "$NATIVE_PLATFORM"
+                  node scripts/native/load-library.mts "$PACKAGE" "$library"
+
+            - name: 🏷️ Name the files for the release
+              shell: bash
+              run: |
+                  mkdir -p artifacts
+                  for file in out/"$NATIVE_LIBRARY".*; do
+                      cp "$file" "artifacts/$NATIVE_PLATFORM-$(basename "$file")"
+                  done
+                  cp out/build.json "artifacts/$NATIVE_PLATFORM.build.json"
+                  cat out/build.json
+
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: native-${{ inputs.package }}-${{ matrix.platform }}
+                  path: artifacts/
+                  if-no-files-found: error
+
+    # The package's suite on each platform it lists; every platform's build job already checked
+    # that its build loads.
+    test:
+        name: 🧪 Test (${{ matrix.platform }})
+        needs: [describe, build]
+        strategy:
+            fail-fast: false
+            matrix: ${{ fromJSON(needs.describe.outputs.test-matrix) }}
+        runs-on: ${{ matrix.runner }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+              with:
+                  native-network: ${{ inputs.package != 'native-network' }}
+                  script-host: ${{ inputs.package != 'script-host' }}
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: native-${{ inputs.package }}-${{ matrix.platform }}
+                  path: artifacts
+
+            - name: 📍 Put the build where a local build goes
+              shell: bash
+              env:
+                  PACKAGE_DIR: ${{ needs.describe.outputs.dir }}
+                  NATIVE_LIBRARY: ${{ needs.describe.outputs.library }}
+                  NATIVE_PLATFORM: ${{ matrix.platform }}
+              run: |
+                  dir="$PACKAGE_DIR/prebuilds/$NATIVE_PLATFORM"
+                  mkdir -p "$dir"
+                  for file in artifacts/"$NATIVE_PLATFORM-$NATIVE_LIBRARY".*; do
+                      cp "$file" "$dir/${file#artifacts/$NATIVE_PLATFORM-}"
+                  done
+                  cp "artifacts/$NATIVE_PLATFORM.build.json" "$dir/build.json"
+
+            - name: 🧪 Test against the build
+              shell: bash
+              run: |
+                  export ${{ needs.describe.outputs.require-env }}=1
+                  # Each test is named as it finishes, so a crash in the library shows where it happened.
+                  pnpm exec vitest run --reporter=verbose '${{ needs.describe.outputs.dir }}'
+
+    consumer:
+        name: 📥 Install from an npm project
+        needs: [describe, build]
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+              with:
+                  native-network: ${{ inputs.package != 'native-network' }}
+                  script-host: ${{ inputs.package != 'script-host' }}
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: native-${{ inputs.package }}-*
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: 📥 npm runs the install script, which downloads the build
+              run: node scripts/native/consumer-test.mts '${{ inputs.package }}' "$PWD/artifacts"
+
+    publish:
+        name: 🚚 Publish the builds
+        needs: [describe, build, test, consumer]
+        if: ${{ inputs.publish || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ github.token }}
+            PACKAGE: ${{ inputs.package }}
+            PACKAGE_NAME: ${{ needs.describe.outputs.name }}
+            PACKAGE_DIR: ${{ needs.describe.outputs.dir }}
+            NATIVE_LIBRARY: ${{ needs.describe.outputs.library }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version-file: '.nvmrc'
+
+            # A push to master publishes only sources the manifest does not point at yet.
+            - name: 🔍 Compare the native sources with the manifest
+              id: sources
+              env:
+                  PUBLISH: ${{ inputs.publish }}
+              run: |
+                  node scripts/native/describe.mts "$PACKAGE" > describe.txt
+                  hash=$(sed -n 's/^hash=//p' describe.txt)
+                  echo "hash=$hash" >> "$GITHUB_OUTPUT"
+                  if [ "$PUBLISH" = true ] || grep -q '^stale=true$' describe.txt; then
+                      echo "publish=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              if: ${{ steps.sources.outputs.publish == 'true' }}
+              with:
+                  pattern: native-${{ inputs.package }}-*
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: 🏷️ Attach the builds to the release for these sources
+              id: release
+              if: ${{ steps.sources.outputs.publish == 'true' }}
+              run: |
+                  hash=${{ steps.sources.outputs.hash }}
+                  tag="$PACKAGE-build-$hash"
+                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
+                  echo "hash=$hash" >> "$GITHUB_OUTPUT"
+                  if ! gh release view "$tag" >/dev/null 2>&1; then
+                      gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+                          --title "$PACKAGE_NAME library $hash" \
+                          --notes "Builds of $PACKAGE_NAME's native library from native sources $hash. Packages download them at install; their manifest records each file's SHA-256."
+                  fi
+                  gh release upload "$tag" artifacts/*-"$NATIVE_LIBRARY".* --clobber
+
+            - name: 📝 Commit the manifest
+              if: ${{ steps.sources.outputs.publish == 'true' }}
+              env:
+                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
+              run: |
+                  hash=${{ steps.release.outputs.hash }}
+                  tag=${{ steps.release.outputs.tag }}
+                  node scripts/native/write-manifest.mts "$PACKAGE" --artifacts artifacts \
+                      --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/$tag"
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git add "$PACKAGE_DIR/native/manifest.json"
+                  # Another run may have published these sources first.
+                  if git diff --cached --quiet; then exit 0; fi
+                  message="build($PACKAGE): point the manifest at builds $hash"
+                  git commit -m "$message"
+                  if [ "$GITHUB_REF_NAME" != master ]; then
+                      # The branch may have moved while the builds ran; the manifest is the only file this touches.
+                      git pull --rebase origin "$GITHUB_REF_NAME"
+                      git push origin "HEAD:$GITHUB_REF_NAME"
+                      exit 0
+                  fi
+                  # master takes changes through pull requests that pass its required checks.
+                  branch="$PACKAGE/manifest-$hash"
+                  git push --force origin "HEAD:refs/heads/$branch"
+                  if ! gh pr view "$branch" >/dev/null 2>&1; then
+                      gh pr create --base master --head "$branch" --title "$message" \
+                          --body "Points $PACKAGE_NAME's manifest at the builds of native sources $hash, which its native library workflow attached to the release $tag."
+                  fi
+                  gh pr merge "$branch" --auto --rebase
