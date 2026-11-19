@@ -1,14 +1,15 @@
 /**
  * Verifies the client's chat shows a refused command line with the syntax error BDS words, and
- * that `/time set` refuses a word that names no time of day.
+ * that `/time set` refuses a tick count that is not a whole number. A word that names no time of
+ * day is no longer a syntax error: 1.26.60 looks it up as a time marker.
  */
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
 import { sleep, waitTicks } from '../scenario.mts';
 
-/** What Bedrock Dedicated Server 1.26.51.1 answers `/time set nonsense` with. */
-const EXPECTED = 'Syntax error: Unexpected "nonsense": at "/time set >>nonsense<<"';
+/** What Bedrock Dedicated Server 1.26.60.6 answers `/time set 1.5` with. */
+const EXPECTED = 'Syntax error: Unexpected "1.5": at "/time set >>1.5<<"';
 
 export const commandSyntaxError: Scenario = {
     name: 'command-syntax-error',
@@ -16,7 +17,7 @@ export const commandSyntaxError: Scenario = {
     run: async ({ client, server, playerName, log }) => {
         server.command(`op ${playerName}`);
         await waitTicks(server, 10);
-        await client.chat('/time set nonsense');
+        await client.chat('/time set 1.5');
 
         const deadline = Date.now() + 15_000;
         for (;;) {
