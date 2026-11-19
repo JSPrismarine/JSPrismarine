@@ -55,7 +55,8 @@ import type { CommandAnswer } from './commands.ts';
 import { describePending, sessionVerdict, VERIFY_INTERVAL_MS } from './completion.ts';
 import type { PendingChunk } from './completion.ts';
 import { hostNodeArgs } from './host.ts';
-import { writeDumpPack } from './pack.ts';
+import { DUMP_EXPERIMENTS, writeDumpPack } from './pack.ts';
+import { renderLevelDat } from './levelDat.ts';
 import { spawnProbe } from './probe.ts';
 import { assertComplete, collectDumpTables } from './protocol.ts';
 import { blockBounds, REFERENCE_DIMENSION, REFERENCE_REGION, REFERENCE_SEED, tileRegion } from './region.ts';
@@ -247,6 +248,12 @@ const runDumpPass = async (): Promise<void> => {
         properties: { 'level-seed': REFERENCE_SEED, 'view-distance': '4' }
     });
     await writeDumpPack(staged.root, staged.worldDirectory, 'dump');
+    // `server.properties` has no key for an experiment, so the world starts from a `level.dat`
+    // that has the Beta APIs on; the seed still comes from `level-seed`.
+    await writeFile(
+        join(staged.worldDirectory, 'level.dat'),
+        renderLevelDat({ experiments: DUMP_EXPERIMENTS, generator: 1 })
+    );
 
     const lines = await capture(staged, (line) => line.includes('DUMP end '), 'the dump pack to finish', TIMEOUTS.dump);
     const dumped = collectDumpTables(lines);

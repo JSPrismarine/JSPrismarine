@@ -185,6 +185,68 @@ function* blockStates() {
     }
 }
 
+/** Where the block facts pass places each block, inside the ticking area the run creates. */
+const PLACE_AT = { x: 4, y: 100, z: 4 };
+
+/** Reads one block component's answers, or undefined when the block does not have it. */
+const blockComponent = (block, id, read) => {
+    const found = block.getComponent(id);
+    return found === undefined ? undefined : read(found);
+};
+
+/**
+ * What a placed block answers that its permutation cannot: whether it is solid, its map color, its
+ * components and their fixed answers. Each type's default permutation is placed in the air above
+ * the origin, read in the same tick, before anything ticks it, and replaced with air.
+ */
+function* blockFacts(dimension) {
+    const air = BlockPermutation.resolve('minecraft:air');
+    for (const type of BlockTypes.getAll()) {
+        try {
+            const block = dimension.getBlock(PLACE_AT);
+            block.setPermutation(BlockPermutation.resolve(type.id));
+            emit('block-facts', {
+                id: type.id,
+                solid: block.isSolid,
+                liquid: block.isLiquid,
+                air: block.isAir,
+                mapColor: block.getMapColor(),
+                redstonePower: block.getRedstonePower() ?? null,
+                components: list(block.getComponents())
+                    .map((found) => found.typeId)
+                    .sort(),
+                movable: blockComponent(block, 'minecraft:movable', (c) => ({
+                    movementType: c.movementType,
+                    stickyType: c.stickyType
+                })),
+                precipitation: blockComponent(block, 'minecraft:precipitation_interactions', (c) => ({
+                    accumulatesSnow: c.accumulatesSnow(),
+                    isSnowLoggable: c.isSnowLoggable(),
+                    obstructsRain: c.obstructsRain()
+                })),
+                mapColorComponent: blockComponent(block, 'minecraft:map_color', (c) => ({
+                    color: c.color,
+                    tintedColor: c.tintedColor,
+                    tintMethod: c.tintMethod
+                })),
+                vibration: blockComponent(block, 'minecraft:vibration_properties', (c) => ({
+                    dampens: c.getCanDampenVibrations(),
+                    occludes: c.getCanOccludeVibrations()
+                }))
+            });
+            block.setPermutation(air);
+        } catch (error) {
+            failed('block-facts', type.id, error);
+            try {
+                dimension.getBlock(PLACE_AT)?.setPermutation(air);
+            } catch {
+                /* The next row reports it. */
+            }
+        }
+        yield;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Items
 // ---------------------------------------------------------------------------
@@ -206,8 +268,13 @@ function* items() {
                 stackable: stack.isStackable,
                 weight: stack.weight,
                 tags: list(stack.getTags()).sort(),
+                components: list(stack.getComponents())
+                    .map((found) => found.typeId)
+                    .sort(),
                 durability: component(stack, 'minecraft:durability', (c) => ({
-                    maxDurability: c.maxDurability
+                    maxDurability: c.maxDurability,
+                    unbreakable: c.unbreakable,
+                    damageChance: [0, 1, 2, 3].map((level) => c.getDamageChance(level))
                 })),
                 food: component(stack, 'minecraft:food', (c) => ({
                     nutrition: c.nutrition,
@@ -228,13 +295,123 @@ function* items() {
                 compostable: component(stack, 'minecraft:compostable', (c) => ({
                     chance: c.compostingChance
                 })),
-                inventorySize: component(stack, 'minecraft:inventory', (c) => c.container?.size)
+                inventorySize: component(stack, 'minecraft:inventory', (c) => c.container?.size),
+                containerRules: component(stack, 'minecraft:inventory', (c) => c.container?.containerRules ?? null)
             });
         } catch (error) {
             failed('items', type.id, error);
         }
         yield;
     }
+}
+
+/** The item types an enchantment can go on, as `canAddEnchantment` answers for a new stack. */
+function* enchantmentItems() {
+    const enchantable = ItemTypes.getAll()
+        .map((type) => new ItemStack(type.id, 1))
+        .filter((stack) => stack.getComponent('minecraft:enchantable') !== undefined);
+    for (const enchantment of EnchantmentTypes.getAll()) {
+        const items = [];
+        for (const stack of enchantable) {
+            try {
+                const component = stack.getComponent('minecraft:enchantable');
+                if (component.canAddEnchantment({ type: enchantment, level: 1 })) items.push(stack.typeId);
+            } catch (error) {
+                failed('enchantment-items', `${enchantment.id} ${stack.typeId}`, error);
+            }
+        }
+        emit('enchantment-items', { id: enchantment.id, items: items.sort() });
+        yield;
+    }
+}
+
+/** The enchantments that refuse each other on an item both can go on. */
+function* enchantmentConflicts() {
+    const enchantments = EnchantmentTypes.getAll();
+    const enchantable = ItemTypes.getAll()
+        .map((type) => new ItemStack(type.id, 1))
+        .filter((stack) => stack.getComponent('minecraft:enchantable') !== undefined);
+    for (const first of enchantments) {
+        const conflicts = [];
+        for (const second of enchantments) {
+            if (second.id === first.id) continue;
+            const both = enchantable.find((stack) => {
+                try {
+                    const component = stack.getComponent('minecraft:enchantable');
+                    return (
+                        component.canAddEnchantment({ type: first, level: 1 }) &&
+                        component.canAddEnchantment({ type: second, level: 1 })
+                    );
+                } catch {
+                    return false;
+                }
+            });
+            if (both === undefined) continue;
+            try {
+                const stack = new ItemStack(both.typeId, 1);
+                const component = stack.getComponent('minecraft:enchantable');
+                component.addEnchantment({ type: first, level: 1 });
+                if (!component.canAddEnchantment({ type: second, level: 1 })) conflicts.push(second.id);
+            } catch {
+                // BDS throws EnchantmentLevelOutOfBoundsError, not false, for an enchantment the
+                // stack's own refuses; the scenarios record the message.
+                conflicts.push(second.id);
+            }
+        }
+        emit('enchantment-conflicts', { id: first.id, conflicts: conflicts.sort() });
+        yield;
+    }
+}
+
+/** What `Potions.resolve` makes of each effect and delivery. */
+function* potionStacks() {
+    for (const effect of list(Potions.getAllEffectTypes())) {
+        for (const delivery of list(Potions.getAllDeliveryTypes())) {
+            try {
+                const stack = Potions.resolve(effect, delivery);
+                emit('potion-stacks', { effect: effect.id, delivery: delivery.id, item: stack.typeId });
+            } catch (error) {
+                failed('potion-stacks', `${effect.id} ${delivery.id}`, error);
+            }
+        }
+        yield;
+    }
+}
+
+/** The potion items whose data value picks the effect, and the largest data value asked. */
+const POTION_ITEMS = ['minecraft:potion', 'minecraft:splash_potion', 'minecraft:lingering_potion', 'minecraft:arrow'];
+const POTION_DATA = 64;
+
+/**
+ * Which effect each data value of a potion item holds. A script cannot make a stack with a data
+ * value, so `/replaceitem` puts each in a chest and the potion component reads it back.
+ */
+function* potionData(dimension) {
+    const at = { x: PLACE_AT.x, y: PLACE_AT.y, z: PLACE_AT.z };
+    dimension.getBlock(at).setPermutation(BlockPermutation.resolve('minecraft:chest'));
+    for (const item of POTION_ITEMS) {
+        for (let data = 0; data <= POTION_DATA; data++) {
+            try {
+                const result = dimension.runCommand(
+                    `replaceitem block ${at.x} ${at.y} ${at.z} slot.container 0 ${item} 1 ${data}`
+                );
+                if (result.successCount === 0) continue;
+                const stack = dimension.getBlock(at).getComponent('minecraft:inventory').container.getItem(0);
+                const potion = stack?.getComponent('minecraft:potion');
+                emit('potion-data', {
+                    item,
+                    data,
+                    typeId: stack?.typeId ?? null,
+                    effect: potion?.potionEffectType?.id ?? null,
+                    delivery: potion?.potionDeliveryType?.id ?? null
+                });
+            } catch (error) {
+                failed('potion-data', `${item} ${data}`, error);
+            }
+        }
+        yield;
+    }
+    dimension.getBlock(at).setPermutation(BlockPermutation.resolve('minecraft:air'));
 }
 
 // ---------------------------------------------------------------------------
@@ -346,7 +523,12 @@ function* passes(dimension) {
     yield* blockTypes();
     yield* blockDomains();
     yield* blockStates();
+    yield* blockFacts(dimension);
     yield* items();
+    yield* enchantmentItems();
+    yield* enchantmentConflicts();
+    yield* potionStacks();
+    yield* potionData(dimension);
     yield* entities(dimension);
     yield* registries();
     yield* worldFacts();

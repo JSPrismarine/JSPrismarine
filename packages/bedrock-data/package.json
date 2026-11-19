@@ -16,6 +16,11 @@
                 "import": "./dist/sources.js",
                 "module": "./dist/sources.js"
             },
+            "./script-catalog": {
+                "types": "./dist/scriptCatalog.d.ts",
+                "import": "./dist/scriptCatalog.js",
+                "module": "./dist/scriptCatalog.js"
+            },
             "./v2193": {
                 "types": "./dist/v2193.d.ts",
                 "import": "./dist/v2193.js",
@@ -51,6 +56,10 @@
         "./sources": {
             "jsprismarine:dist": "./dist/sources.js",
             "default": "./src/sources.ts"
+        },
+        "./script-catalog": {
+            "jsprismarine:dist": "./dist/scriptCatalog.js",
+            "default": "./src/scriptCatalog.ts"
         },
         "./v2193": {
             "jsprismarine:dist": "./dist/v2193.js",

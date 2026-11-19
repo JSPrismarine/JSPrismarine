@@ -1,0 +1,1 @@
+{"$comment":["The `potion-deliveries` table of the Bedrock capture, one row per entry as the engine","reported it. Written by `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock`","from the Script API of the pinned Bedrock Dedicated Server; never edit by hand."],"minecraftVersion":"1.26.60.6","rows":[{"id":"Consume"},{"id":"ThrownSplash"},{"id":"ThrownLingering"}]}

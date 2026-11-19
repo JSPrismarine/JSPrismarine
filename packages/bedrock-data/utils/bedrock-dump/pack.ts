@@ -42,6 +42,16 @@ const PACK_VERSION = [1, 0, 0];
 const SERVER_MODULE_VERSION = '2.0.0';
 
 /**
+ * The `@minecraft/server` version the `dump` pass asks for: the beta BDS ships, because block
+ * facts such as `isSolid` and `getMapColor` are beta members. Its world turns on the Beta APIs
+ * experiment ({@link DUMP_EXPERIMENTS}).
+ */
+const DUMP_MODULE_VERSION = '2.12.0-beta';
+
+/** The world experiments the `dump` pass's world has on, by their `level.dat` names. */
+export const DUMP_EXPERIMENTS: readonly string[] = ['gametest'];
+
+/**
  * Which pass to run. `dump` uses the script beside this module; `place` and `domains` are the
  * two halves of the block palette capture, whose scripts belong to `packages/minecraft` because
  * its snapshot is what they produce.
@@ -77,7 +87,9 @@ export const renderManifest = (pass: DumpPass): string => {
                 entry: `scripts/${pass}.js`
             }
         ],
-        dependencies: [{ module_name: '@minecraft/server', version: SERVER_MODULE_VERSION }]
+        dependencies: [
+            { module_name: '@minecraft/server', version: pass === 'dump' ? DUMP_MODULE_VERSION : SERVER_MODULE_VERSION }
+        ]
     };
     return `${JSON.stringify(manifest, undefined, 4)}\n`;
 };
