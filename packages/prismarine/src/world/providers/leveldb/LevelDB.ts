@@ -109,6 +109,12 @@ const DEFAULT_SPAWN_Y = Dimensions.Overworld.minY + 100;
 /** Java's Nether `coordinate_scale`, which is also the game's `NetherScale` default. */
 const DEFAULT_NETHER_SCALE = Dimensions.Nether.java.coordinateScale;
 
+/**
+ * The `level.dat` tag holding the Java data version the level was last saved under. Prefixed like
+ * `JSPrismarineSpawnKnown`, since BDS has no such tag and ignores one it does not know.
+ */
+export const JAVA_DATA_VERSION_TAG = 'JSPrismarineJavaDataVersion';
+
 const DATABASE_DIRECTORY = 'db';
 const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
 const REPLAY_SNAPSHOT_FORMAT = 'jsprismarine-leveldb-replay-snapshot';
@@ -1618,6 +1624,9 @@ export default class LevelDB extends BaseProvider {
         }
         if (level.time !== undefined) root.addValue('Time', new Types.LongVal(BigInt(Math.trunc(level.time))));
         if (level.netherScale !== undefined) root.addValue('NetherScale', new Types.NumberVal(level.netherScale));
+        if (level.javaDataVersion !== undefined) {
+            root.addValue(JAVA_DATA_VERSION_TAG, new Types.NumberVal(level.javaDataVersion));
+        }
         if (level.stems !== undefined) {
             const overworld = level.stems[OVERWORLD_STEM_ID]?.generator;
             root.addValue('Generator', new Types.NumberVal(levelDatGeneratorOf(overworld)));
@@ -1632,17 +1641,23 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * The clock `level.dat` holds, which {@link LevelDB.saveLevelData} writes as `Time`.
+     * The clock and the Java data version `level.dat` holds, which {@link LevelDB.saveLevelData}
+     * writes as `Time` and `JSPrismarineJavaDataVersion`.
      *
-     * Null before the file exists. A file without the tag, which this server never writes but
-     * another might, answers no clock, so the level starts its own at zero.
+     * Null before the file exists. A file without the `Time` tag, which this server never writes
+     * but another might, answers no clock, so the level starts its own at zero. A file without the
+     * data version, written by BDS or by this server before it recorded one, answers none.
      */
     public override readLevelData(): LevelDatInputs | null {
         const level = readLevelDat(this.getPath());
         if (level === null) return null;
 
         const time = level.root.getLong('Time', -1n);
-        return time < 0n ? {} : { time: Number(time) };
+        const javaDataVersion = level.root.getNumber(JAVA_DATA_VERSION_TAG, -1);
+        return {
+            ...(time < 0n ? {} : { time: Number(time) }),
+            ...(javaDataVersion < 0 ? {} : { javaDataVersion })
+        };
     }
 
     /** Every chunk coordinate the database holds for one dimension, for tools that walk a world. */
