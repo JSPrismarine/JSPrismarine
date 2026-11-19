@@ -1,0 +1,127 @@
+{
+    "$comment": [
+        "What the scripts of scenario `entity-attributes` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "entity-attributes",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "attributes",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "attributes",
+            "seq": 2,
+            "tick": 0,
+            "event": "player attributes",
+            "value": [
+                "minecraft:health",
+                "minecraft:lava_movement",
+                "minecraft:movement",
+                "minecraft:player.exhaustion",
+                "minecraft:player.hunger",
+                "minecraft:player.saturation",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "attributes",
+            "seq": 3,
+            "tick": 0,
+            "event": "npc attributes",
+            "value": [
+                "minecraft:health",
+                "minecraft:lava_movement",
+                "minecraft:movement",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "attributes",
+            "seq": 4,
+            "tick": 0,
+            "event": "armor stand attributes",
+            "value": [
+                "minecraft:health",
+                "minecraft:lava_movement",
+                "minecraft:movement",
+                "minecraft:underwater_movement"
+            ]
+        },
+        {
+            "pack": "attributes",
+            "seq": 5,
+            "tick": 0,
+            "event": "player player.hunger",
+            "value": {
+                "currentValue": 20,
+                "defaultValue": 20,
+                "effectiveMin": 0,
+                "effectiveMax": 20
+            }
+        },
+        {
+            "pack": "attributes",
+            "seq": 6,
+            "tick": 0,
+            "event": "player player.saturation",
+            "value": {
+                "currentValue": 5,
+                "defaultValue": 5,
+                "effectiveMin": 0,
+                "effectiveMax": 20
+            }
+        },
+        {
+            "pack": "attributes",
+            "seq": 7,
+            "tick": 0,
+            "event": "player player.exhaustion",
+            "value": {
+                "currentValue": 0,
+                "defaultValue": 0,
+                "effectiveMin": 0,
+                "effectiveMax": 20
+            }
+        },
+        {
+            "pack": "attributes",
+            "seq": 8,
+            "tick": 0,
+            "event": "npc health",
+            "value": {
+                "currentValue": 20,
+                "defaultValue": 20,
+                "effectiveMin": 0,
+                "effectiveMax": 3.4028234663852886e+38
+            }
+        },
+        {
+            "pack": "attributes",
+            "seq": 9,
+            "tick": 0,
+            "event": "armor stand movement",
+            "value": {
+                "currentValue": 0.699999988079071,
+                "defaultValue": 0.699999988079071,
+                "effectiveMin": 0,
+                "effectiveMax": 3.4028234663852886e+38
+            }
+        },
+        {
+            "pack": "attributes",
+            "seq": 10,
+            "tick": 0,
+            "event": "removing"
+        }
+    ]
+}

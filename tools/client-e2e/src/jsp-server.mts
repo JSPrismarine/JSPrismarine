@@ -59,6 +59,12 @@ export const SCRIPT_COMMAND_MESSAGE = 'client-e2e command: greeted ';
 /** How far east, in blocks, the client e2e script pack teleports every player when it thunders. */
 export const SCRIPT_TELEPORT_DISTANCE = 12;
 
+/** The `/scriptevent` id that makes the client e2e script turn every player. */
+export const SCRIPT_LOOK_EVENT = 'e2e:look';
+
+/** Where the client e2e script turns a player to look: `x` the pitch, `y` the yaw, in degrees. */
+export const SCRIPT_LOOK_ROTATION = { x: 30, y: 90 } as const;
+
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
@@ -519,6 +525,13 @@ export const startServer = async (
             `            message: \`${SCRIPT_COMMAND_MESSAGE}\${word} by \${origin.sourceEntity?.typeId}\``,
             '        })',
             '    );',
+            '});',
+            '',
+            'system.afterEvents.scriptEventReceive.subscribe((event) => {',
+            `    if (event.id !== '${SCRIPT_LOOK_EVENT}') return;`,
+            '    for (const player of world.getAllPlayers()) {',
+            `        player.setRotation({ x: ${SCRIPT_LOOK_ROTATION.x}, y: ${SCRIPT_LOOK_ROTATION.y} });`,
+            '    }',
             '});',
             '',
             'world.afterEvents.weatherChange.subscribe((event) => {',
