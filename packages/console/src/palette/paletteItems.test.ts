@@ -30,7 +30,7 @@ describe('fuzzyMatch', () => {
 
 describe('paletteItems', () => {
     it('offers every catalog action but the excluded ones, then commands and players', () => {
-        const items = paletteItems(COMMAND_CATALOG, ['stop', 'op'], ['filfat'], ['view.palette']);
+        const items = paletteItems(COMMAND_CATALOG, [{ name: 'stop' }, { name: 'op' }], ['filfat'], ['view.palette']);
 
         const actions = items.filter((item) => item.kind === 'action');
         expect(actions).toHaveLength(COMMAND_CATALOG.length - 1);
@@ -48,7 +48,11 @@ describe('paletteItems', () => {
 });
 
 describe('filterPalette', () => {
-    const items = paletteItems(COMMAND_CATALOG, ['op', 'deop', 'stop', 'list'], ['filfat']);
+    const items = paletteItems(
+        COMMAND_CATALOG,
+        ['op', 'deop', 'stop', 'list'].map((name) => ({ name })),
+        ['filfat']
+    );
 
     it('keeps every item in order for an empty query', () => {
         expect(filterPalette(items, '')).toHaveLength(items.length);

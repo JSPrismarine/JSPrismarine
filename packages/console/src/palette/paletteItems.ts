@@ -5,7 +5,7 @@ import { fuzzyMatch } from './fuzzy';
 /** One thing the palette can find: a console action, a server command, or an online player. */
 export type PaletteItem =
     | { kind: 'action'; id: CommandId; title: string; keys?: string }
-    | { kind: 'command'; name: string }
+    | { kind: 'command'; name: string; description?: string }
     | { kind: 'player'; name: string };
 
 /** A palette item that matched the query, with the code points of its label that matched. */
@@ -26,7 +26,7 @@ const KIND_ORDER: Record<PaletteItem['kind'], number> = { action: 0, command: 1,
  */
 export function paletteItems(
     catalog: typeof COMMAND_CATALOG,
-    commandNames: Iterable<string>,
+    serverCommands: Iterable<{ name: string; description?: string }>,
     playerNames: Iterable<string>,
     exclude: readonly CommandId[] = []
 ): PaletteItem[] {
@@ -42,7 +42,9 @@ export function paletteItems(
                 keys: first === undefined ? hint : formatBinding(first)
             };
         });
-    const commands: PaletteItem[] = [...commandNames].sort().map((name) => ({ kind: 'command', name }));
+    const commands: PaletteItem[] = [...serverCommands]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(({ name, description }) => ({ kind: 'command', name, description }));
     const players: PaletteItem[] = [...playerNames].sort().map((name) => ({ kind: 'player', name }));
     return [...actions, ...commands, ...players];
 }

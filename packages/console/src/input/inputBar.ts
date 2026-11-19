@@ -1,5 +1,12 @@
 import type { KeyEvent, PasteEvent } from '@opentui/core';
-import { BoxRenderable, CliRenderEvents, InputRenderable, RenderableEvents, TextRenderable } from '@opentui/core';
+import {
+    BoxRenderable,
+    CliRenderEvents,
+    InputRenderable,
+    InputRenderableEvents,
+    RenderableEvents,
+    TextRenderable
+} from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { CompletionState, formatCompletionStrip } from './completion';
@@ -32,6 +39,8 @@ export interface InputBarProps {
     onFocusChange?(focused: boolean): void;
     /** Receives a short status hint, or undefined when the hint no longer applies. */
     onHint?(text: string | undefined): void;
+    /** Called with the line after every change to it, typed, pasted or set. */
+    onChange?(line: string): void;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
     now?(): number;
 }
@@ -134,6 +143,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         cursorColor: theme.text,
         onKeyDown: handleKey
     });
+    const onInput = (): void => props.onChange?.(input.value);
+    input.on(InputRenderableEvents.INPUT, onInput);
     const onFocused = (): void => props.onFocusChange?.(true);
     const onBlurred = (): void => props.onFocusChange?.(false);
     input.on(RenderableEvents.FOCUSED, onFocused);
@@ -163,6 +174,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     function setLine(value: string, cursor = value.length): void {
         input.value = value;
         input.cursorOffset = cursor;
+        props.onChange?.(value);
     }
 
     function closeCompletion(): void {
@@ -181,6 +193,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         input.focus();
         handlePaste();
         input.insertText(normalizePaste(text));
+        props.onChange?.(input.value);
     }
 
     const onPaste = (event: PasteEvent): void => {
@@ -334,6 +347,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             disposed = true;
             renderer.off(CliRenderEvents.RESIZE, layoutStrip);
             renderer.keyInput.off('paste', onPaste);
+            input.off(InputRenderableEvents.INPUT, onInput);
             input.off(RenderableEvents.FOCUSED, onFocused);
             input.off(RenderableEvents.BLURRED, onBlurred);
             root.destroyRecursively();
