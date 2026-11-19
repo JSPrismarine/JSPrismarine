@@ -87,6 +87,9 @@ export type ScriptLevelAccess = Pick<
     | 'setDynamicProperties'
     | 'clearDynamicProperties'
     | 'scoreboard'
+    | 'catalog'
+    | 'blockLight'
+    | 'waterlogged'
 >;
 
 /** A level the scripts reach nothing of: no entities, no loaded blocks, no types and no commands. */
@@ -282,6 +285,12 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly effectTypes: ScriptWorld['effectTypes'];
     /** The dimension types the level registers, when the server lists them. */
     public readonly dimensionTypes: ScriptWorld['dimensionTypes'];
+    /** The server's block, item, enchantment and potion types, when the server has content. */
+    public readonly catalog: ScriptWorld['catalog'];
+    /** The light at a block, when the server lights its worlds. */
+    public readonly blockLight: ScriptWorld['blockLight'];
+    /** Whether a block holds water in its liquid layer, when the server keeps one. */
+    public readonly waterlogged: ScriptWorld['waterlogged'];
     /**
      * The level's structures. They last as long as the level is loaded: a save does not keep them
      * yet, as BDS keeps a structure saved to the world.
@@ -326,6 +335,9 @@ export class LevelScriptWorld implements ScriptWorld {
         this.setAttribute = this.access.setAttribute;
         this.effectTypes = this.access.effectTypes;
         this.dimensionTypes = this.access.dimensionTypes;
+        this.catalog = this.access.catalog;
+        this.blockLight = this.access.blockLight;
+        this.waterlogged = this.access.waterlogged;
         this.http = sources.http;
         this.entitySystems = sources.entitySystems;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
