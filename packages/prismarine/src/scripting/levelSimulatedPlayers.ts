@@ -34,6 +34,7 @@ import ClientConnection from '../network/ClientConnection';
 import { latestCodec } from '../network/codec/CodecRegistry';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
 import type PlayerSession from '../network/PlayerSession';
+import { TransportNames } from '../network/transport/Transport';
 import type { TransportConnection } from '../network/transport/Transport';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
@@ -73,6 +74,8 @@ const nowhere = (id: number): TransportConnection => ({
     id,
     address: new InetAddress('0.0.0.0', 0),
     capabilities: { encrypted: false, reliableOrdered: true, maxFrameSize: Number.MAX_SAFE_INTEGER },
+    // No transport carries it; it reports as the default one, which is reliable and ordered like it.
+    transport: TransportNames.raknet,
     sendFrame: () => {},
     close: () => {}
 });

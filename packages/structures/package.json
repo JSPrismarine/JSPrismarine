@@ -11,6 +11,11 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./bedrockTemplate": {
+                "types": "./dist/bedrockTemplate.d.ts",
+                "import": "./dist/bedrockTemplate.js",
+                "module": "./dist/bedrockTemplate.js"
+            },
             "./javaTemplate": {
                 "types": "./dist/javaTemplate.d.ts",
                 "import": "./dist/javaTemplate.js",
@@ -31,6 +36,10 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./bedrockTemplate": {
+            "jsprismarine:dist": "./dist/bedrockTemplate.js",
+            "default": "./src/bedrockTemplate.ts"
         },
         "./javaTemplate": {
             "jsprismarine:dist": "./dist/javaTemplate.js",

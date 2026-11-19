@@ -338,7 +338,8 @@ async function bstatsFacts() {
             ])
         )}\n`
     };
-/** The beta Script API versions a pack can declare, read from the generated script module histories. */
+}
+
 /** Operating systems as `process.platform` names them, by the names readers know them by. */
 const OS_NAMES: Record<string, string> = { linux: 'Linux', darwin: 'macOS', win32: 'Windows' };
 

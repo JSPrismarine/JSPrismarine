@@ -171,6 +171,11 @@
                 "import": "./dist/packet/ClientToServerHandshakePacket.js",
                 "module": "./dist/packet/ClientToServerHandshakePacket.js"
             },
+            "./packet/ClientboundCloseFormPacket": {
+                "types": "./dist/packet/ClientboundCloseFormPacket.d.ts",
+                "import": "./dist/packet/ClientboundCloseFormPacket.js",
+                "module": "./dist/packet/ClientboundCloseFormPacket.js"
+            },
             "./packet/CommandBlockUpdatePacket": {
                 "types": "./dist/packet/CommandBlockUpdatePacket.d.ts",
                 "import": "./dist/packet/CommandBlockUpdatePacket.js",
@@ -326,6 +331,11 @@
                 "import": "./dist/packet/MobEquipmentPacket.js",
                 "module": "./dist/packet/MobEquipmentPacket.js"
             },
+            "./packet/ModalFormRequestPacket": {
+                "types": "./dist/packet/ModalFormRequestPacket.d.ts",
+                "import": "./dist/packet/ModalFormRequestPacket.js",
+                "module": "./dist/packet/ModalFormRequestPacket.js"
+            },
             "./packet/ModalFormResponsePacket": {
                 "types": "./dist/packet/ModalFormResponsePacket.d.ts",
                 "import": "./dist/packet/ModalFormResponsePacket.js",
@@ -435,6 +445,11 @@
                 "types": "./dist/packet/PositionTrackingDBClientRequestPacket.d.ts",
                 "import": "./dist/packet/PositionTrackingDBClientRequestPacket.js",
                 "module": "./dist/packet/PositionTrackingDBClientRequestPacket.js"
+            },
+            "./packet/PrimitiveShapesPacket": {
+                "types": "./dist/packet/PrimitiveShapesPacket.d.ts",
+                "import": "./dist/packet/PrimitiveShapesPacket.js",
+                "module": "./dist/packet/PrimitiveShapesPacket.js"
             },
             "./packet/PurchaseReceiptPacket": {
                 "types": "./dist/packet/PurchaseReceiptPacket.d.ts",
@@ -686,6 +701,11 @@
                 "import": "./dist/packet/UpdateTradePacket.js",
                 "module": "./dist/packet/UpdateTradePacket.js"
             },
+            "./payload": {
+                "types": "./dist/payload/index.d.ts",
+                "import": "./dist/payload/index.js",
+                "module": "./dist/payload/index.js"
+            },
             "./structure/BlockPos": {
                 "types": "./dist/structure/BlockPos.d.ts",
                 "import": "./dist/structure/BlockPos.js",
@@ -700,6 +720,11 @@
                 "types": "./dist/structure/PlayerPartyInfo.d.ts",
                 "import": "./dist/structure/PlayerPartyInfo.js",
                 "module": "./dist/structure/PlayerPartyInfo.js"
+            },
+            "./structure/PrimitiveShapeData": {
+                "types": "./dist/structure/PrimitiveShapeData.d.ts",
+                "import": "./dist/structure/PrimitiveShapeData.js",
+                "module": "./dist/structure/PrimitiveShapeData.js"
             },
             "./structure/StructureSettings": {
                 "types": "./dist/structure/StructureSettings.d.ts",
@@ -730,6 +755,11 @@
                 "types": "./dist/structure/UpdateSubChunkNetworkBlockInfo.d.ts",
                 "import": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js",
                 "module": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js"
+            },
+            "./structure/Vec2": {
+                "types": "./dist/structure/Vec2.d.ts",
+                "import": "./dist/structure/Vec2.js",
+                "module": "./dist/structure/Vec2.js"
             },
             "./structure/Vec3": {
                 "types": "./dist/structure/Vec3.d.ts",
@@ -871,11 +901,6 @@
                 "import": "./dist/wire/versions/v2259.js",
                 "module": "./dist/wire/versions/v2259.js"
             },
-            "./payload": {
-                "types": "./dist/payload/index.d.ts",
-                "import": "./dist/payload/index.js",
-                "module": "./dist/payload/index.js"
-            },
             "./package.json": "./package.json"
         }
     },
@@ -891,10 +916,6 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
-        },
-        "./payload": {
-            "jsprismarine:dist": "./dist/payload/index.js",
-            "default": "./src/payload/index.ts"
         },
         "./BatchCodec": {
             "jsprismarine:dist": "./dist/BatchCodec.js",
@@ -1024,6 +1045,10 @@
             "jsprismarine:dist": "./dist/packet/ClientToServerHandshakePacket.js",
             "default": "./src/packet/ClientToServerHandshakePacket.ts"
         },
+        "./packet/ClientboundCloseFormPacket": {
+            "jsprismarine:dist": "./dist/packet/ClientboundCloseFormPacket.js",
+            "default": "./src/packet/ClientboundCloseFormPacket.ts"
+        },
         "./packet/CommandBlockUpdatePacket": {
             "jsprismarine:dist": "./dist/packet/CommandBlockUpdatePacket.js",
             "default": "./src/packet/CommandBlockUpdatePacket.ts"
@@ -1148,6 +1173,10 @@
             "jsprismarine:dist": "./dist/packet/MobEquipmentPacket.js",
             "default": "./src/packet/MobEquipmentPacket.ts"
         },
+        "./packet/ModalFormRequestPacket": {
+            "jsprismarine:dist": "./dist/packet/ModalFormRequestPacket.js",
+            "default": "./src/packet/ModalFormRequestPacket.ts"
+        },
         "./packet/ModalFormResponsePacket": {
             "jsprismarine:dist": "./dist/packet/ModalFormResponsePacket.js",
             "default": "./src/packet/ModalFormResponsePacket.ts"
@@ -1235,6 +1264,10 @@
         "./packet/PositionTrackingDBClientRequestPacket": {
             "jsprismarine:dist": "./dist/packet/PositionTrackingDBClientRequestPacket.js",
             "default": "./src/packet/PositionTrackingDBClientRequestPacket.ts"
+        },
+        "./packet/PrimitiveShapesPacket": {
+            "jsprismarine:dist": "./dist/packet/PrimitiveShapesPacket.js",
+            "default": "./src/packet/PrimitiveShapesPacket.ts"
         },
         "./packet/PurchaseReceiptPacket": {
             "jsprismarine:dist": "./dist/packet/PurchaseReceiptPacket.js",
@@ -1436,6 +1469,10 @@
             "jsprismarine:dist": "./dist/packet/UpdateTradePacket.js",
             "default": "./src/packet/UpdateTradePacket.ts"
         },
+        "./payload": {
+            "jsprismarine:dist": "./dist/payload/index.js",
+            "default": "./src/payload/index.ts"
+        },
         "./structure/BlockPos": {
             "jsprismarine:dist": "./dist/structure/BlockPos.js",
             "default": "./src/structure/BlockPos.ts"
@@ -1447,6 +1484,10 @@
         "./structure/PlayerPartyInfo": {
             "jsprismarine:dist": "./dist/structure/PlayerPartyInfo.js",
             "default": "./src/structure/PlayerPartyInfo.ts"
+        },
+        "./structure/PrimitiveShapeData": {
+            "jsprismarine:dist": "./dist/structure/PrimitiveShapeData.js",
+            "default": "./src/structure/PrimitiveShapeData.ts"
         },
         "./structure/StructureSettings": {
             "jsprismarine:dist": "./dist/structure/StructureSettings.js",
@@ -1471,6 +1512,10 @@
         "./structure/UpdateSubChunkNetworkBlockInfo": {
             "jsprismarine:dist": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js",
             "default": "./src/structure/UpdateSubChunkNetworkBlockInfo.ts"
+        },
+        "./structure/Vec2": {
+            "jsprismarine:dist": "./dist/structure/Vec2.js",
+            "default": "./src/structure/Vec2.ts"
         },
         "./structure/Vec3": {
             "jsprismarine:dist": "./dist/structure/Vec3.js",

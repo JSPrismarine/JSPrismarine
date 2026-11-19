@@ -216,6 +216,11 @@
                 "import": "./dist/raknet.js",
                 "module": "./dist/raknet.js"
             },
+            "./script-host": {
+                "types": "./dist/script-host.d.ts",
+                "import": "./dist/script-host.js",
+                "module": "./dist/script-host.js"
+            },
             "./server": {
                 "types": "./dist/server.d.ts",
                 "import": "./dist/server.js",
@@ -408,6 +413,10 @@
         "./raknet": {
             "jsprismarine:dist": "./dist/raknet.js",
             "default": "./src/raknet.ts"
+        },
+        "./script-host": {
+            "jsprismarine:dist": "./dist/script-host.js",
+            "default": "./src/script-host.ts"
         },
         "./server": {
             "jsprismarine:dist": "./dist/server.js",
