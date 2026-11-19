@@ -17,12 +17,12 @@ Each component is a factory in its own file, `create<Name>(ctx, props)`, with a 
 | --- | --- |
 | `src/theme/` | Color roles resolved against the terminal's capabilities, and styled text with Minecraft `§` codes |
 | `src/log/` | Bounded log storage with filter-aware retention, windowed rendering, line formatting, and badges |
-| `src/input/` | The input bar, command history, and completion state |
+| `src/input/` | The input bar, command history, completion state, and the usage card for the command being typed |
 | `src/status/` | The status bar, its segments, and toasts |
 | `src/help/` | The help overlay generated from the key map |
 | `src/palette/` | The Ctrl+K palette and the fuzzy matching that ranks its results |
 | `src/tps/` | TPS history, the braille chart of the TPS page, and the details pane's bar graph |
-| `src/app/` | Layout, breakpoints, focus, the title bar, side pane and activity line, and wiring; exports `startConsole` |
+| `src/app/` | Layout, breakpoints, focus, the title bar, side pane, activity line and crash card, and wiring; exports `startConsole` |
 
 ## Tests
 
