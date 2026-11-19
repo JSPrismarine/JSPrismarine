@@ -66,6 +66,10 @@ import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
 import { ScriptHttp } from './ScriptHttp';
 import { hookEventOf } from './serverCustom';
+import { passesWorldEventOptions } from './events/eventOptions';
+import type { GameEventData } from './events/eventValues';
+import { gameEventData } from './events/eventValues';
+import { isBeforeEvent, signalOfEvent } from './events/worldEvents';
 import { JobQueue } from './jobs';
 import type { JobStep } from './jobs';
 import { TaskQueue } from './tasks';
@@ -83,6 +87,8 @@ import type {
     ScriptComponentSink,
     ScriptComponentUse,
     ScriptDebugShapeChange,
+    ScriptGameEvent,
+    ScriptGameEventVerdict,
     ScriptItemHook,
     ScriptItemHookEvent,
     ScriptWorld,
@@ -385,7 +391,8 @@ export class WorldScripts {
                 this.options.world.guardBlockBreak?.((intent) => this.blockBreakGuard(intent)) ?? (() => {}),
                 this.options.world.guardItemUse?.((intent) => this.itemUseGuard(intent)) ?? (() => {}),
                 this.options.world.guardBlockInteract?.((intent) => this.blockInteractGuard(intent)) ?? (() => {}),
-                this.options.world.guardEntityInteract?.((intent) => this.entityInteractGuard(intent)) ?? (() => {})
+                this.options.world.guardEntityInteract?.((intent) => this.entityInteractGuard(intent)) ?? (() => {}),
+                this.options.world.guardGameEvents?.((event) => this.gameEventGuard(event)) ?? (() => {})
             ];
         }
         this.refreshClock();
@@ -931,11 +938,13 @@ export class WorldScripts {
         signal: SignalName,
         privilege: Privilege,
         event: (loaded: LoadedPack) => ScriptHandle,
-        entity?: EntityKey
+        entity?: EntityKey,
+        accepts?: (filter: EntityFilter | undefined) => boolean
     ): void {
         for (const subscription of this.subscriptions.filter((each) => each.signal === signal)) {
             if (!this.subscriptions.includes(subscription)) continue;
             if (entity !== undefined && !passesFilter(subscription.filter, entity)) continue;
+            if (accepts !== undefined && !accepts(subscription.filter)) continue;
             const made = event(subscription.loaded);
             this.invoke(subscription.loaded, subscription.callback, privilege, [made]);
             this.engine.free(made);
@@ -1032,6 +1041,8 @@ export class WorldScripts {
                 ...(event.item === undefined ? {} : { item: event.item }),
                 ...(event.itemAfter === undefined ? {} : { itemAfter: event.itemAfter })
             });
+        } else if (event.type === 'game') {
+            this.dispatchGameEvent(event, 'default');
         } else if (event.type === 'playerInteractWithEntity') {
             this.dispatchWith('PlayerInteractWithEntityAfterEventSignal', 'PlayerInteractWithEntityAfterEvent', {
                 kind: 'entityInteract',
@@ -1066,6 +1077,39 @@ export class WorldScripts {
         const tag = this.addEvent(data);
         this.dispatch(signal, 'default', (loaded) => this.create(loaded, className, tag), entity);
         this.events.delete(tag);
+    }
+
+    /**
+     * Sends a world event of `events/worldEvents.ts` to the subscribers of its signal whose
+     * options it passes.
+     * @returns The event's data after the scripts ran, or undefined when no pack subscribed.
+     */
+    private dispatchGameEvent(event: ScriptGameEvent, privilege: Privilege): GameEventData | undefined {
+        const signal = signalOfEvent(event.event);
+        if (signal === undefined || !this.subscriptions.some((each) => each.signal === signal)) return undefined;
+        const data = gameEventData(event);
+        const tag = this.addEvent(data);
+        this.dispatch(
+            signal,
+            privilege,
+            (loaded) => this.create(loaded, event.event, tag),
+            undefined,
+            (filter) => passesWorldEventOptions(this.options.world, event, filter?.options)
+        );
+        this.events.delete(tag);
+        return data;
+    }
+
+    /** The guard of every action a before-event of `events/worldEvents.ts` is about. */
+    private gameEventGuard(event: ScriptGameEvent): ScriptGameEventVerdict {
+        const unchanged = { veto: false, fields: event.fields } as const;
+        if (this.stopped || !isBeforeEvent(event.event)) return unchanged;
+        const signal = signalOfEvent(event.event);
+        if (signal === undefined || !this.subscriptions.some((each) => each.signal === signal)) return unchanged;
+        this.refreshClock();
+        const data = this.dispatchGameEvent(event, 'restricted_execution');
+        if (data === undefined) return unchanged;
+        return data.cancel ? { veto: true } : { veto: false, fields: data.fields };
     }
 
     /** `world.beforeEvents.playerLeave`, while a player leaves and before their entity goes. */

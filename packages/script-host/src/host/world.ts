@@ -553,7 +553,51 @@ export type ScriptWorldEvent =
           readonly type: 'playerInteractWithEntity';
           /** The stack in the player's hand after the click. Absent for an empty hand. */
           readonly itemAfter?: ScriptItem;
-      } & EntityInteractIntent);
+      } & EntityInteractIntent)
+    /** One of the other events of `world.afterEvents`, which {@link ScriptGameEvent} describes. */
+    | ({ readonly type: 'game' } & ScriptGameEvent);
+
+/**
+ * A value an event of `world.afterEvents` or `world.beforeEvents` carries, as one of its members
+ * reads it: a string, number or boolean as it is, or a wrapper naming what the member makes of it.
+ */
+export type ScriptEventValue =
+    | string
+    | number
+    | boolean
+    | { readonly entity: ScriptEntityRef }
+    | { readonly entities: readonly ScriptEntityRef[] }
+    | { readonly block: ScriptBlockLocation }
+    | { readonly blocks: readonly ScriptBlockLocation[] }
+    | { readonly permutation: ScriptBlockPermutation }
+    | { readonly item: ScriptItem }
+    | { readonly items: readonly ScriptItem[] }
+    | { readonly dimension: string }
+    | { readonly vector: ScriptVector3 }
+    | { readonly damageSource: ScriptDamageSource }
+    /** A status effect, and the id of the entity it is on. */
+    | { readonly effect: ScriptEffect; readonly holder: string }
+    /** Plain data, such as a `NeighborChange` list, as JSON. */
+    | { readonly json: string }
+    /** A block's component, by its class, such as `BlockPistonComponent`, whose object names the block. */
+    | { readonly blockComponent: string; readonly at: ScriptBlockLocation };
+
+/**
+ * An event the world raises for the scripts, by the Script API class its object has, such as
+ * `PlayerPlaceBlockAfterEvent`, with each member's value by the member's name. A member with no
+ * value reads `undefined`.
+ */
+export interface ScriptGameEvent {
+    readonly event: string;
+    readonly fields: Readonly<Record<string, ScriptEventValue>>;
+}
+
+/** What the scripts decide of a before-event: veto it, or let it go on with the fields they may have changed. */
+export type ScriptGameEventVerdict =
+    { readonly veto: true } | { readonly veto: false; readonly fields: Readonly<Record<string, ScriptEventValue>> };
+
+/** A guard of the actions whose before-events {@link ScriptGameEvent} describes. */
+export type ScriptGameEventGuard = (event: ScriptGameEvent) => ScriptGameEventVerdict;
 
 /** A client's answer to a form, which reaches the scripts as an input of the tick it arrived in. */
 export interface ScriptFormResponse {
@@ -906,6 +950,26 @@ export type ScriptBlockHookEvent = {
           readonly permutationToPlace: ScriptBlockPermutation;
       }
     | { readonly hook: 'onTick' | 'onRandomTick' }
+    /** An entity's feet entered the block's position. */
+    | { readonly hook: 'onStepOn'; readonly entity?: ScriptEntityRef }
+    /** An entity landed on the block after a fall. */
+    | { readonly hook: 'onEntityFallOn'; readonly entity?: ScriptEntityRef; readonly fallDistance: number }
+    /** An entity ran a named event on the block. */
+    | {
+          readonly hook: 'onEntity';
+          readonly entitySource?: ScriptEntityRef;
+          readonly name: string;
+          readonly blockPermutation: ScriptBlockPermutation;
+      }
+    /** The redstone power reaching the block changed, or reached it for the first time. */
+    | {
+          readonly hook: 'onRedstoneUpdate';
+          readonly powerLevel: number;
+          readonly previousPowerLevel: number;
+          readonly firstUpdate: boolean;
+      }
+    /** One of the block's states changed in place. */
+    | { readonly hook: 'onBlockStateChange'; readonly previousPermutation: ScriptBlockPermutation }
 );
 
 /** An item hook the world raises for the custom components an item names. */
@@ -1243,4 +1307,11 @@ export interface ScriptWorld {
     setWaterlogged?(dimension: string, location: ScriptVector3, waterlogged: boolean): void;
     /** The redstone power a loaded block holds, or undefined for a block that carries none. */
     redstonePower?(dimension: string, location: ScriptVector3): number | undefined;
+    /**
+     * Adds a guard to every action a before-event of {@link ScriptGameEvent} describes, such as a
+     * player's block placement. The world calls it before the action, and the action goes on with
+     * the fields the verdict hands back. A world without it raises none of those before-events.
+     * @returns A function that removes the guard.
+     */
+    guardGameEvents?(guard: ScriptGameEventGuard): () => void;
 }

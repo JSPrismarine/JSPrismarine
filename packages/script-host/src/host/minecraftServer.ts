@@ -31,6 +31,12 @@ import { implementScoreboard } from './serverScoreboard';
 import { implementStructures } from './serverStructures';
 import { implementFeedback } from './serverFeedback';
 import { implementBlocksAndItems } from './blocksItems/implement';
+import type { WorldEventOptions } from './events/eventOptions';
+import { worldEventOptionsOf } from './events/eventOptions';
+import type { GameEventData } from './events/eventValues';
+import { damageSourceObject } from './events/eventValues';
+import { implementWorldEvents, WORLD_EVENT_SIGNALS } from './events/worldEvents';
+import { implementComponentEvents } from './events/componentEvents';
 import type { BlockKey, EntityKey } from './serverObjects';
 import {
     entityKeyOf,
@@ -83,7 +89,8 @@ export const SIGNALS = [
     'PlayerInteractWithBlockBeforeEventSignal',
     'PlayerInteractWithBlockAfterEventSignal',
     'PlayerInteractWithEntityBeforeEventSignal',
-    'PlayerInteractWithEntityAfterEventSignal'
+    'PlayerInteractWithEntityAfterEventSignal',
+    ...WORLD_EVENT_SIGNALS
 ] as const;
 
 /** The signals whose `subscribe` takes `EntityEventOptions`, which pick the entities whose events a callback gets. */
@@ -101,6 +108,8 @@ export const ENTITY_FILTERED_SIGNALS: ReadonlySet<SignalName> = new Set<SignalNa
 export interface EntityFilter {
     readonly entities?: readonly string[];
     readonly entityTypes?: readonly string[];
+    /** The options of a world event signal of `events/worldEvents.ts`, which that module matches. */
+    readonly options?: WorldEventOptions;
 }
 
 /** Whether an entity's event reaches a subscriber with a filter. */
@@ -288,7 +297,8 @@ export type EventData =
     | BlockBreakBeforeData
     | BlockBreakAfterData
     | BlockInteractData
-    | EntityInteractData;
+    | EntityInteractData
+    | GameEventData;
 
 /** What the members of one pack's `@minecraft/server` reach of the runtime and the world. */
 export interface PackHost {
@@ -370,18 +380,7 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
         return found as Extract<EventData, { kind: Kind }>;
     };
     const signal = (name: SignalName) => ({ get: () => host.instance(name, TAG.signal + SIGNALS.indexOf(name)) });
-    /** An `EntityDamageSource`, a plain object whose entities are the pack's entity objects. */
-    const damageSource = ({ cause, damagingEntity, damagingProjectile }: ScriptDamageSource): ScriptHandle => {
-        const source = host.engine.evaluate('({})');
-        if (!(source instanceof ScriptHandle))
-            throw new ScriptHostErrors.LiteralEvaluatedToPrimitive({ kind: 'object' });
-        host.engine.set(source, 'cause', cause);
-        if (damagingEntity !== undefined) host.engine.set(source, 'damagingEntity', host.entity(damagingEntity));
-        if (damagingProjectile !== undefined) {
-            host.engine.set(source, 'damagingProjectile', host.entity(damagingProjectile));
-        }
-        return host.engine.release(source);
-    };
+    const damageSource = (source: ScriptDamageSource): ScriptHandle => damageSourceObject(host, source);
 
     const dimensionTypes = (): readonly string[] => host.world.dimensionTypes?.() ?? host.world.dimensions();
 
@@ -609,11 +608,15 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
     implementPlayerActions(implementations, host, data, signal);
     implementEntityArea(implementations, host);
     implementBlocksAndItems(implementations, host);
+    implementWorldEvents(implementations, host, signal);
+    implementComponentEvents(implementations, host);
     for (const name of SIGNALS) {
         implementations
             .implement(SERVER, name, 'subscribe', (call) => {
                 const callback = callbackOf(call);
-                const filter = ENTITY_FILTERED_SIGNALS.has(name) ? entityFilterOf(call, call.args[1]) : undefined;
+                const filter = ENTITY_FILTERED_SIGNALS.has(name)
+                    ? entityFilterOf(call, call.args[1])
+                    : worldEventFilterOf(call, call.args[1]);
                 host.subscribe(name, callback, filter);
                 return callback;
             })
@@ -623,6 +626,12 @@ export const serverImplementations = (host: PackHost): ScriptApiImplementations 
             });
     }
     return implementations;
+};
+
+/** Reads the options a subscriber of a world event signal passed, when it passed any. */
+const worldEventFilterOf = (call: ScriptCall, options: ScriptValue | undefined): EntityFilter | undefined => {
+    const read = worldEventOptionsOf(call, options);
+    return read === undefined ? undefined : { options: read };
 };
 
 /** Reads the `EntityEventOptions` a subscriber passed: the ids of its entities, and its types as written. */
