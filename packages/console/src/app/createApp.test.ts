@@ -1,6 +1,6 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
-import { TextRenderable, parseColor } from '@opentui/core';
+import { InputRenderable, TextRenderable, parseColor } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -1086,7 +1086,7 @@ describe('createApp', () => {
                 await t.waitForFrame(() => !inputFocused(t));
             },
             'view.palette': async (t) => {
-                expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);
+                expect(byId(t, 'command-palette')?.visible).toBe(true);
             },
             'server.restart': async (t) => {
                 expect(count(t.captureCharFrame(), 'restart is only available with --watch')).toBe(1);
@@ -1133,6 +1133,71 @@ describe('createApp', () => {
             await effects[id](t);
             const promptRow = t.captureCharFrame().split('\n')[38] ?? '';
             expect(promptRow.trimEnd()).toBe(id === 'log.search' ? '> /' : '> type a command, ? for help');
+        });
+
+        it('opens the palette from the command line and closes it on a second Ctrl+K', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.renderOnce();
+            expect(byId(t, 'command-palette')?.visible).toBe(true);
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.renderOnce();
+            expect(byId(t, 'command-palette')?.visible).toBe(false);
+        });
+
+        it('runs a console action chosen in the palette', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            expect(byId(t, 'side-pane')?.visible).toBe(true);
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.mockInput.typeText('side pane');
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+
+            expect(byId(t, 'command-palette')?.visible).toBe(false);
+            expect(byId(t, 'side-pane')?.visible).toBe(false);
+        });
+
+        it('puts a chosen server command or player on the command line', async () => {
+            const t = await setup(
+                { width: 120, height: 40 },
+                { onComplete: async () => ({ completions: ['op', 'stop'], replace: '' }) }
+            );
+            dispose = t.dispose;
+            t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+            t.app.applyServerMessage({
+                type: 'status',
+                v: 1,
+                tps: 20,
+                tickMs: 4,
+                players: 1,
+                playerNames: ['filfat'],
+                maxPlayers: 20,
+                rssBytes: 0,
+                uptimeMs: 0
+            });
+            await t.renderOnce();
+            const line = () => {
+                const input = byId(t, 'command-input');
+                return input instanceof InputRenderable ? input.value : undefined;
+            };
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.mockInput.typeText('op');
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+            expect(line()).toBe('op ');
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.mockInput.typeText('filf');
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+            expect(line()).toBe('op filfat');
+            expect(inputFocused(t)).toBe(true);
         });
 
         it('restarts on Ctrl+Shift+R only once the supervisor says it can', async () => {

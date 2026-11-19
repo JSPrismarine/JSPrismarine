@@ -7,6 +7,9 @@ import type { KeyEvent, MouseEvent, Selection } from '@opentui/core';
 import { createConsoleClipboard } from '../clipboard';
 import type { ConsoleClipboard } from '../clipboard';
 import { createHelpOverlay } from '../help/helpOverlay';
+import { createCommandPalette } from '../palette/commandPalette';
+import { paletteItems } from '../palette/paletteItems';
+import type { PaletteItem } from '../palette/paletteItems';
 import { createInputBar } from '../input/inputBar';
 import type { CompletionResult } from '../input/inputBar';
 import type { CommandHistory } from '../input/history';
@@ -27,7 +30,6 @@ import { DEFAULT_TICK_RATE, displayTps, tickTone, tpsTone } from '../tps/plotGra
 import { pruneSamples } from '../tps/tpsHistory';
 import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
-import type { ToastInput } from '../status/toastQueue';
 import type { ConsoleContext } from '../context';
 import { createActivityLine } from './activityLine';
 import { INITIAL_DEV_STATE, reduceDevState } from './devState';
@@ -99,8 +101,6 @@ const levelFilterLabel = (level: LogLevel | undefined): string => {
     if (level === undefined) return 'all levels';
     return level === 'error' ? 'errors only' : `${level} and up`;
 };
-
-const NOT_AVAILABLE = (what: string): ToastInput => ({ tone: 'muted', text: `${what} is not yet available` });
 
 interface Metrics {
     tps?: number;
@@ -236,6 +236,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
     });
     const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG });
+    const palette = createCommandPalette(components, { onChoose: (item) => guard(choosePaletteItem)(item) });
     const dropdown = createDropdown(components);
 
     root.onMouseDown = (event: MouseEvent): void => {
@@ -259,6 +260,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         if (dropdown.isOpen && !contains(dropdown.renderable)) dropdown.close();
         if (help.isVisible && !contains(help.renderable)) help.hide();
+        if (palette.isOpen && !contains(palette.renderable)) palette.close();
     };
 
     /** Turns an exception from a handler into a toast and a raw stderr line. */
@@ -315,6 +317,27 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         })
     });
 
+    function openPalette(): void {
+        dropdown.close();
+        help.hide();
+        palette.open(paletteItems(COMMAND_CATALOG, commandNames, metrics.playerNames ?? [], ['view.palette']));
+    }
+
+    /** Runs a chosen console action, or puts a command or a player's name on the command line. */
+    function choosePaletteItem(item: PaletteItem): void {
+        if (item.kind === 'action') {
+            run(item.id);
+            return;
+        }
+        focusInput();
+        if (item.kind === 'command') {
+            input.setValue(`${item.name} `);
+            return;
+        }
+        const line = input.getValue();
+        input.setValue(line === '' || line.endsWith(' ') ? `${line}${item.name}` : `${line} ${item.name}`);
+    }
+
     function focusInput(): void {
         inputFocused = true;
         input.focus();
@@ -343,6 +366,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     root.add(input.renderable);
     root.add(statusBar.renderable);
     root.add(help.renderable);
+    root.add(palette.renderable);
     root.add(dropdown.renderable);
     renderer.root.add(root);
 
@@ -905,7 +929,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 toggleFocus();
                 return;
             case 'view.palette':
-                toasts.push(NOT_AVAILABLE('the command palette'));
+                if (palette.isOpen) palette.close();
+                else openPalette();
                 return;
             case 'server.restart':
                 if (canRestart) props.actions.restart();
@@ -918,6 +943,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     function escape(): boolean {
+        if (palette.isOpen) {
+            palette.close();
+            return true;
+        }
         if (dropdown.isOpen) {
             dropdown.close();
             return true;
@@ -961,6 +990,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         if (help.isVisible) {
             key.preventDefault();
             help.handleKeyPress(key);
+            return;
+        }
+        // Ctrl+K closes the palette as it opened it; every other key edits the query.
+        if (palette.isOpen && resolveCommand(key, { inputFocused: false }) !== 'view.palette') {
+            key.preventDefault();
+            palette.handleKeyPress(key);
             return;
         }
         if (tpsPage.isVisible && !key.ctrl && !key.meta && !key.super) {
@@ -1092,6 +1127,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             dropdown.dispose();
             toasts.dispose();
             help.dispose();
+            palette.dispose();
             tpsPage.dispose();
             sidePane.dispose();
             titleBar.dispose();
