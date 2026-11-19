@@ -214,6 +214,10 @@ Java vanilla datapack as missing.
 
 ## A version bump, step by step
 
+A Java release or snapshot is brought up with the java-bringup skill
+(`.agents/skills/java-bringup/SKILL.md`), which runs `java:diff <old> <new>` for the delta and
+`pnpm run bringup:java --java <release>` to prove it.
+
 1. Edit `packages/bedrock-data/sources.json` with the new versions, URLs and hashes. A new Java
    release goes under `javaServer.versions`, and `defaultVersion` moves to it once it is the one
    the server runs.
