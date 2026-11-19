@@ -1023,7 +1023,8 @@ export class DataDrivenGenerator implements Generator {
         this.worldgen = new WorldgenData({
             densityFunctions: registries.densityFunctions,
             noises: registries.noises,
-            noiseSettings: this.noiseSettingsDocuments
+            noiseSettings: this.noiseSettingsDocuments,
+            format: registries.format
         });
         this.materialRules = new MaterialRuleData(
             { materialRules: registries.materialRules, materialConditions: registries.materialConditions },

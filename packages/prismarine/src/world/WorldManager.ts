@@ -375,9 +375,11 @@ export default class WorldManager implements Service {
     }
 
     private registries(): JavaWorldgenRegistries {
+        const content = this.server.getContent();
         return (this.worldgenRegistries ??= loadJavaWorldgenRegistriesFrom(
-            this.server.getContent().definitions,
-            requireJavaWorldgenSources().reports
+            content.definitions,
+            requireJavaWorldgenSources().reports,
+            content.javaTarget.format[0]
         ));
     }
 
