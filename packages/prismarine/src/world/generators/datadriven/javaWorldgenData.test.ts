@@ -16,6 +16,8 @@ import { join } from 'node:path';
 import { load } from '@jsprismarine/packs';
 import { afterAll, describe, expect, it } from 'vitest';
 
+import { readGeneratedJavaVersion } from '@jsprismarine/bedrock-data/sources';
+
 import { reportProgress } from '../../../../../../.test/reportProgress';
 
 import { findJavaWorldgenSources } from './javaWorldgenSources';
@@ -78,7 +80,10 @@ describe('the Java world generation registries', () => {
 
         it('reads the same registries through either entry point', () => {
             const { definitions } = load([{ kind: 'datapack', path: sources!.datapack }]);
-            expect(loadJavaWorldgenRegistriesFrom(definitions, sources!.reports)).toEqual(registries);
+            // The datapack-only entry point reads the format from the datapack's `version.json`.
+            const format = readGeneratedJavaVersion(sources!.datapack)?.dataPackFormat[0];
+            expect(format).toBeDefined();
+            expect(loadJavaWorldgenRegistriesFrom(definitions, sources!.reports, format)).toEqual(registries);
         });
 
         it('reads the structure registries the generator places from', () => {
