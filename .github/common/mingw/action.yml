@@ -1,0 +1,16 @@
+name: 🪟 MinGW-w64 tools
+description: >-
+    Installs GCC for MinGW-w64's UCRT64 environment with the runner's MSYS2 and puts it first on the
+    path, for a native library that builds on Windows with MinGW-w64 rather than MSVC. A build links
+    against the Universal C Runtime, which every Windows 10 and newer has.
+
+runs:
+    using: 'composite'
+    steps:
+        - name: 🪟 Install GCC for UCRT64
+          shell: pwsh
+          run: |
+              C:\msys64\usr\bin\pacman.exe -Sy --noconfirm --needed mingw-w64-ucrt-x86_64-gcc
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              'C:\msys64\ucrt64\bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+              C:\msys64\ucrt64\bin\gcc.exe --version
