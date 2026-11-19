@@ -280,8 +280,7 @@
         "landmines-testing/no-flake-masking": 1
     },
     "packages/prismarine/src/content/packStack.test.ts": {
-        "landmines-testing/no-flake-masking": 3,
-        "landmines-testing/no-test-doubles": 1
+        "landmines-testing/no-flake-masking": 3
     },
     "packages/prismarine/src/content/startup.test.ts": {
         "landmines-testing/no-flake-masking": 4,

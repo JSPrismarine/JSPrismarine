@@ -80,6 +80,17 @@ export interface PackStackRequest {
     readonly worldPacks?: readonly PackSource[];
     /** Plugin packs, applied last so a plugin overrides a world. */
     readonly pluginPacks?: readonly PackSource[];
+    /**
+     * The cache to read the vanilla members from. Defaults to the nearest
+     * `node_modules/.cache/jsprismarine` at or above the working directory. Tests point it at a
+     * temporary directory.
+     */
+    readonly cacheRoot?: string;
+    /**
+     * The Java releases a `javaVersion` may name. Defaults to the releases `sources.json` pins.
+     * Tests pass a longer list to cover a pinned release without editing the manifest.
+     */
+    readonly pinnedJavaReleases?: readonly string[];
 }
 
 /** The stack, plus a report of the members that could not be found. */
@@ -244,10 +255,9 @@ const generatedTarget = (datapack: string): JavaDataTarget | undefined => {
  * @returns The pinned releases, comma separated, for an error message.
  * @throws {PrismarineContentErrors.UnknownJavaRelease} When it does not.
  */
-const pinnedJavaRelease = (release: string): string => {
-    const pinned = pinnedJavaReleases.join(', ');
-    if (!pinnedJavaReleases.includes(release))
-        throw new PrismarineContentErrors.UnknownJavaRelease({ release, pinned });
+const pinnedJavaRelease = (release: string, releases: readonly string[]): string => {
+    const pinned = releases.join(', ');
+    if (!releases.includes(release)) throw new PrismarineContentErrors.UnknownJavaRelease({ release, pinned });
     return pinned;
 };
 
@@ -262,9 +272,9 @@ const pinnedJavaRelease = (release: string): string => {
  * @throws {PrismarineContentErrors.JavaReleaseNotGenerated} When its datapack or `version.json`
  *   is not in the cache.
  */
-const namedJavaRelease = (release: string): string => {
-    const pinned = pinnedJavaRelease(release);
-    const path = join(cacheRoot(), 'vanilla-datapack', release);
+const namedJavaRelease = (release: string, root: string, releases: readonly string[]): string => {
+    const pinned = pinnedJavaRelease(release, releases);
+    const path = join(root, 'vanilla-datapack', release);
     if (!existsSync(join(path, 'pack.mcmeta')) || generatedTarget(path) === undefined) {
         throw new PrismarineContentErrors.JavaReleaseNotGenerated({ release, path, pinned });
     }
@@ -318,6 +328,8 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
     const diagnostics: Diagnostic[] = [];
     const overlayDirectories: string[] = [];
     let prefixLength = 0;
+    const root = request.cacheRoot ?? cacheRoot();
+    const releases = request.pinnedJavaReleases ?? pinnedJavaReleases;
 
     const missing = (member: string, where: string): void => {
         diagnostics.push({
@@ -329,7 +341,6 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
     };
 
     if (request.vanilla !== false) {
-        const root = cacheRoot();
         const override = process.env[PACK_STACK_ENV.vanillaBedrockPack];
         const layers = sourcePath(override, () => bdsBehaviorPacks(join(root, 'bds')));
         const samplesRoot = sourcePath(process.env[PACK_STACK_ENV.bedrockSamples], () =>
@@ -381,12 +392,14 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const overridden = override !== undefined && override !== '';
         // The override names the datapack outright, so a named release is only checked for being
         // pinned; whether the cache holds it does not matter.
-        if (overridden && request.javaVersion !== undefined) pinnedJavaRelease(request.javaVersion);
+        if (overridden && request.javaVersion !== undefined) pinnedJavaRelease(request.javaVersion, releases);
         const named =
-            overridden || request.javaVersion === undefined ? undefined : namedJavaRelease(request.javaVersion);
+            overridden || request.javaVersion === undefined
+                ? undefined
+                : namedJavaRelease(request.javaVersion, root, releases);
         const datapack = overridden
             ? sourcePath(override, () => undefined)
-            : (named ?? vanillaDatapack(join(cacheRoot(), 'vanilla-datapack')));
+            : (named ?? vanillaDatapack(join(root, 'vanilla-datapack')));
         if (datapack) {
             stack.push({ kind: 'datapack', path: datapack });
             prefixLength = stack.length;
@@ -415,7 +428,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
     const cache: PrefixCacheOptions | undefined =
         prefixLength > 0 && version !== undefined
             ? {
-                  filePath: join(cacheRoot(), 'composed-vanilla-prefix.v11'),
+                  filePath: join(root, 'composed-vanilla-prefix.v11'),
                   prefixLength,
                   fingerprint: fingerprintPackDirectories(overlayDirectories),
                   validatorKey: 'structural-validator-v1'

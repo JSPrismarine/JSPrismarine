@@ -94,24 +94,19 @@ describe('resolvePackStack', () => {
             mkdirSync(behaviorPacks(version), { recursive: true });
         for (const version of ['v0.0.0', bedrockSamplesCacheFolder, 'v99.0.0'])
             mkdirSync(join(samplesPack(version), 'entities'), { recursive: true });
-        vi.spyOn(process, 'cwd').mockReturnValue(project);
         vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '');
         vi.stubEnv(PACK_STACK_ENV.bedrockSamples, '');
 
-        try {
-            const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+        const { stack } = resolvePackStack({ overlay: false, javaVanilla: false, cacheRoot: cache });
 
-            expect(stack).toEqual([
-                { kind: 'directory', path: samplesPack(bedrockSamplesCacheFolder) },
-                {
-                    kind: 'brarchiveLayers',
-                    path: behaviorPacks(defaultBdsCacheFolder),
-                    uuids: [VANILLA_BEHAVIOR_PACK_UUID]
-                }
-            ]);
-        } finally {
-            vi.mocked(process.cwd).mockRestore();
-        }
+        expect(stack).toEqual([
+            { kind: 'directory', path: samplesPack(bedrockSamplesCacheFolder) },
+            {
+                kind: 'brarchiveLayers',
+                path: behaviorPacks(defaultBdsCacheFolder),
+                uuids: [VANILLA_BEHAVIOR_PACK_UUID]
+            }
+        ]);
     });
 
     it('reads the datapack of the pinned Java release out of a cache that holds another one', () => {
@@ -119,23 +114,16 @@ describe('resolvePackStack', () => {
         // pick it.
         const project = mkdtempSync(join(tmpdir(), 'jsp-pack-cache-'));
         temporaryDirs.push(project);
-        const datapack = (version: string) =>
-            join(project, 'node_modules', '.cache', 'jsprismarine', 'vanilla-datapack', version);
+        const datapack = (version: string) => join(project, 'vanilla-datapack', version);
         for (const version of ['1.0', javaServerCacheFolder]) {
             mkdirSync(datapack(version), { recursive: true });
             writeFileSync(join(datapack(version), 'pack.mcmeta'), '{}');
         }
-        vi.spyOn(process, 'cwd').mockReturnValue(project);
-        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
         vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '');
 
-        try {
-            const { stack } = resolvePackStack({ overlay: false, vanilla: false });
+        const { stack } = resolvePackStack({ overlay: false, vanilla: false, cacheRoot: project });
 
-            expect(stack).toEqual([{ kind: 'datapack', path: datapack(javaServerCacheFolder) }]);
-        } finally {
-            vi.mocked(process.cwd).mockRestore();
-        }
+        expect(stack).toEqual([{ kind: 'datapack', path: datapack(javaServerCacheFolder) }]);
     });
 
     describe('over a folder of BDS layers', () => {
