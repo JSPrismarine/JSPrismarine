@@ -28,7 +28,7 @@
  * point, and every path the generator touches is passed to it as an argument.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -132,6 +132,25 @@ const install = (from: string, to: string): void => {
 
 install(join(outputDir, 'data'), join(datapackDir, 'data'));
 install(join(outputDir, 'reports'), join(reportsDir, 'reports'));
+
+/**
+ * `loot_context_requirements.json` (new in 26.4) lists each context set's `allowed` and `required`
+ * parameters in the iteration order of a Java identity-hashed set, which changes from run to run.
+ * The arrays are sets, so sorting them loses nothing and makes two runs byte-identical, which the
+ * bring-up's reproducibility stage checks.
+ */
+const sortLootContextRequirements = (path: string): void => {
+    if (!existsSync(path)) return;
+    // Parsed JSON: an object of context sets, each an object of parameter-name arrays.
+    const report = JSON.parse(readFileSync(path, 'utf8')) as Record<string, Record<string, unknown>>;
+    for (const set of Object.values(report)) {
+        for (const [key, value] of Object.entries(set)) {
+            if (Array.isArray(value)) set[key] = value.toSorted();
+        }
+    }
+    writeFileSync(path, `${JSON.stringify(report, undefined, 2)}\n`);
+};
+sortLootContextRequirements(join(reportsDir, 'reports', 'loot_context_requirements.json'));
 
 const { data_major: major, data_minor: minor } = jarVersion.pack_version;
 const mcmeta = {
