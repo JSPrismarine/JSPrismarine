@@ -1,0 +1,124 @@
+{
+    "$comment": [
+        "What the scripts of scenario `world-events` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "world-events",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "events",
+            "seq": 1,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "events",
+            "seq": 2,
+            "tick": 2,
+            "event": "before effectAdd",
+            "value": [
+                "minecraft:pig",
+                "Speed",
+                200
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 3,
+            "tick": 2,
+            "event": "add speed",
+            "value": 40
+        },
+        {
+            "pack": "events",
+            "seq": 4,
+            "tick": 2,
+            "event": "after effectAdd",
+            "value": [
+                "minecraft:pig",
+                "minecraft:speed",
+                40,
+                0
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 5,
+            "tick": 4,
+            "event": "before entityHurt",
+            "value": [
+                "minecraft:pig",
+                3,
+                "none"
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 6,
+            "tick": 4,
+            "event": "hurt the pig",
+            "value": true
+        },
+        {
+            "pack": "events",
+            "seq": 7,
+            "tick": 4,
+            "event": "after entityHealthChanged",
+            "value": [
+                "minecraft:pig",
+                10,
+                7
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 8,
+            "tick": 6,
+            "event": "set a game rule",
+            "value": 1
+        },
+        {
+            "pack": "events",
+            "seq": 9,
+            "tick": 6,
+            "event": "after gameRuleChange",
+            "value": [
+                "doDayLightCycle",
+                false
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 10,
+            "tick": 8,
+            "event": "before entityRemove",
+            "value": [
+                "minecraft:pig",
+                true
+            ]
+        },
+        {
+            "pack": "events",
+            "seq": 11,
+            "tick": 8,
+            "event": "remove the pig"
+        },
+        {
+            "pack": "events",
+            "seq": 12,
+            "tick": 8,
+            "event": "after entityRemove",
+            "value": [
+                "minecraft:pig",
+                true
+            ]
+        }
+    ]
+}

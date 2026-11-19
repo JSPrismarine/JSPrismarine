@@ -1909,6 +1909,11 @@
             "kind": "defect",
             "reason": "A mob that dies leaves JSPrismarine's script world at once, so its deadEntity and the dead pig read isValid false and applyDamage on it throws InvalidEntityError, where BDS keeps it valid through its death animation and returns false. Entity.kill on an armor stand raises entityHurt and entityDie on JSPrismarine, where BDS breaks it and raises neither. Every entitySpawn, the other blows, their damage after the grace period, their causes and the event order match BDS.",
             "reference": "docs/plans/script-api-host.md slice 10 (#3207)"
+        },
+        "bds-record:world-event-gaps": {
+            "kind": "deferred",
+            "reason": "JSPrismarine has no world clocks, script-registered dimensions, pack settings, sound lengths, tripwire or target block redstone, input permissions or entity upgrades, so the world events that report on them and startup's dimension and world clock registries throw NotImplementedError, where BDS lets a script subscribe to each and hands it both registries.",
+            "reference": "#3290, #3291, #3292, #3293, #3294, #3295, #3296"
         }
     },
     "scripting.gametest": {},

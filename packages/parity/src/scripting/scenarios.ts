@@ -755,6 +755,30 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'world'
     },
     {
+        id: 'world-events',
+        family: 'scripting.events',
+        description:
+            "The world events a script's own actions raise: effectAdd before and after, with the duration the " +
+            'before-event sets, entityHurt before a blow and entityHealthChanged after it, gameRuleChange, ' +
+            'and entityRemove before and after.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['events'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'world-event-gaps',
+        family: 'scripting.events',
+        description:
+            'A script subscribes to the world events whose game systems JSPrismarine lacks, world clocks, pack ' +
+            "settings, a sound's end, tripwires, target blocks, input permissions and entity upgrades, and reads " +
+            "startup's dimension and world clock registries.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['gaps'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
         id: 'entity-event-options',
         family: 'scripting.events',
         description:
