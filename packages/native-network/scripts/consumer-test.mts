@@ -2,7 +2,8 @@
  * Installs the packed package from an npm project, the way users do: npm runs its install script,
  * after the project approves it where npm asks for that, so the build is downloaded and loads. The
  * manifest packed for the test points at the artifacts directory, so nothing is fetched from a
- * release.
+ * release. Its workspace dependencies are packed beside it, so the project installs the code in
+ * this checkout rather than the last versions published to npm.
  *
  *     node scripts/consumer-test.mts <artifacts-dir>
  */
@@ -15,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { platformKey, sharedLibraryName } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const errorsDir = resolve(packageDir, '..', 'errors');
 const artifacts = resolve(process.argv[2] ?? '');
 if (!existsSync(artifacts)) throw new Error('Usage: node scripts/consumer-test.mts <artifacts-dir>');
 const manifestPath = join(packageDir, 'native', 'manifest.json');
@@ -55,7 +57,11 @@ const project = (name: string): string => {
                 name: `consumer-${name}`,
                 private: true,
                 type: 'module',
-                dependencies: { '@jsprismarine/native-network': `file:${tarball}` }
+                dependencies: {
+                    '@jsprismarine/native-network': `file:${tarball}`,
+                    '@jsprismarine/errors': `file:${errorsTarball}`
+                },
+                overrides: { '@jsprismarine/errors': `file:${errorsTarball}` }
             },
             null,
             2
@@ -65,18 +71,27 @@ const project = (name: string): string => {
 };
 
 let tarball = '';
+let errorsTarball = '';
+/** Packs a package into a directory of its own under the work directory and returns the tarball. */
+const pack = (dir: string, name: string): string => {
+    const destination = join(work, `pack-${name}`);
+    mkdirSync(destination);
+    run('pnpm', ['pack', '--pack-destination', destination], dir);
+    return join(
+        destination,
+        readdirSync(destination).find((file) => file.endsWith('.tgz'))!
+    );
+};
 try {
     run(
         process.execPath,
         [join(packageDir, 'scripts', 'write-manifest.mts'), '--artifacts', artifacts, '--base-url', artifacts],
         packageDir
     );
+    run('pnpm', ['run', 'build'], errorsDir);
     run('pnpm', ['run', 'build'], packageDir);
-    run('pnpm', ['pack', '--pack-destination', work], packageDir);
-    tarball = join(
-        work,
-        readdirSync(work).find((name) => name.endsWith('.tgz'))!
-    );
+    errorsTarball = pack(errorsDir, 'errors');
+    tarball = pack(packageDir, 'native-network');
 
     const npm = project('npm');
     run('npm', ['install', '--no-audit', '--no-fund'], npm);
