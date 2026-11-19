@@ -34,8 +34,8 @@ release's server jar by hash. `defaultVersion` there names the release above.
 
 Besides the default, `sources.json` may pin one preview: a Java snapshot or pre-release tracked
 ahead of its release, so the server is ready when the release ships. The pinned preview is
-<!-- fact:java.preview.version -->none<!-- /fact -->, at data pack format
-<!-- fact:java.preview.dataPackFormat -->none<!-- /fact -->.
+<!-- fact:java.preview.version -->26.4-snapshot-10<!-- /fact -->, at data pack format
+<!-- fact:java.preview.dataPackFormat -->128.0<!-- /fact -->.
 
 A preview is for testing. Mojang changes snapshot data from week to week, and the pin moves with
 it, so a world saved under a preview may refuse to open under the release that follows (see
