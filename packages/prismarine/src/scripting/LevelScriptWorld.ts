@@ -35,6 +35,7 @@ import type {
     ScriptGameEventGuard
 } from '@jsprismarine/script-host/host/world';
 import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entities/world';
+import { shapeVisibleTo } from '@jsprismarine/script-host/host/world';
 
 import type { ChatManager } from '../chat/ChatManager';
 import { Scoreboard } from '../world/Scoreboard';
@@ -92,6 +93,7 @@ export type ScriptLevelAccess = Pick<
     | 'catalog'
     | 'blockLight'
     | 'waterlogged'
+    | 'worldSystem'
 >;
 
 /** A level the scripts reach nothing of: no entities, no loaded blocks, no types and no commands. */
@@ -295,6 +297,8 @@ export class LevelScriptWorld implements ScriptWorld {
     public readonly blockLight: ScriptWorld['blockLight'];
     /** Whether a block holds water in its liquid layer, when the server keeps one. */
     public readonly waterlogged: ScriptWorld['waterlogged'];
+    /** The level's clock, spawn, difficulty, game rules and music. */
+    public readonly worldSystem: ScriptWorld['worldSystem'];
     /**
      * The level's structures. They last as long as the level is loaded: a save does not keep them
      * yet, as BDS keeps a structure saved to the world.
@@ -342,6 +346,7 @@ export class LevelScriptWorld implements ScriptWorld {
         this.catalog = this.access.catalog;
         this.blockLight = this.access.blockLight;
         this.waterlogged = this.access.waterlogged;
+        this.worldSystem = this.access.worldSystem;
         this.http = sources.http;
         this.entitySystems = sources.entitySystems;
         const stopWeather = sources.weather.onChange(({ previous, current }) =>
@@ -629,7 +634,8 @@ export class LevelScriptWorld implements ScriptWorld {
         for (const player of players) {
             if (this.shapeViewers.has(player.id)) continue;
             this.shapeViewers.add(player.id);
-            if (all.length > 0) player.drawDebugShapes?.(all);
+            const seen = all.filter(({ shape }) => shapeVisibleTo(shape, player.id));
+            if (seen.length > 0) player.drawDebugShapes?.(seen);
         }
     }
 
@@ -643,7 +649,13 @@ export class LevelScriptWorld implements ScriptWorld {
             else this.shapes.set(id, shape);
         }
         for (const player of this.sources.players()) {
-            if (this.shapeViewers.has(player.id)) player.drawDebugShapes?.(changes);
+            if (!this.shapeViewers.has(player.id)) continue;
+            // A shape a player may not see goes out to them as one to stop drawing.
+            player.drawDebugShapes?.(
+                changes.map((change) =>
+                    change.shape === undefined || shapeVisibleTo(change.shape, player.id) ? change : { id: change.id }
+                )
+            );
         }
     }
 

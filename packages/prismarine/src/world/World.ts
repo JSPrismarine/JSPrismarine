@@ -296,7 +296,8 @@ interface PlayerChunkCoverage {
 
 type ChunkPlayerCounts = [simulation: number, retention: number, light: number];
 
-interface ChunkRectangle {
+/** A rectangle of chunks, inclusive, by chunk coordinates. */
+export interface ChunkRectangle {
     readonly minX: number;
     readonly maxX: number;
     readonly minZ: number;
@@ -315,6 +316,8 @@ class PlayerChunkRefCounts {
     private readonly chunks = new Map<number, ChunkPlayerCounts>();
     private readonly loadedChunks = new Set<number>();
     private readonly unloadCandidates = new Set<number>();
+    /** The ticking areas covered, by owner. */
+    private readonly areas = new Map<string, ChunkRectangle>();
     private revision = 0;
 
     public synchronize(players: ReadonlyMap<number, CoveringPlayer>): void {
@@ -353,6 +356,37 @@ class PlayerChunkRefCounts {
 
     public getRevision(): number {
         return this.revision;
+    }
+
+    /**
+     * Covers a ticking area's chunks as a player's simulation area covers them: they stay loaded,
+     * are lit and tick, with no player near. A second call from the same owner replaces its area,
+     * and undefined takes it out.
+     */
+    public setArea(owner: string, rectangle: ChunkRectangle | undefined): void {
+        const previous = this.areas.get(owner);
+        if (previous !== undefined) this.changeAreaCoverage(previous, -1);
+        if (rectangle === undefined) this.areas.delete(owner);
+        else {
+            this.areas.set(owner, rectangle);
+            this.changeAreaCoverage(rectangle, 1);
+        }
+        this.revision++;
+    }
+
+    private changeAreaCoverage(rectangle: ChunkRectangle, change: -1 | 1): void {
+        this.changeArea(rectangle, 'simulation', change);
+        this.changeArea(rectangle, 'retention', change);
+        this.changeArea(
+            {
+                minX: rectangle.minX - LIGHT_GUARD_CHUNKS,
+                maxX: rectangle.maxX + LIGHT_GUARD_CHUNKS,
+                minZ: rectangle.minZ - LIGHT_GUARD_CHUNKS,
+                maxZ: rectangle.maxZ + LIGHT_GUARD_CHUNKS
+            },
+            'light',
+            change
+        );
     }
 
     /** Adds one loaded chunk to the maintained set eligible for distant unload. */
@@ -701,6 +735,8 @@ export class World implements Service {
      * is.
      */
     private tickets: ChunkTickets | undefined;
+    /** The ticking areas of this world, by owner, whose chunks load, stay and tick with no player near. */
+    private readonly tickingAreas = new Map<string, ChunkRectangle>();
 
     /** The End's dragon fight, created on the first ask in a dimension that has one. */
     private dragonFight: DragonFight | undefined;
@@ -1277,6 +1313,10 @@ export class World implements Service {
             endSystemsProfile?.();
         }
 
+        // A ticking area whose chunks are still loading asks again, as any ticket holder does.
+        for (const [owner, area] of this.tickingAreas) {
+            if (!this.isTickingAreaLoaded(owner)) this.requestTickingArea(owner, area);
+        }
         const playerChunkRefCounts = this.getPlayerChunkRefCounts();
         playerChunkRefCounts.synchronize(this.players);
         this.tickCookingStations(playerChunkRefCounts);
@@ -1591,6 +1631,40 @@ export class World implements Service {
             isLoaded: (x, z) => this.getLoadedChunk(x, z) !== null,
             load: (x, z) => this.loadTicketedChunk(x, z)
         }));
+    }
+
+    /**
+     * Keeps a rectangle of chunks loaded and ticking with no player near, as a `/tickingarea` or
+     * a script's ticking area does, or stops when `area` is undefined. A second call from the
+     * same owner replaces its area. Missing chunks start loading now and every tick until they
+     * are in.
+     * @param owner - Who holds the area, unique in this world.
+     */
+    public setTickingArea(owner: string, area: ChunkRectangle | undefined): void {
+        this.getPlayerChunkRefCounts().setArea(owner, area);
+        if (area === undefined) {
+            this.tickingAreas.delete(owner);
+            this.chunkTickets().release(`tickingarea:${owner}`);
+            return;
+        }
+        this.tickingAreas.set(owner, area);
+        this.requestTickingArea(owner, area);
+    }
+
+    /** Whether every chunk of a ticking area is loaded. False for an owner with none. */
+    public isTickingAreaLoaded(owner: string): boolean {
+        const area = this.tickingAreas.get(owner);
+        if (area === undefined) return false;
+        for (let x = area.minX; x <= area.maxX; x++)
+            for (let z = area.minZ; z <= area.maxZ; z++) if (this.getLoadedChunk(x, z) === null) return false;
+        return true;
+    }
+
+    /** Takes or renews the chunk ticket of one ticking area, starting the loads it still needs. */
+    private requestTickingArea(owner: string, area: ChunkRectangle): void {
+        const chunks: { x: number; z: number }[] = [];
+        for (let x = area.minX; x <= area.maxX; x++) for (let z = area.minZ; z <= area.maxZ; z++) chunks.push({ x, z });
+        this.chunkTickets().request(`tickingarea:${owner}`, chunks);
     }
 
     /**
