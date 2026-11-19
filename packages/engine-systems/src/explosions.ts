@@ -150,6 +150,15 @@ export interface ExplosionOptions<T extends ExplosionEntity> {
      * the block's loot table with an `explosion_radius` of {@link ExplosionOptions.radius}.
      */
     readonly onBlockDestroyed?: (at: BlockPosition, block: BlockRef) => void;
+    /**
+     * Called once the rays are cast and before anything is hurt or cleared, with the blocks the
+     * blast would clear, in the order Java shuffled them into: none when it breaks no blocks.
+     * It may cancel the blast, or hand back the blocks to clear instead, in the order to clear
+     * them; a position it adds is cleared even where no ray reached.
+     */
+    readonly guard?: (
+        blocks: readonly BlockPosition[]
+    ) => { readonly cancel: true } | { readonly blocks: readonly BlockPosition[] };
 }
 
 /** What one blast came to. */
@@ -166,6 +175,8 @@ export interface ExplosionResult<T extends ExplosionEntity> {
     readonly hits: readonly ExplosionHit<T>[];
     /** How many positions held a block that was cleared. */
     readonly broken: number;
+    /** Whether {@link ExplosionOptions.guard} canceled the blast, which then did nothing. */
+    readonly canceled?: boolean;
 }
 
 /**
@@ -519,9 +530,21 @@ export const explode = <T extends ExplosionEntity>(
     world: ExplosionWorld,
     options: ExplosionOptions<T>
 ): ExplosionResult<T> => {
-    const { center, radius, entities = [], breaksBlocks = true, onBlockDestroyed } = options;
+    const { center, radius, entities = [], breaksBlocks = true, onBlockDestroyed, guard } = options;
 
     const positions = calculateExplodedPositions(world, center, radius);
+
+    let order: readonly BlockPosition[] = [];
+    if (breaksBlocks) {
+        const shuffled = [...positions];
+        shuffle(shuffled, world);
+        order = shuffled;
+    }
+    if (guard !== undefined) {
+        const verdict = guard(order.filter((at) => world.getBlock(at).name !== AIR.name));
+        if ('cancel' in verdict) return { positions, hits: [], broken: 0, canceled: true };
+        order = verdict.blocks;
+    }
 
     const hits: ExplosionHit<T>[] = [];
     if (radius >= MIN_EXPLOSION_RADIUS && entities.length > 0) {
@@ -535,18 +558,13 @@ export const explode = <T extends ExplosionEntity>(
     }
 
     let broken = 0;
-    if (breaksBlocks) {
-        const order = [...positions];
-        shuffle(order, world);
+    for (const at of order) {
+        const block = world.getBlock(at);
+        if (block.name === AIR.name) continue;
 
-        for (const at of order) {
-            const block = world.getBlock(at);
-            if (block.name === AIR.name) continue;
-
-            onBlockDestroyed?.(at, block);
-            world.setBlock(at, AIR, true);
-            broken += 1;
-        }
+        onBlockDestroyed?.(at, block);
+        world.setBlock(at, AIR, true);
+        broken += 1;
     }
 
     return { positions, hits, broken };
