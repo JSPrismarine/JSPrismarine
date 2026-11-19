@@ -81,7 +81,8 @@ export const COMMAND_CATALOG = [
     { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [ctrl('b')] },
     { id: 'view.tpsGraph', title: 'TPS graph', group: 'View', bindings: [plain('t')] },
     { id: 'view.help', title: 'Help', group: 'View', bindings: [plain('?')] },
-    { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [ctrl('k')] },
+    // Global so it opens from the command line too, where it takes Ctrl+K from line editing.
+    { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [ctrl('k')], global: true },
     { id: 'view.toggleFocus', title: 'Toggle input/log focus', group: 'Input', bindings: [plain('escape')] },
     { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [ctrlShift('r')] },
     { id: 'server.stop', title: 'Stop server', group: 'Server', bindings: [], hint: 'Ctrl+C twice' }

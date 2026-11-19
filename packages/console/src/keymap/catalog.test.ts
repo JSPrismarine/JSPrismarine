@@ -59,12 +59,16 @@ describe('resolveCommand', () => {
         ['l', 'log.clearView'],
         ['f', 'log.filter'],
         ['b', 'view.toggleSidePane'],
-        ['k', 'view.palette'],
         ['r', 'input.historySearch']
     ] as const)('resolves %s while the log has focus', (name, expected) => {
         const press = name.length === 1 ? ctrl(name) : key(name);
         expect(resolveCommand(press, logFocused)).toBe(expected);
         expect(resolveCommand(press, inputFocused)).toBeUndefined();
+    });
+
+    it('opens the palette on Ctrl+K whichever side has focus', () => {
+        expect(resolveCommand(ctrl('k'), logFocused)).toBe('view.palette');
+        expect(resolveCommand(ctrl('k'), inputFocused)).toBe('view.palette');
     });
 
     it.each([
