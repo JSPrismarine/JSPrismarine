@@ -29,6 +29,7 @@ import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
 import type { ToastInput } from '../status/toastQueue';
 import type { ConsoleContext } from '../context';
+import { createActivityLine } from './activityLine';
 import { INITIAL_DEV_STATE, reduceDevState } from './devState';
 import type { DevState } from './devState';
 import { SIDE_PANE_RESIZER_WIDTH, SIDE_PANE_WIDTH, computeLayout } from './layout';
@@ -77,7 +78,7 @@ export interface AppProps {
 export interface App {
     /** Routes a server message to the store, the status bar, or the side pane. */
     applyServerMessage(message: ServerMessage): void;
-    /** Routes a supervisor event to the state segment, the dev badge, the toasts, or the store. */
+    /** Routes a supervisor event to the state tile, the activity line, or the store. */
     applySupervisorEvent(event: SupervisorEvent): void;
     /** Grays the input while the server cannot take commands. */
     setDisabled(flag: boolean): void;
@@ -182,6 +183,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     const toasts = createToastStack(components);
     const titleBar = createTitleBar(components, { serverName: props.serverName, version: props.version });
+    const activityLine = createActivityLine(components);
     const sidePane = createSidePane(components, {
         onClose() {
             sidePanePreference = false;
@@ -337,6 +339,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     main.add(sidePaneResizer);
     root.add(titleBar.renderable);
     root.add(main);
+    root.add(activityLine.renderable);
     root.add(input.renderable);
     root.add(statusBar.renderable);
     root.add(help.renderable);
@@ -394,9 +397,6 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
             if (vitals && metrics.uptimeMs !== undefined) {
                 left.push({ id: 'uptime', text: `up ${formatUptime(metrics.uptimeMs)}`, tone: 'muted', priority: 40 });
-            }
-            if (!layout.titleBar && dev.badge) {
-                left.push({ id: 'dev', text: `dev ● ${dev.badge.text}`, tone: dev.badge.tone, priority: 70 });
             }
         }
         statusBar.setLeft(left);
@@ -603,7 +603,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function applyLayout(): void {
         const next = computeLayout(renderer.terminalWidth, renderer.terminalHeight, {
             sidePaneVisible: sidePanePreference,
-            sidePaneWidth
+            sidePaneWidth,
+            activityLine: dev.activity !== undefined
         });
         const previous = layout;
         layout = next;
@@ -641,10 +642,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     function setDev(next: DevState): void {
+        const lineAppears = (dev.activity === undefined) !== (next.activity === undefined);
         dev = next;
-        titleBar.setBadge(next.badge);
-        refreshStatus();
-        refreshSidePane();
+        activityLine.update(next.activity, next.watchRoot);
+        // The line takes a row from the log, so the layout follows when it comes or goes.
+        if (lineAppears) applyLayout();
+        else refreshSidePane();
     }
 
     function setSearch(query: string | undefined): void {
@@ -1064,9 +1067,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             state = event.state;
             titleBar.setState(state);
         }
-        const transition = reduceDevState(dev, event, now());
-        setDev(transition.state);
-        if (transition.toast) toasts.push(transition.toast);
+        setDev(reduceDevState(dev, event, now()));
     }
 
     return {
@@ -1094,6 +1095,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             tpsPage.dispose();
             sidePane.dispose();
             titleBar.dispose();
+            activityLine.dispose();
             renderer.root.remove(root);
             root.destroyRecursively();
         }

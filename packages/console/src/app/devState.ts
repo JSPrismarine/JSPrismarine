@@ -2,36 +2,51 @@ import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { basename } from 'node:path';
 
 import type { SegmentTone } from '../status/segments';
-import type { ToastInput } from '../status/toastQueue';
 
-/** Text and tone of the dev badge shown in the title bar or, when the title bar is hidden, the status bar. */
-export interface DevBadge {
-    text: string;
+/** What the dev supervisor last did, as the activity line reports it. */
+export type ActivityKind =
+    | 'watching'
+    | 'changed'
+    | 'generating'
+    | 'generated'
+    | 'generationFailed'
+    | 'restarting'
+    | 'starting'
+    | 'running'
+    | 'stopping'
+    | 'stopped'
+    | 'crashed';
+
+/** The latest supervisor event worth a line: its kind, tone, clock reading and details. */
+export interface Activity {
+    kind: ActivityKind;
     tone: SegmentTone;
+    /** Clock reading when it happened. */
+    at: number;
+    /** The changed file, for `changed`, relative to the repository. */
+    path?: string;
+    /** How the server ended, for `crashed`: `exit 1` or a signal name. */
+    exit?: string;
+    /** The server generation, for `starting` and `running`. */
+    generation?: number;
 }
 
 /** What the console knows about the dev supervisor. */
 export interface DevState {
     /** Short name of the watched directory; set once `supervisor.watching` arrives. Undefined outside dev mode. */
     watchRoot?: string;
-    /** Badge to show, or undefined when the console is not in dev mode. */
-    badge?: DevBadge;
+    /** The activity line's content, or undefined when the console is not in dev mode. */
+    activity?: Activity;
+    /** The file whose change started the current restart, until the server runs again. */
+    cause?: string;
     /** Server generations spawned after the first. */
     restarts: number;
     /** Clock reading when the latest restart began. */
     lastRestartAt?: number;
 }
 
-/** The result of applying one event: the next state and a toast to show, if any. */
-export interface DevTransition {
-    state: DevState;
-    toast?: ToastInput;
-}
-
 /** The state before any supervisor event. */
 export const INITIAL_DEV_STATE: DevState = { restarts: 0 };
-
-const watchingBadge = (root: string): DevBadge => ({ text: `watching ${root}`, tone: 'muted' });
 
 const exitText = (code: number | null | undefined, signal: string | null | undefined): string => {
     if (typeof code === 'number') return `exit ${code}`;
@@ -39,92 +54,108 @@ const exitText = (code: number | null | undefined, signal: string | null | undef
     return 'unknown exit';
 };
 
-function stateBadge(state: DevState, event: Extract<SupervisorEvent, { type: 'supervisor.state' }>): DevBadge {
-    switch (event.state) {
-        case 'running':
-            return state.watchRoot === undefined ? { text: 'running', tone: 'ok' } : watchingBadge(state.watchRoot);
-        case 'restarting':
-            return { text: 'restarting', tone: 'accent' };
-        case 'crashed':
-            return { text: `crashed (${exitText(event.code, event.signal)})`, tone: 'danger' };
-        case 'waiting':
-            return { text: 'waiting for changes', tone: 'muted' };
-        case 'starting':
-        case 'stopping':
-            return { text: event.state, tone: 'warning' };
-        case 'stopped':
-            return { text: 'stopped', tone: 'muted' };
-    }
-}
-
-function stateToast(
-    state: DevState,
-    event: Extract<SupervisorEvent, { type: 'supervisor.state' }>
-): ToastInput | undefined {
-    switch (event.state) {
-        case 'crashed': {
-            const crashed = `server crashed (${exitText(event.code, event.signal)})`;
-            // Under the watcher, say what brings the server back rather than leave a dead end.
-            const text =
-                state.watchRoot === undefined
-                    ? crashed
-                    : `${crashed}. Saving a file under ${state.watchRoot} restarts it.`;
-            return { tone: 'danger', text, sticky: true };
-        }
-        case 'restarting':
-            return { tone: 'accent', text: 'restarting server' };
-        default:
-            // `waiting` always follows `crashed`, whose toast already says what happens next.
-            return undefined;
-    }
-}
+const STATE_ACTIVITY: Record<
+    Extract<SupervisorEvent, { type: 'supervisor.state' }>['state'],
+    { kind: ActivityKind; tone: SegmentTone } | undefined
+> = {
+    starting: { kind: 'starting', tone: 'warning' },
+    running: { kind: 'running', tone: 'ok' },
+    restarting: { kind: 'restarting', tone: 'warning' },
+    stopping: { kind: 'stopping', tone: 'warning' },
+    stopped: { kind: 'stopped', tone: 'muted' },
+    crashed: { kind: 'crashed', tone: 'danger' },
+    // The supervisor waits only after a crash; the crash stays the line's news.
+    waiting: undefined
+};
 
 /**
- * Folds one supervisor event into the dev state. The badge only appears once the supervisor
- * reports a watch root or starts generating, so a plain run without `--watch` shows no dev
- * chrome. Server state changes also update the badge so the title bar follows a restart.
+ * Folds one supervisor event into the dev state. The activity line only appears once the
+ * supervisor reports a watch root or starts generating, so a plain run without `--watch` shows
+ * no dev chrome.
  *
- * @param now - Clock reading stored as `lastRestartAt` when a restart begins; defaults to `Date.now()`.
+ * @param now - Clock reading stored on the activity and as `lastRestartAt` when a restart
+ * begins; defaults to `Date.now()`.
  */
-export function reduceDevState(state: DevState, event: SupervisorEvent, now = Date.now()): DevTransition {
+export function reduceDevState(state: DevState, event: SupervisorEvent, now = Date.now()): DevState {
     switch (event.type) {
         case 'supervisor.watching': {
             const root = basename(event.root) || event.root;
-            return { state: { ...state, watchRoot: root, badge: watchingBadge(root) } };
+            return { ...state, watchRoot: root, activity: { kind: 'watching', tone: 'muted', at: now } };
         }
         case 'supervisor.changed':
             return {
-                state: { ...state, badge: { text: 'change detected', tone: 'warning' } },
-                toast: { tone: 'warning', text: `change detected: ${event.path}` }
+                ...state,
+                cause: event.path,
+                activity: { kind: 'changed', tone: 'warning', at: now, path: event.path }
             };
-        case 'supervisor.generating':
-            if (event.ok === undefined) {
-                return {
-                    state: { ...state, badge: { text: 'generating bedrock-data', tone: 'warning' } },
-                    toast: { tone: 'warning', text: 'generating bedrock-data' }
-                };
-            }
-            if (event.ok) {
-                return {
-                    state: { ...state, badge: { text: 'bedrock-data generated', tone: 'ok' } },
-                    toast: { tone: 'ok', text: 'bedrock-data generated' }
-                };
-            }
-            return {
-                state: { ...state, badge: { text: 'bedrock-data generation failed', tone: 'danger' } },
-                toast: { tone: 'danger', text: 'bedrock-data generation failed', sticky: true }
-            };
+        case 'supervisor.generating': {
+            const activity: Activity =
+                event.ok === undefined
+                    ? { kind: 'generating', tone: 'warning', at: now }
+                    : event.ok
+                      ? { kind: 'generated', tone: 'ok', at: now }
+                      : { kind: 'generationFailed', tone: 'danger', at: now };
+            return { ...state, activity };
+        }
         case 'supervisor.state': {
             const restarted = event.state === 'starting' && event.generation > 1;
             const next: DevState = {
                 ...state,
                 restarts: Math.max(state.restarts, event.generation - 1),
-                lastRestartAt: restarted ? now : state.lastRestartAt,
-                badge: state.badge === undefined && state.watchRoot === undefined ? undefined : stateBadge(state, event)
+                lastRestartAt: restarted ? now : state.lastRestartAt
             };
-            return { state: next, toast: stateToast(state, event) };
+            const shape = STATE_ACTIVITY[event.state];
+            if (state.activity === undefined || shape === undefined) return next;
+            return {
+                ...next,
+                // The cause stays with the restart until the new server runs.
+                cause: event.state === 'running' ? undefined : state.cause,
+                activity: {
+                    ...shape,
+                    at: now,
+                    generation: event.generation,
+                    // A restart or a new generation keeps the change that caused it.
+                    path: event.state === 'crashed' ? undefined : state.cause,
+                    exit: event.state === 'crashed' ? exitText(event.code, event.signal) : undefined
+                }
+            };
         }
         case 'supervisor.output':
-            return { state };
+            return state;
+    }
+}
+
+/**
+ * The sentence the activity line shows for an activity.
+ *
+ * @param watchRoot - The watched directory's short name, for the lines that say what a save does.
+ */
+export function activityText(activity: Activity, watchRoot = 'the watched files'): string {
+    const after = activity.path === undefined ? '' : ` after ${activity.path} changed`;
+    switch (activity.kind) {
+        case 'watching':
+            return `Watching ${watchRoot} for changes.`;
+        case 'changed':
+            return `${activity.path ?? 'A file'} changed.`;
+        case 'generating':
+            return 'Generating bedrock-data.';
+        case 'generated':
+            return 'Generated bedrock-data.';
+        case 'generationFailed':
+            return 'Generating bedrock-data failed.';
+        case 'restarting':
+            return `Restarting${after}.`;
+        case 'starting':
+            return `Starting generation ${activity.generation ?? 1}${after}.`;
+        case 'running':
+            return activity.generation !== undefined && activity.generation > 1
+                ? `Restarted${after}. Watching ${watchRoot} for changes.`
+                : `Running. Watching ${watchRoot} for changes.`;
+        case 'stopping':
+            return 'Stopping.';
+        case 'stopped':
+            return 'Stopped.';
+        case 'crashed':
+            return `Crashed (${activity.exit ?? 'unknown exit'}). Saving a file under ${watchRoot} restarts it.`;
     }
 }

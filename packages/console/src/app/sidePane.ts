@@ -128,9 +128,9 @@ export function sidePaneRows(model: SidePaneModel): SidePaneRow[] {
         { kind: 'value', label: 'version', value: model.server?.version ?? DASH },
         { kind: 'value', label: 'uptime', value: model.uptimeMs === undefined ? DASH : formatUptime(model.uptimeMs) }
     );
-    // The watcher's own state is the dev badge; the pane only adds the restart history, once
-    // there is one.
-    if (model.dev.badge !== undefined && model.dev.restarts > 0) {
+    // What the watcher is doing is the activity line's; the pane only adds the restart history,
+    // once there is one.
+    if (model.dev.watchRoot !== undefined && model.dev.restarts > 0) {
         rows.push(
             { kind: 'blank' },
             { kind: 'header', key: 'dev', text: 'Dev' },

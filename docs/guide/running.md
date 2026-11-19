@@ -304,8 +304,9 @@ The `prismarine` entry point picks one of two console modes at startup.
 The terminal UI (TUI) is used when stdin and stdout are a terminal, `TERM` is not `dumb`,
 neither `CI` nor `JSP_NO_TUI` is set, `--no-tui` was not passed, and Node can load `node:ffi` (by
 default on 26.9 or newer, or with `--experimental-ffi` on 26.4 through 26.8). The
-UI draws the log, a status bar with TPS, player count, memory, and uptime, and an input line with
-history and command completion. In this mode the process you started is a host: it owns the
+UI draws a title bar whose tile names the server's state, the log, a side pane with the players,
+TPS, tick time, memory, and uptime (in the status bar instead when the terminal is too narrow for
+the pane), and an input line with history and command completion. In this mode the process you started is a host: it owns the
 terminal and runs the server as a child process, so a crash or a `--watch` restart of the server
 never leaves your terminal in a broken state. A Node with `node:ffi` is required because the renderer is
 loaded through `node:ffi`, which arrived in that release.
@@ -325,8 +326,8 @@ The remaining flags:
 
 *   `--watch` restarts the server when a workspace source file or a loaded pack's data changes,
     and regenerates `bedrock-data` first when its captures or generator changed. `pnpm run dev`
-    passes it for you. The watcher's own state (watching, change detected, generating, restarting,
-    exited) shows in the TUI status bar rather than in the log.
+    passes it for you. What the watcher last did (watching, a change, generating, restarting, a
+    crash) shows on the TUI's activity line above the input rather than in the log.
 *   `--headless` runs the server with no console at all: stdin is left alone and nothing is
     read from it. Use it when a wrapper owns the terminal and only the log file matters.
 *   `--no-tui` forces the plain line console even on an interactive terminal.

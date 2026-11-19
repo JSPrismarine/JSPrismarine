@@ -40,6 +40,8 @@ export interface LayoutOptions {
     sidePaneVisible?: boolean;
     /** Requested side-pane width. The layout clamps it to the current terminal width. */
     sidePaneWidth?: number;
+    /** Whether the dev activity line takes a row above the prompt. */
+    activityLine?: boolean;
 }
 
 /** Sizes and flags the app applies to its regions for one terminal size. */
@@ -83,7 +85,7 @@ export function computeLayout(width: number, height: number, options: LayoutOpti
         sidePane,
         sidePaneWidth,
         logWidth: sidePane === 'inline' ? width - sidePaneWidth : width,
-        logHeight: Math.max(1, height - FIXED_ROWS - (titleBar ? 1 : 0)),
+        logHeight: Math.max(1, height - FIXED_ROWS - (titleBar ? 1 : 0) - (options.activityLine ? 1 : 0)),
         levelStyle: wide ? 'full' : 'short',
         showNamespace: wide,
         compactStatus: width < COMPACT_STATUS_COLUMNS
