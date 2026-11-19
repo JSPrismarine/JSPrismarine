@@ -205,6 +205,8 @@ export interface ConfigFile {
     'content-world-packs'?: string[];
     /** Java datapack directories this world loads, after the vanilla one. */
     'content-datapacks'?: string[];
+    /** The pinned Java release whose data the server loads; empty for the default release. */
+    'content-java-version'?: string;
 }
 
 /**
@@ -212,7 +214,12 @@ export interface ConfigFile {
  * because `protocol-content: oldest` decides which vanilla content the build leaves out.
  */
 export type ContentConfigKey =
-    'protocol-window' | 'protocol-content' | 'content-strict' | 'content-world-packs' | 'content-datapacks';
+    | 'protocol-window'
+    | 'protocol-content'
+    | 'content-strict'
+    | 'content-world-packs'
+    | 'content-datapacks'
+    | 'content-java-version';
 
 /**
  * Every key `config.json` may hold, in the order the file spells them.
@@ -269,7 +276,8 @@ export const CONFIG_KEY_ORDER = [
     'stats',
     'content-strict',
     'content-world-packs',
-    'content-datapacks'
+    'content-datapacks',
+    'content-java-version'
 ] as const satisfies readonly ('$schema' | keyof ConfigFile)[];
 
 /** Compile-time proof that no `ConfigFile` key is missing from {@link CONFIG_KEY_ORDER}. */

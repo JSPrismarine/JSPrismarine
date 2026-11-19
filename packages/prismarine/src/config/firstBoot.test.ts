@@ -78,7 +78,8 @@ describe('the config file a boot generates', () => {
         'stats',
         'content-strict',
         'content-world-packs',
-        'content-datapacks'
+        'content-datapacks',
+        'content-java-version'
     ];
 
     /** One boot, in the order the server performs it. */
@@ -113,6 +114,19 @@ describe('the config file a boot generates', () => {
         await boot();
 
         expect(readFileSync(configFile(), 'utf8')).toBe(firstBoot);
+    });
+
+    it('reads content-java-version as the release to run, and an empty one as the default release', async () => {
+        await boot();
+        expect(readContentSettings().javaVersion).toBeUndefined();
+
+        const file = readFileSync(configFile(), 'utf8');
+        expect(file).toContain('"content-java-version": ""');
+        writeFileSync(
+            configFile(),
+            file.replace('"content-java-version": ""', '"content-java-version": " 26.4-snapshot-8 "')
+        );
+        expect(readContentSettings().javaVersion).toBe('26.4-snapshot-8');
     });
 
     it.each(['config.yml', 'config.yaml'])('ignores an existing %s beside config.json', async (name) => {

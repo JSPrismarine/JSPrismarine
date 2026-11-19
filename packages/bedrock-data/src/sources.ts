@@ -24,6 +24,12 @@ export const bedrockSamplesCacheFolder: string = sources.bedrockSamples.tag;
  */
 export const javaServerCacheFolder: string = sources.javaServer.defaultVersion;
 
+/**
+ * Every Java Edition release `sources.json` pins, the default and any preview, in manifest order.
+ * The server runs one of these; `content-java-version` in its config picks which.
+ */
+export const pinnedJavaReleases: readonly string[] = Object.keys(sources.javaServer.versions);
+
 /** The file `datagen:java` writes beside a generated datapack's `pack.mcmeta`. */
 export const GENERATED_JAVA_VERSION_FILE = 'version.json';
 

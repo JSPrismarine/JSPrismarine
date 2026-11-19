@@ -225,6 +225,16 @@ Thrown as `PrismarineContentErrors.InvalidContentRandomStates`, which extends `T
 The saved content random states do not have the shape the server writes, so the save or the
 replay that holds it is damaged.
 
+### `PRISMARINE_JAVA_RELEASE_NOT_GENERATED`
+
+`` the Java {release} vanilla datapack is not generated at {path}; run `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java {release}` (pinned releases: {pinned}) ``
+
+Thrown as `PrismarineContentErrors.JavaReleaseNotGenerated`, which extends `Error`.
+
+`content-java-version` names a pinned Java release whose vanilla datapack, or the
+`version.json` beside it, is not in the download cache. Generate it with the command the
+message gives, or set `content-java-version` to a release that is generated.
+
 ### `PRISMARINE_NO_WORLD_TO_PLAY_IN`
 
 `no {dimension} world is loaded, so nothing can be played in it`
@@ -276,6 +286,16 @@ version or set of packs.
 Thrown as `PrismarineContentErrors.UnknownGameRule`, which extends `Error`.
 
 Code asked for a game rule the Java registry does not have, such as a misspelled name.
+
+### `PRISMARINE_UNKNOWN_JAVA_RELEASE`
+
+`content-java-version names Java {release}, which is not pinned; the pinned releases are {pinned}`
+
+Thrown as `PrismarineContentErrors.UnknownJavaRelease`, which extends `Error`.
+
+`content-java-version` in `config.json` names a Java release that `sources.json` in
+`@jsprismarine/bedrock-data` does not pin. Set it to one of the pinned releases the message
+lists, or clear it to run the default release.
 
 ### `PRISMARINE_UNMAPPED_JAVA_IDENTIFIERS`
 
@@ -2851,6 +2871,17 @@ report it with the stack trace.
 Thrown as `PrismarineWorldErrors.InvalidWorldConfig`, which extends `Error`.
 
 A world's entry in `config.json` is not an object with the fields a world needs.
+
+### `PRISMARINE_JAVA_DATA_DOWNGRADE`
+
+`the world {level} was saved with Java data version {stored}, newer than Java {release} ({dataVersion}); run that release or a newer one`
+
+Thrown as `PrismarineWorldErrors.JavaDataDowngrade`, which extends `Error`.
+
+The world's `level.dat` records a Java data version newer than the one the server runs, so
+an older Java release would read chunks and data written by a newer one. Java has no
+downgrade path, and neither does the server. Run the release the world was saved with, by
+setting `content-java-version`, or start the server on another world.
 
 ### `PRISMARINE_LEGACY_ENTITY_SNAPSHOTS_ARE_INVALID`
 
