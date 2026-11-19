@@ -38,6 +38,7 @@ import {
     unsupported,
     worldOf
 } from './support';
+import { tickingAreaCommandHost } from './tickingAreas';
 import assert from 'node:assert';
 
 /**
@@ -476,6 +477,8 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             return worldOf(server, dimension).getLoadedChunk(at.getX() >> 4, at.getZ() >> 4) !== null;
         },
 
-        dimensions: () => loadedDimensions(server)
+        dimensions: () => loadedDimensions(server),
+
+        tickingAreas: tickingAreaCommandHost(server)
     };
 };

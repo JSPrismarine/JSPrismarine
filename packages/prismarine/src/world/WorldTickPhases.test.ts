@@ -99,6 +99,7 @@ const worldTicking = ({
         tickHeader: () => QUIET_TICK_HEADER,
         players: new Map(),
         chunks: new Map(),
+        tickingAreas: new Map(),
         name: 'tick-test-world',
         // The level's clock stands on the second the time is put on the wire, so that the
         // phase runs at all: it is sent once a second rather than every tick. Chunk unloading

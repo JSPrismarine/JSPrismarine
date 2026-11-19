@@ -11,6 +11,7 @@ import type { Level } from '../world/Level';
 import { primitiveShapes } from '../scripting/debugShapes';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { levelEntitySystems } from '../scripting/entities/levelEntitySystems';
+import { levelWorldSystem } from '../scripting/worldsystem/levelWorldSystem';
 import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelWorldEvents } from '../scripting/events/worldEvents';
@@ -98,8 +99,12 @@ export const scriptsModule = (server: Server): Module => ({
                 chat: server.getChatManager(),
                 clock: () => server.getAdmittedClock(),
                 http: server.getScriptHttp(),
-                access: { ...levelScriptAccess(server, level), simulatedPlayers: levelSimulatedPlayers(server, level) },
                 entitySystems: levelEntitySystems(server, level),
+                access: {
+                    ...levelScriptAccess(server, level),
+                    simulatedPlayers: levelSimulatedPlayers(server, level),
+                    worldSystem: levelWorldSystem(server, level)
+                },
                 onPlayerLeaving: (listener) =>
                     server
                         .getKernel()

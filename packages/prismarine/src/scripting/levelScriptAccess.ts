@@ -303,8 +303,12 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             session.released(session.sendInventory());
         },
         heightRange: (dimension) => {
-            const type = worldOf(dimension)?.getDimension();
-            // A dimension nobody has entered has no world to read; its blocks read as unloaded.
+            // A dimension nobody has entered has no world yet, so its range is its type's.
+            const type =
+                worldOf(dimension)?.getDimension() ??
+                [...level.getStems().keys()]
+                    .map((stem) => level.dimensionTypeOf(stem))
+                    .find((each) => each.bedrockName === dimension);
             return type === undefined ? { min: -64, max: 320 } : { min: type.minY, max: type.minY + type.height };
         },
         block: (dimension, location) => {
