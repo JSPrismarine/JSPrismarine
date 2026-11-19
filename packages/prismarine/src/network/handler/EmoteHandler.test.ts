@@ -10,6 +10,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteHandler from './EmoteHandler';
+import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';
 
 const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';
 
@@ -24,8 +25,19 @@ const setup = (xuid: string | null) => {
         identity: { ...STEVE, xuid: xuid ?? '' },
         getWorld: () => world
     });
-    const { context, outputs } = inputContext(session, { log });
-    return { logged, relayed, context, outputs };
+    const posted: string[] = [];
+    const { context, outputs } = inputContext(session, {
+        log,
+        services: {
+            events: {
+                post: (name, event) => {
+                    if (name === 'playerEmote' && event instanceof PlayerEmoteEvent) posted.push(event.getEmote());
+                    return 0;
+                }
+            }
+        }
+    });
+    return { logged, relayed, context, outputs, posted };
 };
 
 const request = (overrides: StubMembers<EmotePacket> = {}) =>
@@ -44,9 +56,12 @@ const request = (overrides: StubMembers<EmotePacket> = {}) =>
 
 describe('EmoteHandler', () => {
     it('relays the emote under the sender XUID with the ServerSide flag, and logs it', () => {
-        const { logged, relayed, context, outputs } = setup('steve-xuid');
+        const { logged, relayed, context, outputs, posted } = setup('steve-xuid');
 
         new EmoteHandler().handle(request(), context);
+
+        // The server's `playerEmote`, which a script's `world.afterEvents.playerEmote` hears.
+        expect(posted).toEqual([EMOTE_ID]);
 
         // Logged in the handler's unit, and sent by replication after the tick seals.
         expect(outputs).toHaveLength(0);

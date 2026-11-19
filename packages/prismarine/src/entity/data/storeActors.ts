@@ -62,6 +62,9 @@ import type { EntityBox } from './facts';
 import { boxOf } from './facts';
 import { actorMetadataProjection, applyActorMetadataProjection } from './actorMetadata';
 import type { ActorMetadataProjection } from './actorMetadata';
+import EntityEffectAddEvent from '../../events/entity/EntityEffectAddEvent';
+import EntityEffectAddedEvent from '../../events/entity/EntityEffectAddedEvent';
+import type { HealCause } from './EntityRuntime';
 
 /**
  * Whether a world save writes a store entity with its chunk, which Bedrock's `minecraft:transient`
@@ -78,7 +81,7 @@ export interface StoreActorBlows {
     /** A lower health written through {@link StoreActor.setHealth}, by how much it is lower. */
     written(entity: DataEntity, taken: number, source: DamageSource): void;
     /** A heal, which the store applies up to the entity's maximum. */
-    heal(entity: DataEntity, amount: number): boolean;
+    heal(entity: DataEntity, amount: number, cause?: HealCause): boolean;
 }
 
 /**
@@ -340,11 +343,23 @@ export class StoreActor implements ShownActor {
     public addStatusEffect(input: StatusEffectInput, notify = true): boolean {
         const id = normalizeStatusEffectId(input.id);
         if (bedrockMobEffectId(id) === undefined || !acceptsStatusEffect(this.entity.instance, id)) return false;
+        // A restored effect, which `notify` leaves quiet, is not an addition the events tell of.
+        const events = notify ? this.getServer().getKernel().events : undefined;
+        let applied = input;
+        if (events?.hasListeners('entityEffectAdd') === true) {
+            const guard = new EntityEffectAddEvent(this, input);
+            events.post('entityEffectAdd', guard);
+            if (guard.isCanceled()) return false;
+            applied = guard.getEffect();
+        }
         const effects = this.entity.body.statusEffects;
-        const change = mergeStatusEffect(effects, input);
+        const change = mergeStatusEffect(effects, applied);
         if (change === undefined) return false;
         const effect = effects.get(id);
         if (effect !== undefined && notify) this.announceStatusEffect(effect, change);
+        if (effect !== undefined && events?.hasListeners('entityEffectAdded') === true) {
+            events.post('entityEffectAdded', new EntityEffectAddedEvent(this, effect));
+        }
         return true;
     }
 
@@ -500,7 +515,7 @@ export class StoreActor implements ShownActor {
         if (health === undefined) return;
         const change = effectHealthChange(effect.id, effect.amplifier, clock, health.current, health.max);
         if (change === undefined || change.amount <= 0) return;
-        if (change.kind === 'heal') this.blows.heal(this.entity, change.amount);
+        if (change.kind === 'heal') this.blows.heal(this.entity, change.amount, 'Regeneration');
         else this.blows.hurt(this.entity, change.amount, DamageSource.of(change.cause), 'status_effect');
     }
 }

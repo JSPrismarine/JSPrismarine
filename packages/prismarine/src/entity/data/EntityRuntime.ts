@@ -63,6 +63,7 @@ import {
 import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
 import { spawnEventFor } from '@jsprismarine/entities/eventEngine';
 import { EVENT_TARGETS } from '@jsprismarine/entities/events';
+import type { EventEffects } from '@jsprismarine/entities/eventEngine';
 import type { EventNode } from '@jsprismarine/entities/events';
 import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
@@ -88,6 +89,7 @@ import type { HolderSet, ItemType } from '@jsprismarine/items';
 import { shieldDurabilityCost } from '@jsprismarine/item-behaviors/behaviors/combat';
 import type { RecipeBook } from '@jsprismarine/recipes';
 import { EXPLOSION_ENTITY_REACH } from '@jsprismarine/engine-systems';
+import type { BlockPosition } from '@jsprismarine/engine-systems';
 import type {
     BlockQuery,
     GoalBlock,
@@ -127,6 +129,7 @@ import { assembleChickenJockey, CHICKEN, CHICKEN_JOCKEY_RIDERS, CHICKEN_SEARCH }
 import { DataEntity, MobBody, SHOWN_CONDITIONS, distance, squaredDistance } from './DataEntity';
 import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
+import type { ContentBlastResult } from './explosion';
 import { updateControlFlags } from './riderControl';
 import {
     MOB_EQUIPMENT_SLOTS,
@@ -384,6 +387,9 @@ interface PlayerBlows {
 const PROJECTILE_KNOCKBACK = 0.4;
 /** What an ender pearl's landing hurts the player who threw it, Java's `ThrownEnderpearl.onHit` `enderPearl` 5. */
 const ENDER_PEARL_DAMAGE = 5;
+
+/** Why an entity heals, as the Script API's `EntityHealCause` names it. */
+export type HealCause = 'Heal' | 'Regeneration' | 'SelfHeal' | 'TotemOfUndying';
 
 /** What a melee blow adds to its target's upward motion beyond the push, Java's `IronGolem.doHurtTarget` 0.4. */
 const JAVA_ATTACK_LIFT: ReadonlyMap<string, number> = new Map([['minecraft:iron_golem', 0.4]]);
@@ -694,6 +700,49 @@ export interface EntityRuntimeOptions {
     onSpawn?(entity: DataEntity, cause: EntitySpawnCause): void;
     /** Called once per entity, after it has left the index. */
     onRemove?(entity: DataEntity, reason: string): void;
+    /** Called once per entity about to be removed, while it is still in the store and the index. */
+    onRemoving?(entity: DataEntity, reason: string): void;
+    /** Called when a mob's melee swing reaches its target, before the blow. */
+    onMeleeHit?(attacker: DataEntity, target: number): void;
+    /**
+     * Called before a heal, with why the entity heals as `EntityHealCause` names it.
+     * @returns The health to give instead, where 0 or less gives none.
+     */
+    healGuard?(entity: DataEntity, amount: number, cause: HealCause): number;
+    /** Called after a heal gave health. */
+    onHealed?(entity: DataEntity, amount: number, cause: HealCause): void;
+    /** Called after an entity's health changed, by whatever changed it. */
+    onHealthChanged?(entity: DataEntity, before: number, after: number): void;
+    /**
+     * Called before a data-driven entity's blast hurts or clears anything, with the blocks it
+     * would clear.
+     * @returns Whether to cancel it, or the blocks to clear instead.
+     */
+    explosionGuard?(
+        source: DataEntity,
+        blocks: readonly BlockPosition[]
+    ): { readonly cancel: true } | { readonly blocks: readonly BlockPosition[] };
+    /**
+     * Called when a projectile reaches an entity or a block, before what the hit does.
+     * @param velocity - The projectile's motion as it hit, which `hitVector` reads.
+     */
+    onProjectileHit?(
+        projectile: DataEntity,
+        hit: { readonly entity: number } | { readonly block: EntityPosition },
+        at: EntityPosition,
+        velocity: EntityPosition
+    ): void;
+    /**
+     * Called before an entity is tamed, with the runtime id of who tames it.
+     * @returns Whether the taming goes on.
+     */
+    tameGuard?(entity: DataEntity, tamer: number): boolean;
+    /** Called once an entity was tamed. */
+    onTamed?(entity: DataEntity, tamer: number): void;
+    /** Called as a data-driven entity's event applies: its name and the groups it adds and removes. */
+    onEntityEvent?(entity: DataEntity, effects: EventEffects): void;
+    /** Called after a data-driven entity's blast went off, with the blocks it cleared. */
+    onExploded?(source: DataEntity, cleared: ContentBlastResult['destroyedBlocks']): void;
     /**
      * The type clients are shown an entity as when it is not the entity's own, such as the type an
      * inert actor was saved with, which its saved form carries as `shownAs`.
@@ -988,6 +1037,17 @@ export class EntityRuntime implements EntityScene {
     private readonly onReport: (message: string) => void;
     private readonly onSpawn: (entity: DataEntity, cause: EntitySpawnCause) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
+    private readonly onRemoving: (entity: DataEntity, reason: string) => void;
+    private readonly onMeleeHit: (attacker: DataEntity, target: number) => void;
+    private readonly healGuard: (entity: DataEntity, amount: number, cause: HealCause) => number;
+    private readonly onHealed: (entity: DataEntity, amount: number, cause: HealCause) => void;
+    private readonly onHealthChanged: (entity: DataEntity, before: number, after: number) => void;
+    private readonly explosionGuard: EntityRuntimeOptions['explosionGuard'];
+    private readonly onExploded: EntityRuntimeOptions['onExploded'];
+    private readonly onProjectileHit: EntityRuntimeOptions['onProjectileHit'];
+    private readonly onEntityEvent: EntityRuntimeOptions['onEntityEvent'];
+    private readonly tameGuard: EntityRuntimeOptions['tameGuard'];
+    private readonly onTamed: EntityRuntimeOptions['onTamed'];
     private readonly shownAs: (entity: DataEntity) => string | undefined;
     private readonly gameEvents: EntityRuntimeOptions['gameEvents'];
     private readonly gameEventListeners = new Map<number, EntityGameEventRegistration>();
@@ -1076,6 +1136,17 @@ export class EntityRuntime implements EntityScene {
         this.onReport = options.report ?? (() => undefined);
         this.onSpawn = options.onSpawn ?? (() => undefined);
         this.onRemove = options.onRemove ?? (() => undefined);
+        this.onRemoving = options.onRemoving ?? (() => undefined);
+        this.onMeleeHit = options.onMeleeHit ?? (() => undefined);
+        this.healGuard = options.healGuard ?? ((_entity, amount) => amount);
+        this.onHealed = options.onHealed ?? (() => undefined);
+        this.onHealthChanged = options.onHealthChanged ?? (() => undefined);
+        this.explosionGuard = options.explosionGuard;
+        this.onExploded = options.onExploded;
+        this.onProjectileHit = options.onProjectileHit;
+        this.onEntityEvent = options.onEntityEvent;
+        this.tameGuard = options.tameGuard;
+        this.onTamed = options.onTamed;
         this.shownAs = options.shownAs ?? (() => undefined);
         this.gameEvents = options.gameEvents;
         this.drawId =
@@ -1220,7 +1291,7 @@ export class EntityRuntime implements EntityScene {
             collisionAt: (at) => this.navigation().collisionAt(at),
             levelEvent: (at, event, data) => this.host.levelEvent?.(at, event, data),
             damage: (intent) => this.damage(intent),
-            heal: (id, amount) => this.heal(id, amount),
+            heal: (id, amount) => this.heal(id, amount, 'SelfHeal'),
             dying: (id) => this.dying.has(id),
             heldItem: (id) => this.host.heldItemOf?.(id),
             finishMeal: (id, item) => this.host.finishMeal?.(id, item)
@@ -1919,10 +1990,26 @@ export class EntityRuntime implements EntityScene {
                 },
                 componentStateWritten: (changed, write) =>
                     this.instanceWritten(changed, `component:${write.component}`, write.before, write.after),
-                attributeWritten: (changed, write) =>
-                    this.instanceWritten(changed, `attribute:${write.name}`, write.before, write.after),
+                attributeWritten: (changed, write) => {
+                    this.instanceWritten(changed, `attribute:${write.name}`, write.before, write.after);
+                    const before = write.before?.current;
+                    const after = write.after?.current;
+                    const entity = this.byInstance.get(changed);
+                    if (
+                        write.name === 'health' &&
+                        entity !== undefined &&
+                        before !== undefined &&
+                        after !== undefined
+                    ) {
+                        if (before !== after) this.onHealthChanged(entity, before, after);
+                    }
+                },
                 propertyWritten: (changed, write) =>
                     this.instanceWritten(changed, `property:${write.name}`, write.before, write.after),
+                eventApplied: (changed, effects) => {
+                    const entity = this.byInstance.get(changed);
+                    if (entity !== undefined) this.onEntityEvent?.(entity, effects);
+                },
                 componentGroupsWritten: (changed, write) =>
                     this.instanceWritten(changed, 'groups', write.before, write.after),
                 entitySensorCandidates: (_entity, query) => this.entitySensorCandidates(body, query),
@@ -2043,6 +2130,9 @@ export class EntityRuntime implements EntityScene {
     public remove(id: number, reason: string): void {
         const entity = this.store.get(id);
         if (entity === undefined) return;
+        this.onRemoving(entity, reason);
+        // A listener of the removal may have removed it already.
+        if (this.store.get(id) !== entity) return;
         // Between ticks too, such as a command's kill: the store holds the entry for the next tick.
         const saved = this.store.hasEntered(entity) ? this.savedFormOf(entity) : undefined;
         entity.removed = reason;
@@ -3031,6 +3121,7 @@ export class EntityRuntime implements EntityScene {
         if (attackerEntity !== undefined) {
             if (!canEntityAttackView(attackerEntity.instance, targetView)) return;
             attackerEntity.instance.notifyAttack(targetView);
+            this.onMeleeHit(attackerEntity, target.id);
         }
 
         if (other !== undefined) {
@@ -3497,13 +3588,16 @@ export class EntityRuntime implements EntityScene {
      *
      * @returns Whether any health was restored.
      */
-    public heal(id: number, amount: number): boolean {
+    public heal(id: number, amount: number, cause: HealCause = 'Heal'): boolean {
         const entity = this.store.get(id);
         const health = entity?.instance.attributes.get('health');
         if (entity === undefined || health === undefined || amount <= 0) return false;
         if (health.current <= 0 || health.current >= health.max) return false;
+        const given = this.healGuard(entity, amount, cause);
+        if (given <= 0) return false;
 
-        entity.instance.attributes.set('health', Math.min(health.max, health.current + amount));
+        entity.instance.attributes.set('health', Math.min(health.max, health.current + given));
+        this.onHealed(entity, given, cause);
         return true;
     }
 
@@ -4517,9 +4611,9 @@ export class EntityRuntime implements EntityScene {
         const params = self.instance.componentParams('minecraft:explode');
         const power = isRecord(params) && typeof params.power === 'number' ? params.power : DEFAULT_EXPLOSION_POWER;
 
-        this.world.effects.playSound(blockPositionOf(source.position), 'random.explode');
-
+        const guard = this.explosionGuard;
         const blast = detonate(this.world, {
+            ...(guard === undefined ? {} : { guard: (blocks: readonly BlockPosition[]) => guard(self, blocks) }),
             center: source.position,
             power,
             // From the index, within the engine's reach and a block more, which is all it accepts,
@@ -4541,6 +4635,13 @@ export class EntityRuntime implements EntityScene {
                     sourceId: source.id
                 }) ?? false
         });
+
+        if (blast.canceled) {
+            this.remove(self.id, 'explosion');
+            return;
+        }
+        this.world.effects.playSound(blockPositionOf(source.position), 'random.explode');
+        this.onExploded?.(self, blast.destroyedBlocks);
 
         const sourceId = isTnt ? (self.body.owner ?? self.id) : self.id;
         for (const hit of blast.hits) {
@@ -4593,10 +4694,12 @@ export class EntityRuntime implements EntityScene {
     public tameMount(mount: MobBody, player: GoalMob): void {
         const entity = this.store.get(mount.id);
         if (entity === undefined || typeof player.id !== 'number') return;
+        if (this.tameGuard?.(entity, player.id) === false) return;
         this.setOwner(entity.id, player.id);
         entity.body.conditions.add('is_tamed');
         const trigger = mountTameEvent(entity.instance);
         fireTameEvent(entity, trigger?.event, trigger?.target);
+        this.onTamed?.(entity, player.id);
     }
 
     /**
@@ -5462,10 +5565,11 @@ export class EntityRuntime implements EntityScene {
                 const cause = this.host.playerIdentityOf?.(owner);
                 if (cause !== undefined) this.loveCauses.set(entity.id, cause);
             }
-            if (tame?.succeeded === true) {
+            if (tame?.succeeded === true && this.tameGuard?.(entity, owner) !== false) {
                 this.setOwner(entity.id, owner);
                 entity.body.conditions.add('is_tamed');
                 fireTameEvent(entity, tame.event, tame.target);
+                this.onTamed?.(entity, owner);
             }
             if (admire === true || barter === true)
                 this.startPiglinInteraction(entity, itemIdentifier, admire === true, barter === true);
@@ -7106,11 +7210,18 @@ export class EntityRuntime implements EntityScene {
                     body.position = lastSafe;
                     return;
                 }
+                if (typeof target.id === 'number') this.onProjectileHit?.(entity, { entity: target.id }, at, velocity);
                 if (this.hitProjectile(entity, target, params, at, from) && entity.removed !== undefined) return;
                 if (entity.removed !== undefined || body.projectileStuck) return;
             }
 
             if (meetsBlocks && !bodyCanOccupy(at, entity.facts.box, navigation, componentFacts.canStandOnPowderSnow)) {
+                this.onProjectileHit?.(
+                    entity,
+                    { block: { x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) } },
+                    at,
+                    velocity
+                );
                 const onHit = isRecord(params.on_hit) ? params.on_hit : {};
                 this.applyProjectileHitEffects(onHit, at, false);
                 this.landProjectile(entity, onHit, lastSafe, from, undefined);

@@ -31,7 +31,8 @@ import type {
     ScriptWorld,
     ScriptWorldEvent,
     VetoGuard,
-    WeatherChangeIntent
+    WeatherChangeIntent,
+    ScriptGameEventGuard
 } from '@jsprismarine/script-host/host/world';
 import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entities/world';
 
@@ -39,6 +40,7 @@ import type { ChatManager } from '../chat/ChatManager';
 import { Scoreboard } from '../world/Scoreboard';
 import type { ScriptEntityEvent } from './scriptEntityEvents';
 import type { ScriptPlayerActions } from './scriptPlayerActions';
+import type { ScriptWorldEvents } from './events/worldEvents';
 import { scriptScoreboard } from './scriptScoreboard';
 import type { WeatherChange, WorldWeather } from '../world/Weather';
 
@@ -187,6 +189,8 @@ export interface ScriptWorldSources {
     entityEvents?(listener: (event: ScriptEntityEvent) => void): () => void;
     /** The item use and block breaking of the level's players. Without them, the scripts see neither. */
     readonly playerActions?: ScriptPlayerActions;
+    /** The other world events of the level, which `scripting/events` raises. Without them, the scripts see none. */
+    readonly worldEvents?: ScriptWorldEvents;
 }
 
 /** The order BDS sends the entity after-events of one flush in, whatever order they happened in. */
@@ -354,11 +358,13 @@ export class LevelScriptWorld implements ScriptWorld {
         });
         const stopEntities = sources.entityEvents?.((event) => this.committed.push(event));
         const stopActions = sources.playerActions?.events((event) => this.committed.push(event));
+        const stopWorldEvents = sources.worldEvents?.events((event) => this.committed.push({ type: 'game', ...event }));
         this.stopListening = () => {
             stopWeather();
             stopChat?.();
             stopEntities?.();
             stopActions?.();
+            stopWorldEvents?.();
         };
     }
 
@@ -591,6 +597,11 @@ export class LevelScriptWorld implements ScriptWorld {
         return this.sources.playerActions?.guardBlockInteract(guard) ?? (() => {});
     }
 
+    /** Adds a script guard to the actions the level's other before-events are about. */
+    public guardGameEvents(guard: ScriptGameEventGuard): () => void {
+        return this.sources.worldEvents?.guard(guard) ?? (() => {});
+    }
+
     /** Adds a script guard to the entity clicks of the level's players. */
     public guardEntityInteract(guard: VetoGuard<EntityInteractIntent>): () => void {
         return this.sources.playerActions?.guardEntityInteract(guard) ?? (() => {});
@@ -642,6 +653,7 @@ export class LevelScriptWorld implements ScriptWorld {
      * level, and as gone once they no longer are.
      */
     public takeEvents(): readonly ScriptWorldEvent[] {
+        this.sources.worldEvents?.poll();
         const now = new Map(this.sources.players().map((player) => [player.id, player.name ?? ''] as const));
         const presence: ScriptWorldEvent[] = [];
         const leaving = new Map<string, string>();

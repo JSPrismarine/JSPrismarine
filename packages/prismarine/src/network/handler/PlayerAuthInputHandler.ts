@@ -19,6 +19,10 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
+import PlayerButtonInputEvent from '../../events/player/PlayerButtonInputEvent';
+import type { PlayerInputButton } from '../../events/player/PlayerButtonInputEvent';
+import PlayerInputModeChangeEvent from '../../events/player/PlayerInputModeChangeEvent';
+import type PlayerSession from '../PlayerSession';
 import type { HandlerServices, InputContext } from './HandlerContext';
 import PlayerActionHandler from './PlayerActionHandler';
 import type { InputLaneHandler } from './SessionHandler';
@@ -54,6 +58,36 @@ const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
     PlayerActionType.ContinueDestroyBlock,
     PlayerActionType.CreativeDestroyBlock
 ]);
+
+/** What a player's last input reported of the buttons and the input mode. */
+interface ReportedInput {
+    readonly mode: InputMode;
+    readonly held: Readonly<Record<PlayerInputButton, boolean>>;
+}
+
+const reported = new WeakMap<PlayerSession, ReportedInput>();
+
+/**
+ * Raises `playerInputModeChange` and `playerButtonInput` for what changed since the player's last
+ * input. The first input of a session sets what later ones are compared with, and a button held
+ * in it counts as pressed.
+ */
+const reportInputChanges = (
+    { session, services }: InputContext,
+    mode: InputMode,
+    held: Readonly<Record<PlayerInputButton, boolean>>
+): void => {
+    const before = reported.get(session);
+    reported.set(session, { mode, held });
+    const { events } = services;
+    if (before !== undefined && before.mode !== mode) {
+        events.post('playerInputModeChange', new PlayerInputModeChangeEvent(session, before.mode, mode));
+    }
+    for (const button of ['Jump', 'Sneak'] as const) {
+        if ((before?.held[button] ?? false) === held[button]) continue;
+        events.post('playerButtonInput', new PlayerButtonInputEvent(session, button, held[button]));
+    }
+};
 
 /** Where an action that concerns no block says it happened. */
 const NOWHERE = new BlockPosition(0, 0, 0);
@@ -256,6 +290,11 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
             // says: the ground pushing back, every tick the player stands on it.
             onGround: input.inputData.has(PlayerAuthInputData.VERTICAL_COLLISION),
             handledTeleport: input.inputData.has(PlayerAuthInputData.HANDLED_TELEPORT)
+        });
+
+        reportInputChanges(context, input.inputMode, {
+            Jump: input.inputData.has(PlayerAuthInputData.JUMP_DOWN),
+            Sneak: input.inputData.has(PlayerAuthInputData.SNEAK_DOWN)
         });
 
         for (const [flag, action] of FLAG_ACTIONS) {

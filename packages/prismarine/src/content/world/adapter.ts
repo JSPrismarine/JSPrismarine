@@ -41,6 +41,7 @@ import type {
 } from '@jsprismarine/item-behaviors';
 
 import type { FluidReplacement } from './fluidReplacement';
+import type { RedstoneActivation } from '@jsprismarine/block-behaviors';
 
 export type { BlockDestroyOptions, BlockEntityData, BlockProperties, Difficulty, RandomSource, TickKind, Weather };
 
@@ -231,6 +232,8 @@ export interface ContentEffectSink {
     spawnParticle(at: ContentPosition, particle: string): void;
     /** Emits a game event, which is what a warden's vibration listener hears. */
     emitGameEvent(event: string, at: ContentPosition, sourceId?: number): void;
+    /** Tells the server a redstone component acted, which a script's world events hear. */
+    redstoneActivated?(activation: RedstoneActivation): void;
 }
 
 /** The two scheduled tick lists, block and fluid. */

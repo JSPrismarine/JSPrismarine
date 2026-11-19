@@ -7,6 +7,7 @@ import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { PLAYER_IDENTIFIER } from './playerOverlay';
+import EntityHitEntityEvent from '../events/entity/EntityHitEntityEvent';
 
 /**
  * One entity hitting another.
@@ -142,6 +143,9 @@ export const meleeAttack = (attacker: StoreActor, target: StoreActor, options: M
     if (distanceToBody(attacker.getPosition(), target) > reach) return false;
 
     const world = attacker.getWorld();
+    const { events } = attacker.getServer().getKernel();
+    if (events.hasListeners('entityHitEntity'))
+        events.post('entityHitEntity', new EntityHitEntityEvent(attacker, target));
     const base = options.damage ?? attacker.attributes.getValue(AttributeIds.AttackDamage);
 
     // Read here rather than passed in, which is what lets the handler, the

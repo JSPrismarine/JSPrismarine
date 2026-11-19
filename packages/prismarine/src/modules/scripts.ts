@@ -13,6 +13,7 @@ import { levelScriptAccess } from '../scripting/levelScriptAccess';
 import { levelEntitySystems } from '../scripting/entities/levelEntitySystems';
 import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
+import { levelWorldEvents } from '../scripting/events/worldEvents';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
@@ -109,7 +110,8 @@ export const scriptsModule = (server: Server): Module => ({
                 },
                 components: (sink) => bindScriptComponents(server, level, sink),
                 entityEvents: levelEntityEvents(server, level),
-                playerActions: levelPlayerActions(server, level)
+                playerActions: levelPlayerActions(server, level),
+                worldEvents: levelWorldEvents(server, level)
             },
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),

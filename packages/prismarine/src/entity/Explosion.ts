@@ -28,6 +28,9 @@ import { DEFAULT_FUSE_TICKS, randomShortFuse } from './fuse';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { StoreActor } from './data/storeActors';
+import ExplosionEvent from '../events/other/ExplosionEvent';
+import ExplodedEvent from '../events/other/ExplodedEvent';
+import type { BrokenBlock } from '../events/player/PlayerBreakBlockEvent';
 import { ENTITY_EYE_HEIGHT_FRACTION } from './data/position';
 
 /** The primed TNT entity in the data-driven runtime. */
@@ -63,20 +66,26 @@ interface CaughtEntity extends ExplosionEntity {
 export const explode = (world: World, at: Vector3, options: ExplosionOptions): void => {
     const { power, source = null, breaksBlocks = true } = options;
 
-    world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
-    if (source) world.sendActorSound(source, LevelSoundEvent.EXPLODE);
-
     const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
     const caught = entitiesNear(world, at, power);
     const drops: Array<{ at: BlockPosition; item: Block | Item }> = [];
     const caughtTnt: BlockPosition[] = [];
 
+    const { events } = world.getServer().getKernel();
+    const cleared: BrokenBlock[] = [];
     const blast = castBlast<CaughtEntity>(explosionWorldOf(world), {
         center,
         radius: power,
         entities: caught,
         breaksBlocks: breaksBlocks && griefingAllowed(world),
+        guard: (blocks) => {
+            if (!events.hasListeners('explosion')) return { blocks };
+            const event = new ExplosionEvent(world, source, blocks);
+            events.post('explosion', event);
+            return event.isCanceled() ? { cancel: true } : { blocks: event.getBlocks() };
+        },
         onBlockDestroyed: (position, block) => {
+            cleared.push({ ...position, name: block.name, states: block.states });
             if (block.name === TNT_IDENTIFIER) {
                 caughtTnt.push(position);
                 return;
@@ -85,6 +94,11 @@ export const explode = (world: World, at: Vector3, options: ExplosionOptions): v
             collectDrops(world, position, power, drops);
         }
     });
+
+    // A blast a listener canceled shows and does nothing.
+    if (blast.canceled === true) return;
+    world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
+    if (source) world.sendActorSound(source, LevelSoundEvent.EXPLODE);
 
     // After the rays rather than inside them, because each one is a fresh entity in the world
     // and a blast measures the world as it stood when it went off.
@@ -105,6 +119,7 @@ export const explode = (world: World, at: Vector3, options: ExplosionOptions): v
     }
 
     for (const drop of drops) world.dropFromBlock(drop.at, [drop.item]);
+    if (events.hasListeners('exploded')) events.post('exploded', new ExplodedEvent(world, source, cleared));
 };
 
 /**

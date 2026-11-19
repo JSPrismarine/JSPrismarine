@@ -19,6 +19,7 @@ import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackReque
 import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import type { ItemStackResponse } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
+import { testKernel } from '../../testing/kernel.test.helper';
 
 /**
  * A session on a Bedrock Dedicated Server 1.26.52.3, recorded through the proxy with the
@@ -163,6 +164,8 @@ const replay = async () => {
             })
     );
     const server: Server = stub<Server>({
+        // A bus no one listens on.
+        getKernel: () => testKernel(),
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getContent: () => content
     });

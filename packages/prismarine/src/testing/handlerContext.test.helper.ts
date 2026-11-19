@@ -35,7 +35,8 @@ export const inputContext = (session: PlayerSession, parts: ContextParts = {}) =
     const outputs: Promise<void>[] = [];
     const context: InputContext = {
         ...sessionContext(session, parts),
-        services: stub<HandlerServices>(parts.services),
+        // A bus no one listens on, unless the test hands its own.
+        services: stub<HandlerServices>({ events: { post: () => 0 }, ...parts.services }),
         step: {
             tick: parts.tick ?? 0,
             output: (send) => void outputs.push(send)

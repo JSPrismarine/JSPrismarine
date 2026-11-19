@@ -45,6 +45,7 @@ import {
     workstationSlotOf
 } from './workstation';
 import type { WorkstationPlayer } from './workstation';
+import PlayerCraftEvent from '../../events/player/PlayerCraftEvent';
 
 /**
  * The player as a request's steps hand it on, through its session: to the workstations, the
@@ -65,7 +66,8 @@ const PLAYER_CONTAINERS = new Set<number>([
 
 /** What a request reads of the server: the content, the creative menu and the log. */
 interface RequestServices {
-    readonly services: Pick<HandlerServices, 'content' | 'creativeInventory'>;
+    readonly services: Pick<HandlerServices, 'content' | 'creativeInventory'> &
+        Partial<Pick<HandlerServices, 'events'>>;
     readonly log: HandlerLog;
 }
 
@@ -384,7 +386,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         // The stacks enter the world before the drop first waits, so they are in this unit. They
         // went in after the answer was sent, and nothing the answer or the sends below read
         // changes with them.
-        if (drops.length > 0) step.output(session.getWorld().dropFromPlayer(player, drops));
+        if (drops.length > 0) step.output(session.getWorld().dropFromPlayer(player, drops, session.runtimeId));
 
         step.output(
             (async () => {
@@ -976,6 +978,15 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
                         }
 
                         if (autoCraftPlan === null) advancementItemCrafted(player, recipeId, ingredients, created);
+                        const made = created;
+                        const station = open;
+                        commits.push(() => {
+                            const { session } = context;
+                            services.events?.post(
+                                'playerCraft',
+                                new PlayerCraftEvent(session, session.getWorld(), made, station?.position)
+                            );
+                        });
                         break;
                     }
 

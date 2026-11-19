@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
+import { testKernel } from '../testing/kernel.test.helper';
 import { TEST_GENERATOR_KIND } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -78,7 +79,10 @@ let scratch: string;
  *   keeps the start region out of every test but the one about it.
  */
 const testServer = (preloadRadius = 0, random: () => number = Math.random): Server => {
+    // A rule change posts on the server's bus, so the level needs one even with nobody listening.
+    const kernel = testKernel();
     const server: Server = stub<Server>({
+        getKernel: () => kernel,
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => preloadRadius, getEntityTrackingInterval: () => 20 }),

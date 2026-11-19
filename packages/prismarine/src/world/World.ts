@@ -115,6 +115,14 @@ import type { ChangeLogCost } from './changelog/changeLogCost';
 import { changeLogCost } from './changelog/changeLogCost';
 import { canUsePortal } from '../entity/portalUse';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+import EntityItemDropEvent from '../events/entity/EntityItemDropEvent';
+import type { DataEntity } from '../entity/data/DataEntity';
+
+/** A stack a drop put on the ground, and the item entity it became. */
+interface DroppedStack {
+    readonly entity: DataEntity;
+    readonly item: Item;
+}
 
 export type { LevelData, StoredPlayerAttribute, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
@@ -3773,7 +3781,8 @@ export class World implements Service {
      */
     public async dropFromPlayer(
         player: Pick<ShownActor, 'getPosition' | 'pitch' | 'yaw'>,
-        contents: Array<Block | Item | null>
+        contents: Array<Block | Item | null>,
+        dropper?: bigint
     ): Promise<void> {
         const eyes = player.getPosition();
         const random = randomOf(this.server);
@@ -3782,7 +3791,7 @@ export class World implements Service {
         const horizontal = Math.cos(pitch) * 0.3;
         const reported = new Vector3(eyes.getX(), eyes.getY() - 0.3, eyes.getZ());
 
-        this.spill(eyes, contents, () => {
+        const dropped = this.spill(eyes, contents, () => {
             const angle = random() * Math.PI * 2;
             const spread = random() * 0.02;
             const motion = new Vector3(
@@ -3793,6 +3802,18 @@ export class World implements Service {
 
             return { position: reported, reported: true, motion, thrown: true };
         });
+        const { events } = this.server.getKernel();
+        if (dropper !== undefined && dropped.length > 0 && events.hasListeners('entityItemDrop')) {
+            events.post(
+                'entityItemDrop',
+                new EntityItemDropEvent(
+                    dropper,
+                    this,
+                    dropped.map(({ entity }) => BigInt(entity.id)),
+                    dropped.map(({ item }) => item)
+                )
+            );
+        }
     }
 
     /**
@@ -3802,7 +3823,7 @@ export class World implements Service {
      * @param {Array} contents - what to drop.
      * @param {Function} start - where one stack starts and how fast, asked once per stack.
      */
-    private spill(position: Vector3, contents: Array<Block | Item | null>, start: () => DropStart): void {
+    private spill(position: Vector3, contents: Array<Block | Item | null>, start: () => DropStart): DroppedStack[] {
         // A break running its block's `onBreak` takes what the family drops, so a container's
         // contents can be told from the family's stand-in for the loot table rather than
         // landing beside the roll; see {@link import('./blockBreak')}.
@@ -3817,7 +3838,7 @@ export class World implements Service {
                 contents
             )
         ) {
-            return;
+            return [];
         }
 
         // A block that promises a drop the server cannot make yields `null` here - most often
@@ -3840,7 +3861,7 @@ export class World implements Service {
 
         // Asked after the limit and the break's own collection, so a stack that never reaches the
         // ground costs no roll.
-        for (const drop of wanted.slice(0, room)) this.dropItem(drop, start());
+        return wanted.slice(0, room).flatMap((drop) => this.dropItem(drop, start()) ?? []);
     }
 
     /**
@@ -3871,7 +3892,7 @@ export class World implements Service {
      * the stack network id it had in a player's inventory stays behind: ids are counted per
      * player, and whoever picks it up gives it one of their own.
      */
-    private dropItem(drop: Block | Item, start: DropStart): void {
+    private dropItem(drop: Block | Item, start: DropStart): DroppedStack | undefined {
         const item =
             drop instanceof Item ? drop : new Item({ name: drop.getName(), content: this.server.getContent() });
         const position = start.position;
@@ -3887,7 +3908,7 @@ export class World implements Service {
                     `Dropped nothing for ${item.getName()} at ${position.toString()}: it has no item id`,
                     'World/dropItem'
                 );
-            return;
+            return undefined;
         }
 
         // Built where it lands, so nothing has to be moved into place afterwards and no client is
@@ -3914,6 +3935,7 @@ export class World implements Service {
                     : `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`,
                 'World/dropItem'
             );
+        return entity === undefined ? undefined : { entity, item };
     }
 
     /** How often the time of day is put on the wire, in ticks. Vanilla sends it every second. */

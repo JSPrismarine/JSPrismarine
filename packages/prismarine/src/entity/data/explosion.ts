@@ -10,7 +10,13 @@
  * Two seams, one algorithm. Neither holds the algorithm.
  */
 import { explode } from '@jsprismarine/engine-systems';
-import type { BlockPosition, BlockRef, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
+import type {
+    BlockPosition,
+    BlockRef,
+    ExplosionEntity,
+    ExplosionOptions,
+    ExplosionWorld
+} from '@jsprismarine/engine-systems';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import { rollBlockDrops } from '../../block/blockLoot';
@@ -85,6 +91,8 @@ export interface ContentBlastOptions {
      * @returns True when the host took the block, which means nothing more is owed for it.
      */
     readonly destroy?: (at: ContentPosition) => boolean;
+    /** The blast's guard, which may cancel it or change the blocks it clears; see the engine's `ExplosionOptions.guard`. */
+    readonly guard?: ExplosionOptions<ExplosionEntity>['guard'];
 }
 
 /** What the blast did to one entity. */
@@ -102,7 +110,13 @@ export interface ContentBlastResult {
     /** How many blocks were cleared. */
     readonly broken: number;
     /** The blocks the ray cleared, used to prime TNT in the chain. */
-    readonly destroyedBlocks: readonly { readonly identifier: string; readonly position: BlockPosition }[];
+    readonly destroyedBlocks: readonly {
+        readonly identifier: string;
+        readonly states: BlockRef['states'];
+        readonly position: BlockPosition;
+    }[];
+    /** Whether the guard canceled the blast, which then did nothing. */
+    readonly canceled: boolean;
 }
 
 /** An entity as the ray math reads it, with the runtime entity carried through. */
@@ -166,20 +180,22 @@ const dropBlock = (options: ContentBlastOptions, at: BlockPosition, block: Block
  * ```
  */
 export const detonate = (world: EntityWorldFacts, options: ContentBlastOptions): ContentBlastResult => {
-    const destroyedBlocks: Array<{ identifier: string; position: BlockPosition }> = [];
+    const destroyedBlocks: Array<{ identifier: string; states: BlockRef['states']; position: BlockPosition }> = [];
     const blast = explode<Caught>(contentExplosionWorld(world), {
         center: options.center,
         radius: options.power,
         entities: options.candidates.map(caughtFrom),
         breaksBlocks: options.breaksBlocks ?? true,
+        ...(options.guard === undefined ? {} : { guard: options.guard }),
         onBlockDestroyed: (at, block) => {
-            destroyedBlocks.push({ identifier: block.name, position: at });
+            destroyedBlocks.push({ identifier: block.name, states: block.states, position: at });
             dropBlock(options, at, block);
         }
     });
 
     return {
         broken: blast.broken,
+        canceled: blast.canceled === true,
         destroyedBlocks,
         hits: blast.hits.map((hit) => ({
             entity: hit.entity.carried,

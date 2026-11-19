@@ -65,6 +65,22 @@ import EntityDamageEvent from '../../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../../events/entity/EntityDeathEvent';
 import EntityHurtEvent from '../../events/entity/EntityHurtEvent';
 import EntitySpawnEvent from '../../events/entity/EntitySpawnEvent';
+import EntityRemoveEvent from '../../events/entity/EntityRemoveEvent';
+import EntityRemovedEvent from '../../events/entity/EntityRemovedEvent';
+import EntityHitEntityEvent from '../../events/entity/EntityHitEntityEvent';
+import EntityHealEvent from '../../events/entity/EntityHealEvent';
+import EntityTriggerEvent from '../../events/entity/EntityTriggerEvent';
+import EntityTameEvent from '../../events/entity/EntityTameEvent';
+import EntityTamedEvent from '../../events/entity/EntityTamedEvent';
+import ProjectileHitEvent from '../../events/entity/ProjectileHitEvent';
+import type { ProjectileHitTarget } from '../../events/entity/ProjectileHitEvent';
+import { endItemUse } from '../../item/itemUse';
+import EntityItemPickupEvent from '../../events/entity/EntityItemPickupEvent';
+import EntityItemPickedUpEvent from '../../events/entity/EntityItemPickedUpEvent';
+import ExplosionEvent from '../../events/other/ExplosionEvent';
+import ExplodedEvent from '../../events/other/ExplodedEvent';
+import EntityHealedEvent from '../../events/entity/EntityHealedEvent';
+import EntityHealthChangedEvent from '../../events/entity/EntityHealthChangedEvent';
 import { enchantmentProtection } from '../../enchantment/mitigation';
 import { viewableEquipmentOf, wornArmorOf } from '../equipment';
 import { PASS, VETO, replaceAmount } from './damagePipeline';
@@ -308,9 +324,20 @@ const givePlayerItem = (
     // The live player, for the inventory the store does not hold yet.
     const taker = session;
 
+    const { events } = world.getServer().getKernel();
+    if (events.hasListeners('entityItemPickup')) {
+        const guard = new EntityItemPickupEvent(session.runtimeId, world, BigInt(itemId), item);
+        events.post('entityItemPickup', guard);
+        if (guard.isCanceled()) return drop.count;
+    }
     const entry = new ContainerEntry({ item, count: item.getAmount() });
     const left = taker.getInventory().addItem(entry);
     if (left >= drop.count) return left;
+    if (events.hasListeners('entityItemPickedUp')) {
+        const taken = itemOfDrop({ ...drop, count: drop.count - left }, options.content());
+        if (taken !== null)
+            events.post('entityItemPickedUp', new EntityItemPickedUpEvent(session.runtimeId, world, taken));
+    }
 
     // Here rather than in the inventory, which has no idea whose it is. Nearly every "get this
     // item" advancement is earned this way: Java has no block-break trigger.
@@ -338,6 +365,7 @@ const finishMeal = (options: LiveEntityOptions, playerId: number): void => {
     const world = options.liveWorld();
     const session = world?.viewerOf(BigInt(playerId));
     if (world === undefined || session === undefined) return;
+    endItemUse(session, 'complete', world.getServer().getTick());
     try {
         consumeHeldItem({
             content: options.content(),
@@ -649,7 +677,7 @@ export class LiveEntityRuntime {
             written: (entity, taken, source) => {
                 this.runtime.damage(intentOfHealthWrite(entity, taken, source, 'legacy_body'));
             },
-            heal: (entity, amount) => this.runtime.heal(entity.id, amount)
+            heal: (entity, amount, cause) => this.runtime.heal(entity.id, amount, cause)
         };
         this.actors = new StoreActors({
             world: options.liveWorld,
@@ -677,7 +705,128 @@ export class LiveEntityRuntime {
                     events.post('entitySpawn', new EntitySpawnEvent(actor, cause));
             },
             shownAs: (entity) => this.inertTypes.get(entity.id),
+            healGuard: (entity, amount, cause) => {
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                const actor = this.actors.actorOf(entity.id);
+                if (actor === undefined || events?.hasListeners('entityHeal') !== true) return amount;
+                const event = new EntityHealEvent(actor, amount, cause);
+                events.post('entityHeal', event);
+                return event.isCanceled() ? 0 : event.getAmount();
+            },
+            onHealed: (entity, amount, cause) => {
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                const actor = this.actors.actorOf(entity.id);
+                if (actor !== undefined && events?.hasListeners('entityHealed') === true)
+                    events.post('entityHealed', new EntityHealedEvent(actor, amount, cause));
+            },
+            onHealthChanged: (entity, before, after) => {
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                const actor = this.actors.actorOf(entity.id);
+                if (actor !== undefined && events?.hasListeners('entityHealthChanged') === true)
+                    events.post('entityHealthChanged', new EntityHealthChangedEvent(actor, before, after));
+            },
+            explosionGuard: (source, blocks) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (world === undefined || events?.hasListeners('explosion') !== true) return { blocks };
+                const event = new ExplosionEvent(world, this.actors.actorOf(source.id) ?? null, blocks);
+                events.post('explosion', event);
+                return event.isCanceled() ? { cancel: true } : { blocks: event.getBlocks() };
+            },
+            onExploded: (source, cleared) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (world === undefined || events?.hasListeners('exploded') !== true) return;
+                const blocks = cleared.map(({ identifier, states, position }) => ({
+                    ...position,
+                    name: identifier,
+                    states
+                }));
+                events.post('exploded', new ExplodedEvent(world, this.actors.actorOf(source.id) ?? null, blocks));
+            },
+            onProjectileHit: (projectile, hit, at, velocity) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (world === undefined || events?.hasListeners('projectileHit') !== true) return;
+                const actor = this.actors.actorOf(projectile.id);
+                const ownerId = projectile.body.owner;
+                const owner =
+                    ownerId === undefined
+                        ? undefined
+                        : (this.actors.actorOf(ownerId) ?? world.getActor(BigInt(ownerId)) ?? undefined);
+                let target: ProjectileHitTarget;
+                if ('entity' in hit) {
+                    const struck = this.actors.actorOf(hit.entity) ?? world.getActor(BigInt(hit.entity)) ?? undefined;
+                    if (struck === undefined) return;
+                    target = { entity: struck };
+                } else target = { block: hit.block };
+                if (actor !== undefined)
+                    events.post(
+                        'projectileHit',
+                        new ProjectileHitEvent(world, actor, owner ?? null, target, at, velocity)
+                    );
+            },
+            tameGuard: (entity, tamer) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (world === undefined || events?.hasListeners('entityTame') !== true) return true;
+                const actor = this.actors.actorOf(entity.id);
+                const owner = this.actors.actorOf(tamer) ?? world.getActor(BigInt(tamer)) ?? undefined;
+                if (actor === undefined || owner === undefined) return true;
+                const event = new EntityTameEvent(actor, owner);
+                events.post('entityTame', event);
+                return !event.isCanceled();
+            },
+            onTamed: (entity, tamer) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (world === undefined || events?.hasListeners('entityTamed') !== true) return;
+                const actor = this.actors.actorOf(entity.id);
+                const owner = this.actors.actorOf(tamer) ?? world.getActor(BigInt(tamer)) ?? undefined;
+                if (actor !== undefined && owner !== undefined)
+                    events.post('entityTamed', new EntityTamedEvent(actor, owner));
+            },
+            onEntityEvent: (entity, effects) => {
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                const actor = this.actors.actorOf(entity.id);
+                if (actor === undefined || events?.hasListeners('entityTrigger') !== true) return;
+                events.post(
+                    'entityTrigger',
+                    new EntityTriggerEvent(actor, effects.event, effects.addGroups, effects.removeGroups)
+                );
+            },
+            onMeleeHit: (attacker, target) => {
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                if (events?.hasListeners('entityHitEntity') !== true) return;
+                const hitter = this.actors.actorOf(attacker.id);
+                const hit = this.actors.actorOf(target) ?? options.liveWorld()?.getActor(BigInt(target)) ?? undefined;
+                if (hitter !== undefined && hit !== undefined)
+                    events.post('entityHitEntity', new EntityHitEntityEvent(hitter, hit));
+            },
+            onRemoving: (entity, reason) => {
+                if (entity.identifier === 'minecraft:player') return;
+                const actor = this.actors.actorOf(entity.id);
+                const events = options.liveWorld()?.getServer().getKernel().events;
+                if (actor !== undefined && events?.hasListeners('entityRemove') === true)
+                    events.post('entityRemove', new EntityRemoveEvent(actor, reason));
+            },
             onRemove: (entity, reason) => {
+                const world = options.liveWorld();
+                const events = world?.getServer().getKernel().events;
+                if (
+                    world !== undefined &&
+                    entity.identifier !== 'minecraft:player' &&
+                    events?.hasListeners('entityRemoved') === true
+                ) {
+                    events.post(
+                        'entityRemoved',
+                        new EntityRemovedEvent(
+                            BigInt(entity.id),
+                            this.inertTypes.get(entity.id) ?? entity.identifier,
+                            world
+                        )
+                    );
+                }
                 this.actors.remove(entity);
                 this.inertTypes.delete(entity.id);
                 this.failedPlayers.delete(entity.id);

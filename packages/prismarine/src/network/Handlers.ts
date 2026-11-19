@@ -16,6 +16,7 @@ import ContainerCloseHandler from './handler/ContainerCloseHandler';
 import DisconnectHandler from './handler/DisconnectHandler';
 import EmoteHandler from './handler/EmoteHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
+import ScriptMessageHandler from './handler/ScriptMessageHandler';
 import InteractHandler from './handler/InteractHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
@@ -123,6 +124,7 @@ export {
     ResourcePackClientResponseHandler,
     ResourcePacksReadyForValidationHandler,
     RespawnHandler,
+    ScriptMessageHandler,
     ServerSettingsRequestHandler,
     ServerboundDiagnosticsHandler,
     ServerboundLoadingScreenHandler,

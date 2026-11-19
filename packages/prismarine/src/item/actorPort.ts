@@ -49,6 +49,7 @@ import type {
     SourceState
 } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
+import PlayerNameEntityEvent from '../events/player/PlayerNameEntityEvent';
 
 /**
  * What the port reads and changes of a player an action names: the inventory a stack goes into or
@@ -609,7 +610,16 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                     missing(action, 'a live data-driven nameable entity');
                     return;
                 }
+                const previousName = target.getName();
                 if (!nameEntity(target, action.name)) return;
+                const namer = [...targets].find(([, named]) => named.runtimeId === action.target.runtimeId)?.[0];
+                const { events } = target.getServer().getKernel();
+                if (namer !== undefined && events.hasListeners('playerNameEntity')) {
+                    events.post(
+                        'playerNameEntity',
+                        new PlayerNameEntityEvent(BigInt(namer), target, previousName, action.name)
+                    );
+                }
                 return;
             }
             case 'teleport-randomly':

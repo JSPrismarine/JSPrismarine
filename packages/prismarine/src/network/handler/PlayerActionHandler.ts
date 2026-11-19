@@ -1,3 +1,4 @@
+import { BLOCK_FACES } from '@jsprismarine/blocks';
 import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 
 import { blockFromContent } from '../../block/Block';
@@ -12,6 +13,7 @@ import type { World } from '../../world/World';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import PlayerBlockActionEvent from '../../events/player/PlayerBlockActionEvent';
 
 /**
  * The actions whose block position is read, so the one the client sends has to be checked.
@@ -143,6 +145,34 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                     'PlayerActionHandler/handleAction'
                 );
                 return;
+            }
+        }
+
+        if (action === PlayerActionType.StartDestroyBlock || action === PlayerActionType.AbortDestroyBlock) {
+            const face = BLOCK_FACES[blockFace];
+            const x = blockPosition.getX();
+            const y = blockPosition.getY();
+            const z = blockPosition.getZ();
+            const block = world.loadedBlockAt(x, y, z);
+            if (face !== undefined && block !== undefined && block.name !== 'minecraft:air') {
+                const held = player.getInventory().getItemInHand();
+                const mining = player.getComponents().get('mining.block');
+                const progress =
+                    mining === null || !Number.isFinite(mining.breakTicks) || mining.breakTicks <= 0
+                        ? 0
+                        : Math.min(1, Math.max(0, (step.tick - mining.startedAt) / mining.breakTicks));
+                services.events.post(
+                    'playerBlockAction',
+                    new PlayerBlockActionEvent(
+                        session.runtimeId,
+                        world,
+                        action === PlayerActionType.StartDestroyBlock ? 'start' : 'abort',
+                        { x, y, z, name: block.name, states: block.states },
+                        face,
+                        held.getName() === 'minecraft:air' ? null : held,
+                        action === PlayerActionType.AbortDestroyBlock ? progress : 0
+                    )
+                );
             }
         }
 
