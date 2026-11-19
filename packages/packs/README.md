@@ -10,7 +10,7 @@ object, which maps identifier to winning parsed definition for each registry, pl
 report. The Bedrock registries (blocks, items, entities, loot tables, trade tables, spawn rules,
 recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
 its definition replaces the earlier one whole. The Java registries (`JAVA_REGISTRY_IDS`, keyed by
-namespaced id; `JAVA_REGISTRY_DIRECTORIES` maps each 26.3 singular directory name to its registry)
+namespaced id; `JAVA_REGISTRY_DIRECTORIES` maps each singular directory name to its registry)
 resolve by Java's rule: a later pack wins per file, except tags, whose values merge across packs
 unless a later file sets `replace`.
 

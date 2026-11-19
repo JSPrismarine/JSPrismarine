@@ -44,10 +44,10 @@ under `node_modules/.cache/jsprismarine/java/`.
 `pnpm run dump:java-goals` rewrites `src/jsp/java/<release>/entity_goals.json` from the jar `fetch:sources` caches. It
 needs no JDK, because it reads the class files and never runs them.
 
-The pinned version, its sha1 and the manifest URL are constants at the top of
-`utils/java-dump/run.mjs`. The dumper needs a JDK matching the jar's class file version (Java 25
-for 26.3); the script finds one through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
-`/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape of both files and the
+The script reads the release, its sha1 and the JDK it needs from `sources.json` and the jar's
+`version.json`, through `utils/java/release.ts`. The dumper needs a JDK matching the jar's class
+file version (Java <!-- fact:java.jdk -->25<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->); the script finds one through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
+`/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape of the goldens and the
 counts measured in `docs/research/java-code-only-behavior.md`; a version bump updates those
 counts with the goldens.
 
@@ -196,8 +196,8 @@ places, inside chunk generation. The extracted directory is read one file at a t
 The generator writes no `pack.mcmeta`, so this step writes one from the `pack_version` the jar
 declares in its `version.json`; that file is what marks the directory as a loadable datapack. The
 same `version.json` names the JDK the jar needs, found through `JSP_JAVA_HOME`, `JAVA_HOME`, the
-`java` on `PATH` or, on macOS, `/usr/libexec/java_home`. The pinned Java Edition 26.3 jar asks for
-JDK 25 or newer; an older `java` earlier on `PATH` is skipped rather than used.
+`java` on `PATH` or, on macOS, `/usr/libexec/java_home`. The default Java Edition release, <!-- fact:java.version -->26.3<!-- /fact -->, asks for
+JDK <!-- fact:java.jdk -->25<!-- /fact --> or newer; an older `java` earlier on `PATH` is skipped rather than used.
 
 A second run is a no-op once all three directories hold the files the step checks for. Pass
 `--force` to regenerate:

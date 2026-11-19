@@ -396,8 +396,8 @@ worlds/world/datapacks/greeter/
     data/minecraft/tags/function/tick.json
 ```
 
-`pack.mcmeta` declares the format range. Format 121 is what Java 26.3 declares and what this loader
-targets:
+`pack.mcmeta` declares the format range. The loader targets the format of the Java release the server runs,
+<!-- fact:java.dataPackFormat -->121.0<!-- /fact --> for the default release, <!-- fact:java.version -->26.3<!-- /fact -->:
 
 ```json
 { "pack": { "description": "greeter", "min_format": 121, "max_format": 121 } }

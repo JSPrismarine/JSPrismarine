@@ -388,17 +388,18 @@ To add a datapack, point `content-datapacks` at its directory:
 }
 ```
 
-Its `pack.mcmeta` has to cover data pack format 121.0, which is what Java 26.3 declares. Both the
+Its `pack.mcmeta` has to cover the data pack format of the Java release the server runs, <!-- fact:java.dataPackFormat -->121.0<!-- /fact --> for
+the default release, <!-- fact:java.version -->26.3<!-- /fact -->. [Java versions](../guide/java-versions.md) explains how to pick another. Both the
 current and the legacy spellings parse:
 
 ```json
 { "pack": { "description": "Gameplay tweaks", "min_format": [121, 0], "max_format": [121, 0] } }
 ```
 
-A pack whose declared range does not cover 121.0 gets an error diagnostic and still loads, unless
+A pack whose declared range does not cover that format gets an error diagnostic and still loads, unless
 `content-strict` is on, in which case the load fails.
 
-Files route into registries by the 26.3 singular directory names under `data/<namespace>/`:
+Files route into registries by the singular directory names Java has used since 1.21 under `data/<namespace>/`:
 `loot_table`, `recipe`, `advancement`, `enchantment`, `damage_type`, `predicate`, `item_modifier`,
 `function` and `tags`. A pack written with the pre-1.21 plural names will not route and is silently
 skipped, which is the most common reason an override appears to do nothing. The identifier comes
