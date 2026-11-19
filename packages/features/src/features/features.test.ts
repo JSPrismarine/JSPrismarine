@@ -730,3 +730,48 @@ describe('the world seam', () => {
         expect(world.getHeight('WORLD_SURFACE_WG', 0, 0)).toBe(71);
     });
 });
+
+describe('large_speleothem', () => {
+    /** 26.4's `large_icicle` configuration, which builds its cones out of packed ice. */
+    const largeIcicle = {
+        type: 'minecraft:large_speleothem',
+        base_block: 'minecraft:packed_ice',
+        column_radius: { type: 'minecraft:uniform', min_inclusive: 3, max_inclusive: 6 },
+        height_scale: { type: 'minecraft:uniform', min_inclusive: 0.4, max_exclusive: 2 },
+        max_column_radius_to_cave_height_ratio: 0.33,
+        min_bluntness_for_wind: 0.6,
+        min_radius_for_wind: 4,
+        replaceable_blocks: ['minecraft:stone'],
+        stalactite_bluntness: { type: 'minecraft:uniform', min_inclusive: 0.3, max_exclusive: 0.9 },
+        stalagmite_bluntness: { type: 'minecraft:uniform', min_inclusive: 0.4, max_exclusive: 1 },
+        wind_speed: { type: 'minecraft:uniform', min_inclusive: 0, max_exclusive: 0.3 }
+    };
+
+    /** A stone floor and ceiling with a 20-block cave between them. */
+    const cave = (): TestFeatureWorld => {
+        const world = new TestFeatureWorld({ blocks: oracle() });
+        for (let x = -12; x <= 12; x++) {
+            for (let z = -12; z <= 12; z++) {
+                for (let y = -8; y < 0; y++) world.setBlock({ x, y, z }, STONE);
+                for (let y = 20; y < 28; y++) world.setBlock({ x, y, z }, STONE);
+            }
+        }
+        return world;
+    };
+
+    it('builds its cones out of the base block it names', () => {
+        const feature = build(largeIcicle);
+        expect(feature.type).toBe('large_speleothem');
+
+        const world = cave();
+        expect(feature.place(world, new WorldgenRandom(3n), { x: 0, y: 10, z: 0 })).toBe(true);
+        const placed = new Set<string>();
+        for (let x = -12; x <= 12; x++) {
+            for (let z = -12; z <= 12; z++) {
+                for (let y = 0; y < 20; y++) placed.add(world.getBlock({ x, y, z }).name);
+            }
+        }
+        expect(placed).toContain('minecraft:packed_ice');
+        expect(placed).not.toContain('minecraft:dripstone_block');
+    });
+});

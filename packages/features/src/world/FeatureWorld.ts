@@ -37,6 +37,16 @@ export type HeightmapType =
     | 'MOTION_BLOCKING'
     | 'MOTION_BLOCKING_NO_LEAVES';
 
+/** Every {@link HeightmapType}, for reading one out of a document. */
+export const HEIGHTMAPS = [
+    'WORLD_SURFACE_WG',
+    'WORLD_SURFACE',
+    'OCEAN_FLOOR_WG',
+    'OCEAN_FLOOR',
+    'MOTION_BLOCKING',
+    'MOTION_BLOCKING_NO_LEAVES'
+] as const satisfies readonly HeightmapType[];
+
 /**
  * The facts about a block state that do not depend on where it sits.
  *

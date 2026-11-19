@@ -33,6 +33,14 @@ testWorld.setBlock({ x: 1, y: 0, z: 0 }, WATER);
 testWorld.setBlock({ x: 2, y: 0, z: 0 }, SAPLING);
 
 describe('parseBlockPredicate', () => {
+    it('reads below_heightmap as under the column surface, with an optional offset', () => {
+        // Stone at y 0 is the column's top block, so the WORLD_SURFACE height is 1.
+        const below = { type: 'minecraft:below_heightmap', heightmap: 'WORLD_SURFACE' };
+        expect(test(below, { x: 0, y: 0, z: 0 })).toBe(true);
+        expect(test(below, { x: 0, y: 1, z: 0 })).toBe(false);
+        expect(test({ ...below, offset: [0, -1, 0] }, { x: 0, y: 1, z: 0 })).toBe(true);
+    });
+
     it('reads registered predicate types', () => {
         const documents: Record<string, unknown> = {
             matching_blocks: { type: 'minecraft:matching_blocks', blocks: 'minecraft:stone' },

@@ -11,7 +11,7 @@ import { constantInt, parseIntProvider } from '../providers/valueProviders';
 import { typeNameOf } from '../registry';
 import type { VerticalDirection } from '../world/BlockState';
 import type { BlockPos, FeatureWorld, HeightmapType } from '../world/FeatureWorld';
-import { atY, isOutsideBuildHeight, offset } from '../world/FeatureWorld';
+import { atY, HEIGHTMAPS, isOutsideBuildHeight, offset } from '../world/FeatureWorld';
 import { randomElement } from './WorldgenRandom';
 import { FeaturesErrors } from '@jsprismarine/errors/features';
 
@@ -332,15 +332,6 @@ export const fixedPlacement = (positions: readonly BlockPos[]): PlacementModifie
         }
     }
 });
-
-const HEIGHTMAPS = [
-    'WORLD_SURFACE_WG',
-    'WORLD_SURFACE',
-    'OCEAN_FLOOR_WG',
-    'OCEAN_FLOOR',
-    'MOTION_BLOCKING',
-    'MOTION_BLOCKING_NO_LEAVES'
-] as const satisfies readonly HeightmapType[];
 
 const VERTICAL_DIRECTIONS = ['up', 'down'] as const satisfies readonly VerticalDirection[];
 

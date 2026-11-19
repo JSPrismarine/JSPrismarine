@@ -397,6 +397,8 @@ const canPlacePool = (world: FeatureWorld, position: BlockPos, config: Speleothe
 
 /** How a large dripstone is shaped. */
 export interface LargeDripstoneConfig {
+    /** The block the cones are built of: dripstone for `large_dripstone`, any for `large_speleothem`. */
+    readonly baseBlock: BlockState;
     readonly replaceableBlocks: BlockSet;
     readonly floorToCeilingSearchRange: number;
     readonly columnRadius: IntProvider;
@@ -428,9 +430,16 @@ const isCircleMostlyEmbeddedInStone = (world: FeatureWorld, center: BlockPos, ra
     return true;
 };
 
-/** The cave-spanning dripstone cone pair, Java's `large_dripstone`. */
-export const largeDripstone = (config: LargeDripstoneConfig): ConfiguredFeature =>
-    feature('large_dripstone', (world, random, origin) => {
+/**
+ * The cave-spanning cone pair: Java 26.3's `large_dripstone`, and 26.4's `large_speleothem`,
+ * which names the block the cones are built of (`dripstone_block`, or `packed_ice` for
+ * `large_icicle`).
+ */
+export const largeDripstone = (
+    config: LargeDripstoneConfig,
+    type: 'large_dripstone' | 'large_speleothem' = 'large_dripstone'
+): ConfiguredFeature =>
+    feature(type, (world, random, origin) => {
         if (!isEmptyOrWater(world.getBlock(origin), world)) return false;
         const scanned = scanColumn(
             world,
@@ -438,8 +447,7 @@ export const largeDripstone = (config: LargeDripstoneConfig): ConfiguredFeature 
             config.floorToCeilingSearchRange,
             isEmptyOrWater,
             (state) =>
-                isBase(world, state, 'minecraft:dripstone_block', config.replaceableBlocks) ||
-                state.name === 'minecraft:lava'
+                isBase(world, state, config.baseBlock.name, config.replaceableBlocks) || state.name === 'minecraft:lava'
         );
         if (scanned?.floor === undefined || scanned.ceiling === undefined || scanned.height === undefined) return false;
         if (scanned.height < 4) return false;
@@ -518,7 +526,7 @@ export const largeDripstone = (config: LargeDripstoneConfig): ConfiguredFeature 
                         const target = offsetByWind(position);
                         if (isEmptyOrWaterOrLava(world.getBlock(target), world)) {
                             hasBeenOutOfStone = true;
-                            world.setBlock(target, DRIPSTONE_BLOCK);
+                            world.setBlock(target, config.baseBlock);
                         } else if (
                             hasBeenOutOfStone &&
                             world.blocks.hasTag(world.getBlock(target), 'minecraft:base_stone_overworld')
@@ -853,25 +861,39 @@ export const parseCaveFeature = (
             });
 
         case 'large_dripstone':
-            return largeDripstone({
-                replaceableBlocks: parseBlockSet(raw['replaceable_blocks'], `${path}.replaceable_blocks`),
-                floorToCeilingSearchRange: asInteger(
-                    raw['floor_to_ceiling_search_range'],
-                    `${path}.floor_to_ceiling_search_range`,
-                    30
-                ),
-                columnRadius: parseIntProvider(raw['column_radius'], `${path}.column_radius`),
-                heightScale: parseFloatProvider(raw['height_scale'], `${path}.height_scale`),
-                maxColumnRadiusToCaveHeightRatio: asNumber(
-                    raw['max_column_radius_to_cave_height_ratio'],
-                    `${path}.max_column_radius_to_cave_height_ratio`
-                ),
-                stalactiteBluntness: parseFloatProvider(raw['stalactite_bluntness'], `${path}.stalactite_bluntness`),
-                stalagmiteBluntness: parseFloatProvider(raw['stalagmite_bluntness'], `${path}.stalagmite_bluntness`),
-                windSpeed: parseFloatProvider(raw['wind_speed'], `${path}.wind_speed`),
-                minRadiusForWind: asInteger(raw['min_radius_for_wind'], `${path}.min_radius_for_wind`),
-                minBluntnessForWind: asNumber(raw['min_bluntness_for_wind'], `${path}.min_bluntness_for_wind`)
-            });
+        case 'large_speleothem':
+            return largeDripstone(
+                {
+                    baseBlock:
+                        type === 'large_dripstone'
+                            ? DRIPSTONE_BLOCK
+                            : parseBlockState(raw['base_block'], `${path}.base_block`),
+                    replaceableBlocks: parseBlockSet(raw['replaceable_blocks'], `${path}.replaceable_blocks`),
+                    floorToCeilingSearchRange: asInteger(
+                        raw['floor_to_ceiling_search_range'],
+                        `${path}.floor_to_ceiling_search_range`,
+                        30
+                    ),
+                    columnRadius: parseIntProvider(raw['column_radius'], `${path}.column_radius`),
+                    heightScale: parseFloatProvider(raw['height_scale'], `${path}.height_scale`),
+                    maxColumnRadiusToCaveHeightRatio: asNumber(
+                        raw['max_column_radius_to_cave_height_ratio'],
+                        `${path}.max_column_radius_to_cave_height_ratio`
+                    ),
+                    stalactiteBluntness: parseFloatProvider(
+                        raw['stalactite_bluntness'],
+                        `${path}.stalactite_bluntness`
+                    ),
+                    stalagmiteBluntness: parseFloatProvider(
+                        raw['stalagmite_bluntness'],
+                        `${path}.stalagmite_bluntness`
+                    ),
+                    windSpeed: parseFloatProvider(raw['wind_speed'], `${path}.wind_speed`),
+                    minRadiusForWind: asInteger(raw['min_radius_for_wind'], `${path}.min_radius_for_wind`),
+                    minBluntnessForWind: asNumber(raw['min_bluntness_for_wind'], `${path}.min_bluntness_for_wind`)
+                },
+                type === 'large_dripstone' ? 'large_dripstone' : 'large_speleothem'
+            );
 
         case 'vegetation_patch':
         case 'waterlogged_vegetation_patch':
