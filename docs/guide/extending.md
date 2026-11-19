@@ -29,7 +29,7 @@ There are three ways to change what a server does, from the most portable to the
 ### Before you start
 
 The script host, the part of JSPrismarine that runs scripts, is a native library. It isn't
-published to npm yet, and it builds only on <!-- fact:scripting.buildPlatforms -->Linux<!-- /fact -->
+published to npm yet, and it builds only on <!-- fact:scripting.buildPlatforms -->macOS on Apple silicon, Linux on arm64 with glibc, Linux on arm64 with musl, Linux on x64 with glibc, Linux on x64 with musl and Windows on x64<!-- /fact -->
 for now, so scripts run only on a server you run from source
 ([Run from source](running.md#run-from-source)). Build the library once in your checkout:
 

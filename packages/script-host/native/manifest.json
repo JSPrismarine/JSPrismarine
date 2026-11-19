@@ -1,0 +1,6 @@
+{
+    "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them. Empty until the first builds are published.",
+    "build": "",
+    "baseUrl": "",
+    "platforms": {}
+}

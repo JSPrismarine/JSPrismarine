@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 
-import { NATIVE_BUILD_PLATFORMS } from '../../../../packages/script-host/src/platform.ts';
+import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_WEATHER_MESSAGE } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep } from '../scenario.mts';
@@ -19,11 +19,11 @@ export const scriptWorldMessage: Scenario = {
     description:
         "a behavior pack script's world.sendMessage, sent from its weatherChange after-event, shows in the player's chat",
     run: async ({ client, server, log }) => {
-        // The script host builds on Linux only for now (issue #3215); elsewhere the server runs
+        // A platform without a published script host build runs the server
         // without scripts, which this scenario cannot check. Where it builds, a server that could
         // not load it is a failure.
-        if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
-            log(`skipped: the script host has no build for ${process.platform}, so the server runs no scripts`);
+        if (!isPublishedPlatform()) {
+            log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }
         const unloaded = server.lines.find((line) => NO_SCRIPT_HOST.test(line));

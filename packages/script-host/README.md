@@ -637,3 +637,10 @@ no extra work. The patch adds:
   frame's variables in scope. A variable no closure captures has no reference in its frame, so
   the evaluation borrows the variable's slot and leaves any closure it made with a copy.
 - `JS_GetDebugClassName`, an object's class name without running script.
+
+`native/patches/quickjs-backtrace-oom.patch` fixes a use-after-free in QuickJS. When a script
+runs out of memory, the interpreter adds the stack to the error it throws, and the string for the
+stack can be the allocation that fails. That failure throws a new error, which frees the one the
+stack was for, and the stack was then written to freed memory. The patch keeps a reference to the
+error until its stack is set, and leaves the stack `null` when its string cannot be made. The
+memory limit is hit at a different allocation on each C library, and Windows's was this one.

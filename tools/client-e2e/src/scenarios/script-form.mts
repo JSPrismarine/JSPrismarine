@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 
-import { NATIVE_BUILD_PLATFORMS } from '../../../../packages/script-host/src/platform.ts';
+import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_FORM_MESSAGE, SCRIPT_FORM_TITLE } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep } from '../scenario.mts';
@@ -41,9 +41,9 @@ export const scriptForm: Scenario = {
     description:
         "a behavior pack script's ActionFormData shows on the client, and the button the player clicks settles the script's show()",
     run: async ({ client, server, log }) => {
-        // The script host builds on Linux only for now (issue #3215), as script-world-message says.
-        if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
-            log(`skipped: the script host has no build for ${process.platform}, so the server runs no scripts`);
+        // A platform without a published script host build runs no scripts, as script-world-message says.
+        if (!isPublishedPlatform()) {
+            log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }
         const unloaded = server.lines.find((line) => NO_SCRIPT_HOST.test(line));

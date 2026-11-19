@@ -4,11 +4,13 @@
  * Downloads every source in `native/sources.json` into the shared cache, checks its SHA-256,
  * unpacks it and applies its patches. It then writes `jsh_absent_globals.h` from
  * `src/absentGlobals.ts` and compiles QuickJS with the C layer in `native/src/` into one
- * shared library. The library lands in `prebuilds/<platform>-<arch>/`, with a `build.json` that
- * records its size and digest.
+ * shared library. The library lands in `prebuilds/<platform>/`, with a `build.json` that records
+ * its size, its digest and the hash of the native sources it was built from.
  *
- * Needs a C compiler (`CC` names one; the default is `cc`), `tar` with xz support and `git`.
- * Only Linux is supported for now.
+ * Needs a C compiler (`CC` names one), `tar` with xz support and `git`. The default compiler is
+ * `cc` on Linux and macOS, and MinGW-w64's `gcc` on Windows: Bellard's QuickJS includes
+ * `<sys/time.h>` and uses pthreads, so it builds on Windows with MinGW-w64 and not with MSVC. A
+ * Windows build links libgcc and winpthreads in, so it needs only the system's DLLs.
  *
  *     node scripts/build-native.mts [--out <dir>] [--debug]
  */
@@ -16,12 +18,19 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { absentGlobals, splitAbsentPath } from '../src/absentGlobals.ts';
-import { NATIVE_BUILD_PLATFORMS, prebuildDir, sharedLibraryName } from '../src/platform.ts';
+import { nativeSourceHash } from '../src/nativeHash.ts';
+import {
+    PUBLISHED_PLATFORMS,
+    installedLibraryPath,
+    isPublishedPlatform,
+    platformKey,
+    sharedLibraryName
+} from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const nativeDir = join(packageDir, 'native');
@@ -42,10 +51,9 @@ const { values } = parseArgs({
     }
 });
 
-if (!NATIVE_BUILD_PLATFORMS.includes(process.platform)) {
-    throw new Error(
-        `build:native builds for ${NATIVE_BUILD_PLATFORMS.join(', ')} only for now, not ${process.platform}`
-    );
+const key = platformKey();
+if (!isPublishedPlatform(key)) {
+    console.warn(`build:native is tested on ${PUBLISHED_PLATFORMS.join(', ')}, not ${key}; trying anyway`);
 }
 
 // Parsed JSON from our own manifest; its shape is the Source interface above.
@@ -69,6 +77,13 @@ const runAsync = (command: string, args: string[], cwd: string): Promise<void> =
             code === 0 ? resolvePromise() : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`))
         );
     });
+
+/**
+ * The `tar` to unpack with. On Windows it is the system's bsdtar: Git's GNU tar, which is often
+ * first on the path there, reads `C:\…` as a remote host and fails.
+ */
+const tarCommand = (): string =>
+    process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 
 const sha256 = (file: string): string => createHash('sha256').update(readFileSync(file)).digest('hex');
 
@@ -111,7 +126,7 @@ const unpack = async (): Promise<void> => {
         const into = join(sourcesDir, source.into);
         rmSync(into, { recursive: true, force: true });
         mkdirSync(into, { recursive: true });
-        run('tar', ['-xf', archive, '--strip-components=1', '-C', into], sourcesDir);
+        run(tarCommand(), ['-xf', archive, '--strip-components=1', '-C', into], sourcesDir);
         for (const patch of source.patches ?? []) {
             // The cache can sit inside a git checkout, where `git apply` would resolve paths from
             // the checkout's root and skip every file; stopping discovery here applies it in place.
@@ -128,7 +143,7 @@ await unpack();
 
 // Linked worktrees share the cache, so each checkout compiles into its own directory.
 const checkout = createHash('sha256').update(nativeDir).digest('hex').slice(0, 8);
-const buildDir = join(cacheDir, `build-${treeKey}-${checkout}${values.debug ? '-debug' : ''}`);
+const buildDir = join(cacheDir, `build-${treeKey}-${checkout}-${key}${values.debug ? '-debug' : ''}`);
 mkdirSync(buildDir, { recursive: true });
 
 const header = [
@@ -154,15 +169,18 @@ const quickjsDir = join(sourcesDir, 'quickjs');
 const quickjsVersion = pinned.find((source) => source.name === 'quickjs')?.version;
 if (quickjsVersion === undefined) throw new Error('native/sources.json pins no quickjs');
 
-const compiler = process.env.CC ?? 'cc';
+const compiler = process.env.CC ?? (process.platform === 'win32' ? 'gcc' : 'cc');
 const optimize = values.debug ? ['-O0', '-g'] : ['-O2'];
 const common = [
     ...optimize,
-    '-fPIC',
+    // Every object in a Windows DLL is position independent already, and GCC there rejects the flag.
+    ...(process.platform === 'win32' ? [] : ['-fPIC']),
     '-fvisibility=hidden',
     '-ffunction-sections',
     '-fdata-sections',
     '-D_GNU_SOURCE',
+    // MinGW-w64's own printf family, as QuickJS's Makefile picks on Windows for C99 formatting.
+    ...(process.platform === 'win32' ? ['-D__USE_MINGW_ANSI_STDIO'] : []),
     `-DCONFIG_VERSION="${quickjsVersion}"`,
     // QuickJS's header is upstream's, so its warnings stay out of the C layer's build.
     '-isystem',
@@ -171,10 +189,11 @@ const common = [
     `-I${buildDir}`
 ];
 const units = [
-    // QuickJS's own warnings are upstream's to fix, so they stay quiet.
+    // QuickJS's own warnings are upstream's to fix, so they stay quiet. Its Makefile builds it with
+    // -fwrapv, as it relies on signed overflow wrapping.
     ...['quickjs.c', 'libregexp.c', 'libunicode.c', 'cutils.c', 'dtoa.c'].map((file) => ({
         source: join(quickjsDir, file),
-        flags: ['-w']
+        flags: ['-w', '-fwrapv']
     })),
     { source: join(nativeDir, 'src', 'engine.c'), flags: ['-Wall', '-Wextra', '-std=c11'] }
 ];
@@ -183,36 +202,38 @@ const objects: string[] = [];
 const queue = [...units];
 const workers = Array.from({ length: Math.min(availableParallelism(), queue.length) }, async () => {
     for (let unit = queue.shift(); unit !== undefined; unit = queue.shift()) {
-        const object = join(buildDir, `${unit.source.slice(unit.source.lastIndexOf('/') + 1)}.o`);
+        const object = join(buildDir, `${basename(unit.source)}.o`);
         objects.push(object);
         await runAsync(compiler, [...common, ...unit.flags, '-c', unit.source, '-o', object], buildDir);
     }
 });
 await Promise.all(workers);
 
-const out = resolve(values.out ?? prebuildDir(packageDir));
+const out = resolve(values.out ?? dirname(installedLibraryPath(packageDir, key)));
 mkdirSync(out, { recursive: true });
 const shared = join(out, sharedLibraryName());
-run(
-    compiler,
-    [
-        '-shared',
-        '-o',
-        shared,
-        ...objects.sort(),
-        // Only the jsh_ interface is exported, and every symbol binds at load.
-        `-Wl,--version-script=${join(nativeDir, 'exports.map')}`,
-        '-Wl,--gc-sections',
-        '-Wl,-z,now',
-        '-lm',
-        '-lpthread'
-    ],
-    buildDir
-);
-if (!values.debug) run('strip', ['--strip-unneeded', shared], out);
+
+/** The linker flags for this operating system: only the jsh_ interface is exported, and unused sections go. */
+const linkFlags = (): string[] => {
+    if (process.platform === 'darwin') {
+        // The C layer marks the jsh_ functions visible, and -fvisibility=hidden hides the rest.
+        return ['-dynamiclib', `-Wl,-install_name,@rpath/${sharedLibraryName()}`, '-Wl,-dead_strip'];
+    }
+    if (process.platform === 'win32') {
+        // JSH_EXPORT marks the jsh_ functions dllexport, so the DLL exports only them. -static links
+        // libgcc and winpthreads in, and -s strips the DLL as it is linked.
+        return ['-shared', '-static', '-Wl,--gc-sections', ...(values.debug ? [] : ['-s'])];
+    }
+    // Every symbol binds at load, so a missing one fails loading instead of a later call.
+    return ['-shared', `-Wl,--version-script=${join(nativeDir, 'exports.map')}`, '-Wl,--gc-sections', '-Wl,-z,now'];
+};
+run(compiler, [...linkFlags(), '-o', shared, ...objects.sort(), '-lm', '-lpthread'], buildDir);
+if (!values.debug && process.platform === 'darwin') run('strip', ['-x', shared], out);
+else if (!values.debug && process.platform !== 'win32') run('strip', ['--strip-unneeded', shared], out);
 
 const report = {
-    platform: `${process.platform}-${process.arch}`,
+    platform: key,
+    sourceHash: nativeSourceHash(packageDir),
     buildType: values.debug ? 'Debug' : 'Release',
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),
     shared: { file: sharedLibraryName(), bytes: statSync(shared).size, sha256: sha256(shared) }

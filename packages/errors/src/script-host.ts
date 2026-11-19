@@ -74,22 +74,63 @@ export const ScriptHostErrors = defineErrors('script-host', {
     },
     /**
      * `JSP_SCRIPT_HOST_LIBRARY` names a library file that does not exist. Point it at a build of the
-     * library, or unset it to use the one `build:native` wrote into the package.
+     * library, or unset it to use the one the package installed.
      */
     LibraryOverrideMissing: {
         message: '{libraryEnv} names {override}, which does not exist',
         base: NativeLibraryError
     },
     /**
-     * The package has no native library for this platform. Build it with
-     * `pnpm --filter @jsprismarine/script-host run build:native`, or set `JSP_SCRIPT_HOST_LIBRARY`
-     * to a build of the library.
+     * The package has no native library for this platform: its install script has not run, or in a
+     * checkout, `build:native` has not. The message says how to get it.
      */
-    LibraryNotBuilt: {
-        message:
-            '{packageName} has no build for {platform} at {built}. `pnpm --filter {packageName} run build:native` builds it, or set {libraryEnv} to a build of the library.',
+    LibraryNotInstalled: {
+        message: '{packageName} has no build for {platform} at {installed}. {advice}',
         base: NativeLibraryError
     },
+    /**
+     * No prebuilt script host library exists for this platform. Build it from a checkout with
+     * `pnpm --filter @jsprismarine/script-host run build:native` and point `JSP_SCRIPT_HOST_LIBRARY`
+     * at it.
+     */
+    NoBuildForPlatform: { message: '{packageName} publishes no build for {platform}.', base: NativeLibraryError },
+    /**
+     * The library file has no published digest to check against for this platform, and it was not
+     * built locally either, so it is refused.
+     */
+    NoPublishedBuildToCheck: {
+        message: '{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against',
+        base: NativeLibraryError
+    },
+    /**
+     * The library file is not the build the package publishes, so it was altered or comes from
+     * another version. Reinstall the package.
+     */
+    DigestDoesNotMatchPublishedBuild: {
+        message: '{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}',
+        base: NativeLibraryError
+    },
+    /**
+     * Downloading the script host library failed with that HTTP status. Retry, or point
+     * `JSP_SCRIPT_HOST_LIBRARY` at a library you built.
+     */
+    DownloadFailed: '{url} answered {status}',
+    /**
+     * The downloaded library does not match the digest the package publishes, so it was corrupted
+     * in transit or replaced. Retry the install.
+     */
+    DownloadDigestMismatch:
+        '{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}',
+    /**
+     * The package's native manifest is malformed, so the package was published broken. Reinstall
+     * it, or report it.
+     */
+    InvalidNativeManifest: 'The native manifest needs `build` and `baseUrl` strings',
+    /**
+     * The package's native manifest has a malformed platform entry, so the package was published
+     * broken. Reinstall it, or report it.
+     */
+    InvalidNativeManifestEntry: "The native manifest's entry for {key} is malformed",
     /**
      * The native library was built for a different version of this package. Rebuild it with
      * `pnpm --filter @jsprismarine/script-host run build:native`.
