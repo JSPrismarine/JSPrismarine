@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findJdkHome } from '../../../bedrock-data/utils/java/jdk.ts';
+import { readJarVersion, resolveJavaRelease } from '../../../bedrock-data/utils/java/release.ts';
+
 /**
  * Compiles and runs the block transform dumper against the pinned Java Edition server jar and
  * leaves `block_transforms.json` in the cache directory for the table generator beside this file.
@@ -18,11 +21,10 @@ const packageRoot = path.resolve(here, '../..');
 const repoRoot = path.resolve(packageRoot, '../..');
 
 // The pin lives in the shared source manifest, so a version bump edits that file once.
-const sources = JSON.parse(fs.readFileSync(path.join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8'));
-const JAVA_VERSION = sources.javaServer.defaultVersion;
-const SERVER_JAR_SHA1 = sources.javaServer.versions[JAVA_VERSION].sha1;
-// The 26.3 version manifest declares Java 25 for the server classes.
-const REQUIRED_JDK_MAJOR = 25;
+// `--java <release>` picks a pinned release, `javaServer.defaultVersion` when absent.
+const release = await resolveJavaRelease(process.argv);
+const JAVA_VERSION = release.version;
+const SERVER_JAR_SHA1 = release.hash.value;
 
 const cacheDir = path.join(repoRoot, 'node_modules/.cache/jsprismarine/java', JAVA_VERSION);
 
@@ -71,39 +73,13 @@ const extractServer = (jarPath) => {
     return { serverJar, librariesDir };
 };
 
-/** Finds a JDK of at least the required major version, or explains how to point at one. */
-const findJdk = () => {
-    const candidates = [process.env.JSP_JAVA_HOME, process.env.JAVA_HOME].filter(
-        (candidate) => candidate !== undefined
-    );
-    if (process.platform === 'darwin') {
-        try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', `${REQUIRED_JDK_MAJOR}+`], {
-                encoding: 'utf8'
-            }).trim();
-            if (home) candidates.push(home);
-        } catch {
-            // No matching JVM registered; the error below explains what to install.
-        }
-    }
-
-    for (const home of candidates) {
-        const javac = path.join(home, 'bin/javac');
-        if (!fs.existsSync(javac)) continue;
-        const version = execFileSync(javac, ['-version'], { encoding: 'utf8' }).trim();
-        const major = Number(version.replace('javac ', '').split('.')[0]);
-        if (major >= REQUIRED_JDK_MAJOR) return home;
-    }
-    throw new Error(
-        `No JDK ${REQUIRED_JDK_MAJOR} or newer found. Install one (for example Temurin) or set ` +
-            'JSP_JAVA_HOME to the home directory of a suitable JDK.'
-    );
-};
-
-/** Compiles and runs the dumper, returning the path of the JSON it wrote. */
-export const dumpBlockTransforms = () => {
-    const { serverJar, librariesDir } = extractServer(findServerJar());
-    const jdkHome = findJdk();
+/** Compiles and runs the dumper, resolving to the path of the JSON it wrote. */
+export const dumpBlockTransforms = async () => {
+    const jarPath = findServerJar();
+    const { serverJar, librariesDir } = extractServer(jarPath);
+    // The dumper compiles against the server classes, so it needs the JDK the jar declares it was built for.
+    const { java_version: requiredJdkMajor } = await readJarVersion(jarPath);
+    const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac'] });
     const classesDir = path.join(cacheDir, 'transform-classes');
     const outputDir = path.join(cacheDir, 'transform-out');
     const classpath = [serverJar, path.join(librariesDir, '*')].join(path.delimiter);
@@ -126,4 +102,4 @@ export const dumpBlockTransforms = () => {
     return path.join(outputDir, 'block_transforms.json');
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) dumpBlockTransforms();
+if (process.argv[1] === fileURLToPath(import.meta.url)) await dumpBlockTransforms();
