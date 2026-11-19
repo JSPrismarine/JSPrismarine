@@ -159,6 +159,26 @@ describe('command', () => {
             expect(overloadsOf('version')?.map((overload) => overload.parameters.length)).toEqual([0]);
         });
 
+        it('describes every command once for the console, each form starting with its name', async () => {
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+
+            const reference = commandManager.commandReference();
+            const names = reference.map(({ name }) => name);
+            expect(names).toEqual(
+                [...commandManager.getVanillaCommands().getNames()].sort((a, b) => a.localeCompare(b))
+            );
+            for (const command of reference) {
+                expect(command.usage.length, command.name).toBeGreaterThan(0);
+                for (const form of command.usage) expect(form.split(' ')[0], command.name).toBe(command.name);
+            }
+            const teleport = reference.find(({ name }) => name === 'teleport');
+            expect(teleport?.aliases).toContain('tp');
+            expect(teleport?.description).toBeDefined();
+            // Several forms: a destination, or targets and a position.
+            expect(teleport?.usage.length).toBeGreaterThan(1);
+        });
+
         it('should dispatch a vanilla command through the command layer', async () => {
             // `/gamerule <rule>` reads through the host, so the value reaching the console
             // proves the vanilla tree parsed it and the host answered.
