@@ -154,6 +154,8 @@ export const SECOND_LEVEL = 'e2e_other';
  *   Overworld shares the default level's dimension.
  * @param options.udpPorts - Where NetherNet's UDP goes; see {@link UdpPortsLayout}.
  * @param options.publicIp - The `server-public-ip` the server advertises.
+ * @param options.protocolWindow - How many releases the server accepts, counted back from the
+ *   newest. The server's default accepts the newest only, which refuses an older client.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -171,6 +173,7 @@ export const startServer = async (
         secondLevel?: boolean;
         udpPorts?: UdpPortsLayout;
         publicIp?: string;
+        protocolWindow?: number;
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -449,6 +452,7 @@ export const startServer = async (
         // survival player while the scenario sprinted ticks. Every monster's spawn rule has a
         // minimum difficulty above peaceful; the cow fixture has none.
         ...(options.naturalCowSpawning === true ? { difficulty: 'peaceful' } : {}),
+        ...(options.protocolWindow === undefined ? {} : { 'protocol-window': options.protocolWindow }),
         'level-name': 'e2e',
         worlds: {
             e2e: {

@@ -157,6 +157,11 @@ const cinnabar = ensureCinnabar(
     values.transport === undefined ? undefined : parseTransport(values.transport)
 );
 const { transport } = cinnabar.pin;
+// The server accepts the newest release alone unless its window says otherwise, so the window
+// reaches back to the client's release through every newer one the manifest pins.
+const protocolWindow = readManifest().versions.filter(
+    (version) => version.protocol >= cinnabar.target.wireProtocol
+).length;
 console.log(
     `client targets Bedrock ${cinnabar.target.gameVersion} (protocol ${cinnabar.target.wireProtocol}) over ${transport}`
 );
@@ -331,6 +336,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             raknetWorker: values['raknet-worker'],
             transport,
             udpPorts,
+            protocolWindow,
             ...(values['public-ip'] === undefined ? {} : { publicIp: values['public-ip'] }),
             profile: suite.scenarios.some((scenario) => scenario.serverOptions?.profile === true),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.preloadRadius !== undefined)
