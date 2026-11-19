@@ -1629,6 +1629,62 @@
             "jsprismarine:dist": "./dist/wire/versions/v2259.js",
             "default": "./src/wire/versions/v2259.ts"
         },
+        "./packet/CameraPresetsPacket": {
+            "jsprismarine:dist": "./dist/packet/CameraPresetsPacket.js",
+            "default": "./src/packet/CameraPresetsPacket.ts"
+        },
+        "./packet/CameraAimAssistPresetsPacket": {
+            "jsprismarine:dist": "./dist/packet/CameraAimAssistPresetsPacket.js",
+            "default": "./src/packet/CameraAimAssistPresetsPacket.ts"
+        },
+        "./packet/CameraInstructionPacket": {
+            "jsprismarine:dist": "./dist/packet/CameraInstructionPacket.js",
+            "default": "./src/packet/CameraInstructionPacket.ts"
+        },
+        "./packet/SetHudPacket": {
+            "jsprismarine:dist": "./dist/packet/SetHudPacket.js",
+            "default": "./src/packet/SetHudPacket.ts"
+        },
+        "./packet/UpdateClientInputLocksPacket": {
+            "jsprismarine:dist": "./dist/packet/UpdateClientInputLocksPacket.js",
+            "default": "./src/packet/UpdateClientInputLocksPacket.ts"
+        },
+        "./packet/PlayerStartItemCooldownPacket": {
+            "jsprismarine:dist": "./dist/packet/PlayerStartItemCooldownPacket.js",
+            "default": "./src/packet/PlayerStartItemCooldownPacket.ts"
+        },
+        "./packet/ClientboundControlSchemeSetPacket": {
+            "jsprismarine:dist": "./dist/packet/ClientboundControlSchemeSetPacket.js",
+            "default": "./src/packet/ClientboundControlSchemeSetPacket.ts"
+        },
+        "./packet/CameraAimAssistPacket": {
+            "jsprismarine:dist": "./dist/packet/CameraAimAssistPacket.js",
+            "default": "./src/packet/CameraAimAssistPacket.ts"
+        },
+        "./wire/structures/PlayerAuthInput": {
+            "jsprismarine:dist": "./dist/wire/structures/PlayerAuthInput.js",
+            "default": "./src/wire/structures/PlayerAuthInput.ts"
+        },
+        "./structure/CameraInstruction": {
+            "jsprismarine:dist": "./dist/structure/CameraInstruction.js",
+            "default": "./src/structure/CameraInstruction.ts"
+        },
+        "./structure/CameraAimAssistCategoryDefinition": {
+            "jsprismarine:dist": "./dist/structure/CameraAimAssistCategoryDefinition.js",
+            "default": "./src/structure/CameraAimAssistCategoryDefinition.ts"
+        },
+        "./structure/CameraAimAssistCategoryPriorities": {
+            "jsprismarine:dist": "./dist/structure/CameraAimAssistCategoryPriorities.js",
+            "default": "./src/structure/CameraAimAssistCategoryPriorities.ts"
+        },
+        "./structure/CameraAimAssistPresetDefinition": {
+            "jsprismarine:dist": "./dist/structure/CameraAimAssistPresetDefinition.js",
+            "default": "./src/structure/CameraAimAssistPresetDefinition.ts"
+        },
+        "./structure/CameraPreset": {
+            "jsprismarine:dist": "./dist/structure/CameraPreset.js",
+            "default": "./src/structure/CameraPreset.ts"
+        },
         "./package.json": "./package.json"
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
