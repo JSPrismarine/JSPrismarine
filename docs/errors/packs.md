@@ -187,6 +187,17 @@ Thrown as `PacksErrors.PackageVersionMissing`, which extends `Error`.
 The pack cache keys its files by this package's version, and `package.json` has none. The
 package is damaged.
 
+## `PACKS_UNCOMPARABLE_JAVA_RELEASE`
+
+`` cannot place Java {release} among releases to gate the schema on; pass `release` ``
+
+Thrown as `PacksErrors.UncomparableJavaRelease`, which extends `Error`.
+
+The Java data validator was given a target release it cannot place among Java releases, so
+it cannot decide which `#[since]` and `#[until]` schema fields apply. It reads releases such
+as `26.3` and `1.21.5`, and the snapshot, pre-release and release candidate ids of a release,
+such as `26.4-snapshot-10`. Pass `release` to the validator to name the release to gate on.
+
 ## `PACKS_UNKNOWN_INTEGER_OPERATOR`
 
 `unknown integer operator {value}`

@@ -11,7 +11,12 @@ import { isRecord } from './isRecord';
 /** A Java data pack format: major and minor. The 26.3 data format is 121.0. */
 export type PackFormat = readonly [number, number];
 
-/** The data pack format this loader targets: 121.0, from the 26.3 `version.json`. */
+/**
+ * The data pack format of the default target: 121.0, from the 26.3 `version.json`.
+ *
+ * @deprecated Pass a {@link import('./javaDataTarget').JavaDataTarget} to `load` and read its
+ *   `format`; this is the format of `DEFAULT_JAVA_DATA_TARGET` and will be removed.
+ */
 export const DATA_PACK_FORMAT: PackFormat = [121, 0];
 
 /** An inclusive range of pack formats a pack or overlay supports. */

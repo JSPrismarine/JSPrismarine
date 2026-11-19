@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { textFiles, writeZip } from '../fixtures/writers';
+import { DEFAULT_JAVA_DATA_TARGET } from './javaDataTarget';
+import type { JavaDataTarget } from './javaDataTarget';
 import { PackLoadError, load } from './load';
 
 const temporaryDirs: string[] = [];
@@ -155,6 +157,61 @@ describe('datapack sources', () => {
         const { definitions } = load([{ kind: 'datapack', path: pack }]);
         expect(definitions.recipesJava.get('fixture:base')).toBeDefined();
         expect(definitions.recipesJava.size).toBe(1);
+    });
+
+    describe('under a Java data target other than the default', () => {
+        const preview: JavaDataTarget = { release: '26.4-snapshot-8', format: [127, 0], dataVersion: 5100 };
+        const packFor127 = (): string =>
+            writeDatapack({
+                'pack.mcmeta': JSON.stringify({ pack: { min_format: 127, max_format: 127 } }),
+                'data/fixture/recipe/new.json': RECIPE
+            });
+
+        it('loads a pack covering 127 clean when the target is 127.0', () => {
+            const { definitions, diagnostics } = load([{ kind: 'datapack', path: packFor127() }], {
+                strict: true,
+                java: preview
+            });
+
+            expect(diagnostics).toEqual([]);
+            expect(definitions.recipesJava.get('fixture:new')).toBeDefined();
+        });
+
+        it('reports the same pack under the default target, 121.0', () => {
+            const pack = packFor127();
+
+            expect(load([{ kind: 'datapack', path: pack }]).diagnostics).toMatchObject([
+                { severity: 'error', code: 'mcmeta.format-mismatch' }
+            ]);
+            expect(() =>
+                load([{ kind: 'datapack', path: pack }], { strict: true, java: DEFAULT_JAVA_DATA_TARGET })
+            ).toThrow(PackLoadError);
+        });
+
+        it('applies the overlays that cover the target and not the ones that cover 121.0', () => {
+            const pack = writeDatapack({
+                'pack.mcmeta': JSON.stringify({
+                    pack: { min_format: 121, max_format: 127 },
+                    overlays: {
+                        entries: [
+                            { directory: 'current', min_format: 121, max_format: 121 },
+                            { directory: 'preview', min_format: 127, max_format: 127 }
+                        ]
+                    }
+                }),
+                'data/fixture/recipe/contested.json': JSON.stringify({ type: 'fixture:base' }),
+                'current/data/fixture/recipe/contested.json': JSON.stringify({ type: 'fixture:current' }),
+                'preview/data/fixture/recipe/contested.json': JSON.stringify({ type: 'fixture:preview' })
+            });
+            const contested = (java?: JavaDataTarget): unknown =>
+                load(
+                    [{ kind: 'datapack', path: pack }],
+                    java === undefined ? { strict: true } : { strict: true, java }
+                ).definitions.recipesJava.get('fixture:contested')?.data;
+
+            expect(contested(preview)).toEqual({ type: 'fixture:preview' });
+            expect(contested()).toEqual({ type: 'fixture:current' });
+        });
     });
 
     it('warns about a declared overlay directory the pack does not carry', () => {

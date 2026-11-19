@@ -21,6 +21,11 @@
                 "import": "./dist/lenientJson.js",
                 "module": "./dist/lenientJson.js"
             },
+            "./javaDataTarget": {
+                "types": "./dist/javaDataTarget.d.ts",
+                "import": "./dist/javaDataTarget.js",
+                "module": "./dist/javaDataTarget.js"
+            },
             "./mcdocValidator": {
                 "types": "./dist/mcdocValidator.d.ts",
                 "import": "./dist/mcdocValidator.js",
@@ -59,6 +64,10 @@
         "./lenientJson": {
             "jsprismarine:dist": "./dist/lenientJson.js",
             "default": "./src/lenientJson.ts"
+        },
+        "./javaDataTarget": {
+            "jsprismarine:dist": "./dist/javaDataTarget.js",
+            "default": "./src/javaDataTarget.ts"
         },
         "./mcdocValidator": {
             "jsprismarine:dist": "./dist/mcdocValidator.js",
