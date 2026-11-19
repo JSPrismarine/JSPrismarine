@@ -11,6 +11,11 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./itemMapping": {
+                "types": "./dist/itemMapping.d.ts",
+                "import": "./dist/itemMapping.js",
+                "module": "./dist/itemMapping.js"
+            },
             "./lossList": {
                 "types": "./dist/lossList.d.ts",
                 "import": "./dist/lossList.js",
@@ -37,6 +42,10 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./itemMapping": {
+            "jsprismarine:dist": "./dist/itemMapping.js",
+            "default": "./src/itemMapping.ts"
         },
         "./lossList": {
             "jsprismarine:dist": "./dist/lossList.js",
