@@ -16,7 +16,7 @@ import path from 'node:path';
 
 import { Logger } from '@jsprismarine/logger';
 import { locateLibrary } from '@jsprismarine/script-host/library';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Config } from '../config/Config';
 import Server from '../Server';
@@ -162,37 +162,40 @@ const runSession = async (seed: string, wallClock: () => number, replay: boolean
     }
 };
 
-describe.skipIf(!scriptHostAvailable())('a scripted session', () => {
-    it(
-        'replays to the same digest at every tick on the same seed and admitted clock, whatever the host clock',
-        { tags: ['real-data'], timeout: 180_000 },
-        async () => {
-            // The capture reads a clock that moves on every read; the replay hands back the same readings.
-            const admitted: number[] = [];
-            let reads = 0;
-            const captured = await runSession(
-                '1',
-                () => {
-                    const now = 1_800_000_000_000 + reads++ * 37;
-                    admitted.push(now);
-                    return now;
-                },
-                false
-            );
-            const replaying = () => {
-                let read = 0;
-                return () => admitted[read++] ?? Number.NaN;
-            };
-            const replay = await runSession('1', replaying(), true);
-            const reseeded = await runSession('2', replaying(), true);
+describe.skipIf(!scriptHostAvailable())('a scripted session', { tags: ['real-data'] }, () => {
+    let captured: Awaited<ReturnType<typeof runSession>>;
+    let replay: Awaited<ReturnType<typeof runSession>>;
+    let reseeded: Awaited<ReturnType<typeof runSession>>;
 
-            // The script changed the weather, so the digests compare its work, not an idle world.
-            expect(new Set(captured.weather).size).toBeGreaterThan(1);
-            expect(replay.weather).toEqual(captured.weather);
-            expect(replay.digests).toEqual(captured.digests);
-            expect(reseeded.weather).not.toEqual(captured.weather);
-            // The captured session listened for the debugger, as its config asked; the replays did not.
-            expect([captured, replay, reseeded].map((run) => run.debuggerListened)).toEqual([true, false, false]);
-        }
-    );
+    // Each run boots a server, whose content build is the slow part, so the three run once, up front.
+    beforeAll(async () => {
+        // The capture reads a clock that moves on every read; the replay hands back the same readings.
+        const admitted: number[] = [];
+        let reads = 0;
+        captured = await runSession(
+            '1',
+            () => {
+                const now = 1_800_000_000_000 + reads++ * 37;
+                admitted.push(now);
+                return now;
+            },
+            false
+        );
+        const replaying = () => {
+            let read = 0;
+            return () => admitted[read++] ?? Number.NaN;
+        };
+        replay = await runSession('1', replaying(), true);
+        reseeded = await runSession('2', replaying(), true);
+    }, 180_000);
+
+    it('replays to the same digest at every tick on the same seed and admitted clock, whatever the host clock', () => {
+        // The script changed the weather, so the digests compare its work, not an idle world.
+        expect(new Set(captured.weather).size).toBeGreaterThan(1);
+        expect(replay.weather).toEqual(captured.weather);
+        expect(replay.digests).toEqual(captured.digests);
+        expect(reseeded.weather).not.toEqual(captured.weather);
+        // The captured session listened for the debugger, as its config asked; the replays did not.
+        expect([captured, replay, reseeded].map((run) => run.debuggerListened)).toEqual([true, false, false]);
+    });
 });

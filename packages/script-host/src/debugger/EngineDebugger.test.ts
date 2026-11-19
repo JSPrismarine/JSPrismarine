@@ -2,7 +2,7 @@ import { ScriptError, ScriptTerminatedError } from '@jsprismarine/errors/script-
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from '../testing/library.test-utils';
 import { ScriptHandle } from '../values';
 import type { ScriptValue } from '../values';
 import type { DebugFrame, EngineDebugger, PauseOutcome, PauseReason, ResumeMode } from './EngineDebugger';

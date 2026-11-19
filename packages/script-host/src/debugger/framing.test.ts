@@ -85,47 +85,41 @@ describe('debugger framing', () => {
             request: { request_seq: 1, command: 'evaluate', args: { expression: 'x'.repeat(4096) } }
         };
         const frame = encodeFrame(message);
-        // Every public way the decoder could copy bytes from one buffer into another. Node's own
-        // code calls none of these through the objects a spy replaces, so nothing counts twice.
-        let copied = 0;
-        const concat = Buffer.concat.bind(Buffer);
-        vi.spyOn(Buffer, 'concat').mockImplementation((list, totalLength) => {
-            const joined = concat(list, totalLength);
-            copied += joined.byteLength;
-            return joined;
-        });
-        const from = Buffer.from;
-        // One function stands in for every overload of Buffer.from, which no single signature types.
-        vi.spyOn(Buffer, 'from').mockImplementation(((...args: unknown[]) => {
-            const made: Buffer = Reflect.apply(from, Buffer, args);
+        // Every public way the decoder could copy bytes from one buffer into another, observed and
+        // called through. Node's own code calls none of these through the objects a spy wraps, so
+        // nothing counts twice.
+        const concat = vi.spyOn(Buffer, 'concat');
+        const from = vi.spyOn(Buffer, 'from');
+        const copy = vi.spyOn(Buffer.prototype, 'copy');
+        const set = vi.spyOn(Uint8Array.prototype, 'set');
+        const slice = vi.spyOn(Uint8Array.prototype, 'slice');
+        /** The bytes each call made, from the value it returned. */
+        const made = (results: readonly { type: string; value: unknown }[]): number =>
+            results.reduce(
+                (sum, result) => sum + (result.value instanceof Uint8Array ? result.value.byteLength : 0),
+                0
+            );
+        const copied = (): number =>
+            made(concat.mock.results) +
             // A string is encoded, and an ArrayBuffer is viewed; anything else is copied.
-            if (typeof args[0] !== 'string' && !(args[0] instanceof ArrayBuffer)) copied += made.byteLength;
-            return made;
-        }) as typeof Buffer.from);
-        const copy = Buffer.prototype.copy;
-        vi.spyOn(Buffer.prototype, 'copy').mockImplementation(function (this: Buffer, ...args) {
-            const count = copy.apply(this, args);
-            copied += count;
-            return count;
-        });
-        const set = Uint8Array.prototype.set;
-        vi.spyOn(Uint8Array.prototype, 'set').mockImplementation(function (this: Uint8Array, source, offset) {
-            set.call(this, source, offset);
-            copied += source.length;
-        });
-        const slice = Uint8Array.prototype.slice;
-        vi.spyOn(Uint8Array.prototype, 'slice').mockImplementation(function (this: Uint8Array, start, end) {
-            const part = slice.call(this, start, end);
-            copied += part.byteLength;
-            return part;
-        });
+            made(
+                from.mock.results.filter(
+                    (_, call) =>
+                        typeof from.mock.calls[call]?.[0] !== 'string' &&
+                        !(from.mock.calls[call]?.[0] instanceof ArrayBuffer)
+                )
+            ) +
+            copy.mock.results.reduce((sum, result) => sum + (typeof result.value === 'number' ? result.value : 0), 0) +
+            set.mock.calls.reduce((sum, [source]) => sum + source.length, 0) +
+            made(slice.mock.results);
 
         const decoder = new FrameDecoder();
         const messages = [...frame].flatMap((byte) => decoder.push(Uint8Array.of(byte)));
+        const total = copied();
 
         expect(messages).toEqual([message]);
         // Once as it arrives, and once more when the body's chunks are joined.
-        expect(copied).toBeLessThanOrEqual(2 * frame.byteLength);
+        expect(total).toBeLessThanOrEqual(2 * frame.byteLength);
     });
 
     it('refuses a header that is not 8 hexadecimal digits and a newline, and a body that is not JSON', () => {

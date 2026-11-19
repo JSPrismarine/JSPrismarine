@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine } from './ScriptEngine';
 import { absentGlobals, splitAbsentPath } from './absentGlobals';
-import { loadLibrary, scriptHostAvailable } from './testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from './testing/library.test-utils';
 
 describe('splitAbsentPath', () => {
     it.each([

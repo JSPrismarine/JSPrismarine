@@ -1,7 +1,7 @@
 import { NativeLibraryError } from '@jsprismarine/errors/script-host';
-import { expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
-import { scriptHostAvailable } from '../../../script-host/src/testing/library.test.helper.ts';
+import { scriptHostAvailable } from '../../../script-host/src/testing/library.test-utils.ts';
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { measureScenarios, scenarioGroup } from '../behaviorScenarios.ts';
 import { describeFamily } from '../measure.ts';
@@ -166,16 +166,26 @@ export const describeScriptingFamily = (family: ScriptingFamily, sourceFile: str
             expect(missing.map((scenario) => scenario.id)).toEqual([]);
         });
 
-        it.skipIf(needsLibrary && !scriptHostAvailable())(
-            "records what the pinned Bedrock Dedicated Server's scripts recorded",
-            // A server scenario boots a whole server, whose content build takes most of it, and the
-            // family runs its scenarios one after another, so its budget grows with them.
-            { timeout: Math.max(300_000, 150_000 * scenarios.length), tags: needsRealData ? ['real-data'] : [] },
-            async () => {
+        // The scenarios run once, ahead of their row, in a suite of their own, so a run that leaves
+        // the row out boots none of their servers.
+        describe.skipIf(needsLibrary && !scriptHostAvailable())(
+            'on JSPrismarine',
+            { tags: needsRealData ? ['real-data'] : [] },
+            () => {
                 const records = new Map<string, ScenarioOutcome>();
-                for (const scenario of scenarios) records.set(scenario.id, await runScenarioOutcome(scenario));
 
-                measureScenarios(family, sourceFile, scenarioGroup([scenarioRecordComparison(scenarios, records)]));
+                // A server scenario boots a whole server, whose content build takes most of it, and
+                // the family runs its scenarios one after another, so its budget grows with them.
+                beforeAll(
+                    async () => {
+                        for (const scenario of scenarios) records.set(scenario.id, await runScenarioOutcome(scenario));
+                    },
+                    Math.max(300_000, 150_000 * scenarios.length)
+                );
+
+                it("records what the pinned Bedrock Dedicated Server's scripts recorded", () => {
+                    measureScenarios(family, sourceFile, scenarioGroup([scenarioRecordComparison(scenarios, records)]));
+                });
             }
         );
     });

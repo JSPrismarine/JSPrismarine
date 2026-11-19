@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptEngine } from './ScriptEngine';
 import { engineFunctionSource } from './engineSource';
-import { loadLibrary, scriptHostAvailable } from './testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from './testing/library.test-utils';
 
 describe.skipIf(!scriptHostAvailable())('engineFunctionSource', () => {
     let engine: ScriptEngine;

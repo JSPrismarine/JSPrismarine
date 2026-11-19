@@ -206,10 +206,14 @@ describe('Supervisor', () => {
         await supervisor.start();
         await children[0]?.running();
         const commands: unknown[] = [];
-        children[0]?.server.onMessage((message) => commands.push(message));
+        const received = Promise.withResolvers<void>();
+        children[0]?.server.onMessage((message) => {
+            commands.push(message);
+            received.resolve();
+        });
 
         supervisor.reloadScripts('packs/probe/scripts/main.js');
-        await vi.waitFor(() => expect(commands).toHaveLength(1));
+        await received.promise;
         expect(commands).toEqual([{ type: 'command', v: 1, id: 'reload-1', line: 'reload' }]);
 
         children[0]?.exit(1);

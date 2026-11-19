@@ -4,7 +4,7 @@ import { reportProgress } from '../../../../.test/reportProgress';
 import { SCRIPT_MODULE_HISTORIES } from '../generated/scriptModules';
 import { ScriptApiError } from '../errors';
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable } from '../testing/library.test-utils';
 import { ScriptHandle } from '../values';
 import type { ScriptApiLogger } from './binding';
 import type { Privilege } from './format';

@@ -5,14 +5,14 @@ import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test.helper';
+import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test-utils';
 import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
 import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
-import { MemoryWorld } from '../testing/memoryWorld.test.helper';
+import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {

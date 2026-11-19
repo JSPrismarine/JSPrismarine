@@ -2,7 +2,10 @@
     "$schema": "https://json.schemastore.org/tsconfig.json",
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "noEmit": true
+        "noEmit": true,
+        // The generated shape's freshness tests import the generator under `scripts/`, which
+        // names its modules with their `.mts` and `.ts` extensions.
+        "allowImportingTsExtensions": true
     },
     "exclude": [],
     "include": ["src/**/*"]

@@ -4,11 +4,18 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { SCRIPT_MODULE_HISTORIES } from '../../src/generated/scriptModules.ts';
+import type { ModuleHistory } from '../../src/shape/format.ts';
+import serverJson from '../../src/generated/script-modules/server.json' with { type: 'json' };
+import serverNetJson from '../../src/generated/script-modules/server-net.json' with { type: 'json' };
 import { countPack, shapeVersionFor } from './pack.mts';
 
-const server = SCRIPT_MODULE_HISTORIES['@minecraft/server'];
-if (server === undefined) throw new Error('No generated @minecraft/server history');
+// The generated histories, in the layout `src/shape/format.ts` describes, which the compiler cannot
+// see in an imported JSON file's type.
+const server = serverJson as ModuleHistory;
+const histories: Readonly<Record<string, ModuleHistory>> = {
+    '@minecraft/server': server,
+    '@minecraft/server-net': serverNetJson as ModuleHistory
+};
 // The beta the pinned server ships, its newest. `currentBeta` says the same, but `src/shape/resolve.ts`
 // imports without extensions, which this project's module resolution refuses.
 const shippedBeta = server.versions.filter((entry) => entry.stability === 'beta').at(-1)?.version;
@@ -68,7 +75,7 @@ describe('countPack', () => {
         const usage = countPack(
             { id: 'fixture', manifest: 'BP/manifest.json', sources: ['src'], exclude: ['src/vendor'] },
             root,
-            SCRIPT_MODULE_HISTORIES
+            histories
         );
 
         expect(usage.files).toEqual({ javascript: 1, typescript: 1 });

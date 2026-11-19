@@ -4,7 +4,7 @@ import { Worker } from 'node:worker_threads';
 import { DebuggerFramingError, DebuggerTransportError } from '@jsprismarine/errors/script-host';
 import { describe, expect, it } from 'vitest';
 
-import { scriptHostAvailable } from '../testing/library.test.helper';
+import { scriptHostAvailable } from '../testing/library.test-utils';
 import type { DebuggerWorkerData, DebuggerWorkerReport } from '../testing/debuggerWorker';
 import { DebuggerChannelBridge } from './channel';
 import { FrameDecoder, MAX_RECEIVED_FRAME_LENGTH, encodeFrame } from './framing';

@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
-import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test.helper';
-import { MemoryWorld } from '../testing/memoryWorld.test.helper';
+import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test-utils';
+import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
 import type { ScriptBlockLocation, ScriptComponentSink } from './world';
