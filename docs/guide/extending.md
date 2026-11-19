@@ -28,21 +28,31 @@ There are three ways to change what a server does, from the most portable to the
 
 ### Before you start
 
-The script host, the part of JSPrismarine that runs scripts, is a native library. It isn't
-published to npm yet, and it builds only on <!-- fact:scripting.buildPlatforms -->macOS on Apple silicon, Linux on arm64 with glibc, Linux on arm64 with musl, Linux on x64 with glibc, Linux on x64 with musl and Windows on x64<!-- /fact -->
-for now, so scripts run only on a server you run from source
-([Run from source](running.md#run-from-source)). Build the library once in your checkout:
+The script host, the part of JSPrismarine that runs scripts, is QuickJS in a native library that
+`@jsprismarine/script-host` ships. Builds exist for
+<!-- fact:scripting.buildPlatforms -->macOS on Apple silicon, Linux on arm64 with glibc, Linux on arm64 with musl, Linux on x64 with glibc, Linux on x64 with musl and Windows on x64<!-- /fact -->. The package's install script downloads
+the build for your machine from the project's GitHub releases and checks its SHA-256, so nothing
+compiles on your machine.
+
+npm, pnpm and Bun can hold that install script back until you approve the package. When it has not
+run, the server's warning names the command that approves it for your package manager. To load a
+library file instead, for a machine that installs without scripts or cannot reach GitHub, set
+`JSP_SCRIPT_HOST_LIBRARY` to its path. The file must be the published build, or a `build:native`
+output with the `build.json` it writes beside it.
+
+In a checkout, `pnpm install` downloads the build the same way. Once you change the native sources,
+no published build matches them, and you build the library yourself:
 
 ```bash
 pnpm --filter @jsprismarine/script-host run build:native
 ```
 
-The build needs a C compiler (`cc`, or the one `CC` names), `tar` that reads `.tar.xz`, and `git`.
-It downloads the pinned QuickJS release into the checkout's cache.
+The build needs a C compiler, `tar` that reads `.tar.xz`, and `git`. The compiler is `cc`, or
+MinGW-w64's `gcc` on Windows, unless `CC` names another. The build downloads the pinned QuickJS
+release into the checkout's cache.
 
 A server without the library still loads every pack. It runs their content, skips their scripts,
-and logs a warning that says how many packs have scripts and why they don't run. Prebuilt libraries
-for every platform are tracked in [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215).
+and logs a warning that says how many packs have scripts and why they don't run.
 
 ### Install a script pack
 

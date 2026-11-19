@@ -635,7 +635,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `scripting.lifecycle` shows the pattern.
     - Learned: the npm name `@jsprismarine/server` is the server package's, so the typings are
       `@jsprismarine/script-types`, which declares the module by name for a project's `types`. It
-      stays private with the script host until slice 18. BDS 1.26.51.1 rejects a static import
+      was private with the script host until slice 18. BDS 1.26.51.1 rejects a static import
       of the module with the same `Module [@jsprismarine/server] is unrecognized` message as
       `import()`, so the file that holds it does not load. An `async` callback passed straight to
       `system.run` or `subscribe` never ran past its first `await`, because the host called it
@@ -653,8 +653,31 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     - Left: the debugger section says only that support is in progress, until slice 7's VS Code
       check runs; the page tells readers to build the script host from a checkout until slice 18
       publishes it.
-18. [ ] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists. Then drop `"private": true` from `@jsprismarine/script-host` and list it again in the docs site's
+18. [x] [#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215) **Every platform.** The native builds for each platform ADR 0006 lists. Then drop `"private": true` from `@jsprismarine/script-host` and list it again in the docs site's
     `packageAreas.ts`.
+    - Done (2026-11-19): `build:native` builds on macOS on Apple silicon, on Windows on x64 and on
+      Linux on x64 and arm64 against glibc and musl, the platforms ADR 0006 lists. The package
+      carries `native/manifest.json` and an install script that downloads the build for the
+      machine from a GitHub release and checks its SHA-256, as `@jsprismarine/native-network`
+      does. The Native network workflow's jobs became a reusable workflow,
+      `native-library.yml`, with its scripts in `scripts/native/`; the Script host workflow calls
+      it, so a push to master that changes the native sources publishes their builds and opens
+      the manifest's pull request. `@jsprismarine/script-host` and `@jsprismarine/script-types`
+      are public, and the docs site lists both.
+    - Learned: Bellard's QuickJS includes `<sys/time.h>` and uses pthreads unconditionally, so it
+      builds on Windows with MinGW-w64 and not with MSVC. The build uses MSYS2's UCRT64 GCC and
+      links libgcc and winpthreads statically, so the DLL needs only system DLLs and the Universal
+      C Runtime. macOS's linker takes neither a version script nor `-z now`; `-fvisibility=hidden`
+      with the C layer's visible `jsh_` functions keeps the exports to the interface there.
+    - Learned: QuickJS wrote an out-of-memory error's stack after the error was freed, when the
+      stack's string was the allocation past the memory limit. Windows's allocation sizes hit
+      that allocation in the memory limit test, which crashed there; `quickjs-backtrace-oom.patch`
+      holds the error until its stack is set. A sweep of memory limits in `ScriptEngine.test.ts`
+      crashes the unpatched library on Linux too.
+    - Left: the publish path (the release and the manifest's pull request) runs only from
+      master, so the first builds are published when this merges. Until then the manifest is
+      empty and every CI job builds its own library. The single executables embed the native
+      networking library but not the script host's.
 19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
 20. [x] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
