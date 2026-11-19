@@ -539,7 +539,7 @@ interface FactSource {
     label: string;
     dir: string;
     names: readonly string[];
-    read: (dir: string) => Record<string, number> | Promise<Record<string, number>>;
+    read: (dir: string) => Record<string, number | string> | Promise<Record<string, number | string>>;
 }
 
 /** Counts read from the generated game data: the Java datapack and reports, bedrock-samples and BDS. */
@@ -599,6 +599,22 @@ function dataSources(sources: Sources): FactSource[] {
                     'java.datapack.structureSets': jsonUnder(path.join(vanilla, 'worldgen', 'structure_set')).length,
                     'java.datapack.templatePools': jsonUnder(path.join(vanilla, 'worldgen', 'template_pool')).length
                 };
+            }
+        },
+        {
+            // The record `datagen:java` writes from the jar's own `version.json`, so the format and
+            // JDK a page names are the default release's rather than a number typed beside it.
+            label: `the Java ${java} version record`,
+            dir: path.join(cacheRoot, 'vanilla-datapack', java, 'version.json'),
+            names: ['java.dataPackFormat', 'java.dataVersion', 'java.jdk'],
+            read: (file) => {
+                const record: unknown = JSON.parse(readFileSync(file, 'utf8'));
+                const format = field(record, 'dataPackFormat');
+                const dataVersion = field(record, 'dataVersion');
+                const jdk = field(record, 'javaVersion');
+                if (!Array.isArray(format) || typeof dataVersion !== 'number' || typeof jdk !== 'number')
+                    throw new Error(`${file} is not a datagen:java version record`);
+                return { 'java.dataPackFormat': format.join('.'), 'java.dataVersion': dataVersion, 'java.jdk': jdk };
             }
         },
         {

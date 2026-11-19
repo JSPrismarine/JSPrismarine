@@ -74,13 +74,13 @@ run writes both halves of the Java data, into the same cache the fetch stage use
   `biome_parameters` from them, the <!-- fact:java.reports.climateBoxes -->7594<!-- /fact --> climate boxes that exist nowhere else.
 
 The generator writes no `pack.mcmeta`, so the step writes one from the `pack_version` the jar
-declares in its `version.json` (121.0 for 26.3). That file is what marks the directory as a
+declares in its `version.json` (<!-- fact:java.dataPackFormat -->121.0<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->). That file is what marks the directory as a
 loadable datapack for every reader above. Beside it, the step writes its own `version.json` with
 the release id, the JDK, the data pack format and the data version the jar declares, which
 `readGeneratedJavaVersion` in `@jsprismarine/bedrock-data/sources` reads. `ensure:worldgen` writes
 that file into a cache generated before it existed, without running the generator again. The
 jar's `version.json` also names the JDK it needs
-(Java 25 for 26.3), found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
+(Java <!-- fact:java.jdk -->25<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->), found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
 `/usr/libexec/java_home`.
 
 A second run is a no-op once both directories hold the files the step checks for; `-- --force`
@@ -115,7 +115,7 @@ rewrites the goldens under `packages/bedrock-data/src/jsp/java/`:
 - `entity_attributes.json`: the default attribute values, dimensions and category for the <!-- fact:java.entityAttributes -->93<!-- /fact --> entity
   types with an attribute supplier.
 
-The dumper needs a JDK matching the jar's class file version (Java 25 for 26.3). It shares the
+The dumper needs a JDK matching the jar's class file version (Java <!-- fact:java.jdk -->25<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->). It shares the
 search in `utils/java/jdk.ts` with the compose stage, which looks at `JSP_JAVA_HOME`, `JAVA_HOME`
 and, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape and counts of
 both files.
