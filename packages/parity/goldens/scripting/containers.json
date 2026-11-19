@@ -1,0 +1,421 @@
+{
+    "$comment": [
+        "What the scripts of scenario `containers` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.items",
+    "scenario": "containers",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "containers",
+            "seq": 1,
+            "tick": 0,
+            "event": "weight",
+            "value": [
+                80,
+                0
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 2,
+            "tick": 0,
+            "event": "containerRules",
+            "value": null
+        },
+        {
+            "pack": "containers",
+            "seq": 3,
+            "tick": 0,
+            "event": "firstItem firstEmptySlot",
+            "value": [
+                0,
+                1,
+                null,
+                0
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 4,
+            "tick": 0,
+            "event": "contains",
+            "value": [
+                true,
+                true,
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 5,
+            "tick": 0,
+            "event": "find",
+            "value": [
+                0,
+                0,
+                0,
+                null,
+                5
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 6,
+            "tick": 0,
+            "event": "findLast",
+            "value": [
+                3,
+                3,
+                2
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 7,
+            "tick": 0,
+            "event": "moveItem to an empty slot",
+            "value": [
+                [
+                    null,
+                    null,
+                    "minecraft:stone x64",
+                    "minecraft:apple x5",
+                    null,
+                    "minecraft:apple x1"
+                ],
+                [
+                    null,
+                    "minecraft:apple x10"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 8,
+            "tick": 0,
+            "event": "moveItem onto a matching stack",
+            "value": [
+                [
+                    null,
+                    null,
+                    "minecraft:stone x64",
+                    null,
+                    null,
+                    "minecraft:apple x1"
+                ],
+                [
+                    null,
+                    "minecraft:apple x5"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 9,
+            "tick": 0,
+            "event": "moveItem onto a different stack",
+            "value": [
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:apple x1"
+                ],
+                [
+                    null,
+                    "minecraft:stone x64"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 10,
+            "tick": 0,
+            "event": "moveItem from an empty slot",
+            "value": [
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:apple x1"
+                ],
+                [
+                    null,
+                    "minecraft:stone x64"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 11,
+            "tick": 0,
+            "event": "moveItem within a container",
+            "value": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                "minecraft:apple x1"
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 12,
+            "tick": 0,
+            "event": "moveItem past the end",
+            "error": "Error: Invalid container slot provided '30'. Maximum slot is '26'."
+        },
+        {
+            "pack": "containers",
+            "seq": 13,
+            "tick": 0,
+            "event": "swapItems",
+            "value": [
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:apple x1",
+                    null,
+                    "minecraft:stone x64"
+                ],
+                []
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 14,
+            "tick": 0,
+            "event": "swapItems with an empty slot",
+            "value": [
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:stone x64"
+                ],
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:apple x1"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 15,
+            "tick": 0,
+            "event": "swapItems past the end",
+            "error": "Error: Invalid container slot provided '40'. Maximum slot is '26'."
+        },
+        {
+            "pack": "containers",
+            "seq": 16,
+            "tick": 0,
+            "event": "transferItem",
+            "value": [
+                null,
+                [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:stone x64"
+                ],
+                [
+                    "minecraft:apple x64",
+                    "minecraft:apple x26",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:apple x1"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 17,
+            "tick": 0,
+            "event": "transferItem an empty slot",
+            "value": null
+        },
+        {
+            "pack": "containers",
+            "seq": 18,
+            "tick": 0,
+            "event": "transferItem into a full container",
+            "value": [
+                "minecraft:stone x10",
+                [
+                    "minecraft:stone x10",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "minecraft:stone x64"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 19,
+            "tick": 0,
+            "event": "clearAll",
+            "value": [
+                [],
+                27
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 20,
+            "tick": 0,
+            "event": "slot getTags hasTag",
+            "value": [
+                [
+                    "minecraft:diamond_tier",
+                    "minecraft:is_sword",
+                    "minecraft:is_tool",
+                    "minecraft:transformable_items"
+                ],
+                true
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 21,
+            "tick": 0,
+            "event": "slot keepOnDeath lockMode",
+            "value": [
+                [
+                    false,
+                    "none"
+                ],
+                true,
+                "inventory",
+                true,
+                "inventory"
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 22,
+            "tick": 0,
+            "event": "slot canDestroy canPlaceOn",
+            "value": [
+                [
+                    "glass"
+                ],
+                [
+                    "obsidian"
+                ],
+                [
+                    "glass"
+                ]
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 23,
+            "tick": 0,
+            "event": "slot getRawLore",
+            "value": [
+                {
+                    "text": "line"
+                }
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 24,
+            "tick": 0,
+            "event": "slot isStackableWith",
+            "error": "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+        },
+        {
+            "pack": "containers",
+            "seq": 25,
+            "tick": 0,
+            "event": "slot dynamic properties",
+            "value": [
+                [
+                    null,
+                    [],
+                    0
+                ],
+                [
+                    7,
+                    [
+                        "jsp:a",
+                        "jsp:b",
+                        "jsp:c"
+                    ],
+                    32,
+                    "text"
+                ],
+                []
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 26,
+            "tick": 0,
+            "event": "slot dynamic property on a stackable item",
+            "error": "UnsupportedFunctionalityError: Unsupported functionality: Cannot set dynamic properties on stackable items."
+        },
+        {
+            "pack": "containers",
+            "seq": 27,
+            "tick": 0,
+            "event": "empty slot members",
+            "value": [
+                "InvalidContainerSlotError: The container slot is either empty or is no longer loaded.",
+                "InvalidContainerSlotError: The container slot is either empty or is no longer loaded.",
+                "InvalidContainerSlotError: The container slot is either empty or is no longer loaded.",
+                "InvalidContainerSlotError: The container slot is either empty or is no longer loaded."
+            ]
+        },
+        {
+            "pack": "containers",
+            "seq": 28,
+            "tick": 0,
+            "event": "containers done"
+        }
+    ]
+}

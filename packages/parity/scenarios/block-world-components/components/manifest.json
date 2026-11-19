@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario block-world-components components",
+        "description": "Records the block components backed by world systems: signs, pistons, jukeboxes, cauldrons, redstone and placement. Written for packages/parity.",
+        "uuid": "33955ace-1371-4fef-a96c-354ab2a127f3",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "86ceedba-2e30-4af3-9aa1-10e07c129a27",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

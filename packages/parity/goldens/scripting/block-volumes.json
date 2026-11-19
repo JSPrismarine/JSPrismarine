@@ -1,0 +1,923 @@
+{
+    "$comment": [
+        "What the scripts of scenario `block-volumes` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "block-volumes",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "volumes",
+            "seq": 1,
+            "tick": 0,
+            "event": "createValid",
+            "value": {
+                "max": {
+                    "z": 2,
+                    "y": 4,
+                    "x": 3
+                },
+                "min": {
+                    "z": -2,
+                    "y": -1,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 2,
+            "tick": 0,
+            "event": "createValid fractional",
+            "value": {
+                "max": {
+                    "z": 1,
+                    "y": 3,
+                    "x": 2
+                },
+                "min": {
+                    "z": 0,
+                    "y": 1,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 3,
+            "tick": 0,
+            "event": "dilate",
+            "value": {
+                "max": {
+                    "z": 7,
+                    "y": 5,
+                    "x": 3
+                },
+                "min": {
+                    "z": -3,
+                    "y": -2,
+                    "x": -1
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 4,
+            "tick": 0,
+            "event": "equals itself",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 5,
+            "tick": 0,
+            "event": "equals another",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 6,
+            "tick": 0,
+            "event": "expand",
+            "value": {
+                "max": {
+                    "z": 11,
+                    "y": 11,
+                    "x": 11
+                },
+                "min": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 7,
+            "tick": 0,
+            "event": "getCenter",
+            "value": {
+                "z": 2,
+                "y": 2,
+                "x": 1
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 8,
+            "tick": 0,
+            "event": "getCenter of one block",
+            "value": {
+                "z": 3,
+                "y": 3,
+                "x": 3
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 9,
+            "tick": 0,
+            "event": "getIntersection",
+            "value": {
+                "max": {
+                    "z": 4,
+                    "y": 3,
+                    "x": 2
+                },
+                "min": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 10,
+            "tick": 0,
+            "event": "getIntersection apart",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 11,
+            "tick": 0,
+            "event": "getIntersection touching",
+            "value": {
+                "max": {
+                    "z": 4,
+                    "y": 3,
+                    "x": 2
+                },
+                "min": {
+                    "z": 4,
+                    "y": 3,
+                    "x": 2
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 12,
+            "tick": 0,
+            "event": "getSpan",
+            "value": {
+                "z": 5,
+                "y": 4,
+                "x": 3
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 13,
+            "tick": 0,
+            "event": "intersects",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 14,
+            "tick": 0,
+            "event": "intersects apart",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 15,
+            "tick": 0,
+            "event": "isInside",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 16,
+            "tick": 0,
+            "event": "isInside outside",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 17,
+            "tick": 0,
+            "event": "isInside fractional",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 18,
+            "tick": 0,
+            "event": "isValid",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 19,
+            "tick": 0,
+            "event": "isValid inverted",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 20,
+            "tick": 0,
+            "event": "translate",
+            "value": {
+                "max": {
+                    "z": 4,
+                    "y": 13,
+                    "x": 1
+                },
+                "min": {
+                    "z": 0,
+                    "y": 10,
+                    "x": -1
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 21,
+            "tick": 0,
+            "event": "BlockVolume from",
+            "value": {
+                "z": 0,
+                "y": 1,
+                "x": 2
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 22,
+            "tick": 0,
+            "event": "BlockVolume to",
+            "value": {
+                "z": 1,
+                "y": 0,
+                "x": 0
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 23,
+            "tick": 0,
+            "event": "BlockVolume fractional corners",
+            "value": [
+                {
+                    "z": 1,
+                    "y": -1,
+                    "x": 0
+                },
+                {
+                    "z": -2,
+                    "y": 1,
+                    "x": 2
+                },
+                {
+                    "z": -2,
+                    "y": -1,
+                    "x": 0
+                },
+                {
+                    "z": 1,
+                    "y": 1,
+                    "x": 2
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 24,
+            "tick": 0,
+            "event": "getMin",
+            "value": {
+                "z": 0,
+                "y": 0,
+                "x": 0
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 25,
+            "tick": 0,
+            "event": "getMax",
+            "value": {
+                "z": 1,
+                "y": 1,
+                "x": 2
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 26,
+            "tick": 0,
+            "event": "getSpan",
+            "value": {
+                "z": 2,
+                "y": 2,
+                "x": 3
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 27,
+            "tick": 0,
+            "event": "getCapacity",
+            "value": 12
+        },
+        {
+            "pack": "volumes",
+            "seq": 28,
+            "tick": 0,
+            "event": "getBoundingBox",
+            "value": {
+                "max": {
+                    "z": 1,
+                    "y": 1,
+                    "x": 2
+                },
+                "min": {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 29,
+            "tick": 0,
+            "event": "isInside",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 30,
+            "tick": 0,
+            "event": "isInside fractional",
+            "value": true
+        },
+        {
+            "pack": "volumes",
+            "seq": 31,
+            "tick": 0,
+            "event": "iterator order",
+            "value": [
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                },
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 1
+                },
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 2
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 0
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 2
+                },
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 0
+                },
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 1
+                },
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 2
+                },
+                {
+                    "z": 1,
+                    "y": 1,
+                    "x": 0
+                },
+                {
+                    "z": 1,
+                    "y": 1,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 1,
+                    "x": 2
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 32,
+            "tick": 0,
+            "event": "getClosest",
+            "value": [
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 1
+                },
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 1
+                },
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 0
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 33,
+            "tick": 0,
+            "event": "getFarthest",
+            "value": [
+                {
+                    "z": 1,
+                    "y": 1,
+                    "x": 2
+                },
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 2
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 2
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 34,
+            "tick": 0,
+            "event": "getClosest more than it has",
+            "value": 12
+        },
+        {
+            "pack": "volumes",
+            "seq": 35,
+            "tick": 0,
+            "event": "getClosest fractional",
+            "value": [
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 2
+                },
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 2
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 36,
+            "tick": 0,
+            "event": "doesLocationTouchFaces",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 37,
+            "tick": 0,
+            "event": "doesLocationTouchFaces middle",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 38,
+            "tick": 0,
+            "event": "doesVolumeTouchFaces",
+            "value": [
+                false,
+                false,
+                false,
+                true,
+                false,
+                true,
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 39,
+            "tick": 0,
+            "event": "doesVolumeTouchFaces more",
+            "value": [
+                false,
+                true,
+                true,
+                false,
+                true,
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 40,
+            "tick": 0,
+            "event": "intersects",
+            "value": [
+                1,
+                2,
+                0,
+                2,
+                1
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 41,
+            "tick": 0,
+            "event": "iterator isValid",
+            "value": [
+                true,
+                true,
+                true,
+                false,
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 1
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 42,
+            "tick": 0,
+            "event": "translate",
+            "value": [
+                {
+                    "z": 0,
+                    "y": 1,
+                    "x": 3
+                },
+                {
+                    "z": 1,
+                    "y": 0,
+                    "x": 1
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 43,
+            "tick": 0,
+            "event": "translate fractional",
+            "value": [
+                {
+                    "z": 1,
+                    "y": -1,
+                    "x": 0
+                },
+                {
+                    "z": 2,
+                    "y": 0,
+                    "x": 1
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 44,
+            "tick": 0,
+            "event": "set from",
+            "value": [
+                {
+                    "z": -1,
+                    "y": 2,
+                    "x": 3
+                },
+                {
+                    "z": -1,
+                    "y": 1,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 2,
+                    "x": 3
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 45,
+            "tick": 0,
+            "event": "iterator done twice",
+            "value": [
+                [
+                    false,
+                    {
+                        "z": 0,
+                        "y": 0,
+                        "x": 0
+                    }
+                ],
+                [
+                    true,
+                    null
+                ],
+                [
+                    true,
+                    null
+                ]
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 46,
+            "tick": 0,
+            "event": "ListBlockVolume iterator order",
+            "value": [
+                {
+                    "z": 2,
+                    "y": -2,
+                    "x": 0
+                },
+                {
+                    "z": 0,
+                    "y": 2,
+                    "x": 1
+                },
+                {
+                    "z": 0,
+                    "y": 0,
+                    "x": 3
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 47,
+            "tick": 0,
+            "event": "ListBlockVolume getCapacity",
+            "value": 3
+        },
+        {
+            "pack": "volumes",
+            "seq": 48,
+            "tick": 0,
+            "event": "ListBlockVolume getMin getMax getSpan",
+            "value": [
+                {
+                    "z": 0,
+                    "y": -2,
+                    "x": 0
+                },
+                {
+                    "z": 2,
+                    "y": 2,
+                    "x": 3
+                },
+                {
+                    "z": 3,
+                    "y": 5,
+                    "x": 4
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 49,
+            "tick": 0,
+            "event": "ListBlockVolume getBoundingBox",
+            "value": {
+                "max": {
+                    "z": 2,
+                    "y": 2,
+                    "x": 3
+                },
+                "min": {
+                    "z": 0,
+                    "y": -2,
+                    "x": 0
+                }
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 50,
+            "tick": 0,
+            "event": "ListBlockVolume isInside",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 51,
+            "tick": 0,
+            "event": "ListBlockVolume add",
+            "value": [
+                4,
+                [
+                    {
+                        "z": 9,
+                        "y": 9,
+                        "x": 9
+                    },
+                    {
+                        "z": 2,
+                        "y": -2,
+                        "x": 0
+                    },
+                    {
+                        "z": 0,
+                        "y": 2,
+                        "x": 1
+                    },
+                    {
+                        "z": 0,
+                        "y": 0,
+                        "x": 3
+                    }
+                ]
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 52,
+            "tick": 0,
+            "event": "ListBlockVolume remove",
+            "value": [
+                3,
+                [
+                    {
+                        "z": 9,
+                        "y": 9,
+                        "x": 9
+                    },
+                    {
+                        "z": 2,
+                        "y": -2,
+                        "x": 0
+                    },
+                    {
+                        "z": 0,
+                        "y": 2,
+                        "x": 1
+                    }
+                ]
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 53,
+            "tick": 0,
+            "event": "ListBlockVolume translate",
+            "value": [
+                {
+                    "z": 3,
+                    "y": -1,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 3,
+                    "x": 2
+                },
+                {
+                    "z": 10,
+                    "y": 10,
+                    "x": 10
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 54,
+            "tick": 0,
+            "event": "ListBlockVolume getClosest",
+            "value": [
+                {
+                    "z": 3,
+                    "y": -1,
+                    "x": 1
+                },
+                {
+                    "z": 1,
+                    "y": 3,
+                    "x": 2
+                }
+            ]
+        },
+        {
+            "pack": "volumes",
+            "seq": 55,
+            "tick": 0,
+            "event": "ListBlockVolume empty getCapacity",
+            "value": 0
+        },
+        {
+            "pack": "volumes",
+            "seq": 56,
+            "tick": 0,
+            "event": "ListBlockVolume empty getMin",
+            "error": "Error: Cannot get minimum location of empty block volume."
+        },
+        {
+            "pack": "volumes",
+            "seq": 57,
+            "tick": 0,
+            "event": "ListBlockVolume empty getMax",
+            "error": "Error: Cannot get maximum location of empty block volume."
+        },
+        {
+            "pack": "volumes",
+            "seq": 58,
+            "tick": 0,
+            "event": "ListBlockVolume empty getSpan",
+            "value": {
+                "z": 0,
+                "y": 0,
+                "x": 0
+            }
+        },
+        {
+            "pack": "volumes",
+            "seq": 59,
+            "tick": 0,
+            "event": "ListBlockVolume empty getBoundingBox",
+            "error": "Error: Cannot get bounding box of empty block volume."
+        },
+        {
+            "pack": "volumes",
+            "seq": 60,
+            "tick": 0,
+            "event": "ListBlockVolume empty iterator",
+            "value": []
+        },
+        {
+            "pack": "volumes",
+            "seq": 61,
+            "tick": 0,
+            "event": "ListBlockVolume empty getClosest",
+            "value": []
+        },
+        {
+            "pack": "volumes",
+            "seq": 62,
+            "tick": 0,
+            "event": "ListBlockVolume empty isInside",
+            "value": false
+        },
+        {
+            "pack": "volumes",
+            "seq": 63,
+            "tick": 0,
+            "event": "volumes done"
+        }
+    ]
+}

@@ -565,6 +565,65 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'block-volumes',
+        family: 'scripting.blocks',
+        description:
+            'BlockBoundingBoxUtils works on boxes of whole blocks, and BlockVolume and ListBlockVolume give their ' +
+            'bounds, capacity, closest and farthest locations and an iterator that turns invalid once its volume ' +
+            'changes.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['volumes'],
+        experiments: ['gametest'],
+        needs: 'world'
+    },
+    {
+        id: 'block-members',
+        family: 'scripting.blocks',
+        description:
+            "A block reaches its neighbors and answers its type's tags, localization key, item, liquid answers and " +
+            'light, a permutation matches states and takes a new value with withState, and BlockTypes and ' +
+            'BlockStates list the registries.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['members'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'item-members',
+        family: 'scripting.items',
+        description:
+            "An item stack answers its type's tags, weight, stack size and components, keeps what it can break and " +
+            'be placed on, its lock and its enchantments, and ItemTypes, EnchantmentTypes and Potions list the ' +
+            'registries.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['members'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'containers',
+        family: 'scripting.items',
+        description:
+            'A container finds, moves, swaps and transfers stacks between chests and weighs what it holds, and a ' +
+            "ContainerSlot reads and writes its stack's tags, lock, block lists and dynamic properties.",
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['containers'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
+        id: 'block-world-components',
+        family: 'scripting.blocks',
+        description:
+            "A sign keeps each side's text and dye, a piston reports its state, a jukebox takes and plays a record, " +
+            'a cauldron holds a fluid, a redstone block reports its power and a note block its instrument, and a ' +
+            'block answers whether another can be placed in it and whether water flows into it.',
+        reference: 'docs/plans/script-api-host.md slice 10',
+        packs: ['components'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
         id: 'items',
         family: 'scripting.items',
         description:

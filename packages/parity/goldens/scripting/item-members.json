@@ -1,0 +1,957 @@
+{
+    "$comment": [
+        "What the scripts of scenario `item-members` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.items",
+    "scenario": "item-members",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "members",
+            "seq": 1,
+            "tick": 0,
+            "event": "localizationKey",
+            "value": [
+                "item.diamond_sword.name",
+                "item.apple.name"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 2,
+            "tick": 0,
+            "event": "maxAmount isStackable weight",
+            "value": [
+                [
+                    1,
+                    false,
+                    64
+                ],
+                [
+                    64,
+                    true,
+                    3
+                ],
+                [
+                    16,
+                    4
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 3,
+            "tick": 0,
+            "event": "type",
+            "value": [
+                "minecraft:diamond_sword",
+                "item.diamond_sword.name"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 4,
+            "tick": 0,
+            "event": "getTags",
+            "value": [
+                "minecraft:diamond_tier",
+                "minecraft:is_sword",
+                "minecraft:is_tool",
+                "minecraft:transformable_items"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 5,
+            "tick": 0,
+            "event": "hasTag",
+            "value": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 6,
+            "tick": 0,
+            "event": "matches",
+            "value": [
+                true,
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 7,
+            "tick": 0,
+            "event": "keepOnDeath lockMode",
+            "value": [
+                false,
+                "none"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 8,
+            "tick": 0,
+            "event": "set keepOnDeath lockMode",
+            "value": [
+                true,
+                "slot"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 9,
+            "tick": 0,
+            "event": "getCanDestroy getCanPlaceOn",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 10,
+            "tick": 0,
+            "event": "setCanDestroy",
+            "value": [
+                "obsidian",
+                "glass"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 11,
+            "tick": 0,
+            "event": "setCanDestroy unknown",
+            "error": "Error: Function setCanDestroy failed. Invalid block identifier provided."
+        },
+        {
+            "pack": "members",
+            "seq": 12,
+            "tick": 0,
+            "event": "setCanPlaceOn",
+            "value": [
+                "grass_block"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 13,
+            "tick": 0,
+            "event": "setCanPlaceOn nothing",
+            "value": []
+        },
+        {
+            "pack": "members",
+            "seq": 14,
+            "tick": 0,
+            "event": "getRawLore",
+            "value": [
+                {
+                    "text": "first"
+                },
+                {
+                    "text": "second"
+                }
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 15,
+            "tick": 0,
+            "event": "clone",
+            "value": [
+                true,
+                "minecraft:apple",
+                1,
+                3,
+                [
+                    "first",
+                    "second"
+                ],
+                true,
+                "slot",
+                []
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 16,
+            "tick": 0,
+            "event": "isStackableWith",
+            "value": [
+                true,
+                false,
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 17,
+            "tick": 0,
+            "event": "getComponents",
+            "value": [
+                [
+                    "minecraft:block_actor_dynamic_properties",
+                    "minecraft:durability",
+                    "minecraft:enchantable"
+                ],
+                [
+                    "minecraft:block_actor_dynamic_properties",
+                    "minecraft:compostable",
+                    "minecraft:food"
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 18,
+            "tick": 0,
+            "event": "hasComponent",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 19,
+            "tick": 0,
+            "event": "food",
+            "value": [
+                "minecraft:food",
+                4,
+                0.30000001192092896,
+                false,
+                ""
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 20,
+            "tick": 0,
+            "event": "bread food",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 21,
+            "tick": 0,
+            "event": "compostable",
+            "value": 65
+        },
+        {
+            "pack": "members",
+            "seq": 22,
+            "tick": 0,
+            "event": "cooldown",
+            "value": [
+                "minecraft:ender_pearl",
+                20,
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 23,
+            "tick": 0,
+            "event": "durability extras",
+            "value": [
+                false,
+                100,
+                25
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 24,
+            "tick": 0,
+            "event": "getDamageChanceRange",
+            "error": "Error: Failed to get property 'damageRange'."
+        },
+        {
+            "pack": "members",
+            "seq": 25,
+            "tick": 0,
+            "event": "unbreakable on the stack",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 26,
+            "tick": 0,
+            "event": "set unbreakable",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 27,
+            "tick": 0,
+            "event": "dyeable of a helmet",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 28,
+            "tick": 0,
+            "event": "enchantable slots",
+            "value": [
+                "undefined"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 29,
+            "tick": 0,
+            "event": "getEnchantments empty",
+            "value": []
+        },
+        {
+            "pack": "members",
+            "seq": 30,
+            "tick": 0,
+            "event": "addEnchantment",
+            "value": [
+                [
+                    "sharpness",
+                    3
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 31,
+            "tick": 0,
+            "event": "addEnchantment by registry",
+            "value": [
+                [
+                    "sharpness",
+                    3
+                ],
+                [
+                    "unbreaking",
+                    1
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 32,
+            "tick": 0,
+            "event": "getEnchantment",
+            "value": [
+                "sharpness",
+                3,
+                3,
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 33,
+            "tick": 0,
+            "event": "hasEnchantment",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 34,
+            "tick": 0,
+            "event": "addEnchantment a level too high",
+            "error": "EnchantmentLevelOutOfBoundsError: When trying to create enchantment instance - Tyring to set enchantment level to 9, range for type looting is [0 - 3]."
+        },
+        {
+            "pack": "members",
+            "seq": 35,
+            "tick": 0,
+            "event": "addEnchantment level 0"
+        },
+        {
+            "pack": "members",
+            "seq": 36,
+            "tick": 0,
+            "event": "addEnchantment wrong item",
+            "error": "EnchantmentTypeNotCompatibleError: Enchantment of type efficiency is not compatible with item."
+        },
+        {
+            "pack": "members",
+            "seq": 37,
+            "tick": 0,
+            "event": "addEnchantment conflicting",
+            "error": "EnchantmentLevelOutOfBoundsError: When trying to add enchantment instance - Tyring to set enchantment level to 1, range for type smite is [0 - 5]."
+        },
+        {
+            "pack": "members",
+            "seq": 38,
+            "tick": 0,
+            "event": "addEnchantment again",
+            "value": [
+                [
+                    "sharpness",
+                    5
+                ],
+                [
+                    "unbreaking",
+                    1
+                ],
+                [
+                    "looting",
+                    0
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 39,
+            "tick": 0,
+            "event": "canAddEnchantment",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 40,
+            "tick": 0,
+            "event": "canAddEnchantment wrong item",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 41,
+            "tick": 0,
+            "event": "canAddEnchantment one it has",
+            "error": "EnchantmentLevelOutOfBoundsError: When trying to add enchantment instance - Tyring to set enchantment level to 6, range for type sharpness is [0 - 5]."
+        },
+        {
+            "pack": "members",
+            "seq": 42,
+            "tick": 0,
+            "event": "canAddEnchantment one it has at 0",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 43,
+            "tick": 0,
+            "event": "canAddEnchantment one it has, adding up",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 44,
+            "tick": 0,
+            "event": "addEnchantment one it has, adding up",
+            "value": [
+                [
+                    "sharpness",
+                    5
+                ],
+                [
+                    "unbreaking",
+                    2
+                ],
+                [
+                    "looting",
+                    0
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 45,
+            "tick": 0,
+            "event": "canAddEnchantment conflicting",
+            "error": "EnchantmentLevelOutOfBoundsError: When trying to add enchantment instance - Tyring to set enchantment level to 1, range for type smite is [0 - 5]."
+        },
+        {
+            "pack": "members",
+            "seq": 46,
+            "tick": 0,
+            "event": "canAddEnchantment too high",
+            "error": "EnchantmentLevelOutOfBoundsError: When trying to create enchantment instance - Tyring to set enchantment level to 9, range for type looting is [0 - 3]."
+        },
+        {
+            "pack": "members",
+            "seq": 47,
+            "tick": 0,
+            "event": "addEnchantments",
+            "value": [
+                [
+                    "sharpness",
+                    5
+                ],
+                [
+                    "unbreaking",
+                    2
+                ],
+                [
+                    "looting",
+                    2
+                ],
+                [
+                    "mending",
+                    1
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 48,
+            "tick": 0,
+            "event": "removeEnchantment",
+            "value": [
+                [
+                    "sharpness",
+                    5
+                ],
+                [
+                    "unbreaking",
+                    2
+                ],
+                [
+                    "mending",
+                    1
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 49,
+            "tick": 0,
+            "event": "enchantments on the stack",
+            "value": [
+                [
+                    "sharpness",
+                    5
+                ],
+                [
+                    "unbreaking",
+                    2
+                ],
+                [
+                    "mending",
+                    1
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 50,
+            "tick": 0,
+            "event": "isStackableWith enchanted",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 51,
+            "tick": 0,
+            "event": "removeAllEnchantments",
+            "value": []
+        },
+        {
+            "pack": "members",
+            "seq": 52,
+            "tick": 0,
+            "event": "enchantable of a book",
+            "value": [
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined",
+                "undefined"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 53,
+            "tick": 0,
+            "event": "enchantable of a plain book",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 54,
+            "tick": 0,
+            "event": "EnchantmentType",
+            "value": [
+                "sharpness",
+                5
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 55,
+            "tick": 0,
+            "event": "EnchantmentType with a namespace",
+            "value": "sharpness"
+        },
+        {
+            "pack": "members",
+            "seq": 56,
+            "tick": 0,
+            "event": "EnchantmentType unknown",
+            "error": "Error: Unknown enchantment type ID."
+        },
+        {
+            "pack": "members",
+            "seq": 57,
+            "tick": 0,
+            "event": "EnchantmentTypes.get",
+            "value": [
+                "sharpness",
+                "sharpness",
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 58,
+            "tick": 0,
+            "event": "EnchantmentTypes.getAll",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 59,
+            "tick": 0,
+            "event": "EnchantmentTypes.get the same object",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 60,
+            "tick": 0,
+            "event": "ItemTypes.get",
+            "value": [
+                "minecraft:apple",
+                "minecraft:apple",
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 61,
+            "tick": 0,
+            "event": "ItemTypes.getAll",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 62,
+            "tick": 0,
+            "event": "ItemType localizationKey",
+            "value": [
+                "item.apple.name",
+                "tile.stone.stone.name"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 63,
+            "tick": 0,
+            "event": "Potions.getAllEffectTypes",
+            "value": [
+                [
+                    "minecraft:water",
+                    0
+                ],
+                [
+                    "minecraft:mundane",
+                    0
+                ],
+                [
+                    "minecraft:long_mundane",
+                    0
+                ],
+                [
+                    "minecraft:thick",
+                    0
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 64,
+            "tick": 0,
+            "event": "Potions.getAllDeliveryTypes",
+            "value": [
+                "Consume",
+                "ThrownSplash",
+                "ThrownLingering"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 65,
+            "tick": 0,
+            "event": "Potions.getEffectType",
+            "value": [
+                "minecraft:swiftness",
+                3600,
+                null,
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 66,
+            "tick": 0,
+            "event": "Potions.getDeliveryType",
+            "value": [
+                "Consume",
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 67,
+            "tick": 0,
+            "event": "Potions.resolve",
+            "value": [
+                "minecraft:splash_potion",
+                1,
+                "minecraft:swiftness",
+                "ThrownSplash"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 68,
+            "tick": 0,
+            "event": "Potions.resolve by type objects",
+            "value": [
+                "minecraft:potion",
+                "minecraft:healing"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 69,
+            "tick": 0,
+            "event": "Potions.resolve lingering",
+            "value": [
+                "minecraft:lingering_potion",
+                "minecraft:long_swiftness",
+                9600,
+                "ThrownLingering"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 70,
+            "tick": 0,
+            "event": "Potions.resolve unknown effect",
+            "error": "InvalidPotionEffectTypeError: PotionEffectType <minecraft:jsp> does not exist. Prefer to use MinecraftPotionEffectTypes enum."
+        },
+        {
+            "pack": "members",
+            "seq": 71,
+            "tick": 0,
+            "event": "Potions.resolve unknown delivery",
+            "error": "InvalidPotionDeliveryTypeError: PotionDeliveryType <jsp> does not exist. Prefer to use MinecraftPotionDeliveryTypes enum."
+        },
+        {
+            "pack": "members",
+            "seq": 72,
+            "tick": 0,
+            "event": "a plain potion",
+            "value": [
+                "minecraft:water",
+                "Consume"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 73,
+            "tick": 0,
+            "event": "resolved potions stack",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 74,
+            "tick": 0,
+            "event": "book",
+            "value": [
+                0,
+                [],
+                false,
+                null,
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 75,
+            "tick": 0,
+            "event": "book pages",
+            "value": [
+                3,
+                [
+                    "first",
+                    "between",
+                    "two"
+                ],
+                "between",
+                null,
+                [
+                    "first",
+                    "between"
+                ],
+                [
+                    null,
+                    null
+                ],
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 76,
+            "tick": 0,
+            "event": "book page out of range",
+            "value": [
+                "",
+                "",
+                "",
+                "far"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 77,
+            "tick": 0,
+            "event": "book raw text",
+            "value": [
+                [
+                    null,
+                    "",
+                    "",
+                    "far"
+                ],
+                [
+                    {
+                        "rawtext": [
+                            {
+                                "text": "raw"
+                            }
+                        ]
+                    },
+                    null,
+                    null,
+                    null
+                ],
+                {
+                    "rawtext": [
+                        {
+                            "text": "raw"
+                        }
+                    ]
+                },
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 78,
+            "tick": 0,
+            "event": "book removePage out of range"
+        },
+        {
+            "pack": "members",
+            "seq": 79,
+            "tick": 0,
+            "event": "book insertPage out of range"
+        },
+        {
+            "pack": "members",
+            "seq": 80,
+            "tick": 0,
+            "event": "signBook",
+            "value": [
+                "minecraft:written_book",
+                true,
+                "Title",
+                "Author",
+                [
+                    "text"
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 81,
+            "tick": 0,
+            "event": "block dynamic properties",
+            "value": [
+                [
+                    0,
+                    28,
+                    69,
+                    97,
+                    125,
+                    97
+                ],
+                "text",
+                null
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 82,
+            "tick": 0,
+            "event": "items done"
+        }
+    ]
+}
