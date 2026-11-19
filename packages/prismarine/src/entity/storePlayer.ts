@@ -86,6 +86,9 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     private timeSinceRest = 0;
     /** The device the login named, or null when it said nothing. */
     public device: Device | null = null;
+
+    /** The language the login named, such as `en_US`, which a script reads as the client's locale. */
+    public locale = 'en_US';
     /** The platform chat id, which the login handler does not read yet and leaves empty. */
     public platformChatId = '';
     /**

@@ -62,6 +62,7 @@ import {
 } from '@jsprismarine/entities';
 import { feedMount, mountTameEvent } from '@jsprismarine/entities/components/tamemount';
 import { spawnEventFor } from '@jsprismarine/entities/eventEngine';
+import { EVENT_TARGETS } from '@jsprismarine/entities/events';
 import type { EventNode } from '@jsprismarine/entities/events';
 import { addTrusted } from '@jsprismarine/entities/components/trust';
 import { javaItemTagsForBedrock } from '../../content/javaTags';
@@ -4596,6 +4597,43 @@ export class EntityRuntime implements EntityScene {
         entity.body.conditions.add('is_tamed');
         const trigger = mountTameEvent(entity.instance);
         fireTameEvent(entity, trigger?.event, trigger?.target);
+    }
+
+    /**
+     * Tames an entity as a script's `tame` does: the owner, when one is given, is recorded, and the
+     * `tame_event` of its `minecraft:tameable`, or of its `minecraft:tamemount`, runs.
+     * @param owner - The player's runtime id, or undefined for a horse tamed to nobody.
+     * @returns False for an entity that is gone or already tamed.
+     */
+    public tameFor(id: number, owner: number | undefined): boolean {
+        const entity = this.store.get(id);
+        if (entity === undefined || entity.body.conditions.has('is_tamed') || entity.body.owner !== undefined)
+            return false;
+        if (owner !== undefined) this.setOwner(id, owner);
+        entity.body.conditions.add('is_tamed');
+        const tameable = entity.instance.componentParams('minecraft:tameable');
+        const trigger =
+            isRecord(tameable) && isRecord(tameable.tameEvent)
+                ? { event: tameable.tameEvent.event, target: tameable.tameEvent.target }
+                : mountTameEvent(entity.instance);
+        fireTameEvent(
+            entity,
+            typeof trigger?.event === 'string' ? trigger.event : undefined,
+            EVENT_TARGETS.find((target) => target === trigger?.target)
+        );
+        return true;
+    }
+
+    /**
+     * Unties an entity's leash, as a script's `unleash` does, and raises its `on_unleash` event.
+     * @returns Whether it was leashed.
+     */
+    public releaseLead(id: number): boolean {
+        const entity = this.store.get(id);
+        if (entity === undefined || !this.leashHolders.has(id)) return false;
+        this.setLeashHolder(id, undefined);
+        this.raiseLeashEvent(entity, 'on_unleash');
+        return true;
     }
 
     /** What an entity rides, or undefined when it rides nothing. */

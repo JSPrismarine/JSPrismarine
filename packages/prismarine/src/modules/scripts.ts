@@ -10,6 +10,7 @@ import type Server from '../Server';
 import type { Level } from '../world/Level';
 import { primitiveShapes } from '../scripting/debugShapes';
 import { levelScriptAccess } from '../scripting/levelScriptAccess';
+import { levelEntitySystems } from '../scripting/entities/levelEntitySystems';
 import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
@@ -97,6 +98,7 @@ export const scriptsModule = (server: Server): Module => ({
                 clock: () => server.getAdmittedClock(),
                 http: server.getScriptHttp(),
                 access: { ...levelScriptAccess(server, level), simulatedPlayers: levelSimulatedPlayers(server, level) },
+                entitySystems: levelEntitySystems(server, level),
                 onPlayerLeaving: (listener) =>
                     server
                         .getKernel()

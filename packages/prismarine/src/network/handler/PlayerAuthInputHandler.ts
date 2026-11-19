@@ -22,6 +22,7 @@ import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type { HandlerServices, InputContext } from './HandlerContext';
 import PlayerActionHandler from './PlayerActionHandler';
 import type { InputLaneHandler } from './SessionHandler';
+import { recordPlayerInput } from '../../scripting/entities/playerInputs';
 
 /**
  * The flags that are an action in their own right, and the action each one is.
@@ -235,6 +236,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
         // Before anything else, so every packet sent about this player from here on carries
         // the tick as its `PlayerInputTick`, whatever else this input turns out to do.
         session.recordInputTick(input.tick);
+        recordPlayerInput(session, input);
 
         // Until the client closes the dimension change screen it was given, its positions are
         // the old world's, the same rule the docs state for `HandledTeleport`. Nothing in the

@@ -34,6 +34,7 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
         const player = new StorePlayer(entityIds.next(), { uuid, name: identity.displayName, xuid: identity.xuid });
         player.skin = identity.skin;
         player.device = identity.device;
+        if (identity.languageCode !== undefined && identity.languageCode !== '') player.locale = identity.languageCode;
         // The spawn is where the eyes go, as a client reports its position.
         player.standAt({ x: spawn.getX(), y: spawn.getY() - EYE_HEIGHT, z: spawn.getZ() });
 

@@ -285,6 +285,9 @@ describe('ResourcePackClientResponseHandler', () => {
             'ItemRegistryPacket',
             'AvailableActorIdentifiersPacket',
             'BiomeDefinitionListPacket',
+            // The camera presets and the aim assist registry, which camera and aim assist calls name.
+            'CameraPresetsPacket',
+            'CameraAimAssistPresetsPacket',
             'FeatureRegistryPacket',
             'CreativeContent',
             'CraftingData',
