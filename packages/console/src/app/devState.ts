@@ -48,7 +48,8 @@ export interface DevState {
 /** The state before any supervisor event. */
 export const INITIAL_DEV_STATE: DevState = { restarts: 0 };
 
-const exitText = (code: number | null | undefined, signal: string | null | undefined): string => {
+/** How a server process ended, as `exit 1` or a signal name. */
+export const exitText = (code: number | null | undefined, signal: string | null | undefined): string => {
     if (typeof code === 'number') return `exit ${code}`;
     if (signal) return signal;
     return 'unknown exit';
