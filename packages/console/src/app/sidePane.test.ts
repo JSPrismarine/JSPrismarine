@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { INITIAL_DEV_STATE } from './devState';
 import type { SidePaneModel } from './sidePane';
-import { graphCells, sidePaneRows } from './sidePane';
+import { bootStepLabel, graphCells, sidePaneRows } from './sidePane';
 
 const model = (overrides: Partial<SidePaneModel> = {}): SidePaneModel => ({
     state: 'running',
@@ -44,6 +44,30 @@ describe('sidePaneRows', () => {
 
         expect(sections(sidePaneRows(model({ dev: watching })))).not.toContain('dev');
         expect(sections(sidePaneRows(model({ dev: { ...watching, restarts: 1, lastRestartAt: 0 } })))).toContain('dev');
+    });
+});
+
+describe('the boot section', () => {
+    const boot = [
+        { id: 'prismarine:content', startedAt: 0, finishedAt: 3480 },
+        { id: 'prismarine:worlds', startedAt: 3480 }
+    ];
+
+    it('lists each step while the server starts, the running one in the warning tone', () => {
+        const rows = sidePaneRows(model({ state: 'starting', boot }));
+        const steps = rows.flatMap((row) => (row.kind === 'value' && /^[✓●] /.test(row.label) ? [row] : []));
+
+        expect(sections(rows)[1]).toBe('boot');
+        expect(steps.map((row) => row.tone)).toEqual(['muted', 'warning']);
+    });
+
+    it('goes once the server runs', () => {
+        expect(sections(sidePaneRows(model({ state: 'running', boot })))).not.toContain('boot');
+    });
+
+    it('names a step by the last part of its id', () => {
+        expect(bootStepLabel('prismarine:load-functions')).toBe('load functions');
+        expect(bootStepLabel('plain')).toBe('plain');
     });
 });
 

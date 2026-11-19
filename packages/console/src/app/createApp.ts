@@ -42,6 +42,7 @@ import type { DevState } from './devState';
 import { SIDE_PANE_RESIZER_WIDTH, SIDE_PANE_WIDTH, computeLayout } from './layout';
 import type { Layout } from './layout';
 import { createSidePane } from './sidePane';
+import type { BootStep } from './sidePane';
 import { createTitleBar } from './titleBar';
 
 /** Shared objects the app and its components read. */
@@ -316,6 +317,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let crashLines: string[] = [];
     /** The crash the card shows, while it shows one. */
     let crash: Crash | undefined;
+    /** The steps of the server's current start, as it reports them. */
+    let bootSteps: BootStep[] = [];
 
     const input = createInputBar(components, {
         history,
@@ -619,7 +622,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             server,
             uptimeMs: metrics.uptimeMs,
             rssBytes: metrics.rssBytes,
-            dev
+            dev,
+            boot: bootSteps
         });
     }
 
@@ -1137,6 +1141,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function applyServerMessage(message: ServerMessage): void {
         switch (message.type) {
             case 'hello':
+                // A hello opens every start, so the steps of the last one are done with.
+                bootSteps = [];
                 server = { version: message.serverVersion, pid: message.pid };
                 tpsSamples = [];
                 refreshSidePane();
@@ -1173,6 +1179,15 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 refreshSidePane();
                 refreshTpsPage();
                 return;
+            case 'boot': {
+                const step = bootSteps.find(
+                    (candidate) => candidate.id === message.step && candidate.finishedAt === undefined
+                );
+                if (message.state === 'started' && step !== undefined) step.finishedAt = now();
+                else if (message.state === 'starting') bootSteps.push({ id: message.step, startedAt: now() });
+                refreshSidePane();
+                return;
+            }
             case 'lifecycle':
                 setState(message.state);
                 return;

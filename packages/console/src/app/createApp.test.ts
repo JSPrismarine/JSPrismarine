@@ -293,6 +293,24 @@ describe('createApp', () => {
         });
     });
 
+    it('shows the start steps in the side pane until the server runs', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+        const boot = (step: string, state: 'starting' | 'started') =>
+            t.app.applyServerMessage({ type: 'boot', v: 1, step, state });
+
+        t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+        boot('prismarine:content', 'starting');
+        boot('prismarine:content', 'started');
+        boot('prismarine:worlds', 'starting');
+        await t.renderOnce();
+        expect(byId(t, 'side-pane-boot')).toBeDefined();
+
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
+        await t.renderOnce();
+        expect(byId(t, 'side-pane-boot')).toBeUndefined();
+    });
+
     it('appends child output as raw lines', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;

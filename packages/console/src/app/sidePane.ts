@@ -28,7 +28,21 @@ export interface SidePaneModel {
     uptimeMs?: number;
     rssBytes?: number;
     dev: DevState;
+    /** The steps of the current start, in order; shown while the server is starting. */
+    boot?: readonly BootStep[];
 }
+
+/** One step of the server's start as the console saw it, with its clock readings. */
+export interface BootStep {
+    /** The server's id for the step, such as `prismarine:content`. */
+    id: string;
+    startedAt: number;
+    /** Unset while the step runs. */
+    finishedAt?: number;
+}
+
+/** A step's id as the pane names it: `prismarine:load-functions` reads `load functions`. */
+export const bootStepLabel = (id: string): string => (id.split(':').at(-1) ?? id).replaceAll('-', ' ');
 
 /** Callbacks for details-pane actions. */
 export interface SidePaneProps {
@@ -58,7 +72,7 @@ export type SidePaneRow =
     | { kind: 'blank' };
 
 /** The pane's sections; each header row's renderable id is `side-pane-<section>`. */
-export type SidePaneSection = 'details' | 'players' | 'performance' | 'server' | 'dev';
+export type SidePaneSection = 'details' | 'boot' | 'players' | 'performance' | 'server' | 'dev';
 
 const DASH = '—';
 const MAX_VISIBLE_PLAYERS = 5;
@@ -78,15 +92,28 @@ export function graphCells(values: readonly number[], tickRate: number | undefin
 export function sidePaneRows(model: SidePaneModel): SidePaneRow[] {
     const names = model.playerNames ?? [];
     const online = model.players?.online ?? names.length;
-    const rows: SidePaneRow[] = [
-        { kind: 'header', key: 'details', text: 'Server details' },
-        {
-            kind: 'header',
-            key: 'players',
-            text: 'Players',
-            hint: ` ${model.players ? formatPlayers(model.players.online, model.players.max) : String(online)}`
+    const rows: SidePaneRow[] = [{ kind: 'header', key: 'details', text: 'Server details' }];
+    // While the server starts, what it is doing is the most useful thing the pane can show.
+    if (model.state === 'starting' && model.boot !== undefined && model.boot.length > 0) {
+        rows.push({ kind: 'header', key: 'boot', text: 'Starting' });
+        for (const step of model.boot) {
+            const { finishedAt } = step;
+            const done = finishedAt !== undefined;
+            rows.push({
+                kind: 'value',
+                label: `${done ? '✓' : '●'} ${bootStepLabel(step.id)}`,
+                value: done ? `${((finishedAt - step.startedAt) / 1000).toFixed(1)} s` : 'now',
+                tone: done ? 'muted' : 'warning'
+            });
         }
-    ];
+        rows.push({ kind: 'blank' });
+    }
+    rows.push({
+        kind: 'header',
+        key: 'players',
+        text: 'Players',
+        hint: ` ${model.players ? formatPlayers(model.players.online, model.players.max) : String(online)}`
+    });
 
     if (names.length > 0) {
         for (const name of names.slice(0, MAX_VISIBLE_PLAYERS)) rows.push({ kind: 'player', name });
