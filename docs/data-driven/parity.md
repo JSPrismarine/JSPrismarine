@@ -159,7 +159,7 @@ Comparisons read reference data through the loaders in
 snapshot under `packages/minecraft/datagen/snapshot/`, the captures under
 `packages/bedrock-data/src/jsp/` (the item list from `ItemRegistryPacket`, the
 `BiomeDefinitionListPacket` payload, the Java 26.3 block property and attribute dumps), the
-worldgen oracle vectors under `packages/worldgen/vectors/`, and the dumps in the resources
+worldgen oracle vectors under `packages/worldgen/vectors/<release>/`, and the dumps in the resources
 submodule. Tests never read files directly; a new comparison that needs reference data gets a
 loader beside the existing ones.
 

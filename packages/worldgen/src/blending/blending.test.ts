@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import blendingVectors from '../../vectors/blending.json' with { type: 'json' };
+import blendingVectors from '../../vectors/26.3/blending.json' with { type: 'json' };
 import { expectedFloat } from '../../vectors/vectors';
 import { floorDiv, floorMod } from '../math';
 import { Blender, blendingShiftNoise, forEachBorderTick, newSidesOf } from './Blender';

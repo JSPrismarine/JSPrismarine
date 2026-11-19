@@ -1,8 +1,8 @@
-import chunkVectors from './chunk.json' with { type: 'json' };
-import densityVectors from './density.json' with { type: 'json' };
-import noiseVectors from './noise.json' with { type: 'json' };
-import randomVectors from './random.json' with { type: 'json' };
-import spawnVectors from './spawn.json' with { type: 'json' };
+import chunkVectors from './26.3/chunk.json' with { type: 'json' };
+import densityVectors from './26.3/density.json' with { type: 'json' };
+import noiseVectors from './26.3/noise.json' with { type: 'json' };
+import randomVectors from './26.3/random.json' with { type: 'json' };
+import spawnVectors from './26.3/spawn.json' with { type: 'json' };
 
 /**
  * The golden vectors `utils/oracle/DumpWorldgenVectors.java` captures from Java Edition 26.3.

@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
-import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
+import biomeVectors from '../../vectors/26.3/biome-points.json' with { type: 'json' };
 import { loadVanillaWorldgenData } from '../../vectors/javaWorldgenData';
-import columnVectors from '../../vectors/surface-columns.json' with { type: 'json' };
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import columnVectors from '../../vectors/26.3/surface-columns.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import type { BiomeClimate, BiomeClimateLookup } from '../biome/BiomeClimate';
 import { parseBiomeClimate } from '../biome/BiomeClimate';
 import { BiomeManager } from '../biome/BiomeManager';

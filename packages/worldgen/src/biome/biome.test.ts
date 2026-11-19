@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
-import tieVectors from '../../vectors/climate-ties.json' with { type: 'json' };
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import biomeVectors from '../../vectors/26.3/biome-points.json' with { type: 'json' };
+import tieVectors from '../../vectors/26.3/climate-ties.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { BiomeManager } from './BiomeManager';

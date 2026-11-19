@@ -25,8 +25,8 @@ Block states come out as Java identifiers. Translating them to Bedrock is
 ## Parity
 
 Every expected value in the test suite comes from Mojang's own classes. `utils/oracle/` compiles a
-small Java program against the pinned 26.3 server jar and writes `vectors/*.json`; the tests read
-those and compare exactly, not within a tolerance. What matches today:
+small Java program against the pinned 26.3 server jar and writes `vectors/<release>/*.json`, one
+directory per Java release; the tests read the default release's and compare exactly, not within a tolerance. What matches today:
 
 | Stage | Vectors | Result |
 | --- | --- | --- |
@@ -37,8 +37,12 @@ those and compare exactly, not within a tolerance. What matches today:
 | Overworld chunk columns with aquifers applied | 9 columns, 384 blocks each | exact |
 | World blender over <!-- fact:blending.vectorRecords -->17<!-- /fact --> synthetic old chunks | <!-- fact:blending.vectorRecords -->17<!-- /fact --> records, <!-- fact:blending.vectorCenters -->4<!-- /fact --> chunks of offsets, densities, biomes and carving, and fastutil's map order | exact |
 
-Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`. The command prepares
-the pinned jar automatically and needs a JDK 25 or newer to compile and run the Java oracle.
+Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`, adding `-- --java <release>`
+for a pinned release other than the default. The command prepares the pinned jar automatically and
+needs the JDK the jar's `version.json` declares to compile and run the Java oracle.
+The oracle does not compile against the 26.4 snapshots yet, because 26.4 changed
+`RandomState.create`, the `NoiseChunk` constructor and `NoiseGeneratorSettings.defaultBlock`. A
+26.4 preview therefore has no vectors, and the refresh fails for it, until [#3284](https://github.com/JSPrismarine/JSPrismarine/issues/3284) lands.
 
 26.3 computes the whole density and noise stack in single precision. This package rounds through
 `Math.fround` at every point Java narrows a value, which is why the comparisons above are exact
@@ -315,7 +319,8 @@ extend scalar-volume digest coverage but are not additional Java captures.
 
 Three stages sit on top of the terrain core. Each reads the seams the section above lists, and
 each is verified against Mojang's classes the same way: `utils/oracle/DumpSurfaceVectors.java`
-writes `vectors/surface-*.json` and `vectors/biome-*.json`, and the tests compare exactly.
+writes `vectors/<release>/surface-*.json` and `vectors/<release>/biome-*.json`, and the tests
+compare exactly.
 
 **The surface pass.** `SurfaceSystem.buildSurface` walks a chunk column by column from the top
 down, counting how far each solid block sits from the opening above it and the opening below it,
@@ -392,20 +397,20 @@ JAR=node_modules/.cache/jsprismarine/java/26.3/extracted/META-INF/versions/26.3/
 javac -cp "$JAR:node_modules/.cache/jsprismarine/java/26.3/libraries/*" \
   -d /tmp/surface-dumper packages/worldgen/utils/oracle/DumpSurfaceVectors.java
 java -cp "/tmp/surface-dumper:$JAR:node_modules/.cache/jsprismarine/java/26.3/libraries/*" \
-  DumpSurfaceVectors "$JAR" packages/worldgen/vectors
-pnpm prettier --write packages/worldgen/vectors/surface-*.json packages/worldgen/vectors/biome-*.json
+  DumpSurfaceVectors "$JAR" packages/worldgen/vectors/26.3
+pnpm prettier --write packages/worldgen/vectors/26.3/surface-*.json packages/worldgen/vectors/26.3/biome-*.json
 ```
 
 Run it from inside `node_modules/.cache/jsprismarine/`: Mojang's logger writes a `logs/` directory
 into the working directory.
 
-`utils/oracle/DumpClimateTies.java` writes `vectors/climate-ties.json` the same way. It runs every
+`utils/oracle/DumpClimateTies.java` writes `vectors/<release>/climate-ties.json` the same way. It runs every
 lookup on a new thread, because Java keeps the previous result in a thread-local.
 
-`utils/oracle/DumpCarverBiomes.java` writes `vectors/carver-biomes.json` and takes one argument,
+`utils/oracle/DumpCarverBiomes.java` writes `vectors/<release>/carver-biomes.json` and takes one argument,
 the output directory. Compile and run it the same way as the surface dumper.
 
-`utils/oracle/DumpBlendingVectors.java` writes `vectors/blending.json` and also takes only the
+`utils/oracle/DumpBlendingVectors.java` writes `vectors/<release>/blending.json` and also takes only the
 output directory. It builds old chunks as `ProtoChunk`s filled with a synthetic terrain that
 `blending.test.ts` rebuilds block for block, and reaches the blender's private constructor and
 carving filter by reflection, because `Blender.of` needs a running server. It also records the

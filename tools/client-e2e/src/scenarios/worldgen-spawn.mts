@@ -14,7 +14,7 @@ export const worldgenSpawn: Scenario = {
         const feet = vec3(state, 'feet');
         const chunk = [Math.floor(feet[0]) >> 4, Math.floor(feet[2]) >> 4];
 
-        // The Java 26.3 vector in packages/worldgen/vectors/spawn.json selects (-33, 4).
+        // The Java 26.3 vector in packages/worldgen/vectors/26.3/spawn.json selects (-33, 4).
         assert.deepEqual(chunk, [-33, 4], `client feet ${feet.join(', ')} are in chunk ${chunk.join(', ')}`);
         assert.equal(state.in_world, true, 'client reports in_world');
         log(`joined at ${feet.join(', ')} in Java-selected chunk ${chunk.join(', ')}`);

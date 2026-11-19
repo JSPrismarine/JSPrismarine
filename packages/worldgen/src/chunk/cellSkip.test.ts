@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
+import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { SampleContext } from '../density/SampleContext';
 import { WorldgenData } from '../WorldgenData';

@@ -1,5 +1,5 @@
-import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
-import biomeVectors from '../vectors/biome-points.json' with { type: 'json' };
+import registryVectors from '../vectors/26.3/surface-registries.json' with { type: 'json' };
+import biomeVectors from '../vectors/26.3/biome-points.json' with { type: 'json' };
 import type { DensitySampler } from '../src/density/compile';
 import type { DensityFunctionNode } from '../src/density/DensityFunction';
 import { SampleContext } from '../src/density/SampleContext';

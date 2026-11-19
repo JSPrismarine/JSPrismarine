@@ -230,42 +230,42 @@ export const REFERENCES = {
     /** The Java worldgen registries the oracle dumper copied out of the jar. */
     worldgenRegistries: committed(
         'worldgen-registries',
-        'packages/worldgen/vectors/surface-registries.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/surface-registries.json`,
         "Java's density functions, noises, noise settings and biome climates"
     ),
 
     /** Whole overworld columns Java generated for seed 1234, as block runs. */
     worldgenColumns: committed(
         'worldgen-columns',
-        'packages/worldgen/vectors/chunk.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/chunk.json`,
         'nine Java overworld columns at seed 1234, aquifers applied'
     ),
 
     /** Java's climate parameter lists with the biome each sample point resolves to. */
     worldgenBiomePoints: committed(
         'worldgen-biome-points',
-        'packages/worldgen/vectors/biome-points.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/biome-points.json`,
         "Java's multi-noise biome lookups for the overworld and the end"
     ),
 
     /** The overworld cells whose nearest climate box is tied, with Java's answer after each history. */
     worldgenClimateTies: committed(
         'worldgen-climate-ties',
-        'packages/worldgen/vectors/climate-ties.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/climate-ties.json`,
         "Java's multi-noise lookups at exact ties, with and without an earlier lookup"
     ),
 
     /** The biome Java reads a source chunk's carvers from, beside the jittered biome at its corner. */
     worldgenCarverBiomes: committed(
         'worldgen-carver-biomes',
-        'packages/worldgen/vectors/carver-biomes.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/carver-biomes.json`,
         "Java's carver-selection noise biome for a 48 by 48 window of overworld chunks"
     ),
 
     /** Java NoiseSpawnFinder's selected Overworld origin positions across representative seeds. */
     worldgenSpawnPositions: committed(
         'worldgen-spawn-positions',
-        'packages/worldgen/vectors/spawn.json',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/spawn.json`,
         "Java's climate-selected spawn positions and containing chunks"
     ),
 

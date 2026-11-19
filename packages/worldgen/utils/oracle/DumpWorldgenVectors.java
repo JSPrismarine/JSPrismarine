@@ -42,7 +42,7 @@ import net.minecraft.world.level.levelgen.synth.SmearedPerlinNoise;
  * classes: the two random sources, the four noise kinds, and every noise router
  * slot of all seven vanilla noise settings. Run against the unobfuscated Java
  * Edition server jar on the classpath; `run.mjs` beside this file compiles and
- * invokes it and writes `src/vectors/*.json`.
+ * invokes it and writes `vectors/<release>/*.json`.
  *
  * Writing JSON by hand here keeps the dumper free of a serializer dependency.
  * Longs are emitted as decimal strings because JSON numbers cannot hold them.

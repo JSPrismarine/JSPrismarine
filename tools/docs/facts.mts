@@ -402,9 +402,15 @@ function blendingFacts() {
     if (firstCavesAndCliffs === undefined) {
         throw new Error('The docs facts no longer find FIRST_CAVES_AND_CLIFFS_CHUNK_VERSION.');
     }
-    // The oracle's fixture, counted rather than restated.
+    // The oracle's fixture for the default Java release, counted rather than restated.
+    const sources: Sources = JSON.parse(
+        readFileSync(path.join(repoRoot, 'packages', 'bedrock-data', 'sources.json'), 'utf8')
+    );
     const vectors: unknown = JSON.parse(
-        readFileSync(path.join(repoRoot, 'packages/worldgen/vectors/blending.json'), 'utf8')
+        readFileSync(
+            path.join(repoRoot, 'packages/worldgen/vectors', sources.javaServer.defaultVersion, 'blending.json'),
+            'utf8'
+        )
     );
     const countOf = (field: string): string => {
         const list = typeof vectors === 'object' && vectors !== null ? Reflect.get(vectors, field) : undefined;

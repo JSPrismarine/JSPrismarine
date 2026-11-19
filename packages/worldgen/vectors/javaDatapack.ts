@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,13 +21,18 @@ export interface VanillaDatapack {
     readonly listData: (relativeDirectory: string) => string[];
 }
 
-/** Picks the only versioned directory under `root` that contains `marker`. */
-const onlyVersionIn = (root: string, marker: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-    const candidates = readdirSync(root)
-        .map((entry) => join(root, entry))
-        .filter((entry) => statSync(entry).isDirectory() && existsSync(join(entry, marker)));
-    return candidates.length === 1 ? candidates[0] : undefined;
+// The default Java release from this repository's source manifest, parsed JSON. The cache keeps one
+// directory per release, so the tests read the one the server runs rather than whichever is listed.
+const defaultJavaRelease = (
+    JSON.parse(readFileSync(join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8')) as {
+        javaServer: { defaultVersion: string };
+    }
+).javaServer.defaultVersion;
+
+/** The default release's directory under a cache folder, when it holds `marker`. */
+const defaultReleaseIn = (root: string, marker: string): string | undefined => {
+    const directory = join(root, defaultJavaRelease);
+    return existsSync(join(directory, marker)) ? directory : undefined;
 };
 
 const override = (name: string): string | undefined => {
@@ -46,9 +51,9 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
  * @returns Both directories, or undefined when either is missing so a test can skip.
  */
 export const findVanillaDatapack = (): VanillaDatapack | undefined => {
-    const datapack = override('JSP_VANILLA_DATAPACK') ?? onlyVersionIn(join(cacheRoot, 'vanilla-datapack'), 'data');
+    const datapack = override('JSP_VANILLA_DATAPACK') ?? defaultReleaseIn(join(cacheRoot, 'vanilla-datapack'), 'data');
     const reportsRoot =
-        override('JSP_JAVA_REPORTS') ?? onlyVersionIn(join(cacheRoot, 'java-reports'), join('generated', 'reports'));
+        override('JSP_JAVA_REPORTS') ?? defaultReleaseIn(join(cacheRoot, 'java-reports'), join('generated', 'reports'));
     if (datapack === undefined || reportsRoot === undefined) return undefined;
 
     const data = join(datapack, 'data', 'minecraft');
