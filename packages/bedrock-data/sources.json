@@ -125,6 +125,20 @@
                 "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
                 "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
                 "sizeInBytes": 62294556
+            },
+            "26.4-snapshot-10": {
+                "$comment": [
+                    "Java Edition 26.4 Snapshot 10, the preview, paired with Bedrock preview 2259. It is",
+                    "brought up and checked with `pnpm run bringup:java --java 26.4-snapshot-10`. Replaced,",
+                    "not kept beside, when a snapshot moves the data pack format major, a pre-release ships",
+                    "or 26.4 is released. sha1 from the version's piston-meta package; sha256 measured on",
+                    "2026-11-19."
+                ],
+                "preview": true,
+                "url": "https://piston-data.mojang.com/v1/objects/d713516162441e0961e1ccfb85d8feeb01b50fd6/server.jar",
+                "sha1": "d713516162441e0961e1ccfb85d8feeb01b50fd6",
+                "sha256": "54648ab1ee76981c3aa27b2456f325f9e77be35098ebcd9493fd45fbce7b415d",
+                "sizeInBytes": 63998326
             }
         }
     },
