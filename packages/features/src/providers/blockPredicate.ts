@@ -1,8 +1,8 @@
-import { asArray, asInteger, asObject, fail } from '../json';
+import { asArray, asEnum, asInteger, asObject, fail } from '../json';
 import { normalizeIdentifier, typeNameOf } from '../registry';
 import type { Direction, FluidKind } from '../world/BlockState';
 import type { BlockPos, FeatureWorld } from '../world/FeatureWorld';
-import { isOutsideBuildHeight, offset as offsetPos } from '../world/FeatureWorld';
+import { HEIGHTMAPS, isOutsideBuildHeight, offset as offsetPos } from '../world/FeatureWorld';
 import { parseBlockState } from './blockStateProvider';
 import type { VerticalAnchor } from './heightProvider';
 import { parseVerticalAnchor, resolveAnchor } from './heightProvider';
@@ -180,6 +180,17 @@ export const parseBlockPredicate = (source: unknown, path: string): BlockPredica
             // needs the entity list, which decoration does not have here, so the oracle answers
             // when it can and the predicate passes when it cannot. No vanilla feature uses it.
             return (world, position) => world.blocks.isUnobstructed?.(world, at(position, delta)) ?? true;
+        }
+
+        case 'below_heightmap': {
+            // 26.4: true where the position lies under the heightmap's surface, which is the
+            // first free y above the column's top block.
+            const delta = parseOffset(raw['offset'], `${path}.offset`);
+            const heightmap = asEnum(raw['heightmap'], HEIGHTMAPS, `${path}.heightmap`);
+            return (world, position) => {
+                const target = at(position, delta);
+                return target.y < world.getHeight(heightmap, target.x, target.z);
+            };
         }
 
         case 'height_range': {

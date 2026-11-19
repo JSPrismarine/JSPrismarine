@@ -2,7 +2,10 @@ import type { RandomSource } from '@jsprismarine/worldgen';
 
 import type { BlockPos, FeatureWorld } from '../world/FeatureWorld';
 
-/** The 58 feature types Java 26.3 registers in `worldgen/feature_type`. */
+/**
+ * The feature types this package reads: the 58 Java 26.3 registers in `worldgen/feature_type`, and
+ * 26.4's `large_speleothem`, which generalizes `large_dripstone` over its base block.
+ */
 export const FEATURE_TYPES = [
     'bamboo',
     'block_blob',
@@ -31,6 +34,7 @@ export const FEATURE_TYPES = [
     'iceberg',
     'lake',
     'large_dripstone',
+    'large_speleothem',
     'monster_room',
     'multiface_growth',
     'netherrack_replace_blobs',

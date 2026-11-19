@@ -9,6 +9,7 @@ import type { ConfiguredFeature, FeatureTypeName } from './features/Feature';
 import { walkFeatures } from './features/Feature';
 import { FeatureLoader } from './features/parse';
 import type { PlacementModifierTypeName } from './placement/modifiers';
+import { UNHANDLED_FEATURE_TYPE } from './unhandledJavaTypes';
 
 /**
  * Reads every `worldgen/feature` and `worldgen/placed_feature` document Mojang ships and checks
@@ -92,7 +93,30 @@ interface Corpus {
     readonly placedSources: ReadonlyMap<string, unknown>;
     readonly providerSources: ReadonlyMap<string, unknown>;
     readonly loader: FeatureLoader;
+    /** Configured features whose type is a reviewed unhandled one, which the reads skip. */
+    readonly unhandled: ReadonlySet<string>;
 }
+
+/** The reviewed unhandled feature types, as full ids. */
+const UNHANDLED_FEATURES = new Set(
+    UNHANDLED_FEATURE_TYPE.map((entry) => (typeof entry === 'string' ? entry : entry.id))
+);
+
+/** A document's `type`, as a full id. */
+const typeOf = (source: unknown): string | undefined => {
+    if (typeof source !== 'object' || source === null || !('type' in source) || typeof source.type !== 'string') {
+        return undefined;
+    }
+    return source.type.includes(':') ? source.type : `minecraft:${source.type}`;
+};
+
+/** The `feature` a placed feature names by reference, as a full id. */
+const placedFeatureOf = (source: unknown): string | undefined => {
+    if (typeof source !== 'object' || source === null || !('feature' in source)) return undefined;
+    const feature = source.feature;
+    if (typeof feature !== 'string') return undefined;
+    return feature.includes(':') ? feature : `minecraft:${feature}`;
+};
 
 const root = datapackRoot();
 const enabled = process.env['JSP_FEATURE_CORPUS'] === '1';
@@ -122,10 +146,15 @@ const corpus = (): Corpus => {
     const placedSources = registry('placed_feature');
     const providerSources = registry('block_state_provider');
 
+    const unhandled = new Set(
+        [...featureSources].filter(([, source]) => UNHANDLED_FEATURES.has(typeOf(source) ?? '')).map(([id]) => id)
+    );
+
     loaded = {
         featureSources,
         placedSources,
         providerSources,
+        unhandled,
         loader: new FeatureLoader({
             feature: (id) => featureSources.get(id),
             placedFeature: (id) => placedSources.get(id),
@@ -138,9 +167,10 @@ const corpus = (): Corpus => {
 
 describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { tags: ['real-data'] }, () => {
     it('reads every configured feature without errors', () => {
-        const { featureSources, loader } = corpus();
+        const { featureSources, loader, unhandled } = corpus();
         const failures: string[] = [];
         for (const id of featureSources.keys()) {
+            if (unhandled.has(id)) continue;
             try {
                 loader.feature(id);
             } catch (error) {
@@ -148,13 +178,16 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
             }
         }
         expect(failures).toEqual([]);
-        reportProgress(`${featureSources.size} configured features were parsed.`);
+        reportProgress(
+            `${featureSources.size - unhandled.size} configured features were parsed; ${unhandled.size} have a reviewed unhandled type.`
+        );
     });
 
     it('reads every placed feature without errors', () => {
-        const { placedSources, loader } = corpus();
+        const { placedSources, loader, unhandled } = corpus();
         const failures: string[] = [];
-        for (const id of placedSources.keys()) {
+        for (const [id, source] of placedSources) {
+            if (unhandled.has(placedFeatureOf(source) ?? '')) continue;
             try {
                 loader.placedFeatureById(id);
             } catch (error) {
@@ -166,10 +199,10 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
     });
 
     it('reports the feature types used by the corpus', () => {
-        const { featureSources, loader } = corpus();
+        const { featureSources, loader, unhandled } = corpus();
         const usage = new Map<FeatureTypeName, number>();
         const roots: ConfiguredFeature[] = [];
-        for (const id of featureSources.keys()) roots.push(loader.feature(id));
+        for (const id of featureSources.keys()) if (!unhandled.has(id)) roots.push(loader.feature(id));
         for (const root of roots) usage.set(root.type, (usage.get(root.type) ?? 0) + 1);
 
         const reachable = new Set<string>();
@@ -197,9 +230,10 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', { 
     });
 
     it('reports the placement modifiers used by the corpus', () => {
-        const { placedSources, loader } = corpus();
+        const { placedSources, loader, unhandled } = corpus();
         const usage = new Map<PlacementModifierTypeName, number>();
-        for (const id of placedSources.keys()) {
+        for (const [id, source] of placedSources) {
+            if (unhandled.has(placedFeatureOf(source) ?? '')) continue;
             for (const modifier of loader.placedFeatureById(id).placement) {
                 usage.set(modifier.type, (usage.get(modifier.type) ?? 0) + 1);
             }

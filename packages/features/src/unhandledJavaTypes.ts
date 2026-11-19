@@ -3,11 +3,20 @@
  * `unhandledJavaTypes.test.ts` checks each list against the pinned Java registry report, and
  * fails when an entry gains a handler or leaves the report, so a list only shrinks.
  *
- * Each list holds full ids, such as `minecraft:ore`, each with a one-line reason.
+ * Each list holds full ids, such as `minecraft:ore`, each with a one-line reason. A type only a
+ * newer release than the default registers carries the data pack format it first appears at, so
+ * the default release's report does not expect it.
  */
 
+/** 26.4 (format 128) added the `crevasse` feature type. */
+const SINCE_CREVASSE_FEATURE = 128;
+
 /** `minecraft:worldgen/feature_type` entries with no reader. */
-export const UNHANDLED_FEATURE_TYPE: readonly string[] = [];
+export const UNHANDLED_FEATURE_TYPE: readonly (string | { readonly id: string; readonly since: number })[] = [
+    // 26.4's tapered, water-filled cuts through brittle ice in the ice caves; one vanilla
+    // placed feature uses it. Issue #3279.
+    { id: 'minecraft:crevasse', since: SINCE_CREVASSE_FEATURE }
+];
 
 /** `minecraft:worldgen/placement_modifier_type` entries with no reader. */
 export const UNHANDLED_PLACEMENT_MODIFIER_TYPE: readonly string[] = [];
