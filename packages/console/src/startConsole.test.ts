@@ -85,6 +85,28 @@ describe('startConsole', () => {
         expect(t.received).toEqual([{ type: 'subscribe', v: 1, level: 'silly' }]);
     });
 
+    it('asks a server that says hello for its commands, and shows their forms while typing', async () => {
+        const t = await setup();
+        handle = t.handle;
+        t.supervisor.attach(t.consoleEnd);
+        t.serverEnd.send({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+        await nextTick();
+
+        const request = t.received.find((message) => message.type === 'commands');
+        if (request?.type !== 'commands') throw new Error('no commands request received');
+        t.serverEnd.send({
+            type: 'commands.result',
+            v: 1,
+            id: request.id,
+            commands: [{ name: 'stop', description: 'Stops the server.', aliases: [], usage: ['stop'] }]
+        });
+        await nextTick();
+
+        await t.test.mockInput.typeText('stop');
+        await t.test.renderOnce();
+        expect(t.test.renderer.root.findDescendantById('usage-card')?.visible).toBe(true);
+    });
+
     it('sends a typed command and resolves it with the matching result', async () => {
         const t = await setup();
         handle = t.handle;

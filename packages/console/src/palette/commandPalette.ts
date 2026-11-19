@@ -36,7 +36,7 @@ const kindLabel = (item: PaletteItem): string => {
         case 'action':
             return item.keys ?? '';
         case 'command':
-            return 'server command';
+            return item.description ?? 'server command';
         case 'player':
             return 'player';
     }

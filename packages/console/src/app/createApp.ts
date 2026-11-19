@@ -1,4 +1,4 @@
-import type { ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
+import type { CommandInfo, ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
 import { isLogLevel, LOG_LEVELS } from '@jsprismarine/logger';
 import type { LogLevel } from '@jsprismarine/logger';
 import { BoxRenderable, CliRenderEvents, MouseButton } from '@opentui/core';
@@ -32,6 +32,8 @@ import type { TpsSample } from '../tps/tpsHistory';
 import { createTpsPage } from '../tps/tpsPage';
 import type { ConsoleContext } from '../context';
 import { createActivityLine } from './activityLine';
+import { commandIndex, usageFor } from '../input/commandUsage';
+import { createUsageCard } from '../input/usageCard';
 import { createCrashCard } from './crashCard';
 import { parseCrash } from './crashReport';
 import type { Crash } from './crashReport';
@@ -72,6 +74,8 @@ export interface AppProps {
     onCommand(line: string): Promise<CommandOutcome>;
     /** Completes the text before `cursor` on the server. */
     onComplete(line: string, cursor: number): Promise<CompletionResult>;
+    /** Asks the server for its commands with their descriptions and forms. */
+    onCommands?(): Promise<readonly CommandInfo[]>;
     /** Opens a source location in the host's configured editor. */
     openSourceLocation?(location: SourceLocation): Promise<void>;
     actions: AppActions;
@@ -160,6 +164,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let canRestart = false;
     /** Names the server completes an empty line with; `/name` lines go to the server when `name` is one. */
     let commandNames: ReadonlySet<string> = new Set();
+    /** The server's commands with their descriptions and forms, once it has sent them. */
+    let commandReference: readonly CommandInfo[] = [];
+    let commandsByName: ReadonlyMap<string, CommandInfo> = new Map();
     let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, { sidePaneWidth });
     let jumpCursor = 0;
 
@@ -303,6 +310,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     logColumn.add(view.renderable);
     const crashCard = createCrashCard(components);
     logColumn.add(crashCard.renderable);
+    const usageCard = createUsageCard(components);
+    logColumn.add(usageCard.renderable);
     /** What the current server generation printed to stderr or logged as errors, newest last. */
     let crashLines: string[] = [];
     /** The crash the card shows, while it shows one. */
@@ -316,17 +325,25 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onInterrupt: guard(interrupt),
         onHint: guard((text: string | undefined) => statusBar.setHint(text)),
         serverStopping: () => state === 'stopping',
+        onChange: guard(() => refreshUsage()),
         onFocusChange: guard((focused: boolean) => {
             if (inputFocused === focused) return;
             inputFocused = focused;
+            refreshUsage();
             refreshStatus();
         })
     });
 
+    /** Shows the forms of the command on the line while the line has focus. */
+    function refreshUsage(): void {
+        usageCard.update(inputFocused ? usageFor(input.getValue(), commandsByName) : undefined);
+    }
+
     function openPalette(): void {
         dropdown.close();
         help.hide();
-        palette.open(paletteItems(COMMAND_CATALOG, commandNames, metrics.playerNames ?? [], ['view.palette']));
+        const commands = commandReference.length > 0 ? commandReference : [...commandNames].map((name) => ({ name }));
+        palette.open(paletteItems(COMMAND_CATALOG, commands, metrics.playerNames ?? [], ['view.palette']));
     }
 
     /** Runs a chosen console action, or puts a command or a player's name on the command line. */
@@ -347,12 +364,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function focusInput(): void {
         inputFocused = true;
         input.focus();
+        refreshUsage();
         refreshStatus();
     }
 
     function focusLog(): void {
         inputFocused = false;
         input.blur();
+        refreshUsage();
         refreshStatus();
     }
 
@@ -750,6 +769,20 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     /** Asks the server which command names it knows, so `/name` can be told apart from a search. */
     function learnCommandNames(): void {
+        if (props.onCommands !== undefined) {
+            props.onCommands().then(
+                guard((commands: readonly CommandInfo[]) => {
+                    commandReference = commands;
+                    commandsByName = commandIndex(commands);
+                    commandNames = new Set(commandsByName.keys());
+                }),
+                () => {
+                    // Without the reference the palette lists no commands and no usage shows;
+                    // the next hello asks again.
+                }
+            );
+            return;
+        }
         props.onComplete('', 0).then(
             guard((result: CompletionResult) => {
                 commandNames = new Set(result.completions);
@@ -1145,6 +1178,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 return;
             case 'command.result':
             case 'complete.result':
+            case 'commands.result':
                 return;
         }
     }
@@ -1211,6 +1245,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             help.dispose();
             palette.dispose();
             crashCard.dispose();
+            usageCard.dispose();
             tpsPage.dispose();
             sidePane.dispose();
             titleBar.dispose();

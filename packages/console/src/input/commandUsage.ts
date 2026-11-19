@@ -1,0 +1,43 @@
+import type { CommandInfo } from '@jsprismarine/console-protocol';
+
+/** The command a line is calling, and which of its arguments the cursor is on. */
+export interface UsageMatch {
+    command: CommandInfo;
+    /**
+     * The argument being typed, counted from 0 after the command's name, or -1 while the name
+     * itself is being typed.
+     */
+    argument: number;
+}
+
+/** Commands by name and alias, lowercased, as {@link usageFor} looks them up. */
+export function commandIndex(commands: readonly CommandInfo[]): ReadonlyMap<string, CommandInfo> {
+    const index = new Map<string, CommandInfo>();
+    for (const command of commands) {
+        for (const name of [command.name, ...command.aliases]) index.set(name.toLowerCase(), command);
+    }
+    return index;
+}
+
+/**
+ * Finds the command a console line calls and the argument at its end. A line that starts with
+ * `/` is the console's own search syntax, not a command, and a first word that names no command
+ * matches nothing.
+ */
+export function usageFor(line: string, index: ReadonlyMap<string, CommandInfo>): UsageMatch | undefined {
+    const trimmed = line.trimStart();
+    if (trimmed === '' || trimmed.startsWith('/')) return undefined;
+    const words = trimmed.split(/\s+/).filter((word) => word !== '');
+    const command = index.get((words[0] ?? '').toLowerCase());
+    if (command === undefined) return undefined;
+    const startsNext = /\s$/.test(trimmed);
+    return { command, argument: words.length - (startsNext ? 1 : 2) };
+}
+
+/**
+ * The words of a usage form, such as `teleport`, `<targets>` and `[<yaw>`, with the argument at
+ * `argument` marked. The command's name is word 0, so argument `n` is word `n + 1`.
+ */
+export function usageWords(form: string, argument: number): { text: string; current: boolean }[] {
+    return form.split(' ').map((text, index) => ({ text, current: argument >= 0 && index === argument + 1 }));
+}

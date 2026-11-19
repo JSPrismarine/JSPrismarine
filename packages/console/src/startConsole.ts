@@ -83,7 +83,7 @@ export const TERMINAL_RESET = [
     '\x1b[?25h'
 ].join('');
 
-type ResultType = 'command.result' | 'complete.result';
+type ResultType = 'command.result' | 'complete.result' | 'commands.result';
 type ResultMessage<T extends ResultType> = Extract<ServerMessage, { type: T }>;
 
 interface PendingRequest {
@@ -93,7 +93,7 @@ interface PendingRequest {
 }
 
 const isResult = (message: ServerMessage): message is ResultMessage<ResultType> =>
-    message.type === 'command.result' || message.type === 'complete.result';
+    message.type === 'command.result' || message.type === 'complete.result' || message.type === 'commands.result';
 
 const errorText = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -227,6 +227,14 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
                     cursor
                 }));
                 return { completions: result.completions, replace: result.replace };
+            },
+            async onCommands() {
+                const result = await request('commands.result', (id) => ({
+                    type: 'commands',
+                    v: PROTOCOL_VERSION,
+                    id
+                }));
+                return result.commands;
             },
             async openSourceLocation(location: SourceLocation): Promise<void> {
                 const editor = env.VISUAL?.trim() || env.EDITOR;

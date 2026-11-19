@@ -1,4 +1,4 @@
-import type { SupervisorEvent } from '@jsprismarine/console-protocol';
+import type { CommandInfo, SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
 import { InputRenderable, TextRenderable, parseColor } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
@@ -1276,6 +1276,40 @@ describe('createApp', () => {
             await t.renderOnce();
             expect(line()).toBe('op filfat');
             expect(inputFocused(t)).toBe(true);
+        });
+
+        it('shows the forms of the command being typed, and hides them for other lines', async () => {
+            const teleport: CommandInfo = {
+                name: 'teleport',
+                description: 'Teleports entities.',
+                aliases: ['tp'],
+                usage: ['teleport <destination>', 'teleport <targets> <position>']
+            };
+            const t = await setup({ width: 120, height: 40 }, { onCommands: async () => [teleport] });
+            dispose = t.dispose;
+            t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+            await t.renderOnce();
+            const card = () => byId(t, 'usage-card');
+
+            await t.mockInput.typeText('tp ');
+            await t.renderOnce();
+            expect(card()?.visible).toBe(true);
+            // A header row and one row per form.
+            expect(card()?.getChildren()).toHaveLength(1 + teleport.usage.length);
+
+            await focusLog(t);
+            expect(card()?.visible).toBe(false);
+
+            t.app.focus();
+            await t.renderOnce();
+            expect(card()?.visible).toBe(true);
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+            expect(card()?.visible).toBe(false);
+
+            await t.mockInput.typeText('nonsense ');
+            await t.renderOnce();
+            expect(card()?.visible).toBe(false);
         });
 
         it('restarts on Ctrl+Shift+R only once the supervisor says it can', async () => {
