@@ -226,6 +226,11 @@
                 "import": "./dist/packet/EmotePacket.js",
                 "module": "./dist/packet/EmotePacket.js"
             },
+            "./packet/ScriptMessagePacket": {
+                "types": "./dist/packet/ScriptMessagePacket.d.ts",
+                "import": "./dist/packet/ScriptMessagePacket.js",
+                "module": "./dist/packet/ScriptMessagePacket.js"
+            },
             "./packet/FeatureRegistryPacket": {
                 "types": "./dist/packet/FeatureRegistryPacket.d.ts",
                 "import": "./dist/packet/FeatureRegistryPacket.js",
@@ -1088,6 +1093,10 @@
         "./packet/EmotePacket": {
             "jsprismarine:dist": "./dist/packet/EmotePacket.js",
             "default": "./src/packet/EmotePacket.ts"
+        },
+        "./packet/ScriptMessagePacket": {
+            "jsprismarine:dist": "./dist/packet/ScriptMessagePacket.js",
+            "default": "./src/packet/ScriptMessagePacket.ts"
         },
         "./packet/FeatureRegistryPacket": {
             "jsprismarine:dist": "./dist/packet/FeatureRegistryPacket.js",
