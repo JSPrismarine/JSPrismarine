@@ -58,7 +58,18 @@ interface Sources {
         versions: Record<string, { minecraftVersion: string; serverVersion: string; sizeInBytes: number }>;
     };
     bedrockSamples: { tag: string };
-    javaServer: { defaultVersion: string; versions: Record<string, { sizeInBytes: number }> };
+    javaServer: { defaultVersion: string; versions: Record<string, { sizeInBytes: number; preview?: boolean }> };
+}
+
+/** The Java release `sources.json` pins as the preview, or undefined when it pins none. */
+const javaPreview = (sources: Sources) =>
+    Object.entries(sources.javaServer.versions).find(([, entry]) => entry.preview === true)?.[0];
+
+/** The data pack format a `datagen:java` version record declares, as `major.minor`. */
+function recordFormat(file: string) {
+    const format = field(JSON.parse(readFileSync(file, 'utf8')), 'dataPackFormat');
+    if (!Array.isArray(format)) throw new Error(`${file} is not a datagen:java version record`);
+    return format.join('.');
 }
 
 /** Megabytes as a reader sees them on a download, such as `95 MB`. */
@@ -551,7 +562,19 @@ interface FactSource {
 /** Counts read from the generated game data: the Java datapack and reports, bedrock-samples and BDS. */
 function dataSources(sources: Sources): FactSource[] {
     const java = sources.javaServer.defaultVersion;
+    const preview = javaPreview(sources);
     return [
+        // A preview's format is read only when one is pinned; with none, the main facts say so.
+        ...(preview === undefined
+            ? []
+            : [
+                  {
+                      label: `the Java ${preview} preview version record`,
+                      dir: path.join(cacheRoot, 'vanilla-datapack', preview, 'version.json'),
+                      names: ['java.preview.dataPackFormat'],
+                      read: (file: string) => ({ 'java.preview.dataPackFormat': recordFormat(file) })
+                  }
+              ]),
         {
             label: `the Java ${java} vanilla datapack`,
             dir: path.join(cacheRoot, 'vanilla-datapack', java, 'data'),
@@ -821,6 +844,15 @@ export async function loadFacts(): Promise<Facts> {
             'samples.tag': sources.bedrockSamples.tag,
             'java.version': sources.javaServer.defaultVersion,
             'java.size': megabytes(javaJar.sizeInBytes),
+            'java.preview.version': javaPreview(sources) ?? 'none',
+            ...(javaPreview(sources) === undefined ? { 'java.preview.dataPackFormat': 'none' } : {}),
+            // The body of a `content-java-version` example naming a pinned release, the preview when
+            // there is one. The page keeps the fenced block around it.
+            'java.configExample': JSON.stringify(
+                { 'content-java-version': javaPreview(sources) ?? sources.javaServer.defaultVersion },
+                undefined,
+                4
+            ),
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
             'brand.components': `\n${table(
                 ['Component', 'Purpose'],
