@@ -119,10 +119,14 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
         const ref: ScriptEntityRef = { id: value.id, typeId: value.typeId };
         return host.entity(ref);
     };
-    /** The block a `BlockEvent` is about: a component hook's, or a player's break. */
+    /** The block a `BlockEvent` is about: a component hook's, a player's break, or a world event's. */
     const blockOfEvent = (call: ScriptCall): unknown => {
         if (call.tag === TAG.componentEvent) return field(call, 'block');
         const data = host.eventData(call.tag);
+        if (data?.kind === 'game') {
+            const at = data.fields.block;
+            return typeof at === 'object' && 'block' in at ? at.block : undefined;
+        }
         if (data?.kind !== 'blockBreakBefore' && data?.kind !== 'blockBreakAfter') {
             throw new ScriptHostErrors.EventNoLongerValid();
         }

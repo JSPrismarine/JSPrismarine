@@ -26,6 +26,9 @@ import type {
     ScriptComponentSink,
     ScriptDamageSource,
     ScriptEntityState,
+    ScriptGameEvent,
+    ScriptGameEventGuard,
+    ScriptGameEventVerdict,
     ScriptGameMode,
     ScriptItem,
     ScriptDisplay,
@@ -692,6 +695,30 @@ export class MemoryWorld implements ScriptWorld {
     }
     public takeEvents(): readonly ScriptWorldEvent[] {
         return this.committed.splice(0);
+    }
+
+    private readonly gameGuards: ScriptGameEventGuard[] = [];
+
+    /**
+     * Raises a world event of `events/worldEvents.ts`: a before-event goes past the guards and
+     * returns their verdict, an after-event waits for the flush.
+     */
+    public raise(event: ScriptGameEvent): ScriptGameEventVerdict {
+        let fields = event.fields;
+        if (!event.event.endsWith('BeforeEvent')) {
+            this.committed.push({ type: 'game', ...event });
+            return { veto: false, fields };
+        }
+        for (const guard of this.gameGuards) {
+            const verdict = guard({ event: event.event, fields });
+            if (verdict.veto) return verdict;
+            fields = verdict.fields;
+        }
+        return { veto: false, fields };
+    }
+    public guardGameEvents(guard: ScriptGameEventGuard): () => void {
+        this.gameGuards.push(guard);
+        return () => this.gameGuards.splice(this.gameGuards.indexOf(guard), 1);
     }
     public registerCommands(commands: ScriptCommandSet): () => void {
         this.commandSet = commands;

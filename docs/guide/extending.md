@@ -377,7 +377,7 @@ public on purpose.
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->28<!-- /fact --> events, and
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->62<!-- /fact --> events, and
 `server.once`, `server.removeListener` and `server.removeAllListeners` take the same names. They
 subscribe on the kernel's event bus, `server.getKernel().events`, which the server raises every
 event on.
@@ -400,29 +400,63 @@ event on.
 | -------------------------- | ------------------------------- |
 | `chat`                     | `ChatEvent`                     |
 | `tick`                     | `TickEvent`                     |
+| `explosion`                | `ExplosionEvent`                |
+| `exploded`                 | `ExplodedEvent`                 |
+| `gameRuleChanged`          | `GameRuleChangedEvent`          |
+| `redstoneActivated`        | `RedstoneActivatedEvent`        |
 | `entityDamage`             | `EntityDamageEvent`             |
 | `entityHurt`               | `EntityHurtEvent`               |
 | `entityDeath`              | `EntityDeathEvent`              |
 | `entitySpawn`              | `EntitySpawnEvent`              |
+| `entityRemove`             | `EntityRemoveEvent`             |
+| `entityHitEntity`          | `EntityHitEntityEvent`          |
+| `projectileHit`            | `ProjectileHitEvent`            |
+| `entityTrigger`            | `EntityTriggerEvent`            |
+| `entityTame`               | `EntityTameEvent`               |
+| `entityTamed`              | `EntityTamedEvent`              |
+| `entityItemDrop`           | `EntityItemDropEvent`           |
+| `entityItemPickup`         | `EntityItemPickupEvent`         |
+| `entityItemPickedUp`       | `EntityItemPickedUpEvent`       |
+| `entityEffectAdd`          | `EntityEffectAddEvent`          |
+| `entityHeal`               | `EntityHealEvent`               |
+| `entityHealed`             | `EntityHealedEvent`             |
+| `entityHealthChanged`      | `EntityHealthChangedEvent`      |
+| `entityEffectAdded`        | `EntityEffectAddedEvent`        |
+| `playerAttackEntity`       | `PlayerAttackEntityEvent`       |
+| `entityRemoved`            | `EntityRemovedEvent`            |
 | `entityPortalEnter`        | `EntityPortalEnterEvent`        |
 | `playerChangeDimension`    | `PlayerChangeDimensionEvent`    |
+| `playerDimensionChanged`   | `PlayerDimensionChangedEvent`   |
 | `playerConnect`            | `PlayerConnectEvent`            |
 | `playerDisconnect`         | `PlayerDisconnectEvent`         |
 | `playerSpawn`              | `PlayerSpawnEvent`              |
 | `playerDespawn`            | `PlayerDespawnEvent`            |
+| `playerEmote`              | `PlayerEmoteEvent`              |
+| `playerSwing`              | `PlayerSwingEvent`              |
+| `playerNameEntity`         | `PlayerNameEntityEvent`         |
+| `playerContainer`          | `PlayerContainerEvent`          |
+| `playerScriptMessage`      | `PlayerScriptMessageEvent`      |
+| `playerCraft`              | `PlayerCraftEvent`              |
+| `playerButtonInput`        | `PlayerButtonInputEvent`        |
+| `playerInputModeChange`    | `PlayerInputModeChangeEvent`    |
 | `playerMove`               | `PlayerMoveEvent`               |
 | `playerToggleFlight`       | `PlayerToggleFlightEvent`       |
 | `playerToggleSprint`       | `PlayerToggleSprintEvent`       |
 | `playerToggleOperator`     | `PlayerToggleOperatorEvent`     |
 | `playerSetGamemode`        | `PlayerSetGamemodeEvent`        |
+| `playerGamemodeChanged`    | `PlayerGamemodeChangedEvent`    |
 | `playerBreakBlock`         | `PlayerBreakBlockEvent`         |
 | `playerBlockBroken`        | `PlayerBlockBrokenEvent`        |
+| `playerBlockAction`        | `PlayerBlockActionEvent`        |
 | `playerUseItem`            | `PlayerUseItemEvent`            |
 | `playerItemUsed`           | `PlayerItemUsedEvent`           |
+| `playerItemUseStage`       | `PlayerItemUseStageEvent`       |
 | `playerInteractBlock`      | `PlayerInteractBlockEvent`      |
 | `playerBlockInteracted`    | `PlayerBlockInteractedEvent`    |
 | `playerInteractEntity`     | `PlayerInteractEntityEvent`     |
 | `playerEntityInteracted`   | `PlayerEntityInteractedEvent`   |
+| `playerPlaceBlock`         | `PlayerPlaceBlockEvent`         |
+| `playerBlockPlaced`        | `PlayerBlockPlacedEvent`        |
 | `raknetConnect`            | `RaknetConnectEvent`            |
 | `raknetDisconnect`         | `RaknetDisconnectEvent`         |
 | `raknetEncapsulatedPacket` | `RaknetEncapsulatedPacketEvent` |

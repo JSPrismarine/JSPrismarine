@@ -522,6 +522,39 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       block with legacy variants, such as stone, lists only the block where BDS lists every variant.
       `EnchantmentTypes.getAll` lists every enchantment, where BDS listed two in one scenario by no
       rule found.
+    - Events (2026-11-19): the rest of `world.afterEvents` and `world.beforeEvents` that a
+      JSPrismarine game system can raise, through one shape: the world describes each event by
+      its Script API class and its members' values, the host sends an after-event in the flush,
+      runs a before-event as a guard in restricted execution and hands back what its scripts
+      changed, and matches each subscriber's options against the event's entity, block, stacks
+      and slots. Prismarine raises a kernel event for each (`playerPlaceBlock`,
+      `playerGamemodeChanged`, `entityRemove`, `explosion`, `redstoneActivated` and the rest), and
+      `scripting/events` turns them into the Script API's; hotbar, inventory, cursor and sneaking
+      changes come from comparing each player with the last flush. Block custom components get
+      `onStepOn`, `onEntityFallOn`, `onEntity`, `onRedstoneUpdate` and `onBlockStateChange`. The
+      `@minecraft/server` 2.12.0-beta members with behavior went from 396 to 752 of 1671
+      (356 of the 421 event members), and the corpus's share of pack members from 70.7% to 84.8%
+      and of member uses from 88.2% to 93.6%. The `world-events` scenario matches BDS.
+    - Learned: `EffectAddBeforeEvent.effectType` is the effect's name, `Speed`, not its id, and a
+      duration the before-event sets is the one `addEffect` returns and the after-event reads.
+      `gameRuleChange` names the rule as `GameRule` spells it, `doDayLightCycle`. The before-events
+      of `effectAdd` and `entityRemove` take no options, so a second argument to `subscribe` throws.
+      A TNT that `/summon` primes on a BDS with no player leaves the world after 41 ticks without
+      exploding, so no capture records the explosion events yet.
+    - Left: world clocks ([#3290](https://github.com/JSPrismarine/JSPrismarine/issues/3290)),
+      `dimensionRegistry` ([#3291](https://github.com/JSPrismarine/JSPrismarine/issues/3291)),
+      `packSettingChange` ([#3292](https://github.com/JSPrismarine/JSPrismarine/issues/3292)),
+      `soundCompleted` ([#3293](https://github.com/JSPrismarine/JSPrismarine/issues/3293)),
+      tripwires and target blocks ([#3294](https://github.com/JSPrismarine/JSPrismarine/issues/3294)),
+      input permissions ([#3295](https://github.com/JSPrismarine/JSPrismarine/issues/3295)),
+      `entityUpgrade` ([#3296](https://github.com/JSPrismarine/JSPrismarine/issues/3296)) and the
+      component hooks `onStepOff`, `onNamedTick`, `onNeighborChanged` and
+      `onBeforeDurabilityDamage` ([#3297](https://github.com/JSPrismarine/JSPrismarine/issues/3297))
+      have no behavior; the `world-event-gaps` row records the first seven. A block click with an
+      item raises `itemStartUseOn` and `itemStopUseOn` together, since the client reports no hold
+      on a block, and `DefinitionModifier.triggers` is always empty. The events a client or a
+      redstone circuit raises have unit tests but no BDS capture, which needs a client or a
+      GameTest simulated player that does each action.
 11. [x] [#3208](https://github.com/JSPrismarine/JSPrismarine/issues/3208) **Custom components.** `registerCustomComponent` for blocks and items registers into the
     behavior registry of the [data-driven plan](data-driven-vanilla.md), through an adapter from
     the 15 block hooks and 7 item hooks. Custom commands register into the command tree.
