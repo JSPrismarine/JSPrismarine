@@ -124,9 +124,11 @@ Done when: running each generator a second time leaves an empty diff.
 pnpm run bringup:java --java <R>
 ```
 
-The six stages are pins, generate, reproducibility, strict load, corpus and server boot. The
-server boot starts a flat-world server through the client-e2e harness with
-`JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` pointed at R. A failed stage prints its first 20
+The eight stages are pins, generate, reproducibility, strict load, corpus, noise chunks, server
+boot and command tree. The noise chunks stage generates chunk 0, 0 of the Overworld, the Nether
+and the End from R's data. The server boot starts a flat-world server through the client-e2e
+harness with `content-java-version` set to R, and the command tree stage checks that it built its
+vanilla command tree. A failed stage prints its first 20
 diagnostics or differing files; fix those and re-run.
 
 Done when: every stage reports PASS and the command exits 0.
