@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { javaServerCacheFolder, readGeneratedJavaVersion } from '../../../packages/bedrock-data/src/sources.ts';
 import { OFFLINE_MESSAGE_DATA_ID } from '../../../packages/raknet/src/Constants.ts';
 import { chunkWorkerCount } from '../../../packages/prismarine/src/world/generators/chunkConcurrency.ts';
 import { repoRoot } from './cinnabar.mts';
@@ -135,6 +136,27 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
 export const SECOND_LEVEL = 'e2e_other';
 
 /**
+ * The format part of the fixture datapack's `pack.mcmeta`, for the Java release the server loads
+ * its content under, so the fixture loads without a format mismatch.
+ *
+ * The release's format comes from the `version.json` beside the vanilla datapack the server
+ * loads: the one `JSP_VANILLA_DATAPACK` names, or the release's folder in the cache. A datapack
+ * without one loads under the default release, so that release's record answers next. With
+ * neither on disk the server has no generated Java data to say which format it reads, and the
+ * fixture declares every format.
+ */
+const fixturePackFormat = (release: string = javaServerCacheFolder): Record<string, number> => {
+    const cached = (name: string): string =>
+        path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine', 'vanilla-datapack', name);
+    const override = process.env.JSP_VANILLA_DATAPACK;
+    const datapack = override !== undefined && override !== '' ? override : cached(release);
+    const record = readGeneratedJavaVersion(datapack) ?? readGeneratedJavaVersion(cached(javaServerCacheFolder));
+    return record === undefined
+        ? { min_format: 0, max_format: Number.MAX_SAFE_INTEGER }
+        : { pack_format: record.dataPackFormat[0] };
+};
+
+/**
  * Starts a scratch server from source or the built workspace output, then waits until it listens.
  *
  * @param options.port - Requested UDP port; defaults to an available local port.
@@ -156,6 +178,8 @@ export const SECOND_LEVEL = 'e2e_other';
  * @param options.publicIp - The `server-public-ip` the server advertises.
  * @param options.protocolWindow - How many releases the server accepts, counted back from the
  *   newest. The server's default accepts the newest only, which refuses an older client.
+ * @param options.javaVersion - The `content-java-version` the server runs: a Java release
+ *   `sources.json` pins. Defaults to the default release.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -174,6 +198,7 @@ export const startServer = async (
         udpPorts?: UdpPortsLayout;
         publicIp?: string;
         protocolWindow?: number;
+        javaVersion?: string;
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -204,7 +229,11 @@ export const startServer = async (
     fs.mkdirSync(path.dirname(customDimension), { recursive: true });
     fs.writeFileSync(
         path.join(datapack, 'pack.mcmeta'),
-        JSON.stringify({ pack: { pack_format: 121, description: 'Client e2e dimensions' } }, null, 4)
+        JSON.stringify(
+            { pack: { ...fixturePackFormat(options.javaVersion), description: 'Client e2e dimensions' } },
+            null,
+            4
+        )
     );
     fs.writeFileSync(
         customDimension,
@@ -479,6 +508,7 @@ export const startServer = async (
         },
         'content-world-packs': [behaviorPack],
         'content-datapacks': [datapack],
+        ...(options.javaVersion === undefined ? {} : { 'content-java-version': options.javaVersion }),
         // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.
         'chunk-host': process.env.JSP_E2E_CHUNK_HOST === 'process' ? 'process' : 'in-process',
         'preload-radius': options.preloadRadius ?? 0,
