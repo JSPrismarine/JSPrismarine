@@ -1,0 +1,836 @@
+{
+    "$comment": [
+        "What the scripts of scenario `block-members` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "block-members",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "members",
+            "seq": 1,
+            "tick": 40,
+            "event": "above",
+            "value": {
+                "typeId": "minecraft:air",
+                "x": 2,
+                "y": -60,
+                "z": 2
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 2,
+            "tick": 40,
+            "event": "above 3",
+            "value": {
+                "typeId": "minecraft:air",
+                "x": 2,
+                "y": -58,
+                "z": 2
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 3,
+            "tick": 40,
+            "event": "below",
+            "value": {
+                "typeId": "minecraft:dirt",
+                "x": 2,
+                "y": -62,
+                "z": 2
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 4,
+            "tick": 40,
+            "event": "below 0",
+            "value": {
+                "typeId": "minecraft:grass_block",
+                "x": 2,
+                "y": -61,
+                "z": 2
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 5,
+            "tick": 40,
+            "event": "below -2",
+            "value": {
+                "typeId": "minecraft:air",
+                "x": 2,
+                "y": -59,
+                "z": 2
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 6,
+            "tick": 40,
+            "event": "north south east west",
+            "value": [
+                {
+                    "typeId": "minecraft:air",
+                    "x": 2,
+                    "y": -61,
+                    "z": 1
+                },
+                {
+                    "typeId": "minecraft:air",
+                    "x": 2,
+                    "y": -61,
+                    "z": 3
+                },
+                {
+                    "typeId": "minecraft:air",
+                    "x": 3,
+                    "y": -61,
+                    "z": 2
+                },
+                {
+                    "typeId": "minecraft:air",
+                    "x": 1,
+                    "y": -61,
+                    "z": 2
+                }
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 7,
+            "tick": 40,
+            "event": "offset",
+            "value": {
+                "typeId": "minecraft:air",
+                "x": 3,
+                "y": -60,
+                "z": 1
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 8,
+            "tick": 40,
+            "event": "offset fractional",
+            "value": {
+                "typeId": "minecraft:air",
+                "x": 2,
+                "y": -62,
+                "z": 3
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 9,
+            "tick": 40,
+            "event": "below the world",
+            "error": "LocationOutOfWorldBoundariesError: Trying to access location (2.0, -71.0, 2.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "members",
+            "seq": 10,
+            "tick": 40,
+            "event": "above the world",
+            "error": "LocationOutOfWorldBoundariesError: Trying to access location (2.0, 339.0, 2.0) which is outside of the world boundaries."
+        },
+        {
+            "pack": "members",
+            "seq": 11,
+            "tick": 40,
+            "event": "offset into an unloaded chunk",
+            "value": null
+        },
+        {
+            "pack": "members",
+            "seq": 12,
+            "tick": 40,
+            "event": "center",
+            "value": {
+                "z": 2.5,
+                "y": -60.5,
+                "x": 2.5
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 13,
+            "tick": 40,
+            "event": "bottomCenter",
+            "value": {
+                "z": 2.5,
+                "y": -61,
+                "x": 2.5
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 14,
+            "tick": 40,
+            "event": "isValid",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 15,
+            "tick": 40,
+            "event": "type",
+            "value": "minecraft:grass_block"
+        },
+        {
+            "pack": "members",
+            "seq": 16,
+            "tick": 40,
+            "event": "isAir isLiquid isSolid",
+            "value": [
+                false,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 17,
+            "tick": 40,
+            "event": "air above",
+            "value": [
+                true,
+                false,
+                false,
+                "tile.air.name",
+                []
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 18,
+            "tick": 40,
+            "event": "localizationKey",
+            "value": "tile.grass.name"
+        },
+        {
+            "pack": "members",
+            "seq": 19,
+            "tick": 40,
+            "event": "getTags",
+            "value": [
+                "dirt",
+                "fertilize_area",
+                "grass",
+                "minecraft:is_shovel_item_destructible"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 20,
+            "tick": 40,
+            "event": "hasTag",
+            "value": [
+                true,
+                false,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 21,
+            "tick": 40,
+            "event": "matches",
+            "value": [
+                true,
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 22,
+            "tick": 40,
+            "event": "getItemStack",
+            "value": [
+                "minecraft:grass_block",
+                1
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 23,
+            "tick": 40,
+            "event": "getItemStack 5",
+            "value": 5
+        },
+        {
+            "pack": "members",
+            "seq": 24,
+            "tick": 40,
+            "event": "getItemStack of air",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 25,
+            "tick": 40,
+            "event": "getLightLevel",
+            "value": [
+                0,
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 26,
+            "tick": 40,
+            "event": "getSkyLightLevel",
+            "value": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 27,
+            "tick": 40,
+            "event": "getRedstonePower of grass",
+            "value": null
+        },
+        {
+            "pack": "members",
+            "seq": 28,
+            "tick": 40,
+            "event": "getMapColor",
+            "value": {
+                "green": 0.7372549176216125,
+                "red": 0.5725489854812622,
+                "blue": 0.3450980484485626,
+                "alpha": 0
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 29,
+            "tick": 40,
+            "event": "getParts of grass",
+            "value": null
+        },
+        {
+            "pack": "members",
+            "seq": 30,
+            "tick": 40,
+            "event": "liquid answers of grass",
+            "value": [
+                false,
+                true,
+                false,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 31,
+            "tick": 40,
+            "event": "log matches",
+            "value": [
+                true,
+                false,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 32,
+            "tick": 40,
+            "event": "log tags",
+            "value": [
+                "log",
+                "minecraft:is_axe_item_destructible",
+                "oak",
+                "wood"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 33,
+            "tick": 40,
+            "event": "log isSolid",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 34,
+            "tick": 40,
+            "event": "log getMapColor",
+            "value": {
+                "green": 0.33725491166114807,
+                "red": 0.5058823823928833,
+                "blue": 0.1921568661928177,
+                "alpha": 1
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 35,
+            "tick": 40,
+            "event": "fence isSolid",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 36,
+            "tick": 40,
+            "event": "fence liquid answers",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 37,
+            "tick": 40,
+            "event": "setWaterlogged fence",
+            "value": [
+                true,
+                "minecraft:oak_fence"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 38,
+            "tick": 40,
+            "event": "setWaterlogged false",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 39,
+            "tick": 40,
+            "event": "setWaterlogged a log",
+            "error": "Error: Block type cannot be waterlogged."
+        },
+        {
+            "pack": "members",
+            "seq": 40,
+            "tick": 40,
+            "event": "torch isSolid",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 41,
+            "tick": 40,
+            "event": "torch liquid answers",
+            "value": [
+                false,
+                false,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 42,
+            "tick": 40,
+            "event": "torch getLightLevel",
+            "value": [
+                0,
+                0
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 43,
+            "tick": 40,
+            "event": "water isLiquid isSolid isAir",
+            "value": [
+                true,
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 44,
+            "tick": 40,
+            "event": "water getItemStack",
+            "value": null
+        },
+        {
+            "pack": "members",
+            "seq": 45,
+            "tick": 40,
+            "event": "water localizationKey",
+            "value": "tile.water.name"
+        },
+        {
+            "pack": "members",
+            "seq": 46,
+            "tick": 40,
+            "event": "door getParts",
+            "value": null
+        },
+        {
+            "pack": "members",
+            "seq": 47,
+            "tick": 40,
+            "event": "door getItemStack",
+            "value": "minecraft:wooden_door"
+        },
+        {
+            "pack": "members",
+            "seq": 48,
+            "tick": 40,
+            "event": "slab isSolid",
+            "value": false
+        },
+        {
+            "pack": "members",
+            "seq": 49,
+            "tick": 40,
+            "event": "slab waterlog answers",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 50,
+            "tick": 40,
+            "event": "trySetPermutation",
+            "value": [
+                false,
+                "minecraft:oak_log"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 51,
+            "tick": 40,
+            "event": "trySetPermutation the same type",
+            "value": [
+                false,
+                "x"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 52,
+            "tick": 40,
+            "event": "trySetPermutation air with stone",
+            "value": [
+                true,
+                "minecraft:stone"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 53,
+            "tick": 40,
+            "event": "trySetPermutation grass with air",
+            "value": [
+                false,
+                "minecraft:dirt"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 54,
+            "tick": 40,
+            "event": "trySetPermutation a torch onto air",
+            "value": [
+                false,
+                "minecraft:air"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 55,
+            "tick": 40,
+            "event": "getComponents of grass",
+            "value": [
+                "minecraft:instrument_sound",
+                "minecraft:map_color",
+                "minecraft:movable",
+                "minecraft:precipitation_interactions",
+                "minecraft:vibration_properties"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 56,
+            "tick": 40,
+            "event": "getComponents of a chest",
+            "value": [
+                "minecraft:instrument_sound",
+                "minecraft:inventory",
+                "minecraft:movable",
+                "minecraft:precipitation_interactions",
+                "minecraft:vibration_properties"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 57,
+            "tick": 40,
+            "event": "permutation localizationKey",
+            "value": "tile.log.oak.name"
+        },
+        {
+            "pack": "members",
+            "seq": 58,
+            "tick": 40,
+            "event": "permutation getTags",
+            "value": [
+                "log",
+                "minecraft:is_axe_item_destructible",
+                "oak",
+                "wood"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 59,
+            "tick": 40,
+            "event": "permutation hasTag",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 60,
+            "tick": 40,
+            "event": "permutation matches",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 61,
+            "tick": 40,
+            "event": "permutation getItemStack",
+            "value": [
+                "minecraft:oak_log",
+                3
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 62,
+            "tick": 40,
+            "event": "permutation getItemStack 0",
+            "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [0]. Value: 0, Argument bounds: [1, 255]"
+        },
+        {
+            "pack": "members",
+            "seq": 63,
+            "tick": 40,
+            "event": "withState",
+            "value": {
+                "pillar_axis": "y",
+                "old_log_type": "oak"
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 64,
+            "tick": 40,
+            "event": "withState unchanged original",
+            "value": {
+                "pillar_axis": "z",
+                "old_log_type": "oak"
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 65,
+            "tick": 40,
+            "event": "withState unknown state",
+            "error": "Error: Failed to set property 'jsp_no_such_state' on block 'minecraft:oak_log'."
+        },
+        {
+            "pack": "members",
+            "seq": 66,
+            "tick": 40,
+            "event": "withState bad value",
+            "value": {
+                "pillar_axis": "y",
+                "old_log_type": "oak"
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 67,
+            "tick": 40,
+            "event": "withState wrong type",
+            "value": {
+                "pillar_axis": "y",
+                "old_log_type": "oak"
+            }
+        },
+        {
+            "pack": "members",
+            "seq": 68,
+            "tick": 40,
+            "event": "withState a number state",
+            "value": 5
+        },
+        {
+            "pack": "members",
+            "seq": 69,
+            "tick": 40,
+            "event": "withState a number out of range",
+            "error": "Error: Failed to set property 'growth' on block 'minecraft:wheat'."
+        },
+        {
+            "pack": "members",
+            "seq": 70,
+            "tick": 40,
+            "event": "permutation liquid answers of a kelp",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 71,
+            "tick": 40,
+            "event": "BlockTypes.get",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "members",
+            "seq": 72,
+            "tick": 40,
+            "event": "BlockTypes.get without a namespace",
+            "value": "minecraft:stone"
+        },
+        {
+            "pack": "members",
+            "seq": 73,
+            "tick": 40,
+            "event": "BlockTypes.get unknown",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 74,
+            "tick": 40,
+            "event": "BlockTypes.get the same object",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 75,
+            "tick": 40,
+            "event": "BlockType localizationKey",
+            "value": "tile.stone.stone.name"
+        },
+        {
+            "pack": "members",
+            "seq": 76,
+            "tick": 40,
+            "event": "BlockTypes.getAll",
+            "value": [
+                true,
+                true,
+                "string"
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 77,
+            "tick": 40,
+            "event": "BlockStates.get",
+            "value": [
+                "pillar_axis",
+                [
+                    "y",
+                    "x",
+                    "z"
+                ]
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 78,
+            "tick": 40,
+            "event": "BlockStates.get with a namespace",
+            "value": "minecraft:cardinal_direction"
+        },
+        {
+            "pack": "members",
+            "seq": 79,
+            "tick": 40,
+            "event": "BlockStates.get unknown",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 80,
+            "tick": 40,
+            "event": "BlockStates.get a number state",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 81,
+            "tick": 40,
+            "event": "BlockStates.get a boolean state",
+            "value": [
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "members",
+            "seq": 82,
+            "tick": 40,
+            "event": "BlockStates.getAll",
+            "value": true
+        },
+        {
+            "pack": "members",
+            "seq": 83,
+            "tick": 40,
+            "event": "blocks done"
+        }
+    ]
+}

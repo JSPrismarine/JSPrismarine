@@ -1,0 +1,191 @@
+{
+    "$comment": [
+        "What the scripts of scenario `block-world-components` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "block-world-components",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "components",
+            "seq": 1,
+            "tick": 0,
+            "event": "sign",
+            "value": [
+                [
+                    "",
+                    false,
+                    null
+                ],
+                "Hello",
+                null,
+                {
+                    "rawtext": [
+                        {
+                            "text": "Back"
+                        }
+                    ]
+                },
+                "Red"
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 2,
+            "tick": 0,
+            "event": "sign setWaxed",
+            "value": true
+        },
+        {
+            "pack": "components",
+            "seq": 3,
+            "tick": 0,
+            "event": "piston",
+            "value": [
+                "Retracted",
+                false,
+                0,
+                []
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 4,
+            "tick": 0,
+            "event": "jukebox",
+            "value": [
+                [
+                    false,
+                    null
+                ],
+                [
+                    false,
+                    "minecraft:music_disc_cat"
+                ],
+                true,
+                false,
+                null
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 5,
+            "tick": 0,
+            "event": "cauldron",
+            "value": [
+                [
+                    0,
+                    "Water"
+                ],
+                [
+                    6,
+                    "Water",
+                    {
+                        "green": 0,
+                        "red": 0,
+                        "blue": 0,
+                        "alpha": 0
+                    }
+                ],
+                {
+                    "green": 0.18039216101169586,
+                    "red": 0.6901960968971252,
+                    "blue": 0.14901961386203766,
+                    "alpha": 1
+                }
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 6,
+            "tick": 0,
+            "event": "redstone producer",
+            "value": [
+                15,
+                [
+                    "Down",
+                    "Up",
+                    "North",
+                    "South",
+                    "West",
+                    "East"
+                ],
+                null,
+                null
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 7,
+            "tick": 0,
+            "event": "instrument",
+            "value": [
+                "note.bassattack",
+                "note.none"
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 8,
+            "tick": 0,
+            "event": "instrument of stone",
+            "value": "note.bd"
+        },
+        {
+            "pack": "components",
+            "seq": 9,
+            "tick": 0,
+            "event": "canPlace",
+            "value": [
+                true,
+                false,
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 10,
+            "tick": 0,
+            "event": "liquidCanFlowFromDirection",
+            "value": [
+                true,
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 11,
+            "tick": 0,
+            "event": "bundle container",
+            "value": [
+                64,
+                {
+                    "weightLimit": 64,
+                    "allowedItems": [],
+                    "bannedItems": [
+                        "minecraft:shulker_box",
+                        "minecraft:undyed_shulker_box"
+                    ],
+                    "allowNestedStorageItems": true
+                },
+                0
+            ]
+        },
+        {
+            "pack": "components",
+            "seq": 12,
+            "tick": 0,
+            "event": "components done"
+        }
+    ]
+}

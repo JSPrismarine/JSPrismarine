@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario block-volumes volumes",
+        "description": "Records BlockBoundingBoxUtils, BlockVolume, ListBlockVolume and their iterators. Written for packages/parity.",
+        "uuid": "d18dd14f-2ef9-4560-8633-06323eca47f9",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "00b25d04-54ad-453c-b55b-d005ff76c750",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}
