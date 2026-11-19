@@ -3427,6 +3427,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     let airborneTicks = 0;
                     const samples = [];
                     for (let tick = 1; tick <= 200; tick += 1) {
+                        world.setTicks(world.getTicks() + 1);
                         await live.tick(tick);
                         const jumping = zombies.filter(({ body }) => body.conditions.has('jumping')).length;
                         const airborne = zombies.filter(({ position }) => position.y > GROUND_Y + 0.05).length;
@@ -3871,12 +3872,19 @@ describe('the data-driven entity runtime over a live world', () => {
                     expect(Math.abs(pig.position.y - GROUND_Y)).toBeLessThan(0.1);
                     await live.tick(2);
                     expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
-                    for (let tick = 3; tick <= 30; tick += 1) await live.tick(tick);
+                    // The melee goal checks for a path once every 20 game ticks, as Java's
+                    // MeleeAttackGoal.canUse does, so the clock moves on and the run leaves room
+                    // for a check after the target scan.
+                    for (let tick = 3; tick <= 60; tick += 1) {
+                        world.setTicks(world.getTicks() + 1);
+                        await live.tick(tick);
+                    }
 
                     expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
                     expect(zombie.target).toBe(Number(player.getRuntimeId()));
                     // Walking toward the player at Java's stride, about 0.117 blocks a tick for the
-                    // zombie's 0.23, from whenever its one-in-five target scan first finds the player.
+                    // zombie's 0.23, from the first path check after its one-in-five target scan
+                    // finds the player.
                     expect(zombie.position.x).toBeGreaterThan(4);
                     expect(zombie.position.y).toBe(GROUND_Y);
                     expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
@@ -4156,7 +4164,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     );
                     expect(zombies.every((entity) => entity.position.x === parent.position.x)).toBe(true);
 
-                    await run(200);
+                    await run(200, true);
 
                     expect(zombies.every((entity) => entity.target === Number(player.getRuntimeId()))).toBe(true);
                     expect(zombies.every((entity) => !entity.body.stuck)).toBe(true);
