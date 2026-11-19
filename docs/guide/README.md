@@ -29,6 +29,8 @@ Start from what you are here to do.
 - [Every setting](running.md#every-setting): what each key in `config.json` does.
 - [Worlds](running.md#worlds) and [world seeds](running.md#world-seeds): presets, dimensions and
   seeds.
+- [Java versions](java-versions.md): which Java release the server's data comes from, and how to
+  run another.
 - [Log levels](log-levels.md): what each level prints and how to choose one.
 - [Error reference](../errors/README.md): what an error in the log means, by its code.
 - [Usage statistics](usage-statistics.md): what the server reports to bStats, and how to turn it
