@@ -50,7 +50,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.LevelData;
@@ -107,6 +106,50 @@ public final class DumpJavaData {
         return names;
     }
 
+    /**
+     * 26.3's `SoundType` constants by instance, named the way {@link #constantNames} names them.
+     * 26.4 replaced the class with the data-driven `block_sound_set` registry, so the map is empty
+     * there and {@link #soundName} reads the state's registry key instead.
+     */
+    private static Map<Object, String> soundTypeNames() throws Exception {
+        try {
+            Class<?> soundType = Class.forName("net.minecraft.world.level.block.SoundType");
+            return constantNames(soundType, soundType);
+        } catch (ClassNotFoundException absent) {
+            return Map.of();
+        }
+    }
+
+    /**
+     * A state's sound: the `SoundType` constant's name through 26.3, and the `block_sound_set`
+     * id, such as `minecraft:stone`, from 26.4 on, or `none` for a state without one. Reflection keeps one source compiling
+     * against both.
+     */
+    private static String soundName(BlockState state, Map<Object, String> soundNames) {
+        try {
+            Method getSoundType = state.getClass().getMethod("getSoundType");
+            return soundNames.get(getSoundType.invoke(state));
+        } catch (NoSuchMethodException absent) {
+            try {
+                Optional<?> key = (Optional<?>) state.getClass().getMethod("getSounds").invoke(state);
+                // Water, lava and the bubble column carry no sound set in 26.4.
+                return key.map(DumpJavaData::resourceKeyId).orElse("none");
+            } catch (ReflectiveOperationException error) {
+                throw new IllegalStateException("Could not read a block state's sound set", error);
+            }
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("Could not read a block state's sound type", error);
+        }
+    }
+
+    private static String resourceKeyId(Object key) {
+        try {
+            return key.getClass().getMethod("identifier").invoke(key).toString();
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("Could not read a resource key's id", error);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<Block, Integer> fireOdds(String fieldName) throws Exception {
         Field field = Blocks.FIRE.getClass().getDeclaredField(fieldName);
@@ -122,7 +165,7 @@ public final class DumpJavaData {
     }
 
     private static String dumpBlocks() throws Exception {
-        Map<Object, String> soundNames = constantNames(SoundType.class, SoundType.class);
+        Map<Object, String> soundNames = soundTypeNames();
         Map<Object, String> mapColorNames = constantNames(MapColor.class, MapColor.class);
         Map<Block, Integer> igniteOdds = fireOdds("igniteOdds");
         Map<Block, Integer> burnOdds = fireOdds("burnOdds");
@@ -176,7 +219,7 @@ public final class DumpJavaData {
         row.put("lightEmission", Integer.toString(state.getLightEmission()));
         row.put("lightDampening", Integer.toString(state.getLightDampening()));
         row.put("mapColor", Json.string(mapColorNames.get(state.getMapColor(null, null))));
-        row.put("soundType", Json.string(soundNames.get(state.getSoundType())));
+        row.put("soundType", Json.string(soundName(state, soundNames)));
         row.put("pushReaction", Json.string(state.getPistonPushReaction().name().toLowerCase()));
         row.put("instrument", Json.string(state.instrument().getSerializedName()));
         row.put("requiresCorrectTool", Boolean.toString(state.requiresCorrectToolForDrops()));
@@ -301,7 +344,8 @@ public final class DumpJavaData {
         private static final PrimaryLevelData WORLD_DATA = (PrimaryLevelData) allocateUnchecked(PrimaryLevelData.class);
 
         private ProbeServer() {
-            super(null, null, null, null, java.util.Optional.empty(), null, null, null, null, false, null);
+            // run.mjs fills the arguments in from this release's constructor; see superArguments.
+            super(JSP_SUPER_ARGUMENTS_MINECRAFT_SERVER);
         }
 
         @Override
@@ -420,8 +464,8 @@ public final class DumpJavaData {
         private static final RegistryAccess.Frozen REGISTRY_ACCESS = DumpJavaData.registryAccess();
 
         private ProbeLevel() {
-            super(null, null, null, null, net.minecraft.world.level.Level.OVERWORLD, null, false, 0L,
-                    java.util.List.of(), false);
+            // run.mjs fills the arguments in from this release's constructor; see superArguments.
+            super(JSP_SUPER_ARGUMENTS_SERVER_LEVEL);
         }
 
         /**

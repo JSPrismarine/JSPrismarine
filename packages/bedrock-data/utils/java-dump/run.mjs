@@ -74,15 +74,108 @@ const downloadServerJar = async () => {
     return jarPath;
 };
 
+/** The value a constructor argument of a primitive type takes in a call that never runs. */
+const PRIMITIVE_ZERO = {
+    boolean: 'false',
+    byte: '(byte) 0',
+    short: '(short) 0',
+    char: "'\\0'",
+    int: '0',
+    long: '0L',
+    float: '0F',
+    double: '0D'
+};
+
+/** Splits a `javap` parameter list on its top-level commas, leaving those inside generics alone. */
+const splitParameters = (list) => {
+    const parameters = [];
+    let depth = 0;
+    let current = '';
+    for (const character of list) {
+        if (character === '<') depth++;
+        if (character === '>') depth--;
+        if (character === ',' && depth === 0) {
+            parameters.push(current.trim());
+            current = '';
+        } else {
+            current += character;
+        }
+    }
+    if (current.trim() !== '') parameters.push(current.trim());
+    return parameters;
+};
+
+/**
+ * A `javap` parameter type with its generic arguments removed, so `Map<K, List<V>>` becomes `Map`.
+ *
+ * It tracks bracket depth rather than matching `<.*>`: a greedy match would turn
+ * `Outer<A>.Inner<B>` into `Outer`, where erasure gives `Outer.Inner`.
+ */
+const eraseGenerics = (type) => {
+    let depth = 0;
+    let erased = '';
+    for (const character of type) {
+        if (character === '<') depth++;
+        else if (character === '>') depth = Math.max(0, depth - 1);
+        else if (depth === 0) erased += character;
+    }
+    return erased;
+};
+
+/**
+ * The argument list for a probe's `super(...)` call, built from the constructor `javap` finds in
+ * this release's jar.
+ *
+ * The dumper's probe server and level subclass Mojang's `MinecraftServer` and `ServerLevel` and are
+ * allocated without running a constructor, so their `super` calls never execute. They still have
+ * to compile, and the two constructors change shape between releases (26.4 added a `long` to the
+ * server's and dropped two parameters from the level's). Reading the signature from the jar keeps
+ * one dumper source compiling against every pinned release: each argument is a typed `null` or a
+ * primitive zero, cast so the call names exactly one overload.
+ */
+const superArguments = (jdkHome, serverJar, className) => {
+    const simpleName = className.slice(className.lastIndexOf('.') + 1);
+    const listing = execFileSync(path.join(jdkHome, 'bin/javap'), ['-protected', '-cp', serverJar, className], {
+        encoding: 'utf8'
+    });
+    const constructor = listing
+        .split('\n')
+        .map((line) => line.trim())
+        .find((line) => line.includes(` ${className}(`));
+    if (constructor === undefined) throw new Error(`javap found no constructor for ${className}`);
+    const list = constructor.slice(constructor.indexOf('(') + 1, constructor.lastIndexOf(')'));
+    return splitParameters(list)
+        .map((parameter) => {
+            const erased = eraseGenerics(parameter).replaceAll('$', '.');
+            return PRIMITIVE_ZERO[erased] ?? `(${erased}) null`;
+        })
+        .join(', ');
+};
+
+/** The placeholder in `DumpJavaData.java` each probe's `super(...)` arguments replace. */
+const SUPER_PLACEHOLDERS = {
+    JSP_SUPER_ARGUMENTS_MINECRAFT_SERVER: 'net.minecraft.server.MinecraftServer',
+    JSP_SUPER_ARGUMENTS_SERVER_LEVEL: 'net.minecraft.server.level.ServerLevel'
+};
+
 const runDumper = (jdkHome, serverJar, librariesDir) => {
     const classesDir = path.join(cacheDir, 'dump-classes');
+    const sourceDir = path.join(cacheDir, 'dump-source');
     const outputDir = path.join(cacheDir, 'dump-out');
     const classpath = [serverJar, path.join(librariesDir, '*')].join(path.delimiter);
+
+    let source = fs.readFileSync(path.join(here, 'DumpJavaData.java'), 'utf8');
+    for (const [placeholder, className] of Object.entries(SUPER_PLACEHOLDERS)) {
+        source = source.replace(placeholder, superArguments(jdkHome, serverJar, className));
+    }
+    fs.rmSync(sourceDir, { recursive: true, force: true });
+    fs.mkdirSync(sourceDir, { recursive: true });
+    fs.writeFileSync(path.join(sourceDir, 'DumpJavaData.java'), source);
 
     console.log('Compiling the dumper...');
     execFileSync(
         path.join(jdkHome, 'bin/javac'),
-        ['-nowarn', '-cp', classpath, '-d', classesDir, path.join(here, 'DumpJavaData.java')],
+        ['-nowarn', '-cp', classpath, '-d', classesDir, path.join(sourceDir, 'DumpJavaData.java')],
         { stdio: 'inherit' }
     );
 
@@ -109,7 +202,7 @@ const jarPath = await downloadServerJar();
 const { serverJar, librariesDir } = extractServer(jarPath, cacheDir, JAVA_VERSION);
 // The dumper compiles against the jar's classes, so it needs the JDK the jar declares it was built for.
 const { java_version: requiredJdkMajor } = await readJarVersion(jarPath);
-const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac'] });
+const jdkHome = findJdkHome({ minimumMajor: requiredJdkMajor, binaries: ['java', 'javac', 'javap'] });
 const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
 writeGolden(outputDir, 'entity_attributes.json');
