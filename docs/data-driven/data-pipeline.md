@@ -115,6 +115,7 @@ unless `--java <release>` names another:
   `stateOverrides`.
 - `entity_attributes.json`: the default attribute values, dimensions and category for the <!-- fact:java.entityAttributes -->93<!-- /fact --> entity
   types with an attribute supplier.
+- `entity_navigation.json`: the path navigation class and flags each mob type starts with.
 
 The dumper needs a JDK matching the jar's class file version (Java <!-- fact:java.jdk -->25<!-- /fact --> for <!-- fact:java.version -->26.3<!-- /fact -->). It shares the
 search in `utils/java/jdk.ts` with the compose stage, which looks at `JSP_JAVA_HOME`, `JAVA_HOME`
@@ -218,27 +219,30 @@ Java vanilla datapack as missing.
 ## A version bump, step by step
 
 A Java release or snapshot is brought up with the java-bringup skill
-(`.agents/skills/java-bringup/SKILL.md`), which runs `java:diff <old> <new>` for the delta and
-`pnpm run bringup:java --java <release>` to prove it.
+(`.agents/skills/java-bringup/SKILL.md`). It pins the jar under `javaServer.versions`, generates the
+release's datapack, reports and goldens with `--java <release>`, runs `java:diff <old> <new>` for
+the delta, regenerates the tables under each `<release>` directory, and proves the result with
+`pnpm run bringup:java --java <release>`. `defaultVersion` moves to the new release only once it is
+the one the server runs. [Java versions](../guide/java-versions.md) covers what a server operator
+sees of that.
 
-1. Edit `packages/bedrock-data/sources.json` with the new versions, URLs and hashes. A new Java
-   release goes under `javaServer.versions`, and `defaultVersion` moves to it once it is the one
-   the server runs.
+A Bedrock version bump takes these steps:
+
+1. Add the new version under `bds` in `packages/bedrock-data/sources.json` with its URL and hashes,
+   and move the `bedrockSamples` tag to match.
 2. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and review the
    `pack-hashes.json` diff to see which upstream folders changed.
-3. If the Java version moved, run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to
-   generate the cached datapack and reports (add `--java <release>` for a release that is not the
-   default yet), then `pnpm --filter @jsprismarine/bedrock-data run
-   dump:java` and update the counts `src/javaGoldens.test.ts` asserts.
-4. If the Bedrock version moved, run
-   `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` on a Linux x86-64 machine (or let
-   `.github/workflows/capture.yml` run it and open the pull request), and run
+3. Run `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` on a Linux x86-64 machine (or let
+   `.github/workflows/capture.yml` run it and open the pull request), then run
    `pnpm --filter @jsprismarine/bedrock-data run generate`.
-5. Run `pnpm --filter @jsprismarine/mapping run generate:tables` and
+4. Run `pnpm --filter @jsprismarine/mapping run generate:tables` and
    `pnpm --filter @jsprismarine/mapping run generate:block-properties`, then review the table
    diffs. New losses must be added to the reviewed loss lists before the generator will emit.
-6. Run the mapping property tests and the parity suite (`pnpm run test`); they fail on any
+5. Run the mapping property tests and the parity suite (`pnpm run test`); they fail on any
    unreviewed gap.
+
+The protocol-bringup skill (`.agents/skills/protocol-bringup/SKILL.md`) covers the protocol side of
+the same bump.
 
 ## Licensing
 
