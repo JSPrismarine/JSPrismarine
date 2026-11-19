@@ -3,9 +3,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { memoryLinkPair } from '@jsprismarine/console-protocol';
+import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protocol';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 import { Config } from './config/Config';
+import { RemoteConsole } from './console/RemoteConsole';
+import { RemoteLogTransport } from './console/RemoteLogTransport';
 import ChunkSender from './network/ChunkSender';
 import type { Transport } from './network/transport/Transport';
 import { statsToken } from './modules/tokens';
@@ -160,6 +164,27 @@ describe('Server', () => {
             'Failed to send chunk §b4, 66§r: the region file is unreadable'
         ]);
         expect(errors).toEqual([broken]);
+    });
+
+    it('reports each startup step to an attached console before it says it is running', async () => {
+        const server = new Server({ logger: new Logger(), config: debugConfig('test-world-boot') });
+        const [serverEnd, consoleEnd] = memoryLinkPair<ConsoleMessage, ServerMessage>();
+        const received: ServerMessage[] = [];
+        consoleEnd.onMessage((message) => received.push(message));
+        server.attachRemoteConsole(new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd)));
+
+        await server.bootstrap('127.0.0.1', 0);
+        await server.shutdown({ stayAlive: true });
+
+        const steps = received.flatMap((message) => (message.type === 'boot' ? [message] : []));
+        const running = received.findIndex((message) => message.type === 'lifecycle' && message.state === 'running');
+        expect(steps.length).toBeGreaterThan(0);
+        // Every step that begins finishes, the next one starts only after, and all before running.
+        for (let index = 0; index < steps.length; index += 2) {
+            expect(steps[index]).toMatchObject({ state: 'starting' });
+            expect(steps[index + 1]).toMatchObject({ step: steps[index]?.step, state: 'started' });
+        }
+        expect(running).toBeGreaterThan(received.lastIndexOf(steps.at(-1)!));
     });
 
     it('starts and stops without crashing, starting and stopping an embedder stats provider', async () => {

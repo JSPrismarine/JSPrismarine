@@ -3,6 +3,7 @@ export { childProcessLink } from './childProcessLink';
 export type { LinkOptions, MessageLink } from './link';
 export { memoryLinkPair } from './memoryLink';
 export type {
+    BootState,
     CommandInfo,
     ConsoleMessage,
     ConsoleMessageType,
@@ -13,6 +14,14 @@ export type {
     SupervisorEvent,
     SupervisorState
 } from './messages';
-export { isConsoleMessage, isLifecycleState, isServerMessage, LIFECYCLE_STATES, PROTOCOL_VERSION } from './messages';
+export {
+    BOOT_STATES,
+    isBootState,
+    isConsoleMessage,
+    isLifecycleState,
+    isServerMessage,
+    LIFECYCLE_STATES,
+    PROTOCOL_VERSION
+} from './messages';
 export { subprocessLink } from './subprocessLink';
 export type { IpcChild } from './subprocessLink';

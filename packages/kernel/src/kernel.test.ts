@@ -70,6 +70,33 @@ describe('Kernel lifecycle', () => {
         ]);
     });
 
+    it('reports each module as it starts and once it has, in start order', async () => {
+        const calls: string[] = [];
+        const kernel = new Kernel({ onStart: ({ id, state }) => calls.push(`${id}:${state}`) });
+        kernel.register(provider('b', bToken, calls, [aToken]));
+        kernel.register(provider('a', aToken, calls));
+        await kernel.registerAll();
+        calls.length = 0;
+        await kernel.start();
+
+        expect(calls).toStrictEqual(['a:starting', 'a:start', 'a:started', 'b:starting', 'b:start', 'b:started']);
+    });
+
+    it('reports no finished start for a module whose start throws', async () => {
+        const reported: string[] = [];
+        const kernel = new Kernel({ onStart: ({ id, state }) => reported.push(`${id}:${state}`) });
+        kernel.register({
+            id: 'broken',
+            register() {},
+            start() {
+                throw new Error('start exploded');
+            }
+        });
+
+        await expect(kernel.start()).rejects.toThrow('start exploded');
+        expect(reported).toStrictEqual(['broken:starting']);
+    });
+
     it('stops modules in reverse start order', async () => {
         const calls: string[] = [];
         const kernel = new Kernel();

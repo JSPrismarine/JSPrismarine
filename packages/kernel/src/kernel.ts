@@ -26,6 +26,18 @@ export interface KernelOptions {
     readonly config?: Readonly<Record<string, unknown>>;
     /** Base logger; module loggers are scoped from it. Defaults to the console. */
     readonly logger?: KernelLogger;
+    /**
+     * Called as each module's `start()` begins and once it has finished, in start order, so a
+     * host can show how far a start has got. A module whose start throws reports no `started`.
+     */
+    readonly onStart?: (progress: KernelStartProgress) => void;
+}
+
+/** One step of {@link Kernel.start}, as {@link KernelOptions.onStart} receives it. */
+export interface KernelStartProgress {
+    /** The module's id. */
+    readonly id: string;
+    readonly state: 'starting' | 'started';
 }
 
 type KernelPhase = 'created' | 'registered' | 'starting' | 'started';
@@ -60,6 +72,7 @@ export class Kernel<Events extends EventMap = EventMap> {
     private readonly bus: KernelEventBus<Events>;
     private readonly config: Readonly<Record<string, unknown>>;
     private readonly logger: KernelLogger;
+    private readonly onStart: ((progress: KernelStartProgress) => void) | undefined;
     private phase: KernelPhase = 'created';
     private registering: string | undefined;
     private startOrder: ModuleEntry<Events>[] = [];
@@ -71,6 +84,7 @@ export class Kernel<Events extends EventMap = EventMap> {
     public constructor(options: KernelOptions = {}) {
         this.config = options.config ?? {};
         this.logger = options.logger ?? consoleLogger;
+        this.onStart = options.onStart;
         const logger = this.logger;
         this.bus = new KernelEventBus<Events>({
             onListenerError: (error, event) => logger.error(`A "${event}" listener failed: ${describeFailure(error)}`)
@@ -156,6 +170,7 @@ export class Kernel<Events extends EventMap = EventMap> {
         this.launched = [];
         for (const entry of this.startOrder) {
             this.launched.push(entry);
+            this.onStart?.({ id: entry.module.id, state: 'starting' });
             try {
                 await entry.module.start?.(entry.context);
             } catch (error) {
@@ -167,6 +182,7 @@ export class Kernel<Events extends EventMap = EventMap> {
                 throw error;
             }
             if (this.run !== run) throw new KernelErrors.StoppedDuringStart();
+            this.onStart?.({ id: entry.module.id, state: 'started' });
         }
         this.phase = 'started';
     }
