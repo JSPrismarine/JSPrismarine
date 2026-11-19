@@ -68,6 +68,12 @@ export interface JavaVersion extends PinnedArchive {
      * entry carries it, and it must be newer than `defaultVersion`.
      */
     preview?: boolean;
+    /**
+     * The Bedrock protocol the release's mapping and item tables map onto. Required on an entry
+     * that is neither `defaultVersion` nor the preview, whose pair cannot be derived, and refused
+     * on those two, whose pair is.
+     */
+    bedrockProtocol?: number;
 }
 
 /** The `javaServer` section: one server jar per Java Edition release id. */
@@ -132,12 +138,14 @@ export const compareJavaReleases = (a: string, b: string): number => {
 
 /**
  * Checks the rules `sources.json` places on the `javaServer` section: the default is pinned, at
- * most one entry is a preview, and a preview is newer than the default.
+ * most one entry is a preview, a preview is newer than the default, and every other entry names a
+ * pinned Bedrock protocol in `bedrockProtocol`, which the default and the preview leave out.
  *
  * @param data - The `javaServer` section.
+ * @param bds - The `bds` section, whose pinned protocols `bedrockProtocol` must name.
  * @throws Error naming the broken rule.
  */
-export const validateJavaServerData = (data: JavaServerData): void => {
+export const validateJavaServerData = (data: JavaServerData, bds: BdsData): void => {
     if (data.versions[data.defaultVersion] === undefined) {
         throw new Error(`sources.json javaServer.defaultVersion ${data.defaultVersion} is not among its versions`);
     }
@@ -152,12 +160,33 @@ export const validateJavaServerData = (data: JavaServerData): void => {
             );
         }
     }
+    for (const [release, version] of Object.entries(data.versions)) {
+        const derived = release === data.defaultVersion || version.preview === true;
+        if (derived && version.bedrockProtocol !== undefined) {
+            throw new Error(
+                `sources.json Java ${release} sets bedrockProtocol, but the default and the preview pair ` +
+                    'with a Bedrock protocol derived from the bds section; remove it'
+            );
+        }
+        if (!derived && version.bedrockProtocol === undefined) {
+            throw new Error(
+                `sources.json Java ${release} is neither the default nor the preview, so it needs a ` +
+                    'bedrockProtocol naming the Bedrock protocol its tables map onto'
+            );
+        }
+        if (version.bedrockProtocol !== undefined && bds.versions[String(version.bedrockProtocol)] === undefined) {
+            throw new Error(
+                `sources.json Java ${release} pairs with Bedrock protocol ${version.bedrockProtocol}, ` +
+                    'which the bds section does not pin'
+            );
+        }
+    }
 };
 
 const readManifest = async (manifestPath: string): Promise<SourcesManifest> => {
     // The manifest is parsed JSON, which the compiler cannot see the shape of.
     const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as SourcesManifest;
-    validateJavaServerData(manifest.javaServer);
+    validateJavaServerData(manifest.javaServer, manifest.bds);
     return manifest;
 };
 

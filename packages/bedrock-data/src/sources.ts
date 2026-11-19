@@ -30,6 +30,75 @@ export const javaServerCacheFolder: string = sources.javaServer.defaultVersion;
  */
 export const pinnedJavaReleases: readonly string[] = Object.keys(sources.javaServer.versions);
 
+/** One (Java release, Bedrock protocol) pair that mapping and item tables are generated for. */
+export interface JavaBedrockPair {
+    /** The Java Edition release id, the name of the tables' release directory. */
+    java: string;
+    /** The Bedrock protocol whose capture the tables map onto. */
+    protocol: number;
+}
+
+/** The parts of `sources.json` a pair is derived from. */
+export interface PairedSources {
+    readonly bds: {
+        readonly defaultProtocolVersion: number;
+        readonly versions: Readonly<Record<string, { readonly url: string; readonly preview?: boolean }>>;
+    };
+    readonly javaServer: {
+        readonly defaultVersion: string;
+        readonly versions: Readonly<
+            Record<string, { readonly url: string; readonly preview?: boolean; readonly bedrockProtocol?: number }>
+        >;
+    };
+}
+
+/**
+ * The (Java release, Bedrock protocol) pairs the manifest implies. Mojang ships one game drop to
+ * both editions, so the default Java release pairs with `bds.defaultProtocolVersion` and a Java
+ * preview pairs with the Bedrock preview. A Java preview pinned before its Bedrock counterpart
+ * pairs with the default protocol, and its new identifiers show up as mapping losses until the
+ * Bedrock preview is pinned. A Bedrock preview with no Java preview pairs with nothing.
+ *
+ * Any other pinned release, such as a release brought up before it becomes the default, pairs
+ * with the protocol its entry names in `bedrockProtocol`. Which Bedrock drop matches it is a
+ * maintainer's call, so it is declared rather than derived; loading the manifest fails when such
+ * an entry lacks one.
+ *
+ * @param manifest - The `bds` and `javaServer` sections of `sources.json`.
+ * @returns The default pair first, then the preview pair when a Java preview is pinned, then each
+ * other release that declares `bedrockProtocol`, in manifest order.
+ */
+export const javaBedrockPairs = (manifest: PairedSources): JavaBedrockPair[] => {
+    const { bds, javaServer } = manifest;
+    const pairs: JavaBedrockPair[] = [{ java: javaServer.defaultVersion, protocol: bds.defaultProtocolVersion }];
+    const javaPreview = Object.keys(javaServer.versions).find((release) => javaServer.versions[release]?.preview);
+    if (javaPreview !== undefined) {
+        const bedrockPreview = Object.keys(bds.versions).find((protocol) => bds.versions[protocol]?.preview);
+        pairs.push({
+            java: javaPreview,
+            protocol: bedrockPreview === undefined ? bds.defaultProtocolVersion : Number(bedrockPreview)
+        });
+    }
+    for (const [release, entry] of Object.entries(javaServer.versions)) {
+        if (release === javaServer.defaultVersion || release === javaPreview) continue;
+        if (entry.bedrockProtocol !== undefined) pairs.push({ java: release, protocol: entry.bedrockProtocol });
+    }
+    return pairs;
+};
+
+/**
+ * The (Java release, Bedrock protocol) pair the mapping and item tables of one Java release are
+ * generated for, as {@link javaBedrockPairs} derives it from `sources.json`: the default release with
+ * the default protocol, a Java preview with the Bedrock preview or, lacking one, the default
+ * protocol, and any other release with the `bedrockProtocol` its entry declares.
+ *
+ * @param release - A Java release id, such as the value of `--java`. Defaults to
+ * {@link javaServerCacheFolder}.
+ * @returns The pair, or `undefined` when `sources.json` pins no such release.
+ */
+export const javaBedrockPair = (release: string = javaServerCacheFolder): JavaBedrockPair | undefined =>
+    javaBedrockPairs(sources).find((pair) => pair.java === release);
+
 /** The file `datagen:java` writes beside a generated datapack's `pack.mcmeta`. */
 export const GENERATED_JAVA_VERSION_FILE = 'version.json';
 
