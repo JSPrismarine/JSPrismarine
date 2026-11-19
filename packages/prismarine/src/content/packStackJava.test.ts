@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { javaServerCacheFolder } from '@jsprismarine/bedrock-data/sources';
+import { javaServerCacheFolder, pinnedJavaReleases } from '@jsprismarine/bedrock-data/sources';
 import { DEFAULT_JAVA_DATA_TARGET } from '@jsprismarine/packs/javaDataTarget';
 
 import type * as PackStackModule from './packStack';
@@ -15,8 +15,8 @@ const UNGENERATED = '26.4-snapshot-9';
 let PACK_STACK_ENV: typeof PackStackModule.PACK_STACK_ENV;
 let resolvePackStack: typeof PackStackModule.resolvePackStack;
 
-// `sources.json` pins one release today, so the resolver is imported fresh against a manifest
-// that pins two more. A fresh import, rather than `vi.mock`, because test files share modules.
+// The resolver is imported fresh against a manifest that pins two more releases than
+// `sources.json` does. A fresh import, rather than `vi.mock`, because test files share modules.
 beforeAll(async () => {
     vi.resetModules();
     vi.doMock('@jsprismarine/bedrock-data/sources', async (importOriginal) => {
@@ -82,7 +82,7 @@ describe('resolvePackStack and the Java data target', () => {
             'content-java-version names Java 1.20.1, which is not pinned'
         );
         expect(() => resolvePackStack({ ...javaOnly, javaVersion: '1.20.1' })).toThrowError(
-            `pinned releases are ${javaServerCacheFolder}, ${PREVIEW}, ${UNGENERATED}`
+            `pinned releases are ${[...pinnedJavaReleases, PREVIEW, UNGENERATED].join(', ')}`
         );
     });
 
