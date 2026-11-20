@@ -56,6 +56,8 @@ describe.skipIf(driver === undefined)('network/transport/NetherNetTransport over
 
             connection.sendFrame(Buffer.concat([Buffer.from([BATCH_PACKET_ID]), Buffer.from('to the client')]));
             expect((await clientMessage).toString()).toBe('to the client');
+            // SCTP acknowledged messages both ways, so it has a round trip time; on loopback it can be 0 ms.
+            expect(connection.roundTripTime()).toBeGreaterThanOrEqual(0);
 
             await connection.close('done');
             expect(await disconnected).toBe(1);
