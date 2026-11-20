@@ -369,8 +369,13 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
                     let end = Math.min(line.sourceEnd, line.sourceStart + Math.max(0, endColumn - line.contentStart));
                     if (end <= start) return;
                     // A wrap that breaks on a trailing space leaves it after the last row; a
-                    // selection to the end of the record keeps it.
-                    if (end === line.sourceEnd && sliceColumns(line.sourceText, end).trim() === '') {
+                    // selection to the end of the record keeps it. Whitespace that a later row
+                    // or line of the record shows is that row's to copy, not this one's.
+                    const rest = sliceColumns(line.sourceText, end);
+                    const lastRow = !paintedRows.some(
+                        (other, otherIndex) => otherIndex > index && other?.record === record
+                    );
+                    if (end === line.sourceEnd && lastRow && rest.trim() === '' && !rest.includes('\n')) {
                         end = columns(line.sourceText);
                     }
                     if (previous) {
