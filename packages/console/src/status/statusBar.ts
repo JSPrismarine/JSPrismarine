@@ -184,7 +184,9 @@ export function createStatusBar(
     const layout = () => {
         const width = renderer.terminalWidth - PADDING * 2;
         // The right side always gets half the bar, and also whatever the left side leaves unused.
-        const leftNeeds = Math.min(segmentsWidth(left), Math.floor(width / 2));
+        // A hint replaces the left segments, so it is what the left side needs while it shows.
+        const leftShown = hint === undefined ? segmentsWidth(left) : columns(hint);
+        const leftNeeds = Math.min(leftShown, Math.floor(width / 2));
         const rightMax = Math.max(Math.floor(width / 2), width - leftNeeds - GAP);
         const rightKept = layoutSegments(right, rightMax, SEPARATOR);
         const rightWidth = segmentsWidth(rightKept);
