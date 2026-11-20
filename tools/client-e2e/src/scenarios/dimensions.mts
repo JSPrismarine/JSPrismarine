@@ -38,6 +38,9 @@ export const dimensionsScenario: Scenario = {
                         `${OVERWORLD_PAD.to} ${OVERWORLD_PAD.y} ${OVERWORLD_PAD.to} minecraft:stone`
                 );
             }
+            // Measured against what the player had before the change, not its maximum: a scenario
+            // earlier in the suite may have hurt it, as `damage` does, and nothing heals it first.
+            const before = healthOf(await client.state()).current;
             await changeDimension(context, destination.id, destination.acceptedState, { x, y, z });
 
             // The loading screen first. The next teleport is refused while this change is still
@@ -53,21 +56,21 @@ export const dimensionsScenario: Scenario = {
             );
             log(`${index + 1}/${dimensions.length}: client entered ${destination.id} at ${position.join(', ')}`);
 
-            // Landing must not hurt. A player who fell to the floor of a dimension whose ground
-            // was missing dies a moment later, and the client then never reports the next
-            // change's loading screen, which is how this used to fail three steps further on.
-            const health = healthOf(state);
-            assert.equal(
-                health.current,
-                health.maximum,
-                `the player was hurt arriving in ${destination.id}: ${JSON.stringify(health)}`
-            );
-
             // Let the client finish with this arrival before the next one is asked for. A change
             // that follows the close of the last loading screen within a second has left the
             // protocol 2193 client sitting on its next loading screen for ever in CI, where the
             // server's log shows it open the screen and never close it.
             await waitTicks(server, 40);
+
+            // Landing must not hurt, and neither must the settle after it. A player who fell to the
+            // floor of a dimension whose ground was missing dies a moment later, and the client then
+            // never reports the next change's loading screen, which is how this used to fail three
+            // steps further on.
+            const health = healthOf(await client.state());
+            assert.ok(
+                health.current >= before,
+                `the player was hurt arriving in ${destination.id}: ${before} before, ${JSON.stringify(health)} after`
+            );
         }
     }
 };
