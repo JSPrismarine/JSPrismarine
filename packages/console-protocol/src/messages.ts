@@ -59,12 +59,18 @@ export function isLifecycleState(value: unknown): value is LifecycleState {
  * `usage` lists the forms the command takes, each written from the command's name with its
  * arguments as Brigadier prints them, such as `teleport <targets> <position>`. A server may cap
  * that list; `moreUsage` is then true, so the console can say the list is incomplete.
+ *
+ * `usageWords` lists, for each form, how many typed words each part after the name reads: three
+ * for a `<position>`, or `rest` for an argument that takes the rest of the line. A console counts
+ * typed words through it to find the argument being typed. Without it, or for a form whose list
+ * does not match its parts, every part reads one word.
  */
 export interface CommandInfo {
     name: string;
     description?: string;
     aliases: readonly string[];
     usage: readonly string[];
+    usageWords?: readonly (readonly (number | 'rest')[])[];
     moreUsage?: boolean;
 }
 
@@ -212,12 +218,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
 
+const isWordCounts = (value: unknown): value is readonly (number | 'rest')[] =>
+    Array.isArray(value) &&
+    value.every((words) => words === 'rest' || (typeof words === 'number' && Number.isInteger(words) && words > 0));
+
 const isCommandInfo = (value: unknown): value is CommandInfo =>
     isRecord(value) &&
     typeof value.name === 'string' &&
     (value.description === undefined || typeof value.description === 'string') &&
     isStringArray(value.aliases) &&
     isStringArray(value.usage) &&
+    (value.usageWords === undefined || (Array.isArray(value.usageWords) && value.usageWords.every(isWordCounts))) &&
     (value.moreUsage === undefined || typeof value.moreUsage === 'boolean');
 
 const hasKind = (value: unknown, kind: FieldKind): boolean => {

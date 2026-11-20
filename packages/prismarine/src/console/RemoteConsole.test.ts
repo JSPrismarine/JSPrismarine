@@ -50,7 +50,7 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
                 dispatchCommand,
                 getVanillaCommands: () => commands,
                 commandReference: () => [
-                    { name: 'stop', description: 'Stops the server.', aliases: [], usage: ['stop'] }
+                    { name: 'stop', description: 'Stops the server.', aliases: [], usage: ['stop'], usageWords: [[]] }
                 ]
             }),
         getSessionManager: () =>

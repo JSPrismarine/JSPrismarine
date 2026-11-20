@@ -1,7 +1,13 @@
 import type { ParseResults, RootCommandNode } from '@jsprismarine/brigadier';
-import { CommandSyntaxException } from '@jsprismarine/brigadier';
-import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
-import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
+import { ArgumentCommandNode, CommandSyntaxException } from '@jsprismarine/brigadier';
+import type {
+    ArgumentWords,
+    CommandHost,
+    CommandRegistry,
+    CommandSource,
+    FlattenedCommand
+} from '@jsprismarine/commands';
+import { argumentWords, bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
 import { bedrockSyntaxError } from '@jsprismarine/commands/syntaxError';
 import { MinecraftErrors } from '@jsprismarine/errors/minecraft';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
@@ -61,6 +67,11 @@ export interface CommandReference {
     aliases: readonly string[];
     /** The forms the command takes, from its name, such as `teleport <targets> <position>`. */
     usage: readonly string[];
+    /**
+     * For each form in `usage`, how many typed words each part after the name reads: three for
+     * a position, `rest` for a message. A console counts words to find the argument being typed.
+     */
+    usageWords: readonly (readonly ArgumentWords[])[];
     /** True when the command takes more forms than `usage` lists, which `/help` caps too. */
     moreUsage?: boolean;
 }
@@ -418,12 +429,15 @@ export class CommandManager implements Service {
             .map((name) => {
                 const root = registry.getRoot().getChild(name);
                 const syntax =
-                    root === undefined ? { lines: [name], hasMore: false } : this.commandSyntax(root, root, [name]);
+                    root === undefined
+                        ? { lines: [name], words: [[]], hasMore: false }
+                        : this.commandSyntax(root, root, [name]);
                 return {
                     name,
                     description: this.helpDescription(name),
                     aliases: registry.getMetadata(name)?.aliases ?? [],
                     usage: syntax.lines,
+                    usageWords: syntax.words,
                     ...(syntax.hasMore ? { moreUsage: true } : {})
                 };
             });
@@ -544,16 +558,23 @@ export class CommandManager implements Service {
         return lines;
     }
 
+    /**
+     * The forms a route takes, as `/help` and the console show them, up to
+     * {@link MAX_HELP_SYNTAX_LINES}. `words` lists, for each form, how many typed words each
+     * part after `prefix` reads: one for a literal, the argument type's count for an argument,
+     * and `rest` for a `…` that repeats the command.
+     */
     private commandSyntax(
         start: VanillaCommandTreeNode,
         commandRoot: VanillaCommandTreeNode,
         prefix: readonly string[]
-    ): { lines: readonly string[]; hasMore: boolean } {
+    ): { lines: readonly string[]; words: readonly (readonly ArgumentWords[])[]; hasMore: boolean } {
         const lines: string[] = [];
+        const words: (readonly ArgumentWords[])[] = [];
         const seen = new Set<string>();
         let hasMore = false;
 
-        const add = (parts: readonly string[]): boolean => {
+        const add = (parts: readonly string[], partWords: readonly ArgumentWords[]): boolean => {
             const line = parts.join(' ');
             if (seen.has(line)) return false;
             seen.add(line);
@@ -562,36 +583,42 @@ export class CommandManager implements Service {
                 return true;
             }
             lines.push(line);
+            words.push(partWords);
             return false;
         };
 
         const visit = (
             node: VanillaCommandTreeNode,
             parts: readonly string[],
+            partWords: readonly ArgumentWords[],
             ancestors: ReadonlySet<VanillaCommandTreeNode>
         ): void => {
             if (hasMore) return;
-            if (node.getCommand() !== null) add(parts);
+            if (node.getCommand() !== null) add(parts, partWords);
 
             const redirect = node.getRedirect();
             if (redirect !== null) {
-                if (redirect === commandRoot) add([...parts, '…']);
-                else if (redirect.getNodeType() === 'root') add(parts);
+                if (redirect === commandRoot) add([...parts, '…'], [...partWords, 'rest']);
+                else if (redirect.getNodeType() === 'root') add(parts, partWords);
                 return;
             }
 
             for (const child of node.getChildren()) {
                 if (ancestors.has(child)) continue;
                 const childParts = [...parts, child.getUsageText()];
+                const childWords = [
+                    ...partWords,
+                    child instanceof ArgumentCommandNode ? argumentWords(child.getType()) : 1
+                ];
                 const nextAncestors = new Set(ancestors);
                 nextAncestors.add(child);
-                visit(child, childParts, nextAncestors);
+                visit(child, childParts, childWords, nextAncestors);
                 if (hasMore) return;
             }
         };
 
-        visit(start, prefix, new Set([start]));
-        return { lines, hasMore };
+        visit(start, prefix, [], new Set([start]));
+        return { lines, words, hasMore };
     }
 
     private helpDescription(name: string): string | undefined {

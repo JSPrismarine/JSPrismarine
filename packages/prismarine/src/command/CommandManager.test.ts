@@ -177,6 +177,23 @@ describe('command', () => {
             expect(teleport?.description).toBeDefined();
             // Several forms: a destination, or targets and a position.
             expect(teleport?.usage.length).toBeGreaterThan(1);
+            // Every part after the name has a word count, and multi-word arguments say so.
+            for (const command of reference) {
+                expect(command.usageWords, command.name).toHaveLength(command.usage.length);
+                command.usage.forEach((form, index) => {
+                    expect(command.usageWords[index], form).toHaveLength(form.split(' ').length - 1);
+                });
+            }
+            /** The word count of `part` in each of `name`'s forms that has it. */
+            const wordsOf = (name: string, part: string) => {
+                const command = reference.find((entry) => entry.name === name);
+                return (command?.usage ?? []).flatMap((form, index) => {
+                    const at = form.split(' ').indexOf(part);
+                    return at > 0 ? [command?.usageWords[index]?.[at - 1]] : [];
+                });
+            };
+            expect(wordsOf('teleport', '<location>')).toContain(3);
+            expect(wordsOf('say', '<message>')).toEqual(['rest']);
             // A list capped like /help's says so, exactly where /help says more forms exist.
             for (const command of reference) {
                 const helpCapped = commandManager.usageLines(command.name).some((line) => line.includes('More forms'));

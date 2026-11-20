@@ -22,7 +22,8 @@ describe('isServerMessage', () => {
                         name: 'teleport',
                         description: 'Teleports entities.',
                         aliases: ['tp'],
-                        usage: ['teleport <destination>']
+                        usage: ['teleport <destination>', 'teleport <targets> <location>'],
+                        usageWords: [[1], [1, 3]]
                     }
                 ]
             }
@@ -70,6 +71,10 @@ describe('isServerMessage', () => {
             false
         );
         expect(isServerMessage({ ...result, commands: [{ name: 'op', aliases: [], usage: [] }] })).toBe(true);
+        const op = { name: 'op', aliases: [], usage: ['op <targets>'] };
+        expect(isServerMessage({ ...result, commands: [{ ...op, usageWords: [['rest']] }] })).toBe(true);
+        expect(isServerMessage({ ...result, commands: [{ ...op, usageWords: [[0]] }] })).toBe(false);
+        expect(isServerMessage({ ...result, commands: [{ ...op, usageWords: ['1'] }] })).toBe(false);
     });
 
     it('rejects a boot step in a state the protocol does not define', () => {
