@@ -295,7 +295,11 @@ since some suites boot heavier worlds; phase 5's recorded durations can split th
 Done when each e2e runner plays about 12 scenarios, a pull request push runs one protocol and
 transport, and master still runs all three.
 
-### Phase 5: split shards by recorded duration
+### Phase 5: split shards by recorded duration (Vitest done)
+
+Built for Vitest as planned, with one change: the shard count keeps the 300 and 15 file rules, and
+only the assignment uses the recorded times, so no time in seconds sizes anything. Each master
+shard keeps its `junit.xml` for 14 days, and the plan reads the newest successful nightly run's.
 
 1. Each master shard writes the time each of its test files took, read from its own report, and
    uploads it as an artifact.

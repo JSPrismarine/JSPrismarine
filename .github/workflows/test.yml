@@ -109,25 +109,32 @@ jobs:
                           - 'docs/plans/data-driven-vanilla.md'
                           - 'docs/research/edition-behavior-differences.md'
 
-    # How many shards each Vitest suite gets. A run with a `since` commit runs only the files its
-    # changes reach, usually a few dozen, and every shard pays for a checkout and an install before
-    # its first test. This counts the files each suite selects and gives it a shard per 300 unit
-    # files or per 15 real-data files, whose suites boot servers and generate worlds, up to four. A
-    # run of every file gets four shards without counting.
+    # How many shards each Vitest suite gets, and which files each one runs. A run with a `since`
+    # commit runs only the files its changes reach, usually a few dozen, and every shard pays for a
+    # checkout and an install before its first test. A suite gets a shard per 300 unit files or per
+    # 15 real-data files, whose suites boot servers and generate worlds, up to four. The files go to
+    # shards longest first by the times the last full run on master recorded
+    # (scripts/vitest-shards.mts), so no shard waits on all the slow ones. A failure leaves the file
+    # lists empty, and the shards fall back to `--shard`, four for each suite.
     plan:
         name: Size the test shards
         needs: changes
         if: ${{ needs.changes.outputs.tests == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
+        permissions:
+            # Downloading the recorded times from an earlier run.
+            actions: read
+            contents: read
         outputs:
             unit: ${{ steps.size.outputs.unit || '[1,2,3,4]' }}
+            unit_files: ${{ steps.size.outputs.unit_files }}
             real_data: ${{ steps.size.outputs.real_data || '[1,2,3,4]' }}
+            real_data_files: ${{ steps.size.outputs.real_data_files }}
             bedrock_server: ${{ steps.size.outputs.bedrock_server || 'true' }}
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              if: ${{ needs.changes.outputs.since != '' }}
               with:
                   fetch-depth: 0
                   # No old file contents, which are nearly all of the repository's 2 GB.
@@ -135,42 +142,63 @@ jobs:
                   filter: blob:none
 
             - name: 📦 Install
-              if: ${{ needs.changes.outputs.since != '' }}
               uses: ./.github/common/install
 
-            # `--filesOnly` reads no test file, so it ignores the tag filters and counts every file
+            # The JUnit reports of the newest successful nightly run, which tests every file, or of
+            # the newest successful push when there is none yet.
+            - name: Find the recorded test times
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  runs="repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?branch=master&status=success&per_page=1"
+                  run="$(gh api "${runs}&event=schedule" --jq '.workflow_runs[0].id // empty')"
+                  if [ -z "$run" ]; then run="$(gh api "${runs}&event=push" --jq '.workflow_runs[0].id // empty')"; fi
+                  if [ -z "$run" ]; then echo 'No recorded times; every file weighs the same.'; exit 0; fi
+                  for suite in unit real-data; do
+                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern "vitest-junit-${suite}-*" \
+                          --dir "$RUNNER_TEMP/durations/${suite}" || echo "No recorded ${suite} times in run ${run}."
+                  done
+
+            # `--filesOnly` reads no test file, so it ignores the tag filters and lists every file
             # `--changed` selects. That over-counts each suite by the other's files, which can only
-            # add a shard. A failure leaves the outputs empty, and both suites get four shards.
-            - name: Count the files each suite runs
+            # add a shard.
+            - name: Plan the files each shard runs
               id: size
-              if: ${{ needs.changes.outputs.since != '' }}
               continue-on-error: true
               env:
                   BASE: ${{ needs.changes.outputs.since }}
               run: |
-                  # shards <files> <files per shard> <suite>
-                  shards() {
-                      local total=$(( ($1 + $2 - 1) / $2 ))
+                  changed=()
+                  if [ -n "$BASE" ]; then changed=(--changed="$BASE"); fi
+                  # plan <list> <files per shard> <suite>: the shard numbers and each shard's files.
+                  plan() {
+                      local files total
+                      files=$(wc -l < "$1")
+                      total=$(( (files + $2 - 1) / $2 ))
                       total=$(( total < 1 ? 1 : total > 4 ? 4 : total ))
-                      echo "$3: $1 files, $total shards" >&2
-                      jq -cn --argjson total "$total" '[range(1; $total + 1)]'
+                      echo "$3: $files files, $total shards" >&2
+                      echo "${3//-/_}=$(jq -cn --argjson total "$total" '[range(1; $total + 1)]')"
+                      echo "${3//-/_}_files=$(node scripts/vitest-shards.mts --shards "$total" --junit "$RUNNER_TEMP/durations/$3" < "$1")"
                   }
-                  pnpm exec vitest list --filesOnly --changed="$BASE" > "$RUNNER_TEMP/unit.txt"
+                  pnpm exec vitest list --filesOnly "${changed[@]}" > "$RUNNER_TEMP/unit.txt"
                   mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
-                  pnpm exec vitest list --filesOnly --changed="$BASE" "${files[@]}" > "$RUNNER_TEMP/real-data.txt"
-                  unit=$(wc -l < "$RUNNER_TEMP/unit.txt")
-                  real_data=$(wc -l < "$RUNNER_TEMP/real-data.txt")
-                  echo "unit=$(shards "$unit" 300 unit)" >> "$GITHUB_OUTPUT"
-                  echo "real_data=$(shards "$real_data" 15 real-data)" >> "$GITHUB_OUTPUT"
-                  # The Bedrock Dedicated Server suite runs when the diff reaches it, LevelDB included.
+                  pnpm exec vitest list --filesOnly "${changed[@]}" "${files[@]}" > "$RUNNER_TEMP/real-data.txt"
+                  {
+                      plan "$RUNNER_TEMP/unit.txt" 300 unit
+                      plan "$RUNNER_TEMP/real-data.txt" 15 real-data
+                  } >> "$GITHUB_OUTPUT"
+                  # The Bedrock Dedicated Server suite runs when the changes reach it, LevelDB
+                  # included, and on a run of every file.
                   mapfile -t bds < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
-                  bds_files=$(pnpm exec vitest list --filesOnly --changed="$BASE" "${bds[@]}" | wc -l)
+                  bds_files=$(pnpm exec vitest list --filesOnly "${changed[@]}" "${bds[@]}" | wc -l)
                   echo "bedrock_server=$([ "$bds_files" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-    # The unit suite runs in up to four shards, each on its own runner with a share of the test files.
-    # Each shard annotates its own failures and uploads its coverage and JUnit file to Codecov, which
-    # combines the shards' uploads of a commit by flag. Every file used to report in about seven minutes on one runner, and a Vitest that
-    # stopped there held the runner for two hours, so a shard now fails after 15 minutes.
+    # The unit suite runs in up to four shards, each on its own runner with the files the plan gave
+    # it. Each shard annotates its own failures and uploads its coverage and JUnit file to Codecov,
+    # which combines the shards' uploads of a commit by flag, and keeps its JUnit file for the next
+    # plan's times. Every file used to report in about seven minutes on one runner, and a Vitest
+    # that stopped there held the runner for two hours, so a shard now fails after 15 minutes.
     tests-shard:
         name: 🧪 Tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
         needs: [changes, plan]
@@ -214,9 +242,12 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-vitest-shard-${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'packages/**/vitest.config.ts') }}-
 
-            # A pull request runs the suites its diff reaches; master runs every suite.
+            # The files the plan gave this shard, or without a plan, this shard's share of the suites
+            # `since` reaches.
             - name: 🧪 Test
               env:
+                  FILES: ${{ needs.plan.outputs.unit_files }}
+                  SHARD: ${{ matrix.shard }}
                   CHANGED: ${{ needs.changes.outputs.since != '' && format('--changed={0}', needs.changes.outputs.since) || '' }}
                   # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
@@ -225,7 +256,15 @@ jobs:
                   echo "::group::Java server jar"
                   pnpm --filter @jsprismarine/bedrock-data run ensure:java-server
                   echo "::endgroup::"
-                  pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+                  # The plan's files for this shard; an empty list means the changes reach no file, since
+                  # files on the command line filter the run and none would run them all.
+                  if [ -n "$FILES" ]; then
+                      mapfile -t files < <(jq -r --argjson shard "$SHARD" '.[$shard - 1][]' <<< "$FILES")
+                      if [ "${#files[@]}" -eq 0 ]; then echo 'No test file for this shard.'; exit 0; fi
+                      pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' "${files[@]}"
+                  else
+                      pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+                  fi
 
             # Named files only: a search also picked up other reports. A run with a `since` commit
             # covers only the suites it ran, so it uploads under `unit-changed` and Codecov carries
@@ -250,6 +289,16 @@ jobs:
                   files: junit.xml
                   disable_search: true
                   flags: ${{ needs.changes.outputs.since != '' && 'unit-changed' || 'unit' }}
+
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            - name: 📤 Keep the test times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-junit-unit-${{ matrix.shard }}
+                  path: junit.xml
+                  if-no-files-found: ignore
+                  retention-days: 14
 
     # The generation host is a forked process with a lowered operating system priority, and
     # forking, priorities and signals differ by platform. Linux runs these in the job above.
@@ -468,13 +517,21 @@ jobs:
             # so the files that name it are every file that can have one.
             - name: 🧪 Test
               env:
+                  FILES: ${{ needs.plan.outputs.real_data_files }}
+                  SHARD: ${{ matrix.shard }}
                   CHANGED: ${{ needs.changes.outputs.since != '' && format('--changed={0}', needs.changes.outputs.since) || '' }}
                   # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
               run: |
-                  mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
-                  echo "${#files[@]} files declare a real-data test"
-                  pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${files[@]}"
+                  if [ -n "$FILES" ]; then
+                      mapfile -t files < <(jq -r --argjson shard "$SHARD" '.[$shard - 1][]' <<< "$FILES")
+                      if [ "${#files[@]}" -eq 0 ]; then echo 'No test file for this shard.'; exit 0; fi
+                      pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' "${files[@]}"
+                  else
+                      mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
+                      echo "${#files[@]} files declare a real-data test"
+                      pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${files[@]}"
+                  fi
 
             # Named files only: a search also picked up other reports. A run with a `since` commit
             # covers only the suites it ran, so it uploads under `real-data-changed` and Codecov
@@ -499,6 +556,16 @@ jobs:
                   files: junit.xml
                   disable_search: true
                   flags: ${{ needs.changes.outputs.since != '' && 'real-data-changed' || 'real-data' }}
+
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            - name: 📤 Keep the test times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: vitest-junit-real-data-${{ matrix.shard }}
+                  path: junit.xml
+                  if-no-files-found: ignore
+                  retention-days: 14
 
     # Suites tagged `bedrock-server` boot the pinned Bedrock Dedicated Server and check what we
     # read and write against what it reads and writes, LevelDB first. They take minutes, so they
