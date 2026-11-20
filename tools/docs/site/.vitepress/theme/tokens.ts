@@ -3,7 +3,8 @@ import { BRAND_PALETTE } from '../../../../../packages/console/src/theme/brand.t
 /**
  * The brand palette with the use of each color. The hex values come from the console package's
  * `BRAND_PALETTE`, which the console themes itself from too. The site config turns them into the
- * `--jsp-*` custom properties and the favicon, and the brand kit page renders its swatches from them.
+ * `--jsp-*` custom properties, `prism.ts` colors the mark's files and the favicon with them, and the
+ * brand kit page renders its swatches from them.
  */
 export const palette = {
     accent: { hex: BRAND_PALETTE.accent, use: 'Primary accent: buttons, highlights, active states.' },

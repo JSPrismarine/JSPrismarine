@@ -49,9 +49,9 @@ The accent is <!-- fact:palette.accent -->`#5ca48a`<!-- /fact -->, shared with t
 
 `BRAND_PALETTE` in `packages/console/src/theme/brand.ts` is the authority for these values, so the
 console and the site share them. `tokens.ts` pairs each with its use. The site config writes them
-into the page head as the `--jsp-*` custom properties and builds the favicon from them, and
-`brand.css` mixes the supporting shades (terminal chrome, progress tracks, page backgrounds, muted
-text) from them with `color-mix`. The console and the code theme take the terminal shades from
+into the page head as the `--jsp-*` custom properties. The mark's [files](#files) and the favicon
+take their colors from them, and `brand.css` mixes the supporting shades (terminal chrome, progress
+tracks, page backgrounds, muted text) from them with `color-mix`. The console and the code theme take the terminal shades from
 `TERMINAL_SHADES` beside the palette, which mixes the same way. If this table and `brand.ts`
 disagree, `brand.ts` wins and this table is out of date.
 

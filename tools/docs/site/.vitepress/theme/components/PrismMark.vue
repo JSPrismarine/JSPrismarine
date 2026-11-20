@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { facets } from '../prism';
 
-/** The JSPrismarine mark. The geometry lives in `prism.ts`, so this and the favicon never drift apart. */
+/** The JSPrismarine mark. The geometry lives in `prism.ts`, so this, the brand files and the favicon never drift apart. */
 withDefaults(defineProps<{ size?: number | string }>(), { size: 32 });
 </script>
 

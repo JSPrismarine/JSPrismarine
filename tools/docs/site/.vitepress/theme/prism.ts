@@ -19,7 +19,7 @@ export const facets: readonly Facet[] = [
     { color: 'signal', points: '50,50 72.4,90 50,90', shade: 0.18 }
 ];
 
-/** The wordmark: one word, camel case. The web app manifest names the site with it. */
+/** The wordmark: one word, camel case. The site's title and its web app manifest use it. */
 export const wordmark = 'JSPrismarine';
 
 /** The facets as SVG polygons with literal colors, for documents that cannot read the `--jsp-*` properties. */
@@ -32,7 +32,7 @@ function facetShapes() {
         .join('');
 }
 
-/** The mark as a standalone SVG document with literal colors, for the footer and the favicon. */
+/** The mark as a standalone SVG document with literal colors, for the footer and the brand files. */
 export function prismSvg() {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${facetShapes()}</svg>`;
 }

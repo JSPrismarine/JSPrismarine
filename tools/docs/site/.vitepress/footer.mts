@@ -1,6 +1,6 @@
 import { loadProject } from '../../project.mts';
 import { overviewGroups } from './overviewGroups.mts';
-import { prismSvg } from './theme/prism.ts';
+import { prismSvg, wordmark } from './theme/prism.ts';
 
 /** Text for HTML: VitePress renders the footer message with `v-html`. */
 const escape = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -31,7 +31,7 @@ export function footerHtml({ base, project }: { base: string; project: FooterLin
     return [
         '<div class="site-footer">',
         '<div class="site-footer__identity">',
-        `<a class="site-footer__brand" href="${base}">${prismSvg()}<span>JSPrismarine</span></a>`,
+        `<a class="site-footer__brand" href="${base}">${prismSvg()}<span>${escape(wordmark)}</span></a>`,
         `<p class="site-footer__version">v${escape(version)} · Released under the ${escape(license)} license.</p>`,
         '</div>',
         `<nav class="site-footer__columns" aria-label="Site">${[...audiences, column('Project', project)].join('')}</nav>`,

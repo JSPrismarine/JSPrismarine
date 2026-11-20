@@ -6,10 +6,11 @@ import typedocSidebar from '../api/typedoc-sidebar.json';
 import { footerHtml } from './footer.mts';
 import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
+import { siteIconHead } from '../../brand-assets.mts';
 import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
-import { prismSvg } from './theme/prism.ts';
+import { wordmark } from './theme/prism.ts';
 import { sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { packageAreas } from './theme/packageAreas.ts';
@@ -57,15 +58,16 @@ function menuSidebar(section: string) {
 
 export default defineConfig({
     lang: 'en-US',
-    title: 'JSPrismarine',
+    title: wordmark,
     description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
     base,
     head: [
         ['style', {}, paletteCss],
-        ['link', { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,${encodeURIComponent(prismSvg())}` }],
+        // `docs:icons` writes these files into the public folder before VitePress starts.
+        ...siteIconHead(base),
         ['meta', { name: 'theme-color', content: palette.forest.hex }],
         ['meta', { property: 'og:type', content: 'website' }],
-        ['meta', { property: 'og:site_name', content: 'JSPrismarine' }],
+        ['meta', { property: 'og:site_name', content: wordmark }],
         ['meta', { name: 'twitter:card', content: 'summary' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
