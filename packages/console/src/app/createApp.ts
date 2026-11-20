@@ -1217,6 +1217,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
             state = event.state;
             titleBar.setState(state);
+            // The footer carries the state while the title bar is hidden.
+            refreshStatus();
             if (event.state === 'starting') {
                 crashLines = [];
                 crash = undefined;
