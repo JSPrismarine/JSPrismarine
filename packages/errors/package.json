@@ -11,6 +11,11 @@
                 "import": "./dist/JSPrismarineError.js",
                 "module": "./dist/JSPrismarineError.js"
             },
+            "./addon-tools": {
+                "types": "./dist/addon-tools.d.ts",
+                "import": "./dist/addon-tools.js",
+                "module": "./dist/addon-tools.js"
+            },
             "./auth": {
                 "types": "./dist/auth.d.ts",
                 "import": "./dist/auth.js",
@@ -249,6 +254,10 @@
         "./JSPrismarineError": {
             "jsprismarine:dist": "./dist/JSPrismarineError.js",
             "default": "./src/JSPrismarineError.ts"
+        },
+        "./addon-tools": {
+            "jsprismarine:dist": "./dist/addon-tools.js",
+            "default": "./src/addon-tools.ts"
         },
         "./auth": {
             "jsprismarine:dist": "./dist/auth.js",

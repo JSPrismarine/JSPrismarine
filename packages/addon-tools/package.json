@@ -1,0 +1,88 @@
+{
+    "name": "@jsprismarine/addon-tools",
+    "version": "0.22.0",
+    "description": "Build JSPrismarine addons: check each behavior pack, pack it into an .mcpack and write the index a server installs from",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "exports": {
+            "./addon": {
+                "types": "./dist/addon.d.ts",
+                "import": "./dist/addon.js",
+                "module": "./dist/addon.js"
+            },
+            "./addonIndex": {
+                "types": "./dist/addonIndex.d.ts",
+                "import": "./dist/addonIndex.js",
+                "module": "./dist/addonIndex.js"
+            },
+            "./build": {
+                "types": "./dist/build.d.ts",
+                "import": "./dist/build.js",
+                "module": "./dist/build.js"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "bin": {
+        "jsp-addon": "./dist/cli.js"
+    },
+    "exports": {
+        "./addon": {
+            "jsprismarine:dist": "./dist/addon.js",
+            "default": "./src/addon.ts"
+        },
+        "./addonIndex": {
+            "jsprismarine:dist": "./dist/addonIndex.js",
+            "default": "./src/addonIndex.ts"
+        },
+        "./build": {
+            "jsprismarine:dist": "./dist/build.js",
+            "default": "./src/build.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "build:watch": "vite build --watch",
+        "test": "vitest run",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "jsprismarine",
+        "minecraft",
+        "bedrock",
+        "addon",
+        "behavior-pack",
+        "mcpack"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
+    },
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/addon-tools",
+    "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
+        "@jsprismarine/packs": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "26.6.6",
+        "glob": "14.0.6",
+        "rimraf": "6.1.4",
+        "typescript": "7.0.2",
+        "vite": "8.3.8",
+        "vitest": "5.1.1"
+    }
+}

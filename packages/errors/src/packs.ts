@@ -149,6 +149,22 @@ export const PacksErrors = defineErrors('packs', {
      * format.
      */
     NotBrarchive: { message: 'not a brarchive: bad magic number', base: BrarchiveError },
+    /**
+     * A zip without Zip64 holds at most 65535 entries of under 4 GiB each, and the writer does not
+     * write Zip64. Split the files across several archives.
+     */
+    ZipTooLargeToWrite: {
+        message: 'cannot write {count} entries totalling {bytes} bytes into a zip without Zip64',
+        base: ZipError
+    },
+    /**
+     * A zip records a file's name length in two bytes, so a name longer than 65535 bytes in UTF-8
+     * does not fit. Shorten the path.
+     */
+    ZipNameTooLong: {
+        message: 'cannot write {name} into a zip: its name is {length} bytes, past the 65535 a zip records',
+        base: ZipError
+    },
     /** A file read as a pack archive is not a zip, or is truncated. */
     NotZip: { message: 'not a zip: no end-of-central-directory record', base: ZipError },
     /**

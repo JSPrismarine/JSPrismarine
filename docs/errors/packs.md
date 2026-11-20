@@ -314,6 +314,15 @@ Thrown as `PacksErrors.ZipEntryTruncated`, which extends `ZipError`.
 
 A pack archive's entry runs past its end, so the archive is truncated.
 
+## `PACKS_ZIP_NAME_TOO_LONG`
+
+`cannot write {name} into a zip: its name is {length} bytes, past the 65535 a zip records`
+
+Thrown as `PacksErrors.ZipNameTooLong`, which extends `ZipError`.
+
+A zip records a file's name length in two bytes, so a name longer than 65535 bytes in UTF-8
+does not fit. Shorten the path.
+
 ## `PACKS_ZIP_STORED_ENTRY_SIZES_DIFFER`
 
 `malformed zip: stored {name} has two sizes`
@@ -322,4 +331,13 @@ Thrown as `PacksErrors.ZipStoredEntrySizesDiffer`, which extends `ZipError`.
 
 An uncompressed entry in a pack archive records two different sizes, so the archive is
 damaged.
+
+## `PACKS_ZIP_TOO_LARGE_TO_WRITE`
+
+`cannot write {count} entries totalling {bytes} bytes into a zip without Zip64`
+
+Thrown as `PacksErrors.ZipTooLargeToWrite`, which extends `ZipError`.
+
+A zip without Zip64 holds at most 65535 entries of under 4 GiB each, and the writer does not
+write Zip64. Split the files across several archives.
 <!-- /fact -->

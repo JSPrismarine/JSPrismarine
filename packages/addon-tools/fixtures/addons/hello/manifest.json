@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Hello",
+        "description": "A test addon that says hello.",
+        "uuid": "5f3d2f6e-8a51-4c0e-9b1a-2a0d3c4e5f60",
+        "version": [1, 2, 3],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "8b2c1d4e-6f70-4a81-9c2d-3e4f5a6b7c80",
+            "version": [1, 2, 3]
+        },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+            "version": [1, 2, 3],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.0.0" }]
+}

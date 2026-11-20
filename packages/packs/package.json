@@ -21,6 +21,11 @@
                 "import": "./dist/lenientJson.js",
                 "module": "./dist/lenientJson.js"
             },
+            "./manifest": {
+                "types": "./dist/manifest.d.ts",
+                "import": "./dist/manifest.js",
+                "module": "./dist/manifest.js"
+            },
             "./javaDataTarget": {
                 "types": "./dist/javaDataTarget.d.ts",
                 "import": "./dist/javaDataTarget.js",
@@ -64,6 +69,10 @@
         "./lenientJson": {
             "jsprismarine:dist": "./dist/lenientJson.js",
             "default": "./src/lenientJson.ts"
+        },
+        "./manifest": {
+            "jsprismarine:dist": "./dist/manifest.js",
+            "default": "./src/manifest.ts"
         },
         "./javaDataTarget": {
             "jsprismarine:dist": "./dist/javaDataTarget.js",

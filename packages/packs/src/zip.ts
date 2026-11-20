@@ -1,11 +1,12 @@
-import { inflateRawSync } from 'node:zlib';
+import { crc32, deflateRawSync, inflateRawSync } from 'node:zlib';
 import { PacksErrors } from '@jsprismarine/errors/packs';
 
 /**
- * A minimal zip reader for `.mcpack` and `.mcaddon` containers. It reads the
- * central directory and supports the two compression methods Minecraft packs
- * use, stored and deflate. Zip64, encryption and multi-disk archives are out
- * of scope; a pack that needs them fails with a {@link ZipError}.
+ * A minimal zip reader and writer for `.mcpack` and `.mcaddon` containers. The
+ * reader reads the central directory and supports the two compression methods
+ * Minecraft packs use, stored and deflate. Zip64, encryption and multi-disk
+ * archives are out of scope; a pack that needs them fails with a
+ * {@link ZipError}.
  */
 
 const EOCD_SIGNATURE = 0x06054b50;
@@ -196,4 +197,102 @@ const readEntryData = (bytes: Uint8Array, view: DataView, entry: ZipEntry): Uint
         throw new PacksErrors.ZipEntrySizeMismatch({ name, size });
     }
     return new Uint8Array(inflated.buffer, inflated.byteOffset, inflated.byteLength);
+};
+
+/** Options for {@link writeZip}. */
+export interface ZipWriteOptions {
+    /**
+     * Deflate each entry whose deflated form is smaller. Off by default: stored entries make the
+     * archive's bytes depend only on the files, while deflate output can change with the zlib
+     * build.
+     */
+    deflate?: boolean;
+}
+
+/** MS-DOS date of 1980-01-01, the earliest a zip can record, so the time of a build never shows. */
+const DOS_EPOCH_DATE = (1 << 5) | 1;
+/** General purpose flag bit 11: the entry's name is UTF-8. */
+const UTF8_NAME_FLAG = 0x0800;
+
+/**
+ * Writes a zip archive holding the given files in iteration order, each dated 1980-01-01. With
+ * the default stored entries, the same files in the same order always give the same bytes.
+ *
+ * @param files - Archive path to contents. Paths use `/` and name files, not directories.
+ * @param options - See {@link ZipWriteOptions}.
+ * @throws {ZipError} `ZipTooLargeToWrite` when the files need Zip64: more than 65535 of them, or
+ * offsets past 4 GiB. `ZipNameTooLong` for a path longer than 65535 bytes in UTF-8.
+ */
+export const writeZip = (files: ReadonlyMap<string, Uint8Array>, options: ZipWriteOptions = {}): Uint8Array => {
+    const bytes = [...files.values()].reduce((total, data) => total + data.length, 0);
+    if (files.size > 0xffff || bytes > 0xffffffff)
+        throw new PacksErrors.ZipTooLargeToWrite({ count: files.size, bytes });
+    const encoder = new TextEncoder();
+    const locals: Uint8Array[] = [];
+    const centrals: Uint8Array[] = [];
+    let offset = 0;
+
+    for (const [name, data] of files) {
+        const nameBytes = encoder.encode(name);
+        if (nameBytes.length > 0xffff) throw new PacksErrors.ZipNameTooLong({ name, length: nameBytes.length });
+        const deflated = options.deflate ? new Uint8Array(deflateRawSync(data)) : undefined;
+        const method = deflated && deflated.length < data.length ? 8 : 0;
+        const payload = method === 8 && deflated ? deflated : data;
+        const checksum = crc32(data);
+
+        const local = new Uint8Array(30 + nameBytes.length);
+        const localView = new DataView(local.buffer);
+        localView.setUint32(0, LOCAL_SIGNATURE, true);
+        localView.setUint16(4, 20, true);
+        localView.setUint16(6, UTF8_NAME_FLAG, true);
+        localView.setUint16(8, method, true);
+        localView.setUint16(12, DOS_EPOCH_DATE, true);
+        localView.setUint32(14, checksum, true);
+        localView.setUint32(18, payload.length, true);
+        localView.setUint32(22, data.length, true);
+        localView.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+
+        const central = new Uint8Array(46 + nameBytes.length);
+        const centralView = new DataView(central.buffer);
+        centralView.setUint32(0, CENTRAL_SIGNATURE, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, UTF8_NAME_FLAG, true);
+        centralView.setUint16(10, method, true);
+        centralView.setUint16(14, DOS_EPOCH_DATE, true);
+        centralView.setUint32(16, checksum, true);
+        centralView.setUint32(20, payload.length, true);
+        centralView.setUint32(24, data.length, true);
+        centralView.setUint16(28, nameBytes.length, true);
+        centralView.setUint32(42, offset, true);
+        central.set(nameBytes, 46);
+
+        locals.push(local, payload);
+        centrals.push(central);
+        offset += local.length + payload.length;
+    }
+
+    const centralSize = centrals.reduce((total, part) => total + part.length, 0);
+    // The headers count too: the central directory's offset and size each have four bytes, and
+    // an entry's offset is below the directory's, so checking the directory covers every entry.
+    if (offset > 0xffffffff || centralSize > 0xffffffff)
+        throw new PacksErrors.ZipTooLargeToWrite({ count: files.size, bytes: offset + centralSize });
+    const eocd = new Uint8Array(EOCD_MIN_SIZE);
+    const eocdView = new DataView(eocd.buffer);
+    eocdView.setUint32(0, EOCD_SIGNATURE, true);
+    eocdView.setUint16(8, files.size, true);
+    eocdView.setUint16(10, files.size, true);
+    eocdView.setUint32(12, centralSize, true);
+    eocdView.setUint32(16, offset, true);
+
+    // A fresh buffer rather than Buffer.concat, whose small results share Node's pool, so the
+    // archive's `buffer` holds the archive alone.
+    const archive = new Uint8Array(offset + centralSize + eocd.length);
+    let cursor = 0;
+    for (const part of [...locals, ...centrals, eocd]) {
+        archive.set(part, cursor);
+        cursor += part.length;
+    }
+    return archive;
 };
