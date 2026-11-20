@@ -19,7 +19,7 @@ More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismari
 Code that embeds the server or uses a package on its own reads the same two values from the error
 it catches, as `error.code` and `error.docs`.
 
-There are <!-- fact:errors.count -->1304<!-- /fact --> errors, one page per package:
+There are <!-- fact:errors.count -->1305<!-- /fact --> errors, one page per package:
 
 <!-- fact:errors.domains -->
 | Package                                                 | Errors |
@@ -49,7 +49,7 @@ There are <!-- fact:errors.count -->1304<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/mapping`](mapping.md)                   | 1      |
 | [`@jsprismarine/minecraft`](minecraft.md)               | 1      |
 | [`@jsprismarine/molang`](molang.md)                     | 11     |
-| [`@jsprismarine/native-network`](native-network.md)     | 16     |
+| [`@jsprismarine/native-network`](native-network.md)     | 17     |
 | [`@jsprismarine/nbt`](nbt.md)                           | 29     |
 | [`@jsprismarine/nethernet`](nethernet.md)               | 42     |
 | [`@jsprismarine/packs`](packs.md)                       | 36     |

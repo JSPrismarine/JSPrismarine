@@ -3,7 +3,7 @@ import dgram from 'node:dgram';
 import { bindLibrary } from './ffi';
 import type { BoundLibrary, NativeSymbols } from './ffi';
 import { locateLibrary } from './library';
-import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
+import { NativeLibraryError, NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** The interface version this binding speaks; it must equal the library's `JSP_ABI_VERSION`. */
 export const ABI_VERSION = 1;
@@ -101,6 +101,8 @@ export class NativeNetwork {
         try {
             library = bindLibrary(path);
         } catch (error: unknown) {
+            // A runtime without an FFI already says what it needs.
+            if (error instanceof NativeLibraryError) throw error;
             throw new NativeNetworkErrors.LibraryDoesNotLoad(
                 {
                     path,
