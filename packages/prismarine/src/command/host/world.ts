@@ -304,9 +304,9 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             assert(gameRules);
 
             const spelling = serverGameRuleName(name);
-            // Only a rule the world already holds; this server's 19 rules are
-            // the ones it reads, and inventing a twentieth would store a value
-            // nothing ever looks at.
+            // Only a rule the world already holds, which are the ones BDS
+            // registers; inventing another would store a value nothing ever
+            // looks at.
             if (gameRules.getGameRule(spelling) === null) return false;
 
             gameRules.setGameRule(spelling, value, true);

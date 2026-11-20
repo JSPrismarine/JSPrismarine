@@ -21,6 +21,7 @@ export const GameRules = {
     DoDayLightCycle: 'doDayLightCycle',
     DoEntityDrops: 'doEntityDrops',
     DoFireTick: 'doFireTick',
+    DoLimitedCrafting: 'doLimitedCrafting',
     DoMobLoot: 'doMobLoot',
     DoMobSpawning: 'doMobSpawning',
     DoTileDrops: 'doTileDrops',
@@ -30,12 +31,22 @@ export const GameRules = {
     FireDamage: 'fireDamage',
     KeepInventory: 'keepInventory',
     MobGriefing: 'mobGriefing',
-    NaturalRegeneration: 'naturalRegeneration',
     PVP: 'pvp',
     ShowCoordinates: 'showCoordinates',
-    RandomTickSpeed: 'randomTickSpeed',
+    NaturalRegeneration: 'naturalRegeneration',
     TNTExplodes: 'tntExplodes',
-    sendCommandFeedback: 'sendCommandFeedback'
+    sendCommandFeedback: 'sendCommandFeedback',
+    MaxCommandChainLength: 'maxCommandChainLength',
+    DoInsomnia: 'doInsomnia',
+    CommandBlocksEnabled: 'commandBlocksEnabled',
+    RandomTickSpeed: 'randomTickSpeed',
+    DoImmediateRespawn: 'doImmediateRespawn',
+    ShowDeathMessages: 'showDeathMessages',
+    SpawnRadius: 'spawnRadius',
+    FreezeDamage: 'freezeDamage',
+    PlayersSleepingPercentage: 'playersSleepingPercentage',
+    ProjectilesCanBreakBlocks: 'projectilesCanBreakBlocks',
+    TNTExplosionDropDecay: 'tntExplosionDropDecay'
 } as const;
 
 /** What a rule holds: its value, and whether a player may change it from the settings screen. */
@@ -47,12 +58,18 @@ export type GameRuleEntry = [value: boolean | number, editable: boolean];
  */
 export type GameRuleChangeListener = (name: string, value: boolean | number, editable: boolean) => void;
 
-/** The values every world starts with, in the order BDS lists them. */
+/**
+ * The values every world starts with, in the order BDS lists them. The defaults are the ones the
+ * pinned Bedrock Dedicated Server sends in `GameRulesChangedPacket`
+ * (`packages/bedrock-data/src/jsp/v2259/wire/0x48.bin`), except `randomTickSpeed`, which follows
+ * Java's `random_tick_speed`.
+ */
 const DEFAULTS: ReadonlyArray<readonly [name: string, value: boolean | number]> = [
     [GameRules.CommandBlockOutput, true],
     [GameRules.DoDayLightCycle, true],
     [GameRules.DoEntityDrops, true],
     [GameRules.DoFireTick, true],
+    [GameRules.DoLimitedCrafting, false],
     [GameRules.DoMobLoot, true],
     [GameRules.DoMobSpawning, true],
     [GameRules.DoTileDrops, true],
@@ -62,12 +79,22 @@ const DEFAULTS: ReadonlyArray<readonly [name: string, value: boolean | number]> 
     [GameRules.FireDamage, true],
     [GameRules.KeepInventory, false],
     [GameRules.MobGriefing, true],
-    [GameRules.NaturalRegeneration, true],
     [GameRules.PVP, true],
     [GameRules.ShowCoordinates, false],
-    [GameRules.RandomTickSpeed, 3],
+    [GameRules.NaturalRegeneration, true],
     [GameRules.TNTExplodes, true],
-    [GameRules.sendCommandFeedback, true]
+    [GameRules.sendCommandFeedback, true],
+    [GameRules.MaxCommandChainLength, 65_535],
+    [GameRules.DoInsomnia, true],
+    [GameRules.CommandBlocksEnabled, true],
+    [GameRules.RandomTickSpeed, 3],
+    [GameRules.DoImmediateRespawn, false],
+    [GameRules.ShowDeathMessages, true],
+    [GameRules.SpawnRadius, 10],
+    [GameRules.FreezeDamage, true],
+    [GameRules.PlayersSleepingPercentage, 100],
+    [GameRules.ProjectilesCanBreakBlocks, true],
+    [GameRules.TNTExplosionDropDecay, false]
 ];
 
 /**
