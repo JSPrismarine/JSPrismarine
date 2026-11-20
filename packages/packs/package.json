@@ -110,7 +110,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/packs",
     "devDependencies": {
-        "@spyglassmc/core": "0.4.57",
+        "@spyglassmc/core": "0.4.58",
         "@spyglassmc/java-edition": "0.3.71",
         "@spyglassmc/json": "0.3.61",
         "@spyglassmc/mcdoc": "0.3.61",
@@ -127,7 +127,7 @@
         "ajv": "8.20.0"
     },
     "peerDependencies": {
-        "@spyglassmc/core": "0.4.57",
+        "@spyglassmc/core": "0.4.58",
         "@spyglassmc/java-edition": "0.3.71",
         "@spyglassmc/json": "0.3.61",
         "@spyglassmc/mcdoc": "0.3.61",
