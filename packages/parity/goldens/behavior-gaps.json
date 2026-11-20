@@ -230,16 +230,6 @@
             "reason": "The soil family tries only the six face neighbors, at 1/4 each and light 4, so grass never reaches a diagonal or a block below or above it.",
             "reference": "Java SpreadingSnowyBlock randomTick and canPropagate; issue #3092"
         },
-        "growing-plant-head:minecraft:twisting_vines": {
-            "kind": "defect",
-            "reason": "The climbing family that runs the nether vines has no random tick yet, so they keep the length they generated at; cave vines and kelp grow through growPlantHead, which these can reuse.",
-            "reference": "Java GrowingPlantHeadBlock randomTick and its CaveVinesBlock, KelpBlock, TwistingVinesBlock and WeepingVinesBlock subclasses; issue #3091"
-        },
-        "growing-plant-head:minecraft:weeping_vines": {
-            "kind": "defect",
-            "reason": "The climbing family that runs the nether vines has no random tick yet, so they keep the length they generated at; cave vines and kelp grow through growPlantHead, which these can reuse.",
-            "reference": "Java GrowingPlantHeadBlock randomTick and its CaveVinesBlock, KelpBlock, TwistingVinesBlock and WeepingVinesBlock subclasses; issue #3091"
-        },
         "sapling-grows-tree:minecraft:mangrove_propagule": {
             "kind": "defect",
             "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",

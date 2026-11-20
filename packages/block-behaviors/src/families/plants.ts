@@ -77,6 +77,41 @@ const KELP_HEAD: GrowingPlantHead = {
     grownHead: (_world, head, age) => ({ identifier: head.identifier, states: { ...head.states, kelp_age: age } })
 };
 
+/**
+ * Twisting vines as Java's `TwistingVinesBlock` grows them: up into air at 0.1 a random tick,
+ * `NetherVines.isValidGrowthState` being air. Bedrock keeps head and body under one identifier.
+ */
+const TWISTING_VINES_HEAD: GrowingPlantHead = {
+    direction: 'up',
+    ageState: 'twisting_vines_age',
+    chance: 0.1,
+    isPart: (name) => name === 'twisting_vines',
+    canGrowInto: (name) => name === 'air',
+    grownHead: (_world, head, age) => ({
+        identifier: head.identifier,
+        states: { ...head.states, twisting_vines_age: age }
+    })
+};
+
+/** Weeping vines as Java's `WeepingVinesBlock` grows them: down into air at 0.1 a random tick. */
+const WEEPING_VINES_HEAD: GrowingPlantHead = {
+    direction: 'down',
+    ageState: 'weeping_vines_age',
+    chance: 0.1,
+    isPart: (name) => name === 'weeping_vines',
+    canGrowInto: (name) => name === 'air',
+    grownHead: (_world, head, age) => ({
+        identifier: head.identifier,
+        states: { ...head.states, weeping_vines_age: age }
+    })
+};
+
+/** The nether vines, by bare name: how each grows, and the face it hangs from. */
+const NETHER_VINES: Readonly<Record<string, { readonly head: GrowingPlantHead; readonly support: BlockFace }>> = {
+    twisting_vines: { head: TWISTING_VINES_HEAD, support: 'down' },
+    weeping_vines: { head: WEEPING_VINES_HEAD, support: 'up' }
+};
+
 type FaceBit = { readonly face: BlockFace; readonly bit: number };
 
 /** The side directions Bedrock packs into `vine_direction_bits`. */
@@ -227,7 +262,7 @@ const growStalk = (world: WorldActions, block: HookBlock, maxHeight: number, gro
 /** Crops, including the two-block pitcher crop and the berry bushes. */
 export const cropFamily = defineFamily(
     'jsprismarine:crop',
-    'Advances growth on a random tick at a chance the farmland moisture sets, pops off anything but farmland, and harvests the berry blocks on interact.',
+    'Advances growth on a random tick at a chance the farmland moisture sets, grows cave, twisting and weeping vines a block at a time, pops off anything but farmland, and harvests the berry blocks on interact.',
     {
         onRandomTick: (event, world) => {
             const growth = growthOf(event.block.identifier);
@@ -239,6 +274,11 @@ export const cropFamily = defineFamily(
             }
             if (CAVE_VINE_NAMES.has(name)) {
                 growPlantHead(world, event.block, CAVE_VINE_HEAD);
+                return;
+            }
+            const netherVine = NETHER_VINES[name];
+            if (netherVine !== undefined) {
+                growPlantHead(world, event.block, netherVine.head);
                 return;
             }
             if (name === 'cocoa' || name === 'sweet_berry_bush') {
@@ -257,6 +297,16 @@ export const cropFamily = defineFamily(
                 const above = world.getBlock(offset(event.block.position, 'up'));
                 if (above === undefined || CAVE_VINE_NAMES.has(bareName(above.identifier))) return;
                 popWithoutSupport(world, event.block, 'up');
+                return;
+            }
+            const netherVine = NETHER_VINES[name];
+            if (netherVine !== undefined) {
+                // Held by the block it grows from, below a twisting vine and above a weeping one,
+                // or by more of the same vine.
+                if (event.face !== netherVine.support) return;
+                const support = world.getBlock(offset(event.block.position, netherVine.support));
+                if (support === undefined || bareName(support.identifier) === name) return;
+                popWithoutSupport(world, event.block, netherVine.support);
                 return;
             }
             if (name === 'sweet_berry_bush') {

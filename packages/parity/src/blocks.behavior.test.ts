@@ -445,14 +445,7 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 return `the head grew ${grown} rather than more of itself`;
             if (harness.block(target).states[grows.ageState] !== 1) return 'the grown head is not one year older';
             return undefined;
-        },
-        classify: (subject) =>
-            subject.javaId === 'minecraft:twisting_vines' || subject.javaId === 'minecraft:weeping_vines'
-                ? {
-                      kind: 'defect',
-                      reason: 'The climbing family that runs the nether vines has no random tick yet, so they keep the length they generated at; cave vines and kelp grow through growPlantHead, which these can reuse.'
-                  }
-                : undefined
+        }
     },
     {
         name: 'leaves-decay',
