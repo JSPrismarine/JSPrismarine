@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { plainText } from './markdownText.ts';
+
 const siteDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** One link in an overview group: its label, its route and the line that describes it. */
@@ -19,16 +21,6 @@ export interface OverviewGroup {
 
 /** A staged link as a route: no `.md`, and a folder's index as the folder. */
 const linkRoute = (link: string) => link.replace(/\.md(?=#|$)/, '').replace(/\/index(?=#|$)/, '/');
-
-/** Markdown inline text as plain text: link labels kept, code marks dropped, a first word raised unless it is code. */
-function plain(markdown: string) {
-    const text = markdown
-        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-        .replaceAll('`', '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    return markdown.trimStart().startsWith('`') ? text : `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
 
 /**
  * The groups of a staged overview page (`<dir>/index.md`): each second-level heading with the first
@@ -54,7 +46,7 @@ export function overviewGroups(dir: string): OverviewGroup[] {
         groups.at(-1)?.items.push({
             text: item[1],
             link: seen.has(page) ? link : page,
-            description: colon === -1 ? '' : plain(rest.slice(colon + 2))
+            description: colon === -1 ? '' : plainText(rest.slice(colon + 2))
         });
         seen.add(page);
     }

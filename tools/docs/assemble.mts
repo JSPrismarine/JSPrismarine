@@ -14,7 +14,15 @@ import { fileURLToPath } from 'node:url';
 import { addonPage, loadAddons } from './addons.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { writeSearchIndex } from './search-index.mts';
-import { addonPagePath, addonReadmePath, isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
+import {
+    addonPagePath,
+    addonReadmePath,
+    isUnpublished,
+    pageSummary,
+    pageTitle,
+    rootPages,
+    sections
+} from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 import type { TrackerIndex } from './site/.vitepress/theme/parity.ts';
 
@@ -117,25 +125,6 @@ function rewriteLinks(markdown: string, sourceFile: string) {
             return `](/${sitePath}${anchor})`;
         }
     );
-}
-
-/**
- * A page's summary for index listings: its front matter `description`, or else the first sentence of the
- * prose between its title and its first section heading. Metadata lines such as `Status: accepted` are
- * skipped, and a page that opens straight into a section gets none.
- */
-function pageSummary(markdown: string) {
-    const description = /^---\r?\n[\s\S]*?^description:\s*(.+)$[\s\S]*?^---$/m.exec(markdown)?.[1];
-    if (description) return description.trim().replace(/^['"]|['"]$/g, '');
-    const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-    const intro = body.split(/^# .+$/m)[1]?.split(/^#{2,} /m)[0] ?? '';
-    const paragraph = intro
-        .split(/\r?\n\s*\r?\n/)
-        .map((block) => block.trim())
-        .find((block) => block && !/^(#|[-*|>]|```|<|\d+\.|!\[|[A-Z][\w ]*: )/.test(block));
-    if (!paragraph) return '';
-    const text = paragraph.replace(/\s+/g, ' ');
-    return /^.+?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
 }
 
 /** Lists a section's top-level pages, each with its opening sentence, for sections whose source has no README. */

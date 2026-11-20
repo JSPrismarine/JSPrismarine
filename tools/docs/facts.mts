@@ -74,6 +74,7 @@ import { palette } from './site/.vitepress/theme/tokens.ts';
 import { addonCatalog, loadAddons, releaseWorkflow, releaseWorkflowInputs } from './addons.mts';
 import type { ErrorData, ErrorDomainData } from './code-data.mts';
 import {
+    errorCount,
     loadBStatsSettings,
     loadCommands,
     loadErrors,
@@ -178,7 +179,6 @@ const errorDomainPage = ({ categories, groups }: ErrorDomainData) => {
 /** The error reference: every error the catalog in `@jsprismarine/errors` defines, a page per domain. */
 async function errorFacts() {
     const domains = await loadErrors();
-    const count = ({ groups }: ErrorDomainData) => groups.reduce((total, { errors }) => total + errors.length, 0);
     // The example is a real entry, logged by the real logger, so the page shows what a log holds.
     const { PrismarineServerErrors } = await import('../../packages/errors/src/prismarine/server.ts');
     const { Logger } = await import('../../packages/logger/src/logger.ts');
@@ -190,12 +190,12 @@ async function errorFacts() {
         'errors.example.template': PrismarineServerErrors.PlayerNotFound.template,
         'errors.example.message': example.message,
         'errors.example.reference': logged[0]?.split('\n').at(-1) ?? '',
-        'errors.count': String(domains.reduce((total, domain) => total + count(domain), 0)),
+        'errors.count': String(domains.reduce((total, domain) => total + errorCount(domain), 0)),
         'errors.domains': `\n${table(
             ['Package', 'Errors'],
             domains.map((domain) => [
                 `[${inlineCode(errorDomainPackage(domain.domain))}](${domain.domain}.md)`,
-                String(count(domain))
+                String(errorCount(domain))
             ])
         )}\n`,
         ...Object.fromEntries(

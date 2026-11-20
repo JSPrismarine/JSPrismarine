@@ -180,6 +180,10 @@ export interface ErrorDomainData {
     categories: ErrorCategoryData[];
 }
 
+/** How many errors a domain defines, across its modules. */
+export const errorCount = ({ groups }: ErrorDomainData) =>
+    groups.reduce((total, { errors }) => total + errors.length, 0);
+
 /** What `defineErrors` puts on each class it makes. */
 interface DefinedErrorClass {
     readonly code: string;

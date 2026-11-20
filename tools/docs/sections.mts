@@ -89,26 +89,33 @@ export function pageUrl(page: string, siteUrl: string) {
 }
 
 /**
- * The index of the first line from `from` on, outside a code fence, that matches. A fence closes,
- * as CommonMark has it, on a line of only the opening fence's character, at least as many of them,
- * so a shorter fence or the other character inside it is part of the code.
+ * Each line from `from` on, marked when it is part of a code fence, its opening and closing lines
+ * included. A fence closes, as CommonMark has it, on a line of only the opening fence's character, at
+ * least as many of them, so a shorter fence or the other character inside it is part of the code.
  */
-export function findUnfencedLine(lines: readonly string[], from: number, pattern: RegExp) {
+function* fenceLines(lines: readonly string[], from: number): Generator<{ index: number; fenced: boolean }> {
     let fence: string | undefined;
     for (let index = from; index < lines.length; index++) {
         const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(lines[index])?.slice(1);
         if (fence === undefined) {
             if (marker !== undefined) fence = marker[0];
-            else if (pattern.test(lines[index])) return index;
-        } else if (
-            marker !== undefined &&
-            marker[0][0] === fence[0] &&
-            marker[0].length >= fence.length &&
-            marker[1].trim() === ''
-        ) {
-            fence = undefined;
+            yield { index, fenced: marker !== undefined };
+        } else {
+            if (
+                marker !== undefined &&
+                marker[0][0] === fence[0] &&
+                marker[0].length >= fence.length &&
+                marker[1].trim() === ''
+            )
+                fence = undefined;
+            yield { index, fenced: true };
         }
     }
+}
+
+/** The index of the first line from `from` on, outside a code fence, that matches. */
+export function findUnfencedLine(lines: readonly string[], from: number, pattern: RegExp) {
+    for (const { index, fenced } of fenceLines(lines, from)) if (!fenced && pattern.test(lines[index])) return index;
     return -1;
 }
 
@@ -120,6 +127,90 @@ export function pageTitle(markdown: string, fallback: string) {
     const lines = markdown.split('\n');
     const index = findUnfencedLine(lines, 0, /^# \S/);
     return index === -1 ? fallback : lines[index].slice(2).trim();
+}
+
+/**
+ * The keys of the metadata lines a page may open with, such as `Status: accepted` on a decision,
+ * `Versions: ...` on a research note and the `Defined in:` line TypeDoc puts under a symbol. Only
+ * these are skipped: a sentence such as "A boss bar that shows how the server keeps up: ..." also has
+ * a colon, and is prose.
+ */
+const metadataKeys = ['Status', 'Date', 'Versions', 'Host', 'Sources', 'Picks', 'Lens', 'Defined in'];
+
+/**
+ * The blocks of an introduction that are not its prose: headings, lists, tables, quotes, HTML,
+ * images, badges and metadata.
+ */
+const notProse = new RegExp(String.raw`^(#|[-*+|>]|<|\d+[.)]\s|!\[|\[!\[|(${metadataKeys.join('|')}): )`);
+
+/**
+ * The prose blocks between a page's title and its next heading, each on one line. Code is left out,
+ * fenced or indented, so an example with a blank line in it never reads as a paragraph.
+ */
+function introBlocks(markdown: string) {
+    const lines = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '').split(/\r?\n/);
+    const title = findUnfencedLine(lines, 0, /^# /);
+    if (title === -1) return [];
+    const blocks: string[][] = [[]];
+    for (const { index, fenced } of fenceLines(lines, title + 1)) {
+        const line = lines[index];
+        if (!fenced && /^#{1,6} /.test(line)) break;
+        if (fenced || !line.trim()) blocks.push([]);
+        else blocks[blocks.length - 1].push(line);
+    }
+    return (
+        blocks
+            // A block that opens indented is code, or the rest of the list item above it, such as the
+            // summary under each link of a generated section index.
+            .filter((block) => block.length && !/^\s/.test(block[0]))
+            .map((block) => block.join(' ').replace(/\s+/g, ' ').trim())
+            .filter((block) => !notProse.test(block))
+    );
+}
+
+/** The first sentence of a line of prose, or all of it when it has no sentence end. */
+const firstSentence = (text: string) => /^.+?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
+
+/**
+ * A research note or plan's opening sentence that dates it rather than describing it, such as
+ * "Researched 2026-10-24." or "Written 2026-11-10 for work package A5 ...": its verb and the date.
+ */
+function datedLead(sentence: string) {
+    const verb = /^(Researched|Written|Research notes?|Started|Plan)\b/.exec(sentence)?.[1];
+    const date = /\d{4}-\d{2}-\d{2}/.exec(sentence)?.[0];
+    return verb && date ? { verb, date } : undefined;
+}
+
+/**
+ * The most words a dated opening sentence has when it only dates the note, such as "Written
+ * 2026-11-19 against `master` at `c8aa6418935`."
+ */
+const maxDatedLeadWords = 10;
+
+/** The label a note's opening sentence may carry, such as `Scope:`, which a summary leaves out. */
+const summaryLabel = /^(Scope|Question|The question): /;
+
+/**
+ * A page's summary for index listings: its front matter `description`, or else the first sentence of the
+ * prose between its title and its first section heading. Code, metadata lines such as `Status:
+ * accepted` and README badges are skipped, and a page that opens straight into a section gets none. A
+ * note that opens by dating itself ("Researched 2026-10-24. Scope: what ...") is summarized by the
+ * sentence after the date, and a `Scope:` or `Question:` label is left out.
+ */
+export function pageSummary(markdown: string) {
+    const description = /^---\r?\n[\s\S]*?^description:\s*(.+)$[\s\S]*?^---$/m.exec(markdown)?.[1];
+    if (description) return description.trim().replace(/^['"]|['"]$/g, '');
+    const [first = '', next = ''] = introBlocks(markdown);
+    const lead = firstSentence(first);
+    let text = first;
+    if (datedLead(lead)) {
+        text = first.slice(lead.length).trim() || next;
+        // A long dated sentence lists the note's sources, and the sentences after it go on about where
+        // the facts came from, so such a note gets no summary rather than "Every claim names its source."
+        if (!summaryLabel.test(text) && lead.split(' ').length > maxDatedLeadWords) return '';
+    }
+    const unlabeled = text.replace(summaryLabel, '');
+    return firstSentence(unlabeled === text ? text : `${unlabeled.charAt(0).toUpperCase()}${unlabeled.slice(1)}`);
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
