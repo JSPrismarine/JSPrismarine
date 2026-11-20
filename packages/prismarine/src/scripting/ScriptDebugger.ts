@@ -21,7 +21,7 @@ import { DebuggerConnectionError } from '@jsprismarine/errors/script-host';
 import type { ScriptContextId, ScriptEngine } from '@jsprismarine/script-host';
 import type { DebuggerChannel, ScriptDebugSession } from '@jsprismarine/script-host/debugger/DebugSession';
 import type { PortDebuggerChannel } from '@jsprismarine/script-host/debugger/channel';
-import type { DebuggerPlugin, HostMessage } from '@jsprismarine/script-host/debugger/protocol';
+import type { DebuggerPlugin, DebuggerStat, HostMessage } from '@jsprismarine/script-host/debugger/protocol';
 import type { DebuggerThread, DebuggerThreadConnection } from '@jsprismarine/script-host/debugger/thread';
 import type { ScriptPack } from '@jsprismarine/script-host/host/pack';
 import type { ScriptLog } from '@jsprismarine/script-host/host/WorldScripts';
@@ -65,6 +65,11 @@ export interface ScriptDebuggerOptions {
     readonly log: ScriptLog;
     /** Whether the server replays a recorded session, when the debugger never opens a socket. */
     readonly replay: boolean;
+    /**
+     * Runs a command the extension's command box sent, in a dimension the extension names, such
+     * as `overworld`. It runs between ticks, never inside a script.
+     */
+    readonly runCommand?: (command: string, dimension: string) => void;
     /**
      * Resolves after `seconds`, for auto-attach's timeout and its retries. It waits on the wall
      * clock only at startup, before the first tick, where nothing simulated reads it.
@@ -179,6 +184,8 @@ interface Connection {
     state: 'offered' | 'accepted' | 'attached';
     /** The script module UUID the extension picked, once it has answered. */
     target?: string;
+    /** Set once the session first attached, so an attach after a reload logs nothing. */
+    attachedBefore?: boolean;
     /** Settles once the handshake has passed, true, or the connection has failed, false. */
     readonly settled: Promise<boolean>;
     settle(accepted: boolean): void;
@@ -194,6 +201,8 @@ export class ScriptDebugger {
     private disposed = false;
     /** Wakes {@link ScriptDebugger.whenConnected} when a connection arrives. */
     private waiters: (() => void)[] = [];
+    /** The commands the extension sent, which wait for a point where no script runs. */
+    private commands: { readonly command: string; readonly dimension: string }[] = [];
 
     public constructor(options: ScriptDebuggerOptions) {
         this.options = options;
@@ -357,13 +366,28 @@ export class ScriptDebugger {
     }
 
     /**
-     * Ends the session before `/reload` replaces the engine it is attached to. The extension sees
-     * the scripts' thread exit and the connection close.
+     * Detaches the session before `/reload` replaces the engine it is attached to, and keeps the
+     * connection, as BDS does: the extension sees the scripts' thread exit, and start again once
+     * the picked pack has loaded in the new engine, with the breakpoints it set.
      */
-    public detachForReload(): void {
-        if (this.connection?.state !== 'attached') return;
-        this.dropConnection();
-        this.options.log.warn(`[Scripting] ${ScriptDebuggerMessages.connectionClosed}`);
+    public reloading(): void {
+        const connection = this.connection;
+        if (connection?.state !== 'attached') return;
+        connection.session.detachEngine();
+        connection.state = 'accepted';
+    }
+
+    /**
+     * Runs the end of a tick for an attached extension: the commands it sent, then the tick's
+     * statistics, as BDS streams a `StatEvent2` each tick.
+     * @param tick - The tick that ended.
+     * @param stats - Reads the tick's statistics; called only while a session is attached.
+     */
+    public tick(tick: number, stats: () => readonly DebuggerStat[]): void {
+        const connection = this.connection;
+        if (connection?.state !== 'attached') return;
+        this.runCommands();
+        connection.session.stats(tick, stats());
     }
 
     /** Closes the session and stops the socket thread, when the server stops. */
@@ -399,7 +423,13 @@ export class ScriptDebugger {
             passcode: settings.passcode,
             toDebuggerPath: (file) => (file.startsWith(SCRIPTS_FOLDER) ? file.slice(SCRIPTS_FOLDER.length) : file),
             fromDebuggerPath: (path) => `${SCRIPTS_FOLDER}${path.replaceAll('\\', '/').replace(/^\/+/, '')}`,
-            knowsFile: (file) => this.targetPack !== undefined && host.readPackFile(this.targetPack, file) !== undefined
+            knowsFile: (file) =>
+                this.targetPack !== undefined && host.readPackFile(this.targetPack, file) !== undefined,
+            // The session hands a command over wherever it reads the message, which can be inside a
+            // stopped or running script, so it waits for the next point between scripts.
+            runCommand: (command, dimension) => {
+                this.commands.push({ command, dimension });
+            }
         });
         let settle: (attached: boolean) => void = () => undefined;
         const settled = new Promise<boolean>((resolve) => {
@@ -425,7 +455,16 @@ export class ScriptDebugger {
             return;
         }
         connection.session.poll();
-        if (connection.session.closed) this.closedByExtension(connection);
+        if (connection.session.closed) {
+            this.closedByExtension(connection);
+            return;
+        }
+        this.runCommands();
+    }
+
+    /** Runs the commands the extension has sent, in the order it sent them. */
+    private runCommands(): void {
+        for (const { command, dimension } of this.commands.splice(0)) this.options.runCommand?.(command, dimension);
     }
 
     private closedByExtension(connection: Connection): void {
@@ -464,7 +503,10 @@ export class ScriptDebugger {
         this.attach(connection, picked);
     }
 
-    /** Attaches to a pack's context, which blocks this thread until the extension sends `resume`. */
+    /**
+     * Attaches to a pack's context, which blocks this thread until the extension sends `resume`.
+     * After a reload the session attaches again at once, and BDS logs nothing for it.
+     */
     private attach(connection: Connection, picked: ScriptDebugTargetPack): void {
         const { host, log } = this.options;
         this.targetPack = picked.pack;
@@ -474,6 +516,8 @@ export class ScriptDebugger {
             return;
         }
         connection.state = 'attached';
+        if (connection.attachedBefore === true) return;
+        connection.attachedBefore = true;
         const attached = ScriptDebuggerMessages.attached(connection.peer.address, connection.peer.port);
         log.warn(`[Scripting] ${attached}`);
         connection.session.print(attached, host.LogLevel.warn);
@@ -486,7 +530,10 @@ export class ScriptDebugger {
     }
 
     private drop(connection: Connection): void {
-        if (this.connection === connection) this.connection = undefined;
+        if (this.connection === connection) {
+            this.connection = undefined;
+            this.commands = [];
+        }
         if (!connection.session.closed) connection.session.detach();
         connection.channel.close();
         connection.settle(false);

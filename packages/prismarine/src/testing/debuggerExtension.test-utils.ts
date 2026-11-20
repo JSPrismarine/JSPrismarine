@@ -37,8 +37,9 @@ export type DebuggerExtensionReport =
     | { readonly kind: 'received'; readonly message: Record<string, unknown> }
     | { readonly kind: 'closed' };
 
-/** A command from the test. */
-export type DebuggerExtensionCommand = { readonly op: 'hang-up' };
+/** A command from the test: hang up, or send a message as the extension's panels do. */
+export type DebuggerExtensionCommand =
+    { readonly op: 'hang-up' } | { readonly op: 'send'; readonly message: Record<string, unknown> };
 
 const port = parentPort;
 if (port === null) throw new Error('The fake debugger extension runs on a worker thread');
@@ -91,6 +92,7 @@ const converse = (socket: Socket): void => {
     socket.on('close', () => report({ kind: 'closed' }));
     port.on('message', (command: DebuggerExtensionCommand) => {
         if (command.op === 'hang-up') socket.destroy();
+        else send(command.message);
     });
 };
 
