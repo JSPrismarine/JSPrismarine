@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { findJavaServerJar } from '../../../.test/javaServerJar';
 import { reportProgress } from '../../../.test/reportProgress';
 
 import { createRecipeBook } from './book';
@@ -28,33 +29,12 @@ const enabled = !!process.env.JSP_VANILLA_RECIPES;
 
 const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
-// The default Java release from this repository's source manifest, parsed JSON. It is tried
-// first, so a cache holding several releases runs on the one the server does.
-const defaultJavaRelease = (
-    JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as {
-        javaServer: { defaultVersion: string };
-    }
-).javaServer.defaultVersion;
-
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
-/** Finds the cached Java server jar, whichever directory the fetch script put it in, the default release first. */
-const findServerJar = (): { readonly version: string; readonly path: string } => {
-    for (const root of ['java', 'java-server']) {
-        const base = join(cacheRoot, root);
-        if (!existsSync(base)) continue;
-        for (const version of [defaultJavaRelease, ...readdirSync(base)]) {
-            const path = join(base, version, 'server.jar');
-            if (existsSync(path)) return { version, path };
-        }
-    }
-    throw new Error(`no server.jar under ${cacheRoot}; run the bedrock-data fetch:sources script`);
-};
-
 /** Extracts the vanilla recipe and tag JSON out of the bundler jar's inner server jar, once. */
 const extractVanillaData = (): string => {
-    const jar = findServerJar();
+    const jar = findJavaServerJar(cacheRoot);
     const target = join(cacheRoot, 'vanilla-recipes', jar.version);
     const marker = join(target, '.extracted');
     if (existsSync(marker)) return target;

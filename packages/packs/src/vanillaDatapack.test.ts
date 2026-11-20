@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { findJavaServerJar } from '../../../.test/javaServerJar';
 import { reportProgress } from '../../../.test/reportProgress';
 
 import { reportIdentifiers } from './identifiers';
@@ -21,35 +22,8 @@ const enabled = !!process.env.JSP_VANILLA_DATAPACK;
 
 const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
-// The pinned release is this repository's own manifest, parsed JSON. This package does not
-// depend on @jsprismarine/bedrock-data, so the test reads the file rather than its export.
-const pinnedJavaVersion = (
-    JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as {
-        javaServer: { defaultVersion: string };
-    }
-).javaServer.defaultVersion;
-
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
-
-/**
- * Finds the cached Java server jar. `fetch:sources` writes it to
- * `java-server/<version>/`, and the Java dump and oracle scripts download
- * their own copy to `java/<version>/`, so a checkout can hold either or both.
- * The fetched one comes first because its hash is verified, and within each
- * the pinned release comes first, since the cache keeps every release it fetched.
- */
-const findServerJar = (): { readonly version: string; readonly path: string } => {
-    for (const source of ['java-server', 'java']) {
-        const root = join(cacheRoot, source);
-        if (!existsSync(root)) continue;
-        const version = [pinnedJavaVersion, ...readdirSync(root)].find((name) =>
-            existsSync(join(root, name, 'server.jar'))
-        );
-        if (version) return { version, path: join(root, version, 'server.jar') };
-    }
-    throw new Error(`no server.jar under ${cacheRoot}; run the bedrock-data fetch:sources script`);
-};
 
 /**
  * Extracts the vanilla datapack JSON out of the bundler jar's inner server jar
@@ -57,7 +31,7 @@ const findServerJar = (): { readonly version: string; readonly path: string } =>
  * carry. Returns the datapack directory.
  */
 const extractVanillaDatapack = (): string => {
-    const jar = findServerJar();
+    const jar = findJavaServerJar(cacheRoot, { fallback: false });
 
     const target = join(cacheRoot, 'vanilla-datapack', jar.version);
     const mcmetaPath = join(target, 'pack.mcmeta');

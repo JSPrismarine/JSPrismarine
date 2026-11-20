@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { defaultJavaRelease } from '../../../.test/javaServerJar';
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const cacheRoot = join(repoRoot, 'node_modules/.cache/jsprismarine');
 
@@ -20,14 +22,6 @@ export interface VanillaDatapack {
     /** Lists the `.json` files in a directory under {@link data}, as ids without the extension. */
     readonly listData: (relativeDirectory: string) => string[];
 }
-
-// The default Java release from this repository's source manifest, parsed JSON. The cache keeps one
-// directory per release, so the tests read the one the server runs rather than whichever is listed.
-const defaultJavaRelease = (
-    JSON.parse(readFileSync(join(repoRoot, 'packages/bedrock-data/sources.json'), 'utf8')) as {
-        javaServer: { defaultVersion: string };
-    }
-).javaServer.defaultVersion;
 
 /** The default release's directory under a cache folder, when it holds `marker`. */
 const defaultReleaseIn = (root: string, marker: string): string | undefined => {

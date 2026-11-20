@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { load } from '@jsprismarine/packs';
@@ -15,6 +15,7 @@ import type {
 import { asList, asString, enchantmentLevelFromComponent, isJsonObject, namespaced } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
+import { findJavaServerJar } from '../../../.test/javaServerJar';
 import { reportProgress } from '../../../.test/reportProgress';
 
 import { javaLootTables } from './packs';
@@ -32,33 +33,12 @@ const enabled = !!process.env['JSP_VANILLA_DATAPACK'];
 
 const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
-// The default Java release from this repository's source manifest, parsed JSON. It is tried
-// first, so a cache holding several releases runs on the one the server does.
-const defaultJavaRelease = (
-    JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'bedrock-data', 'sources.json'), 'utf8')) as {
-        javaServer: { defaultVersion: string };
-    }
-).javaServer.defaultVersion;
-
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
-/** Finds the cached Java server jar, whichever of the two source names holds it. */
-const findServerJar = (): { readonly version: string; readonly path: string } => {
-    for (const source of ['java-server', 'java']) {
-        const root = join(cacheRoot, source);
-        if (!existsSync(root)) continue;
-        const version = [defaultJavaRelease, ...readdirSync(root)].find((name) =>
-            existsSync(join(root, name, 'server.jar'))
-        );
-        if (version) return { version, path: join(root, version, 'server.jar') };
-    }
-    throw new Error(`no server.jar under ${cacheRoot}; run the bedrock-data fetch:sources script`);
-};
-
 /** Extracts the datapack JSON out of the bundler jar's inner server jar into the cache, once. */
 const extractVanillaDatapack = (): string => {
-    const jar = findServerJar();
+    const jar = findJavaServerJar(cacheRoot);
     const target = join(cacheRoot, 'vanilla-datapack', jar.version);
     const mcmetaPath = join(target, 'pack.mcmeta');
     if (existsSync(mcmetaPath)) return target;
