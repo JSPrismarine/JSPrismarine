@@ -17,6 +17,13 @@ export const ADDON_RELEASE_TAG = 'addons';
 /** The file name of the index on the release. */
 export const ADDON_INDEX_FILE = 'index.json';
 
+/**
+ * The name the release workflow gives the old index while it uploads a new one. GitHub deletes
+ * an asset before replacing it, so the old index is renamed first; when the upload fails, this
+ * file still holds every published version, and the next build merges with it.
+ */
+export const ADDON_INDEX_BACKUP_FILE = 'index.previous.json';
+
 /** One published version of one addon. */
 export interface AddonIndexEntry {
     /** The addon's name: its folder in the source repository and its name in `addon install`. */

@@ -1,0 +1,4 @@
+{
+    "entryPoints": ["src/addon.ts", "src/addonIndex.ts", "src/build.ts"],
+    "readme": "README.md"
+}
