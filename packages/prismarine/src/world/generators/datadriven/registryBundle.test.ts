@@ -41,10 +41,12 @@ const tiny = (): JavaWorldgenRegistries => ({
 });
 
 /** The registry fields: every field but the data pack `format`, which is a number. */
-type RegistryName = Exclude<keyof JavaWorldgenRegistries, 'format'>;
+type RegistryName = Exclude<keyof JavaWorldgenRegistries, 'format' | 'release'>;
 
 const registryNames = (registries: JavaWorldgenRegistries): RegistryName[] =>
-    Object.keys(registries).filter((name): name is RegistryName => name !== 'format' && name in registries);
+    Object.keys(registries).filter(
+        (name): name is RegistryName => name !== 'format' && name !== 'release' && name in registries
+    );
 
 describe('the world generation registry bundle', () => {
     it('reads back every document it was given, and reads a shared buffer the same way', () => {
@@ -61,6 +63,13 @@ describe('the world generation registry bundle', () => {
     it('carries the data pack format, so a worker parses with the same grammar', () => {
         expect(readRegistryBundle(buildRegistryBundle({ ...tiny(), format: 128 })).format).toBe(128);
         expect(readRegistryBundle(buildRegistryBundle(tiny())).format).toBeUndefined();
+    });
+
+    it("carries the Java release, so a worker reads the same release's structure templates", () => {
+        expect(readRegistryBundle(buildRegistryBundle({ ...tiny(), release: '26.4-snapshot-10' })).release).toBe(
+            '26.4-snapshot-10'
+        );
+        expect(readRegistryBundle(buildRegistryBundle(tiny())).release).toBeUndefined();
     });
 
     it('skips raw climate reports when matching shared tables are available', () => {

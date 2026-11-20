@@ -81,6 +81,8 @@ interface BundleIndex {
     readonly registries: ReadonlyArray<readonly [registry: string, entries: readonly BundleEntry[]]>;
     /** {@link JavaWorldgenRegistries.format}, so a worker parses with the same grammar. */
     readonly format?: number;
+    /** {@link JavaWorldgenRegistries.release}, so a worker reads the same release's templates. */
+    readonly release?: string;
 }
 
 /**
@@ -108,7 +110,11 @@ export const buildRegistryBundle = (registries: JavaWorldgenRegistries): ArrayBu
     }
 
     const indexBytes = encoder.encode(
-        JSON.stringify({ registries: index, format: registries.format } satisfies BundleIndex)
+        JSON.stringify({
+            registries: index,
+            format: registries.format,
+            release: registries.release
+        } satisfies BundleIndex)
     );
     const buffer = new ArrayBuffer(HEADER_BYTES + indexBytes.byteLength + offset);
     const header = new DataView(buffer);
@@ -229,6 +235,7 @@ export const readRegistryBundle = (
         biomeTags: registryOf('biomeTags'),
         structureTags: registryOf('structureTags'),
         biomeParameters: registryOf('biomeParameters'),
-        format: index.format
+        ...(index.format === undefined ? {} : { format: index.format }),
+        ...(index.release === undefined ? {} : { release: index.release })
     };
 };

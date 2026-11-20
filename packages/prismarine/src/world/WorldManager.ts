@@ -375,11 +375,14 @@ export default class WorldManager implements Service {
     }
 
     private registries(): JavaWorldgenRegistries {
-        const content = this.server.getContent();
+        const { definitions, javaTarget } = this.server.getContent();
+        // The reports and the templates come from the release the content was loaded for, so a
+        // preview's definitions never meet the default release's biome parameters.
         return (this.worldgenRegistries ??= loadJavaWorldgenRegistriesFrom(
-            content.definitions,
-            requireJavaWorldgenSources().reports,
-            content.javaTarget.format[0]
+            definitions,
+            requireJavaWorldgenSources(javaTarget.release).reports,
+            javaTarget.format[0],
+            javaTarget.release
         ));
     }
 
@@ -390,7 +393,7 @@ export default class WorldManager implements Service {
      */
     private presets(): ReadonlyMap<string, WorldPreset> {
         return (this.worldPresets ??=
-            findJavaWorldgenSources() === undefined
+            findJavaWorldgenSources(this.server.getContent().javaTarget.release) === undefined
                 ? BUILT_IN_WORLD_PRESETS
                 : new Map([...BUILT_IN_WORLD_PRESETS, ...worldPresetsOf(this.registries())]));
     }

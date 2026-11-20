@@ -43,12 +43,12 @@ export const cacheRoot = (): string => {
 };
 
 /**
- * The default Java release's directory under a cache folder, or undefined when it does not hold
- * `holds`. The cache keeps one directory per pinned release, so it is picked by name: the
- * newest-named one could be a preview the server does not run.
+ * One Java release's directory under a cache folder, or undefined when it does not hold `holds`.
+ * The cache keeps one directory per pinned release, so it is picked by name: the newest-named one
+ * could be a preview the server does not run.
  */
-const defaultReleaseIn = (root: string, holds: string): string | undefined => {
-    const candidate = join(root, javaServerCacheFolder);
+const releaseIn = (root: string, release: string, holds: string): string | undefined => {
+    const candidate = join(root, release);
     return existsSync(join(candidate, holds)) ? candidate : undefined;
 };
 
@@ -63,18 +63,21 @@ const sourcePath = (override: string | undefined, found: () => string | undefine
 };
 
 /**
- * Finds the datapack and the data generator reports.
+ * Finds the datapack and the data generator reports of one Java release.
  *
+ * @param release - The pinned Java release whose data to read, such as the server's
+ *   `content-java-version`. Defaults to the release `sources.json` names as the default. The
+ *   environment overrides win over it.
  * @returns Both directories, or undefined when either is missing. The generator needs both,
  *   and half the data produces a world that is quietly not Java's.
  */
-export const findJavaWorldgenSources = (): JavaWorldgenSources | undefined => {
+export const findJavaWorldgenSources = (release: string = javaServerCacheFolder): JavaWorldgenSources | undefined => {
     const root = cacheRoot();
     const datapack = sourcePath(process.env[JAVA_WORLDGEN_ENV.datapack], () =>
-        defaultReleaseIn(join(root, 'vanilla-datapack'), 'data')
+        releaseIn(join(root, 'vanilla-datapack'), release, 'data')
     );
     const reports = sourcePath(process.env[JAVA_WORLDGEN_ENV.reports], () =>
-        defaultReleaseIn(join(root, 'java-reports'), join('generated', 'reports'))
+        releaseIn(join(root, 'java-reports'), release, join('generated', 'reports'))
     );
 
     if (datapack === undefined || reports === undefined) return undefined;
