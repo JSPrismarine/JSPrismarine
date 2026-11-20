@@ -1,4 +1,6 @@
 import { testKernel } from './kernel.test.helper';
+import { Item } from '../item/Item';
+import { gameRuleSpellings } from '../content/world/gameRules';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
@@ -51,6 +53,11 @@ export interface FakePlayerOptions {
      * player with no XUID, so two fake players that must not share state need two names.
      */
     readonly name?: string;
+    /**
+     * Game rule values by lowercase Bedrock name, such as `keepinventory`. A rule left out is
+     * on, so the player keeps its inventory through a death unless a test turns it off.
+     */
+    readonly gameRules?: Readonly<Record<string, boolean | number>>;
 }
 
 /**
@@ -64,8 +71,15 @@ export interface FakePlayerOptions {
  * enough for the session's chunk batching to run. It is the Overworld of a level that also holds
  * `worlds`, and the server's default world.
  */
-export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Tester' }: FakePlayerOptions = {}) => {
+export const fakePlayer = ({
+    underwater = false,
+    worlds: others = [],
+    name = 'Tester',
+    gameRules = {}
+}: FakePlayerOptions = {}) => {
     const sent: any[] = [];
+    /** Every stack the world was asked to drop, in order. */
+    const dropped: Item[] = [];
     /** Every tick of crack animation the player asked the world for. */
     const cracked: BlockMining[] = [];
     /** Every block whose cracks the player asked the world to stop. */
@@ -192,8 +206,19 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
             position: new Vector3(0.5, 65, 0.5),
             relocated: false
         }),
-        getGameRuleManager: () =>
-            stub<GameRuleManager>({ getGameRule: () => [true, true], findGameRule: () => [true, true] }),
+        getGameRuleManager: () => {
+            // Under any of its spellings, as the content path asks by the 1.21.11 id.
+            const rule = (ruleName: string): [boolean | number, boolean] => {
+                const set = gameRuleSpellings(ruleName)
+                    .map((spelling) => gameRules[spelling.toLowerCase()])
+                    .find((value) => value !== undefined);
+                return [set ?? true, true];
+            };
+            return stub<GameRuleManager>({ getGameRule: rule, findGameRule: rule });
+        },
+        dropContents: async (_position, contents) => {
+            for (const item of contents) if (item instanceof Item) dropped.push(item);
+        },
         getBlock: async () => stub<Block>({ getName: () => blockName, isSolid: () => false }),
         getBlockState: async () => new BlockState(blockName),
         loadedBlockAt: () => ({ name: blockName, states: {} }),
@@ -301,6 +326,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         isOp,
         cracked,
         stopped,
-        mined
+        mined,
+        dropped
     };
 };

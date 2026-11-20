@@ -3685,12 +3685,22 @@ export class World implements Service {
      * Past {@link World.ITEM_ENTITY_LIMIT} stacks in the world the remaining drops are lost
      * rather than spawned. Losing a drop is worse than vanilla and better than the server
      * going down, and it is reported so an operator can tell which happened.
+     *
+     * `pastLimit` is for a drop taken out of a player, a death's: those stacks exist nowhere
+     * else, so losing them loses what the player owned, and one player holds a few dozen at
+     * most, which the limit's flood does not come from.
      * @param {Vector3} position - where they land, still.
      * @param {Array} contents - what to drop; nulls are skipped, so a block that drops
      * nothing for the tool used can say so plainly.
+     * @param {object} [options] - How the drop meets the limit.
+     * @param {boolean} [options.pastLimit] - Drop every stack even past the limit.
      */
-    public async dropContents(position: Vector3, contents: Array<Block | Item | null>): Promise<void> {
-        this.spill(position, contents, () => ({ position }));
+    public async dropContents(
+        position: Vector3,
+        contents: Array<Block | Item | null>,
+        { pastLimit = false }: { pastLimit?: boolean } = {}
+    ): Promise<void> {
+        this.spill(position, contents, () => ({ position }), pastLimit);
     }
 
     /**
@@ -3897,7 +3907,12 @@ export class World implements Service {
      * @param {Array} contents - what to drop.
      * @param {Function} start - where one stack starts and how fast, asked once per stack.
      */
-    private spill(position: Vector3, contents: Array<Block | Item | null>, start: () => DropStart): DroppedStack[] {
+    private spill(
+        position: Vector3,
+        contents: Array<Block | Item | null>,
+        start: () => DropStart,
+        pastLimit = false
+    ): DroppedStack[] {
         // A break running its block's `onBreak` takes what the family drops, so a container's
         // contents can be told from the family's stand-in for the loot table rather than
         // landing beside the roll; see {@link import('./blockBreak')}.
@@ -3930,7 +3945,7 @@ export class World implements Service {
         }
 
         const wanted = contents.filter((drop): drop is Block | Item => drop !== null && !isEmptyItemDrop(drop));
-        const room = Math.max(0, World.ITEM_ENTITY_LIMIT - this.itemEntityCount());
+        const room = pastLimit ? wanted.length : Math.max(0, World.ITEM_ENTITY_LIMIT - this.itemEntityCount());
         if (wanted.length > room) this.reportItemEntityLimit(wanted.length - room);
 
         // Asked after the limit and the break's own collection, so a stack that never reaches the

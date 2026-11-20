@@ -531,6 +531,27 @@ describe('a store player', () => {
             expect(fixture.world.levelEvents.map(({ event }) => event)).toEqual([LevelEvent.STOP_BLOCK_CRACKING]);
         });
 
+        it('takes no stack while dead, so its own death drop stays on the ground until it revives', () => {
+            const world = new TestEntityWorld();
+            const fixture = storePlayerFixture(world);
+            const { player } = standingPlayer(fixture);
+            world.players = [{ id: player.id, identifier: PLAYER_IDENTIFIER, position: player.position }];
+            fixture.runtime.hurt(player, undefined, 'entity_attack', 50);
+
+            const item = fixture.runtime.droppedItems.spawn(
+                { ...player.position },
+                { stack: { name: 'minecraft:cobblestone', count: 1 } }
+            );
+            for (let tick = 1; tick <= 20; tick += 1) fixture.runtime.tick(tick);
+
+            expect(world.given).toEqual([]);
+            expect(item?.removed).toBeUndefined();
+
+            fixture.runtime.revive(player.id);
+            for (let tick = 21; tick <= 40; tick += 1) fixture.runtime.tick(tick);
+            expect(item?.removed).toBe('picked_up');
+        });
+
         it('comes back fed, with full lungs and a body at rest, and the log says so', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);

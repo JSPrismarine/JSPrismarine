@@ -28,6 +28,8 @@ import type { BlockMining } from '../world/BlockMining';
 import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import type { World } from '../world/World';
 import { respawnPointOf } from '../testing/respawnPoint.test.helper';
+import ContainerEntry from '../inventory/ContainerEntry';
+import { Item } from '../item/Item';
 
 /**
  * Runs `n` ticks, the way the world does: the input step, the player's actor and its own part,
@@ -617,6 +619,96 @@ describe("PlayerSession's player", () => {
                 y: 64 + EYE_HEIGHT,
                 z: 0
             });
+        });
+
+        it('drops the inventory, armor and off hand where the player died, without keepInventory', async () => {
+            const { session, player, dropped } = fakePlayer({ underwater: true, gameRules: { keepinventory: false } });
+            const inventory = player.getInventory();
+            inventory.setItem(3, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 5 }));
+            inventory
+                .getArmor()
+                .setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_helmet' }), count: 1 }));
+            inventory
+                .getOffhand()
+                .setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:torch' }), count: 2 }));
+            inventory.setItem(
+                4,
+                new ContainerEntry({
+                    item: new Item({ name: 'minecraft:diamond_sword' }).withEnchantments({
+                        'minecraft:vanishing_curse': 1
+                    }),
+                    count: 1
+                })
+            );
+            inventory.setCursor(new Item({ name: 'minecraft:apple' }));
+            player.getCraftingInput().set(0, new Item({ name: 'minecraft:oak_planks' }));
+            player.setFood(10);
+            await session.getActor()?.setHealth(1);
+
+            await tick(session, MAX_AIR_TICKS + 20);
+
+            // The cursed sword is destroyed rather than dropped. The cursor and the crafting grid
+            // go too, or a later close would hand them back.
+            expect(dropped.map((item) => [item.getName(), item.count])).toEqual([
+                ['minecraft:stone', 5],
+                ['minecraft:iron_helmet', 1],
+                ['minecraft:torch', 2],
+                ['minecraft:apple', 1],
+                ['minecraft:oak_planks', 1]
+            ]);
+            expect(inventory.getCursor()).toBeNull();
+            expect(player.getCraftingInput().isEmpty()).toBe(true);
+            expect(inventory.getItem(3).getName()).toBe('minecraft:air');
+            expect(inventory.getItem(4).getName()).toBe('minecraft:air');
+            expect(inventory.getArmor().getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:air');
+        });
+
+        it('keeps the inventory and experience through a death with keepInventory', async () => {
+            const { session, player, dropped } = fakePlayer({ underwater: true, gameRules: { keepinventory: true } });
+            player
+                .getInventory()
+                .setItem(3, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 5 }));
+            player.getExperience().setLevel(12);
+            player.setFood(10);
+            await session.getActor()?.setHealth(1);
+            await tick(session, MAX_AIR_TICKS + 20);
+
+            session.requestRespawn();
+            session.getServer().getRespawnRequests().admit();
+
+            expect(dropped).toEqual([]);
+            expect(player.getInventory().getEntry(3)?.getCount()).toBe(5);
+            expect(player.getExperience().getLevel()).toBe(12);
+        });
+
+        it('keeps what the rule said at the death, though it changes before the respawn', async () => {
+            const gameRules: Record<string, boolean> = { keepinventory: true };
+            const { session, player, dropped } = fakePlayer({ underwater: true, gameRules });
+            player.getExperience().setLevel(12);
+            player.setFood(10);
+            await session.getActor()?.setHealth(1);
+            await tick(session, MAX_AIR_TICKS + 20);
+
+            gameRules.keepinventory = false;
+            session.requestRespawn();
+            session.getServer().getRespawnRequests().admit();
+
+            expect(dropped).toEqual([]);
+            expect(player.getExperience().getLevel()).toBe(12);
+        });
+
+        it('loses the experience through a death without keepInventory', async () => {
+            const { session, player } = fakePlayer({ underwater: true, gameRules: { keepinventory: false } });
+            player.getExperience().setLevel(12);
+            player.setFood(10);
+            await session.getActor()?.setHealth(1);
+            await tick(session, MAX_AIR_TICKS + 20);
+
+            session.requestRespawn();
+            session.getServer().getRespawnRequests().admit();
+
+            expect(player.getExperience().getLevel()).toBe(0);
         });
 
         it('tells the client it is alive again as a Bedrock server does, without moving it', async () => {

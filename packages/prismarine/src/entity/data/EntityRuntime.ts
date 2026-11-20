@@ -1205,7 +1205,9 @@ export class EntityRuntime implements EntityScene {
             itemsWithin: (x, z, radius) => this.index.itemsWithin(x, z, radius),
             collisionAt: (position) => this.navigation().collisionAt(position),
             blockAt: (position) => this.navigation().blockAt(position),
-            players: () => this.host.players(),
+            // A dead player stays in the store while its death screen is up, where its own
+            // death drop lies, and would take it straight back.
+            players: () => this.host.players().filter((player) => !this.dying.has(player.id)),
             minY: () => this.world.level.minY,
             maxY: () => this.world.level.maxY,
             gameTime: () => this.world.level.gameTime(),
