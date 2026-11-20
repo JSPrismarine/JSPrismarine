@@ -177,6 +177,11 @@ describe('command', () => {
             expect(teleport?.description).toBeDefined();
             // Several forms: a destination, or targets and a position.
             expect(teleport?.usage.length).toBeGreaterThan(1);
+            // A list capped like /help's says so, exactly where /help says more forms exist.
+            for (const command of reference) {
+                const helpCapped = commandManager.usageLines(command.name).some((line) => line.includes('More forms'));
+                expect(command.moreUsage === true, command.name).toBe(helpCapped);
+            }
         });
 
         it('should dispatch a vanilla command through the command layer', async () => {
