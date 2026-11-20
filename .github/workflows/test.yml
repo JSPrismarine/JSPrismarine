@@ -1,10 +1,14 @@
 name: Unit & Integration Tests
 on:
-    # PRs test branch commits; pushes test the merged result on master.
+    # PRs test branch commits; pushes test the merged result on master. Both run only the suites
+    # their changes reach. The nightly run, and a manual one, run every suite.
     push:
         branches:
             - master
     pull_request:
+    schedule:
+        - cron: '41 3 * * *'
+    workflow_dispatch:
 
 env:
     GIT_CONFIG_COUNT: '1'
@@ -15,15 +19,18 @@ env:
 # A newer pull request push supersedes the old run. A push to master always finishes: its caches
 # are the ones pull requests restore, and its Codecov upload is the base they compare against.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'push' && 'push' || github.event_name }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     # A change that touches no package code or dependencies (docs, the docs site, other workflows)
     # skips every job below, and a skipped job passes branch rules. A push to master also skips
-    # typecheck when the merged pull request already passed it on the same tree. The Vitest jobs
-    # never reuse a pull request's result: a pull request runs only the suites its diff reaches,
-    # so master runs them all.
+    # typecheck when the merged pull request already passed it on the same tree.
+    #
+    # `since` is the commit the Vitest jobs pass to `--changed`, so they run only the suites the
+    # changes since then reach. A pull request compares with its base. A push compares with the
+    # last master commit whose run passed, which covers every commit since, a failed one included.
+    # When there is none, and on the nightly and manual runs, `since` is empty and every suite runs.
     #
     # The release pull request runs typecheck alone. Changesets rewrites it after every push to
     # master, and it changes only versions, changelogs and consumed changesets, on top of code
@@ -37,9 +44,10 @@ jobs:
             contents: read
             pull-requests: read
         outputs:
-            code: ${{ steps.filter.outputs.code }}
-            tests: ${{ steps.filter.outputs.code == 'true' && github.head_ref != 'changeset-release/master' }}
+            code: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true' }}
+            tests: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true') && github.head_ref != 'changeset-release/master' }}
             passed: ${{ steps.reuse.outputs.passed || '[]' }}
+            since: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || steps.since.outputs.sha || '' }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
             # - uses: useblacksmith/checkout@v1
@@ -54,8 +62,28 @@ jobs:
                   GITHUB_TOKEN: ${{ github.token }}
               run: node .github/scripts/pr-job-results.mjs
 
+            # The newest successful push run, if master's history still leads from it to this
+            # commit. A failed lookup leaves `sha` empty, and every suite runs.
+            - name: Find the last master commit whose tests passed
+              id: since
+              if: ${{ github.event_name == 'push' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  sha="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?branch=master&event=push&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // empty')"
+                  if [ -z "$sha" ]; then echo 'No passing run on master; running every suite.'; exit 0; fi
+                  status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${sha}...${GITHUB_SHA}" --jq .status)"
+                  if [ "$status" != ahead ] && [ "$status" != identical ]; then
+                      echo "${sha} is not an ancestor of ${GITHUB_SHA} (${status}); running every suite."
+                      exit 0
+                  fi
+                  echo "Running the suites the changes since ${sha} reach."
+                  echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
             - name: Filter changed paths
               id: filter
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
               uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
               with:
                   filters: |
@@ -81,11 +109,11 @@ jobs:
                           - 'docs/plans/data-driven-vanilla.md'
                           - 'docs/research/edition-behavior-differences.md'
 
-    # How many shards each Vitest suite gets. A pull request runs only the files its diff reaches,
-    # usually a few dozen, and every shard pays for a checkout and an install before its first
-    # test. This counts the files each suite selects and gives it a shard per 300 unit files or per
-    # 15 real-data files, whose suites boot servers and generate worlds, up to four. A push to master
-    # runs every file in four shards without counting.
+    # How many shards each Vitest suite gets. A run with a `since` commit runs only the files its
+    # changes reach, usually a few dozen, and every shard pays for a checkout and an install before
+    # its first test. This counts the files each suite selects and gives it a shard per 300 unit
+    # files or per 15 real-data files, whose suites boot servers and generate worlds, up to four. A
+    # run of every file gets four shards without counting.
     plan:
         name: Size the test shards
         needs: changes
@@ -99,7 +127,7 @@ jobs:
         steps:
             # - uses: useblacksmith/checkout@v1
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              if: ${{ github.event_name == 'pull_request' }}
+              if: ${{ needs.changes.outputs.since != '' }}
               with:
                   fetch-depth: 0
                   # No old file contents, which are nearly all of the repository's 2 GB.
@@ -107,7 +135,7 @@ jobs:
                   filter: blob:none
 
             - name: 📦 Install
-              if: ${{ github.event_name == 'pull_request' }}
+              if: ${{ needs.changes.outputs.since != '' }}
               uses: ./.github/common/install
 
             # `--filesOnly` reads no test file, so it ignores the tag filters and counts every file
@@ -115,10 +143,10 @@ jobs:
             # add a shard. A failure leaves the outputs empty, and both suites get four shards.
             - name: Count the files each suite runs
               id: size
-              if: ${{ github.event_name == 'pull_request' }}
+              if: ${{ needs.changes.outputs.since != '' }}
               continue-on-error: true
               env:
-                  BASE: ${{ github.event.pull_request.base.sha }}
+                  BASE: ${{ needs.changes.outputs.since }}
               run: |
                   # shards <files> <files per shard> <suite>
                   shards() {
@@ -189,7 +217,7 @@ jobs:
             # A pull request runs the suites its diff reaches; master runs every suite.
             - name: 🧪 Test
               env:
-                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+                  CHANGED: ${{ needs.changes.outputs.since != '' && format('--changed={0}', needs.changes.outputs.since) || '' }}
                   # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
               # The jar check is folded away, so the step opens on what Vitest reports.
@@ -199,9 +227,9 @@ jobs:
                   echo "::endgroup::"
                   pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
-            # Named files only: a search also picked up other reports. A pull request covers only the
-            # suites it ran, so it uploads under `unit-changed` and Codecov carries the base's full
-            # `unit` report forward beside it; see `codecov.yml`.
+            # Named files only: a search also picked up other reports. A run with a `since` commit
+            # covers only the suites it ran, so it uploads under `unit-changed` and Codecov carries
+            # the last full `unit` report forward beside it; see `codecov.yml`.
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -210,7 +238,7 @@ jobs:
                   slug: JSPrismarine/JSPrismarine
                   files: coverage/lcov.info
                   disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'unit-changed' || 'unit' }}
+                  flags: ${{ needs.changes.outputs.since != '' && 'unit-changed' || 'unit' }}
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
@@ -221,7 +249,7 @@ jobs:
                   report_type: test_results
                   files: junit.xml
                   disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'unit-changed' || 'unit' }}
+                  flags: ${{ needs.changes.outputs.since != '' && 'unit-changed' || 'unit' }}
 
     # The generation host is a forked process with a lowered operating system priority, and
     # forking, priorities and signals differ by platform. Linux runs these in the job above.
@@ -249,7 +277,7 @@ jobs:
             - name: 🧪 Test
               shell: bash
               env:
-                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+                  CHANGED: ${{ needs.changes.outputs.since != '' && format('--changed={0}', needs.changes.outputs.since) || '' }}
               run: pnpm --filter @jsprismarine/chunkgen exec vitest run src/HostedGenerationPool.test.ts src/hostLifetime.test.ts src/ConcurrencyGovernor.test.ts $CHANGED
 
     typecheck:
@@ -440,7 +468,7 @@ jobs:
             # so the files that name it are every file that can have one.
             - name: 🧪 Test
               env:
-                  CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
+                  CHANGED: ${{ needs.changes.outputs.since != '' && format('--changed={0}', needs.changes.outputs.since) || '' }}
                   # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
               run: |
@@ -448,9 +476,9 @@ jobs:
                   echo "${#files[@]} files declare a real-data test"
                   pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${files[@]}"
 
-            # Named files only: a search also picked up other reports. A pull request covers only the
-            # suites it ran, so it uploads under `real-data-changed` and Codecov carries the base's full
-            # `real-data` report forward beside it; see `codecov.yml`.
+            # Named files only: a search also picked up other reports. A run with a `since` commit
+            # covers only the suites it ran, so it uploads under `real-data-changed` and Codecov
+            # carries the last full `real-data` report forward beside it; see `codecov.yml`.
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -459,7 +487,7 @@ jobs:
                   slug: JSPrismarine/JSPrismarine
                   files: coverage/lcov.info
                   disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
+                  flags: ${{ needs.changes.outputs.since != '' && 'real-data-changed' || 'real-data' }}
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
@@ -470,7 +498,7 @@ jobs:
                   report_type: test_results
                   files: junit.xml
                   disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
+                  flags: ${{ needs.changes.outputs.since != '' && 'real-data-changed' || 'real-data' }}
 
     # Suites tagged `bedrock-server` boot the pinned Bedrock Dedicated Server and check what we
     # read and write against what it reads and writes, LevelDB first. They take minutes, so they

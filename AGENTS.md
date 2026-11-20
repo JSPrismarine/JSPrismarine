@@ -232,8 +232,9 @@ by biome, `/locate`, or portals between dimensions.
   reruns failed files until they pass. The first run in a fresh checkout or worktree is a full run
   that builds the records. It cannot see a file no test loaded, such as a new `.env` or
   `__mocks__` file, or a file whose modification time a checkout set in the past, so run the
-  relevant suites in full once before you finish. CI uses `--changed` against the pull request
-  base instead, because that baseline is the same on every machine.
+  relevant suites in full once before you finish. CI uses `--changed` instead, against the pull
+  request base or, on master, the last master commit whose tests passed, because those baselines
+  are the same on every machine. A nightly run tests every suite.
 - Run the relevant checks for the change. The root scripts include `pnpm run build`,
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
