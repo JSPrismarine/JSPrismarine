@@ -875,6 +875,11 @@ export const REGISTRY_LOSSES = [
 export interface BedrockBiomeLoss {
     /** The Bedrock biome identifier. */
     readonly bedrockId: string;
+    /**
+     * The first pinned Java release with a biome that maps onto it. The loss holds for the tables
+     * of older releases only; absent when no pinned Java release has one.
+     */
+    readonly javaSince?: string;
     readonly reason: string;
     readonly reference: string;
 }
@@ -924,6 +929,7 @@ export const BEDROCK_BIOME_LOSSES = [
     { bedrockId: 'minecraft:forest_hills', ...LEGACY_TERRAIN_VARIANT },
     {
         bedrockId: 'minecraft:ice_caves',
+        javaSince: '26.4-snapshot-10',
         reason:
             'Listed from Bedrock 1.26.60 with id 196, and absent from Java 26.3. The pinned Bedrock ' +
             'Dedicated Server sends no definition for it and ships no biome file for it, so no ' +

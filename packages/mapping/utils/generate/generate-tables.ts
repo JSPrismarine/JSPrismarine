@@ -16,6 +16,13 @@
  * from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or
  * `JSP_JAVA_HOME` point at one).
  *
+ * GeyserMC's tables are made for one Java release, `geyserMappings.javaVersion`
+ * in `sources.json`. For a newer release, the block states and identifiers
+ * that release shares with Geyser's are joined through Geyser's own release's
+ * reports, and the ones it adds are read through the reviewed rules in
+ * `BLOCKS_AFTER_GEYSER` and the same-name fallback the item and biome joins
+ * describe.
+ *
  * The generator refuses to emit when any Java identifier has neither a
  * mapping nor a reviewed loss entry, and when any produced Bedrock block
  * state is not in the pinned palette. Every refusal is a thrown error.
@@ -28,8 +35,10 @@ import { fileURLToPath } from 'node:url';
 import { blockPaletteSnapshotPath } from '@jsprismarine/minecraft/datagen/paths';
 
 // The pair resolver of the package that owns `sources.json`; generator scripts are not published.
+import { compareJavaReleases } from '../../../bedrock-data/utils/fetch/manifest.ts';
 import { resolveJavaBedrockPair } from '../../../bedrock-data/utils/java/release.ts';
 
+import type { BedrockBiomeLoss } from '../../src/lossList.ts';
 import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
 import { SERVER_SIDE_REGISTRIES } from '../../src/packRegistries.ts';
 import type { JavaNbtCompound } from './java-nbt.ts';
@@ -49,13 +58,14 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'
 
 interface SourcesManifest {
     bedrockSamples: { tag: string; commit: string };
-    geyserMappings: { commit: string };
+    geyserMappings: { commit: string; javaVersion: string };
 }
 
 // sources.json is parsed JSON; only the pins the generator reads are typed.
 const sources = readJson(join(repoRoot, 'packages/bedrock-data/sources.json')) as SourcesManifest;
 const javaVersion = pair.java;
 const geyserCommit = sources.geyserMappings.commit;
+const geyserJavaVersion = sources.geyserMappings.javaVersion;
 
 const geyserDir = join(cacheRoot, 'geyser-mappings', geyserCommit, 'unpacked', `mappings-${geyserCommit}`);
 const samplesDir = join(
@@ -66,8 +76,8 @@ const samplesDir = join(
     `bedrock-samples-${sources.bedrockSamples.commit}`,
     'metadata/vanilladata_modules'
 );
-const serverJar = join(cacheRoot, 'java-server', javaVersion, 'server.jar');
-for (const required of [geyserDir, samplesDir, serverJar]) {
+const serverJarOf = (release: string): string => join(cacheRoot, 'java-server', release, 'server.jar');
+for (const required of [geyserDir, samplesDir, serverJarOf(javaVersion)]) {
     if (!existsSync(required)) {
         throw new Error(
             `${required} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources\` first.`
@@ -106,13 +116,27 @@ const findJava = (): string => {
     throw new Error('No JDK >= 25 found. Point JAVA_HOME or JSP_JAVA_HOME at one.');
 };
 
-const reportsRoot = join(cacheRoot, 'java-reports', javaVersion);
-const generatedDir = join(reportsRoot, 'generated');
-// Both halves of the run, because both are read below and a cache carrying only the reports
-// would otherwise fail much later, on a missing directory rather than on a missing generator.
-const generatedOutputs = ['reports/blocks.json', 'data/minecraft/worldgen/biome', 'data/minecraft/enchantment'];
-if (!generatedOutputs.every((output) => existsSync(join(generatedDir, output)))) {
-    console.log(`Running the Java ${javaVersion} data generator into ${generatedDir}`);
+/**
+ * The data generator output of one Java release, run against its hash-verified jar when the
+ * cache does not hold it yet.
+ *
+ * @param release - A Java release id `sources.json` pins.
+ * @returns The directory the reports and the data directories are under.
+ */
+const javaGeneratedDir = (release: string): string => {
+    const reportsRoot = join(cacheRoot, 'java-reports', release);
+    const generatedDir = join(reportsRoot, 'generated');
+    // Both halves of the run, because both are read below and a cache carrying only the reports
+    // would otherwise fail much later, on a missing directory rather than on a missing generator.
+    const generatedOutputs = ['reports/blocks.json', 'data/minecraft/worldgen/biome', 'data/minecraft/enchantment'];
+    if (generatedOutputs.every((output) => existsSync(join(generatedDir, output)))) return generatedDir;
+    const serverJar = serverJarOf(release);
+    if (!existsSync(serverJar)) {
+        throw new Error(
+            `${serverJar} is missing. Run \`pnpm --filter @jsprismarine/bedrock-data run fetch:sources --java ${release}\` first.`
+        );
+    }
+    console.log(`Running the Java ${release} data generator into ${generatedDir}`);
     mkdirSync(generatedDir, { recursive: true });
     execFileSync(
         findJava(),
@@ -128,7 +152,9 @@ if (!generatedOutputs.every((output) => existsSync(join(generatedDir, output))))
         ],
         { cwd: reportsRoot, stdio: 'inherit' }
     );
-}
+    return generatedDir;
+};
+const generatedDir = javaGeneratedDir(javaVersion);
 
 // ---------------------------------------------------------------------------
 // Inputs
@@ -144,7 +170,12 @@ interface JavaBlock {
     states: JavaBlockState[];
 }
 // Mojang's reports are parsed JSON the compiler cannot see the shape of.
-const javaBlocks = readJson(join(generatedDir, 'reports/blocks.json')) as Record<string, JavaBlock>;
+const readJavaBlocks = (directory: string): Record<string, JavaBlock> =>
+    readJson(join(directory, 'reports/blocks.json')) as Record<string, JavaBlock>;
+const javaBlocks = readJavaBlocks(generatedDir);
+/** The blocks of the Java release GeyserMC's `blocks.nbt` is positional over. */
+const geyserJavaBlocks =
+    geyserJavaVersion === javaVersion ? javaBlocks : readJavaBlocks(javaGeneratedDir(geyserJavaVersion));
 const javaRegistries = readJson(join(generatedDir, 'reports/registries.json')) as Record<
     string,
     { entries: Record<string, unknown> }
@@ -273,17 +304,16 @@ const writeTable = (fileName: string, table: object): void => {
 const mappingList = geyserBlocks['bedrock_mappings'];
 if (!Array.isArray(mappingList)) throw new Error('blocks.nbt has no bedrock_mappings list');
 
-// The join is positional: entry i belongs to Java block state id i, and
-// reports/blocks.json supplies the ordering. The report lists blocks
-// alphabetically while ids follow registry order, so each block's ids are
-// verified against its own first id. The lookup arithmetic also needs each
-// block's states in cross-product order, so that is verified too.
+// The join is positional: entry i belongs to state id i of Geyser's Java
+// release, and that release's reports/blocks.json supplies the ordering. The
+// report lists blocks alphabetically while ids follow registry order, so each
+// block's ids are verified against its own first id. The lookup arithmetic
+// also needs each block's states in cross-product order, so that is verified
+// too, for the release the tables are generated for.
 const blockNames = Object.keys(javaBlocks);
-let stateCount = 0;
 for (const name of blockNames) {
     const block = javaBlocks[name];
     if (!block) continue;
-    stateCount += block.states.length;
     const firstId = block.states[0]?.id ?? 0;
     // State ids follow the cross product over the properties in alphabetical
     // order, the last one varying fastest; the report's `properties` object
@@ -309,9 +339,134 @@ for (const name of blockNames) {
         }
     });
 }
-if (stateCount !== mappingList.length) {
-    throw new Error(`Java reports ${stateCount} states but blocks.nbt has ${mappingList.length} entries`);
+const geyserStateCount = Object.values(geyserJavaBlocks).reduce((total, block) => total + block.states.length, 0);
+if (geyserStateCount !== mappingList.length) {
+    throw new Error(
+        `Java ${geyserJavaVersion} reports ${geyserStateCount} states but blocks.nbt has ${mappingList.length} entries`
+    );
 }
+
+/** Geyser's entries by Java state, so a newer release's states find theirs by name and properties. */
+const geyserEntries = new Map<string, JavaNbtCompound>();
+for (const [name, block] of Object.entries(geyserJavaBlocks)) {
+    for (const state of block.states) {
+        const entry = mappingList[state.id];
+        if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+            throw new Error(`${name}: blocks.nbt entry ${state.id} is not a compound`);
+        }
+        geyserEntries.set(canonical(name, state.properties ?? {}), entry);
+    }
+}
+
+/** How a Java block state newer than Geyser's release is mapped: through a block Geyser maps. */
+interface BlockAfterGeyser {
+    /**
+     * The Java block of Geyser's release whose mapping this block shares. Every property it has,
+     * this block has with the same values, so each state of this block reads the template state
+     * with the same values.
+     */
+    readonly like: string;
+    /**
+     * Replaces the first `from` in the template's Bedrock identifier with `to`. Absent when the
+     * block maps onto the template's own Bedrock block.
+     */
+    readonly rename?: readonly [from: string, to: string];
+    /** The Java properties the template lacks. Each is dropped, unless `STATES_FROM_JAVA` reads it. */
+    readonly extra?: readonly string[];
+}
+
+/** The slab, stairs and wall of one new stone-like material, shaped like the stone brick ones. */
+const stoneFamily = (material: string): Record<string, BlockAfterGeyser> => ({
+    [`minecraft:${material}_slab`]: { like: 'minecraft:stone_brick_slab', rename: ['stone_brick', material] },
+    [`minecraft:${material}_stairs`]: { like: 'minecraft:stone_brick_stairs', rename: ['stone_brick', material] },
+    [`minecraft:${material}_wall`]: { like: 'minecraft:stone_brick_wall', rename: ['stone_brick', material] }
+});
+
+/** A new block with no properties, on a Bedrock block of the same name with no states. */
+const plainBlock = (name: string): BlockAfterGeyser => ({ like: 'minecraft:stone', rename: ['stone', name] });
+
+/**
+ * The Java blocks and states newer than GeyserMC's release, each mapped through a block Geyser
+ * maps. Every one was checked against the Bedrock block of the paired palette: the template's
+ * Bedrock block has the states the new one has, so `targetOf` validating the result against the
+ * palette is what keeps a wrong template from passing.
+ *
+ * 26.4 adds 25 blocks, every one of which Bedrock 2259 has under the same name, and gives the
+ * jukebox a `playlist_mode` property Bedrock's jukebox has no state for.
+ */
+const BLOCKS_AFTER_GEYSER: Readonly<Record<string, BlockAfterGeyser>> = {
+    'minecraft:brittle_ice': { like: 'minecraft:frosted_ice', rename: ['frosted_ice', 'brittle_ice'] },
+    'minecraft:calcite_pillar': { like: 'minecraft:purpur_pillar', rename: ['purpur', 'calcite'] },
+    'minecraft:chiseled_packed_ice': plainBlock('chiseled_packed_ice'),
+    'minecraft:chiseled_soulshale': plainBlock('chiseled_soulshale'),
+    'minecraft:ice_crystal': { like: 'minecraft:amethyst_cluster', rename: ['amethyst_cluster', 'ice_crystal'] },
+    // Bedrock's icicle is pointed dripstone with one more state, which `STATES_FROM_JAVA` reads.
+    'minecraft:icicle': {
+        like: 'minecraft:pointed_dripstone',
+        rename: ['pointed_dripstone', 'icicle'],
+        extra: ['attached']
+    },
+    'minecraft:jukebox': { like: 'minecraft:jukebox', extra: ['playlist_mode'] },
+    'minecraft:packed_ice_bricks': plainBlock('packed_ice_bricks'),
+    'minecraft:polished_calcite': plainBlock('polished_calcite'),
+    'minecraft:polished_calcite_bricks': plainBlock('polished_calcite_bricks'),
+    'minecraft:snow_bricks': plainBlock('snow_bricks'),
+    ...stoneFamily('calcite'),
+    ...stoneFamily('packed_ice_brick'),
+    ...stoneFamily('polished_calcite'),
+    ...stoneFamily('polished_calcite_brick'),
+    ...stoneFamily('snow_brick')
+};
+
+/** Checks that a rule's template has a subset of the block's properties, with the same values. */
+const checkBlockAfterGeyser = (name: string, rule: BlockAfterGeyser): void => {
+    const own = javaBlocks[name]?.properties ?? {};
+    const template = geyserJavaBlocks[rule.like];
+    if (template === undefined)
+        throw new Error(`${name}: template ${rule.like} is not a Java ${geyserJavaVersion} block`);
+    const templateProperties = template.properties ?? {};
+    for (const [property, values] of Object.entries(templateProperties)) {
+        if ([...(own[property] ?? [])].sort().join() !== [...values].sort().join()) {
+            throw new Error(`${name}: ${property} does not take the values it takes on ${rule.like}`);
+        }
+    }
+    for (const property of Object.keys(own)) {
+        if (!(property in templateProperties) && !(rule.extra ?? []).includes(property)) {
+            throw new Error(`${name}: ${property} is not on ${rule.like}; list it under the rule's extra`);
+        }
+    }
+};
+
+const usedRules = new Set<string>();
+/** The Geyser entry one Java state maps through: its own, or its rule's template state's. */
+const geyserEntryOf = (name: string, properties: Record<string, string>): JavaNbtCompound => {
+    const own = geyserEntries.get(canonical(name, properties));
+    if (own !== undefined) return own;
+    const rule = BLOCKS_AFTER_GEYSER[name];
+    if (rule === undefined) {
+        throw new Error(
+            `${canonical(name, properties)} is not in GeyserMC's Java ${geyserJavaVersion} table and BLOCKS_AFTER_GEYSER has no rule for ${name}`
+        );
+    }
+    if (!usedRules.has(name)) checkBlockAfterGeyser(name, rule);
+    usedRules.add(name);
+    const templateProperties = Object.fromEntries(
+        Object.keys(geyserJavaBlocks[rule.like]?.properties ?? {}).map((property) => [
+            property,
+            properties[property] ?? ''
+        ])
+    );
+    const template = geyserEntries.get(canonical(rule.like, templateProperties));
+    if (template === undefined)
+        throw new Error(`${name}: ${rule.like} has no state ${canonical(rule.like, templateProperties)}`);
+    if (rule.rename === undefined) return template;
+    // The NBT entry carries at most `bedrock_identifier` and `state`.
+    const templateName = (template as GeyserBlockEntry).bedrock_identifier ?? rule.like.split(':', 2)[1] ?? '';
+    const [from, to] = rule.rename;
+    if (!templateName.includes(from))
+        throw new Error(`${name}: ${rule.like} maps to ${templateName}, which has no ${from}`);
+    return { ...template, bedrock_identifier: templateName.replace(from, to) };
+};
 
 interface PaletteState {
     name: string;
@@ -325,7 +480,11 @@ interface PaletteState {
  * Geyser's `blocks.nbt` targets the oldest Bedrock release Geyser supports and adds the states a
  * newer release brought in code. 1.26.60 gave three blocks the connection states Java has always
  * had, so each value here is the Java state's own: `true` and `false` become the bits Bedrock
- * stores, and redstone's `none`, `side` and `up` carry over as they are.
+ * stores, and redstone's `none`, `side` and `up` carry over as they are. The 1.26.70 preview gave
+ * both repeaters `locked` and scaffolding `bottom`, which Java has always had too.
+ *
+ * A state is read only for a palette that declares it, so one table serves the Bedrock releases
+ * before and after the state arrived.
  */
 const STATES_FROM_JAVA: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     'minecraft:chorus_plant': {
@@ -336,6 +495,8 @@ const STATES_FROM_JAVA: Readonly<Record<string, Readonly<Record<string, string>>
         'minecraft:connection_up': 'up',
         'minecraft:connection_west': 'west'
     },
+    // Bedrock's icicle hangs on to a block below it the way Java's does.
+    'minecraft:icicle': { attached_bit: 'attached' },
     'minecraft:fire': {
         'minecraft:connection_east': 'east',
         'minecraft:connection_north': 'north',
@@ -343,12 +504,15 @@ const STATES_FROM_JAVA: Readonly<Record<string, Readonly<Record<string, string>>
         'minecraft:connection_up': 'up',
         'minecraft:connection_west': 'west'
     },
+    'minecraft:powered_repeater': { locked: 'locked' },
     'minecraft:redstone_wire': {
         redstone_east: 'east',
         redstone_north: 'north',
         redstone_south: 'south',
         redstone_west: 'west'
-    }
+    },
+    'minecraft:scaffolding': { bottom: 'bottom' },
+    'minecraft:unpowered_repeater': { locked: 'locked' }
 };
 
 /** A Java state value as Bedrock stores it: a boolean is a bit, anything else is unchanged. */
@@ -371,6 +535,7 @@ const targetOf = (javaName: string, entry: JavaNbtCompound, javaState: Record<st
         states[key] = normalize(value);
     }
     for (const [key, javaProperty] of Object.entries(STATES_FROM_JAVA[bedrockName] ?? {})) {
+        if (!(key in (palette.states[bedrockName] ?? {}))) continue;
         const value = javaState[javaProperty];
         if (value === undefined) throw new Error(`${javaName} has no ${javaProperty} for ${bedrockName}'s ${key}`);
         if (key in states) throw new Error(`${javaName}: the Geyser table already carries ${key}; drop the rule`);
@@ -406,12 +571,12 @@ for (const name of blockNames) {
     const block = javaBlocks[name];
     if (!block) continue;
     for (const state of block.states) {
-        const entry = mappingList[state.id];
-        if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
-            throw new Error(`${name}: blocks.nbt entry ${state.id} is not a compound`);
-        }
-        canonicalByStateId[state.id] = targetOf(name, entry, state.properties);
+        canonicalByStateId[state.id] = targetOf(name, geyserEntryOf(name, state.properties ?? {}), state.properties);
     }
+}
+if (javaVersion !== geyserJavaVersion) {
+    const unused = Object.keys(BLOCKS_AFTER_GEYSER).filter((name) => !usedRules.has(name));
+    if (unused.length > 0) throw new Error(`BLOCKS_AFTER_GEYSER rules no Java ${javaVersion} state needs: ${unused}`);
 }
 
 // The palette groups the distinct targets by Bedrock identifier so the name
@@ -490,10 +655,19 @@ writeTable('blocks.json', {
 // Items: GeyserMC items.json, validated against the BDS item table capture
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether a Java identifier Geyser has no entry for may fall back to the Bedrock identifier of the
+ * same name: only when the tables are for a release newer than Geyser's, which is where an
+ * identifier Geyser has never seen comes from. The caller still checks that the pinned Bedrock
+ * side has the name.
+ */
+const sameNameAfterGeyser = javaVersion !== geyserJavaVersion;
+
 const javaItems = Object.keys(javaRegistries['minecraft:item']?.entries ?? {}).sort();
 const itemsTable: Record<string, { bedrockIdentifier: string; bedrockData?: number }> = {};
 for (const javaId of javaItems) {
-    const entry = geyserItems[javaId];
+    const entry: GeyserItemEntry | undefined =
+        geyserItems[javaId] ?? (sameNameAfterGeyser ? { bedrock_identifier: javaId } : undefined);
     if (entry === undefined) throw new Error(`Java item ${javaId} has no GeyserMC mapping`);
     if (!(entry.bedrock_identifier in bedrockItemTable)) {
         throw new Error(`${javaId} maps to ${entry.bedrock_identifier}, which the ${bedrockVersion} item table lacks`);
@@ -584,8 +758,10 @@ const javaBiomeFiles = readdirSync(join(generatedDir, 'data/minecraft/worldgen/b
     .map((file) => `minecraft:${file.replace(/\.json$/, '')}`)
     .sort();
 const biomesTable: Record<string, string> = {};
+const biomeIdByName = new Map(bedrockBiomes.data_items.map((item) => [item.name, item.id]));
 for (const javaId of javaBiomeFiles) {
-    const entry = geyserBiomes[javaId];
+    const sameNameId = sameNameAfterGeyser ? biomeIdByName.get(javaId) : undefined;
+    const entry = geyserBiomes[javaId] ?? (sameNameId === undefined ? undefined : { bedrock_id: sameNameId });
     if (entry === undefined) throw new Error(`Java biome ${javaId} has no GeyserMC mapping`);
     const bedrockName = biomeIdToName.get(entry.bedrock_id);
     if (bedrockName === undefined) {
@@ -616,7 +792,12 @@ for (const [javaId, bedrockName] of Object.entries(biomesTable)) {
     javaByBedrockBiome.set(bedrockName, javaId);
 }
 
-const bedrockBiomeLossIds = new Set(BEDROCK_BIOME_LOSSES.map((loss) => loss.bedrockId));
+// A loss that a Java release from `javaSince` on maps onto is not one in that release's tables.
+const bedrockBiomeLossIds = new Set<string>(
+    BEDROCK_BIOME_LOSSES.filter(
+        (loss: BedrockBiomeLoss) => loss.javaSince === undefined || compareJavaReleases(javaVersion, loss.javaSince) < 0
+    ).map((loss) => loss.bedrockId)
+);
 const bedrockBiomeTable: Record<string, { id: number; java?: string }> = {};
 const compareCodeUnits = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
 for (const [id, bedrockName] of [...biomeIdToName].sort(([, left], [, right]) => compareCodeUnits(left, right))) {
@@ -767,7 +948,7 @@ writeTable('javaIdentifiers.json', {
 });
 
 console.log(
-    `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments, ${Object.keys(mobEffectsTable).length} mob effects, ${Object.keys(potionsTable).length} potions, and a census of ${Object.values(census).reduce((total, ids) => total + ids.length, 0)} identifiers over ${censusRegistries.length} registries with no Bedrock table.`
+    `Tables generated: ${Object.keys(blocksTable).length} blocks (${canonicalByStateId.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments, ${Object.keys(mobEffectsTable).length} mob effects, ${Object.keys(potionsTable).length} potions, and a census of ${Object.values(census).reduce((total, ids) => total + ids.length, 0)} identifiers over ${censusRegistries.length} registries with no Bedrock table.`
 );
 
 mkdirSync(tablesDir, { recursive: true });

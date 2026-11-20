@@ -158,9 +158,13 @@
     "geyserMappings": {
         "$comment": [
             "GeyserMC/mappings, the MIT one-way Java to Bedrock mapping tables. Pinned to the",
-            "master head resolved on 2026-10-24."
+            "master head resolved on 2026-10-24. `javaVersion` is the Java release those tables",
+            "were made for: `blocks.nbt` is positional over that release's block state ids, so",
+            "the mapping generator reads that release's reports to join it, whichever release",
+            "it is generating for."
         ],
         "repo": "GeyserMC/mappings",
+        "javaVersion": "26.3",
         "branch": "master",
         "commit": "81700ab543c1f4e9f9041f58dac4154ecb0d0c8b",
         "url": "https://codeload.github.com/GeyserMC/mappings/zip/81700ab543c1f4e9f9041f58dac4154ecb0d0c8b",

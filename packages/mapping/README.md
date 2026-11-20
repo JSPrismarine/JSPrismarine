@@ -116,7 +116,11 @@ The generated tables are committed. They come from the pinned sources in
 state ids) joined against Mojang's `reports/blocks.json`, GeyserMC `items.json` and `biomes.json`,
 and this repository's own captures of the default pinned BDS as the Bedrock source of truth. Geyser's
 `blocks.nbt` targets an older Bedrock release than the pin, so `generate-tables.ts` reads the few
-states a newer release added off the Java state, in `STATES_FROM_JAVA`. The GeyserMC data is MIT; see [NOTICE](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/mapping/NOTICE).
+states a newer release added off the Java state, in `STATES_FROM_JAVA`. It also targets one Java
+release, `geyserMappings.javaVersion` in `sources.json`. For a newer Java release the generator
+matches each block state to Geyser's by name and properties, maps each block Geyser has never
+seen through a template block Geyser does map, in `BLOCKS_AFTER_GEYSER`, and maps a new item or
+biome onto the Bedrock one of the same name. The GeyserMC data is MIT; see [NOTICE](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/mapping/NOTICE).
 
 To regenerate after a version bump:
 
