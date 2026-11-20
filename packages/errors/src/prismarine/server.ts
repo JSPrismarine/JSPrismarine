@@ -102,6 +102,12 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
      */
     UnsupportedGeneratorKey:
         "Invalid generator with id {generator}. The `generator` key is deprecated: write `preset` as '{defaultWorldPreset}' or '{flatWorldPreset}', or a `dimensions` entry whose generator type is one of: {knownKinds}.",
+    /**
+     * A world in `config.json` lists an experiment the server does not implement, often a typo.
+     * Remove it, or spell it as one of the ids the message lists.
+     */
+    UnknownWorldExperiment:
+        'Unknown world experiment {experiment}. The experiments this server implements are: {known}.',
     /** A coordinate mixes `^` with `~` or a number, which commands do not allow. */
     MixedCaretNotation: 'invalid input',
     /**

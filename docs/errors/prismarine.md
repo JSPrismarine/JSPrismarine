@@ -2477,6 +2477,15 @@ Thrown as `PrismarineServerErrors.UnknownSelectorType`, which extends `Error`.
 
 A target selector starts with a letter that is not `a`, `e`, `p`, `r` or `s`.
 
+### `PRISMARINE_UNKNOWN_WORLD_EXPERIMENT`
+
+`Unknown world experiment {experiment}. The experiments this server implements are: {known}.`
+
+Thrown as `PrismarineServerErrors.UnknownWorldExperiment`, which extends `Error`.
+
+A world in `config.json` lists an experiment the server does not implement, often a typo.
+Remove it, or spell it as one of the ids the message lists.
+
 ### `PRISMARINE_UNSUPPORTED_CONFIG_TYPE`
 
 `Unsupported config type. (Supported types: json)`
