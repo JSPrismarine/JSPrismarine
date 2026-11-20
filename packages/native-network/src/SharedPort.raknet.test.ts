@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import dgram from 'node:dgram';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
     allocateDatagramRings,
@@ -144,6 +144,10 @@ describe.skipIf(!nativeLibraryAvailable())('RakNet on a port it shares with Neth
                 await new Promise((resolve) => setTimeout(resolve, 10));
 
             expect(received).toStrictEqual(Array.from({ length: 50 }, (_, id) => id));
+            // A datagram that arrives after the 50th frame, an ACK or a resend, is counted natively
+            // when it goes into the ring and in JavaScript only once the ring is drained, so the two
+            // counts are compared once JavaScript has caught up.
+            await vi.waitFor(() => expect(source.received).toBe(shared.stats().raknet), { timeout: 5_000 });
             const stats = shared.stats();
             // Offline requests, frame sets and ACKs all went to RakNet; nothing reached libjuice's lookup.
             expect(stats.raknet).toBeGreaterThan(0);
