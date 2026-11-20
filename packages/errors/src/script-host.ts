@@ -405,6 +405,13 @@ export const ScriptHostErrors = defineErrors('script-host', {
         base: TypeError
     },
     /**
+     * A pack called a member of `@jsprismarine/server` with an argument of the wrong type, such as
+     * an object that is not a player where the member takes a `Player`, or a boss bar color the
+     * module does not name. The script sees a `TypeError`. Pass what the module's declarations in
+     * `@jsprismarine/script-types` name.
+     */
+    JspModuleArgument: { message: '{member} takes {expected} as its {argument}', base: TypeError },
+    /**
      * A script closed the forms of a player who has left. The script sees Bedrock Dedicated
      * Server's `Error`.
      */
