@@ -22,6 +22,7 @@ import {
     type SourceDescriptor
 } from '../fetch/manifest.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
+import { isRecord } from '../isRecord.ts';
 import { packageDir } from './worldgen-cache.ts';
 
 /**
@@ -69,13 +70,35 @@ export interface JarVersion {
  *
  * @param jarPath - The bundler server jar.
  * @returns The parsed file.
- * @throws Error when the jar has no `version.json`, so it is not a Minecraft server jar.
+ * @throws Error when the jar has no `version.json`, so it is not a Minecraft server jar, or when
+ * the file lacks one of the fields {@link JarVersion} lists.
  */
 export const readJarVersion = async (jarPath: string): Promise<JarVersion> => {
     const bytes = await readZipEntry(jarPath, 'version.json');
     if (bytes === undefined) throw new Error(`${jarPath} has no version.json; it is not a Minecraft server jar`);
     // Extracted game data: parsed, never executed.
-    return JSON.parse(bytes.toString('utf8')) as JarVersion;
+    const parsed: unknown = JSON.parse(bytes.toString('utf8'));
+    if (
+        !isRecord(parsed) ||
+        typeof parsed.id !== 'string' ||
+        typeof parsed.world_version !== 'number' ||
+        typeof parsed.java_version !== 'number' ||
+        !isRecord(parsed.pack_version) ||
+        typeof parsed.pack_version.data_major !== 'number' ||
+        typeof parsed.pack_version.data_minor !== 'number'
+    ) {
+        throw new Error(
+            `${jarPath} has a version.json without the id, world_version, java_version and ` +
+                'pack_version.data_major/data_minor fields a server jar declares'
+        );
+    }
+    const { data_major, data_minor } = parsed.pack_version;
+    return {
+        id: parsed.id,
+        world_version: parsed.world_version,
+        java_version: parsed.java_version,
+        pack_version: { data_major, data_minor }
+    };
 };
 
 /**
