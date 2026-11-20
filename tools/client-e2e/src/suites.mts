@@ -68,8 +68,10 @@ export interface ScenarioSuite {
 }
 
 export const suites: ScenarioSuite[] = [
+    // The gameplay scenarios, in four suites so CI can play them on four runners at once. Each
+    // suite starts on a fresh world, and keeps the order its scenarios had when they were one.
     {
-        name: 'gameplay-and-dimensions',
+        name: 'chunks-movement-and-death',
         scenarios: [
             cachedChunkDelivery,
             subChunkRequestDelivery,
@@ -84,7 +86,12 @@ export const suites: ScenarioSuite[] = [
             summonRefused,
             deathRespawn,
             deathInventory,
-            teleportWhileDead,
+            teleportWhileDead
+        ]
+    },
+    {
+        name: 'damage-and-sessions',
+        scenarios: [
             blockPlacement,
             title,
             fallDamage,
@@ -98,7 +105,12 @@ export const suites: ScenarioSuite[] = [
             rejoin,
             movementRotation,
             chat,
-            commandSyntaxError,
+            commandSyntaxError
+        ]
+    },
+    {
+        name: 'scripts-and-items',
+        scenarios: [
             scriptWorldMessage,
             scriptCustomCommand,
             scriptForm,
@@ -111,7 +123,12 @@ export const suites: ScenarioSuite[] = [
             itemRestShape,
             edgeChunkBlockChange,
             subChunkBlockChanges,
-            teleport,
+            teleport
+        ]
+    },
+    {
+        name: 'containers-and-dimensions',
+        scenarios: [
             furnace,
             chest,
             litFurnace,
