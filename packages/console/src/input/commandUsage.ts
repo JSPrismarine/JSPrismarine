@@ -4,8 +4,8 @@ import type { CommandInfo } from '@jsprismarine/console-protocol';
 export interface UsageMatch {
     command: CommandInfo;
     /**
-     * The argument being typed, counted from 0 after the command's name, or -1 while the name
-     * itself is being typed.
+     * The argument at the end of the line, counted from 0 after the command's name, or -1 while
+     * the name itself is being typed. The card follows what is typed last, not the cursor.
      */
     argument: number;
 }
@@ -20,13 +20,14 @@ export function commandIndex(commands: readonly CommandInfo[]): ReadonlyMap<stri
 }
 
 /**
- * Finds the command a console line calls and the argument at its end. A line that starts with
- * `/` is the console's own search syntax, not a command, and a first word that names no command
- * matches nothing.
+ * Finds the command a console line calls and the argument at its end. A first word that names no
+ * command matches nothing. A line may start with `/`, as in `/tp`, which the console sends to
+ * the server when the word names a command; any other `/` line is the console's own search, so
+ * it matches nothing either.
  */
 export function usageFor(line: string, index: ReadonlyMap<string, CommandInfo>): UsageMatch | undefined {
-    const trimmed = line.trimStart();
-    if (trimmed === '' || trimmed.startsWith('/')) return undefined;
+    const trimmed = line.trimStart().replace(/^\//, '');
+    if (trimmed === '') return undefined;
     const words = trimmed.split(/\s+/).filter((word) => word !== '');
     const command = index.get((words[0] ?? '').toLowerCase());
     if (command === undefined) return undefined;
