@@ -2,24 +2,12 @@ import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
 import { syncWorldClocksPacket } from '../wire/definitions/syncWorldClocks';
 import { layoutAt } from '../wire/WireLayout';
+import { SyncWorldClocksDataType } from './SyncWorldClocksDataType';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 import type { SyncWorldClocksPayload } from '../wire/definitions/syncWorldClocks';
 
-/**
- * Which alternative of the `Data` variant a `SyncWorldClocksPacket` carries. The value is the
- * alternative's index in the schema's `oneOf`, written as the varuint32 selector on the wire.
- */
-export enum SyncWorldClocksDataType {
-    /** `SyncStateData`: the current time and paused flag of every clock. */
-    SyncState = 0,
-    /** `InitializeRegistryData`: the full definition of every clock, sent on join. */
-    InitializeRegistry = 1,
-    /** `AddTimeMarkerData`: new time markers for one clock. */
-    AddTimeMarker = 2,
-    /** `RemoveTimeMarkerData`: time marker ids removed from one clock. */
-    RemoveTimeMarker = 3
-}
+export { SyncWorldClocksDataType };
 
 /** One `TimeMarkerData`: a named point on a clock that repeats every `Period` ticks. */
 export interface TimeMarker {
