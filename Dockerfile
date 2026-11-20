@@ -1,5 +1,5 @@
 # Builds and runs the dedicated server from compiled JavaScript.
-FROM eclipse-temurin:25-jdk-jammy@sha256:6ba98595487daeb441a7e93b78eac279d1d8677f541335d4ff92dd73bbd723e7 AS temurin-jdk
+FROM eclipse-temurin:25-jdk-jammy@sha256:43d6f1775a0660b561c1c42edfdf8538a89672a040961acb3730c3ccc53c53de AS temurin-jdk
 
 FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS builder
 
