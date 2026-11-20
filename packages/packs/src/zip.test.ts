@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { textFiles, writeZip } from '../fixtures/writers';
-import { createZipBudget, isZip, readZip } from './zip';
-import { ZipError } from '@jsprismarine/errors/packs';
+import { createZipBudget, isZip, readZip, writeZip as writePackZip } from './zip';
+import { PacksErrors, ZipError } from '@jsprismarine/errors/packs';
 
 const decoder = new TextDecoder();
 
@@ -86,5 +86,55 @@ describe('readZip', () => {
     it('detects the local header signature', () => {
         expect(isZip(writeZip(textFiles({ 'a.json': '{}' })))).toBe(true);
         expect(isZip(new Uint8Array([1, 2, 3, 4]))).toBe(false);
+    });
+});
+
+describe('writeZip', () => {
+    const files = textFiles({ 'manifest.json': '{}', 'scripts/main.js': `// ${'a'.repeat(200)}` });
+
+    it('stores every entry by default, so the same files give the same bytes', () => {
+        const zip = writePackZip(files);
+        const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+
+        expect(view.getUint16(8, true)).toBe(0);
+        expect(writePackZip(textFiles({ 'manifest.json': '{}', 'scripts/main.js': `// ${'a'.repeat(200)}` }))).toEqual(
+            zip
+        );
+        expect([...readZip(zip)].map(([name, data]) => [name, decoder.decode(data)])).toEqual([
+            ['manifest.json', '{}'],
+            ['scripts/main.js', `// ${'a'.repeat(200)}`]
+        ]);
+    });
+
+    it('deflates the entries that shrink when asked', () => {
+        const zip = writePackZip(files, { deflate: true });
+
+        expect(zip.byteLength).toBeLessThan(writePackZip(files).byteLength);
+        expect(decoder.decode(readZip(zip).get('scripts/main.js'))).toBe(`// ${'a'.repeat(200)}`);
+    });
+
+    it('refuses more entries than a zip without Zip64 holds', () => {
+        const many = new Map(Array.from({ length: 0x10000 }, (_, i) => [`${i}.json`, new Uint8Array()]));
+
+        expect(() => writePackZip(many)).toThrow(ZipError);
+    });
+
+    it('refuses files that fit 4 GiB until their headers are counted', () => {
+        /** Claims a size it does not hold, so the test needs no 4 GiB of memory. */
+        class Claimed extends Uint8Array {
+            public override get length(): number {
+                return 0x0fffffff;
+            }
+        }
+        const sixteen = new Map(Array.from({ length: 16 }, (_, i) => [i.toString(16), new Claimed(0)]));
+
+        expect(() => writePackZip(sixteen)).toThrow(PacksErrors.ZipTooLargeToWrite);
+    });
+
+    it('refuses a name longer than a zip records', () => {
+        const name = 'a'.repeat(0x10000);
+
+        expect(() => writePackZip(new Map([[name, new Uint8Array()]]))).toThrow(PacksErrors.ZipNameTooLong);
+        expect(readZip(writePackZip(new Map([[name.slice(1), new Uint8Array()]]))).has(name.slice(1))).toBe(true);
     });
 });

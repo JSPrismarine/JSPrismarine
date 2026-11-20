@@ -1,0 +1,5 @@
+{
+    "description": "Says hello.",
+    "minServer": "0.22.0",
+    "license": "MIT"
+}

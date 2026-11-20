@@ -21,6 +21,12 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import {
+    ADDON_INDEX_FILE,
+    ADDON_INDEX_SCHEMA_VERSION,
+    ADDON_RELEASE_TAG
+} from '../../packages/addon-tools/src/addonIndex.ts';
+import { ADDON_FILES, ADDON_MODULE_TYPES } from '../../packages/addon-tools/src/addon.ts';
 import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
@@ -832,6 +838,17 @@ function leveldbFacts() {
     };
 }
 
+/** The addon layout and index that `@jsprismarine/addon-tools` checks and writes, read from its constants. */
+function addonFacts() {
+    return {
+        'addons.files': list(ADDON_FILES.map(inlineCode)),
+        'addons.moduleTypes': list(ADDON_MODULE_TYPES.map(inlineCode)),
+        'addons.releaseTag': inlineCode(ADDON_RELEASE_TAG),
+        'addons.indexFile': inlineCode(ADDON_INDEX_FILE),
+        'addons.indexSchemaVersion': inlineCode(String(ADDON_INDEX_SCHEMA_VERSION))
+    };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -935,6 +952,7 @@ export async function loadFacts(): Promise<Facts> {
             ...scriptingFacts(),
             ...eventFacts(),
             ...prismarineEntryFacts(),
+            ...addonFacts(),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
