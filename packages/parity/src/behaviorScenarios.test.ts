@@ -4,8 +4,9 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
-import { reportCoverage, runScenarios } from './behaviorScenarios.ts';
+import type { AllowListEntry } from './allowlist.ts';
+import type { BehaviorAspect, BehaviorGap, BehaviorScenario } from './behaviorScenarios.ts';
+import { gapKindMismatches, reportCoverage, runScenarios, updatedBehaviorGaps } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
 import type { ParityTrackerRecord } from './trackerCases.ts';
 
@@ -126,5 +127,89 @@ describe('runScenarios', () => {
         ]);
 
         expect(row?.gap?.reference).toBe('test');
+    });
+});
+
+/** The pig's breeding row recorded as an intentional edition difference. */
+const intentionalPig: AllowListEntry = {
+    family: FAMILIES.entitiesBehavior,
+    id: 'breeding-food:minecraft:pig',
+    kind: 'intentional',
+    reason: 'Bedrock pigs breed with carrots only.',
+    reference: 'issue #2'
+};
+
+describe('gapKindMismatches', () => {
+    it('fails an intentional row that now differs as a defect, naming both kinds', () => {
+        const rows = runScenarios([breeding]);
+
+        expect(gapKindMismatches(FAMILIES.entitiesBehavior, rows, [intentionalPig])).toEqual([
+            'entities.behavior row breeding-food:minecraft:pig is recorded as intentional in goldens/behavior-gaps.json ' +
+                'but observed as defect: An animal breeds with its food. Observed: the server breeds it with nothing.'
+        ]);
+    });
+
+    it('fails a deferred row that the scenario now classifies as intentional', () => {
+        const rows = runScenarios([
+            { ...breeding, classify: () => ({ kind: 'intentional', reason: 'Bedrock pigs breed with carrots only.' }) }
+        ]);
+
+        expect(
+            gapKindMismatches(FAMILIES.entitiesBehavior, rows, [{ ...intentionalPig, kind: 'deferred' }])
+        ).toHaveLength(1);
+    });
+
+    it('passes a row whose kind matches even when its reason and reference do not', () => {
+        const rows = runScenarios([
+            { ...breeding, classify: () => ({ kind: 'intentional', reason: 'A generated reason.', reference: 'test' }) }
+        ]);
+
+        expect(gapKindMismatches(FAMILIES.entitiesBehavior, rows, [intentionalPig])).toEqual([]);
+    });
+
+    it("leaves a row with no entry, and another family's entry, to the allow-list check", () => {
+        const rows = runScenarios([breeding]);
+
+        expect(gapKindMismatches(FAMILIES.entitiesBehavior, rows, [])).toEqual([]);
+        expect(
+            gapKindMismatches(FAMILIES.entitiesBehavior, rows, [{ ...intentionalPig, family: FAMILIES.blocksBehavior }])
+        ).toEqual([]);
+    });
+});
+
+describe('updatedBehaviorGaps', () => {
+    const recorded: Readonly<Record<string, BehaviorGap>> = {
+        'breeding-food:minecraft:pig': {
+            kind: 'defect',
+            reason: 'Hand-written: pigs ignore carrots.',
+            reference: 'issue #3'
+        },
+        'breeding-food:minecraft:cow': { kind: 'defect', reason: 'Fixed since.', reference: 'issue #4' },
+        'other-scenario:minecraft:cow': { kind: 'deferred', reason: 'Out of scope.', reference: 'issue #5' }
+    };
+    const inBreeding = (id: string): boolean => id.startsWith('breeding-food:');
+
+    it('keeps a recorded reason and reference while the kind is unchanged', () => {
+        const next = updatedBehaviorGaps(recorded, runScenarios([breeding]), inBreeding);
+
+        expect(next['breeding-food:minecraft:pig']).toEqual(recorded['breeding-food:minecraft:pig']);
+    });
+
+    it('takes the observed gap when the kind changed', () => {
+        const rows = runScenarios([
+            { ...breeding, classify: () => ({ kind: 'intentional', reason: 'Bedrock pigs breed with carrots only.' }) }
+        ]);
+
+        expect(updatedBehaviorGaps(recorded, rows, inBreeding)['breeding-food:minecraft:pig']).toEqual({
+            kind: 'intentional',
+            reason: 'Bedrock pigs breed with carrots only.',
+            reference: 'test'
+        });
+    });
+
+    it('drops a fixed row in scope and keeps rows outside it', () => {
+        const next = updatedBehaviorGaps(recorded, runScenarios([breeding]), inBreeding);
+
+        expect(Object.keys(next).sort()).toEqual(['breeding-food:minecraft:pig', 'other-scenario:minecraft:cow']);
     });
 });

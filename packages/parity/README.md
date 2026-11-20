@@ -60,6 +60,11 @@ server's real handlers, and returns what differed.
   `defect`, a `deferred` gap or an `intentional` edition difference, each with its reason. The allow
   list reads that file and `checkAllowList` fails both ways, so a new difference fails the suite and
   a fixed one makes its row stale.
+- The scenario classifies each difference it finds, and `checkGapKinds` fails a row whose
+  classification is not the kind the file records. An `intentional` or `deferred` row that starts
+  differing in a way its scenario calls a `defect` fails the suite instead of passing under its old
+  kind. The reason and reference are not compared, so a hand-written reason can stand in for the
+  generated one.
 
 Rewrite the baseline after a deliberate change with:
 
@@ -68,6 +73,10 @@ PARITY_UPDATE_BEHAVIOR_GAPS=1 pnpm --filter @jsprismarine/parity exec vitest run
     src/blocks.behavior.test.ts src/items.behavior.test.ts \
     src/entities.behavior.test.ts src/gameplay.datapack.test.ts src/gameplay.mechanics.test.ts
 ```
+
+The rewrite keeps a row's recorded reason and reference while its kind is unchanged, and writes the
+generated gap for a new row or one whose kind changed. Review those rows and edit their reason and
+reference by hand where the generated text is not the one to keep.
 
 Fix the difference when it is a defect. Record it only when the server cannot match Java yet, and
 say why in the row.

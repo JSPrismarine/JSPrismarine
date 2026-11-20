@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { expect } from 'vitest';
 
-import type { GapKind } from './allowlist.ts';
-import { checkAllowList } from './allowlist.ts';
+import type { AllowListEntry, GapKind } from './allowlist.ts';
+import { checkAllowList, checkGapKinds } from './allowlist.ts';
 import type { Family } from './families.ts';
 import { reportParityCases } from './trackerCases.ts';
 
@@ -143,6 +143,60 @@ export const runScenarios = <Subject>(scenarios: readonly BehaviorScenario<Subje
 const trackerStatusOf = (row: ScenarioRow): 'passed' | 'defect' | 'deferred' =>
     row.gap === undefined || row.gap.kind === 'intentional' ? 'passed' : row.gap.kind;
 
+/**
+ * The family's baseline after an update run: the rows that differ, and the recorded rows the run
+ * did not reach.
+ *
+ * A row whose recorded kind still matches what the run observed keeps its recorded reason and
+ * reference, so a hand-written reason or an issue link survives the rewrite. A row whose kind
+ * changed takes the observed gap, whose reason describes the new difference; edit it by hand
+ * afterwards when the generated reason is not the one to keep.
+ * @param recorded - The family's rows in the committed baseline.
+ * @param rows - The rows the run observed.
+ * @param inScope - Whether a row id belongs to the scenarios that ran.
+ * @returns The rows to write, by row id.
+ */
+export const updatedBehaviorGaps = (
+    recorded: Readonly<Record<string, BehaviorGap>>,
+    rows: readonly ScenarioRow[],
+    inScope: (id: string) => boolean
+): Record<string, BehaviorGap> => {
+    const gaps: Record<string, BehaviorGap> = Object.fromEntries(
+        Object.entries(recorded).filter(([id]) => !inScope(id))
+    );
+    for (const row of rows) {
+        if (row.gap === undefined) continue;
+        const previous = recorded[row.id];
+        gaps[row.id] = previous?.kind === row.gap.kind ? previous : row.gap;
+    }
+    return gaps;
+};
+
+/**
+ * One failure message per differing row whose observed kind is not the kind
+ * `goldens/behavior-gaps.json` records for it, such as an `intentional` row that now differs in
+ * a way its scenario classifies as a `defect`.
+ * @param family - The family the rows belong to.
+ * @param rows - The rows the run observed.
+ * @param entries - The allow list, for a test that supplies its own.
+ * @returns The messages, empty when every recorded kind matches.
+ */
+export const gapKindMismatches = (
+    family: Family,
+    rows: readonly ScenarioRow[],
+    entries?: readonly AllowListEntry[]
+): string[] => {
+    const observed = new Map(rows.flatMap((row) => (row.gap === undefined ? [] : [[row.id, row.gap] as const])));
+    return checkGapKinds(
+        family,
+        [...observed].map(([id, gap]) => ({ id, kind: gap.kind })),
+        entries
+    ).map(
+        ({ id, recorded, observed: kind }) =>
+            `${family} row ${id} is recorded as ${recorded} in goldens/behavior-gaps.json but observed as ${kind}: ${observed.get(id)?.reason}`
+    );
+};
+
 /** Scenarios over one kind of subject, erased to the rows they produce so a family can mix kinds. */
 export type ScenarioGroup = () => ScenarioRow[];
 
@@ -187,11 +241,7 @@ export const measureScenarioScope = (
     const inScope = (id: string): boolean => scope === undefined || scope.has(id.slice(0, id.indexOf(':')));
 
     if (updatingBehaviorGaps()) {
-        const gaps: Record<string, BehaviorGap> = Object.fromEntries(
-            Object.entries(readBehaviorGaps()[family] ?? {}).filter(([id]) => scope !== undefined && !inScope(id))
-        );
-        for (const row of rows) if (row.gap !== undefined) gaps[row.id] = row.gap;
-        writeBehaviorGaps(family, gaps);
+        writeBehaviorGaps(family, updatedBehaviorGaps(readBehaviorGaps()[family] ?? {}, rows, inScope));
     } else {
         const verdict = checkAllowList(
             family,
@@ -199,6 +249,7 @@ export const measureScenarioScope = (
         );
         expect(verdict.unexpected).toEqual([]);
         expect(verdict.stale.filter(inScope)).toEqual([]);
+        expect(gapKindMismatches(family, rows)).toEqual([]);
     }
 
     // A row that evidences one Java identifier is rolled into that identifier's single row by

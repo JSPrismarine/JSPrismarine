@@ -526,3 +526,37 @@ export const checkAllowList = (
         stale: [...allowed].filter((id) => !reported.has(id))
     };
 };
+
+/** A gap whose observed kind differs from the kind its allow-list entry records. */
+export interface GapKindMismatch {
+    /** The gap id. */
+    id: string;
+    /** The kind the allow-list entry records. */
+    recorded: GapKind;
+    /** The kind the comparison classified the gap as. */
+    observed: GapKind;
+}
+
+/**
+ * Compares the kind of each gap a comparison reported with the kind its allow-list entry
+ * records. `checkAllowList` matches gaps by id only, so an `intentional` row that starts
+ * failing for another reason, which the comparison classifies as a `defect`, would still pass
+ * it. A family that classifies its own gaps asserts this list is empty as well.
+ *
+ * A gap with no entry is not listed here; `checkAllowList` reports it as unexpected.
+ * @param family - The family whose entries the gaps are checked against.
+ * @param gaps - Each reported gap with the kind the comparison gave it.
+ * @param entries - The allow list, for a test that supplies its own.
+ * @returns The gaps whose kind differs from their entry's, in the order given.
+ */
+export const checkGapKinds = (
+    family: Family,
+    gaps: readonly { readonly id: string; readonly kind: GapKind }[],
+    entries: readonly AllowListEntry[] = allowList
+): GapKindMismatch[] => {
+    const recorded = new Map(entries.filter((entry) => entry.family === family).map((entry) => [entry.id, entry.kind]));
+    return gaps.flatMap(({ id, kind }) => {
+        const entry = recorded.get(id);
+        return entry === undefined || entry === kind ? [] : [{ id, recorded: entry, observed: kind }];
+    });
+};
