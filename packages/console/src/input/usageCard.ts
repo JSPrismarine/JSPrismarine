@@ -53,10 +53,12 @@ export function createUsageCard(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>)
         if (command.description !== undefined) header.push(fg(theme.text)(`  ${command.description}`));
         const forms = formsFor(match);
         const rows = [header, ...forms.slice(0, SHOWN_FORMS).map((form) => formChunks(form, argument))];
-        const folded = forms.length - SHOWN_FORMS;
-        if (folded > 0)
+        const folded = Math.max(0, forms.length - SHOWN_FORMS);
+        // A capped list from the server means there are more forms than anyone here can count.
+        const count = command.moreUsage === true ? `${folded}+` : `${folded}`;
+        if (folded > 0 || command.moreUsage === true)
             rows.push([
-                fg(theme.textMuted)(`▸ ${folded} more form${folded === 1 ? '' : 's'}; help ${command.name} lists them`)
+                fg(theme.textMuted)(`▸ ${count} more form${count === '1' ? '' : 's'}; help ${command.name} lists them`)
             ]);
         return rows;
     };

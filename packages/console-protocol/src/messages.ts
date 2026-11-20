@@ -57,13 +57,15 @@ export function isLifecycleState(value: unknown): value is LifecycleState {
  * One server command as the console's palette and usage card show it.
  *
  * `usage` lists the forms the command takes, each written from the command's name with its
- * arguments as Brigadier prints them, such as `teleport <targets> <position>`.
+ * arguments as Brigadier prints them, such as `teleport <targets> <position>`. A server may cap
+ * that list; `moreUsage` is then true, so the console can say the list is incomplete.
  */
 export interface CommandInfo {
     name: string;
     description?: string;
     aliases: readonly string[];
     usage: readonly string[];
+    moreUsage?: boolean;
 }
 
 /** Messages the server sends to the console. */
@@ -215,7 +217,8 @@ const isCommandInfo = (value: unknown): value is CommandInfo =>
     typeof value.name === 'string' &&
     (value.description === undefined || typeof value.description === 'string') &&
     isStringArray(value.aliases) &&
-    isStringArray(value.usage);
+    isStringArray(value.usage) &&
+    (value.moreUsage === undefined || typeof value.moreUsage === 'boolean');
 
 const hasKind = (value: unknown, kind: FieldKind): boolean => {
     if (typeof kind === 'function') return kind(value);

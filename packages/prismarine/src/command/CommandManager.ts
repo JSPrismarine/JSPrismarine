@@ -58,6 +58,8 @@ export interface CommandReference {
     aliases: readonly string[];
     /** The forms the command takes, from its name, such as `teleport <targets> <position>`. */
     usage: readonly string[];
+    /** True when the command takes more forms than `usage` lists, which `/help` caps too. */
+    moreUsage?: boolean;
 }
 const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
 
@@ -372,11 +374,14 @@ export class CommandManager implements Service {
             .sort((left, right) => left.localeCompare(right))
             .map((name) => {
                 const root = registry.getRoot().getChild(name);
+                const syntax =
+                    root === undefined ? { lines: [name], hasMore: false } : this.commandSyntax(root, root, [name]);
                 return {
                     name,
                     description: this.helpDescription(name),
                     aliases: registry.getMetadata(name)?.aliases ?? [],
-                    usage: root === undefined ? [name] : this.commandSyntax(root, root, [name]).lines
+                    usage: syntax.lines,
+                    ...(syntax.hasMore ? { moreUsage: true } : {})
                 };
             });
     }
