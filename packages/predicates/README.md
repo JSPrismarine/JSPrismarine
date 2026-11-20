@@ -147,4 +147,4 @@ with `JSP_VANILLA_DATAPACK` set and CI without the cache skips it.
 
 ## License
 
-MIT
+MIT OR MPL-2.0, at your option. See [LICENSE](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) and [LICENSE-MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE-MPL2).

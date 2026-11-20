@@ -53,7 +53,7 @@
             "name": "JSPrismarine"
         }
     ],
-    "license": "ISC",
+    "license": "(MIT OR MPL-2.0)",
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },

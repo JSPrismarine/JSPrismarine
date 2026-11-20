@@ -7,6 +7,16 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/**
+ * The license identifiers in an SPDX expression, such as `MIT` and `MPL-2.0` for
+ * `(MIT OR MPL-2.0)`, without its operators and parentheses.
+ */
+export const spdxLicenseIds = (expression: string) =>
+    expression
+        .replace(/[()]/g, ' ')
+        .split(/\s+/)
+        .filter((token) => token !== '' && !['OR', 'AND', 'WITH'].includes(token));
+
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packagesDir = path.join(repoRoot, 'packages');
 
@@ -71,8 +81,10 @@ export interface ProjectData {
     defaultPort: number;
     demo: DemoServer;
     engines: { node: string; pnpm: string };
-    /** The SPDX license the workspace is released under, such as `MPL-2.0`. */
+    /** The SPDX license expression the workspace is released under, such as `(MIT OR MPL-2.0)`. */
     license: string;
+    /** The licenses in that expression, such as `MIT` and `MPL-2.0`; the project may be used under any one. */
+    licenses: string[];
     /** The executables each release ships, from the Bun targets the release build compiles. */
     executables: Executable[];
     /** The GitHub releases that carry those executables. */
@@ -217,6 +229,7 @@ export function loadProject(): ProjectData {
         demo: demoServer,
         engines: { node: root.engines?.node ?? '', pnpm: root.engines?.pnpm ?? '' },
         license: root.license ?? '',
+        licenses: spdxLicenseIds(root.license ?? ''),
         packages,
         protocols: protocols.filter((protocol) => !protocol.preview),
         preview,

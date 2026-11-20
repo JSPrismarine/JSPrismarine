@@ -2,6 +2,7 @@
     "name": "@jsprismarine/docs",
     "version": "0.22.0",
     "private": true,
+    "license": "(MIT OR MPL-2.0)",
     "description": "Builds the documentation site with VitePress; the API reference comes from TypeDoc, which still needs TypeScript 6",
     "type": "module",
     "scripts": {

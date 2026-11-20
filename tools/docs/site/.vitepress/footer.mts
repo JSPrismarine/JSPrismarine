@@ -16,7 +16,7 @@ interface FooterLink {
  * from `overviewGroups.mts`, as the menu's and the sidebar's do, so the footer routes the same way.
  */
 export function footerHtml({ base, project }: { base: string; project: FooterLink[] }) {
-    const { version, license } = loadProject();
+    const { version, licenses } = loadProject();
     const href = (link: string) => (/^https?:/.test(link) ? link : `${base}${link.replace(/^\//, '')}`);
     const column = (title: string, links: FooterLink[]) =>
         `<div class="site-footer__column"><p class="site-footer__heading">${escape(title)}</p>${links
@@ -32,7 +32,7 @@ export function footerHtml({ base, project }: { base: string; project: FooterLin
         '<div class="site-footer">',
         '<div class="site-footer__identity">',
         `<a class="site-footer__brand" href="${base}">${prismSvg()}<span>${escape(wordmark)}</span></a>`,
-        `<p class="site-footer__version">v${escape(version)} · Released under the ${escape(license)} license.</p>`,
+        `<p class="site-footer__version">v${escape(version)} · Released under the ${escape(licenses.join(' or '))} license, at your option.</p>`,
         '</div>',
         `<nav class="site-footer__columns" aria-label="Site">${[...audiences, column('Project', project)].join('')}</nav>`,
         '</div>'

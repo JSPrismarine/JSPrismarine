@@ -72,8 +72,8 @@ export interface StructuredSite {
     sameAs: string[];
     software: {
         version: string;
-        /** The license's SPDX page. */
-        license: string;
+        /** The SPDX page of each license the project may be used under. */
+        license: string[];
         operatingSystem: string;
         repositoryUrl: string;
         downloadUrl: string;
@@ -456,7 +456,7 @@ export function structuredSite(context: {
         ],
         software: {
             version: project.version,
-            license: `https://spdx.org/licenses/${project.license}.html`,
+            license: project.licenses.map((id) => `https://spdx.org/licenses/${id}.html`),
             operatingSystem: platformList(project, 'and'),
             repositoryUrl,
             downloadUrl: project.releasesUrl

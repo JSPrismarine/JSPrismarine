@@ -122,7 +122,9 @@ describe('pageGraph', () => {
             applicationCategory: 'GameApplication',
             offers: { price: 0 }
         });
-        expect(software.license).toContain(project.license);
+        // The workspace is dual licensed, so the page names each license's SPDX page.
+        expect(software.license).toEqual(project.licenses.map((id) => `https://spdx.org/licenses/${id}.html`));
+        expect(project.licenses).toEqual(['MIT', 'MPL-2.0']);
         for (const { os } of project.executables)
             expect(software.operatingSystem).toContain({ linux: 'Linux', darwin: 'macOS', windows: 'Windows' }[os]);
         expect(node(graph, 'SoftwareSourceCode')).toMatchObject({

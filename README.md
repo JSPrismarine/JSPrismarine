@@ -1,6 +1,6 @@
 # ![JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/assets/108444335/3169ac83-0427-402d-a76d-6c1bc215c583)
 
-[![License](https://img.shields.io/github/license/JSPrismarine/JSPrismarine)](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE)
+[![License: MIT OR MPL-2.0](https://img.shields.io/badge/license-MIT%20OR%20MPL--2.0-blue)](https://github.com/JSPrismarine/JSPrismarine#readme)
 [![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/kZZCDyCBbW)
 [![Contributors](https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D)](https://github.com/JSPrismarine/JSPrismarine/graphs/contributors)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/prismarine)](https://www.npmjs.com/package/@jsprismarine/prismarine)
@@ -47,4 +47,4 @@ The first run downloads Mojang's game data once. Then add the server in Minecraf
 
 ## Get involved
 
-Join us on [Discord](https://discord.gg/kZZCDyCBbW), [open an issue](https://github.com/JSPrismarine/JSPrismarine/issues/new), or read [CONTRIBUTING.md](CONTRIBUTING.md) to send a change. JSPrismarine is open source under the [MPL-2.0](LICENSE) license and not affiliated with Mojang.
+Join us on [Discord](https://discord.gg/kZZCDyCBbW), [open an issue](https://github.com/JSPrismarine/JSPrismarine/issues/new), or read [CONTRIBUTING.md](CONTRIBUTING.md) to send a change. JSPrismarine is dual licensed under [MIT](LICENSE) and [MPL-2.0](LICENSE-MPL2): use it under either, at your option. It is not affiliated with Mojang.

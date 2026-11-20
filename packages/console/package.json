@@ -48,7 +48,7 @@
         "tui"
     ],
     "author": "JSPrismarine",
-    "license": "MIT",
+    "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/console",
     "devDependencies": {
         "@types/node": "26.6.6",

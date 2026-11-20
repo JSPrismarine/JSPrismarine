@@ -179,7 +179,7 @@ If you queue, retain or resend the result, use `copyOut()` (standalone buffer) o
 
 ## License
 
-ISC
+MIT OR MPL-2.0, at your option. See [LICENSE](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) and [LICENSE-MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE-MPL2).
 
 ## Contributing
 

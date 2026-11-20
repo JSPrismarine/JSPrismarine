@@ -925,7 +925,7 @@
         "be"
     ],
     "author": "JSPrismarine",
-    "license": "MPL-2.0",
+    "license": "(MIT OR MPL-2.0)",
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },

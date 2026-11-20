@@ -1716,7 +1716,7 @@
         "protocol"
     ],
     "author": "JSPrismarine",
-    "license": "MIT",
+    "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",

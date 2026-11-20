@@ -52,7 +52,7 @@
         "raknet"
     ],
     "author": "JSPrismarine",
-    "license": "MIT",
+    "license": "(MIT OR MPL-2.0)",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/native-network",
     "devDependencies": {
         "@jsprismarine/raknet": "workspace:*",

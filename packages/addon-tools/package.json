@@ -68,7 +68,7 @@
         "mcpack"
     ],
     "author": "JSPrismarine",
-    "license": "MIT",
+    "license": "(MIT OR MPL-2.0)",
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },

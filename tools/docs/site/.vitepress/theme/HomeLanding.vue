@@ -78,7 +78,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     </div>
                     <div>
                         <dt>open source license</dt>
-                        <dd>{{ project.license }}</dd>
+                        <dd>{{ project.licenses.join(' or ') }}</dd>
                     </div>
                 </dl>
             </div>

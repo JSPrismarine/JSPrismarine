@@ -358,4 +358,4 @@ it never trips on its own.
 
 ## License
 
-MIT
+MIT OR MPL-2.0, at your option. See [LICENSE](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) and [LICENSE-MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE-MPL2).
