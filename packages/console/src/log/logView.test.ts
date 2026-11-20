@@ -77,6 +77,21 @@ describe('createLogView', () => {
         }
     );
 
+    it('copies whitespace a later line shows only once, and only when that line is selected', async () => {
+        const t = await setup(60, 10);
+        try {
+            t.store.append(entry('hello\n    '));
+            t.view.setWrap(true);
+            await t.frame();
+            await t.mockMouse.drag(34, 0, 59, 1);
+            expect(t.view.getSelectedText()).toBe('hello\n    ');
+            await t.mockMouse.drag(34, 0, 59, 0);
+            expect(t.view.getSelectedText()).toBe('hello');
+        } finally {
+            await t.dispose();
+        }
+    });
+
     it('copies partial continuation rows and separates different records', async () => {
         const t = await setup(60, 10);
         try {
