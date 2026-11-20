@@ -272,6 +272,6 @@ jobs:
                       --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- jsprismarine-parity-trend -->"))) | .id' | tail -n 1)"
                   if [ -z "$comment" ]; then exit 0; fi
                   gh api "repos/$GITHUB_REPOSITORY/issues/comments/$comment" \
-                      | jq --arg url "${SITE%/}/parity.html" \
+                      | jq --arg url "${SITE%/}/parity" \
                           '{body: .body | sub("\\[Open the full parity tracker\\]\\([^)]*\\)"; "[Open the full parity tracker](\($url))")}' \
                       | gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" --input - > /dev/null

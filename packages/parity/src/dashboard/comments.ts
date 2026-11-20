@@ -21,7 +21,7 @@ export const findParityComment = (
         );
 
 /** The public docs page for the complete parity tracker. */
-export const PARITY_TRACKER_URL = 'https://jsprismarine.dev/parity.html';
+export const PARITY_TRACKER_URL = 'https://jsprismarine.dev/parity';
 
 /**
  * Picks the parity tracker page a pull request comment should link to.
