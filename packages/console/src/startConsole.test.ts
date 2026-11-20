@@ -238,7 +238,8 @@ describe('startConsole', () => {
             const onUncaught = process
                 .listeners('uncaughtException')
                 .find((listener) => listener.name === 'onUncaught');
-            onUncaught?.(hangUp, 'uncaughtException');
+            if (onUncaught === undefined) throw new Error('onUncaught is not registered');
+            onUncaught(hangUp, 'uncaughtException');
             expect(write).not.toHaveBeenCalled();
         } finally {
             write.mockRestore();
