@@ -35,6 +35,7 @@ const EVENT_CONNECTED = 1;
 const EVENT_FRAME = 2;
 const EVENT_CLOSED = 3;
 const EVENT_RAW = 4;
+const EVENT_ROUND_TRIP = 5;
 const COMMAND_FRAME = 1;
 const COMMAND_DISCONNECT = 2;
 const COMMAND_DISCONNECT_IMMEDIATE = 3;
@@ -496,6 +497,12 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
             return;
         }
 
+        if (type === EVENT_ROUND_TRIP) {
+            if (payload.byteLength !== 4) return;
+            this.sessionsById.get(id)?.setRoundTripTime(payload.readUInt32LE(0) / 1000);
+            return;
+        }
+
         if (type === EVENT_RAW) this.emit('raw', payload, new InetAddress(address, port));
     }
 }
@@ -503,6 +510,8 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
 /** Main-thread view of a session; reliability state remains exclusively in the worker. */
 class WorkerSessionProxy extends RakNetSession {
     private closed = false;
+    /** The worker session's smoothed round trip time, as the worker last reported it. */
+    private roundTripTime: number | null = null;
 
     public constructor(
         private readonly owner: WorkerServerSocket,
@@ -560,6 +569,20 @@ class WorkerSessionProxy extends RakNetSession {
     /** @inheritdoc */
     public override isHandshaking(): boolean {
         return false;
+    }
+
+    /**
+     * The worker session's smoothed round trip time in milliseconds, as of the last report the
+     * worker sent, which it sends when the estimate moves by a whole millisecond. Null before the
+     * first.
+     */
+    public override getRTT(): number | null {
+        return this.roundTripTime;
+    }
+
+    /** Takes the round trip time the worker reported. */
+    public setRoundTripTime(milliseconds: number): void {
+        this.roundTripTime = milliseconds;
     }
 
     /** Updates state when the worker's close event reaches the game thread. */
