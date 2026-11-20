@@ -1368,6 +1368,14 @@ export default class Server {
         return this.ticker.getTickMs();
     }
 
+    /**
+     * Returns how long the last tick's work took, in milliseconds, without the sleep before the
+     * next tick. Zero until the first tick completes.
+     */
+    public getLastTickMs(): number {
+        return this.ticker.getLastTickMs();
+    }
+
     /** The background generation limit the governor currently asks for, when it is running. */
     public getGenerationLimit(): number | undefined {
         return this.generationGovernor?.active;

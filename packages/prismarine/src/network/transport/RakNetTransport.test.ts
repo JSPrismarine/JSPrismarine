@@ -102,6 +102,16 @@ describe('network/transport', () => {
             expect(connection.address).toBe(session.getAddress());
         });
 
+        it("answers the session's round trip time, and undefined before its first sample", () => {
+            let rtt: number | null = null;
+            const session = stub<RakNetSession>({ getAddress: () => stub<InetAddress>({}), getRTT: () => rtt });
+            const connection = new RakNetTransportConnection(1, session);
+
+            expect(connection.roundTripTime()).toBeUndefined();
+            rtt = 23.5;
+            expect(connection.roundTripTime()).toBe(23.5);
+        });
+
         it('closes through the session, carrying the reason', () => {
             const { session, disconnects } = fakeSession();
             const connection = new RakNetTransportConnection(1, session);

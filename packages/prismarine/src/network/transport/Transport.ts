@@ -70,6 +70,11 @@ export interface TransportConnection {
      * @returns False when the client proved another key or none.
      */
     provesKey?(identityPublicKey: string): Promise<boolean>;
+    /**
+     * The round trip time to the client in milliseconds, as the transport measures it, or
+     * undefined before its first sample. A transport that measures none leaves it out.
+     */
+    roundTripTime?(): number | undefined;
 }
 
 /**

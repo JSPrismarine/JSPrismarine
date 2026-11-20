@@ -16,6 +16,7 @@ import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelWorldEvents } from '../scripting/events/worldEvents';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
+import { scriptServerMembers } from '../scripting/serverMembers';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
 import { contentToken, worldsToken } from './tokens';
@@ -118,6 +119,7 @@ export const scriptsModule = (server: Server): Module => ({
                 playerActions: levelPlayerActions(server, level),
                 worldEvents: levelWorldEvents(server, level)
             },
+            members: scriptServerMembers(server),
             seed: server.getWorldManager().getDefaultWorld().getSeed(),
             watchdog: server.getConfig().getScriptWatchdog(),
             experiments: level.getExperiments(),

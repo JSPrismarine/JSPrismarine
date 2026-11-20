@@ -70,6 +70,9 @@ export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
 /**
  * One NetherNet peer as a {@link TransportConnection}. Frames go out on the reliable data
  * channel without their `0xFE` batch id, which NetherNet's wire does not carry.
+ *
+ * It has no `roundTripTime`: the native library exposes no round trip time of the peer
+ * connection yet ([#3337](https://github.com/JSPrismarine/JSPrismarine/issues/3337)).
  */
 export class NetherNetTransportConnection implements TransportConnection {
     public readonly capabilities = NETHERNET_CAPABILITIES;

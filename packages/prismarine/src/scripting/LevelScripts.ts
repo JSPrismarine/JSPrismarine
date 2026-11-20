@@ -17,6 +17,7 @@ import type { GameTestReply } from '@jsprismarine/script-host/host/gametest';
 import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { DebuggerStat } from '@jsprismarine/script-host/debugger/protocol';
+import type { JsprismarineServerMembers } from '@jsprismarine/script-host/host/jsprismarineMembers';
 
 import { about } from '../about';
 import type { ScriptDebuggerConfig, ScriptWatchdogConfig } from '../config/Config';
@@ -34,6 +35,11 @@ export interface LevelScriptsOptions {
     /** BDS's `config/` folder, which `permissions.json` and the rest are read from, when there is one. */
     readonly configDirectory: string | undefined;
     readonly sources: ScriptWorldSources;
+    /**
+     * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the server.
+     * The module leaves them out when absent.
+     */
+    readonly members?: JsprismarineServerMembers;
     /** The level's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog: ScriptWatchdogConfig;
@@ -202,6 +208,7 @@ export class LevelScripts {
             betaApis: options.experiments?.includes(BETA_APIS) === true,
             log,
             server: { version, minecraftVersion, protocolVersion },
+            ...(options.members === undefined ? {} : { members: options.members }),
             seed: options.seed,
             watchdog: host.watchdogSettings({
                 'script-watchdog-enable-shutdown': String(options.watchdog.enableShutdown),

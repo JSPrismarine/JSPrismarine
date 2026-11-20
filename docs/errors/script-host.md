@@ -468,6 +468,17 @@ Thrown as `ScriptHostErrors.InvalidPlayerHandle`, which extends `Error`.
 A script closed the forms of a player who has left. The script sees Bedrock Dedicated
 Server's `Error`.
 
+## `SCRIPT_HOST_JSP_MODULE_ARGUMENT`
+
+`{member} takes {expected} as its {argument}`
+
+Thrown as `ScriptHostErrors.JspModuleArgument`, which extends `TypeError`.
+
+A pack called a member of `@jsprismarine/server` with an argument of the wrong type, such as
+an object that is not a player where the member takes a `Player`, or a boss bar color the
+module does not name. The script sees a `TypeError`. Pass what the module's declarations in
+`@jsprismarine/script-types` name.
+
 ## `SCRIPT_HOST_LIBRARY_INTERFACE_MISMATCH`
 
 `{path} has interface version {version}, and this binding speaks {abiVersion}`

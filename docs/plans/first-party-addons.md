@@ -172,10 +172,14 @@ Out of scope for now:
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3331](https://github.com/JSPrismarine/JSPrismarine/issues/3331) **The script module members.** `performance`, `getPing` and `bossBars` in
+2. [x] [#3331](https://github.com/JSPrismarine/JSPrismarine/issues/3331) **The script module members.** `performance`, `getPing` and `bossBars` in
        `@jsprismarine/server`, with the ping plumbing for RakNet and NetherNet, docs facts and
        tests. Parity: these are JSP-only, so the `scripting.lifecycle` scenario that imports the
-       module records them as `intentional`.
+       module records them as `intentional`. NetherNet has no round trip time to give yet, so
+       `getPing` answers `undefined` for its players
+       ([#3337](https://github.com/JSPrismarine/JSPrismarine/issues/3337)). A player bar is bound
+       to the player's own entity, so they see one script bar at a time, the one shown last; no
+       client has shown one yet, which slice 5's client-e2e scenario does.
 3. [x] [#3332](https://github.com/JSPrismarine/JSPrismarine/issues/3332) **Addons in the repository.** `addons/`, `addon.json`, the build script, the index, and a
        workflow that builds every addon on pull requests and publishes the `addons` release on
        master when an addon's version changes. The build is `jsp-addon build` from the new

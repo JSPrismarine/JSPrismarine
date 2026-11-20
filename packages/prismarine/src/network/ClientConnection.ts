@@ -148,6 +148,14 @@ export default class ClientConnection extends MinecraftSession {
     }
 
     /**
+     * The round trip time to the client in milliseconds, or undefined before the transport has
+     * a sample or when it measures none, as NetherNet does not yet.
+     */
+    public getRoundTripTime(): number | undefined {
+        return this.transportConnection.roundTripTime?.();
+    }
+
+    /**
      * The RakNet session under the transport seam.
      * @deprecated Use {@link ClientConnection.getAddress} for the client's address. A client that
      * joined over another transport has no RakNet session.

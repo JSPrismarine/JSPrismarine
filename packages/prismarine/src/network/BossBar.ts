@@ -42,7 +42,7 @@ export class BossBar {
     private actorUniqueId: bigint;
     private name: string;
     private percent = 1;
-    private readonly color: BossBarColor;
+    private color: BossBarColor;
     private readonly overlay: BossBarOverlay;
     /** The subscribed players' sessions by entity runtime id. */
     private readonly subscribers = new Map<bigint, PlayerSession>();
@@ -89,6 +89,19 @@ export class BossBar {
     public setName(name: string): Promise<void> {
         this.name = name;
         return this.broadcast(BossEventUpdateType.UpdateName);
+    }
+
+    /**
+     * Sets the bar's color and updates every subscribed player with a Remove and an Add, as
+     * {@link BossBar.setActorUniqueId} does. An Add is the event every client takes the color
+     * from; nothing here checks that a client applies an `UpdateStyle`.
+     */
+    public setColor(color: BossBarColor): Promise<void> {
+        if (color === this.color) return Promise.resolve();
+
+        const removed = this.broadcast(BossEventUpdateType.Remove);
+        this.color = color;
+        return Promise.all([removed, this.broadcast(BossEventUpdateType.Add)]).then(() => undefined);
     }
 
     /**
