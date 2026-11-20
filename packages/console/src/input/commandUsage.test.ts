@@ -1,7 +1,7 @@
 import type { CommandInfo } from '@jsprismarine/console-protocol';
 import { describe, expect, it } from 'vitest';
 
-import { commandIndex, usageFor, usageWords } from './commandUsage';
+import { commandIndex, formsFor, usageFor, usageWords } from './commandUsage';
 
 const teleport: CommandInfo = {
     name: 'teleport',
@@ -29,6 +29,23 @@ describe('usageFor', () => {
         expect(usageFor('/tp', index)).toBeUndefined();
         expect(usageFor('   ', index)).toBeUndefined();
         expect(usageFor('nonsense here', index)).toBeUndefined();
+    });
+});
+
+describe('formsFor', () => {
+    const command: CommandInfo = { ...teleport, usage: ['teleport', ...teleport.usage] };
+
+    it('keeps every form while the name is typed', () => {
+        expect(formsFor({ command, argument: -1 })).toEqual(command.usage);
+    });
+
+    it('drops the forms that end before the argument being typed', () => {
+        expect(formsFor({ command, argument: 0 })).toEqual(teleport.usage);
+        expect(formsFor({ command, argument: 1 })).toEqual([teleport.usage[1]]);
+    });
+
+    it('keeps every form once the line runs past all of them', () => {
+        expect(formsFor({ command, argument: 9 })).toEqual(command.usage);
     });
 });
 
