@@ -229,16 +229,15 @@ const cachedSamples = (root: string): string | undefined => {
 };
 
 /**
- * The Java vanilla datapack the data generator wrote, under its Java version folder. The pinned
- * release comes first, since a cache keeps the datapack of every release it generated.
+ * The default release's Java vanilla datapack, under its folder in `vanilla-datapack/`.
+ *
+ * Only the default release's folder counts. A cache that generated a preview but not the default
+ * holds the preview alone, and loading it would run preview content and record its data version
+ * in saves although `content-java-version` asked for the default.
  */
-const vanillaDatapack = (root: string): string | undefined => {
-    if (!existsSync(root)) return undefined;
-    for (const version of pinnedFirst(root, javaServerCacheFolder)) {
-        const pack = join(root, version);
-        if (existsSync(join(pack, 'pack.mcmeta'))) return pack;
-    }
-    return undefined;
+const defaultVanillaDatapack = (root: string): string | undefined => {
+    const pack = join(root, javaServerCacheFolder);
+    return existsSync(join(pack, 'pack.mcmeta')) ? pack : undefined;
 };
 
 /** The target a generated datapack's `version.json` describes, or undefined when it has none. */
@@ -399,7 +398,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
                 : namedJavaRelease(request.javaVersion, root, releases);
         const datapack = overridden
             ? sourcePath(override, () => undefined)
-            : (named ?? vanillaDatapack(join(root, 'vanilla-datapack')));
+            : (named ?? defaultVanillaDatapack(join(root, 'vanilla-datapack')));
         if (datapack) {
             stack.push({ kind: 'datapack', path: datapack });
             prefixLength = stack.length;
@@ -415,11 +414,13 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
                     message: `the Java vanilla datapack has no version.json; loading it as Java ${java.release} (format ${java.format.join('.')})`
                 });
             }
+        } else if (overridden) {
+            missing('the Java vanilla datapack', `${PACK_STACK_ENV.vanillaDatapack} points at nothing`);
         } else {
             missing(
-                'the Java vanilla datapack',
-                'run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` or set ' +
-                    PACK_STACK_ENV.vanillaDatapack
+                `the Java ${javaServerCacheFolder} vanilla datapack`,
+                'run `pnpm --filter @jsprismarine/bedrock-data run datagen:java`, set ' +
+                    `\`content-java-version\` to another generated release, or set ${PACK_STACK_ENV.vanillaDatapack}`
             );
         }
     }

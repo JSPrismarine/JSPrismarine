@@ -57,6 +57,19 @@ describe('resolvePackStack and the Java data target', () => {
         expect(java).toEqual({ release: javaServerCacheFolder, format: [121, 0], dataVersion: 5023 });
     });
 
+    it('reports the default release missing rather than loading the preview in its place', () => {
+        rmSync(datapack(javaServerCacheFolder), { recursive: true, force: true });
+
+        const { stack, java, diagnostics } = javaOnly();
+
+        expect(stack).toEqual([]);
+        expect(java).toBeUndefined();
+        expect(diagnostics).toMatchObject([{ severity: 'warning', code: 'pack.missing' }]);
+        expect(diagnostics[0]?.pack).toContain(javaServerCacheFolder);
+        // The preview stays loadable by name.
+        expect(javaOnly(PREVIEW).java?.release).toBe(PREVIEW);
+    });
+
     it('loads and targets the release content-java-version names', () => {
         const { stack, java, diagnostics } = javaOnly(PREVIEW);
 
