@@ -1,3 +1,4 @@
+import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { describe, expect, it } from 'vitest';
 
 import { coalesceTick } from '../../world/changelog/coalesceTick';
@@ -943,5 +944,79 @@ describe('the entity store', () => {
             expect(heard).toEqual([true, true]);
             expect(reported).toEqual(['Work after a unit failed: Error: planned']);
         });
+    });
+});
+
+describe('an undone blow', () => {
+    it("leaves a piglin's admiring as it was, though brain memory is not in the log", () => {
+        const { runtime } = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                'minecraft:piglin': {
+                    components: {
+                        'minecraft:health': { value: 16, max: 16 },
+                        'minecraft:collision_box': { width: 0.6, height: 1.95 },
+                        'minecraft:admire_item': { duration: 8, cooldown_after_being_attacked: 20 }
+                    }
+                }
+            }
+        );
+        const piglin = runtime.spawn('minecraft:piglin', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 })!;
+        beginMeasuredTick(runtime.store);
+
+        const outcome = runtime.store.unit(() => {
+            runtime.damage({ target: piglin.id, cause: 'entity_attack', amount: 2, source: { route: 'melee' } });
+            throw new Planned();
+        });
+
+        expect(outcome.failed).toBe(true);
+        expect(piglin.instance.attributes.get('health')?.current).toBe(16);
+        expect(piglin.brain?.hasMemoryValue(MemoryModuleTypes.ADMIRING_DISABLED)).toBe(false);
+
+        // The same blow kept disables the admiring.
+        runtime.damage({ target: piglin.id, cause: 'entity_attack', amount: 2, source: { route: 'melee' } });
+        expect(piglin.brain?.hasMemoryValue(MemoryModuleTypes.ADMIRING_DISABLED)).toBe(true);
+    });
+
+    it("leaves a piglin's admired item as it was after an undone blow from another mob on any route", () => {
+        const { runtime } = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                'minecraft:piglin': {
+                    components: {
+                        'minecraft:health': { value: 16, max: 16 },
+                        'minecraft:collision_box': { width: 0.6, height: 1.95 },
+                        'minecraft:admire_item': { duration: 8, cooldown_after_being_attacked: 20 }
+                    }
+                },
+                'minecraft:zombie': {
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:collision_box': { width: 0.6, height: 1.95 }
+                    }
+                }
+            }
+        );
+        const piglin = runtime.spawn('minecraft:piglin', { x: 0.5, y: FLOOR_Y + 1, z: 0.5 })!;
+        const attacker = runtime.spawn('minecraft:zombie', { x: 2.5, y: FLOOR_Y + 1, z: 0.5 })!;
+        piglin.brain?.setMemory(MemoryModuleTypes.ADMIRING_ITEM, true);
+        beginMeasuredTick(runtime.store);
+
+        // A component blow is not remembered, but the brain still hears who hurt it.
+        const outcome = runtime.store.unit(() => {
+            runtime.damage({
+                target: piglin.id,
+                attacker: attacker.id,
+                cause: 'entity_attack',
+                amount: 2,
+                source: { route: 'component', remembered: false }
+            });
+            throw new Planned();
+        });
+
+        expect(outcome.failed).toBe(true);
+        expect(piglin.brain?.getMemory(MemoryModuleTypes.ADMIRING_ITEM)).toBe(true);
     });
 });

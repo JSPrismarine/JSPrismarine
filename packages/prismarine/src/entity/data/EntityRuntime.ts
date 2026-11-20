@@ -83,7 +83,12 @@ import {
     WARDEN
 } from '@jsprismarine/entity-brains';
 import { blockPosTracker } from '@jsprismarine/entity-brains';
-import type { VillagerRaidEffect, VillagerRaidState, VillagerTask } from '@jsprismarine/entity-brains';
+import type {
+    MemoryModuleType,
+    VillagerRaidEffect,
+    VillagerRaidState,
+    VillagerTask
+} from '@jsprismarine/entity-brains';
 import { blocksAttacks, entityData, maxDamage, potionDurationScale, weapon } from '@jsprismarine/items';
 import type { HolderSet, ItemType } from '@jsprismarine/items';
 import { shieldDurabilityCost } from '@jsprismarine/item-behaviors/behaviors/combat';
@@ -3535,6 +3540,8 @@ export class EntityRuntime implements EntityScene {
             taken,
             sensing?.events ?? []
         );
+        // Before either brain write below, on any route the blow took.
+        if (result.amount > 0) this.keepBrainMemories(entity);
         if (result.amount > 0 && source.remembered !== false) {
             this.keepDamageRecord(entity);
             entity.body.damage.record(intent.attacker, intent.cause, result.amount);
@@ -3960,6 +3967,26 @@ export class EntityRuntime implements EntityScene {
         this.store.undoWith(() => {
             if (before === undefined) this.lastDamagedAt.delete(entity);
             else this.lastDamagedAt.set(entity, before);
+        });
+    }
+
+    /**
+     * Registers the undo of a blow's brain writes. Brain memory is AI state the change log does not
+     * carry, and a blow writes it in two places, a piglin's admiring and the mob's reaction to who
+     * hurt it, so a blow whose unit fails would leave the mob admiring nothing, angry or fleeing.
+     * Every registered memory is put back as it was, with the ticks it had left.
+     */
+    private keepBrainMemories(entity: DataEntity): void {
+        const { brain } = entity;
+        if (brain === undefined) return;
+        const keep = <Value>(memory: MemoryModuleType<Value>): (() => void) => {
+            const value = brain.getMemory(memory);
+            const ttl = brain.getTimeUntilExpiry(memory);
+            return () => brain.setMemoryWithExpiry(memory, value, ttl);
+        };
+        const restores = brain.registeredMemories.map(keep);
+        this.store.undoWith(() => {
+            for (const restore of restores) restore();
         });
     }
 
