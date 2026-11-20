@@ -4,6 +4,7 @@ import { parseColor, StyledText, TextAttributes } from '@opentui/core';
 import { columns, sliceColumns } from '../text';
 import { LEVEL_TOKEN_WIDTH, levelToken, plainChunk, styleMinecraftText } from '../theme/styled';
 import type { Theme } from '../theme/theme';
+import { namespaceLabel } from './sourceLocation';
 import type { StoredRecord } from './types';
 
 /**
@@ -94,7 +95,8 @@ export function formatLogLine(record: StoredRecord, options: LogLineOptions): Fo
                 { ...token, text: `${levelText(record.level, options)} ` }
             ];
             if (options.showNamespace) {
-                prefix.push(plainChunk(`${fitText(record.namespace, NAMESPACE_WIDTH)} `, options.theme, 'textMuted'));
+                const namespace = fitText(namespaceLabel(record.namespace), NAMESPACE_WIDTH);
+                prefix.push(plainChunk(`${namespace} `, options.theme, 'textMuted'));
             }
             let message = styleMinecraftText(record.message, options.theme).chunks;
             if (options.highlight) message = highlightChunks(message, options.highlight, options.theme);
