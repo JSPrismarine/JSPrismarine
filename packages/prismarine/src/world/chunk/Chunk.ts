@@ -60,6 +60,19 @@ export interface PendingFluidTick {
     readonly delay: number;
 }
 
+/** A block tick a chunk was saved with, carried until a world schedules it; see {@link Chunk.getPendingBlockTicks}. */
+export interface PendingBlockTick {
+    /** World x of the block. */
+    readonly x: number;
+    readonly y: number;
+    /** World z of the block. */
+    readonly z: number;
+    /** How many game ticks after the chunk enters a world the tick fires. */
+    readonly delay: number;
+    /** The block the tick was scheduled for, which it runs only while that block still stands. */
+    readonly type: string;
+}
+
 /**
  * A block a chunk carries until a world settles it against its neighbors; see
  * {@link Chunk.getPendingShapeUpdates}.
@@ -262,8 +275,12 @@ export default class Chunk {
      * this server keeps the list on disk.
      */
     private readonly pendingShapeUpdates: PendingShapeUpdate[] = [];
-    /** Whether the stored `PendingTicks` record holds fluid ticks; see {@link Chunk.hasStoredFluidTicks}. */
-    private storedFluidTicks = false;
+    /** The block ticks the chunk was saved with, in world coordinates, until a world schedules them. */
+    private readonly pendingBlockTicks: PendingBlockTick[] = [];
+    /** Whether the stored `PendingTicks` record holds ticks; see {@link Chunk.hasStoredTicks}. */
+    private storedTicks = false;
+    /** Save passes holding a `PendingTicks` record with ticks for the chunk, not yet committed. */
+    private outstandingTickRecords = 0;
 
     /**
      * Set by a provider that generated this chunk rather than reading it, and taken by the world
@@ -1043,6 +1060,23 @@ export default class Chunk {
     }
 
     /**
+     * The block ticks the chunk was saved with, live, for a provider to append to.
+     * @returns {PendingBlockTick[]} The list itself, not a copy.
+     */
+    public getPendingBlockTicks(): PendingBlockTick[] {
+        return this.pendingBlockTicks;
+    }
+
+    /**
+     * Hands over the block ticks waiting for a world and forgets them, as
+     * {@link Chunk.takePendingFluidTicks} does the fluid ones.
+     * @returns {PendingBlockTick[]} What was waiting, which may be nothing.
+     */
+    public takePendingBlockTicks(): PendingBlockTick[] {
+        return this.pendingBlockTicks.splice(0, this.pendingBlockTicks.length);
+    }
+
+    /**
      * The blocks waiting for a world to settle them against their neighbors, live, for a generator
      * to append to and for the world to keep the ones it could not settle yet.
      * @returns {PendingShapeUpdate[]} The list itself, not a copy.
@@ -1060,20 +1094,32 @@ export default class Chunk {
     }
 
     /**
-     * Whether the chunk's stored record holds fluid ticks. Such a chunk is saved again even when
-     * nothing in it changed, so a record whose ticks have run without moving a block is cleared
-     * rather than scheduling them a second time on the next load.
+     * Whether the chunk's stored record holds block or fluid ticks, or a save pass not yet committed
+     * is writing one that does. Such a chunk is saved again even when nothing in it changed, so a
+     * record whose ticks have run without moving a block is cleared rather than scheduling them a
+     * second time on the next load.
      */
-    public hasStoredFluidTicks(): boolean {
-        return this.storedFluidTicks;
+    public hasStoredTicks(): boolean {
+        return this.storedTicks || this.outstandingTickRecords > 0;
     }
 
     /**
-     * Records whether the chunk's stored record holds fluid ticks, as a provider read or wrote it.
+     * Records whether the chunk's stored record holds ticks, as a provider read it or a save pass
+     * committed it.
      * @internal
      */
-    public setStoredFluidTicks(stored: boolean): void {
-        this.storedFluidTicks = stored;
+    public setStoredTicks(stored: boolean): void {
+        this.storedTicks = stored;
+    }
+
+    /**
+     * Counts a save pass that has put a `PendingTicks` record with ticks in its batch, until it
+     * commits or is abandoned: until then the database may yet hold those ticks.
+     * @param outstanding - True when the pass puts the record, false when it settles.
+     * @internal
+     */
+    public setTickRecordOutstanding(outstanding: boolean): void {
+        this.outstandingTickRecords = Math.max(0, this.outstandingTickRecords + (outstanding ? 1 : -1));
     }
 
     /** Records that a provider generated this chunk rather than reading it from storage. */

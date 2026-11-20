@@ -79,7 +79,7 @@ import type Server from '../../../Server';
 import type { LegacyWorldEntity, WorldPersistenceData } from '../../WorldPersistence';
 import { WORLD_EXPERIMENTS } from '../../WorldExperiments';
 import type { LevelDatInputs, StoredChunkReader } from '../Provider';
-import type { ChunkSaveContext, PendingFluidTicksToSave } from '../ChunkSaveContext';
+import type { ChunkSaveContext, PendingTicksToSave, TickToSave } from '../ChunkSaveContext';
 import { createChunkSaveContext } from '../ChunkSaveContext';
 import {
     isFlatGenerator,
@@ -245,6 +245,30 @@ const knowsDimensionTypes = (level: SaveIdentity): level is SaveIdentity & Pick<
 interface PendingLegacyEntity extends LegacyWorldEntity {
     uniqueId: string;
 }
+
+/**
+ * The state a fluid tick fires for, as Bedrock records it: the fluid that stands there now, in the
+ * block layer or, for a waterlogged block, in the liquid layer. A tick whose fluid has gone would
+ * do nothing, and is not worth a record.
+ */
+const fluidRuntimeIdAt = (chunk: Chunk, tick: TickToSave): number | undefined => {
+    const fluidAt = (layer: number) => {
+        const id = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf, layer);
+        const name = BlockRuntimeIds.getState(id)?.name;
+        return name !== undefined && liquidOf(name) !== null ? id : undefined;
+    };
+    return fluidAt(0) ?? fluidAt(1);
+};
+
+/**
+ * The state a block tick fires for: the block it was scheduled for, while that block still stands.
+ * A tick whose block has been replaced would do nothing, as the world runs a block tick only for
+ * the block it names.
+ */
+const blockRuntimeIdAt = (chunk: Chunk, tick: TickToSave): number | undefined => {
+    const id = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf, 0);
+    return BlockRuntimeIds.getState(id)?.name === tick.type ? id : undefined;
+};
 
 /**
  * Stores a world the way Minecraft: Bedrock Edition does - a `db` directory of LevelDB files, a
@@ -753,8 +777,8 @@ export default class LevelDB extends BaseProvider {
             repairActorDigest = this.readActorDigest(digest, chunk);
         }
         const hasPendingEntities = this.readPendingEntities(this.read(pendingEntitiesKey), chunk);
-        const hasPendingTicks = this.readPendingFluidTicks(this.read(key(ChunkTag.PendingTicks)), chunk);
-        chunk.setStoredFluidTicks(hasPendingTicks);
+        const hasPendingTicks = this.readPendingTicks(this.read(key(ChunkTag.PendingTicks)), chunk);
+        chunk.setStoredTicks(hasPendingTicks);
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markLoadedFromDisk(persistedSubChunkKeys, blockEntityRecord !== null);
@@ -958,6 +982,16 @@ export default class LevelDB extends BaseProvider {
             open = false;
             for (const cut of cuts) cut.chunk.setSaveCut(null);
         };
+        // Once per pass: the tick records it put are counted on their chunks until it settles.
+        let ticksSettled = false;
+        const settleTicks = (committedTicks: boolean) => {
+            if (ticksSettled) return;
+            ticksSettled = true;
+            for (const cut of cuts) {
+                if (committedTicks && cut.storedTicks !== undefined) cut.chunk.setStoredTicks(cut.storedTicks);
+                if (cut.storedTicks === true) cut.chunk.setTickRecordOutstanding(false);
+            }
+        };
         const settle = () => {
             for (const cut of cuts) {
                 const cutsOfChunk = this.unsettled.get(cut.chunk);
@@ -1027,13 +1061,18 @@ export default class LevelDB extends BaseProvider {
                 applied();
                 await landed;
                 committed = true;
-                for (const cut of cuts) cut.chunk.markSavedAs(cut.state);
+                settleTicks(true);
+                for (const cut of cuts) {
+                    cut.chunk.markSavedAs(cut.state);
+                }
                 settle();
             },
             abandon: () => {
                 letGo();
                 applied();
                 settle();
+                // A pass that never committed leaves the record as the database held it before.
+                settleTicks(false);
                 // The held writes the pass took go back ahead of those held since, for the next
                 // pass: nothing else would write them. A commit that failed returns them too,
                 // since either the database never applied the batch or it refuses every later
@@ -1130,14 +1169,16 @@ export default class LevelDB extends BaseProvider {
         }
 
         this.writeEntities(staged, chunk, key, context);
-        if (context.pendingFluidTicks !== undefined) {
-            this.writePendingFluidTicks(staged, chunk, key(ChunkTag.PendingTicks), context.pendingFluidTicks);
-        }
+        const storedTicks =
+            context.pendingTicks === undefined
+                ? undefined
+                : this.writePendingTicks(staged, chunk, key(ChunkTag.PendingTicks), context.pendingTicks);
 
         // An emptied section moves the heightmap `Data3D` carries.
         const data3D = changes.data3D || emptied;
         batch.append(staged);
-        const cut = new LevelDBChunkCut(chunk, state, held, data3D, report, {
+        if (storedTicks === true) chunk.setTickRecordOutstanding(true);
+        const cut = new LevelDBChunkCut(chunk, state, storedTicks, held, data3D, report, {
             subChunk: (index, subChunk) =>
                 batch.put(
                     key(ChunkTag.SubChunkPrefix, index),
@@ -1159,15 +1200,13 @@ export default class LevelDB extends BaseProvider {
     // ------------------------------------------------------------- pending ticks
 
     /**
-     * Hands a chunk the fluid ticks its `PendingTicks` record holds, each due as long after the
-     * chunk enters a world as it was due after the record was written.
+     * Hands a chunk the ticks its `PendingTicks` record holds, each due as long after the chunk
+     * enters a world as it was due after the record was written: a tick whose state is a fluid as a
+     * fluid tick, and any other as a block tick for that block.
      *
-     * Block ticks in a record Bedrock wrote are not read: this server keeps no scheduled block
-     * ticks across a save, and a record it rewrites holds only fluid ticks.
-     *
-     * @returns Whether the record held a fluid tick.
+     * @returns Whether the record held a tick.
      */
-    private readPendingFluidTicks(value: Buffer | null, chunk: Chunk): boolean {
+    private readPendingTicks(value: Buffer | null, chunk: Chunk): boolean {
         if (value === null || value.byteLength === 0) return false;
 
         let saved;
@@ -1181,44 +1220,43 @@ export default class LevelDB extends BaseProvider {
             return false;
         }
 
-        const ticks = chunk.getPendingFluidTicks();
-        const before = ticks.length;
+        const fluids = chunk.getPendingFluidTicks();
+        const blocks = chunk.getPendingBlockTicks();
+        const before = fluids.length + blocks.length;
         for (const tick of saved.ticks) {
-            if (liquidOf(tick.name) === null) continue;
-            const delay = tick.time - BigInt(saved.currentTick);
-            ticks.push({ x: tick.x, y: tick.y, z: tick.z, delay: delay > 0n ? Number(delay) : 0 });
+            const left = tick.time - BigInt(saved.currentTick);
+            const delay = left > 0n ? Number(left) : 0;
+            if (liquidOf(tick.name) !== null) fluids.push({ x: tick.x, y: tick.y, z: tick.z, delay });
+            else blocks.push({ x: tick.x, y: tick.y, z: tick.z, delay, type: tick.name });
         }
-        return ticks.length > before;
+        return fluids.length + blocks.length > before;
     }
 
-    /** Puts a chunk's scheduled fluid ticks in its `PendingTicks` record, or deletes the record when it has none. */
-    private writePendingFluidTicks(
+    /**
+     * Puts a chunk's scheduled ticks in its `PendingTicks` record, or deletes the record when it has
+     * none.
+     * @returns Whether the record holds ticks once the pass commits, which the chunk is told only
+     *   then: an abandoned pass leaves the old record in the database.
+     */
+    private writePendingTicks(
         staged: OverlayBatch,
         chunk: Chunk,
         recordKey: Buffer,
-        pending: PendingFluidTicksToSave
-    ): void {
+        pending: PendingTicksToSave
+    ): boolean {
         const ticks: PendingTickToSave[] = [];
         for (const tick of pending.byChunk.get(Chunk.packXZ(chunk.getX(), chunk.getZ())) ?? []) {
-            // The state the tick fires for, as Bedrock records it: the fluid that stands there now,
-            // in the block layer or, for a waterlogged block, in the liquid layer. A tick whose
-            // fluid has gone would do nothing, and is not worth a record.
-            const fluidAt = (layer: number) => {
-                const id = chunk.getBlockRuntimeId(tick.x & 0xf, tick.y, tick.z & 0xf, layer);
-                const name = BlockRuntimeIds.getState(id)?.name;
-                return name !== undefined && liquidOf(name) !== null ? id : undefined;
-            };
-            const runtimeId = fluidAt(0) ?? fluidAt(1);
+            const runtimeId = tick.kind === 'fluid' ? fluidRuntimeIdAt(chunk, tick) : blockRuntimeIdAt(chunk, tick);
             if (runtimeId === undefined) continue;
             ticks.push({ x: tick.x, y: tick.y, z: tick.z, runtimeId, time: tick.triggerTick });
         }
         const encoded = encodePendingTicks(pending.currentTick, ticks);
-        chunk.setStoredFluidTicks(encoded !== null);
         if (encoded === null) {
             if (this.mayHold(recordKey)) staged.del(recordKey);
         } else if (!this.holds(recordKey, encoded)) {
             staged.put(recordKey, encoded);
         }
+        return encoded !== null;
     }
 
     // ------------------------------------------------------------ block entities
@@ -1798,6 +1836,11 @@ class LevelDBChunkCut implements ChunkSaveCutHook {
         public readonly chunk: Chunk,
         /** The chunk as the cut saw it, which it is marked saved as once the pass commits. */
         public readonly state: ChunkPersistedState,
+        /**
+         * Whether the chunk's `PendingTicks` record holds ticks once the pass commits, or undefined
+         * when the cut left the record alone.
+         */
+        public readonly storedTicks: boolean | undefined,
         private readonly held: Map<number, { readonly subChunk: ReadonlySubChunk; readonly revision: number }>,
         data3D: boolean,
         private readonly report: ChunkCutReport,
