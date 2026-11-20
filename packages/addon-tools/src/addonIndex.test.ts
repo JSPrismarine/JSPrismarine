@@ -4,10 +4,13 @@ import { describe, expect, it } from 'vitest';
 import type { AddonIndexEntry } from './addonIndex';
 import {
     ADDON_INDEX_SCHEMA_VERSION,
+    addonVersionsInRange,
     compareAddonVersions,
     createAddonIndex,
+    isAddonRange,
     mergeAddonIndex,
     parseAddonIndex,
+    satisfiesAddonRange,
     serializeAddonIndex
 } from './addonIndex';
 
@@ -112,5 +115,59 @@ describe('mergeAddonIndex', () => {
         expect(() => mergeAddonIndex(published, [entry('tps-bar', '1.0.0', 'b')])).toThrow(
             AddonToolsErrors.PublishedVersionChanged
         );
+    });
+});
+
+describe('satisfiesAddonRange', () => {
+    const matching = (range: string, versions: readonly string[]) =>
+        versions.filter((version) => satisfiesAddonRange(version, range));
+    const versions = ['0.0.3', '0.0.4', '0.2.3', '0.2.9', '0.3.0', '1.2.2', '1.2.3', '1.2.9', '1.3.0', '2.0.0'];
+
+    it('matches an exact version only', () => {
+        expect(matching('1.2.3', versions)).toEqual(['1.2.3']);
+    });
+
+    it('matches later patches with a tilde', () => {
+        expect(matching('~1.2.3', versions)).toEqual(['1.2.3', '1.2.9']);
+    });
+
+    it('matches the same major version with a caret, and the first non-zero part below 1.0.0', () => {
+        expect(matching('^1.2.3', versions)).toEqual(['1.2.3', '1.2.9', '1.3.0']);
+        expect(matching('^0.2.3', versions)).toEqual(['0.2.3', '0.2.9']);
+        expect(matching('^0.0.3', versions)).toEqual(['0.0.3']);
+    });
+
+    it('matches every version with a star', () => {
+        expect(matching('*', versions)).toEqual(versions);
+    });
+
+    it('takes only the forms it reads', () => {
+        for (const range of ['^1.2.3', '~0.0.1', '1.0.0', '*']) expect(isAddonRange(range), range).toBe(true);
+        for (const range of ['>=1.0.0', '1.x', '^1.2', '01.0.0', '1.0.0 - 2.0.0', 'latest'])
+            expect(isAddonRange(range), range).toBe(false);
+        expect(satisfiesAddonRange('1.0.0', '>=1.0.0')).toBe(false);
+    });
+
+    it('refuses a range whose parts are past the safe integers, where two versions would read as one', () => {
+        expect(isAddonRange('1.0.9007199254740991')).toBe(true);
+        expect(isAddonRange('^1.0.9007199254740993')).toBe(false);
+        expect(satisfiesAddonRange('1.0.9007199254740992', '1.0.9007199254740993')).toBe(false);
+    });
+});
+
+describe('addonVersionsInRange', () => {
+    it("lists one addon's versions in the range, newest first", () => {
+        const index = createAddonIndex([
+            entry('tps-bar', '1.0.0'),
+            entry('tps-bar', '1.4.0'),
+            entry('tps-bar', '2.0.0'),
+            entry('warps', '1.5.0')
+        ]);
+
+        expect(addonVersionsInRange(index, 'tps-bar', '^1.0.0').map(({ version }) => version)).toEqual([
+            '1.4.0',
+            '1.0.0'
+        ]);
+        expect(addonVersionsInRange(index, 'tps-bar', '~3.0.0')).toEqual([]);
     });
 });
