@@ -19,6 +19,7 @@ const EVENT_CONNECTED = 1;
 const EVENT_FRAME = 2;
 const EVENT_CLOSED = 3;
 const EVENT_RAW = 4;
+const EVENT_ROUND_TRIP = 5;
 const COMMAND_FRAME = 1;
 const COMMAND_DISCONNECT = 2;
 const COMMAND_DISCONNECT_IMMEDIATE = 3;
@@ -87,7 +88,11 @@ const pendingEvents = new WorkerEventQueue(outbound, MAX_PENDING_BYTES);
 let nextSessionId = 1;
 const idsByAddress = new Map<string, number>();
 const sessionsById = new Map<number, RakNetSession>();
-const lastSessionMetrics = new Map<number, { retransmissions: number; roundTrips: number }>();
+/** What the metrics last saw of each session, and the round trip time last reported to the main thread. */
+const lastSessionMetrics = new Map<
+    number,
+    { retransmissions: number; roundTrips: number; reportedRoundTripMs: number | undefined }
+>();
 
 const makeLogger = (): Logger => {
     const write = (level: string, values: unknown[]): void => {
@@ -267,7 +272,11 @@ const drainCommands = (): void => {
 
 const updateMetrics = (): void => {
     for (const [id, session] of sessionsById) {
-        const previous = lastSessionMetrics.get(id) ?? { retransmissions: 0, roundTrips: 0 };
+        const previous = lastSessionMetrics.get(id) ?? {
+            retransmissions: 0,
+            roundTrips: 0,
+            reportedRoundTripMs: undefined
+        };
         const retransmissions = session.getRetransmissionCount();
         const roundTrips = session.getRoundTripSampleCount();
         if (retransmissions > previous.retransmissions) {
@@ -277,6 +286,7 @@ const updateMetrics = (): void => {
             Atomics.add(metrics, 2, roundTrips - previous.roundTrips);
         }
         const rtt = session.getRTT();
+        let reportedRoundTripMs = previous.reportedRoundTripMs;
         if (rtt !== null) {
             const rttMicros = Math.max(0, Math.round(rtt * 1000));
             let old = Atomics.load(metrics, 0);
@@ -285,8 +295,16 @@ const updateMetrics = (): void => {
                 if (seen === old) break;
                 old = seen;
             }
+            // The main thread hears of the estimate when it moves by a whole millisecond, not on
+            // every acknowledgment, which keeps the ring for frames.
+            if (Math.round(rtt) !== reportedRoundTripMs) {
+                reportedRoundTripMs = Math.round(rtt);
+                const payload = Buffer.allocUnsafe(4);
+                payload.writeUInt32LE(Math.min(rttMicros, 0xffffffff), 0);
+                writeEvent(EVENT_ROUND_TRIP, id, '', 0, payload);
+            }
         }
-        lastSessionMetrics.set(id, { retransmissions, roundTrips });
+        lastSessionMetrics.set(id, { retransmissions, roundTrips, reportedRoundTripMs });
     }
 };
 

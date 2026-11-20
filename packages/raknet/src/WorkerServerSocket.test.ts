@@ -208,6 +208,24 @@ describe('WorkerServerSocket', () => {
         expect(received).toEqual(Array.from({ length: 40 }, (_, index) => index));
     });
 
+    it("hands the main thread's session the worker's round trip time once it has a sample", async () => {
+        const { clientSession, clientFrames, server } = await start();
+        await waitFor(() => server.getSessions().length === 1);
+        const serverSession = server.getSessions()[0];
+        if (!serverSession) throw new Error('connected worker session was not handed to the main thread');
+        // The client's own timer may acknowledge the handshake before this line, so the RTT is
+        // checked only after a frame the test makes the client acknowledge.
+
+        serverSession.sendFrame(makeFrame(1));
+        await waitFor(() => clientFrames.length === 1);
+        // Drive the client's ACK pass, as its own timer would.
+        clientSession.update();
+        await waitFor(() => server.getMetrics().roundTripSamples > 0);
+        await waitFor(() => serverSession.getRTT() !== null);
+
+        expect(serverSession.getRTT()).toBeGreaterThanOrEqual(0);
+    });
+
     it('rejects a frame larger than the bounded producer queue', async () => {
         server = new WorkerServerSocket(10, false, makeServerName(), logger, {}, 64);
         server.start('127.0.0.1', 0);
