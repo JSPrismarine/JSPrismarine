@@ -11,9 +11,6 @@ export default class ClientCacheStatusHandler implements ConnectionLaneHandler<C
     /** Records whether chunk packets can use blob hashes for this session. */
     public async handle(packet: ClientCacheStatusPacket, { session, log }: SessionContext): Promise<void> {
         session.setClientCacheEnabled(packet.enabled);
-        log.debug(
-            `${session.identity.name} ${packet.enabled ? 'enabled' : 'disabled'} the blob cache`,
-            'ClientCacheStatusHandler/handle'
-        );
+        log.debug(`${session.identity.name} ${packet.enabled ? 'enabled' : 'disabled'} the blob cache`);
     }
 }

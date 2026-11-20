@@ -37,17 +37,13 @@ export default class ActorEventHandler implements InputLaneHandler<ActorEventPac
 
         if (packet.runtimeEntityId !== session.runtimeId) {
             log.verbose(
-                `Dropped actor event ${packet.event} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not the sender`,
-                'ActorEventHandler/handle'
+                `Dropped actor event ${packet.event} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not the sender`
             );
             return;
         }
 
         if (!CLIENT_EVENTS.has(packet.event)) {
-            log.verbose(
-                `Dropped actor event ${packet.event} from ${session.identity.name}: a client does not send it`,
-                'ActorEventHandler/handle'
-            );
+            log.verbose(`Dropped actor event ${packet.event} from ${session.identity.name}: a client does not send it`);
             return;
         }
 

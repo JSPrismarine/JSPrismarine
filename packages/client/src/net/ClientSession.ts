@@ -241,8 +241,7 @@ export default class ClientSession extends EventEmitter {
                 this.logger.warn(
                     `Failed to decode packet 0x${buffer[0]?.toString(16)}: ${
                         error instanceof Error ? error.message : String(error)
-                    }`,
-                    'Client/ClientSession/handleBatch'
+                    }`
                 );
                 continue;
             }
@@ -256,8 +255,7 @@ export default class ClientSession extends EventEmitter {
                     this.logger.warn(
                         `Client/ClientSession: the ${decoded.name} handler failed: ${
                             error instanceof Error ? error.message : String(error)
-                        }`,
-                        'Client/ClientSession/handleBatch'
+                        }`
                     );
                 });
             }

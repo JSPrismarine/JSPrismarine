@@ -35,12 +35,7 @@ export default class PacketHandlerRegistry {
         if (this.handlers.has(packetName)) throw new PrismarineNetworkErrors.DuplicateHandler({ packetName });
 
         this.handlers.set(packetName, handler);
-        this.server
-            .getLogger()
-            .debug(
-                `Handler with id §b${handler.constructor.name}§r registered`,
-                'PacketHandlerRegistry/registerHandler'
-            );
+        this.server.getLogger().debug(`Handler with id §b${handler.constructor.name}§r registered`);
     }
 
     /** Find the handler registered for a packet class name. */

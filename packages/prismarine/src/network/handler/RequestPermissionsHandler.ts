@@ -27,8 +27,7 @@ export default class RequestPermissionsHandler implements InputLaneHandler<Reque
 
         if (!services.permissions.isOp(session.identity.uuid)) {
             log.debug(
-                `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`,
-                'RequestPermissionsHandler/handle'
+                `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`
             );
             step.output(session.sendAbilities());
             return;
@@ -36,8 +35,7 @@ export default class RequestPermissionsHandler implements InputLaneHandler<Reque
 
         if (!target) {
             log.debug(
-                `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level}, but no such player is online`,
-                'RequestPermissionsHandler/handle'
+                `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level}, but no such player is online`
             );
             return;
         }
@@ -55,8 +53,7 @@ export default class RequestPermissionsHandler implements InputLaneHandler<Reque
             }
             default:
                 log.debug(
-                    `${name} asked to set ${target.identity.name} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
-                    'RequestPermissionsHandler/handle'
+                    `${name} asked to set ${target.identity.name} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`
                 );
                 step.output(session.sendAbilities(target.shown()));
         }

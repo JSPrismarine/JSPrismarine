@@ -41,10 +41,7 @@ export default class ContainerCloseHandler implements InputLaneHandler<Container
         }
 
         if (!session.closeWindow(packet.containerId)) {
-            log.debug(
-                `${session.identity.name} closed container ${packet.containerId}, which it did not have open`,
-                'ContainerCloseHandler/handle'
-            );
+            log.debug(`${session.identity.name} closed container ${packet.containerId}, which it did not have open`);
         }
 
         const pk = new ContainerClosePacket();

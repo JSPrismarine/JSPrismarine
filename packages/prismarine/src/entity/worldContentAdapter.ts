@@ -158,10 +158,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             const position = { x: at.x + 0.5, y: at.y + 0.5, z: at.z + 0.5 };
             const runtimeId = options.spawnDataDriven?.(identifier, position, data);
             if (runtimeId === undefined) {
-                loaded
-                    .getServer()
-                    .getLogger()
-                    .debug(`${identifier} has no data runtime to spawn it`, 'entity/worldContentAdapter');
+                loaded.getServer().getLogger().debug(`${identifier} has no data runtime to spawn it`);
                 return 0;
             }
 
@@ -190,10 +187,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
                 loaded
                     .getServer()
                     .getLogger()
-                    .debug(
-                        `${item.identifier} is not an item this server has, so it was not dropped`,
-                        'entity/worldContentAdapter'
-                    );
+                    .debug(`${item.identifier} is not an item this server has, so it was not dropped`);
                 return;
             }
 

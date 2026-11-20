@@ -16,8 +16,7 @@ export default class PhotoTransferHandler implements ConnectionLaneHandler<Photo
     /** Logs the photo name and how many bytes came with it. */
     public handle(packet: PhotoTransferPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} sent photo ${packet.photoName} with ${packet.photoData.byteLength} byte(s) of image data. The server has no photo storage`,
-            'PhotoTransferHandler/handle'
+            `${session.identity.name} sent photo ${packet.photoName} with ${packet.photoData.byteLength} byte(s) of image data. The server has no photo storage`
         );
     }
 }

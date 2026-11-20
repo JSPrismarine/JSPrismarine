@@ -168,10 +168,7 @@ export const applyClientMovement = (
 
     // A report from before a teleport the client has not handled yet would undo the teleport.
     if (session.holdsMovementForTeleport(movement.position, movement.handledTeleport)) {
-        log.debug(
-            `Dropped a position from ${session.identity.name} sent before its teleport`,
-            'PlayerAuthInputHandler/applyClientMovement'
-        );
+        log.debug(`Dropped a position from ${session.identity.name} sent before its teleport`);
         return;
     }
 
@@ -263,7 +260,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
 
         const reason = rejectionReason(input);
         if (reason !== null) {
-            log.debug(`Dropped an input from ${session.identity.name}: ${reason}`, 'PlayerAuthInputHandler/handle');
+            log.debug(`Dropped an input from ${session.identity.name}: ${reason}`);
             return;
         }
 
@@ -358,8 +355,7 @@ export default class PlayerAuthInputHandler implements InputLaneHandler<PlayerAu
         if (input.inputData.has(flag)) return true;
 
         log.debug(
-            `Ignored the ${section} of an input from ${session.identity.name}: the ${PlayerAuthInputData[flag]} flag is not set`,
-            'PlayerAuthInputHandler/handle'
+            `Ignored the ${section} of an input from ${session.identity.name}: the ${PlayerAuthInputData[flag]} flag is not set`
         );
         return false;
     }

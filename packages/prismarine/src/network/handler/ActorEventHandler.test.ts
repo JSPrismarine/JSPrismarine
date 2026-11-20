@@ -56,8 +56,7 @@ describe('ActorEventHandler', () => {
         expect(sendActorEvent).not.toHaveBeenCalled();
         expect(outputs).toHaveLength(0);
         expect(verbose).toHaveBeenCalledExactlyOnceWith(
-            'Dropped actor event 57 from runner: it names actor 8, not the sender',
-            'ActorEventHandler/handle'
+            'Dropped actor event 57 from runner: it names actor 8, not the sender'
         );
     });
 
@@ -69,9 +68,6 @@ describe('ActorEventHandler', () => {
 
         expect(sendActorEvent).not.toHaveBeenCalled();
         expect(outputs).toHaveLength(0);
-        expect(verbose).toHaveBeenCalledExactlyOnceWith(
-            'Dropped actor event 2 from runner: a client does not send it',
-            'ActorEventHandler/handle'
-        );
+        expect(verbose).toHaveBeenCalledExactlyOnceWith('Dropped actor event 2 from runner: a client does not send it');
     });
 });

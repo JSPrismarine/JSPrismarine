@@ -37,8 +37,7 @@ describe('SetActorLinkHandler', () => {
         new SetActorLinkHandler().handle(packet(12n, 34n), context);
 
         expect(debug).toHaveBeenCalledExactlyOnceWith(
-            'Steve reported actor link type 1 between 12 and 34. Riding is not modeled',
-            'SetActorLinkHandler/handle'
+            'Steve reported actor link type 1 between 12 and 34. Riding is not modeled'
         );
         expect(verbose).not.toHaveBeenCalled();
     });
@@ -58,8 +57,7 @@ describe('SetActorLinkHandler', () => {
 
         expect(debug).not.toHaveBeenCalled();
         expect(verbose).toHaveBeenCalledExactlyOnceWith(
-            'Dropped actor link type 1 from Steve: it joins 12 and 56, neither of them the sender',
-            'SetActorLinkHandler/handle'
+            'Dropped actor link type 1 from Steve: it joins 12 and 56, neither of them the sender'
         );
     });
 });

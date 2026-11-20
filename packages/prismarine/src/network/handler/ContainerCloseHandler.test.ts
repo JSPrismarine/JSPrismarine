@@ -126,10 +126,7 @@ describe('network', () => {
             const { sent, closed, debug } = await run({ openWindows: [3], packet: { containerId: 9 } });
 
             expect(closed).toEqual([]);
-            expect(debug).toHaveBeenCalledWith(
-                'Steve closed container 9, which it did not have open',
-                'ContainerCloseHandler/handle'
-            );
+            expect(debug).toHaveBeenCalledWith('Steve closed container 9, which it did not have open');
             expect(sent).toHaveLength(1);
             expect(sent[0]).toMatchObject({ containerId: 9, serverInitiatedClose: false });
         });

@@ -79,8 +79,7 @@ export default class RequestNetworkSettingsHandler implements ConnectionHandler<
         const outdatedClient = protocol < protocols.accepted[0]!.protocolVersion;
 
         log.info(
-            `Refused a client on protocol ${protocol}: this server accepts ${protocols.accepted.map((codec) => codec.protocolVersion).join(', ')}`,
-            'RequestNetworkSettingsHandler/handle'
+            `Refused a client on protocol ${protocol}: this server accepts ${protocols.accepted.map((codec) => codec.protocolVersion).join(', ')}`
         );
 
         const status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;

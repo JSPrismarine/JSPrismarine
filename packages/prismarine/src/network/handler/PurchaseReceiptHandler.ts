@@ -21,8 +21,7 @@ export default class PurchaseReceiptHandler implements ConnectionLaneHandler<Pur
         if (data === null) throw new PrismarineNetworkErrors.PurchaseReceiptNotDecoded();
 
         log.debug(
-            `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`,
-            'PurchaseReceiptHandler/handle'
+            `${session.identity.name} sent ${data.purchaseReceipts.length} purchase receipts, which the server does not verify`
         );
     }
 }

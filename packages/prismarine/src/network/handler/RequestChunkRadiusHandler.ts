@@ -31,8 +31,7 @@ export default class RequestChunkRadiusHandler implements InputLaneHandler<Reque
 
         const granted = Math.max(1, Math.min(...limits));
         log.debug(
-            `${session.identity.name} asked for a chunk radius of ${request.radius} (max ${request.maxRadius}), granted ${granted}`,
-            'RequestChunkRadiusHandler/handle'
+            `${session.identity.name} asked for a chunk radius of ${request.radius} (max ${request.maxRadius}), granted ${granted}`
         );
 
         // The radius is set before the first wait. What follows it is the answer and the chunk

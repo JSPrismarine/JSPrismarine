@@ -195,8 +195,7 @@ export class OfflineHandler {
         this.listener
             .getLogger()
             .debug(
-                `Discarded offline packet ID=0x${msg[0]!.toString(16)} from client=${rinfo.address}:${rinfo.port}, reason=${reason}`,
-                'RakNet/OfflineHandler/process'
+                `Discarded offline packet ID=0x${msg[0]!.toString(16)} from client=${rinfo.address}:${rinfo.port}, reason=${reason}`
             );
     }
 

@@ -21,18 +21,16 @@ describe('configureSocketBuffers', () => {
             boundSocket.bind(0, '127.0.0.1', resolve);
         });
 
-        const effective = configureSocketBuffers(
-            boundSocket,
-            logger,
-            { recvBufferSize: 256 * 1024, sendBufferSize: 256 * 1024 },
-            'test'
-        );
+        const effective = configureSocketBuffers(boundSocket, logger, {
+            recvBufferSize: 256 * 1024,
+            sendBufferSize: 256 * 1024
+        });
 
         expect(effective.recvBufferSize).toBe(boundSocket.getRecvBufferSize());
         expect(effective.sendBufferSize).toBe(boundSocket.getSendBufferSize());
         expect(effective.recvBufferSize).toBeGreaterThan(0);
         expect(effective.sendBufferSize).toBeGreaterThan(0);
-        expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('effective recv='), 'test');
+        expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('effective recv='));
     });
 
     it('logs a buffer request rejected by the operating system and reports actual sizes', () => {
@@ -53,15 +51,9 @@ describe('configureSocketBuffers', () => {
             sendBufferSize: 2048
         });
         expect(logger.error).toHaveBeenCalledTimes(2);
-        // The logger joins strings, so the failure has to arrive as text rather than an Error.
-        expect(logger.error).toHaveBeenCalledWith(
-            'Could not set the receive buffer, error=unsupported',
-            'RakNet/SocketBuffers/setRecvBufferSize requested=4096'
-        );
-        expect(logger.verbose).toHaveBeenCalledWith(
-            expect.stringContaining('effective recv=1024 send=2048'),
-            'RakNet/SocketBuffers'
-        );
+        // One string, with the size it asked for: the logger takes one message.
+        expect(logger.error).toHaveBeenCalledWith('Could not set the receive buffer to 4096 bytes, error=unsupported');
+        expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('effective recv=1024 send=2048'));
     });
 
     it('rejects nonpositive and unsafe requested sizes before touching the socket', () => {

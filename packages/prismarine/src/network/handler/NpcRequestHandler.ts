@@ -19,8 +19,7 @@ export default class NpcRequestHandler implements ConnectionLaneHandler<NpcReque
         const requestType = NpcRequestType[packet.requestType] ?? packet.requestType;
 
         log.debug(
-            `${session.identity.name} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`,
-            'NpcRequestHandler/handle'
+            `${session.identity.name} sent ${requestType} to NPC ${packet.npcRuntimeId}, which the server has no NPCs to apply`
         );
     }
 }

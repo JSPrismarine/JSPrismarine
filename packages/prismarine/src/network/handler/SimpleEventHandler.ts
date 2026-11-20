@@ -19,9 +19,6 @@ export default class SimpleEventHandler implements ConnectionLaneHandler<SimpleE
     public handle(packet: SimpleEventPacket, { session, log }: SessionContext): void {
         const name = SimpleEventSubtype[packet.type] ?? `unknown subtype ${packet.type}`;
 
-        log.debug(
-            `${session.identity.name} sent the simple event ${name}. World settings are not modeled`,
-            'SimpleEventHandler/handle'
-        );
+        log.debug(`${session.identity.name} sent the simple event ${name}. World settings are not modeled`);
     }
 }

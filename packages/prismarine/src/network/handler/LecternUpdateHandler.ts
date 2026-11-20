@@ -31,16 +31,12 @@ export default class LecternUpdateHandler implements ReadLaneHandler<LecternUpda
 
         const rejection = blockTargetRejection(session, position, LECTERNS);
         if (rejection !== null) {
-            log.verbose(
-                `Dropped a lectern update from ${session.identity.name} at ${where}: ${rejection}`,
-                'LecternUpdateHandler/handle'
-            );
+            log.verbose(`Dropped a lectern update from ${session.identity.name} at ${where}: ${rejection}`);
             return;
         }
 
         log.debug(
-            `${session.identity.name} turned the lectern at ${where} to page ${data.newPage} of ${data.totalPages}. Lectern pages are not stored`,
-            'LecternUpdateHandler/handle'
+            `${session.identity.name} turned the lectern at ${where} to page ${data.newPage} of ${data.totalPages}. Lectern pages are not stored`
         );
     }
 }

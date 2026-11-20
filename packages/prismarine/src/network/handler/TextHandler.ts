@@ -51,14 +51,13 @@ export default class TextHandler implements InputLaneHandler<TextPacket> {
         const text = packet.getPacketData();
 
         if (text === null) {
-            log.verbose(`Dropped an empty text packet from ${session.identity.name}`, 'TextHandler/handle');
+            log.verbose(`Dropped an empty text packet from ${session.identity.name}`);
             return;
         }
 
         if (text.type !== TextPacketType.Chat) {
             log.verbose(
-                `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${session.identity.name}: a client only sends Chat`,
-                'TextHandler/handle'
+                `Dropped a text of type ${TextPacketType[text.type] ?? text.type} from ${session.identity.name}: a client only sends Chat`
             );
             return;
         }

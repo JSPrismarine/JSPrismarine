@@ -3936,12 +3936,7 @@ export class World implements Service {
         // a drop that was never sent.
         const missing = contents.length - contents.filter((drop) => drop !== null).length;
         if (missing > 0) {
-            this.server
-                .getLogger()
-                .debug(
-                    `${missing} drop(s) at ${position.toString()} named nothing this server has`,
-                    'World/dropContents'
-                );
+            this.server.getLogger().debug(`${missing} drop(s) at ${position.toString()} named nothing this server has`);
         }
 
         const wanted = contents.filter((drop): drop is Block | Item => drop !== null && !isEmptyItemDrop(drop));
@@ -3967,10 +3962,7 @@ export class World implements Service {
 
         this.server
             .getLogger()
-            .warn(
-                `${this.name} is at its limit of ${World.ITEM_ENTITY_LIMIT} dropped stacks; this break lost ${lost}`,
-                'World/dropContents'
-            );
+            .warn(`${this.name} is at its limit of ${World.ITEM_ENTITY_LIMIT} dropped stacks; this break lost ${lost}`);
     }
 
     /**
@@ -3993,10 +3985,7 @@ export class World implements Service {
         if (stack === null || item.getRuntimeId() === 0) {
             this.server
                 .getLogger()
-                .debug(
-                    `Dropped nothing for ${item.getName()} at ${position.toString()}: it has no item id`,
-                    'World/dropItem'
-                );
+                .debug(`Dropped nothing for ${item.getName()} at ${position.toString()}: it has no item id`);
             return undefined;
         }
 
@@ -4021,8 +4010,7 @@ export class World implements Service {
             .debug(
                 entity === undefined
                     ? `Dropped nothing for ${item.getName()} at ${position.toString()}: no dropped item is declared`
-                    : `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`,
-                'World/dropItem'
+                    : `Dropped ${item.getName()} (runtime id ${item.getRuntimeId()}) at ${position.toString()}`
             );
         return entity === undefined ? undefined : { entity, item };
     }

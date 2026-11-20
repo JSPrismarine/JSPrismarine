@@ -198,7 +198,7 @@ export class CommandManager implements Service {
                     : '';
                 const message = `${diagnostic.message}${where}`;
                 if (diagnostic.severity === 'error') this.server.getLogger().warn(`§cfunction:§r ${message}`);
-                else this.server.getLogger().debug(message, 'CommandManager/functions');
+                else this.server.getLogger().debug(message);
             }
         });
         return this.functions;
@@ -831,8 +831,7 @@ export class CommandManager implements Service {
                     this.server
                         .getLogger()
                         .debug(
-                            `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${vanilla})`,
-                            'CommandManager/dispatchCommand'
+                            `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${vanilla})`
                         );
                 }
 
@@ -869,8 +868,7 @@ export class CommandManager implements Service {
             this.server
                 .getLogger()
                 .debug(
-                    `Player ${isCommandExecutor(target) ? target.getFormattedUsername() : target.getName()} tried to execute ${input}, but it failed with the error: ${error}`,
-                    'CommandManager/dispatchCommand'
+                    `Player ${isCommandExecutor(target) ? target.getFormattedUsername() : target.getName()} tried to execute ${input}, but it failed with the error: ${error}`
                 );
             this.server.getLogger().error(error);
             return { ran: false, finished: settle() };

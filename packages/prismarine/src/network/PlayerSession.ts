@@ -968,10 +968,7 @@ export default class PlayerSession {
                 // view, one line per sub chunk, and there is nothing for an operator to do about it.
                 this.server
                     .getLogger()
-                    .debug(
-                        `${this.identity.name} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`,
-                        'PlayerSession/handleSubChunkRequest'
-                    );
+                    .debug(`${this.identity.name} asked for sub chunk ${x}, ${y}, ${z}, which is not loaded`);
                 entry.result = SubChunkRequestResult.LEVEL_CHUNK_DOESNT_EXIST;
                 entries.push(entry);
                 continue;
@@ -1062,8 +1059,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .warn(
-                    `${this.identity.name} never closed loading screen ${pending.loadingScreenId} of the change to ${pending.arrival.world.getName()}; finishing it for them`,
-                    'PlayerSession/update'
+                    `${this.identity.name} never closed loading screen ${pending.loadingScreenId} of the change to ${pending.arrival.world.getName()}; finishing it for them`
                 );
             this.endLoadingScreen(pending.loadingScreenId);
             this.completeDimensionChange(pending.loadingScreenId);
@@ -1075,8 +1071,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${this.identity.name} has not opened loading screen ${pending.loadingScreenId}; sending its arrival columns anyway`,
-                    'PlayerSession/update'
+                    `${this.identity.name} has not opened loading screen ${pending.loadingScreenId}; sending its arrival columns anyway`
                 );
             pending.arrivalReleased = true;
             // Chunk delivery, which runs outside the tick and is not waited for.
@@ -2652,8 +2647,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: a change to ${pending.arrival.world.getName()} is pending on loading screen ${pending.loadingScreenId}`,
-                    'PlayerSession/changeWorld'
+                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: a change to ${pending.arrival.world.getName()} is pending on loading screen ${pending.loadingScreenId}`
                 );
             return allSent([]);
         }
@@ -2667,8 +2661,7 @@ export default class PlayerSession {
             this.server
                 .getLogger()
                 .debug(
-                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: they are dead`,
-                    'PlayerSession/changeWorld'
+                    `${queue ? 'Holding' : 'Dropped'} the move of ${this.identity.name} to ${world.getName()}: they are dead`
                 );
             return allSent([]);
         }
@@ -2848,10 +2841,7 @@ export default class PlayerSession {
         if (this.pendingCredits !== undefined) {
             this.server
                 .getLogger()
-                .debug(
-                    `Refused to roll the credits for ${this.identity.name}: they are already rolling`,
-                    'PlayerSession/startCredits'
-                );
+                .debug(`Refused to roll the credits for ${this.identity.name}: they are already rolling`);
             return allSent([]);
         }
 

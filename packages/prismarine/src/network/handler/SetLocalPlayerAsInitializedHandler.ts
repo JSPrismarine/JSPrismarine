@@ -25,10 +25,7 @@ export default class SetLocalPlayerAsInitializedHandler implements InputLaneHand
         const world = session.getWorld();
 
         if (world.getActor(session.runtimeId) !== null) {
-            log.debug(
-                `${session.identity.name} said it was initialized twice; the second was dropped`,
-                'SetLocalPlayerAsInitializedHandler/handle'
-            );
+            log.debug(`${session.identity.name} said it was initialized twice; the second was dropped`);
             return;
         }
 

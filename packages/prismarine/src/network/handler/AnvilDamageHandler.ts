@@ -32,16 +32,10 @@ export default class AnvilDamageHandler implements ReadLaneHandler<AnvilDamagePa
 
         const rejection = blockTargetRejection(session, blockPosition, ANVILS);
         if (rejection !== null) {
-            log.verbose(
-                `Dropped an anvil damage request from ${session.identity.name} at ${where}: ${rejection}`,
-                'AnvilDamageHandler/handle'
-            );
+            log.verbose(`Dropped an anvil damage request from ${session.identity.name} at ${where}: ${rejection}`);
             return;
         }
 
-        log.debug(
-            `${session.identity.name} asked to damage the anvil at ${where}. Anvils are not modeled`,
-            'AnvilDamageHandler/handle'
-        );
+        log.debug(`${session.identity.name} asked to damage the anvil at ${where}. Anvils are not modeled`);
     }
 }

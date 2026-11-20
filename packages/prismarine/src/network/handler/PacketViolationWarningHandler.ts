@@ -31,9 +31,6 @@ export default class PacketViolationWarningHandler implements ConnectionLaneHand
         const type = PacketViolationType[packet.type] ?? `type ${packet.type}`;
         const severity = PacketViolationSeverity[packet.severity] ?? `severity ${packet.severity}`;
 
-        log.warn(
-            `${session.identity.name} rejected ${name} (${id}) as ${type}, ${severity}: "${packet.message}"`,
-            'PacketViolationWarningHandler/handle'
-        );
+        log.warn(`${session.identity.name} rejected ${name} (${id}) as ${type}, ${severity}: "${packet.message}"`);
     }
 }

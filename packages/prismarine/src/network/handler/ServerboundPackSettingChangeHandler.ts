@@ -19,8 +19,7 @@ export default class ServerboundPackSettingChangeHandler implements ConnectionLa
         const data = packet.getPacketData();
         if (data === null) throw new PrismarineNetworkErrors.PackSettingChangeNotDecoded();
         log.debug(
-            `${session.identity.name} set ${data.packSettingName} of pack ${data.packId.toString()} to ${JSON.stringify(data.packSettingValue)}, which the server does not store`,
-            'ServerboundPackSettingChangeHandler/handle'
+            `${session.identity.name} set ${data.packSettingName} of pack ${data.packId.toString()} to ${JSON.stringify(data.packSettingValue)}, which the server does not store`
         );
     }
 }

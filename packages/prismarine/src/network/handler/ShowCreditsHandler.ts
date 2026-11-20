@@ -22,16 +22,10 @@ export default class ShowCreditsHandler implements InputLaneHandler<ShowCreditsP
             // The held change is a message the next input step carries out, so nothing here waits.
             if (session.completeCredits()) return;
 
-            log.debug(
-                `${session.identity.name} reported the end credits finished with none pending`,
-                'ShowCreditsHandler/handle'
-            );
+            log.debug(`${session.identity.name} reported the end credits finished with none pending`);
             return;
         }
 
-        log.debug(
-            `${session.identity.name} reported the end credits started, which only the server may say`,
-            'ShowCreditsHandler/handle'
-        );
+        log.debug(`${session.identity.name} reported the end credits started, which only the server may say`);
     }
 }

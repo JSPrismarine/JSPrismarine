@@ -25,14 +25,13 @@ export default class PartyChangedHandler implements ConnectionLaneHandler<PartyC
 
         const partyInfo = data.partyInfo;
         if (partyInfo === null) {
-            log.debug(`${name} left its party. Parties are not tracked`, 'PartyChangedHandler/handle');
+            log.debug(`${name} left its party. Parties are not tracked`);
             return;
         }
 
         if (partyInfo.partyId.length > MAX_PARTY_ID_LENGTH) {
             log.verbose(
-                `Dropped a party change from ${name}: the party id is ${partyInfo.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`,
-                'PartyChangedHandler/handle'
+                `Dropped a party change from ${name}: the party id is ${partyInfo.partyId.length} characters, more than the ${MAX_PARTY_ID_LENGTH} allowed`
             );
             return;
         }
@@ -42,6 +41,6 @@ export default class PartyChangedHandler implements ConnectionLaneHandler<PartyC
                 ? 'left its party'
                 : `is in party ${partyInfo.partyId}${partyInfo.isPartyLeader ? ' as its leader' : ''}`;
 
-        log.debug(`${name} ${change}. Parties are not tracked`, 'PartyChangedHandler/handle');
+        log.debug(`${name} ${change}. Parties are not tracked`);
     }
 }

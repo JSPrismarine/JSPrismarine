@@ -36,16 +36,14 @@ export default class StructureTemplateDataRequestHandler implements ReadLaneHand
         const rejection = blockTargetRejection(session, structurePosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
             log.verbose(
-                `Dropped a structure template request from ${session.identity.name} at ${structurePosition.getX()}, ${structurePosition.getY()}, ${structurePosition.getZ()}: ${rejection}`,
-                'StructureTemplateDataRequestHandler/handle'
+                `Dropped a structure template request from ${session.identity.name} at ${structurePosition.getX()}, ${structurePosition.getY()}, ${structurePosition.getZ()}: ${rejection}`
             );
             return;
         }
 
         const operation = StructureTemplateRequestOperation[data.requestedOperation] ?? data.requestedOperation;
         log.debug(
-            `${session.identity.name} requested structure ${data.structureName} with operation ${operation}. The server stores no structure templates`,
-            'StructureTemplateDataRequestHandler/handle'
+            `${session.identity.name} requested structure ${data.structureName} with operation ${operation}. The server stores no structure templates`
         );
     }
 }

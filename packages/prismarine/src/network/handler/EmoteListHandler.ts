@@ -24,10 +24,7 @@ export default class EmoteListHandler implements ConnectionLaneHandler<EmoteList
 
         // `Runtime id` names whose emotes these are, and a client only equips its own.
         if (data.runtimeId !== session.runtimeId) {
-            log.debug(
-                `${session.identity.name} sent an EmoteList for runtime id ${data.runtimeId}, dropped`,
-                'EmoteListHandler/handle'
-            );
+            log.debug(`${session.identity.name} sent an EmoteList for runtime id ${data.runtimeId}, dropped`);
         }
     }
 }

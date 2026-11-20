@@ -111,10 +111,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                 },
                 (error: unknown) => {
                     const failure = asError(error);
-                    this.logger.error(
-                        `Failed to bind ${address}:${port}, error=${failure.message}`,
-                        'RakNet/ServerSocket/Start'
-                    );
+                    this.logger.error(`Failed to bind ${address}:${port}, error=${failure.message}`);
                     this.stopped = true;
                     clearTimeout(this.ticker);
                     this.emit('error', failure);
@@ -152,8 +149,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                                     this.logger.error(
                                         `Session update failed for client=${session.getAddress()}, error=${
                                             error instanceof Error ? error.message : String(error)
-                                        }`,
-                                        'RakNet/ServerSocket/tick'
+                                        }`
                                     );
                                 }
                             }
@@ -205,8 +201,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
                 } else {
                     // May be triggered by the ACK of disconnect packet that is received after session is closed
                     this.logger.debug(
-                        `Cannot handle Datagram for unconnected client=${rinfo.address}:${rinfo.port}, bytes=${msg.byteLength}`,
-                        'RakNet/ServerSocket/handleMessage'
+                        `Cannot handle Datagram for unconnected client=${rinfo.address}:${rinfo.port}, bytes=${msg.byteLength}`
                     );
                 }
             }
@@ -214,8 +209,7 @@ export default class ServerSocket extends EventEmitter implements RakNetListener
             this.logger.debug(
                 `Discarded malformed datagram from client=${rinfo.address}:${rinfo.port}, error=${
                     error instanceof Error ? error.message : String(error)
-                }`,
-                'RakNet/ServerSocket/handleMessage'
+                }`
             );
         }
     }

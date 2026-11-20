@@ -26,8 +26,7 @@ export default class CommandBlockUpdateHandler implements ConnectionLaneHandler<
             : `command block minecart ${target.targetRuntimeId}`;
 
         log.debug(
-            `${session.identity.name} set ${where} to "${data.command}". Command blocks are not stored, so nothing changed`,
-            'CommandBlockUpdateHandler/handle'
+            `${session.identity.name} set ${where} to "${data.command}". Command blocks are not stored, so nothing changed`
         );
     }
 }

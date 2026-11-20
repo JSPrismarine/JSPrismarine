@@ -31,17 +31,13 @@ export default class StructureBlockUpdateHandler implements ReadLaneHandler<Stru
 
         const rejection = blockTargetRejection(session, blockPosition, STRUCTURE_BLOCKS);
         if (rejection !== null) {
-            log.verbose(
-                `Dropped a structure block update from ${session.identity.name} at ${where}: ${rejection}`,
-                'StructureBlockUpdateHandler/handle'
-            );
+            log.verbose(`Dropped a structure block update from ${session.identity.name} at ${where}: ${rejection}`);
             return;
         }
 
         const name = data.structureData.structureName.unredacted;
         log.debug(
-            `${session.identity.name} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`,
-            'StructureBlockUpdateHandler/handle'
+            `${session.identity.name} set the structure block at ${where} to structure "${name}". Structure blocks are not stored`
         );
     }
 }

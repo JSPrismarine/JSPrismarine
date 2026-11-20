@@ -34,8 +34,7 @@ export default class RequestAbilityHandler implements InputLaneHandler<RequestAb
                   ? String(packet.floatValue)
                   : 'no value';
         log.debug(
-            `${session.identity.name} asked to set ability ${AbilityLayerFlag[packet.ability] ?? packet.ability} to ${value}. Only flight can be requested, so the current abilities were sent back`,
-            'RequestAbilityHandler/handle'
+            `${session.identity.name} asked to set ability ${AbilityLayerFlag[packet.ability] ?? packet.ability} to ${value}. Only flight can be requested, so the current abilities were sent back`
         );
         step.output(session.sendAbilities());
     }

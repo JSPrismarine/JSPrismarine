@@ -132,8 +132,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
                 this.worker?.postMessage({ type: 'server-name', snapshot });
             } catch (error: unknown) {
                 this.logger.error(
-                    `Could not send the server name, error=${error instanceof Error ? error.message : String(error)}`,
-                    'RakNet/WorkerServerSocket/serverName'
+                    `Could not send the server name, error=${error instanceof Error ? error.message : String(error)}`
                 );
             }
         });
@@ -413,22 +412,22 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         if (typeof text !== 'string') return;
         switch (level) {
             case 'info':
-                this.logger.info(text, 'RakNet/Worker');
+                this.logger.info(text);
                 break;
             case 'warn':
-                this.logger.warn(text, 'RakNet/Worker');
+                this.logger.warn(text);
                 break;
             case 'error':
-                this.logger.error(text, 'RakNet/Worker');
+                this.logger.error(text);
                 break;
             case 'verbose':
-                this.logger.verbose(text, 'RakNet/Worker');
+                this.logger.verbose(text);
                 break;
             case 'debug':
-                this.logger.debug(text, 'RakNet/Worker');
+                this.logger.debug(text);
                 break;
             case 'silly':
-                this.logger.silly(text, 'RakNet/Worker');
+                this.logger.silly(text);
                 break;
         }
     }
@@ -437,7 +436,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         this.rejectReady?.(error);
         this.resolveReady = undefined;
         this.rejectReady = undefined;
-        this.logger.error(`Worker failed, error=${error.message}`, 'RakNet/WorkerServerSocket');
+        this.logger.error(`Worker failed, error=${error.message}`);
         for (const session of this.sessionsById.values()) {
             session.markClosed();
             this.emit('closeConnection', session.getAddress(), 'network worker failed');

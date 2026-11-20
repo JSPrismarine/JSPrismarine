@@ -20,8 +20,7 @@ export default class ClientMovementPredictionSyncHandler implements ConnectionLa
         if (data === null) throw new PrismarineNetworkErrors.MovementPredictionSyncNotDecoded();
 
         log.debug(
-            `${session.identity.name} predicts actor ${data.actorUniqueId} with speed ${data.movementSpeed}, jump ${data.jumpStrength}, box ${data.boundingBoxWidth}x${data.boundingBoxHeight}, flags 0x${data.actorFlags.toString(16)}${data.actorFlyingState ? ', flying' : ''}`,
-            'ClientMovementPredictionSyncHandler/handle'
+            `${session.identity.name} predicts actor ${data.actorUniqueId} with speed ${data.movementSpeed}, jump ${data.jumpStrength}, box ${data.boundingBoxWidth}x${data.boundingBoxHeight}, flags 0x${data.actorFlags.toString(16)}${data.actorFlyingState ? ', flying' : ''}`
         );
     }
 }

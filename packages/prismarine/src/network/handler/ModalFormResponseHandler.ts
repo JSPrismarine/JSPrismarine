@@ -27,10 +27,7 @@ export default class ModalFormResponseHandler implements InputLaneHandler<ModalF
     public handle(packet: ModalFormResponsePacket, { session, log, services, step }: InputContext): undefined {
         const name = session.identity.name;
         if (packet.jsonResponse !== null && !parses(packet.jsonResponse)) {
-            log.debug(
-                `${name} answered form ${packet.formId} with text that is not JSON, disconnected`,
-                'ModalFormResponseHandler/handle'
-            );
+            log.debug(`${name} answered form ${packet.formId} with text that is not JSON, disconnected`);
             step.output(session.kick(MALFORMED_FORM_RESPONSE, DisconnectReason.BAD_PACKET));
             return;
         }
@@ -49,7 +46,7 @@ export default class ModalFormResponseHandler implements InputLaneHandler<ModalF
                 : packet.formCancelReason !== null
                   ? `dismissed (${ModalFormCancelReason[packet.formCancelReason] ?? packet.formCancelReason})`
                   : 'answered with neither a response nor a reason';
-        log.debug(`${name} ${outcome} form ${packet.formId}, which no script sent`, 'ModalFormResponseHandler/handle');
+        log.debug(`${name} ${outcome} form ${packet.formId}, which no script sent`);
     }
 }
 

@@ -25,8 +25,7 @@ export default class PlayerLocationHandler implements ConnectionLaneHandler<Play
                 : `at ${data.position.x}, ${data.position.y}, ${data.position.z}`;
 
         log.debug(
-            `${session.identity.name} sent a player location for actor ${data.targetActorId} (${location}), which only the server should send`,
-            'PlayerLocationHandler/handle'
+            `${session.identity.name} sent a player location for actor ${data.targetActorId} (${location}), which only the server should send`
         );
     }
 }

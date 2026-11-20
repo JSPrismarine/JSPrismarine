@@ -276,7 +276,7 @@ const adapterFor = (
 
 /** Writes one of the entity runtime's reports to the server log, when there is a server. */
 const reportFrom = (world: () => World | undefined, dimension: string, message: string): void => {
-    world()?.getServer().getLogger().debug(`${dimension}: ${message}`, 'entity/data/live');
+    world()?.getServer().getLogger().debug(`${dimension}: ${message}`);
 };
 
 /**
