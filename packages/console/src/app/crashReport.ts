@@ -18,6 +18,8 @@ export interface Crash {
 }
 
 const FRAME = /^\s+at\s/;
+/** The first line of an error as Node prints it, such as `TypeError: ...` or `Uncaught Error`. */
+const ERROR_HEAD = /^\s*(?:Uncaught\s+)?[\w.$]*(?:Error|Exception)\b/;
 /** A line that reports a failure, as opposed to what Node prints after a trace, such as its version. */
 const FAILURE = /error|fatal|fail|exception|uncaught/i;
 
@@ -38,11 +40,29 @@ export function parseCrash(lines: readonly string[]): Crash {
     if (later !== undefined) return { error: later.trim(), frames: [], trace: later.trim() };
     let first = lastFrame;
     while (first > 0 && FRAME.test(lines[first - 1] ?? '')) first -= 1;
-    const header = lines.slice(0, first).findLast((line) => line.trim() !== '');
+    const header = errorHeader(lines, first);
     const frames = lines.slice(first, lastFrame + 1).map((line) => {
         const text = line.trim();
         return { text, location: sourceLocationIn(text) };
     });
-    const trace = [header, ...lines.slice(first, lastFrame + 1)].filter((line) => line !== undefined).join('\n');
-    return { error: header?.trim(), frames, trace };
+    const trace = [...header, ...lines.slice(first, lastFrame + 1)].join('\n');
+    const error = header.map((line) => line.trim()).join(' ');
+    return { error: error === '' ? undefined : error, frames, trace };
+}
+
+/**
+ * The lines of the error message above the frame at `first`. A message can run over several
+ * lines, such as `Error: invalid configuration` and the detail under it, so the header reaches
+ * back through the unbroken lines before the frames to the last one that starts an error. Without
+ * such a line it is only the line right above the frames, so unrelated output is left out.
+ */
+function errorHeader(lines: readonly string[], first: number): string[] {
+    let end = first;
+    while (end > 0 && (lines[end - 1] ?? '').trim() === '') end -= 1;
+    if (end === 0) return [];
+    let start = end - 1;
+    while (start > 0 && (lines[start - 1] ?? '').trim() !== '' && !FRAME.test(lines[start - 1] ?? '')) start -= 1;
+    const block = lines.slice(start, end);
+    const head = block.findLastIndex((line) => ERROR_HEAD.test(line));
+    return head === -1 ? block.slice(-1) : block.slice(head);
 }

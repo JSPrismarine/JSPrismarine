@@ -48,6 +48,17 @@ describe('parseCrash', () => {
         expect(crash.frames).toHaveLength(1);
     });
 
+    it('keeps every line of an error message that runs over several', () => {
+        const crash = parseCrash([
+            'some unrelated output',
+            'Error: invalid configuration',
+            '  port must be a number',
+            '    at load (file:///repo/packages/prismarine/dist/Config.js:40:9)'
+        ]);
+        expect(crash.error).toMatch(/^Error: invalid configuration\b.*port must be a number$/);
+        expect(crash.trace.split('\n')).toHaveLength(3);
+    });
+
     it('decodes the path of a frame written as a file URL', () => {
         const crash = parseCrash(['Error: boom', '    at run (file:///repo/my%20project/dist/Server.js:12:3)']);
         expect(crash.frames[0]?.location).toEqual({ path: '/repo/my project/dist/Server.js', line: 12, column: 3 });
