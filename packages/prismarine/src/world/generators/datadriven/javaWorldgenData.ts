@@ -79,6 +79,11 @@ export interface JavaWorldgenRegistries {
      * between worldgen grammars that changed. Undefined reads the default release's grammar.
      */
     readonly format?: number;
+    /**
+     * The Java release the documents come from, such as `26.3`, which picks the structure
+     * templates extracted for that release. Undefined reads the default release's templates.
+     */
+    readonly release?: string;
 }
 
 /**
@@ -152,13 +157,18 @@ const readBiomeParameterReports = (reports: string): Map<string, unknown> => {
  * @param reports - The data generator output root, the directory holding `reports/`, for the
  *   biome parameter reports no datapack carries.
  * @param format - The data pack format major of the Java release the stack targets.
+ * @param release - The Java release the stack targets, which picks its structure templates.
  */
 export const loadJavaWorldgenRegistriesFrom = (
     definitions: Definitions,
     reports: string,
-    format?: number
+    format?: number,
+    release?: string
 ): JavaWorldgenRegistries => ({
-    format,
+    // Left off when unknown rather than set to undefined: the terrain cache fingerprints the
+    // registries, and its canonical form has no undefined.
+    ...(format === undefined ? {} : { format }),
+    ...(release === undefined ? {} : { release }),
     densityFunctions: worldgenKind(definitions, 'density_function'),
     noises: worldgenKind(definitions, 'noise'),
     noiseSettings: worldgenKind(definitions, 'noise_settings'),
@@ -202,7 +212,7 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
             ? undefined
             : { release: record.release, format: record.dataPackFormat, dataVersion: record.dataVersion };
     const { definitions } = load([{ kind: 'datapack', path: sources.datapack }], java === undefined ? {} : { java });
-    return loadJavaWorldgenRegistriesFrom(definitions, sources.reports, java?.format[0]);
+    return loadJavaWorldgenRegistriesFrom(definitions, sources.reports, java?.format[0], java?.release);
 };
 
 /**
@@ -211,8 +221,8 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
  * @throws {Error} When the datapack or the reports are not on disk, naming the commands and
  *   the environment variables that put them there.
  */
-export const requireJavaWorldgenSources = (): JavaWorldgenSources => {
-    const sources = findJavaWorldgenSources();
+export const requireJavaWorldgenSources = (release?: string): JavaWorldgenSources => {
+    const sources = findJavaWorldgenSources(release);
     if (sources === undefined) {
         throw new PrismarineGenerationErrors.MissingJavaWorldgenData({
             datapack: JAVA_WORLDGEN_ENV.datapack,

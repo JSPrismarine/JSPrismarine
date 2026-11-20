@@ -22,6 +22,8 @@ import { reportProgress } from '../../../../../../.test/reportProgress';
 
 import { findJavaWorldgenSources } from './javaWorldgenSources';
 import { loadJavaWorldgenRegistries, loadJavaWorldgenRegistriesFrom } from './javaWorldgenData';
+import { buildRegistryBundle, readRegistryBundle } from './registryBundle';
+import { fingerprintWorldgenInput } from './TerrainProtoCache';
 
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
@@ -75,15 +77,40 @@ describe('the Java world generation registries', () => {
         expect(registries.biomeParameters.size).toBe(0);
     });
 
+    it('projects registries the terrain cache can fingerprint when no format or release is given', () => {
+        const root = writeDatapack({ 'data/test/worldgen/noise_settings/sky.json': { sea_level: 0 } });
+        roots.push(root);
+        const { definitions } = load([{ kind: 'datapack', path: root }]);
+
+        const unknown = loadJavaWorldgenRegistriesFrom(definitions, join(root, 'no-reports'));
+        // The generator fingerprints its registries whenever a terrain cache is on, and the
+        // canonical form refuses undefined.
+        expect(() => fingerprintWorldgenInput(unknown)).not.toThrow();
+        expect(() => fingerprintWorldgenInput(readRegistryBundle(buildRegistryBundle(unknown)))).not.toThrow();
+
+        const targeted = loadJavaWorldgenRegistriesFrom(definitions, join(root, 'no-reports'), 128, '26.4-snapshot-10');
+        const carried = readRegistryBundle(buildRegistryBundle(targeted));
+        expect(carried.format).toBe(128);
+        expect(carried.release).toBe('26.4-snapshot-10');
+        expect(fingerprintWorldgenInput(carried)).toBe(fingerprintWorldgenInput(targeted));
+    });
+
     describe.skipIf(!enabled)('over the fetched vanilla data', { tags: ['real-data'] }, () => {
         const registries = enabled ? loadJavaWorldgenRegistries(sources!) : undefined;
 
         it('reads the same registries through either entry point', () => {
             const { definitions } = load([{ kind: 'datapack', path: sources!.datapack }]);
             // The datapack-only entry point reads the format from the datapack's `version.json`.
-            const format = readGeneratedJavaVersion(sources!.datapack)?.dataPackFormat[0];
-            expect(format).toBeDefined();
-            expect(loadJavaWorldgenRegistriesFrom(definitions, sources!.reports, format)).toEqual(registries);
+            const record = readGeneratedJavaVersion(sources!.datapack);
+            expect(record).toBeDefined();
+            expect(
+                loadJavaWorldgenRegistriesFrom(
+                    definitions,
+                    sources!.reports,
+                    record?.dataPackFormat[0],
+                    record?.release
+                )
+            ).toEqual(registries);
         });
 
         it('reads the structure registries the generator places from', () => {
