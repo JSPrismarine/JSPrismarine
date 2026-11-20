@@ -326,6 +326,79 @@ marker, such as `<!-- fact:protocol.newest -->2225<!-- /fact -->`, which GitHub 
 fills in the current value from `tools/docs/facts.mts`, so the site stays right when the code
 changes; `pnpm run docs:facts` refreshes the values in the Markdown.
 
+## Structured data
+
+Every page carries schema.org structured data, a JSON-LD script that search engines read to learn
+what the page is. `tools/docs/structuredData.mts` builds it from what the site already knows: the
+page's title, description, URL, "Updated" date and `og:image`, the sidebar, and the project facts
+above. A new page gets it without any work.
+
+Each page's graph holds the site's `WebSite` and `Organization`, and one main node for the page
+itself, whose `@id` is the page's URL. The main node's type follows from where the page comes from;
+the comment at the top of `structuredData.mts` lists the cases. A page from `docs/` is a
+`TechArticle`, for example, and the landing page describes the server as a `SoftwareApplication`.
+A page below a section's root also gets a `BreadcrumbList` that follows the sidebar.
+
+Most pages need nothing more. When a page needs to say more, or something else, it sets `jsonLd` in
+its frontmatter:
+
+- `jsonLd: false` leaves the page without structured data.
+- `main` amends the main node.
+- `graph` adds nodes. A node whose `@id` matches a generated node amends that node instead.
+- `override` replaces the whole graph with the page's own nodes. It cannot be combined with `main`
+  or `graph`.
+
+An amendment merges into the generated node one key at a time. A key set to `null` removes the
+property. A nested object with neither `@id` nor `@type` merges into the generated object under the
+same key, so `isPartOf: { name: Docs }` keeps the link to the site. Any other value replaces what was
+there, including a list and an object with its own `@type`. Setting `@type` changes the node's type
+and keeps its other properties. `main` cannot set `@id`, so other nodes' references to the page stay
+valid.
+
+An `@id` in the frontmatter can be relative. `#faq` names a node on this page, and a value starting
+with `/` resolves against the site root, so `/#organization` is the site's `Organization`. The
+`WebSite` is `/#website`.
+
+A guide that answers a common question could amend its article and add a FAQ:
+
+```yaml
+---
+title: Joining a server
+jsonLd:
+    main:
+        about: { '@type': VideoGame, name: Minecraft }
+        keywords: [Bedrock, server address, port]
+    graph:
+        - '@type': FAQPage
+          '@id': '#faq'
+          mainEntity:
+              - '@type': Question
+                name: Do players need an Xbox account?
+                acceptedAnswer: { '@type': Answer, text: Only when the server has online mode on. }
+---
+```
+
+An override suits a page that is not an article at all, such as a dataset:
+
+```yaml
+---
+jsonLd:
+    override:
+        - '@type': Dataset
+          '@id': '#snapshot'
+          name: Parity snapshot
+          description: Behavior checks against the vanilla server, by family.
+---
+```
+
+Nothing generated survives an override, so a reference such as `/#organization` would point at no
+node on the page. List every node the page refers to.
+
+The build fails, naming the page, when `jsonLd` has an unknown key or a value that is not plain
+JSON. To see what a page emits, build the site and read the `application/ld+json` script in its
+HTML. Once the page is published, Google's Rich Results Test and the Schema Markup Validator check
+it.
+
 ## Changing the brand
 
 Change a color in `packages/console/src/theme/brand.ts`, a color's use in `tokens.ts`, a shape in
