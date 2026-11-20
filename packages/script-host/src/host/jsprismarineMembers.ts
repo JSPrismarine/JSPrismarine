@@ -1,6 +1,7 @@
 /**
  * What the members of `@jsprismarine/server` that reach the running server read and show: the
- * embedder's side of `performance`, `getPing` and `bossBars`, and the boss bars each pack shows.
+ * embedder's side of `performance`, `getPing`, `bossBars` and `playerList`, the boss bars the
+ * packs show and the player list names they set.
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
@@ -44,6 +45,10 @@ export interface JsprismarineServerMembers {
     updateBossBar(player: string, bar: number, state: ScriptBossBarState): void;
     /** Takes a bar off a player's screen. */
     hideBossBar(player: string, bar: number): void;
+    /** Changes the name every client's player list shows for a player. */
+    setPlayerListName(player: string, name: string): void;
+    /** Gives a player's player list entry its login name back. */
+    resetPlayerListName(player: string): void;
 }
 
 /** What a bar shows when the pack shows it without a property. */
@@ -161,5 +166,46 @@ export class ScriptBossBars {
     /** Takes down every bar, as the scripts stop. */
     public hideAll(): void {
         for (const id of [...this.bars.keys()]) this.hide(id);
+    }
+}
+
+/**
+ * The player list names the packs of one runtime set. The packs' scripts stop together, on a
+ * reload or a shutdown, so the runtime gives every name back then. A player who leaves takes
+ * their entry with them, and a rejoin builds a new one from the login name.
+ */
+export class ScriptPlayerListNames {
+    private readonly members: JsprismarineServerMembers;
+    /** The players whose entry shows a name a pack set. */
+    private readonly named = new Set<string>();
+
+    public constructor(members: JsprismarineServerMembers) {
+        this.members = members;
+    }
+
+    /**
+     * Shows a name for a player.
+     * @param present - Whether the player is still in the world. One who left has no entry to rename.
+     */
+    public set(player: string, present: boolean, name: string): void {
+        if (!present) return;
+        this.named.add(player);
+        this.members.setPlayerListName(player, name);
+    }
+
+    /** Gives a player their login name back. A player whose name no pack set is left alone. */
+    public reset(player: string): void {
+        if (!this.named.delete(player)) return;
+        this.members.resetPlayerListName(player);
+    }
+
+    /** Forgets a player's name as they leave, since their entry goes with them. */
+    public playerLeft(player: string): void {
+        this.named.delete(player);
+    }
+
+    /** Gives every player their login name back, as the scripts stop. */
+    public resetAll(): void {
+        for (const player of [...this.named]) this.reset(player);
     }
 }

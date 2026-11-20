@@ -61,26 +61,29 @@ any other `@jsprismarine/` name rejects with the same message BDS gives.
 ## What the module holds
 
 Every export is frozen. `jsprismarine` holds plain values that stay the same while the server
-runs. `performance`, `getPing` and `bossBars` reach the running server: each property of
-`performance` reads the server when the script reads it, so a script that wants the numbers for
-the current tick reads them again.
+runs. `performance`, `getPing`, `bossBars` and `playerList` reach the running server: each
+property of `performance` reads the server when the script reads it, so a script that wants the
+numbers for the current tick reads them again.
 
 <!-- fact:scripting.jspModule.table -->
-| Member                           | Type                | What it is                                                                                                                                                         |
-| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `jsprismarine`                   | object              | The server the pack runs on.                                                                                                                                       |
-| `jsprismarine.name`              | `"JSPrismarine"`    | The server software, always `JSPrismarine`.                                                                                                                        |
-| `jsprismarine.version`           | string              | The JSPrismarine version, such as `0.22.0`, without a leading `v`.                                                                                                 |
-| `jsprismarine.minecraftVersion`  | string              | The newest Minecraft Bedrock release the server speaks, the one it advertises.                                                                                     |
-| `jsprismarine.protocolVersion`   | number              | The Bedrock network protocol version of `minecraftVersion`.                                                                                                        |
-| `performance`                    | object              | How fast the server ticks. Each property reads the server when the script reads it.                                                                                |
-| `performance.tps`                | number              | Ticks per second over the last second. The server aims for 20, and runs above it while it catches up.                                                              |
-| `performance.tpsAverages`        | `readonly number[]` | Ticks per second averaged over the windows `/tps` reports, shortest first.                                                                                         |
-| `performance.lastTickMs`         | number              | How long the last tick's work took, in milliseconds, without the wait before the next tick. Zero before the first tick.                                            |
-| `performance.averageTickMs`      | number              | How long a tick's work has taken lately, in milliseconds, as a moving average over the recent ticks. Zero before the first tick.                                   |
-| `getPing(player)`                | function            | The player's round trip time in milliseconds, or `undefined` while their connection has no sample, after they leave, or when their transport measures none.        |
-| `bossBars`                       | object              | Boss bars on one player's screen. A bar belongs to the pack that showed it and goes away when the player leaves or the pack's scripts stop, as on `/reload`.       |
-| `bossBars.show(player, options)` | function            | Shows a boss bar to one player. A player sees the bar shown last, and the one before it again once that one is hidden. A bar for a player who left is never valid. |
+| Member                                    | Type                | What it is                                                                                                                                                                                   |
+| ----------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsprismarine`                            | object              | The server the pack runs on.                                                                                                                                                                 |
+| `jsprismarine.name`                       | `"JSPrismarine"`    | The server software, always `JSPrismarine`.                                                                                                                                                  |
+| `jsprismarine.version`                    | string              | The JSPrismarine version, such as `0.22.0`, without a leading `v`.                                                                                                                           |
+| `jsprismarine.minecraftVersion`           | string              | The newest Minecraft Bedrock release the server speaks, the one it advertises.                                                                                                               |
+| `jsprismarine.protocolVersion`            | number              | The Bedrock network protocol version of `minecraftVersion`.                                                                                                                                  |
+| `performance`                             | object              | How fast the server ticks. Each property reads the server when the script reads it.                                                                                                          |
+| `performance.tps`                         | number              | Ticks per second over the last second. The server aims for 20, and runs above it while it catches up.                                                                                        |
+| `performance.tpsAverages`                 | `readonly number[]` | Ticks per second averaged over the windows `/tps` reports, shortest first.                                                                                                                   |
+| `performance.lastTickMs`                  | number              | How long the last tick's work took, in milliseconds, without the wait before the next tick. Zero before the first tick.                                                                      |
+| `performance.averageTickMs`               | number              | How long a tick's work has taken lately, in milliseconds, as a moving average over the recent ticks. Zero before the first tick.                                                             |
+| `getPing(player)`                         | function            | The player's round trip time in milliseconds, or `undefined` while their connection has no sample, after they leave, or when their transport measures none.                                  |
+| `bossBars`                                | object              | Boss bars on one player's screen. A bar belongs to the pack that showed it and goes away when the player leaves or the pack's scripts stop, as on `/reload`.                                 |
+| `bossBars.show(player, options)`          | function            | Shows a boss bar to one player. A player sees the bar shown last, and the one before it again once that one is hidden. A bar for a player who left is never valid.                           |
+| `playerList`                              | object              | The player list every client shows, in the pause menu. A name a pack sets there reverts when the pack's scripts stop, as on `/reload`. Chat and the name above the head keep the login name. |
+| `playerList.setDisplayName(player, name)` | function            | Changes the name every client, and every later joiner, shows for the player in its player list, and nothing else. Throws for an empty name. Does nothing for a player who left.              |
+| `playerList.reset(player)`                | function            | Gives the player's entry its login name back, at once rather than when the scripts stop.                                                                                                     |
 <!-- /fact -->
 
 The members take and give these types, which `@jsprismarine/script-types` declares:
@@ -142,6 +145,36 @@ has bars from several packs sees the one shown last, and the one before it again
 hidden. `getPing` answers `undefined` until the player's connection has measured a round trip:
 RakNet's from the acknowledgments of its datagrams, NetherNet's from SCTP's under the data
 channels.
+
+## Rename a player in the player list
+
+`playerList.setDisplayName` changes the name every client shows for a player in the pause menu's
+player list, and nothing else: chat and the name above the head keep the login name. A player who
+joins later sees the name too. This one shows each player's ping after their name, refreshed once
+a second, and sends a name only when it changed:
+
+```js
+import { system, world } from '@minecraft/server';
+
+world.afterEvents.worldLoad.subscribe(async () => {
+    const jsp = await loadJsprismarine();
+    if (jsp === undefined || !('playerList' in jsp)) return;
+    const shown = new Map();
+    system.runInterval(() => {
+        for (const player of world.getAllPlayers()) {
+            const name = `${player.name} §7${jsp.getPing(player) ?? '?'}ms`;
+            if (shown.get(player.id) === name) continue;
+            shown.set(player.id, name);
+            jsp.playerList.setDisplayName(player, name);
+        }
+    }, 20);
+});
+```
+
+An empty name throws a `TypeError`. `playerList.reset(player)` gives the entry its login name
+back at once, and every name the scripts set reverts when they stop, on `/reload` or at shutdown.
+A name set for a player who left changes nothing, and a player who rejoins starts with their login
+name again.
 
 Later JSPrismarine versions add members. To use one that an older server may lack, check for it
 before you call it, the same way you check for the module:

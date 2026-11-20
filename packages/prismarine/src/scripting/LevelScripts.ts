@@ -36,8 +36,8 @@ export interface LevelScriptsOptions {
     readonly configDirectory: string | undefined;
     readonly sources: ScriptWorldSources;
     /**
-     * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the server.
-     * The module leaves them out when absent.
+     * What `@jsprismarine/server`'s `performance`, `getPing`, `bossBars` and `playerList` reach
+     * of the server. The module leaves them out when absent.
      */
     readonly members?: JsprismarineServerMembers;
     /** The level's seed, which `Math.random` is seeded from. */

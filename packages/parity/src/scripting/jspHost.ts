@@ -195,14 +195,17 @@ const isJson = (text: string): boolean => {
 
 /**
  * What `@jsprismarine/server`'s members that reach the server read in a world scenario: a level
- * with no ticker and no transport, so the figures are fixed and nobody has a ping or a bar.
+ * with no ticker and no transport, so the figures are fixed and nobody has a ping, a bar or a
+ * list entry.
  */
 const SCENARIO_MEMBERS: JsprismarineServerMembers = {
     performance: () => ({ tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 }),
     ping: () => undefined,
     showBossBar: () => {},
     updateBossBar: () => {},
-    hideBossBar: () => {}
+    hideBossBar: () => {},
+    setPlayerListName: () => {},
+    resetPlayerListName: () => {}
 };
 
 /** The `script-watchdog-*` defaults BDS ships, under the scenario's own properties. */

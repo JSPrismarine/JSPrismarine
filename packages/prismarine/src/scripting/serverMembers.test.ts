@@ -17,12 +17,17 @@ const viewer = (runtimeId: bigint, roundTripTime?: number) => {
     /** The actor of every boss event the player was sent. */
     const actors = new Set<bigint>();
     const pending: Promise<void>[] = [];
+    /** The name each `setPlayerListName` asked for, the login name as undefined. */
+    const listNames: (string | undefined)[] = [];
     /** The event type whose next sends fail, as a send to a congested connection can, and how many. */
     let failing: { eventType: BossEventUpdateType; times: number } | undefined;
     const session = stub<PlayerSession>({
         runtimeId,
         getRuntimeId: () => runtimeId,
         isConnected: () => true,
+        setPlayerListName: async (name) => {
+            listNames.push(name);
+        },
         send: async (packet) => {
             if (!(packet instanceof BossEventPacket)) return;
             if (failing !== undefined && packet.eventType === failing.eventType) {
@@ -44,7 +49,7 @@ const viewer = (runtimeId: bigint, roundTripTime?: number) => {
     const fail = (eventType: BossEventUpdateType, times = 1) => {
         failing = { eventType, times };
     };
-    return { session, take, actors, fail };
+    return { session, take, actors, fail, listNames };
 };
 
 describe('ScriptBossBarScreens', () => {
@@ -176,6 +181,18 @@ describe('scriptServerMembers', () => {
         const members = scriptServerMembers(server([viewer(9n, 23.5).session, viewer(10n).session]));
 
         expect([members.ping('9'), members.ping('10'), members.ping('11')]).toEqual([23.5, undefined, undefined]);
+    });
+
+    it('renames the player list entry of the player it names, and gives it back, through their session', () => {
+        const steve = viewer(9n);
+        const members = scriptServerMembers(server([steve.session]));
+
+        members.setPlayerListName('9', '§aSteve');
+        members.resetPlayerListName('9');
+        members.setPlayerListName('10', 'nobody');
+        members.resetPlayerListName('10');
+
+        expect(steve.listNames).toEqual(['§aSteve', undefined]);
     });
 
     it("puts a script's bar on the screen of the player it names", async () => {

@@ -274,7 +274,7 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
        and `script-types`, the fact tables on the module page, and the parity row.
 3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
        tests.
-4. [ ] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
+4. [x] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
 5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
        the script-event API, the README, its tests and the client-e2e scenario.

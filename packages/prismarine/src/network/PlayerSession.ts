@@ -126,7 +126,7 @@ import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 import PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
 import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
-import { playerListEntryOf } from './playerListEntry';
+import { playerListEntryOf, setPlayerListName } from './playerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
@@ -3243,6 +3243,22 @@ export default class PlayerSession {
         packet.type = PlayerListAction.TYPE_REMOVE;
         packet.entries.push(entry);
         await this.server.broadcastPacket(packet);
+    }
+
+    /**
+     * Changes the name every client's player list shows for this player, or gives it the login
+     * name back. The entry later joiners get changes too. Chat and the name above the head keep
+     * the login name.
+     * @param name - The name to show, or the login name when left out.
+     */
+    public setPlayerListName(name?: string): Promise<void> {
+        return setPlayerListName(
+            this.server.getSessionManager().getPlayerList(),
+            (packet) => this.server.broadcastPacket(packet),
+            this.shown(),
+            this.identity.uuid,
+            name
+        );
     }
 
     /**

@@ -1,7 +1,7 @@
 /**
- * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the server: its
- * ticker's figures, a player's round trip time from their transport, and boss bars on a player's
- * own screen.
+ * What `@jsprismarine/server`'s `performance`, `getPing`, `bossBars` and `playerList` reach of
+ * the server: its ticker's figures, a player's round trip time from their transport, boss bars on
+ * a player's own screen, and the name a player's entry shows in every client's player list.
  */
 import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import type { JsprismarineServerMembers, ScriptBossBarState } from '@jsprismarine/script-host/host/jsprismarineMembers';
@@ -200,6 +200,14 @@ export const scriptServerMembers = (server: Server): JsprismarineServerMembers =
         ping: (player) => sessionOf(player)?.getConnection().getRoundTripTime(),
         showBossBar: (player, id, state) => screens.show(player, id, state),
         updateBossBar: (player, id, state) => screens.update(player, id, state),
-        hideBossBar: (player, id) => screens.hide(player, id)
+        hideBossBar: (player, id) => screens.hide(player, id),
+        setPlayerListName: (player, name) => {
+            const session = sessionOf(player);
+            session?.released(session.setPlayerListName(name));
+        },
+        resetPlayerListName: (player) => {
+            const session = sessionOf(player);
+            session?.released(session.setPlayerListName());
+        }
     };
 };
