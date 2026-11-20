@@ -732,16 +732,16 @@ describe('bambooFamily', () => {
     });
 });
 
-describe('cropFamily: nether vines', () => {
+describe('climbingFamily: nether vines', () => {
     it("grows twisting vines up and weeping vines down into air at Java's chance, one year older", () => {
-        const twisting = bindFamily(cropFamily, 'minecraft:twisting_vines');
+        const twisting = bindFamily(climbingFamily, 'minecraft:twisting_vines');
         twisting.dimension.set(plant, 'minecraft:twisting_vines', { twisting_vines_age: 0 });
         twisting.dimension.queueRandom(0.05);
         twisting.randomTick(plant);
         expect(twisting.dimension.identifierAt({ x: 0, y: 2, z: 0 })).toBe('minecraft:twisting_vines');
         expect(twisting.dimension.stateAt({ x: 0, y: 2, z: 0 }, 'twisting_vines_age')).toBe(1);
 
-        const weeping = bindFamily(cropFamily, 'minecraft:weeping_vines');
+        const weeping = bindFamily(climbingFamily, 'minecraft:weeping_vines');
         weeping.dimension.set(plant, 'minecraft:weeping_vines', { weeping_vines_age: 4 });
         weeping.dimension.queueRandom(0.05);
         weeping.randomTick(plant);
@@ -750,7 +750,7 @@ describe('cropFamily: nether vines', () => {
     });
 
     it('leaves a vine as it is on a roll above the chance, or once it is 25 years old', () => {
-        const harness = bindFamily(cropFamily, 'minecraft:twisting_vines');
+        const harness = bindFamily(climbingFamily, 'minecraft:twisting_vines');
         harness.dimension.set(plant, 'minecraft:twisting_vines', { twisting_vines_age: 0 });
         harness.dimension.queueRandom(0.1);
         harness.randomTick(plant);
@@ -763,12 +763,12 @@ describe('cropFamily: nether vines', () => {
     });
 
     it('pops a twisting vine without a block below it and a weeping vine without one above', () => {
-        const twisting = bindFamily(cropFamily, 'minecraft:twisting_vines');
+        const twisting = bindFamily(climbingFamily, 'minecraft:twisting_vines');
         twisting.dimension.set(plant, 'minecraft:twisting_vines', { twisting_vines_age: 0 });
         twisting.neighborChanged(plant, 'down');
         expect(twisting.dimension.identifierAt(plant)).toBe(AIR);
 
-        const weeping = bindFamily(cropFamily, 'minecraft:weeping_vines');
+        const weeping = bindFamily(climbingFamily, 'minecraft:weeping_vines');
         weeping.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:netherrack');
         weeping.dimension.set(plant, 'minecraft:weeping_vines', { weeping_vines_age: 0 });
         weeping.neighborChanged(plant, 'down');
