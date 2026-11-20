@@ -219,6 +219,14 @@ export const readAddonFiles = async (
 const sortedByKey = <T>(entries: Readonly<Record<string, T>>): Record<string, T> =>
     Object.fromEntries(Object.entries(entries).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
+/** `addons.json` as the server writes it: keys sorted, four-space indented, ending in a newline. */
+export const serializeAddonsFile = (requested: AddonsFile): string =>
+    `${JSON.stringify({ addons: sortedByKey(requested.addons) }, null, 4)}\n`;
+
+/** `addons.lock.json` as the server writes it: keys sorted, four-space indented, ending in a newline. */
+export const serializeAddonsLockFile = (lock: AddonsLockFile): string =>
+    `${JSON.stringify({ lockfileVersion: lock.lockfileVersion, addons: sortedByKey(lock.addons) }, null, 4)}\n`;
+
 /** Writes a file through a temporary one beside it, so a reader sees the old text or the new. */
 const writeAtomically = async (file: string, text: string): Promise<void> => {
     const temporary = path.join(path.dirname(file), `.${path.basename(file)}.${randomUUID()}.tmp`);
@@ -239,12 +247,6 @@ export const writeAddonFiles = async (
     requested: AddonsFile,
     lock: AddonsLockFile
 ): Promise<void> => {
-    await writeAtomically(
-        path.join(directory, ADDONS_FILE),
-        `${JSON.stringify({ addons: sortedByKey(requested.addons) }, null, 4)}\n`
-    );
-    await writeAtomically(
-        path.join(directory, ADDONS_LOCK_FILE),
-        `${JSON.stringify({ lockfileVersion: lock.lockfileVersion, addons: sortedByKey(lock.addons) }, null, 4)}\n`
-    );
+    await writeAtomically(path.join(directory, ADDONS_FILE), serializeAddonsFile(requested));
+    await writeAtomically(path.join(directory, ADDONS_LOCK_FILE), serializeAddonsLockFile(lock));
 };
