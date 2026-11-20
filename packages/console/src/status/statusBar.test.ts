@@ -49,6 +49,28 @@ describe('createStatusBar', () => {
         }
     });
 
+    it('keeps room for a hint that is wider than the left segments it replaces', async () => {
+        const setup = await createTestRenderer({ width: 40, height: 1 });
+        try {
+            const wide: Segment[] = ['first', 'second', 'third'].map((id, index) => ({
+                id,
+                text: id.padEnd(6, '.'),
+                tone: 'muted',
+                priority: 10 - index
+            }));
+            const hint = 'press Ctrl+C again';
+            const bar = createStatusBar(ctx(setup.renderer), { left: [stateSegment('running')], right: wide });
+            setup.renderer.root.add(bar.renderable);
+            bar.setHint(hint);
+            await setup.renderOnce();
+
+            const shown = setup.renderer.root.findDescendantById('status-left-hint');
+            expect(shown?.width).toBe(hint.length);
+        } finally {
+            await setup.dispose();
+        }
+    });
+
     it('renders every segment at 120 columns with the right side flush right', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {
