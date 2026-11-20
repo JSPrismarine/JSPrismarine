@@ -12,7 +12,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { applyFacts, loadFacts } from './facts.mts';
+import { addonNames, applyFacts, loadFacts } from './facts.mts';
 import { repoRoot } from './project.mts';
 import { rootPages } from './sections.mts';
 
@@ -20,6 +20,7 @@ const write = process.argv.includes('--write');
 
 /** Package pages outside the docs tree that quote values the code owns. */
 const packagePages = [
+    'packages/addon-tools/README.md',
     'packages/bedrock-data/README.md',
     'packages/commands/README.md',
     'packages/leveldb/README.md',
@@ -31,14 +32,22 @@ const packagePages = [
 ];
 
 /**
- * Every Markdown file a fact marker may sit in: the docs tree, the root README, the root pages and
- * the package pages above.
+ * Every Markdown file a fact marker may sit in: the docs tree, the root README, the root pages, the
+ * package pages above, and the addons' pages.
  */
 function markdownFiles() {
     const docs = readdirSync(path.join(repoRoot, 'docs'), { recursive: true, encoding: 'utf8' })
         .filter((entry) => entry.endsWith('.md'))
         .map((entry) => path.join('docs', entry));
-    return ['README.md', ...rootPages.map(({ source }) => source), ...packagePages, ...docs];
+    const addons = addonNames().map((name) => path.join('addons', name, 'README.md'));
+    return [
+        'README.md',
+        ...rootPages.map(({ source }) => source),
+        ...packagePages,
+        'addons/README.md',
+        ...addons,
+        ...docs
+    ];
 }
 
 const { values: facts, missing } = await loadFacts();
