@@ -106,7 +106,8 @@ const errorText = (error: unknown): string => (error instanceof Error ? error.me
  * `process` `exit`, `uncaughtException`, and `unhandledRejection` writes the terminal reset
  * sequence and leaves raw mode when `renderer.destroy()` never ran. It does nothing else: the
  * host's own fatal handler kills the child, closes the console, prints the error once, and
- * exits, so a second print or `process.exit` here would race it.
+ * exits, so a second print or `process.exit` here would race it. Once the terminal hangs up
+ * and a write to it fails, the fallback writes nothing more.
  *
  * @throws Error when the renderer cannot start, for example because OpenTUI's native library
  * is missing. The message names the cause so the host can print it and fall back.
@@ -148,8 +149,16 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
     }
 
     let closed = false;
+    // A terminal that hangs up fails every later write with EIO. Without a listener each
+    // failure is an uncaught exception, and the reset written for it fails again, on and on:
+    // the host spins and never reaches its own shutdown. Note the loss and stop writing.
+    let terminalGone = false;
+    const onOutputError = (): void => {
+        terminalGone = true;
+    };
+    stdout.on('error', onOutputError);
     const restoreTerminal = (): void => {
-        if (closed) return;
+        if (closed || terminalGone) return;
         try {
             stdout.write(TERMINAL_RESET);
             if (stdin.isTTY) stdin.setRawMode(false);
@@ -313,6 +322,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             renderer.destroy();
             await renderer.closed;
             closed = true;
+            stdout.off('error', onOutputError);
             process.off('exit', restoreTerminal);
             process.off('uncaughtException', onUncaught);
             process.off('unhandledRejection', onUnhandledRejection);
