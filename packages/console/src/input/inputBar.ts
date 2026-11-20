@@ -13,6 +13,8 @@ import { CompletionState, formatCompletionStrip } from './completion';
 import type { CommandHistory } from './history';
 import type { InterruptKind } from './keys';
 import { keyToAction } from './keys';
+import { formatBinding } from '../keymap/catalog';
+import type { KeyPlatform } from '../keymap/catalog';
 
 /** Candidates for the text before the cursor, as returned by `onComplete`. */
 export interface CompletionResult {
@@ -48,6 +50,8 @@ export interface InputBarProps {
     onPaste?(text: string): boolean;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
     now?(): number;
+    /** How hints spell keys; defaults to `pc`. */
+    keyPlatform?: KeyPlatform;
 }
 
 /** A focused single-line command editor with history, completion, and the Ctrl+C rule. */
@@ -81,7 +85,8 @@ export interface InputBar {
 const DEFAULT_PROMPT = '> ';
 const PLACEHOLDER = 'type a command, ? for help';
 const DISABLED_HINT = 'server is not running';
-const STOP_HINT = 'press Ctrl+C again to stop the server';
+const stopHint = (platform: KeyPlatform): string =>
+    `press ${formatBinding({ name: 'c', ctrl: true }, platform)} again to stop the server`;
 
 // Matches terminal escape sequences and the control characters a command line cannot hold.
 const ESCAPES_AND_CONTROLS =
@@ -313,7 +318,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             case 'hint':
                 key.preventDefault();
                 recordInterruptPress();
-                showHint(STOP_HINT);
+                showHint(stopHint(props.keyPlatform ?? 'pc'));
                 return;
             case 'interrupt':
                 key.preventDefault();

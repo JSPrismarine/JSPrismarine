@@ -5,7 +5,7 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CommandHistory } from '../input/history';
-import { COMMAND_CATALOG } from '../keymap/catalog';
+import { COMMAND_CATALOG, KEY_PLATFORMS, bindingsFor, formatBinding } from '../keymap/catalog';
 import type { CommandId, KeyBinding } from '../keymap/catalog';
 import { LogStore } from '../log/logStore';
 import { defaultTheme } from '../theme';
@@ -1107,8 +1107,9 @@ describe('createApp', () => {
 
         /** Ctrl+Shift+letter only exists in the kitty keyboard protocol; `CSI code;6u` is ctrl+shift. */
         const kittyCtrlShift = (letter: string): string => `\u001B[${letter.charCodeAt(0)};6u`;
-        /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
-        const kittySuper = (letter: string): string => `\u001B[${letter.charCodeAt(0)};9u`;
+        /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol, `;10u` adds Shift. */
+        const kittySuper = (letter: string, shift = false): string =>
+            `\u001B[${letter.charCodeAt(0)};${shift ? 10 : 9}u`;
 
         const press = (t: Harness, binding: KeyBinding): void => {
             if (binding.name === 'escape') {
@@ -1125,7 +1126,7 @@ describe('createApp', () => {
                 return;
             }
             if (binding.super) {
-                t.mockInput.pressKey(kittySuper(binding.name));
+                t.mockInput.pressKey(kittySuper(binding.name, binding.shift));
                 return;
             }
             t.mockInput.pressKey(binding.shift ? binding.name.toUpperCase() : binding.name, {
@@ -1243,10 +1244,17 @@ describe('createApp', () => {
         };
 
         const cases = COMMAND_CATALOG.flatMap((command) =>
-            command.bindings.map((binding) => [command.id, binding] as const)
+            [
+                ...new Map(
+                    KEY_PLATFORMS.flatMap((platform) => bindingsFor(command, platform)).map((binding) => [
+                        formatBinding(binding),
+                        binding
+                    ])
+                ).entries()
+            ].map(([label, binding]) => [command.id, label, binding] as const)
         );
 
-        it.each(cases)('runs %s once from %o and does not type the key', async (id, binding) => {
+        it.each(cases)('runs %s once from %s and does not type the key', async (id, _label, binding) => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
 

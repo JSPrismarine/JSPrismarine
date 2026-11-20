@@ -351,6 +351,11 @@ you'll need first:
 | `?` | Help overlay, on an empty line |
 | `Esc` | Close an overlay or cancel a search |
 
+On macOS the console uses Command for its own shortcuts and shows modifiers as symbols: `⌘K` opens
+the command palette and `⌘B` shows the details pane. Most macOS terminals keep Command shortcuts
+such as `⌘K` and `⌘F` for themselves, so the Control form (`⌃K`, `⌃B`) works too. Keys that mean
+the same thing in every terminal, such as `⌃C`, `⌃R` and `⌃L`, stay on Control.
+
 ## Configuration
 
 New servers keep their settings in `config.json` in the working directory

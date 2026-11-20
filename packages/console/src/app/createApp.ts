@@ -14,8 +14,8 @@ import { createInputBar } from '../input/inputBar';
 import type { CompletionResult } from '../input/inputBar';
 import type { CommandHistory } from '../input/history';
 import type { InterruptKind } from '../input/keys';
-import { COMMAND_CATALOG, resolveCommand } from '../keymap/catalog';
-import type { CommandId } from '../keymap/catalog';
+import { COMMAND_CATALOG, keyPlatformFor, resolveCommand } from '../keymap/catalog';
+import type { CommandId, KeyPlatform } from '../keymap/catalog';
 import type { LogStore } from '../log/logStore';
 import { createLogView } from '../log/logView';
 import type { LogView } from '../log/logView';
@@ -53,6 +53,8 @@ export interface AppContext extends ConsoleContext {
     now?: () => number;
     /** The clipboard copies go to and pastes come from; defaults to the system clipboard. */
     clipboard?: ConsoleClipboard;
+    /** How the console spells keys; defaults to the convention of the operating system it runs on. */
+    keyPlatform?: KeyPlatform;
 }
 
 /** What the server answered to a command line. */
@@ -140,6 +142,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     const now = ctx.now ?? Date.now;
     const clipboard = ctx.clipboard ?? createConsoleClipboard(renderer);
     const ownsClipboard = ctx.clipboard === undefined;
+    const keyPlatform = ctx.keyPlatform ?? keyPlatformFor();
     const components = { renderer, theme };
 
     let disposed = false;
@@ -251,7 +254,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             guard(closeTps)();
         }
     });
-    const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG });
+    const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG, keyPlatform });
     const palette = createCommandPalette(components, { onChoose: (item) => guard(choosePaletteItem)(item) });
     const dropdown = createDropdown(components);
 
@@ -325,6 +328,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     const input = createInputBar(components, {
         history,
         now,
+        keyPlatform,
         onSubmit: guard(submit),
         onComplete: props.onComplete,
         onInterrupt: guard(interrupt),
@@ -354,7 +358,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         dropdown.close();
         help.hide();
         const commands = commandReference.length > 0 ? commandReference : [...commandNames].map((name) => ({ name }));
-        palette.open(paletteItems(COMMAND_CATALOG, commands, metrics.playerNames ?? [], ['view.palette']));
+        palette.open(paletteItems(COMMAND_CATALOG, commands, metrics.playerNames ?? [], ['view.palette'], keyPlatform));
     }
 
     /** Runs a chosen console action, or puts a command or a player's name on the command line. */
@@ -1106,7 +1110,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             help.handleKeyPress(key);
             return;
         }
-        // Ctrl+K closes the palette as it opened it and a paste shortcut pastes into its query;
+        // The palette key closes the palette as it opened it and a paste shortcut pastes into its query;
         // every other key edits the query.
         const paletteCommand = palette.isOpen ? resolveCommand(key, { inputFocused: false }) : undefined;
         if (palette.isOpen && paletteCommand !== 'view.palette' && paletteCommand !== 'input.paste') {

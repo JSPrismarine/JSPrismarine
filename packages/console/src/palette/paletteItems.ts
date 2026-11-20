@@ -1,5 +1,5 @@
-import type { COMMAND_CATALOG, CommandId, KeyBinding } from '../keymap/catalog';
-import { formatBinding } from '../keymap/catalog';
+import type { COMMAND_CATALOG, CommandId, KeyPlatform } from '../keymap/catalog';
+import { commandKeys } from '../keymap/catalog';
 import { fuzzyMatch } from './fuzzy';
 
 /** One thing the palette can find: a console action, a server command, or an online player. */
@@ -21,27 +21,25 @@ export const paletteLabel = (item: PaletteItem): string => (item.kind === 'actio
 const KIND_ORDER: Record<PaletteItem['kind'], number> = { action: 0, command: 1, player: 2 };
 
 /**
- * The palette's items: the catalog's actions with their first key, then server commands, then
- * online players. `exclude` drops actions the palette should not offer, such as opening itself.
+ * The palette's items: the catalog's actions with their preferred key on `platform`, then server
+ * commands, then online players. `exclude` drops actions the palette should not offer, such as
+ * opening itself.
  */
 export function paletteItems(
     catalog: typeof COMMAND_CATALOG,
     serverCommands: Iterable<{ name: string; description?: string }>,
     playerNames: Iterable<string>,
-    exclude: readonly CommandId[] = []
+    exclude: readonly CommandId[] = [],
+    platform: KeyPlatform = 'pc'
 ): PaletteItem[] {
     const actions = catalog
         .filter((spec) => !exclude.includes(spec.id))
-        .map((spec): PaletteItem => {
-            const first: KeyBinding | undefined = spec.bindings[0];
-            const hint = 'hint' in spec ? spec.hint : undefined;
-            return {
-                kind: 'action',
-                id: spec.id,
-                title: spec.title,
-                keys: first === undefined ? hint : formatBinding(first)
-            };
-        });
+        .map((spec): PaletteItem => ({
+            kind: 'action',
+            id: spec.id,
+            title: spec.title,
+            keys: commandKeys(spec, platform)[0]
+        }));
     const commands: PaletteItem[] = [...serverCommands]
         .sort((a, b) => a.name.localeCompare(b.name))
         .map(({ name, description }) => ({ kind: 'command', name, description }));

@@ -2,14 +2,18 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { describe, expect, it } from 'vitest';
 
 import { COMMAND_CATALOG } from '../keymap/catalog';
+import type { KeyPlatform } from '../keymap/catalog';
 import { defaultTheme } from '../theme/theme';
 import { createHelpOverlay } from './helpOverlay';
 
 const rows = (frame: string) => frame.replace(/\n$/, '').split('\n');
 
-async function setup(width: number, height: number) {
+async function setup(width: number, height: number, keyPlatform?: KeyPlatform) {
     const test = await createTestRenderer({ width, height });
-    const overlay = createHelpOverlay({ renderer: test.renderer, theme: defaultTheme }, { catalog: COMMAND_CATALOG });
+    const overlay = createHelpOverlay(
+        { renderer: test.renderer, theme: defaultTheme },
+        { catalog: COMMAND_CATALOG, keyPlatform }
+    );
     test.renderer.root.add(overlay.renderable);
     const frame = async () => {
         await test.renderOnce();
@@ -40,6 +44,20 @@ describe('createHelpOverlay', () => {
             expect(frame).toMatch(/N\s+Previous match/);
             expect(frame).toMatch(/Ctrl\+C twice\s+Stop server/);
             expect(frame).toContain('Esc to close');
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('spells keys the Mac way on macOS', async () => {
+        const t = await setup(120, 40, 'mac');
+        try {
+            t.overlay.show();
+            const frame = await t.frame();
+            expect(frame).toMatch(/⌘K, ⌃K\s+Command palette/);
+            expect(frame).toMatch(/⌘C\s+Copy selection/);
+            expect(frame).toMatch(/⌃C twice\s+Stop server/);
+            expect(frame).not.toContain('Ctrl+');
         } finally {
             await t.dispose();
         }

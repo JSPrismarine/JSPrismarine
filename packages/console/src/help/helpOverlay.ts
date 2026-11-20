@@ -2,14 +2,16 @@ import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '
 import type { KeyEvent, TextChunk } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
-import { COMMAND_GROUPS, formatBinding } from '../keymap/catalog';
-import type { CommandCatalog, CommandSpec } from '../keymap/catalog';
+import { COMMAND_GROUPS, commandKeys } from '../keymap/catalog';
+import type { CommandCatalog, CommandSpec, KeyPlatform } from '../keymap/catalog';
 import { columns } from '../text';
 
 /** Inputs for {@link createHelpOverlay}. */
 export interface HelpOverlayProps {
     /** Commands to list. The overlay is generated from this, so it cannot drift from the bindings. */
     catalog: CommandCatalog;
+    /** How keys are spelled and which platform's bindings are listed; defaults to `pc`. */
+    keyPlatform?: KeyPlatform;
 }
 
 /**
@@ -54,23 +56,26 @@ const FOOTER_ROWS = 1;
 const MAX_HEIGHT = 20;
 const Z_INDEX = 100;
 
-const commandLine = (command: CommandSpec): HelpLine => {
-    const bindings = command.bindings.map(formatBinding);
+const commandLine = (command: CommandSpec, platform: KeyPlatform): HelpLine => {
+    const bindings = commandKeys(command, platform);
     const keys = bindings.join(', ');
     const compactKeys = keys.length > 16;
 
     return {
         kind: 'command',
-        keys: compactKeys ? (bindings[0] ?? command.hint ?? '') : keys || (command.hint ?? ''),
+        keys: compactKeys ? (bindings[0] ?? '') : keys,
         title: command.title,
         alternateKeys: compactKeys ? bindings.slice(1).join(', ') : undefined
     };
 };
 
-const linesFor = (catalog: CommandCatalog): HelpLine[][] =>
+const linesFor = (catalog: CommandCatalog, platform: KeyPlatform): HelpLine[][] =>
     COMMAND_GROUPS.map((group) => catalog.filter((command) => command.group === group))
         .filter((commands) => commands.length > 0)
-        .map((commands) => [{ kind: 'header', text: commands[0]?.group ?? '' }, ...commands.map(commandLine)]);
+        .map((commands) => [
+            { kind: 'header', text: commands[0]?.group ?? '' },
+            ...commands.map((command) => commandLine(command, platform))
+        ]);
 
 const joinBlocks = (blocks: HelpLine[][]): HelpLine[] => blocks.flat();
 
@@ -101,8 +106,13 @@ const lineWidth = (lines: readonly HelpLine[]): number => {
     );
 };
 
-function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeight: number): HelpLayout {
-    const blocks = linesFor(catalog);
+function layoutHelp(
+    catalog: CommandCatalog,
+    platform: KeyPlatform,
+    terminalWidth: number,
+    terminalHeight: number
+): HelpLayout {
+    const blocks = linesFor(catalog, platform);
     const maxInnerWidth = Math.max(1, terminalWidth - BORDER - PADDING_X * 2);
     const maxPanelHeight = Math.max(1, Math.min(MAX_HEIGHT, Math.ceil(terminalHeight * 0.6), terminalHeight));
     const maxBodyRows = Math.max(1, maxPanelHeight - BORDER - FOOTER_ROWS);
@@ -139,6 +149,7 @@ export function createHelpOverlay(
 ): HelpOverlay {
     const { renderer, theme } = ctx;
     const { catalog } = props;
+    const platform = props.keyPlatform ?? 'pc';
 
     const renderable = new BoxRenderable(renderer, {
         id: 'help-overlay',
@@ -185,7 +196,7 @@ export function createHelpOverlay(
             child.destroyRecursively();
         }
 
-        const result = layoutHelp(catalog, renderer.terminalWidth, renderer.terminalHeight);
+        const result = layoutHelp(catalog, platform, renderer.terminalWidth, renderer.terminalHeight);
         visibleRows = result.visibleRows;
         maxScrollOffset = Math.max(0, result.totalRows - visibleRows);
         scrollOffset = Math.min(scrollOffset, maxScrollOffset);
