@@ -66,7 +66,7 @@ file's digest, and loads it from there.
 into `prebuilds/<platform>/`. It needs CMake 3.20 or newer, a C and C++ compiler, `tar` and `git`.
 `CMAKE` names a CMake that is not on the path. The script downloads every source in
 `native/sources.json` into `node_modules/.cache/jsprismarine/native-network`, checks its SHA-256,
-applies `native/patches/libjuice-mux-hooks.patch`, and runs CMake.
+applies the patches under `native/patches/`, and runs CMake.
 
 `--tls openssl` builds against OpenSSL instead, for comparison; it also needs Perl and make.
 

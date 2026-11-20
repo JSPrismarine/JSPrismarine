@@ -22,6 +22,14 @@ describe.skipIf(!nativeLibraryAvailable())('a native peer connection', async () 
         expect(result.answererPair?.remote).toMatch(/127\.0\.0\.1 \d+ typ/);
     });
 
+    it('has no round trip time before SCTP connects, and one once it carried messages', async () => {
+        const result = await runLoopback(network, {}, 50, 1000);
+
+        expect(result.answererRoundTripTimeBeforeOffer).toBeUndefined();
+        // Loopback's round trip rounds to 0 ms or more; what matters is that SCTP gives one.
+        expect(result.answererRoundTripTime).toBeGreaterThanOrEqual(0);
+    });
+
     it('serves two peers from one mux port at once', async () => {
         const [first, second] = await Promise.all([
             runLoopback(network, { enableIceUdpMux: true, portRangeBegin: 19_871, portRangeEnd: 19_871 }),
@@ -62,7 +70,14 @@ describe.skipIf(!nativeLibraryAvailable())('a native peer connection', async () 
         const run = spawnSync(bun()!, [script, '19872'], { encoding: 'utf8', timeout: 60_000 });
 
         expect(run.status, run.stderr).toBe(0);
-        const result = JSON.parse(run.stdout.trim()) as { runtime: string; bytesSent: number; bytesReceived: number };
+        const result = JSON.parse(run.stdout.trim()) as {
+            runtime: string;
+            bytesSent: number;
+            bytesReceived: number;
+            answererRoundTripTime?: number;
+        };
         expect(result).toMatchObject({ runtime: 'bun', bytesSent: 100_000, bytesReceived: 100_000 });
+        // `bun:ffi` binds the optional symbol through a second `dlopen`.
+        expect(result.answererRoundTripTime).toBeGreaterThanOrEqual(0);
     });
 });

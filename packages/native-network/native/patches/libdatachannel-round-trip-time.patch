@@ -1,0 +1,32 @@
+diff --git a/include/rtc/rtc.h b/include/rtc/rtc.h
+--- a/include/rtc/rtc.h
++++ b/include/rtc/rtc.h
+@@ -237,6 +237,10 @@
+ RTC_C_EXPORT int rtcGetMaxDataChannelStream(int pc);
+ RTC_C_EXPORT int rtcGetRemoteMaxMessageSize(int pc);
+ 
++// The SCTP association's smoothed round trip time in milliseconds, or RTC_ERR_NOT_AVAIL before
++// SCTP connects
++RTC_C_EXPORT int rtcGetRoundTripTime(int pc);
++
+ // DataChannel, Track, and WebSocket common API
+ 
+ RTC_C_EXPORT int rtcSetOpenCallback(int id, rtcOpenCallbackFunc cb);
+diff --git a/src/capi.cpp b/src/capi.cpp
+--- a/src/capi.cpp
++++ b/src/capi.cpp
+@@ -718,6 +718,14 @@
+ 	});
+ }
+ 
++int rtcGetRoundTripTime(int pc) {
++	return wrap([&] {
++		auto peerConnection = getPeerConnection(pc);
++		auto rtt = peerConnection->rtt();
++		return rtt ? int(rtt->count()) : RTC_ERR_NOT_AVAIL;
++	});
++}
++
+ int rtcSetOpenCallback(int id, rtcOpenCallbackFunc cb) {
+ 	return wrap([&] {
+ 		auto channel = getChannel(id);

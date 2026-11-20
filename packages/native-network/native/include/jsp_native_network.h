@@ -100,6 +100,8 @@ JSP_EXPORT int32_t jsp_pc_add_remote_candidate(int32_t pc, const char *candidate
 JSP_EXPORT int32_t jsp_pc_local_description(int32_t pc, uint8_t *buffer, int32_t size);
 /* Writes "local\0remote\0" and returns the bytes written, or JSP_ERR_NOT_AVAIL. */
 JSP_EXPORT int32_t jsp_pc_selected_pair(int32_t pc, uint8_t *buffer, int32_t size);
+/* The SCTP association's smoothed round trip time in milliseconds, or JSP_ERR_NOT_AVAIL before SCTP connects. */
+JSP_EXPORT int32_t jsp_pc_round_trip_time(int32_t pc);
 JSP_EXPORT int32_t jsp_pc_close(int32_t pc);
 JSP_EXPORT int32_t jsp_pc_delete(int32_t pc);
 
