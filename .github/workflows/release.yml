@@ -195,17 +195,31 @@ jobs:
             - name: 📝 Generate release highlights
               run: node .github/scripts/generate-release-highlights.mjs > dist/highlights.md
 
+            # Latest is what the repository's Releases link opens, so it has to be the newest stable
+            # executables release. Nightlies are prereleases, which GitHub never marks Latest, and a
+            # recovery of an older version leaves Latest where it is.
             - name: 🚚 Publish standalone release
               run: |
                   tag="jsprismarine@${RELEASE_VERSION}"
                   title="JSPrismarine ${RELEASE_VERSION}"
+                  newest="$(
+                      {
+                          # Every page: several nightlies a day would push older stable releases past one.
+                          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+                              --jq '.[] | select(.prerelease == false and .draft == false and (.tag_name | startswith("jsprismarine@"))) | .tag_name | ltrimstr("jsprismarine@")'
+                          echo "$RELEASE_VERSION"
+                      } | sort -V | tail -n 1
+                  )"
+                  latest=false
+                  if [ "$newest" = "$RELEASE_VERSION" ]; then latest=true; fi
+                  echo "Newest stable release: $newest. Mark $tag as Latest: $latest."
                   # A recovery tags the commit the version was published from, not the branch it ran on.
                   target="$GITHUB_SHA"
                   if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
                       target="$(git rev-list -n 1 "@jsprismarine/server@${RELEASE_VERSION}")"
                   fi
                   if gh release view "$tag" >/dev/null 2>&1; then
-                      gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest
+                      gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest="$latest"
                       gh release upload "$tag" dist/prismarine-* dist/JSPrismarine-*.app.zip dist/highlights.md --clobber
                   else
                       gh release create "$tag" \
@@ -214,6 +228,6 @@ jobs:
                           dist/highlights.md \
                           --target "$target" \
                           --title "$title" \
-                          --latest \
+                          --latest="$latest" \
                           --notes-file dist/highlights.md
                   fi
