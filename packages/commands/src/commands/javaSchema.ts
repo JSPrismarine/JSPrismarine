@@ -17,7 +17,7 @@ import {
 } from '@jsprismarine/brigadier';
 import { CommandSyntaxException, LiteralCommandNode, ArgumentCommandNode } from '@jsprismarine/brigadier';
 
-import type { BedrockDescribedType, Coordinate, CoordinateTriple, IntegerRange } from '../argumentTypes';
+import type { ArgumentWords, BedrockDescribedType, Coordinate, CoordinateTriple, IntegerRange } from '../argumentTypes';
 import {
     blockPositionArgument,
     describesBedrock,
@@ -150,10 +150,15 @@ const readStructuredToken = (reader: StringReader): string => {
     return token;
 };
 
-const customType = <T>(gap: string, parse: (reader: StringReader) => T): BedrockDescribedType<T> => ({
+const customType = <T>(
+    gap: string,
+    parse: (reader: StringReader) => T,
+    words?: ArgumentWords
+): BedrockDescribedType<T> => ({
     parse: (reader) => parse(reader),
     describeBedrock: () => undefined,
-    bedrockGap: gap
+    bedrockGap: gap,
+    ...(words === undefined ? {} : { words })
 });
 
 const readNumberRange = (reader: StringReader, integer: boolean): IntegerRange => {
@@ -247,19 +252,27 @@ const javaArgumentType = (
         case 'minecraft:block_pos':
             return blockPositionArgument();
         case 'minecraft:vec2':
-            return customType('Java two-dimensional positions are not a Bedrock parameter type', (reader) => {
-                const x = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
-                reader.skipWhitespace();
-                const z = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
-                return [x, z] as const;
-            });
+            return customType(
+                'Java two-dimensional positions are not a Bedrock parameter type',
+                (reader) => {
+                    const x = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
+                    reader.skipWhitespace();
+                    const z = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
+                    return [x, z] as const;
+                },
+                2
+            );
         case 'minecraft:rotation':
-            return customType('Java rotations are not a Bedrock parameter type', (reader) => {
-                const yaw = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
-                reader.skipWhitespace();
-                const pitch = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
-                return [yaw, pitch] as const;
-            });
+            return customType(
+                'Java rotations are not a Bedrock parameter type',
+                (reader) => {
+                    const yaw = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
+                    reader.skipWhitespace();
+                    const pitch = relativeValueArgument().parse(reader, EMPTY_PARSE_CONTEXT);
+                    return [yaw, pitch] as const;
+                },
+                2
+            );
         case 'minecraft:float_range':
             return customType('Java float ranges are not a Bedrock parameter type', (reader) =>
                 readNumberRange(reader, false)

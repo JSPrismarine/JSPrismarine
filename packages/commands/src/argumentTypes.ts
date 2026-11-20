@@ -27,7 +27,23 @@ export interface BedrockDescribedType<T> extends ArgumentType<T> {
     describeBedrock(): BedrockParameterShape | undefined;
     /** Why Bedrock cannot express it, set exactly when `describeBedrock` answers undefined. */
     readonly bedrockGap?: string;
+    /** How many space-separated words the argument reads; unset is one. See {@link argumentWords}. */
+    readonly words?: ArgumentWords;
 }
+
+/** How many space-separated words an argument reads: a count, or `rest` for the rest of the line. */
+export type ArgumentWords = number | 'rest';
+
+/**
+ * How many space-separated words an argument of `type` reads, so a console that only sees the
+ * typed line can tell which argument a word belongs to: three for a position, `rest` for a
+ * message. A type that does not say, such as Brigadier's own numbers, reads one.
+ */
+export const argumentWords = (type: unknown): ArgumentWords => {
+    if (typeof type !== 'object' || type === null || !('words' in type)) return 1;
+    const { words } = type;
+    return words === 'rest' || (typeof words === 'number' && Number.isInteger(words) && words > 0) ? words : 1;
+};
 
 /**
  * Whether an argument type can describe itself to a Bedrock client.
@@ -47,9 +63,14 @@ const fail: (reader: StringReader, message: string) => never = (reader, message)
     throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException().createWithContext(reader, message);
 };
 
-const basic = <T>(type: BedrockParameterTypeName, parse: (reader: StringReader) => T): BedrockDescribedType<T> => ({
+const basic = <T>(
+    type: BedrockParameterTypeName,
+    parse: (reader: StringReader) => T,
+    words?: ArgumentWords
+): BedrockDescribedType<T> => ({
     parse: (reader) => parse(reader),
-    describeBedrock: () => ({ kind: 'basic', type })
+    describeBedrock: () => ({ kind: 'basic', type }),
+    ...(words === undefined ? {} : { words })
 });
 
 // ---------------------------------------------------------------------------
@@ -192,10 +213,10 @@ export const scoreHolderArgument = (
 });
 
 /** A block position, three integer-or-relative coordinates. */
-export const blockPositionArgument = (): BedrockDescribedType<CoordinateTriple> => basic('POSITION', readTriple);
+export const blockPositionArgument = (): BedrockDescribedType<CoordinateTriple> => basic('POSITION', readTriple, 3);
 
 /** A float position, three decimal-or-relative coordinates. */
-export const positionArgument = (): BedrockDescribedType<CoordinateTriple> => basic('POSITION_FLOAT', readTriple);
+export const positionArgument = (): BedrockDescribedType<CoordinateTriple> => basic('POSITION_FLOAT', readTriple, 3);
 
 /** One signed decimal that may be written relative, the `RVAL` type. */
 export const relativeValueArgument = (): BedrockDescribedType<Coordinate> => basic('RVAL', readCoordinate);
@@ -273,27 +294,39 @@ export const stringArgument = (): BedrockDescribedType<string> => basic('ID', re
 
 /** The rest of the line as one string, the `MESSAGE_ROOT` type. */
 export const messageArgument = (): BedrockDescribedType<string> =>
-    basic('MESSAGE_ROOT', (reader) => {
-        const text = reader.getRemaining();
-        reader.setCursor(reader.getTotalLength());
-        return text;
-    });
+    basic(
+        'MESSAGE_ROOT',
+        (reader) => {
+            const text = reader.getRemaining();
+            reader.setCursor(reader.getTotalLength());
+            return text;
+        },
+        'rest'
+    );
 
 /** A `rawtext` JSON object, the `RAWTEXT` type. */
 export const rawTextArgument = (): BedrockDescribedType<string> =>
-    basic('RAWTEXT', (reader) => {
-        const text = reader.getRemaining();
-        reader.setCursor(reader.getTotalLength());
-        return text;
-    });
+    basic(
+        'RAWTEXT',
+        (reader) => {
+            const text = reader.getRemaining();
+            reader.setCursor(reader.getTotalLength());
+            return text;
+        },
+        'rest'
+    );
 
 /** A JSON object, the `JSON_OBJECT` type. */
 export const jsonArgument = (): BedrockDescribedType<string> =>
-    basic('JSON_OBJECT', (reader) => {
-        const text = reader.getRemaining();
-        reader.setCursor(reader.getTotalLength());
-        return text;
-    });
+    basic(
+        'JSON_OBJECT',
+        (reader) => {
+            const text = reader.getRemaining();
+            reader.setCursor(reader.getTotalLength());
+            return text;
+        },
+        'rest'
+    );
 
 /**
  * A `["name"="value"]` block state list, the `BLOCK_STATE_ARRAY` type.
@@ -358,11 +391,15 @@ export const compareOperatorArgument = (): BedrockDescribedType<CompareOperator>
  * this is the one place the client is told "the rest is another command".
  */
 export const commandArgument = (): BedrockDescribedType<string> =>
-    basic('CODEBUILDERARGS', (reader) => {
-        const text = reader.getRemaining();
-        reader.setCursor(reader.getTotalLength());
-        return text;
-    });
+    basic(
+        'CODEBUILDERARGS',
+        (reader) => {
+            const text = reader.getRemaining();
+            reader.setCursor(reader.getTotalLength());
+            return text;
+        },
+        'rest'
+    );
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -419,10 +456,15 @@ export const postfixIntegerArgument = (postfix: string): BedrockDescribedType<nu
 // The Java parsers Bedrock has no type for
 // ---------------------------------------------------------------------------
 
-const unrepresentable = <T>(gap: string, parse: (reader: StringReader) => T): BedrockDescribedType<T> => ({
+const unrepresentable = <T>(
+    gap: string,
+    parse: (reader: StringReader) => T,
+    words?: ArgumentWords
+): BedrockDescribedType<T> => ({
     parse: (reader) => parse(reader),
     describeBedrock: () => undefined,
-    bedrockGap: gap
+    bedrockGap: gap,
+    ...(words === undefined ? {} : { words })
 });
 
 const readGreedy = (reader: StringReader): string => {
@@ -437,11 +479,11 @@ export const nbtPathArgument = (): BedrockDescribedType<string> =>
 
 /** `minecraft:nbt_tag`, a single SNBT value. */
 export const nbtTagArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no nbt_tag parameter type', readGreedy);
+    unrepresentable('Bedrock has no nbt_tag parameter type', readGreedy, 'rest');
 
 /** `minecraft:nbt_compound_tag`, an SNBT compound. */
 export const nbtCompoundArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no nbt_compound_tag parameter type', readGreedy);
+    unrepresentable('Bedrock has no nbt_compound_tag parameter type', readGreedy, 'rest');
 
 /** `minecraft:loot_modifier`, a standalone item modifier file id. */
 export const itemModifierArgument = (): BedrockDescribedType<string> =>
