@@ -1332,6 +1332,25 @@ describe('createApp', () => {
             expect(commandLine(t)).toBe('stop now');
         });
 
+        it('keeps the command list of the newest server when an older answer arrives late', async () => {
+            const answers: ((commands: readonly CommandInfo[]) => void)[] = [];
+            const t = await setup(
+                { width: 120, height: 40 },
+                { onCommands: () => new Promise((resolve) => answers.push(resolve)) }
+            );
+            dispose = t.dispose;
+            t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+            t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 2 });
+            answers[1]?.([{ name: 'teleport', aliases: [], usage: ['teleport <destination>'] }]);
+            answers[0]?.([{ name: 'oldcommand', aliases: [], usage: ['oldcommand'] }]);
+            await flush();
+
+            await t.mockInput.typeText('teleport ');
+            await t.renderOnce();
+            expect(answers).toHaveLength(2);
+            expect(byId(t, 'usage-card')?.visible).toBe(true);
+        });
+
         it('runs a console action chosen in the palette', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
