@@ -5,6 +5,7 @@ import { scriptHostAvailable } from '../../../script-host/src/testing/library.te
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { measureScenarios, scenarioGroup } from '../behaviorScenarios.ts';
 import { describeFamily } from '../measure.ts';
+import { isRecord } from '../isRecord.ts';
 import type { ReferenceSource } from '../references.ts';
 import { scriptingGoldens } from '../references.ts';
 import { runScenarioOnJsp } from './jspHost.ts';
@@ -118,6 +119,12 @@ export const expectedOnJsp = (golden: ScenarioRecord, scenario: ScriptScenario):
         observations: golden.observations.map((observation) => {
             const instead = differs[observation.event];
             if (instead === undefined) return observation;
+            if ('fields' in instead) {
+                // A value that is no object keeps the golden's, so the row reports the difference.
+                return isRecord(observation.value) && !Array.isArray(observation.value)
+                    ? { ...observation, value: { ...observation.value, ...instead.fields } }
+                    : observation;
+            }
             const { value: _value, error: _error, ...rest } = observation;
             return { ...rest, ...instead.observed };
         })
