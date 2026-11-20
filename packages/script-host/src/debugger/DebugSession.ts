@@ -12,8 +12,23 @@ import type { ScriptContextId, ScriptEngine } from '../ScriptEngine';
 import { ScriptHandle } from '../values';
 import type { ScriptValue } from '../values';
 import type { EngineDebugger, PauseOutcome, PauseReason, PropertyPage, ResumeMode, ScopeKind } from './EngineDebugger';
-import { DEBUGGER_PROTOCOL_VERSION, LogLevel, parseExtensionMessage, requestedBreakpointLines } from './protocol';
-import type { DebuggerEvent, DebuggerPlugin, ExtensionMessage, ForwardedRequest, HostMessage } from './protocol';
+import { ScriptProfiler, profilerClock } from './profiler';
+import {
+    DEBUGGER_PROTOCOL_VERSION,
+    DIAGNOSTICS_TABS,
+    LogLevel,
+    parseExtensionMessage,
+    requestedBreakpointLines
+} from './protocol';
+import type {
+    DebuggerEvent,
+    DebuggerPlugin,
+    DebuggerStat,
+    DiagnosticsTab,
+    ExtensionMessage,
+    ForwardedRequest,
+    HostMessage
+} from './protocol';
 
 /**
  * Carries whole messages between a session and the extension. A session calls it only on the
@@ -47,10 +62,21 @@ export interface DebugSessionOptions {
     readonly fromDebuggerPath?: (path: string) => string;
     /** Whether the engine knows a file, so a breakpoint in it is verified. Every file when absent. */
     readonly knowsFile?: (file: string) => boolean;
-    /** Runs a command the extension's command box sent, in the named dimension. */
+    /**
+     * Runs a command the extension's command box sent, in the named dimension. It is called while
+     * the session handles a message, which can be inside a stopped or running script, so a host
+     * whose commands reach the scripts queues it for later.
+     */
     readonly runCommand?: (command: string, dimension: string) => void;
-    /** The lines a running script runs between polls, {@link DebuggerOptions.pollLines}. */
+    /**
+     * The lines a running script runs between polls, {@link DebuggerOptions.pollLines}. The
+     * profiler samples the stack at each poll.
+     */
     readonly pollLines?: number;
+    /** The tabs the `SchemaEvent` after the handshake describes; BDS's {@link DIAGNOSTICS_TABS} when absent. */
+    readonly diagnosticsTabs?: readonly DiagnosticsTab[];
+    /** The time in microseconds, which labels the profiler's samples; the system clock when absent. */
+    readonly profilerClock?: () => number;
 }
 
 /** The thread id a session reports when none is given. */
@@ -100,6 +126,8 @@ export class ScriptDebugSession {
     private debug: EngineDebugger | undefined;
     private closedValue = false;
     private offered = false;
+    /** Set once the handshake has passed; only such a session ends with `terminated`. */
+    private accepted = false;
     /** The reason the script is stopped for, while it is. */
     private stopped: PauseReason | undefined;
     /** Set while a script runs and polls, when no request may run script. */
@@ -108,6 +136,13 @@ export class ScriptDebugSession {
     private terminateRequested = false;
     private references = new Map<number, Reference>();
     private nextReference = 1;
+    /** Set once the extension's configuration has ended with `resume`; a later attach does not wait for it. */
+    private configured = false;
+    /** The breakpoints the extension set, by engine file, which an attach to a new engine sets again. */
+    private readonly breakpoints = new Map<string, readonly number[]>();
+    private stopOnException = false;
+    /** The profile `startProfiler` began, until `stopProfiler`. */
+    private profiler: ScriptProfiler | undefined;
 
     public constructor(channel: DebuggerChannel, options: DebugSessionOptions) {
         this.channel = channel;
@@ -166,6 +201,9 @@ export class ScriptDebugSession {
             ) {
                 throw new ScriptHostErrors.DebuggerPluginNotFound({ uuid: message.targetModuleUuid ?? '' });
             }
+            // BDS describes its diagnostics tabs once the handshake has passed, before the attach.
+            this.accepted = true;
+            this.event({ type: 'SchemaEvent', descriptors: this.options.diagnosticsTabs ?? DIAGNOSTICS_TABS });
             return target;
         }
     }
@@ -174,26 +212,65 @@ export class ScriptDebugSession {
      * Attaches to the picked pack's context, and handles the extension's configuration, its
      * breakpoints and exception setting, until it sends `resume`. The engine runs no script until
      * then. Only that context's scripts stop: another pack's file of the same name never does.
+     *
+     * After {@link detachEngine}, an attach to the new engine sets the breakpoints and the
+     * exception setting the extension sent before, and returns at once: the extension configures
+     * a session only once.
      * @param engine - The engine the pack runs in.
      * @param context - The pack's context in the engine.
      */
     public attach(engine: ScriptEngine, context: ScriptContextId = DEFAULT_CONTEXT): void {
         if (this.engine !== undefined) throw new ScriptHostErrors.DebugSessionAlreadyAttached();
+        if (this.closedValue) return;
         this.engine = engine;
-        this.debug = engine.attachDebugger(
+        const debug = engine.attachDebugger(
             { paused: (reason) => this.paused(reason), poll: () => this.pollRunning() },
             { context, pollLines: this.options.pollLines }
         );
+        this.debug = debug;
+        for (const [file, lines] of this.breakpoints) debug.setBreakpoints(file, lines);
+        if (this.stopOnException) debug.setStopOnException(true);
         this.event({ type: 'ThreadEvent', reason: 'new', thread: this.threadId });
+        if (this.configured) return;
         for (;;) {
             const message = this.next(this.channel.receive());
             if (message === undefined) {
                 this.close();
                 return;
             }
-            if (message.type === 'resume') return;
+            if (message.type === 'resume') {
+                this.configured = true;
+                return;
+            }
             this.handle(message);
         }
+    }
+
+    /**
+     * Detaches from the engine and tells the extension the scripts' thread has exited, while the
+     * session stays open, as BDS does around `/reload`. {@link attach} with the new engine starts
+     * the thread again.
+     */
+    public detachEngine(): void {
+        if (this.closedValue || this.debug === undefined) return;
+        this.event({ type: 'ThreadEvent', reason: 'exited', thread: this.threadId });
+        this.releaseReferences();
+        if (this.debug.isAttached) this.debug.detach();
+        this.debug = undefined;
+        this.engine = undefined;
+    }
+
+    /** Whether the session is attached to an engine. */
+    public get attached(): boolean {
+        return this.debug !== undefined;
+    }
+
+    /**
+     * Sends one tick's statistics, as BDS streams a `StatEvent2` each tick to an attached
+     * extension. Nothing is sent while no engine is attached.
+     */
+    public stats(tick: number, stats: readonly DebuggerStat[]): void {
+        if (!this.closedValue && this.debug !== undefined) this.event({ type: 'StatEvent2', tick, stats });
     }
 
     /**
@@ -220,16 +297,21 @@ export class ScriptDebugSession {
         if (!this.closedValue) this.event({ type: 'PrintEvent', message, logLevel });
     }
 
-    /** Detaches from the engine and tells the extension the scripts' thread has exited. */
+    /**
+     * Ends the session and detaches from the engine. A session whose handshake passed tells the
+     * extension it has terminated, as BDS does just before it closes the connection; after a
+     * refused handshake BDS sends its error line and closes.
+     */
     public detach(): void {
         if (this.closedValue) return;
-        if (this.debug !== undefined) this.event({ type: 'ThreadEvent', reason: 'exited', thread: this.threadId });
+        if (this.accepted) this.event({ type: 'terminated' });
         this.close();
     }
 
     /** Ends the session after the connection closed or the session detached. */
     private close(): void {
         this.closedValue = true;
+        this.profiler = undefined;
         this.releaseReferences();
         if (this.debug?.isAttached === true) this.debug.detach();
         this.debug = undefined;
@@ -268,6 +350,7 @@ export class ScriptDebugSession {
 
     /** The engine's poll while a script runs: handles what has arrived without running script. */
     private pollRunning(): void {
+        if (this.profiler !== undefined && this.debug !== undefined) this.profiler.sample(this.debug.frames());
         this.running = true;
         try {
             this.poll();
@@ -285,6 +368,7 @@ export class ScriptDebugSession {
                 this.setBreakpoints(message.path, message.lines);
                 return;
             case 'stopOnException':
+                this.stopOnException = message.stop;
                 this.debug?.setStopOnException(message.stop);
                 return;
             case 'resume':
@@ -293,6 +377,23 @@ export class ScriptDebugSession {
             case 'minecraftCommand':
                 this.options.runCommand?.(message.command, message.dimension);
                 return;
+            case 'startProfiler':
+                this.profiler = new ScriptProfiler(
+                    this.options.profilerClock ?? profilerClock,
+                    this.options.toDebuggerPath
+                );
+                return;
+            case 'stopProfiler': {
+                const profile = this.profiler?.finish();
+                this.profiler = undefined;
+                if (profile === undefined) return;
+                this.event({
+                    type: 'ProfilerCapture',
+                    capture_base_path: message.capturesPath,
+                    capture_data: Buffer.from(JSON.stringify(profile)).toString('base64')
+                });
+                return;
+            }
             case 'debugger-request':
                 this.channel.send({
                     type: 'debuggee-response',
@@ -360,6 +461,8 @@ export class ScriptDebugSession {
 
     private setBreakpoints(path: string, lines: readonly number[]): boolean {
         const file = this.options.fromDebuggerPath?.(path) ?? path;
+        if (lines.length === 0) this.breakpoints.delete(file);
+        else this.breakpoints.set(file, lines);
         this.debug?.setBreakpoints(file, lines);
         return this.options.knowsFile?.(file) ?? true;
     }

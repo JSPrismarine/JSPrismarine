@@ -155,13 +155,13 @@ describe('the debugger transport', () => {
 
             const socket = createConnection({ host: '127.0.0.1', port: listener.address.port });
             let stackTrace: unknown;
-            let exited: () => void = () => undefined;
-            const threadExited = new Promise<void>((resolve) => {
-                exited = resolve;
+            let terminated: () => void = () => undefined;
+            const sessionTerminated = new Promise<void>((resolve) => {
+                terminated = resolve;
             });
             const received = extensionOn(socket, (message, send) => {
                 const event = eventOf(message);
-                if (event?.type === 'ThreadEvent' && event.reason === 'exited') exited();
+                if (event?.type === 'terminated') terminated();
                 if (event?.type === 'ProtocolEvent') {
                     send({
                         type: 'protocol',
@@ -191,19 +191,20 @@ describe('the debugger transport', () => {
 
             expect(await report).toEqual({ target: '4f2b6b3a-0000-4000-8000-000000000001', result: 42 });
             // The worker reports before its last messages have crossed the socket.
-            await threadExited;
+            await sessionTerminated;
             expect(stackTrace).toEqual([
                 { id: 0, name: 'twice', filename: 'main.js', line: 3, column: 12 },
                 { id: 1, name: '<eval>', filename: 'main.js', line: 5, column: 6 }
             ]);
             expect(received.map((message) => eventOf(message)?.type ?? message.type)).toEqual([
                 'ProtocolEvent',
+                'SchemaEvent',
                 'ThreadEvent',
                 'response',
                 'StoppedEvent',
                 'response',
                 'response',
-                'ThreadEvent'
+                'terminated'
             ]);
             socket.destroy();
             listener.close();

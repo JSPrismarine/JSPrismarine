@@ -332,6 +332,16 @@ read a socket while the extension inspects the script:
   `stackTrace`, `scopes`, `variables`, `evaluate`, `continue`, `next`, `stepIn`, `stepOut` and
   `pause`, and `poll` handles what arrives between ticks. When the connection closes, at any of
   these points, the session detaches from the engine, so a new debugger can attach.
+- The session speaks the rest of the protocol as the pinned BDS does on the wire. A passed
+  handshake is followed by a `SchemaEvent` with BDS's diagnostics tabs (`DIAGNOSTICS_TABS`), and
+  `stats` sends a tick's `StatEvent2`. `detachEngine` sends `ThreadEvent` `exited` and keeps the
+  session open, as BDS does around `/reload`; the next `attach`, to the new engine, sends `new`
+  and sets the breakpoints and exception setting again without waiting for another `resume`.
+  `detach` sends `terminated` before the session ends, unless the handshake was refused. A
+  `minecraftCommand` goes to the `runCommand` option. `startProfiler` and `stopProfiler` record
+  the debugged pack's stack at each poll, every `pollLines` lines, and send it back as a
+  `ProfilerCapture` holding a `.cpuprofile`, so a script that runs fewer lines between ticks
+  than the poll interval leaves no samples.
 
 ```ts
 import { ScriptDebugSession } from '@jsprismarine/script-host/debugger/DebugSession';
@@ -364,9 +374,9 @@ await thread.listen({ port: 19144, address: '127.0.0.1', passcode });
 The sketch leaves out what JSPrismarine's world host adds: a peek at the channel, so `handshake`
 never waits, BDS's refusal printed to the debug console, and an attach that waits for
 `WorldScripts`' `onPackLoaded` when the picked pack has not loaded yet, which is how a debugger
-attached at startup stops at a pack's first line. The host does not implement the extension's
-profiler, diagnostics or `debugger-request` messages yet. It answers a `debugger-request` as
-refused.
+attached at startup stops at a pack's first line, and that keeps the session across `/reload`.
+The host does not implement the extension's `debugger-request` or `diagnostics-set-active`
+messages yet. It answers a `debugger-request` as refused.
 
 ## Running a world's scripts
 
@@ -450,7 +460,8 @@ record it:
 - **Debugging.** `debugTarget` finds the engine and context of a loaded pack by its script module
   UUID. The `onPackLoaded` option names each pack once its context is ready and before its top
   level runs, so a debugger attached there stops at the pack's first line. `reload` replaces the
-  engine, so a debugger attached before it has to attach again.
+  engine, so a debugger session detaches from the old one first and attaches to the new one
+  when `onPackLoaded` names its pack again.
 
 ### Forms
 
