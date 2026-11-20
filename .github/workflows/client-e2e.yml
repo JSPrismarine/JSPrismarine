@@ -60,7 +60,11 @@ jobs:
             pull-requests: read
         outputs:
             code: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none' && github.head_ref != 'changeset-release/master') }}
+            # The pins client-e2e plays. A push leaves out the ones the merged pull request passed.
             pins: ${{ steps.matrix.outputs.pins }}
+            # The shards each pin is played in, such as [1,2,3,4], and how many there are.
+            shards: ${{ steps.matrix.outputs.shards }}
+            shard-total: ${{ steps.matrix.outputs.shard-total }}
             # The pins whose client has to be built first.
             build: ${{ steps.builds.outputs.build }}
             latest: ${{ steps.matrix.outputs.latest }}
@@ -68,7 +72,10 @@ jobs:
             pinned-keys: ${{ steps.matrix.outputs.pinned-keys }}
             # Empty runs every scenario.
             scenarios: ${{ steps.matrix.outputs.scenarios }}
-            reused: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '🎮 Client E2E') }}
+            # Every pin passed on the merged pull request, so client-e2e has nothing to play.
+            reused: ${{ steps.matrix.outputs.reused == 'true' }}
+            # Some pin passed on the merged pull request, so its coverage is uploaded for this push.
+            reused-any: ${{ steps.matrix.outputs.reused-any == 'true' }}
             run-id: ${{ steps.reuse.outputs.run-id }}
         steps:
             # Pull requests list their files through the API; a push diffs against the previous commit.
@@ -143,21 +150,48 @@ jobs:
             # (v2225, v2225-nethernet), `build` is the commit's cache directory, shared by its runs,
             # and `cacheKey` names its saved build after `runner.os`. The key carries the build
             # format, so a harness that needs more from a build replaces the entries saved before it.
+            #
+            # A pull request plays the newest protocol over RakNet; a push and a manual run play
+            # every pin. Each pin is played in four shards, a share of the suites each (see
+            # tools/client-e2e/src/shard.mts), or in one when only some scenarios run. A push leaves
+            # out a pin the merged pull request passed in every shard, and the builds below still
+            # cover every pin, since a pull request's cache entries are invisible to master.
             - name: Set matrix from the cinnabar pins
               id: matrix
               if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
               env:
-                  LATEST_ONLY: ${{ inputs.latest_only }}
+                  LATEST_ONLY: ${{ inputs.latest_only || github.event_name == 'pull_request' }}
+                  RAKNET_ONLY: ${{ github.event_name == 'pull_request' }}
                   SCENARIOS: ${{ inputs.scenarios || steps.select.outputs.scenarios || '' }}
+                  PASSED: ${{ steps.reuse.outputs.passed || '[]' }}
               run: |
                   latest=()
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
                   pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
-                  echo "pins=$pins" >> "$GITHUB_OUTPUT"
-                  echo "pinned-keys=$(node tools/client-e2e/src/pin-matrix.mts --pinned-keys)" >> "$GITHUB_OUTPUT"
-                  # The build that keeps cinnabar's compiled dependencies: the newest protocol's.
-                  echo "latest=$(jq -r 'max_by(.protocol).build' <<< "$pins")" >> "$GITHUB_OUTPUT"
-                  echo "scenarios=$SCENARIOS" >> "$GITHUB_OUTPUT"
+                  if [ "$RAKNET_ONLY" = true ]; then pins="$(jq -c 'map(select(.transport == "raknet"))' <<< "$pins")"; fi
+                  total=4
+                  if [ -n "$SCENARIOS" ]; then total=1; fi
+                  # The pins still to play: a pin is left out when the merged pull request passed
+                  # every one of its shards under the names client-e2e gives them.
+                  remaining="$(jq -c --argjson passed "$PASSED" --argjson total "$total" '
+                      map(. as $pin
+                          | [range(1; $total + 1)
+                              | "🎮 Client E2E (protocol \($pin.protocol)\(if $pin.transport == "nethernet" then ", NetherNet" else "" end), shard \(.)/\($total))"]
+                          | select(all(.[]; . as $name | $passed | index($name)) | not)
+                          | $pin)' <<< "$pins")"
+                  {
+                      echo "all-pins=$pins"
+                      echo "pins=$remaining"
+                      echo "shards=$(jq -cn --argjson total "$total" '[range(1; $total + 1)]')"
+                      echo "shard-total=$total"
+                      echo "reused=$(jq -r 'length == 0' <<< "$remaining")"
+                      echo "reused-any=$(jq -r --argjson remaining "$remaining" 'length > ($remaining | length)' <<< "$pins")"
+                      echo "pinned-keys=$(node tools/client-e2e/src/pin-matrix.mts --pinned-keys)"
+                      # The build that keeps cinnabar's compiled dependencies: the newest protocol's.
+                      echo "latest=$(jq -r 'max_by(.protocol).build' <<< "$pins")"
+                      echo "scenarios=$SCENARIOS"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Playing $(jq -r 'map(.name) | join(", ")' <<< "$remaining") in $total shard(s) each."
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
             # cinnabar-build writes, whose `runner.os` is `Linux`.
@@ -166,7 +200,7 @@ jobs:
               if: ${{ github.event_name == 'workflow_dispatch' || (steps.filter.outputs.code == 'true' && steps.select.outputs.mode != 'none') }}
               env:
                   GH_TOKEN: ${{ github.token }}
-                  PINS: ${{ steps.matrix.outputs.pins }}
+                  PINS: ${{ steps.matrix.outputs.all-pins }}
               run: |
                   missing=()
                   while read -r name cache_key; do
@@ -378,7 +412,7 @@ jobs:
     # cache entries are invisible to master, so this is where a new pin's build reaches master.
     client-e2e:
         name: >-
-            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet' || '' }})
+            🎮 Client E2E (protocol ${{ matrix.pin.protocol }}${{ matrix.pin.transport == 'nethernet' && ', NetherNet' || '' }}, shard ${{ matrix.shard }}/${{ needs.changes.outputs.shard-total }})
         needs: [changes, cinnabar-build]
         # A skipped cinnabar-build means every build was already cached.
         if: >-
@@ -389,6 +423,7 @@ jobs:
             fail-fast: false
             matrix:
                 pin: ${{ fromJSON(needs.changes.outputs.pins) }}
+                shard: ${{ fromJSON(needs.changes.outputs.shards) }}
         # runs-on: blacksmith-6vcpu-macos-latest
         runs-on: ubuntu-latest
         timeout-minutes: 60
@@ -479,6 +514,7 @@ jobs:
                   PROTOCOL: ${{ matrix.pin.protocol }}
                   TRANSPORT: ${{ matrix.pin.transport }}
                   SUITES: ${{ steps.size.outputs.suites }}
+                  SHARD: ${{ matrix.shard }}/${{ needs.changes.outputs.shard-total }}
                   NODE_OPTIONS: --max-old-space-size=4096
                   # A client that panics before its control endpoint is up names only its log, so
                   # the panic carries its backtrace there.
@@ -490,7 +526,7 @@ jobs:
                   # warning and in the summary when it passes the second time.
                   # shellcheck disable=SC2086
                   xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
-                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --concurrency "$SUITES" $SCENARIOS
+                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --shard "$SHARD" --concurrency "$SUITES" $SCENARIOS
 
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
@@ -509,14 +545,14 @@ jobs:
                   # One flag for every protocol, so carryforward keeps one set of e2e coverage on
                   # commits this path-filtered workflow skips; the upload name tells them apart.
                   flags: client-e2e
-                  name: client-e2e-${{ matrix.pin.name }}
+                  name: client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
 
             # The push to master that merges this pull request skips this job and uploads it.
             - name: 📤 Keep the coverage for the merge
               if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.changes.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: codecov-client-e2e-${{ matrix.pin.name }}
+                  name: codecov-client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
                   path: coverage/client-e2e/lcov.info
                   retention-days: 30
 
@@ -538,7 +574,7 @@ jobs:
               if: ${{ !cancelled() }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: client-e2e-evidence-${{ matrix.pin.name }}
+                  name: client-e2e-evidence-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
                   path: |
                       ${{ runner.temp }}/client-e2e
                       ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/repo/.local/developer-control/logs
@@ -581,7 +617,7 @@ jobs:
     reused-coverage:
         name: 🦺 Reuse pull request coverage
         needs: changes
-        if: ${{ needs.changes.outputs.reused == 'true' }}
+        if: ${{ needs.changes.outputs.reused-any == 'true' }}
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         permissions:
