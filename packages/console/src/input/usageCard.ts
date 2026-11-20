@@ -2,7 +2,7 @@ import { BoxRenderable, StyledText, TextRenderable, bg, bold, fg } from '@opentu
 import type { TextChunk } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
-import type { UsageMatch } from './commandUsage';
+import type { UsageForm, UsageMatch } from './commandUsage';
 import { formsFor, usageWords } from './commandUsage';
 
 /** The card above the command line that shows the forms of the command being typed. */
@@ -38,8 +38,8 @@ export function createUsageCard(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>)
         paddingRight: 1
     });
 
-    const formChunks = (form: string, argument: number): TextChunk[] =>
-        usageWords(form, argument).flatMap(({ text, current }, index) => [
+    const formChunks = ({ form, part }: UsageForm): TextChunk[] =>
+        usageWords(form, part).flatMap(({ text, current }, index) => [
             ...(index === 0 ? [] : [fg(theme.text)(' ')]),
             current
                 ? bg(theme.accent)(fg(theme.background)(bold(text)))
@@ -47,12 +47,12 @@ export function createUsageCard(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>)
         ]);
 
     const rowsFor = (match: UsageMatch): TextChunk[][] => {
-        const { command, argument } = match;
+        const { command } = match;
         const header: TextChunk[] = [fg(theme.accent)(bold(command.name))];
         if (command.aliases.length > 0) header.push(fg(theme.textMuted)(` (${command.aliases.join(', ')})`));
         if (command.description !== undefined) header.push(fg(theme.text)(`  ${command.description}`));
         const forms = formsFor(match);
-        const rows = [header, ...forms.slice(0, SHOWN_FORMS).map((form) => formChunks(form, argument))];
+        const rows = [header, ...forms.slice(0, SHOWN_FORMS).map(formChunks)];
         const folded = Math.max(0, forms.length - SHOWN_FORMS);
         // A capped list from the server means there are more forms than anyone here can count.
         const count = command.moreUsage === true ? `${folded}+` : `${folded}`;
