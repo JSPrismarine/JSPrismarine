@@ -23,24 +23,30 @@ export const duplicateLogin: Scenario = {
     run: async ({ server, launchClient, connect, log }) => {
         const before = await onlineCount(server);
 
-        // Launched first and connected together, so the second login arrives while the first is
-        // still joining: before #2951 the server looked only at players who had finished joining
-        // and let both in.
-        const twins = await Promise.all([launchClient(TWIN), launchClient(TWIN)]);
-        await Promise.all(twins.map(connect));
+        // Both launched first, then connected one after the other, the second once the server
+        // logs the first one's join: that line comes while the first is still joining, and it fixes
+        // which login reaches the server first, which the order of two `connect` calls does not.
+        // Before #2951 the server looked only at players who had finished joining and let both in.
+        const [first, second] = await Promise.all([launchClient(TWIN), launchClient(TWIN)]);
+        const firstJoining = server.waitForLine(new RegExp(`${TWIN}\\S* is attempting to join`), 120_000);
+        // Not awaited: over NetherNet a connect waits out the trust prompt, which can last until the
+        // client is in the world, and the second login has to arrive while the first still joins.
+        // The first client may be dropped before its connect settles, which is the point.
+        const firstConnected = connect(first).catch(() => undefined);
+        await firstJoining;
+        await connect(second);
+        await firstConnected;
 
-        const joined = await untilTicks(server, 1200, async () =>
-            (await Promise.all(twins.map(inWorld))).some(Boolean)
-        );
-        assert.ok(joined, 'neither client joined');
+        const joined = await untilTicks(server, 1200, async () => inWorld(second));
+        assert.ok(joined, 'the second login never joined');
 
-        // Long enough for a replaced client that had reached the world to be told so and drop out.
+        // Long enough for the replaced client to be told so and drop out.
         await waitTicks(server, 60);
 
-        const live = (await Promise.all(twins.map(inWorld))).filter(Boolean).length;
+        assert.equal(await inWorld(first), false, 'the first login is still in the world after the second replaced it');
+        assert.equal(await inWorld(second), true, 'the second login left the world');
         const after = await onlineCount(server);
-        assert.equal(live, 1, `${live} of the two clients named ${TWIN} are in the world`);
         assert.equal(after, before + 1, `the server counts ${after} players online, ${before} before the twins`);
-        log(`one of two simultaneous ${TWIN} logins is in the world; the server counts ${after} players`);
+        log(`the second ${TWIN} login replaced the first; the server counts ${after} players`);
     }
 };
