@@ -169,8 +169,11 @@ export class Kernel<Events extends EventMap = EventMap> {
         const run = ++this.run;
         this.launched = [];
         for (const entry of this.startOrder) {
+            // The report comes first, so a stop() from inside it does not stop a module whose
+            // start never ran.
+            this.report({ id: entry.module.id, state: 'starting' });
+            if (this.run !== run) throw new KernelErrors.StoppedDuringStart();
             this.launched.push(entry);
-            this.onStart?.({ id: entry.module.id, state: 'starting' });
             try {
                 await entry.module.start?.(entry.context);
             } catch (error) {
@@ -182,9 +185,23 @@ export class Kernel<Events extends EventMap = EventMap> {
                 throw error;
             }
             if (this.run !== run) throw new KernelErrors.StoppedDuringStart();
-            this.onStart?.({ id: entry.module.id, state: 'started' });
+            this.report({ id: entry.module.id, state: 'started' });
+            if (this.run !== run) throw new KernelErrors.StoppedDuringStart();
         }
         this.phase = 'started';
+    }
+
+    /**
+     * Hands one step of the start to {@link KernelOptions.onStart}. The callback only watches the
+     * start, so its failure is logged and the start goes on rather than leaving modules running
+     * with the kernel stuck in `starting`.
+     */
+    private report(progress: KernelStartProgress): void {
+        try {
+            this.onStart?.(progress);
+        } catch (error) {
+            this.logger.error(`The start progress callback failed: ${describeFailure(error)}`);
+        }
     }
 
     /**
