@@ -26,6 +26,70 @@ export interface DebuggerPlugin {
     readonly module_uuid: string;
 }
 
+/**
+ * One statistic of a `StatEvent2`, the extension's `StatDataModel` (`src/stats/stats-provider.ts`):
+ * a value for this tick, or a group of named children.
+ */
+export interface DebuggerStat {
+    readonly name: string;
+    readonly should_aggregate: boolean;
+    /** The values; the last one is this tick's. */
+    readonly values?: readonly (number | string)[];
+    readonly children?: readonly DebuggerStat[];
+}
+
+/**
+ * A tab of the extension's diagnostics panel, the extension's `DiagnosticsTabDescriptor`
+ * (`src/diagnostics-schema.ts`), with the fields Bedrock Dedicated Server (BDS) fills.
+ */
+export interface DiagnosticsTab {
+    readonly name: string;
+    readonly stat_group_id: string;
+    readonly data_source: 'server' | 'client' | 'server_script';
+    readonly display_type: string;
+    readonly is_empty_tab: boolean;
+    readonly y_label?: string;
+    readonly tick_range?: number;
+    readonly value_scalar?: number;
+    readonly key_label?: string;
+}
+
+/**
+ * The tabs the pinned BDS 1.26.51.1 sends in its `SchemaEvent`, captured from its wire: two for a
+ * client's frame timings and memory, which a dedicated server never fills, and the engine's
+ * memory table, which the `scripting_engine` statistic fills.
+ */
+export const DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = [
+    {
+        name: 'Client - Timings',
+        stat_group_id: 'client_frame_timings',
+        data_source: 'client',
+        display_type: 'stacked_line_chart',
+        is_empty_tab: false,
+        y_label: 'Time (ms)',
+        tick_range: 200,
+        value_scalar: 1
+    },
+    {
+        name: 'Client - Memory',
+        stat_group_id: 'client_memory',
+        data_source: 'client',
+        display_type: 'stacked_line_chart',
+        is_empty_tab: false,
+        y_label: 'Memory (MB)',
+        tick_range: 200,
+        value_scalar: 0.000001
+    },
+    {
+        name: 'Server - Scripting Engine',
+        stat_group_id: 'scripting_engine',
+        data_source: 'server',
+        display_type: 'table',
+        is_empty_tab: false,
+        key_label: 'Stat'
+    }
+];
+
 /** The events the host sends, each inside an `{ type: 'event', event }` envelope. */
 export type DebuggerEvent =
     | {
@@ -37,7 +101,13 @@ export type DebuggerEvent =
     | { readonly type: 'StoppedEvent'; readonly reason: string; readonly thread: number }
     | { readonly type: 'ThreadEvent'; readonly reason: 'new' | 'exited'; readonly thread: number }
     | { readonly type: 'PrintEvent'; readonly message: string; readonly logLevel: number }
-    | { readonly type: 'NotificationEvent'; readonly message: string; readonly logLevel: number };
+    | { readonly type: 'NotificationEvent'; readonly message: string; readonly logLevel: number }
+    | { readonly type: 'StatEvent2'; readonly tick: number; readonly stats: readonly DebuggerStat[] }
+    | { readonly type: 'SchemaEvent'; readonly descriptors: readonly DiagnosticsTab[] }
+    /** A CPU profile, `.cpuprofile` JSON in base64, for the extension to write under `capture_base_path`. */
+    | { readonly type: 'ProfilerCapture'; readonly capture_base_path: string; readonly capture_data: string }
+    /** The host ends the session; BDS sends it just before it closes the connection. */
+    | { readonly type: 'terminated' };
 
 /**
  * A message the host sends. A response answers a `request` by its `request_seq`, with a body or
@@ -78,6 +148,8 @@ export type ExtensionMessage =
     | { readonly type: 'resume' }
     | { readonly type: 'minecraftCommand'; readonly command: string; readonly dimension: string }
     | { readonly type: 'debugger-request'; readonly request_seq: number; readonly request: string }
+    | { readonly type: 'startProfiler' }
+    | { readonly type: 'stopProfiler'; readonly capturesPath: string }
     | { readonly type: 'other'; readonly name: string };
 
 const text = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
@@ -145,6 +217,13 @@ export const parseExtensionMessage = (message: unknown): ExtensionMessage => {
             const body = isRecord(message.request) ? message.request : message;
             if (typeof body.request_seq !== 'number') break;
             return { type: 'debugger-request', request_seq: body.request_seq, request: text(body.request) ?? '' };
+        }
+        case 'startProfiler':
+            return { type: 'startProfiler' };
+        case 'stopProfiler': {
+            // Before protocol 8 the path sits in a `profiler` object.
+            const body = isRecord(message.profiler) ? message.profiler : message;
+            return { type: 'stopProfiler', capturesPath: text(body.captures_path) ?? '' };
         }
         default:
             break;

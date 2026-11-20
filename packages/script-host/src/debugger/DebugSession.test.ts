@@ -1,11 +1,12 @@
 import { DebuggerConnectionError } from '@jsprismarine/errors/script-host';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import { isRecord } from '../isRecord';
 import type { ScriptEngine, ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable } from '../testing/library.test-utils';
 import { ScriptDebugSession } from './DebugSession';
 import type { DebuggerChannel, DebugSessionOptions } from './DebugSession';
-import { DEBUGGER_PROTOCOL_VERSION } from './protocol';
+import { DEBUGGER_PROTOCOL_VERSION, DIAGNOSTICS_TABS } from './protocol';
 import type { DebuggerEvent, HostMessage } from './protocol';
 
 /** One turn of the fake extension: it runs when the session waits with nothing left to read. */
@@ -170,7 +171,25 @@ describe('the debugger protocol handshake', () => {
         session.offer();
         expect(extension.events().map((event) => event.type)).toEqual(['ProtocolEvent']);
         expect(session.handshake()).toBe(plugin.module_uuid);
+        expect(extension.events().map((event) => event.type)).toEqual(['ProtocolEvent', 'SchemaEvent']);
+    });
+
+    it('describes BDS’s diagnostics tabs once the handshake passes, and ends a refused one quietly', () => {
+        const { extension, session } = handshake([accept({ passcode: 'wrong' })], { passcode: 'right' });
+
+        expect(() => session.handshake()).toThrow(DebuggerConnectionError);
+        session.detach();
+        // A refused session closes with no schema and no `terminated`.
         expect(extension.events().map((event) => event.type)).toEqual(['ProtocolEvent']);
+
+        const passed = handshake([accept()]);
+        passed.session.handshake();
+        expect(passed.extension.events()[1]).toEqual({ type: 'SchemaEvent', descriptors: DIAGNOSTICS_TABS });
+        expect(DIAGNOSTICS_TABS.map((tab) => tab.stat_group_id)).toEqual([
+            'client_frame_timings',
+            'client_memory',
+            'scripting_engine'
+        ]);
     });
 });
 
@@ -520,12 +539,95 @@ describe.skipIf(!scriptHostAvailable())('a debugger session', () => {
         ]);
     });
 
-    it('tells the extension the scripts’ thread exited when it detaches, and stops stopping', () => {
+    it('tells the extension the session terminated when it detaches, as BDS does, and stops stopping', () => {
         const { engine, extension, session } = start([accept(), configure({ 'main.js': [2] })]);
+        session.detach();
         session.detach();
 
         expect(engine.evaluate(program, 'main.js')).toBe(30);
-        expect(extension.events().at(-1)).toEqual({ type: 'ThreadEvent', reason: 'exited', thread: 1 });
+        expect(extension.events().filter((event) => event.type === 'terminated')).toEqual([{ type: 'terminated' }]);
+        expect(extension.events().at(-1)).toEqual({ type: 'terminated' });
         expect(extension.events().filter((event) => event.type === 'StoppedEvent')).toEqual([]);
+    });
+
+    it('keeps the session across a new engine, as BDS does around /reload, with the same breakpoints', () => {
+        const { engine, extension, session } = start([
+            accept(),
+            configure({ 'main.js': [2] }, true),
+            (ext) => ext.request('continue', { threadId: 1 })
+        ]);
+        session.detachEngine();
+        expect(engine.evaluate(program, 'main.js')).toBe(30);
+
+        const reloaded = library.createEngine();
+        engines.push(reloaded);
+        // No turn is left for a second configuration: the attach does not wait for one.
+        session.attach(reloaded);
+        expect(session.closed).toBe(false);
+        expect(reloaded.evaluate(program, 'main.js')).toBe(30);
+
+        expect(
+            extension
+                .events()
+                .filter((event) => event.type === 'ThreadEvent' || event.type === 'StoppedEvent')
+                .map((event) => ('reason' in event ? event.reason : ''))
+        ).toEqual(['new', 'exited', 'new', 'breakpoint']);
+        expect(engine.stats().handles).toBe(0);
+    });
+
+    it('streams statistics only while it is attached to an engine', () => {
+        const { extension, session } = start([accept(), configure({})]);
+        const entities = [{ name: 'entities', should_aggregate: false, values: [3] }];
+        session.stats(7, entities);
+        session.detachEngine();
+        session.stats(8, entities);
+        session.detach();
+        session.stats(9, entities);
+
+        expect(extension.events().filter((event) => event.type === 'StatEvent2')).toEqual([
+            { type: 'StatEvent2', tick: 7, stats: entities }
+        ]);
+    });
+
+    it('profiles the stacks it finds at each poll, and sends them as a .cpuprofile when asked', () => {
+        let now = 1_000;
+        const { engine, extension, session } = start([accept(), configure({})], {
+            pollLines: 100,
+            profilerClock: () => (now += 10),
+            toDebuggerPath: (file) => `pack/${file}`
+        });
+        // A stop with no profile running sends nothing.
+        extension.queue({ type: 'stopProfiler', captures_path: '/captures' });
+        extension.queue({ type: 'startProfiler', target_module_uuid: plugin.module_uuid });
+        session.poll();
+        const loop = ['function spin() {', '    let i = 0;', '    while (i < 1000) i++;', '}', 'spin();'].join('\n');
+        engine.evaluate(loop, 'spin.js');
+        extension.queue({ type: 'stopProfiler', captures_path: '/captures', target_module_uuid: plugin.module_uuid });
+        extension.queue({ type: 'stopProfiler', captures_path: '/captures' });
+        session.poll();
+
+        const captures = extension.events().filter((event) => event.type === 'ProfilerCapture');
+        expect(captures).toHaveLength(1);
+        const [capture] = captures;
+        if (capture?.type !== 'ProfilerCapture') throw new Error('no capture');
+        expect(capture.capture_base_path).toBe('/captures');
+        const profile: unknown = JSON.parse(Buffer.from(capture.capture_data, 'base64').toString('utf8'));
+        expect(profile).toMatchObject({ startTime: 1_010, $vscode: { rootPath: '.', locations: [] } });
+        if (!isRecord(profile) || !Array.isArray(profile.samples) || !Array.isArray(profile.nodes)) {
+            throw new Error('not a profile');
+        }
+        // The loop runs about 2,000 lines, so the polls every 100 lines found it about 20 times.
+        expect(profile.samples.length).toBeGreaterThanOrEqual(10);
+        expect(profile.timeDeltas).toEqual(profile.samples.map(() => 10));
+        expect(profile.endTime).toBe(1_010 + 10 * (profile.samples.length + 1));
+        const names = profile.nodes.flatMap((node) =>
+            isRecord(node) && isRecord(node.callFrame) ? [node.callFrame.functionName] : []
+        );
+        expect(names.slice(0, 1)).toEqual(['(root)']);
+        expect(names).toContain('spin');
+        const spin = profile.nodes.find(
+            (node) => isRecord(node) && isRecord(node.callFrame) && node.callFrame.functionName === 'spin'
+        );
+        expect(spin).toMatchObject({ hitCount: profile.samples.length, callFrame: { url: 'pack/spin.js' } });
     });
 });
