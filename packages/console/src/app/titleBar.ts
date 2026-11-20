@@ -1,4 +1,4 @@
-import { BoxRenderable, StyledText, TextRenderable, bg, bold, fg } from '@opentui/core';
+import { BoxRenderable, StyledText, TextRenderable, bg, bold, fg, parseColor, reverse } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { stateLabel, stateTone } from '../status/segments';
@@ -42,8 +42,11 @@ export function createTitleBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     const left = new TextRenderable(renderer, { id: 'title-left', truncate: true });
     const paintLeft = (state: ServerState) => {
         // The tile's text takes the page background, which every theme keeps readable on its
-        // tones; without color both are the default colors, so the tile reads as inverse.
-        const tile = bg(theme[stateTone(state)])(fg(theme.background)(bold(` ${stateLabel(state).toUpperCase()} `)));
+        // tones. Without color the tone is the terminal's default foreground, which paints no
+        // background at all, so the tile is drawn in reverse video instead.
+        const tone = theme[stateTone(state)];
+        const label = bold(` ${stateLabel(state).toUpperCase()} `);
+        const tile = parseColor(tone).intent === 'default' ? reverse(label) : bg(tone)(fg(theme.background)(label));
         left.content = new StyledText([tile, fg(theme.accent)(` ${titleText(props)}`)]);
     };
     paintLeft('starting');
