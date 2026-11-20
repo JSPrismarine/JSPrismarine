@@ -204,7 +204,8 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  *   `raknet`, the default, turns NetherNet off.
  * @param options.profile - Enables Node DevTools and preserves the shutdown trace for inspection.
  * @param options.preloadRadius - Chunks around spawn to generate and keep resident before listening.
- * @param options.worldgenSpawn - Boots the normal Overworld at seed 1234 for spawn testing.
+ * @param options.worldgenSpawn - Boots Java's normal preset at seed 1234, its noise Overworld,
+ *   Nether and End included, with the persistent terrain cache on.
  * @param options.secondLevel - Adds a second flat `worlds` entry, {@link SECOND_LEVEL}, whose
  *   Overworld shares the default level's dimension.
  * @param options.udpPorts - Where NetherNet's UDP goes; see {@link UdpPortsLayout}.
@@ -599,14 +600,20 @@ export const startServer = async (
                 seed: options.worldgenSpawn === true ? '1234' : '1',
                 preset: options.worldgenSpawn === true ? 'minecraft:normal' : 'minecraft:flat',
                 dimensions: {
-                    'minecraft:the_nether': {
-                        type: 'minecraft:the_nether',
-                        generator: flatGenerator('minecraft:netherrack')
-                    },
-                    'minecraft:the_end': {
-                        type: 'minecraft:the_end',
-                        generator: flatGenerator('minecraft:end_stone')
-                    },
+                    // The noise world keeps the preset's own Nether and End, so their generation
+                    // is tested too.
+                    ...(options.worldgenSpawn === true
+                        ? {}
+                        : {
+                              'minecraft:the_nether': {
+                                  type: 'minecraft:the_nether',
+                                  generator: flatGenerator('minecraft:netherrack')
+                              },
+                              'minecraft:the_end': {
+                                  type: 'minecraft:the_end',
+                                  generator: flatGenerator('minecraft:end_stone')
+                              }
+                          }),
                     // Flat rather than void, so an arrival has a floor that exists the moment its
                     // chunk loads: a command cannot fill a dimension nobody is in.
                     'client_e2e:custom': {
