@@ -82,6 +82,46 @@ describe('Kernel lifecycle', () => {
         expect(calls).toStrictEqual(['a:starting', 'a:start', 'a:started', 'b:starting', 'b:start', 'b:started']);
     });
 
+    it.each(['starting', 'started'] as const)(
+        'logs a progress callback that throws on %s and finishes the start',
+        async (failOn) => {
+            const errors: string[] = [];
+            const calls: string[] = [];
+            const kernel = new Kernel({
+                logger: recordingLogger(errors),
+                onStart: ({ state }) => {
+                    if (state === failOn) throw new Error('observer exploded');
+                }
+            });
+            kernel.register(provider('b', bToken, calls, [aToken]));
+            kernel.register(provider('a', aToken, calls));
+            await kernel.registerAll();
+            calls.length = 0;
+
+            await kernel.start();
+            expect(calls).toStrictEqual(['a:start', 'b:start']);
+            expect(errors).toHaveLength(2);
+            await kernel.stop();
+            await expect(kernel.start()).resolves.toBeUndefined();
+        }
+    );
+
+    it('starts nothing more when the progress callback stops the kernel', async () => {
+        const calls: string[] = [];
+        const kernel: Kernel = new Kernel({
+            onStart: ({ id, state }) => {
+                if (id === 'b' && state === 'starting') void kernel.stop();
+            }
+        });
+        kernel.register(provider('b', bToken, calls, [aToken]));
+        kernel.register(provider('a', aToken, calls));
+        await kernel.registerAll();
+        calls.length = 0;
+
+        await expect(kernel.start()).rejects.toBeInstanceOf(KernelError);
+        expect(calls).toStrictEqual(['a:start', 'a:stop']);
+    });
+
     it('reports no finished start for a module whose start throws', async () => {
         const reported: string[] = [];
         const kernel = new Kernel({ onStart: ({ id, state }) => reported.push(`${id}:${state}`) });
