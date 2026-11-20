@@ -19,6 +19,9 @@ export interface DocSection {
 /** Contributor-only directories under `docs/` (such as `design`) are left out on purpose. */
 export const sections = [
     { dir: 'guide', title: 'Guides', first: ['joining', 'running', 'extending', 'log-levels'] },
+    // The overview lists JSPrismarine's own addons; the docs build adds a page per addon from
+    // its README under `addons/` (see `addonPageSource`).
+    { dir: 'addons', title: 'Addons' },
     { dir: 'errors', title: 'Errors' },
     // The site serves no copy of the logo and icon files, so the guide's links to them go to GitHub.
     { dir: 'brand', title: 'Brand', unpublished: ['assets/'] },
@@ -85,12 +88,58 @@ export function pageUrl(page: string, siteUrl: string) {
     return new URL(route, siteUrl).href;
 }
 
-/** Reads a page's title from its first heading, falling back to its file name. */
+/**
+ * The index of the first line from `from` on, outside a code fence, that matches. A fence closes,
+ * as CommonMark has it, on a line of only the opening fence's character, at least as many of them,
+ * so a shorter fence or the other character inside it is part of the code.
+ */
+export function findUnfencedLine(lines: readonly string[], from: number, pattern: RegExp) {
+    let fence: string | undefined;
+    for (let index = from; index < lines.length; index++) {
+        const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(lines[index])?.slice(1);
+        if (fence === undefined) {
+            if (marker !== undefined) fence = marker[0];
+            else if (pattern.test(lines[index])) return index;
+        } else if (
+            marker !== undefined &&
+            marker[0][0] === fence[0] &&
+            marker[0].length >= fence.length &&
+            marker[1].trim() === ''
+        ) {
+            fence = undefined;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Reads a page's title from its first heading outside a code fence, so a `#` comment in an example
+ * is not one, falling back to its file name.
+ */
 export function pageTitle(markdown: string, fallback: string) {
-    return /^# (.+)$/m.exec(markdown)?.[1].trim() ?? fallback;
+    const lines = markdown.split('\n');
+    const index = findUnfencedLine(lines, 0, /^# \S/);
+    return index === -1 ? fallback : lines[index].slice(2).trim();
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/** The page of the Addons section that an addon's README becomes. */
+export const addonPagePath = (name: string) => `addons/${name}.md`;
+
+/** An addon's README in the repository, which its page is built from. */
+export const addonReadmePath = (name: string) => `addons/${name}/README.md`;
+
+/**
+ * The addon README a page of the Addons section is built from, or undefined for a page that is not
+ * an addon's, such as the section's overview.
+ */
+export function addonPageSource(relativePath: string) {
+    const name = /^addons\/([^/]+)\.md$/.exec(relativePath)?.[1];
+    if (name === undefined || name === 'index') return undefined;
+    const source = addonReadmePath(name);
+    return existsSync(path.join(repoRoot, source)) ? source : undefined;
+}
 
 /**
  * The repository file a site page is built from, for "edit this page" links. A generated section index
@@ -99,6 +148,9 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 export function pageSource(relativePath: string): { path: string; kind: 'file' | 'folder' } {
     const root = rootPages.find(({ page }) => page === relativePath);
     if (root) return { path: root.source, kind: 'file' };
+
+    const addon = addonPageSource(relativePath);
+    if (addon) return { path: addon, kind: 'file' };
 
     const section = sections.find(({ dir }) => relativePath.startsWith(`${dir}/`));
     if (section) {

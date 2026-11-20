@@ -25,6 +25,8 @@ on:
             # Contributor-only notes the site leaves out.
             - '!docs/design/**'
             - 'tools/docs/**'
+            # Each addon's README is a page of the Addons section.
+            - 'addons/**'
             - 'CONTRIBUTING.md'
             - 'CODE_OF_CONDUCT.md'
             - '.github/workflows/docs.yml'

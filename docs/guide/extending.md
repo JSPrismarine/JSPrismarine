@@ -232,6 +232,13 @@ from that file can still differ where a script reads them
 Support for the Minecraft Bedrock Debugger for VS Code is in progress and has not been checked
 against VS Code yet. [The script host plan](../plans/script-api-host.md) tracks it.
 
+### Share a pack as an addon
+
+An addon is a script pack with an `addon.json`, released on GitHub so that server owners install it
+from the console with `addon install`. [Writing an addon](writing-addons.md) turns a pack into one,
+[Publishing addons](publishing-addons.md) releases it, and [Installing addons](installing-addons.md)
+is the owner's side. [Addons](../addons/README.md) lists the ones JSPrismarine publishes.
+
 ### Use JSPrismarine-only features
 
 A pack can import `@jsprismarine/server` to read what only JSPrismarine offers, such as which
