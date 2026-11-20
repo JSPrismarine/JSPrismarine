@@ -73,6 +73,14 @@ class ManualServer implements JsprismarineServerMembers {
         this.calls.push(`hide ${player}`);
         this.screens.delete(player);
     }
+    /** What each player's list entry shows, while a pack has set it. */
+    public readonly listNames = new Map<string, string>();
+    public setPlayerListName(player: string, name: string): void {
+        this.listNames.set(player, name);
+    }
+    public resetPlayerListName(player: string): void {
+        this.listNames.delete(player);
+    }
 }
 
 describe.skipIf(!scriptHostAvailable())('the TPS bar addon', () => {

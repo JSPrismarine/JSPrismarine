@@ -30,7 +30,9 @@ const recordingHost = () => {
         showBar: record('showBar', () => 7),
         updateBar: record('updateBar', () => undefined),
         hideBar: record('hideBar', () => undefined),
-        barValid: record('barValid', (id) => id === 7)
+        barValid: record('barValid', (id) => id === 7),
+        setListName: record('setListName', () => undefined),
+        resetListName: record('resetListName', () => undefined)
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     return { host, calls };
 };
@@ -110,6 +112,27 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('forwards the player list calls to the host', () => {
+        const { host, calls } = recordingHost();
+        const { playerList } = namespaceOf(host);
+        const player = { id: '-4294967295' };
+
+        expect(Object.keys(playerList ?? {}).sort()).toEqual(
+            Object.keys(JSPRISMARINE_SERVER.playerList.methods).sort()
+        );
+        const setDisplayName = at(playerList, 'setDisplayName');
+        const reset = at(playerList, 'reset');
+        if (typeof setDisplayName !== 'function' || typeof reset !== 'function')
+            throw new TypeError('playerList has no methods');
+        setDisplayName(player, '§aSteve');
+        reset(player);
+
+        expect(calls).toEqual([
+            ['setListName', player, '§aSteve'],
+            ['resetListName', player]
+        ]);
+    });
+
     it('declares every member, property and type it defines, under the module name, with its summary', () => {
         const typings = jsprismarineServerTypings();
 
@@ -124,6 +147,8 @@ describe('@jsprismarine/server', () => {
         expect(typings).toContain('        readonly tpsAverages: readonly number[];');
         expect(typings).toContain('    export function getPing(player: Player): number | undefined;');
         expect(typings).toContain('        show(player: Player, options?: BossBarOptions): BossBar;');
+        expect(typings).toContain('        setDisplayName(player: Player, name: string): void;');
+        expect(typings).toContain('        reset(player: Player): void;');
         for (const [name, type] of Object.entries(JSPRISMARINE_TYPES)) {
             const declaration = type.kind === 'union' ? `export type ${name} =` : `export interface ${name} {`;
             expect(typings).toContain(`    /** ${type.summary} */\n    ${declaration}`);

@@ -37,6 +37,14 @@ if (jsp !== undefined) {
         averages.push(20);
         void [milliseconds, ping, bar.player.id];
     }
+
+    if ('playerList' in jsp) {
+        const player = { id: '-4294967295', name: 'Steve', isOp: () => false };
+        jsp.playerList.setDisplayName(player, `§a${player.name}`);
+        jsp.playerList.reset(player);
+        // @ts-expect-error The name is a string.
+        jsp.playerList.setDisplayName(player, 7);
+    }
 }
 
 export {};

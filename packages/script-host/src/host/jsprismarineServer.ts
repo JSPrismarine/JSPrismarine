@@ -141,6 +141,24 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'BossBar'
             }
         }
+    },
+    playerList: {
+        kind: 'methods',
+        summary:
+            "The player list every client shows, in the pause menu. A name a pack sets there reverts when the pack's scripts stop, as on `/reload`. Chat and the name above the head keep the login name.",
+        methods: {
+            setDisplayName: {
+                summary:
+                    'Changes the name every client, and every later joiner, shows for the player in its player list, and nothing else. Throws for an empty name. Does nothing for a player who left.',
+                parameters: 'player: Player, name: string',
+                returns: 'void'
+            },
+            reset: {
+                summary: "Gives the player's entry its login name back, at once rather than when the scripts stop.",
+                parameters: 'player: Player',
+                returns: 'void'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -228,7 +246,16 @@ type LiveMember = {
 }[keyof typeof JSPRISMARINE_SERVER];
 
 /** The functions the namespace's live members call, which the embedder makes in the pack's context. */
-export const JSPRISMARINE_HOST_FUNCTIONS = ['read', 'ping', 'showBar', 'updateBar', 'hideBar', 'barValid'] as const;
+export const JSPRISMARINE_HOST_FUNCTIONS = [
+    'read',
+    'ping',
+    'showBar',
+    'updateBar',
+    'hideBar',
+    'barValid',
+    'setListName',
+    'resetListName'
+] as const;
 
 /**
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
@@ -247,6 +274,12 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '    });',
         '    return freeze({ show: (player, options) => bar(host.showBar(player, options), player) });',
         '})()'
+    ].join('\n'),
+    playerList: [
+        'freeze({',
+        '    setDisplayName: (player, name) => host.setListName(player, name),',
+        '    reset: (player) => host.resetListName(player)',
+        '})'
     ].join('\n')
 };
 

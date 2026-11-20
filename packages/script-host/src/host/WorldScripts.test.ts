@@ -706,6 +706,12 @@ system.run(() => {
             public hideBossBar(player: string, bar: number): void {
                 this.calls.push(`hide ${player} ${bar}`);
             }
+            public setPlayerListName(player: string, name: string): void {
+                this.calls.push(`name ${player} ${JSON.stringify(name)}`);
+            }
+            public resetPlayerListName(player: string): void {
+                this.calls.push(`unname ${player}`);
+            }
         }
 
         /** Each bar call the server got, as its kind, its player and the bar's id. */
@@ -901,6 +907,59 @@ system.run(() => {
 
             const [shown] = barCalls(members);
             expect(barCalls(members)).toEqual([shown, { kind: 'hide', player: steve, id: shown!.id }]);
+        });
+
+        it('sets and resets a player list name, refusing an empty name and leaving a player who left alone', () => {
+            const { scripts, world, log, members } = startWithMembers(`
+                let steve;
+                system.runTimeout(() => {
+                    steve = world.getAllPlayers()[0];
+                    jsp.playerList.setDisplayName(steve, '§aSteve');
+                    show('empty', () => jsp.playerList.setDisplayName(steve, ''));
+                    show('number', () => jsp.playerList.setDisplayName(steve, 7));
+                    show('not a player', () => jsp.playerList.setDisplayName({ id: steve.id }, 'x'));
+                    jsp.playerList.reset(steve);
+                    // A reset of a name no pack set reaches nothing.
+                    jsp.playerList.reset(steve);
+                }, 1);
+                system.runTimeout(() => {
+                    jsp.playerList.setDisplayName(steve, 'gone');
+                    jsp.playerList.reset(steve);
+                }, 2);`);
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            world.leave(steve);
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'empty TypeError: playerList.setDisplayName takes a non-empty string as its name',
+                'number TypeError: playerList.setDisplayName takes a non-empty string as its name',
+                'not a player TypeError: playerList.setDisplayName takes a Player as its player'
+            ]);
+            expect(members.calls).toEqual([`name ${steve} "§aSteve"`, `unname ${steve}`]);
+        });
+
+        it('gives every player list name back when the scripts stop, and only the ones still set', () => {
+            const { scripts, world, members } = startWithMembers(`
+                system.runTimeout(() => {
+                    const [steve, alex] = world.getAllPlayers();
+                    jsp.playerList.setDisplayName(steve, 'one');
+                    jsp.playerList.setDisplayName(steve, 'two');
+                    jsp.playerList.setDisplayName(alex, 'three');
+                    jsp.playerList.reset(alex);
+                }, 1);`);
+            const steve = world.join('Steve');
+            const alex = world.join('Alex');
+            scripts.flush();
+            scripts.flush();
+            scripts.reload();
+            scripts.flush();
+            scripts.flush();
+            scripts.shutdown();
+
+            const stop = [`name ${steve} "one"`, `name ${steve} "two"`, `name ${alex} "three"`, `unname ${alex}`];
+            expect(members.calls).toEqual([...stop, `unname ${steve}`, ...stop, `unname ${steve}`]);
         });
 
         it('leaves the members that reach the server out when the server gives none', () => {

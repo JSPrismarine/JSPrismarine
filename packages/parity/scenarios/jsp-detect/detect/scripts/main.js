@@ -55,6 +55,7 @@ const describe = (jsp) => ({
     performance: 'performance' in jsp ? typesOf(jsp.performance) : 'absent',
     getPing: 'getPing' in jsp ? typeof jsp.getPing : 'absent',
     bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
+    playerList: 'playerList' in jsp ? typesOf(jsp.playerList) : 'absent',
     allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });
 

@@ -49,7 +49,7 @@ import { installInputsSource, randomState } from './inputs';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
 import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
-import { bossBarOptions, ScriptBossBars } from './jsprismarineMembers';
+import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames } from './jsprismarineMembers';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -170,8 +170,9 @@ export interface WorldScriptsOptions {
     /** The server the packs run on, which `@jsprismarine/server` tells them about. */
     readonly server: JsprismarineServerInfo;
     /**
-     * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the running
-     * server. Without it, the module leaves those members out, as an older server would.
+     * What `@jsprismarine/server`'s `performance`, `getPing`, `bossBars` and `playerList` reach
+     * of the running server. Without it, the module leaves those members out, as an older server
+     * would.
      */
     readonly members?: JsprismarineServerMembers;
     /** The world's seed, which `Math.random` is seeded from. */
@@ -337,6 +338,8 @@ export class WorldScripts {
      * ids, so no bar of the new runtime shares one with a bar of the old.
      */
     private readonly bossBars: ScriptBossBars | undefined;
+    /** The player list names the packs set through `@jsprismarine/server`. */
+    private readonly playerListNames: ScriptPlayerListNames | undefined;
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
@@ -354,6 +357,7 @@ export class WorldScripts {
         });
         this.custom = new CustomContent(this.engine);
         this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
+        this.playerListNames = options.members === undefined ? undefined : new ScriptPlayerListNames(options.members);
     }
 
     /**
@@ -579,8 +583,9 @@ export class WorldScripts {
         this.http.clear(this.options.world.http);
         // The world stops drawing what the runtime's shapes drew, since nothing can remove them after.
         this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.clear() ?? []));
-        // A bar belongs to the scripts that showed it, so it goes with them.
+        // A bar belongs to the scripts that showed it, so it goes with them, as does a name they set.
         this.bossBars?.hideAll();
+        this.playerListNames?.resetAll();
         for (const loaded of this.loaded) {
             loaded.forms?.destroy();
             loaded.net?.destroy();
@@ -874,8 +879,11 @@ export class WorldScripts {
         if (!(make instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The module maker' });
         const { members } = this.options;
         const bars = this.bossBars;
+        const names = this.playerListNames;
         const host =
-            members === undefined || bars === undefined ? undefined : this.jsprismarineHost(loaded, members, bars);
+            members === undefined || bars === undefined || names === undefined
+                ? undefined
+                : this.jsprismarineHost(loaded, members, bars, names);
         try {
             const namespace = engine.call(make, undefined, host);
             if (!(namespace instanceof ScriptHandle))
@@ -891,7 +899,8 @@ export class WorldScripts {
     private jsprismarineHost(
         loaded: LoadedPack,
         members: JsprismarineServerMembers,
-        bars: ScriptBossBars
+        bars: ScriptBossBars,
+        names: ScriptPlayerListNames
     ): ScriptHandle {
         const engine = this.engine;
         const host = engine.evaluate('({})');
@@ -929,7 +938,23 @@ export class WorldScripts {
                     bars.hide(barId(id));
                     return undefined;
                 },
-                barValid: (id) => bars.isShown(barId(id))
+                barValid: (id) => bars.isShown(barId(id)),
+                setListName: (value, name) => {
+                    const player = playerOf(value, 'playerList.setDisplayName');
+                    if (typeof name !== 'string' || name.length === 0) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'playerList.setDisplayName',
+                            expected: 'a non-empty string',
+                            argument: 'name'
+                        });
+                    }
+                    names.set(player.id, player.present, name);
+                    return undefined;
+                },
+                resetListName: (value) => {
+                    names.reset(playerOf(value, 'playerList.reset').id);
+                    return undefined;
+                }
             };
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
             const fn = engine.hostFunction(name, functions[name]);
@@ -1211,6 +1236,7 @@ export class WorldScripts {
     /** `world.beforeEvents.playerLeave`, while a player leaves and before their entity goes. */
     private playerLeaving(player: string): void {
         this.bossBars?.playerLeft(player);
+        this.playerListNames?.playerLeft(player);
         if (this.stopped || !this.subscriptions.some((each) => each.signal === 'PlayerLeaveBeforeEventSignal')) return;
         this.refreshClock();
         const tag = this.addEvent({ kind: 'playerLeaving', player: { id: player, typeId: PLAYER } });
@@ -1738,8 +1764,9 @@ export class WorldScripts {
         if (shutsDown) {
             this.options.log.error('[Scripting] [Watchdog] Watchdog shutting down server');
             this.stopped = true;
-            // Nothing redraws a bar once the scripts stop, so it goes now rather than at the teardown.
+            // Nothing redraws a bar or a name once the scripts stop, so they go now rather than at the teardown.
             this.bossBars?.hideAll();
+            this.playerListNames?.resetAll();
             this.options.onShutdown?.(kind);
         }
     }
