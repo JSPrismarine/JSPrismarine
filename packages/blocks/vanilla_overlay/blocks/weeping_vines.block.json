@@ -19,7 +19,7 @@
             },
             "minecraft:display_name": "tile.weeping_vines.name",
             "minecraft:collision_box": false,
-            "jsprismarine:behavior": "jsprismarine:crop",
+            "jsprismarine:behavior": "jsprismarine:climbing",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,

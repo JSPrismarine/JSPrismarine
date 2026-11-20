@@ -186,8 +186,6 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
             'cave_vines',
             'cave_vines_body_with_berries',
             'cave_vines_head_with_berries',
-            'twisting_vines',
-            'weeping_vines',
             'torchflower_crop',
             'pitcher_crop',
             'pitcher_plant'

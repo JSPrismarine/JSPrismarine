@@ -262,7 +262,7 @@ const growStalk = (world: WorldActions, block: HookBlock, maxHeight: number, gro
 /** Crops, including the two-block pitcher crop and the berry bushes. */
 export const cropFamily = defineFamily(
     'jsprismarine:crop',
-    'Advances growth on a random tick at a chance the farmland moisture sets, grows cave, twisting and weeping vines a block at a time, pops off anything but farmland, and harvests the berry blocks on interact.',
+    'Advances growth on a random tick at a chance the farmland moisture sets, grows cave vines a block at a time, pops off anything but farmland, and harvests the berry blocks on interact.',
     {
         onRandomTick: (event, world) => {
             const growth = growthOf(event.block.identifier);
@@ -274,11 +274,6 @@ export const cropFamily = defineFamily(
             }
             if (CAVE_VINE_NAMES.has(name)) {
                 growPlantHead(world, event.block, CAVE_VINE_HEAD);
-                return;
-            }
-            const netherVine = NETHER_VINES[name];
-            if (netherVine !== undefined) {
-                growPlantHead(world, event.block, netherVine.head);
                 return;
             }
             if (name === 'cocoa' || name === 'sweet_berry_bush') {
@@ -297,16 +292,6 @@ export const cropFamily = defineFamily(
                 const above = world.getBlock(offset(event.block.position, 'up'));
                 if (above === undefined || CAVE_VINE_NAMES.has(bareName(above.identifier))) return;
                 popWithoutSupport(world, event.block, 'up');
-                return;
-            }
-            const netherVine = NETHER_VINES[name];
-            if (netherVine !== undefined) {
-                // Held by the block it grows from, below a twisting vine and above a weeping one,
-                // or by more of the same vine.
-                if (event.face !== netherVine.support) return;
-                const support = world.getBlock(offset(event.block.position, netherVine.support));
-                if (support === undefined || bareName(support.identifier) === name) return;
-                popWithoutSupport(world, event.block, netherVine.support);
                 return;
             }
             if (name === 'sweet_berry_bush') {
@@ -581,7 +566,7 @@ export const SHEARED_CLIMBERS: ReadonlySet<string> = new Set([
 /** Ladders, vines, chains, scaffolding and the lichens. */
 export const climbingFamily = defineFamily(
     'jsprismarine:climbing',
-    'Pops without the face it hangs on, gives scaffolding its stability distance from the supported block, and holds a vine or a lichen back from anything but shears.',
+    'Pops without the face it hangs on, gives scaffolding its stability distance from the supported block, grows twisting and weeping vines on a random tick, and holds a vine or a lichen back from anything but shears.',
     {
         onPlace: (event, world) => {
             if (!hasState(event.block, 'stability')) return;
@@ -606,6 +591,16 @@ export const climbingFamily = defineFamily(
                 if (!hasSupportedAttachment(world, event.block, 'vine_direction_bits', VINE_FACE_BITS)) {
                     popWithoutSupport(world, event.block, 'up');
                 }
+                return;
+            }
+            const netherVine = NETHER_VINES[name];
+            if (netherVine !== undefined) {
+                // Held by the block it grows from, below a twisting vine and above a weeping one,
+                // or by more of the same vine.
+                if (event.face !== netherVine.support) return;
+                const support = world.getBlock(offset(event.block.position, netherVine.support));
+                if (support === undefined || bareName(support.identifier) === name) return;
+                popWithoutSupport(world, event.block, netherVine.support);
                 return;
             }
             if (hasState(event.block, 'multi_face_direction_bits')) {
@@ -659,6 +654,10 @@ export const climbingFamily = defineFamily(
         onTick: (event, world) => {
             if (!hasState(event.block, 'stability')) return;
             if (stateNumber(event.block, 'stability') >= 7) popBlock(world, event.block);
+        },
+        onRandomTick: (event, world) => {
+            const netherVine = NETHER_VINES[bareName(event.block.identifier)];
+            if (netherVine !== undefined) growPlantHead(world, event.block, netherVine.head);
         },
         onBreak: (event, world) => {
             const name = bareName(event.brokenBlock.identifier);

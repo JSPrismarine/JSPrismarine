@@ -29,8 +29,8 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // the lamp, sponge, concrete powder, cactus and button rules, which changed their flags,
         // and when water and lava stopped taking random ticks, which cleared their flag, and
         // when the catalog moved to 1.26.60, which added three blocks and gave fire, redstone
-        // wire and chorus plants their connection states, and when twisting and weeping vines
-        // moved to the crop family, which grows them on a random tick and sets their flag.
-        expect(digest).toBe('ac799354afc55a3008e6235988ca1c3398eefb021ae76ab3f30092a9c498bb5f');
+        // wire and chorus plants their connection states, and when the climbing family took a
+        // random tick to grow twisting and weeping vines, which sets its blocks' flag.
+        expect(digest).toBe('8edcbbed54205d4d1ca8d994c5cfbf7b591444f429202ca894353c0af25a7f20');
     });
 });
