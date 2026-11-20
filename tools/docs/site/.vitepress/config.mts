@@ -103,8 +103,9 @@ export default defineConfig({
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
     transformPageData(pageData, { siteConfig }) {
-        const title = pageData.frontmatter.title ?? pageData.title ?? siteConfig.site.title;
-        const description = pageData.frontmatter.description ?? pageData.description ?? siteConfig.site.description;
+        // VitePress gives a page without a title or description an empty string, which `??` would keep.
+        const title = pageData.frontmatter.title || pageData.title || siteConfig.site.title;
+        const description = pageData.frontmatter.description || pageData.description || siteConfig.site.description;
         // The sitemap derives each page's path from its source file the same way under `cleanUrls`.
         const url = new URL(pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, ''), siteUrl).href;
         pageData.frontmatter.head ??= [];
