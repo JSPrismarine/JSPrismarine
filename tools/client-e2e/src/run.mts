@@ -117,11 +117,16 @@ const requestedSuites =
 if (shard !== undefined) {
     const names = requestedSuites.map((suite) => suite.name).join(', ') || 'no suites';
     console.log(`shard ${shard.index}/${shard.total}: ${names}`);
-    if (requestedSuites.length === 0) process.exit(0);
 }
 
 const artifacts = path.resolve(values.artifacts ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-')));
 fs.mkdirSync(artifacts, { recursive: true });
+if (requestedSuites.length === 0) {
+    // CI's coverage check reads this to tell a shard with nothing to play from a run that covered
+    // nothing.
+    fs.writeFileSync(path.join(artifacts, 'empty-shard'), '');
+    process.exit(0);
+}
 const playerName = 'jsp-e2e';
 const persistentGameplayScreens = new Set(['Gameplay', 'Crosshair', 'Hud']);
 const protocolVersion = values.protocol === undefined ? undefined : Number(values.protocol);

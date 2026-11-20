@@ -70,3 +70,33 @@ describe('selectScenarios', () => {
         expect(select(['tools/client-e2e/src/scenarios/removed.mts'])).toMatchObject({ mode: 'all' });
     });
 });
+
+describe('selectScenarios with a coverage reach', () => {
+    const reached: Record<string, readonly string[] | 'all'> = {
+        'packages/prismarine/src/Furnace.ts': ['furnace'],
+        'packages/prismarine/src/Unrun.ts': [],
+        'packages/prismarine/src/Tick.ts': 'all'
+    };
+    const selectWithReach = (changed: readonly string[]) =>
+        selectScenarios(
+            changed,
+            packages,
+            (file) => scenarioNames[file],
+            (file) => reached[file]
+        );
+
+    it('runs the scenarios a source change reaches, beside the ones a scenario file names', () => {
+        expect(
+            selectWithReach(['packages/prismarine/src/Furnace.ts', 'tools/client-e2e/src/scenarios/chat.mts'])
+        ).toEqual({ mode: 'some', scenarios: ['furnace', 'chat'] });
+    });
+
+    it('runs nothing for a change no scenario reaches', () => {
+        expect(selectWithReach(['packages/prismarine/src/Unrun.ts'])).toEqual({ mode: 'none', scenarios: [] });
+    });
+
+    it('runs everything for a change that reaches code outside every scenario, or one it cannot place', () => {
+        expect(selectWithReach(['packages/prismarine/src/Tick.ts']).mode).toBe('all');
+        expect(selectWithReach(['packages/prismarine/src/data.json']).mode).toBe('all');
+    });
+});

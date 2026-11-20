@@ -117,7 +117,12 @@ A pull request runs only the scenarios its changes can affect, which `src/select
 the changed files. Every scenario boots the whole server, so a change to anything the server can
 load runs them all. A pull request that changes only tests, benchmarks, Markdown or a package the
 server does not depend on runs none, and one that changes only files under `src/scenarios/` runs
-the scenarios those files define. A push to `master` and a manual run keep every scenario.
+the scenarios those files define. When the base commit's push run kept a scenario coverage map for
+every shard of the pin a pull request plays, a change to server source runs only the scenarios that
+ran the functions it touches: each changed line goes to the innermost function around it, or to the
+module's top level when no function holds it. A change to code that ran outside every scenario, to
+anything that is not server source, or with no map, still runs them all. A selection of more than 15
+scenarios plays in four shards. A push to `master` and a manual run keep every scenario.
 
 ## Version pin
 
