@@ -9,7 +9,7 @@ import { java_entity_attributes, legacy_item_aux_aliases } from '@jsprismarine/b
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
-import { Types } from '@jsprismarine/nbt';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -3116,6 +3116,24 @@ describe('the data-driven entity runtime over a live world', () => {
                 .toArray()
                 .filter((entity) => entity.identifier === 'minecraft:item');
             expect(items).toHaveLength(1);
+        });
+
+        it('brings a saved mob back with the health its Attributes list holds, capped at its maximum', () => {
+            const healthOf = (current: number) => {
+                const nbt = savedActorNbt('minecraft:zombie', { x: 2.5, y: GROUND_Y + 4, z: 3.5 });
+                const health = new NBTTagCompound('');
+                health.addValue('Name', new Types.StringVal('minecraft:health'));
+                health.addValue('Current', new Types.FloatVal(current));
+                nbt.addValue('Attributes', new Set([health]));
+                const migrated = live.restoreExisting(EntitySerializer.fromNBT(nbt));
+                if (migrated === undefined) throw new Error('the saved zombie was not migrated');
+                return migrated.instance.attributes.get('health');
+            };
+
+            // A wounded mob, as Bedrock Dedicated Server saves one, comes back wounded.
+            expect(healthOf(7)?.current).toBe(7);
+            // A zombie's maximum is 20.
+            expect(healthOf(1000)?.current).toBe(20);
         });
 
         it('brings a saved mob back with the portal cooldown it was saved with', () => {

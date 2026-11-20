@@ -39,7 +39,7 @@ import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { entityIds } from '../entityIds';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
-import { actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
+import { actorHealthIn, actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
 import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
@@ -229,8 +229,9 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
 };
 
 /**
- * The health a saved actor without a data entity record comes back with, capped at its type's
- * maximum: `Attributes.getDefaults`' twenty, which the legacy body it used to be read into had.
+ * The health a saved actor without a data entity record comes back with when its `Attributes` list
+ * names none, capped at its type's maximum: `Attributes.getDefaults`' twenty, which the legacy body
+ * it used to be read into had.
  */
 const SAVED_ACTOR_HEALTH = 20;
 
@@ -1376,10 +1377,14 @@ export class LiveEntityRuntime {
         if (entity === undefined) return undefined;
         if (entity.instance.hasComponent('minecraft:projectile') && motion !== undefined) entity.body.velocity = motion;
 
-        // The health the legacy body read from the file was its default, as the actor record's
-        // `Attributes` are not read.
+        // The health the actor record's `Attributes` hold, as a world Bedrock Dedicated Server saved
+        // writes it, capped at the type's maximum. A record that lists none keeps the legacy body's
+        // default.
         const health = entity.instance.attributes.get('health');
-        if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, SAVED_ACTOR_HEALTH));
+        if (health !== undefined) {
+            const saved = (persistentNbt === null ? undefined : actorHealthIn(persistentNbt)) ?? SAVED_ACTOR_HEALTH;
+            entity.instance.attributes.set('health', Math.min(health.max, saved));
+        }
 
         this.keep(entity, stored);
         this.actors.actorOf(entity.id)?.setPortalCooldown(stored.portalCooldown);
