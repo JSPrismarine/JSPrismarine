@@ -13,12 +13,13 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseWorldPreset } from '@jsprismarine/worldgen';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
-import { Dimensions } from '../../DimensionType';
+import { dimensionByName, Dimensions } from '../../DimensionType';
 import { GenerationStopped } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './javaTranslation';
@@ -93,6 +94,48 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
             },
             CHUNK_TIMEOUT
         );
+
+        it("caches a tile in every dimension of Java's normal preset", async () => {
+            // The cache key hashes each dimension's settings, so a settings field the hash
+            // refuses fails that dimension's chunks while the Overworld's still load.
+            const preset = parseWorldPreset(registries.worldPresets.get('minecraft:normal'));
+            const events: string[] = [];
+            const generator = new DataDrivenGenerator({
+                registries,
+                decorate: false,
+                carve: false,
+                persistentProtoCache: {
+                    directory: mkdtempSync(join(root, 'dimensions-')),
+                    maxBytes: 64 * 1024 * 1024,
+                    onEvent: ({ type }) => events.push(type)
+                }
+            });
+
+            try {
+                for (const [id, stem] of preset.dimensions) {
+                    const dimension = dimensionByName(stem.type);
+                    const { generator: definition } = stem;
+                    expect(dimension, id).toBeDefined();
+                    expect(definition.type, id).toBe('minecraft:noise');
+                    if (dimension === undefined || !('biomeSource' in definition)) continue;
+                    expect(typeof definition.settings, id).toBe('string');
+                    if (typeof definition.settings !== 'string') continue;
+
+                    events.length = 0;
+                    const chunk = await generator
+                        .forStem({
+                            noiseSettings: definition.settings,
+                            biomeSource: definition.biomeSource,
+                            dimension
+                        })
+                        .generateChunk(0, 0, SEED);
+                    expect(chunk.getDimension(), id).toBe(dimension);
+                    expect(events, id).toContain('write');
+                }
+            } finally {
+                generator.stopGenerating();
+            }
+        });
     });
 
     it(
