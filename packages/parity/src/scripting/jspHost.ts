@@ -18,6 +18,7 @@ import { Logger } from '@jsprismarine/logger';
 import { ScriptHostLibrary } from '@jsprismarine/script-host';
 import type { ScriptEngine } from '@jsprismarine/script-host';
 import type { ScriptEntityState } from '@jsprismarine/script-host/host/world';
+import type { JsprismarineServerMembers } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import { ScriptHandle } from '@jsprismarine/script-host/values';
 import type { ScriptValue } from '@jsprismarine/script-host/values';
 
@@ -192,6 +193,18 @@ const isJson = (text: string): boolean => {
     }
 };
 
+/**
+ * What `@jsprismarine/server`'s members that reach the server read in a world scenario: a level
+ * with no ticker and no transport, so the figures are fixed and nobody has a ping or a bar.
+ */
+const SCENARIO_MEMBERS: JsprismarineServerMembers = {
+    performance: () => ({ tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 }),
+    ping: () => undefined,
+    showBossBar: () => {},
+    updateBossBar: () => {},
+    hideBossBar: () => {}
+};
+
 /** The `script-watchdog-*` defaults BDS ships, under the scenario's own properties. */
 const watchdogOf = (properties: Readonly<Record<string, string>> = {}) => ({
     enableShutdown: properties['script-watchdog-enable-shutdown'] !== 'false',
@@ -256,6 +269,7 @@ const runLoadedPacks = async (
             clock: () => Date.UTC(2026, 10, 16),
             http
         },
+        members: SCENARIO_MEMBERS,
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),
         experiments: scenario.experiments ?? [],
