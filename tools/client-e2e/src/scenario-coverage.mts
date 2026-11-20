@@ -140,13 +140,17 @@ export const buildScenarioCoverageMap = (
         return -1;
     };
 
-    const coverages = names.map(({ name }) => ({
-        owner: ownerOf(name),
-        // Parsed JSON boundary: Node writes these files in the shape V8Coverage names.
-        coverage: JSON.parse(fs.readFileSync(path.join(directory, name), 'utf8')) as V8Coverage
-    }));
     const scripts = new Map<string, MappedScript>();
-    for (const { coverage } of coverages) {
+    const owners: OwnerSets = new Map();
+    const sourcePattern = /^packages\/[^/]+\/src\//;
+    // Node reports resolved paths, such as /private/var on macOS for /var.
+    const root = fs.realpathSync(repositoryRoot);
+    // One file at a time: each carries the process's whole source map cache, so a shard's worth
+    // of snapshots held at once ran the runner out of heap (#3366). Only the maps are kept, once.
+    for (const { name } of names) {
+        const owner = ownerOf(name);
+        // Parsed JSON boundary: Node writes these files in the shape V8Coverage names.
+        const coverage = JSON.parse(fs.readFileSync(path.join(directory, name), 'utf8')) as V8Coverage;
         for (const [url, entry] of Object.entries(coverage['source-map-cache'] ?? {})) {
             if (scripts.has(url)) continue;
             // Parsed JSON boundary: the cache holds the source map exactly as the transpiler wrote it.
@@ -155,13 +159,7 @@ export const buildScenarioCoverageMap = (
                 lineStarts: lineStartsOf(entry.lineLengths)
             });
         }
-    }
 
-    const owners: OwnerSets = new Map();
-    const sourcePattern = /^packages\/[^/]+\/src\//;
-    // Node reports resolved paths, such as /private/var on macOS for /var.
-    const root = fs.realpathSync(repositoryRoot);
-    for (const { owner, coverage } of coverages) {
         for (const script of coverage.result) {
             if (!script.url.startsWith('file://')) continue;
             const relative = path.relative(root, fileURLToPath(script.url)).split(path.sep).join('/');
