@@ -194,8 +194,11 @@ Out of scope for now:
        when they differ; it does not hash the unpacked files. A folder installs as a link to it,
        so edits show after `/reload`. A reload whose pack list changed closes the scripts and
        loads them again, so `system.currentTick` starts over.
-5. [ ] [#3334](https://github.com/JSPrismarine/JSPrismarine/issues/3334) **The TPS bar.** The first addon, over slices 2 and 3, with its client-e2e scenario and a
-       recording for the pull request.
+5. [x] [#3334](https://github.com/JSPrismarine/JSPrismarine/issues/3334) **The TPS bar.** The first addon, over slices 2 and 3, with its client-e2e scenario and a
+       recording for the pull request. The bar shows `averageTickMs` as MSPT, since one tick's
+       figure sampled once a second jumps around. The `tps-bar` scenario installs the addon
+       through `content-world-packs`, and a real client showed
+       the bar bound to the player's own entity.
 6. [ ] [#3335](https://github.com/JSPrismarine/JSPrismarine/issues/3335) **The site.** The Addons section, generated from the addons, and the installing, writing
        and publishing guides. Slice 3 also publishes its build script and workflow for authors to
        reuse, which the publishing guide documents.

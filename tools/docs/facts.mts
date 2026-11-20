@@ -20,6 +20,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
     ADDON_INDEX_FILE,
@@ -901,6 +902,15 @@ function leveldbFacts() {
     };
 }
 
+/** The folder of JSPrismarine's own addons. */
+const REPO_ADDONS_DIRECTORY = path.join(repoRoot, 'addons');
+
+/** The name of each of JSPrismarine's own addons, which is its folder's under `addons/`. */
+export const addonNames = () =>
+    readdirSync(REPO_ADDONS_DIRECTORY, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map((entry) => entry.name);
+
 /** The addon layout and index that `@jsprismarine/addon-tools` checks and writes, read from its constants. */
 function addonFacts() {
     return {
@@ -913,7 +923,44 @@ function addonFacts() {
         'addons.lockFile': inlineCode(ADDONS_LOCK_FILE),
         'addons.lockfileVersion': inlineCode(String(ADDONS_LOCKFILE_VERSION)),
         'addons.directory': inlineCode(`${ADDONS_DIRECTORY}/`),
-        'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE)
+        'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE),
+        ...Object.fromEntries(
+            addonNames().map((name) => {
+                // Parsed JSON is an untyped boundary; `jsp-addon build` checks the file's shape.
+                const { minServer } = JSON.parse(
+                    readFileSync(path.join(REPO_ADDONS_DIRECTORY, name, 'addon.json'), 'utf8')
+                );
+                return [`addons.${name}.minServer`, String(minServer)];
+            })
+        )
+    };
+}
+
+/** A list of numbers that an addon's script module exports, checked, since the module is plain JavaScript. */
+const exportedNumbers = (module: object, name: string): readonly number[] => {
+    const value: unknown = Reflect.get(module, name);
+    if (!Array.isArray(value) || !value.every((item) => typeof item === 'number'))
+        throw new Error(`the addon module exports no list of numbers as ${name}`);
+    return value;
+};
+
+/** The TPS bar's color thresholds and full bar, read from the module that draws the bar. */
+async function tpsBarFacts() {
+    const bar: object = await import(
+        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'tps-bar', 'scripts', 'bar.js')).href
+    );
+    const [tpsGreen, tpsGold] = exportedNumbers(bar, 'TPS_LEVELS');
+    const [msptGreen, msptGold] = exportedNumbers(bar, 'MSPT_LEVELS');
+    const budget: unknown = Reflect.get(bar, 'TICK_BUDGET_MS');
+    return {
+        'addons.tps-bar.levels': `\n${table(
+            ['Number', 'Green', 'Gold', 'Red'],
+            [
+                ['TPS', `${tpsGreen} or more`, `${tpsGold} or more`, `below ${tpsGold}`],
+                ['MSPT', `below ${msptGreen}`, `below ${msptGold}`, `${msptGold} or more`]
+            ]
+        )}\n`,
+        'addons.tps-bar.tickBudget': String(budget)
     };
 }
 
@@ -1021,6 +1068,7 @@ export async function loadFacts(): Promise<Facts> {
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...addonFacts(),
+            ...(await tpsBarFacts()),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
