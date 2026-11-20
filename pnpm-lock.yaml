@@ -1703,8 +1703,8 @@ importers:
         specifier: 6.1.4
         version: 6.1.4
       ts-json-schema-generator:
-        specifier: 2.9.0
-        version: 2.9.0
+        specifier: 2.10.0
+        version: 2.10.0
       tsc-ts:
         specifier: 0.1.5
         version: 0.1.5(@scriptc/threads@0.4.14)
@@ -5357,8 +5357,8 @@ packages:
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
 
-  ts-json-schema-generator@2.9.0:
-    resolution: {integrity: sha512-NR5ZE108uiPtBHBJNGnhwoUaUx5vWTDJzDFG9YlRoqxPU76n+5FClRh92dcGgysbe1smRmYalM9Saj97GW1J4Q==}
+  ts-json-schema-generator@2.10.0:
+    resolution: {integrity: sha512-cNa9NTcaY3HYsDGvW7jMs91XF+1UtZLvEx4MrxigXZ4wMBL0YazPWF4rpPnbs5qtCGUc0P5cS3xRW0Lq2l1u1A==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -5428,11 +5428,6 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x || 5.7.x || 5.8.x || 5.9.x || 6.0.x
-
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
 
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
@@ -8701,16 +8696,16 @@ snapshots:
 
   trim-lines@3.0.1: {}
 
-  ts-json-schema-generator@2.9.0:
+  ts-json-schema-generator@2.10.0:
     dependencies:
       '@types/json-schema': 7.0.15
       commander: 14.0.3
-      glob: 13.0.7
+      glob: 14.0.6
       json5: 2.2.3
       normalize-path: 3.0.0
       safe-stable-stringify: 2.5.0
       tslib: 2.9.1
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   ts-mockito@2.6.1:
     dependencies:
@@ -8782,8 +8777,6 @@ snapshots:
       minimatch: 10.2.6
       typescript: 6.0.3
       yaml: 2.9.1
-
-  typescript@5.9.3: {}
 
   typescript@6.0.3: {}
 
