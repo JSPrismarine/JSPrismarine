@@ -29,7 +29,8 @@ export const scriptConfigDirectory = (): string => withCwd('config');
 
 /**
  * Runs the behavior pack scripts of the default level: the world packs `content-world-packs`
- * names that have a script module, with BDS's `config/` folder beside the server.
+ * names and the installed addons, those that have a script module, with BDS's `config/` folder
+ * beside the server.
  *
  * It starts once the worlds have loaded, so the version 2 packs' early execution and the
  * version 1 packs run back to back before the first tick that flushes them, in the order BDS
@@ -44,105 +45,121 @@ export const scriptsModule = (server: Server): Module => ({
     id: 'prismarine:scripts',
     dependencies: [contentToken, worldsToken],
     register: () => {},
-    start: async () => {
-        const level = server.getWorldManager().getDefaultLevel();
-        /** The wire's id of one of the level's dimensions, by its Bedrock name. */
-        const dimensionId = (name: string): number | undefined =>
-            [...level.getStems().keys()]
-                .map((stem) => level.dimensionTypeOf(stem))
-                .find((type) => type.bedrockName === name)?.bedrockId;
-        const scripts = await LevelScripts.load({
-            packDirectories: server.getContentSettings().worldPacks,
-            configDirectory: scriptConfigDirectory(),
-            sources: {
-                dimensions: () =>
-                    [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),
-                players: () =>
-                    server
-                        .getSessionManager()
-                        .getSessions()
-                        .filter((session) => session.getWorld().getLevel() === level)
-                        .map((session) => ({
-                            id: String(session.getRuntimeId()),
-                            name: session.identity.name,
-                            sendMessage: (message) =>
-                                void session
-                                    .sendMessage(message)
-                                    .catch((error: unknown) => server.getLogger().error(error)),
-                            showForm: (formId, formUiJson) =>
-                                session.released(
-                                    session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
-                                ),
-                            closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({}))),
-                            drawDebugShapes: (changes) =>
-                                session.released(
-                                    session.send(
-                                        new PrimitiveShapesPacket({ shapes: primitiveShapes(changes, dimensionId) })
-                                    )
-                                ),
-                            transfer: (target) => {
-                                // A NetherNet transfer's packet is not captured yet, so only an address moves the player.
-                                if (!('hostname' in target)) return;
-                                session.released(
-                                    session.send(
-                                        new TransferPacket({
-                                            address: target.hostname,
-                                            port: target.port,
-                                            reloadWorld: false,
-                                            gatheringsConfig: null,
-                                            transferSettings: null
-                                        })
-                                    )
-                                );
-                            }
-                        })),
-                weather: level.getWeather(),
-                chat: server.getChatManager(),
-                clock: () => server.getAdmittedClock(),
-                http: server.getScriptHttp(),
-                entitySystems: levelEntitySystems(server, level),
-                access: {
-                    ...levelScriptAccess(server, level),
-                    simulatedPlayers: levelSimulatedPlayers(server, level),
-                    worldSystem: levelWorldSystem(server, level)
-                },
-                onPlayerLeaving: (listener) =>
-                    server
-                        .getKernel()
-                        .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId))),
-                commands: (commands) => {
-                    server.getCommandManager().setScriptCommands(commands);
-                    return () => server.getCommandManager().setScriptCommands(undefined);
-                },
-                components: (sink) => bindScriptComponents(server, level, sink),
-                entityEvents: levelEntityEvents(server, level),
-                playerActions: levelPlayerActions(server, level),
-                worldEvents: levelWorldEvents(server, level)
-            },
-            members: scriptServerMembers(server),
-            seed: server.getWorldManager().getDefaultWorld().getSeed(),
-            watchdog: server.getConfig().getScriptWatchdog(),
-            experiments: level.getExperiments(),
-            log: {
-                info: (message) => server.getLogger().info(message),
-                warn: (message) => server.getLogger().warn(message),
-                error: (message) => server.getLogger().error(message)
-            },
-            onShutdown: () => void server.shutdown(),
-            debugger: { settings: server.getConfig().getScriptDebugger(), replay: server.isReplay() }
-        });
-        if (scripts === undefined) return;
-        // BDS attaches the debugger at level load, before any script runs, so a breakpoint on a
-        // pack's first line stops it.
-        await scripts.debugger.autoAttach();
-        scripts.start(server.getWorldManager().getDefaultWorld());
-        server.setScripts(scripts);
-    },
-    stop: () => {
-        server.getScripts()?.close();
-        server.setScripts(undefined);
-    }
+    start: () =>
+        server
+            .getScriptSlot()
+            .start(server.getWorldPackDirectories(), (packs) => startLevelScripts(server, packs, { autoAttach: true })),
+    stop: () => server.getScriptSlot().stop()
 });
+
+/**
+ * Loads and starts the default level's scripts from a list of behavior pack folders. The
+ * `prismarine:scripts` module runs it at startup through the server's script slot, and a reload
+ * whose pack list changed runs it again in place of the scripts it closed.
+ *
+ * @param packDirectories - The world's behavior packs; those with a script module run.
+ * @param options - `autoAttach` attaches the debugger as `script-debugger-auto-attach` asks
+ *   before the scripts start, which BDS does once, at level load.
+ * @returns The running scripts, or undefined when no pack has a script module.
+ */
+export const startLevelScripts = async (
+    server: Server,
+    packDirectories: readonly string[],
+    options: { readonly autoAttach: boolean }
+): Promise<LevelScripts | undefined> => {
+    const level = server.getWorldManager().getDefaultLevel();
+    /** The wire's id of one of the level's dimensions, by its Bedrock name. */
+    const dimensionId = (name: string): number | undefined =>
+        [...level.getStems().keys()]
+            .map((stem) => level.dimensionTypeOf(stem))
+            .find((type) => type.bedrockName === name)?.bedrockId;
+    const scripts = await LevelScripts.load({
+        packDirectories,
+        configDirectory: scriptConfigDirectory(),
+        sources: {
+            dimensions: () =>
+                [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),
+            players: () =>
+                server
+                    .getSessionManager()
+                    .getSessions()
+                    .filter((session) => session.getWorld().getLevel() === level)
+                    .map((session) => ({
+                        id: String(session.getRuntimeId()),
+                        name: session.identity.name,
+                        sendMessage: (message) =>
+                            void session
+                                .sendMessage(message)
+                                .catch((error: unknown) => server.getLogger().error(error)),
+                        showForm: (formId, formUiJson) =>
+                            session.released(
+                                session.send(Object.assign(new ModalFormRequestPacket(), { formId, formUiJson }))
+                            ),
+                        closeForms: () => session.released(session.send(new ClientboundCloseFormPacket({}))),
+                        drawDebugShapes: (changes) =>
+                            session.released(
+                                session.send(
+                                    new PrimitiveShapesPacket({ shapes: primitiveShapes(changes, dimensionId) })
+                                )
+                            ),
+                        transfer: (target) => {
+                            // A NetherNet transfer's packet is not captured yet, so only an address moves the player.
+                            if (!('hostname' in target)) return;
+                            session.released(
+                                session.send(
+                                    new TransferPacket({
+                                        address: target.hostname,
+                                        port: target.port,
+                                        reloadWorld: false,
+                                        gatheringsConfig: null,
+                                        transferSettings: null
+                                    })
+                                )
+                            );
+                        }
+                    })),
+            weather: level.getWeather(),
+            chat: server.getChatManager(),
+            clock: () => server.getAdmittedClock(),
+            http: server.getScriptHttp(),
+            entitySystems: levelEntitySystems(server, level),
+            access: {
+                ...levelScriptAccess(server, level),
+                simulatedPlayers: levelSimulatedPlayers(server, level),
+                worldSystem: levelWorldSystem(server, level)
+            },
+            onPlayerLeaving: (listener) =>
+                server
+                    .getKernel()
+                    .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId))),
+            commands: (commands) => {
+                server.getCommandManager().setScriptCommands(commands);
+                return () => server.getCommandManager().setScriptCommands(undefined);
+            },
+            components: (sink) => bindScriptComponents(server, level, sink),
+            entityEvents: levelEntityEvents(server, level),
+            playerActions: levelPlayerActions(server, level),
+            worldEvents: levelWorldEvents(server, level)
+        },
+        members: scriptServerMembers(server),
+        seed: server.getWorldManager().getDefaultWorld().getSeed(),
+        watchdog: server.getConfig().getScriptWatchdog(),
+        experiments: level.getExperiments(),
+        log: {
+            info: (message) => server.getLogger().info(message),
+            warn: (message) => server.getLogger().warn(message),
+            error: (message) => server.getLogger().error(message)
+        },
+        onShutdown: () => void server.shutdown(),
+        debugger: { settings: server.getConfig().getScriptDebugger(), replay: server.isReplay() }
+    });
+    if (scripts === undefined) return undefined;
+    // BDS attaches the debugger at level load, before any script runs, so a breakpoint on a
+    // pack's first line stops it.
+    if (options.autoAttach) await scripts.debugger.autoAttach();
+    scripts.start(server.getWorldManager().getDefaultWorld());
+    return scripts;
+};
 
 /**
  * Sends the custom component hooks of a level's blocks and items to the scripts' sink: the ones

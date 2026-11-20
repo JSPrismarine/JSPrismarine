@@ -20,6 +20,7 @@ import { collectAsyncCommands, deferCommandWork } from './deferred';
 import Timer from '../utils/Timer';
 import type { CommandExecutor, CommandTarget } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
+import { markConsoleSource } from './consoleSource';
 import type { FunctionContent } from './function/load';
 import { FunctionRuntime } from './function/runtime';
 import { functionContentOf, loadServerFunctions } from './function/load';
@@ -648,7 +649,7 @@ export class CommandManager implements Service {
         const operator = player === undefined || player.isOp() || player.getPermissions().includes('*');
         const world = player?.getWorld() ?? this.server.getWorldManager().getDefaultWorld();
 
-        return createCommandSource({
+        const commandSource = createCommandSource({
             host: this.host,
             ...(entity === undefined ? {} : { entity }),
             permissionLevel:
@@ -664,6 +665,8 @@ export class CommandManager implements Service {
             onFeedback: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(message))),
             onError: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(`§c${message}`)))
         });
+        // Every sender but a player is the console, typing on the terminal or the remote console.
+        return player === undefined ? markConsoleSource(commandSource) : commandSource;
     }
 
     /**

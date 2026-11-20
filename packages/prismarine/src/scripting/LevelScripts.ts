@@ -81,7 +81,8 @@ const MEMORY_STAT_TICKS = 10;
 
 /** A world whose tick runs the level's script flush. */
 export interface ScriptPhaseWorld {
-    setScriptPhase(phase: (() => void) | undefined): void;
+    /** Sets the flush phase; with `replacing`, only while that phase is the world's current one. */
+    setScriptPhase(phase: (() => void) | undefined, replacing?: () => void): void;
 }
 
 /**
@@ -110,6 +111,8 @@ export class LevelScripts {
     /** The VS Code script debugger of these scripts. */
     public readonly debugger: ScriptDebugger;
     private attached: ScriptPhaseWorld | undefined;
+    /** The flush phase these scripts give the world they start in. */
+    private readonly phase = (): void => this.flush();
     /** Set while {@link LevelScripts.close} runs, when a watchdog shutdown would stop a stop. */
     private closing = false;
 
@@ -241,7 +244,7 @@ export class LevelScripts {
         this.runtime.startEarly();
         this.runtime.startWorld();
         this.attached = world;
-        world.setScriptPhase(() => this.flush());
+        world.setScriptPhase(this.phase);
     }
 
     /** Runs the script flush, for a level ticked by hand rather than through its world. */
@@ -321,7 +324,8 @@ export class LevelScripts {
         this.closing = true;
         // The debugger thread does not keep the process alive, so nothing waits for it to stop.
         void this.debugger.dispose();
-        this.attached?.setScriptPhase(undefined);
+        // Another level's scripts may have taken the world's phase since, which stays.
+        this.attached?.setScriptPhase(undefined, this.phase);
         this.attached = undefined;
         this.runtime.shutdown();
         this.world.close();

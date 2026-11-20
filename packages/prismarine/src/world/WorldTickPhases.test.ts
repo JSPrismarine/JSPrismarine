@@ -211,6 +211,19 @@ describe('world', () => {
             expect(sealed).toEqual([1]);
         });
 
+        it('keeps a script phase that replaced the one a close clears', () => {
+            const { world, calls } = worldTicking();
+            const closed = () => void calls.push('closed');
+            world.setScriptPhase(closed);
+            world.setScriptPhase(() => void calls.push('scripts'));
+
+            world.setScriptPhase(undefined, closed);
+            world.update(1);
+
+            expect(calls).toContain('scripts');
+            expect(calls).not.toContain('closed');
+        });
+
         it('seals and sends nothing of a tick whose store failed to undo a unit', () => {
             const { world, calls } = worldTicking();
             // A unit in the tick that throws, and whose undo throws too, as a failed rollback does.

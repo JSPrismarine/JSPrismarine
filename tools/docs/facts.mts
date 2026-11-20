@@ -27,7 +27,15 @@ import {
     ADDON_RELEASE_TAG
 } from '../../packages/addon-tools/src/addonIndex.ts';
 import { ADDON_FILES, ADDON_MODULE_TYPES } from '../../packages/addon-tools/src/addon.ts';
+import {
+    ADDONS_DIRECTORY,
+    ADDONS_FILE,
+    ADDONS_LOCK_FILE,
+    ADDONS_LOCKFILE_VERSION,
+    DEFAULT_ADDON_SOURCE
+} from '../../packages/prismarine/src/addons/addonFiles.ts';
 import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
+import { CommandPermissionLevel } from '../../packages/minecraft/src/CommandPermissionLevel.ts';
 import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
@@ -224,6 +232,9 @@ function bedrockCommandCountsTable() {
     );
 }
 
+/** An operator's permission level; a command above it is the console's alone. */
+const CONSOLE_ONLY_ABOVE = CommandPermissionLevel.OWNER;
+
 /** The command reference: every command the server answers, with its permission and who has it. */
 async function commandReferenceFacts() {
     const commands = (await loadServerCommands()).sort((a, b) => a.name.localeCompare(b.name));
@@ -239,7 +250,7 @@ async function commandReferenceFacts() {
                 description,
                 `\`${permission}\``,
                 String(level),
-                everyone && level === 0 ? 'Everyone' : 'Operators'
+                level > CONSOLE_ONLY_ABOVE ? 'The console' : everyone && level === 0 ? 'Everyone' : 'Operators'
             ])
         )}\n`
     };
@@ -897,7 +908,12 @@ function addonFacts() {
         'addons.moduleTypes': list(ADDON_MODULE_TYPES.map(inlineCode)),
         'addons.releaseTag': inlineCode(ADDON_RELEASE_TAG),
         'addons.indexFile': inlineCode(ADDON_INDEX_FILE),
-        'addons.indexSchemaVersion': inlineCode(String(ADDON_INDEX_SCHEMA_VERSION))
+        'addons.indexSchemaVersion': inlineCode(String(ADDON_INDEX_SCHEMA_VERSION)),
+        'addons.requestFile': inlineCode(ADDONS_FILE),
+        'addons.lockFile': inlineCode(ADDONS_LOCK_FILE),
+        'addons.lockfileVersion': inlineCode(String(ADDONS_LOCKFILE_VERSION)),
+        'addons.directory': inlineCode(`${ADDONS_DIRECTORY}/`),
+        'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE)
     };
 }
 

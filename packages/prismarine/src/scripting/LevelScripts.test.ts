@@ -102,6 +102,25 @@ describe('LevelScripts', () => {
         expect(lines[0]).toContain(`${LIBRARY_ENV} names ${missing}, which does not exist`);
     });
 
+    it.skipIf(!scriptHostAvailable())('leaves the world a phase other scripts set when it closes', async () => {
+        const scripts = await LevelScripts.load(options([writePack('')], []));
+        if (scripts === undefined) throw new Error('the pack has a script module');
+        let phase: (() => void) | undefined;
+        // Changes the phase as World.setScriptPhase does.
+        const world = {
+            setScriptPhase: (next: (() => void) | undefined, replacing?: () => void) => {
+                if (replacing === undefined || phase === replacing) phase = next;
+            }
+        };
+        scripts.start(world);
+        const other = () => {};
+        world.setScriptPhase(other);
+
+        scripts.close();
+
+        expect(phase).toBe(other);
+    });
+
     it.skipIf(!scriptHostAvailable())(
         'does not ask for a second shutdown when a shutdown callback hangs while it closes',
         async () => {

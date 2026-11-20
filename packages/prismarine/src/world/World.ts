@@ -1262,8 +1262,11 @@ export class World implements Service {
      *
      * @param phase - Runs the scripts until they have nothing left for this tick, or undefined to
      *   stop running them.
+     * @param replacing - The phase this one replaces. When given, the phase changes only while
+     *   that one is the world's, so scripts that close do not clear another set's phase.
      */
-    public setScriptPhase(phase: (() => void) | undefined): void {
+    public setScriptPhase(phase: (() => void) | undefined, replacing?: () => void): void {
+        if (replacing !== undefined && this.scriptPhase !== replacing) return;
         this.scriptPhase = phase;
     }
 

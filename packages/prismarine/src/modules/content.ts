@@ -6,7 +6,7 @@ import { contentToken } from './tokens';
 /** What starting and stopping the content build does, which only the server can reach. */
 export interface ContentLifecycle {
     /** Builds the content registries from the pack stack and the payloads a join sends. */
-    build(): void;
+    build(): void | Promise<void>;
     /** Closes the data-driven entity runtimes the build created. */
     close(): void;
 }

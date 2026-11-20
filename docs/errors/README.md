@@ -12,14 +12,14 @@ error, the last line names its code and links to the entry:
 
 <!-- fact:errors.example.reference -->
 ```text
-More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine.html#prismarine-player-not-found
+More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine#prismarine-player-not-found
 ```
 <!-- /fact -->
 
 Code that embeds the server or uses a package on its own reads the same two values from the error
 it catches, as `error.code` and `error.docs`.
 
-There are <!-- fact:errors.count -->1320<!-- /fact --> errors, one page per package:
+There are <!-- fact:errors.count -->1339<!-- /fact --> errors, one page per package:
 
 <!-- fact:errors.domains -->
 | Package                                                 | Errors |
@@ -50,12 +50,12 @@ There are <!-- fact:errors.count -->1320<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/mapping`](mapping.md)                   | 1      |
 | [`@jsprismarine/minecraft`](minecraft.md)               | 1      |
 | [`@jsprismarine/molang`](molang.md)                     | 11     |
-| [`@jsprismarine/native-network`](native-network.md)     | 16     |
+| [`@jsprismarine/native-network`](native-network.md)     | 17     |
 | [`@jsprismarine/nbt`](nbt.md)                           | 29     |
 | [`@jsprismarine/nethernet`](nethernet.md)               | 42     |
-| [`@jsprismarine/packs`](packs.md)                       | 37     |
+| [`@jsprismarine/packs`](packs.md)                       | 38     |
 | [`@jsprismarine/predicates`](predicates.md)             | 2      |
-| [`@jsprismarine/prismarine`](prismarine.md)             | 387    |
+| [`@jsprismarine/prismarine`](prismarine.md)             | 404    |
 | [`@jsprismarine/protocol`](protocol.md)                 | 132    |
 | [`@jsprismarine/raknet`](raknet.md)                     | 29     |
 | [`@jsprismarine/script-host`](script-host.md)           | 93     |
