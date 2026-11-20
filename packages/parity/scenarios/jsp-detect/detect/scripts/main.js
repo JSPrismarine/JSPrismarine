@@ -33,14 +33,29 @@ const loadJsprismarine = async () => {
     }
 };
 
-/** What a pack can rely on in the module: its exports, and the type of each value it reports. */
+/** The type of each property of an object, by name, in name order. */
+const typesOf = (object) =>
+    Object.fromEntries(
+        Object.keys(object)
+            .sort()
+            .map((key) => [key, typeof object[key]])
+    );
+
+/**
+ * What a pack can rely on in the module: its exports, the type of each value it reports, and the
+ * members that reach the running server, each checked with `in` as a pack on an older server would.
+ */
 const describe = (jsp) => ({
     exports: Object.keys(jsp).sort(),
     name: jsp.jsprismarine.name,
     version: typeof jsp.jsprismarine.version,
     minecraftVersion: typeof jsp.jsprismarine.minecraftVersion,
     protocolVersion: typeof jsp.jsprismarine.protocolVersion,
-    frozen: Object.isFrozen(jsp.jsprismarine)
+    frozen: Object.isFrozen(jsp.jsprismarine),
+    performance: 'performance' in jsp ? typesOf(jsp.performance) : 'absent',
+    getPing: 'getPing' in jsp ? typeof jsp.getPing : 'absent',
+    bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
+    allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });
 
 world.afterEvents.worldLoad.subscribe(async () => {
