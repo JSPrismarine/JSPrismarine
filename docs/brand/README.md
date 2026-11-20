@@ -314,4 +314,7 @@ changes; `pnpm run docs:facts` refreshes the values in the Markdown.
 ## Changing the brand
 
 Change a color in `packages/console/src/theme/brand.ts`, a color's use in `tokens.ts`, a shape in
-`prism.ts`, and a derived value in `brand.css`, never a hex value in a component. Update this guide in the same commit when a token, font or rule changes.
+`prism.ts`, and a derived value in `brand.css`, never a hex value in a component. The terminal
+shades (`--jsp-term-text`, `--jsp-term-bar` and `--jsp-term-muted`) are mixed twice: by `color-mix`
+in `brand.css` for the page, and by `TERMINAL_SHADES` in `brand.ts` for the console and the code
+theme. Change both mixes together, or the page and the terminal drift apart. Update this guide in the same commit when a token, font or rule changes.
