@@ -17,9 +17,6 @@ export default class ResourcePacksReadyForValidationHandler implements Connectio
 
     /** Logs the report; the packet has no fields to check and needs no answer. */
     public handle(_packet: ResourcePacksReadyForValidationPacket, { session, log }: SessionContext): void {
-        log.debug(
-            `${session.identity.name} finished loading its resource packs`,
-            'ResourcePacksReadyForValidationHandler/handle'
-        );
+        log.debug(`${session.identity.name} finished loading its resource packs`);
     }
 }

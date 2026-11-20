@@ -45,13 +45,12 @@ export default class SetPlayerFurnaceOptionsHandler implements ConnectionLaneHan
                     ? `${options.layout} is not a furnace layout`
                     : null;
         if (rejection !== null) {
-            log.verbose(`Dropped furnace options from ${name}: ${rejection}`, 'SetPlayerFurnaceOptionsHandler/handle');
+            log.verbose(`Dropped furnace options from ${name}: ${rejection}`);
             return;
         }
 
         log.debug(
-            `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${options.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`,
-            'SetPlayerFurnaceOptionsHandler/handle'
+            `${name} arranged the ${furnace} screen: tab ${tab}, filtering ${options.filtering ? 'on' : 'off'}, layout ${layout}. Furnace options are not stored`
         );
     }
 }

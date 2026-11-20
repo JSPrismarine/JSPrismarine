@@ -355,8 +355,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         for (const request of packet.requests) {
             log.debug(
                 `Item stack request ${request.requestId}: ` +
-                    request.actions.map((action) => ItemStackRequestActionType[action.type] ?? action.type).join(', '),
-                'ItemStackRequestHandler/handle'
+                    request.actions.map((action) => ItemStackRequestActionType[action.type] ?? action.type).join(', ')
             );
         }
 
@@ -533,7 +532,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
          * difference shows.
          */
         const deny = (reason: string): ItemStackResponse => {
-            log.debug(`Refused item stack request ${request.requestId}: ${reason}`, 'ItemStackRequestHandler/apply');
+            log.debug(`Refused item stack request ${request.requestId}: ${reason}`);
 
             this.restore(before, inventory, craftingInput, open);
             // Thrown away rather than written: the block's slots are only ever read from the

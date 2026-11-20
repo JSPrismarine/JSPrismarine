@@ -29,8 +29,7 @@ export default class CommandRequestHandler implements InputLaneHandler<CommandRe
 
         if (origin.type !== CommandOriginType.Player) {
             log.debug(
-                `Dropped a command request from ${session.identity.name} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`,
-                'CommandRequestHandler/handle'
+                `Dropped a command request from ${session.identity.name} with origin ${CommandOriginType[origin.type] ?? origin.type}; a client may only send the Player origin`
             );
             return;
         }

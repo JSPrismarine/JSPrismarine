@@ -27,8 +27,7 @@ export default class SetDifficultyHandler implements ConnectionLaneHandler<SetDi
         if (data.difficulty === configured) return;
 
         log.debug(
-            `${session.identity.name} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`,
-            'SetDifficultyHandler/handle'
+            `${session.identity.name} asked for difficulty ${Difficulty[data.difficulty] ?? data.difficulty}, which the server does not change`
         );
 
         const reply = new SetDifficultyPacket({ difficulty: configured });

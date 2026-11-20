@@ -388,7 +388,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
             this.socket.bind(0, this.options.bindAddress ?? '0.0.0.0', () => {
                 this.socket.removeListener('error', onError);
                 // dgram rejects buffer getters before bind, so configure and report them here.
-                configureSocketBuffers(this.socket, this.logger, this.options, 'RakNet/ClientSocket');
+                configureSocketBuffers(this.socket, this.logger, this.options);
                 this.socket.on('message', this.handleMessage);
                 this.startTicking();
                 resolve();
@@ -417,8 +417,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
                             this.tick(started);
                         } catch (error: unknown) {
                             this.logger.error(
-                                `Tick failed, error=${error instanceof Error ? error.message : String(error)}`,
-                                'RakNet/ClientSocket/tick'
+                                `Tick failed, error=${error instanceof Error ? error.message : String(error)}`
                             );
                         } finally {
                             if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));
@@ -504,15 +503,13 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
             }
 
             this.logger.debug(
-                `Cannot handle datagram from unconnected server=${rinfo.address}:${rinfo.port}, bytes=${msg.byteLength}`,
-                'RakNet/ClientSocket/handleMessage'
+                `Cannot handle datagram from unconnected server=${rinfo.address}:${rinfo.port}, bytes=${msg.byteLength}`
             );
         } catch (error: unknown) {
             this.logger.debug(
                 `Discarded malformed datagram from server=${rinfo.address}:${rinfo.port}, error=${
                     error instanceof Error ? error.message : String(error)
-                }`,
-                'RakNet/ClientSocket/handleMessage'
+                }`
             );
         }
     };

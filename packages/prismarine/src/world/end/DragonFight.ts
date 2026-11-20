@@ -893,6 +893,6 @@ export class DragonFight {
     }
 
     private report(message: string): void {
-        this.world.getServer().getLogger().warn(`dragon fight: ${message}`, 'world/end/DragonFight');
+        this.world.getServer().getLogger().warn(`dragon fight: ${message}`);
     }
 }

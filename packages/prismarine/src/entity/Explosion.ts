@@ -149,7 +149,7 @@ const primeTnt = (world: World, at: BlockPosition, source: StoreActor | null): v
 
     const runtime = world.dataEntities().runtime;
     if (!runtime.content().entities.registry.has(TNT_IDENTIFIER)) {
-        world.getServer().getLogger().debug('The data runtime does not declare minecraft:tnt', 'entity/Explosion');
+        world.getServer().getLogger().debug('The data runtime does not declare minecraft:tnt');
         return;
     }
 

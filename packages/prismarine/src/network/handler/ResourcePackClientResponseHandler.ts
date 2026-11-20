@@ -163,10 +163,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 return;
 
             case ResourcePackStatus.SendPacks:
-                log.debug(
-                    `${name} asked for ${response.packIds.length} resource pack(s); the server offers none`,
-                    'ResourcePackClientResponseHandler/handle'
-                );
+                log.debug(`${name} asked for ${response.packIds.length} resource pack(s); the server offers none`);
                 // As for a refusal.
                 step.output(
                     session.kick(
@@ -178,10 +175,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
 
             case ResourcePackStatus.HaveAllPacks: {
                 if (this.joined.has(session)) {
-                    log.debug(
-                        `${name} said it had all packs after its join started; dropped`,
-                        'ResourcePackClientResponseHandler/handle'
-                    );
+                    log.debug(`${name} said it had all packs after its join started; dropped`);
                     return;
                 }
 
@@ -203,10 +197,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
 
             case ResourcePackStatus.Completed:
                 if (this.joined.has(session)) {
-                    log.debug(
-                        `${name} completed the resource packs twice; the second was dropped`,
-                        'ResourcePackClientResponseHandler/handle'
-                    );
+                    log.debug(`${name} completed the resource packs twice; the second was dropped`);
                     return;
                 }
 
@@ -225,10 +216,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
                 return;
 
             default:
-                log.debug(
-                    `Dropped a resource pack response with unknown status ${response.status} from ${name}`,
-                    'ResourcePackClientResponseHandler/handle'
-                );
+                log.debug(`Dropped a resource pack response with unknown status ${response.status} from ${name}`);
         }
     }
 

@@ -32,16 +32,12 @@ export default class LabTableHandler implements ReadLaneHandler<LabTablePacket> 
 
         const rejection = blockTargetRejection(session, position, LAB_TABLES);
         if (rejection !== null) {
-            log.verbose(
-                `Dropped a lab table action from ${session.identity.name} at ${where}: ${rejection}`,
-                'LabTableHandler/handle'
-            );
+            log.verbose(`Dropped a lab table action from ${session.identity.name} at ${where}: ${rejection}`);
             return;
         }
 
         log.debug(
-            `${session.identity.name} ran ${LabTableType[data.type] ?? data.type} on the lab table at ${where}. Chemistry is not simulated`,
-            'LabTableHandler/handle'
+            `${session.identity.name} ran ${LabTableType[data.type] ?? data.type} on the lab table at ${where}. Chemistry is not simulated`
         );
     }
 }

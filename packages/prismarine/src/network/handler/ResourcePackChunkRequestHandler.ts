@@ -26,8 +26,7 @@ export default class ResourcePackChunkRequestHandler implements InputLaneHandler
     /** Logs the requested pack and chunk, then disconnects the client. */
     public handle(packet: ResourcePackChunkRequestPacket, { session, log, step }: InputContext): undefined {
         log.debug(
-            `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
-            'ResourcePackChunkRequestHandler/handle'
+            `${session.identity.name} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`
         );
         // The kick queues the goodbye and takes the player off in this input's unit; the step
         // lets the connection close without waiting for it.

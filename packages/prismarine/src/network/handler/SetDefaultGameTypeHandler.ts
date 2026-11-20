@@ -84,8 +84,7 @@ export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDe
 
         if (nameOfDefault(packet.gamemode) === null) {
             log.debug(
-                `${session.identity.name} asked for default game type ${packet.gamemode}, which a server cannot hold`,
-                'SetDefaultGameTypeHandler/handle'
+                `${session.identity.name} asked for default game type ${packet.gamemode}, which a server cannot hold`
             );
             step.output(sendDefault(config, session));
             return;

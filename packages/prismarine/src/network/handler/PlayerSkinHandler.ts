@@ -97,15 +97,14 @@ export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPac
 
         if (packet.uuid.toString() !== identity.uuid) {
             log.debug(
-                `Dropped skin change from §b${identity.name}§r for another player's UUID ${packet.uuid.toString()}`,
-                'PlayerSkinHandler/handle'
+                `Dropped skin change from §b${identity.name}§r for another player's UUID ${packet.uuid.toString()}`
             );
             return;
         }
 
         const problem = skinProblem(packet.skin);
         if (problem !== null) {
-            log.debug(`Dropped skin change from §b${identity.name}§r: ${problem}`, 'PlayerSkinHandler/handle');
+            log.debug(`Dropped skin change from §b${identity.name}§r: ${problem}`);
             return;
         }
 
@@ -132,8 +131,7 @@ export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPac
         for (const other of others) step.output(other.send(relay));
 
         log.debug(
-            `§b${identity.name}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`,
-            'PlayerSkinHandler/handle'
+            `§b${identity.name}§r changed skin to §b${packet.skin.getId()}§r, relayed to ${others.length} player(s)`
         );
     }
 }

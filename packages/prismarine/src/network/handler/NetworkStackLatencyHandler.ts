@@ -20,8 +20,7 @@ export default class NetworkStackLatencyHandler implements ConnectionLaneHandler
     /** Echoes the timestamp when the ping asked for an answer, and logs it either way. */
     public async handle(packet: NetworkStackLatencyPacket, { session, log }: SessionContext): Promise<void> {
         log.debug(
-            `${session.identity.name} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`,
-            'NetworkStackLatencyHandler/handle'
+            `${session.identity.name} pinged at ${packet.creationTime}${packet.isFromServer ? ', asking for an answer' : ''}`
         );
 
         if (!packet.isFromServer) return;

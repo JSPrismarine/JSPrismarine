@@ -215,9 +215,7 @@ export class Logger {
      * @private
      * @internal
      */
-    private parseMessage = (input: string[]) => {
-        const output = input.join('§r ');
-
+    private parseMessage = (output: string) => {
         // End a message with a period unless it already ends in punctuation, such as a colon that
         // introduces the lines after it, or in whitespace. Trailing format codes don't count.
         const visible = output.slice(0, visibleEnd(output));
@@ -228,9 +226,9 @@ export class Logger {
 
     /**
      * Log information messages.
-     * @param {...string} message - The message to log.
+     * @param {string} message - The message to log.
      */
-    public info = (...message: string[]): void => {
+    public info = (message: string): void => {
         // Guard inline; see getNamespace() for why it must not move into a helper.
         if (!this.isLevelEnabled('info')) return;
 
@@ -239,9 +237,9 @@ export class Logger {
 
     /**
      * Log warning messages.
-     * @param {...string} message - The message to log.
+     * @param {string} message - The message to log.
      */
-    public warn = (...message: string[]): void => {
+    public warn = (message: string): void => {
         // Guard inline; see getNamespace() for why it must not move into a helper.
         if (!this.isLevelEnabled('warn')) return;
 
@@ -276,9 +274,9 @@ export class Logger {
 
     /**
      * Log verbose messages.
-     * @param {...string} message - The message to log.
+     * @param {string} message - The message to log.
      */
-    public verbose = (...message: string[]): void => {
+    public verbose = (message: string): void => {
         // Guard inline; see getNamespace() for why it must not move into a helper.
         if (!this.isLevelEnabled('verbose')) return;
 
@@ -287,9 +285,9 @@ export class Logger {
 
     /**
      * Log debug messages.
-     * @param {...string} message - The message to log.
+     * @param {string} message - The message to log.
      */
-    public debug = (...message: string[]): void => {
+    public debug = (message: string): void => {
         // Guard inline; see getNamespace() for why it must not move into a helper.
         if (!this.isLevelEnabled('debug')) return;
 
@@ -298,9 +296,9 @@ export class Logger {
 
     /**
      * Log silly messages.
-     * @param {...string} message - The message to log.
+     * @param {string} message - The message to log.
      */
-    public silly = (...message: string[]): void => {
+    public silly = (message: string): void => {
         // Guard inline; see getNamespace() for why it must not move into a helper.
         if (!this.isLevelEnabled('silly')) return;
 

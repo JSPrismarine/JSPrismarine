@@ -55,7 +55,7 @@ export default class BookEditHandler implements ReadLaneHandler<BookEditPacket> 
 
         const rejection = data === null ? 'it carries no operation' : bookEditRejection(session.getPlayer(), data);
         if (rejection !== null) {
-            log.verbose(`Dropped a book edit from ${session.identity.name}: ${rejection}`, 'BookEditHandler/handle');
+            log.verbose(`Dropped a book edit from ${session.identity.name}: ${rejection}`);
             return;
         }
 
@@ -71,8 +71,7 @@ export default class BookEditHandler implements ReadLaneHandler<BookEditPacket> 
                     : `${operation.action === BookEditAction.AddPage ? 'added' : 'replaced'} page ${operation.pageIndex} (${operation.pageText.length} chars)`;
 
         log.debug(
-            `${session.identity.name} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`,
-            'BookEditHandler/handle'
+            `${session.identity.name} ${edit} in slot ${data.bookSlot}. Books are not stored, so nothing changed`
         );
     }
 }

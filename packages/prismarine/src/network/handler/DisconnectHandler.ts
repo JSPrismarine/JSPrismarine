@@ -38,8 +38,7 @@ export default class DisconnectHandler implements ConnectionLaneHandler<Disconne
         const message = messages.skipMessage ? '' : ` and message "${messages.message}"`;
 
         log.info(
-            `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`,
-            'DisconnectHandler/handle'
+            `${session.identity.name} (${session.getConnection().getAddress().toToken()}) disconnected with reason ${reason}${message}`
         );
 
         session.getConnection().forceDisconnect();

@@ -169,7 +169,7 @@ export class PlayerPersistence {
             if (requireSuccess) {
                 throw new PrismarineWorldErrors.PlayerDataSaveAfterClose({ key, levelName: this.options.levelName });
             }
-            this.options.logger().debug(`${key} left after ${this.options.levelName} closed`, 'Level/savePlayerData');
+            this.options.logger().debug(`${key} left after ${this.options.levelName} closed`);
             return;
         }
 

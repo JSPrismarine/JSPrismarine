@@ -39,7 +39,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             `key=${identity.identityPublicKey ? 'yes' : 'no'}`
         ].join(' ');
 
-        log.warn(`Refused a login: ${why}. The packet carried ${found}`, 'LoginHandler/handle');
+        log.warn(`Refused a login: ${why}. The packet carried ${found}`);
     }
 
     /**
@@ -178,7 +178,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             handshake = await sessionEncryption().begin(identity.identityPublicKey!);
         } catch (error: unknown) {
             LoginHandler.reportRefusal(login.protocolVersion, identity, log, 'unusable identity key');
-            log.debug(String(error), 'LoginHandler/beginEncryption');
+            log.debug(String(error));
             await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             return true;
         }

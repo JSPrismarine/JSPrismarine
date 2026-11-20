@@ -739,8 +739,7 @@ export default class Server {
             this.lifecycle.releaseHolds();
 
             this.logger.info(
-                options?.stayAlive ? 'Stopping server' : 'Stopping server, interrupt again to exit immediately',
-                'Server/kill'
+                options?.stayAlive ? 'Stopping server' : 'Stopping server, interrupt again to exit immediately'
             );
             await this.console?.disable();
 

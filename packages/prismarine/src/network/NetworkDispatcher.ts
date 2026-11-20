@@ -358,8 +358,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             // An altered, dropped or replayed frame leaves the keystream unusable for every frame
             // after it, so the connection ends rather than limping on with garbage.
             this.logger.warn(
-                `Closing a connection over an invalid encrypted frame: ${error instanceof Error ? error.message : String(error)}`,
-                'NetworkDispatcher/splitBatch'
+                `Closing a connection over an invalid encrypted frame: ${error instanceof Error ? error.message : String(error)}`
             );
             void connection.disconnect('Invalid encrypted packet', false, DisconnectReason.UNEXPECTED_PACKET);
             return [];
@@ -531,8 +530,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             this.packetPayloads?.delete(packet);
             if (inbound.droppedHandlers === 0) {
                 this.logger.warn(
-                    `Connection ${connection.getConnectionId()} has ${MAX_HELD_INPUTS_PER_CONNECTION} packets waiting behind its inputs; dropping its packets until an input step lets some run`,
-                    'NetworkDispatcher/route'
+                    `Connection ${connection.getConnectionId()} has ${MAX_HELD_INPUTS_PER_CONNECTION} packets waiting behind its inputs; dropping its packets until an input step lets some run`
                 );
             }
             inbound.droppedHandlers++;
@@ -540,8 +538,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
         if (inbound.droppedHandlers > 0) {
             this.logger.warn(
-                `Dropped ${inbound.droppedHandlers} packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} waiting behind its inputs`,
-                'NetworkDispatcher/route'
+                `Dropped ${inbound.droppedHandlers} packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} waiting behind its inputs`
             );
             inbound.droppedHandlers = 0;
         }
@@ -567,8 +564,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
             this.packetPayloads?.delete(packet);
             if (inbound.droppedInputs === 0) {
                 this.logger.warn(
-                    `Connection ${connection.getConnectionId()} holds ${MAX_HELD_INPUTS_PER_CONNECTION} inputs for the input step; dropping its input-lane packets until a step applies some`,
-                    'NetworkDispatcher/route'
+                    `Connection ${connection.getConnectionId()} holds ${MAX_HELD_INPUTS_PER_CONNECTION} inputs for the input step; dropping its input-lane packets until a step applies some`
                 );
             }
             inbound.droppedInputs++;
@@ -576,8 +572,7 @@ export default class NetworkDispatcher<C extends TransportConnection> {
         }
         if (inbound.droppedInputs > 0) {
             this.logger.warn(
-                `Dropped ${inbound.droppedInputs} input-lane packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} held inputs`,
-                'NetworkDispatcher/route'
+                `Dropped ${inbound.droppedInputs} input-lane packets from connection ${connection.getConnectionId()} over its bound of ${MAX_HELD_INPUTS_PER_CONNECTION} held inputs`
             );
             inbound.droppedInputs = 0;
         }

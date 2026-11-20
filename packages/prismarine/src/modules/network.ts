@@ -661,7 +661,7 @@ export class ServerNetworking implements Networking {
             // A failed call carries the lines it logged in its error, which the transport reports;
             // the rest, such as a connection failing later, is detail for debugging.
             return await loadNativeDriver({
-                log: ({ text }) => this.server.getLogger().debug(text, 'NetherNet/native')
+                log: ({ text }) => this.server.getLogger().debug(text)
             });
         } catch (error: unknown) {
             throw new PrismarineServerErrors.NethernetFailedToStart(

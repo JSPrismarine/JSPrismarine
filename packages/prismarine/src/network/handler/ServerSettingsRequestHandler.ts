@@ -23,9 +23,6 @@ export default class ServerSettingsRequestHandler implements ConnectionLaneHandl
 
     /** Logs the request and sends nothing back. */
     public handle(_packet: ServerSettingsRequestPacket, { session, log }: SessionContext): void {
-        log.debug(
-            `${session.identity.name} asked for the server settings form, which the server does not offer`,
-            'ServerSettingsRequestHandler/handle'
-        );
+        log.debug(`${session.identity.name} asked for the server settings form, which the server does not offer`);
     }
 }

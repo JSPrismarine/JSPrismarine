@@ -57,9 +57,7 @@ describe('MovePlayerHandler', () => {
             expect(session.sendMove).not.toHaveBeenCalled();
             expect(session.recordInputTick).not.toHaveBeenCalled();
             expect(session.holdsMovementForTeleport).not.toHaveBeenCalled();
-            expect(dropped).toEqual([
-                'Dropped a MovePlayer from tester: clients move with PlayerAuthInput MovePlayerHandler/handle'
-            ]);
+            expect(dropped).toEqual(['Dropped a MovePlayer from tester: clients move with PlayerAuthInput']);
         }
     );
 

@@ -16,8 +16,7 @@ export default class ServerboundDiagnosticsHandler implements ConnectionLaneHand
     /** Logs the frame rate and tick times from the sample. */
     public handle(packet: ServerboundDiagnosticsPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`,
-            'ServerboundDiagnosticsHandler/handle'
+            `${session.identity.name} reports ${packet.avgFps.toFixed(1)} fps, ${packet.avgClientSimTickTimeMs.toFixed(2)} ms client tick, ${packet.avgServerSimTickTimeMs.toFixed(2)} ms server tick, ${packet.memoryCategoryValues.length} memory categories`
         );
     }
 }

@@ -35,17 +35,13 @@ export default class AnimateHandler implements InputLaneHandler<AnimatePacket> {
     public handle(packet: AnimatePacket, { session, log, services }: InputContext): undefined {
         if (packet.runtimeEntityId !== session.runtimeId) {
             log.debug(
-                `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`,
-                'AnimateHandler/handle'
+                `Dropped animation ${packet.action} from ${session.identity.name}: it names actor ${packet.runtimeEntityId}, not themselves`
             );
             return;
         }
 
         if (!CLIENT_ACTIONS.has(packet.action)) {
-            log.debug(
-                `Dropped animation ${packet.action} from ${session.identity.name}: not one a client sends`,
-                'AnimateHandler/handle'
-            );
+            log.debug(`Dropped animation ${packet.action} from ${session.identity.name}: not one a client sends`);
             return;
         }
 

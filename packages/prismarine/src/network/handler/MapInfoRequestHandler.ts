@@ -17,8 +17,7 @@ export default class MapInfoRequestHandler implements ConnectionLaneHandler<MapI
     /** Logs the map id and how many pixels came with it. */
     public handle(packet: MapInfoRequestPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`,
-            'MapInfoRequestHandler/handle'
+            `${session.identity.name} requested map ${packet.mapUniqueId} and offered ${packet.clientPixels.length} pixel(s). Maps are not stored`
         );
     }
 }

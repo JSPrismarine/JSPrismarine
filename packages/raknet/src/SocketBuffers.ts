@@ -35,8 +35,7 @@ export const validateSocketBufferOptions = (options: SocketBufferOptions): void 
 export const configureSocketBuffers = (
     socket: Pick<Dgram.Socket, 'setRecvBufferSize' | 'getRecvBufferSize' | 'setSendBufferSize' | 'getSendBufferSize'>,
     logger: Logger,
-    options: SocketBufferOptions = {},
-    context = 'RakNet/SocketBuffers'
+    options: SocketBufferOptions = {}
 ): EffectiveSocketBuffers => {
     const requestedRecv = options.recvBufferSize ?? 4 * 1024 * 1024;
     const requestedSend = options.sendBufferSize ?? 4 * 1024 * 1024;
@@ -47,16 +46,14 @@ export const configureSocketBuffers = (
         socket.setRecvBufferSize(requestedRecv);
     } catch (error: unknown) {
         logger.error(
-            `Could not set the receive buffer, error=${error instanceof Error ? error.message : String(error)}`,
-            `${context}/setRecvBufferSize requested=${requestedRecv}`
+            `Could not set the receive buffer to ${requestedRecv} bytes, error=${error instanceof Error ? error.message : String(error)}`
         );
     }
     try {
         socket.setSendBufferSize(requestedSend);
     } catch (error: unknown) {
         logger.error(
-            `Could not set the send buffer, error=${error instanceof Error ? error.message : String(error)}`,
-            `${context}/setSendBufferSize requested=${requestedSend}`
+            `Could not set the send buffer to ${requestedSend} bytes, error=${error instanceof Error ? error.message : String(error)}`
         );
     }
 
@@ -65,8 +62,7 @@ export const configureSocketBuffers = (
         sendBufferSize: socket.getSendBufferSize()
     };
     logger.verbose(
-        `UDP socket buffers requested recv=${requestedRecv} send=${requestedSend}; effective recv=${effective.recvBufferSize} send=${effective.sendBufferSize}`,
-        context
+        `UDP socket buffers requested recv=${requestedRecv} send=${requestedSend}; effective recv=${effective.recvBufferSize} send=${effective.sendBufferSize}`
     );
     return effective;
 };

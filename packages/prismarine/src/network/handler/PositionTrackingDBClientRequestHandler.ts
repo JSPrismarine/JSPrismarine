@@ -25,16 +25,10 @@ export default class PositionTrackingDBClientRequestHandler implements Connectio
         const name = session.identity.name;
 
         if (packet.action !== PositionTrackingDBClientRequestAction.Query) {
-            log.debug(
-                `Dropped a position tracking request from ${name} with the unknown action ${packet.action}`,
-                'PositionTrackingDBClientRequestHandler/handle'
-            );
+            log.debug(`Dropped a position tracking request from ${name} with the unknown action ${packet.action}`);
             return;
         }
 
-        log.debug(
-            `${name} asked for tracked position ${packet.id}. Position tracking is not modeled`,
-            'PositionTrackingDBClientRequestHandler/handle'
-        );
+        log.debug(`${name} asked for tracked position ${packet.id}. Position tracking is not modeled`);
     }
 }

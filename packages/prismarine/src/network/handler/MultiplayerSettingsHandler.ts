@@ -20,8 +20,7 @@ export default class MultiplayerSettingsHandler implements ConnectionLaneHandler
         const name = MultiplayerSettingsPacketType[packet.packetType] ?? `type ${packet.packetType}`;
 
         log.debug(
-            `${session.identity.name} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`,
-            'MultiplayerSettingsHandler/handle'
+            `${session.identity.name} asked for multiplayer setting ${name}. Education Edition sessions are not modeled`
         );
     }
 }

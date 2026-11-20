@@ -16,8 +16,7 @@ export default class ActorPickRequestHandler implements ConnectionLaneHandler<Ac
     /** Logs the picked actor. */
     public handle(packet: ActorPickRequestPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`,
-            'ActorPickRequestHandler/handle'
+            `${session.identity.name} picked actor ${packet.actorId}${packet.withData ? ' with data' : ''} (${packet.maxSlots} free hotbar slots). Actor picking is not implemented`
         );
     }
 }

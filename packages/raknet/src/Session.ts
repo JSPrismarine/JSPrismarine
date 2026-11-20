@@ -349,8 +349,7 @@ export default class Session {
                 this.listener
                     .getLogger()
                     .debug(
-                        `Discarded datagram with implausible sequence gap=${skipped} from client=${this.getAddress().toString()}`,
-                        'RakNet/Session/handleFrameSet'
+                        `Discarded datagram with implausible sequence gap=${skipped} from client=${this.getAddress().toString()}`
                     );
                 return;
             }
@@ -507,8 +506,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded frame with invalid orderChannel=${orderChannel} from client=${this.getAddress().toString()}`,
-                    'RakNet/Session/handleFrame'
+                    `Discarded frame with invalid orderChannel=${orderChannel} from client=${this.getAddress().toString()}`
                 );
             return;
         }
@@ -573,8 +571,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded reliable frame ${holeCount} past the receive window from client=${this.getAddress().toString()}`,
-                    'RakNet/Session/isDuplicateReliableFrame'
+                    `Discarded reliable frame ${holeCount} past the receive window from client=${this.getAddress().toString()}`
                 );
             return true;
         }
@@ -598,8 +595,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Ordering queue for channel=${orderChannel} is full, dropping frame from client=${this.getAddress().toString()}`,
-                    'RakNet/Session/bufferOutOfOrderFrame'
+                    `Ordering queue for channel=${orderChannel} is full, dropping frame from client=${this.getAddress().toString()}`
                 );
             return;
         }
@@ -681,9 +677,7 @@ export default class Session {
         // happen. If it ever does, dropping the message beats emitting fragments of a
         // non-positive size.
         if (maxSize <= 0) {
-            this.listener
-                .getLogger()
-                .warn(`Cannot send frame, unusable MTU=${this.mtuSize}`, 'RakNet/Session/sendFrame');
+            this.listener.getLogger().warn(`Cannot send frame, unusable MTU=${this.mtuSize}`);
             return;
         }
 
@@ -957,8 +951,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded split message declaring ${frame.fragmentSize} fragments from client=${this.getAddress().toString()}`,
-                    'RakNet/Session/handleFragment'
+                    `Discarded split message declaring ${frame.fragmentSize} fragments from client=${this.getAddress().toString()}`
                 );
             return;
         }
@@ -972,8 +965,7 @@ export default class Session {
                 this.listener
                     .getLogger()
                     .debug(
-                        `Refused split message, ${this.fragmentsQueue.size} already in flight from client=${this.getAddress().toString()}`,
-                        'RakNet/Session/handleFragment'
+                        `Refused split message, ${this.fragmentsQueue.size} already in flight from client=${this.getAddress().toString()}`
                     );
                 return;
             }

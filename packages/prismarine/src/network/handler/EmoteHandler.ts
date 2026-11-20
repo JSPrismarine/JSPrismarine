@@ -23,17 +23,13 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
     /** Relays the emote to the players that have the sender on screen and logs it at debug level. */
     public handle(packet: EmotePacket, { session, log, services }: InputContext): undefined {
         if (packet.actorRuntimeId !== session.runtimeId) {
-            log.debug(
-                `${session.identity.name} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`,
-                'EmoteHandler/handle'
-            );
+            log.debug(`${session.identity.name} sent an Emote for runtime id ${packet.actorRuntimeId}, dropped`);
             return;
         }
 
         if (!isUuid(packet.emoteId)) {
             log.debug(
-                `${session.identity.name} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`,
-                'EmoteHandler/handle'
+                `${session.identity.name} sent an Emote whose id ${JSON.stringify(packet.emoteId)} is not a uuid, dropped`
             );
             return;
         }
@@ -57,9 +53,6 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
 
         services.events.post('playerEmote', new PlayerEmoteEvent(session, packet.emoteId));
 
-        log.debug(
-            `${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks`,
-            'EmoteHandler/handle'
-        );
+        log.debug(`${session.identity.name} played emote ${packet.emoteId} for ${packet.emoteLengthTicks} ticks`);
     }
 }

@@ -14,8 +14,7 @@ export default class SubChunkRequestHandler implements ReadLaneHandler<SubChunkR
         const answered = await session.handleSubChunkRequest(packet);
 
         log.debug(
-            `${session.identity.name} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`,
-            'SubChunkRequestHandler/handle'
+            `${session.identity.name} requested ${packet.offsets.length} sub chunk(s) around ${centerPos.x}, ${centerPos.y}, ${centerPos.z} in dimension ${packet.dimensionType}; answered ${answered}`
         );
     }
 }

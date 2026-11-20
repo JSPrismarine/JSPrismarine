@@ -32,16 +32,12 @@ export default class PlayerToggleCrafterSlotRequestHandler implements ReadLaneHa
                 ? `a crafter has no slot ${packet.slotIndex}`
                 : blockTargetRejection(session, new BlockPosition(packet.posX, packet.posY, packet.posZ), CRAFTERS);
         if (rejection !== null) {
-            log.verbose(
-                `Dropped a crafter slot toggle from ${session.identity.name} at ${where}: ${rejection}`,
-                'PlayerToggleCrafterSlotRequestHandler/handle'
-            );
+            log.verbose(`Dropped a crafter slot toggle from ${session.identity.name} at ${where}: ${rejection}`);
             return;
         }
 
         log.debug(
-            `${session.identity.name} ${packet.isDisabled ? 'disabled' : 'enabled'} slot ${packet.slotIndex} of the crafter at ${where}. Crafters are not stored`,
-            'PlayerToggleCrafterSlotRequestHandler/handle'
+            `${session.identity.name} ${packet.isDisabled ? 'disabled' : 'enabled'} slot ${packet.slotIndex} of the crafter at ${where}. Crafters are not stored`
         );
     }
 }

@@ -334,10 +334,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (reported.has(action.kind)) return;
         reported.add(action.kind);
 
-        world()
-            ?.getServer()
-            .getLogger()
-            .debug(`an item behavior asked for ${action.kind}, which needs ${system}`, 'item/actorPort');
+        world()?.getServer().getLogger().debug(`an item behavior asked for ${action.kind}, which needs ${system}`);
     };
 
     /** The server's own item for a stack an item behavior built, or null when nothing has it. */

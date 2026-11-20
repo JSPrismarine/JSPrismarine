@@ -46,8 +46,7 @@ export default class InteractHandler implements InputLaneHandler<InteractPacket>
             case InteractAction.OpenInventory: {
                 if (packet.target !== session.runtimeId) {
                     log.debug(
-                        `Dropped an inventory open from ${session.identity.name}: it names actor ${packet.target}, not themselves`,
-                        'InteractHandler/handle'
+                        `Dropped an inventory open from ${session.identity.name}: it names actor ${packet.target}, not themselves`
                     );
                     return;
                 }
@@ -61,8 +60,7 @@ export default class InteractHandler implements InputLaneHandler<InteractPacket>
                 const target = session.getWorld().getActor(packet.target);
                 if (target === null || !session.tracks(packet.target)) {
                     log.debug(
-                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is not one they have been shown`,
-                        'InteractHandler/handle'
+                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is not one they have been shown`
                     );
                     return;
                 }
@@ -73,23 +71,18 @@ export default class InteractHandler implements InputLaneHandler<InteractPacket>
                 // Written so a NaN distance fails too.
                 if (!(distance <= reach)) {
                     log.debug(
-                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is ${distance.toFixed(1)} away`,
-                        'InteractHandler/handle'
+                        `Dropped an NPC open from ${session.identity.name}: actor ${packet.target} is ${distance.toFixed(1)} away`
                     );
                     return;
                 }
 
-                log.debug(
-                    `${session.identity.name} opened NPC ${packet.target}. NPC dialogue is not implemented`,
-                    'InteractHandler/handle'
-                );
+                log.debug(`${session.identity.name} opened NPC ${packet.target}. NPC dialogue is not implemented`);
                 return;
             }
 
             default:
                 log.verbose(
-                    `Dropped interact action ${packet.action} from ${session.identity.name}: not one a client sends`,
-                    'InteractHandler/handle'
+                    `Dropped interact action ${packet.action} from ${session.identity.name}: not one a client sends`
                 );
         }
     }

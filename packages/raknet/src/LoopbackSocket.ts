@@ -182,8 +182,7 @@ class LoopbackEndpoint extends EventEmitter implements RakNetPeer {
             this.session.handle(buffer);
         } catch (error: unknown) {
             this.logger.debug(
-                `Discarded malformed loopback datagram, error=${error instanceof Error ? error.message : String(error)}`,
-                'RakNet/LoopbackEndpoint/receive'
+                `Discarded malformed loopback datagram, error=${error instanceof Error ? error.message : String(error)}`
             );
         }
     }
@@ -288,8 +287,7 @@ export default class LoopbackSocket {
                         this.client.update(started);
                     } catch (error: unknown) {
                         this.logger.error(
-                            `Loopback tick failed, error=${error instanceof Error ? error.message : String(error)}`,
-                            'RakNet/LoopbackSocket/tick'
+                            `Loopback tick failed, error=${error instanceof Error ? error.message : String(error)}`
                         );
                     } finally {
                         if (!this.stopped) tick(RAKNET_TICK_INTERVAL_MS - (monotonicNow() - started));

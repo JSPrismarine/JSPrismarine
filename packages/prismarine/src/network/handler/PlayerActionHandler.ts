@@ -75,16 +75,14 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
 
         if (data.runtimeEntityId !== session.runtimeId) {
             log.debug(
-                `Dropped action ${data.action} from ${session.identity.name}: it names runtime id ${data.runtimeEntityId}, not their own`,
-                'PlayerActionHandler/handle'
+                `Dropped action ${data.action} from ${session.identity.name}: it names runtime id ${data.runtimeEntityId}, not their own`
             );
             return;
         }
 
         if (INPUT_ONLY_ACTIONS.has(data.action)) {
             log.debug(
-                `Ignored action ${data.action} from ${session.identity.name}: block actions arrive in PlayerAuthInputPacket`,
-                'PlayerActionHandler/handle'
+                `Ignored action ${data.action} from ${session.identity.name}: block actions arrive in PlayerAuthInputPacket`
             );
             return;
         }
@@ -130,8 +128,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             const distance = player.getPosition().distanceTo(blockPosition);
             if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
                 log.verbose(
-                    `Dropped action ${action} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
-                    'PlayerActionHandler/handleAction'
+                    `Dropped action ${action} from ${session.identity.name} on a block ${distance.toFixed(1)} away`
                 );
                 return;
             }
@@ -141,8 +138,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             // a client can be acting on.
             if (world.getLoadedChunk(blockPosition.getX() >> 4, blockPosition.getZ() >> 4) === null) {
                 log.verbose(
-                    `Dropped action ${action} from ${session.identity.name} on a block in a chunk that is not loaded`,
-                    'PlayerActionHandler/handleAction'
+                    `Dropped action ${action} from ${session.identity.name} on a block in a chunk that is not loaded`
                 );
                 return;
             }
@@ -281,8 +277,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 });
                 if (refusal !== null) {
                     log.verbose(
-                        `Refused a predicted break from ${session.identity.name} at ${blockPosition}: ${refusal}`,
-                        'PlayerActionHandler/handleAction'
+                        `Refused a predicted break from ${session.identity.name} at ${blockPosition}: ${refusal}`
                     );
                     if (mining !== null) world.stopBlockCracking(mining.position);
                     world.resendBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
@@ -304,10 +299,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 // action breaks the block outright: no break time, no tool, and none of the
                 // `InventoryTransaction` accounting the survival route goes through.
                 if (player.gamemode !== Gametype.CREATIVE) {
-                    log.verbose(
-                        `Dropped a creative break from ${session.identity.name}, who is not in creative`,
-                        'PlayerActionHandler/handleAction'
-                    );
+                    log.verbose(`Dropped a creative break from ${session.identity.name}, who is not in creative`);
                     return;
                 }
 
@@ -412,10 +404,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
             }
 
             default: {
-                log.verbose(
-                    `Dropped action ${action} from ${session.identity.name}: not one a client sends`,
-                    'PlayerActionHandler/handleAction'
-                );
+                log.verbose(`Dropped action ${action} from ${session.identity.name}: not one a client sends`);
                 break;
             }
         }

@@ -22,8 +22,7 @@ export default class UpdateClientOptionsHandler implements ConnectionLaneHandler
         if (packet.filterProfanity !== null) changes.push(`profanity filter ${packet.filterProfanity ? 'on' : 'off'}`);
 
         log.debug(
-            `${session.identity.name} changed ${changes.length > 0 ? changes.join(' and ') : 'no client options'}`,
-            'UpdateClientOptionsHandler/handle'
+            `${session.identity.name} changed ${changes.length > 0 ? changes.join(' and ') : 'no client options'}`
         );
     }
 }

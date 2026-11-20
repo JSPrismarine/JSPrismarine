@@ -23,15 +23,13 @@ export default class SetActorLinkHandler implements ConnectionLaneHandler<SetAct
 
         if (targetA !== self && targetB !== self) {
             log.verbose(
-                `Dropped actor link type ${type} from ${session.identity.name}: it joins ${targetA} and ${targetB}, neither of them the sender`,
-                'SetActorLinkHandler/handle'
+                `Dropped actor link type ${type} from ${session.identity.name}: it joins ${targetA} and ${targetB}, neither of them the sender`
             );
             return;
         }
 
         log.debug(
-            `${session.identity.name} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`,
-            'SetActorLinkHandler/handle'
+            `${session.identity.name} reported actor link type ${type} between ${targetA} and ${targetB}. Riding is not modeled`
         );
     }
 }

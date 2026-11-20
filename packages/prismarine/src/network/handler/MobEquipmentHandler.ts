@@ -36,17 +36,13 @@ export default class MobEquipmentHandler implements InputLaneHandler<MobEquipmen
         if (data.windowId === WindowIds.OFFHAND) return;
 
         if (data.windowId !== WindowIds.INVENTORY) {
-            log.debug(
-                `${session.identity.name} reported equipment for container ${data.windowId}; dropped`,
-                'MobEquipmentHandler/handle'
-            );
+            log.debug(`${session.identity.name} reported equipment for container ${data.windowId}; dropped`);
             return;
         }
 
         if (!HumanInventory.isHotbarSlot(data.hotbarSlot) || !HumanInventory.isHotbarSlot(data.inventorySlot)) {
             log.debug(
-                `${session.identity.name} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`,
-                'MobEquipmentHandler/handle'
+                `${session.identity.name} selected slot ${data.hotbarSlot} (slot ${data.inventorySlot}), which is outside the hotbar; dropped`
             );
             return;
         }

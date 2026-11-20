@@ -60,7 +60,7 @@ export class UdpDatagramSource implements DatagramSource {
             });
             socket.bind(port, address, () => {
                 // dgram rejects buffer getters before bind, so configure and report them here.
-                configureSocketBuffers(socket, this.logger, this.socketBufferOptions, 'RakNet/ServerSocket');
+                configureSocketBuffers(socket, this.logger, this.socketBufferOptions);
                 socket.on('message', listener);
                 resolve(socket.address().port);
             });
@@ -76,7 +76,7 @@ export class UdpDatagramSource implements DatagramSource {
             // The frame contents are borrowed buffers, so retain the vector until libuv has
             // finished reading it. Report asynchronous send failures just as the socket does.
             void buffers;
-            if (error) this.logger.error(`Send failed, error=${error.message}`, 'RakNet/ServerSocket/send');
+            if (error) this.logger.error(`Send failed, error=${error.message}`);
         });
     }
 

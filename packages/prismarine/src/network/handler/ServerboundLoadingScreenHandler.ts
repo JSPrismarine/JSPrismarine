@@ -46,8 +46,7 @@ export default class ServerboundLoadingScreenHandler implements InputLaneHandler
 
         const report = (released: boolean) =>
             log.debug(
-                `${session.identity.name} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`,
-                'ServerboundLoadingScreenHandler/handle'
+                `${session.identity.name} ${edge} ${screen}${known}${released ? '; sending its arrival columns' : ''}`
             );
 
         const openedId =

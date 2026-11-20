@@ -285,10 +285,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
 
         const reason = rejectionReason(transaction);
         if (reason !== null) {
-            log.debug(
-                `Dropped an inventory transaction from ${connection.identity.name}: ${reason}`,
-                'InventoryTransactionHandler/handle'
-            );
+            log.debug(`Dropped an inventory transaction from ${connection.identity.name}: ${reason}`);
             return;
         }
 
@@ -308,8 +305,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         const handSlot = player.getInventory().getHandSlotIndex();
         if (data.hotbarSlot !== handSlot) {
             log.verbose(
-                `Dropped an inventory transaction from ${connection.identity.name}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`,
-                'InventoryTransactionHandler/handle'
+                `Dropped an inventory transaction from ${connection.identity.name}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`
             );
             return;
         }
@@ -401,8 +397,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
 
         const sources = transaction.inventoryActions.map((action) => InventorySourceType[action.sourceType]).join(', ');
         log.debug(
-            `Ignored a Normal inventory transaction from ${session.identity.name} with ${transaction.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
-            'InventoryTransactionHandler/handleNormal'
+            `Ignored a Normal inventory transaction from ${session.identity.name} with ${transaction.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`
         );
     }
 
@@ -442,8 +437,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         const target = session.getWorld().getActor(data.entityRuntimeId);
         if (!target) {
             log.verbose(
-                `${session.identity.name} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`,
-                'InventoryTransactionHandler/handleUseItemOnEntity'
+                `${session.identity.name} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`
             );
             return;
         }
@@ -541,8 +535,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 const distance = player.getPosition().distanceTo(data.blockPosition);
                 if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
                     log.verbose(
-                        `Dropped item use ${ItemUseActionType[data.actionType]} from ${session.identity.name} on a block ${distance.toFixed(1)} away`,
-                        'InventoryTransactionHandler/handleUseItem'
+                        `Dropped item use ${ItemUseActionType[data.actionType]} from ${session.identity.name} on a block ${distance.toFixed(1)} away`
                     );
                     return;
                 }
@@ -566,8 +559,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 // nothing the second time round.
                 if (config.getServerAuthoritativeBlockBreaking()) {
                     log.verbose(
-                        `Dropped a block break transaction from ${session.identity.name}: block breaking is server-authoritative`,
-                        'InventoryTransactionHandler/handleUseItem'
+                        `Dropped a block break transaction from ${session.identity.name}: block breaking is server-authoritative`
                     );
                     return;
                 }
@@ -577,8 +569,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 const { blockPosition } = data;
                 if (world.getLoadedChunk(blockPosition.getX() >> 4, blockPosition.getZ() >> 4) === null) {
                     log.verbose(
-                        `Dropped a block break transaction from ${session.identity.name} in a chunk that is not loaded`,
-                        'InventoryTransactionHandler/handleUseItem'
+                        `Dropped a block break transaction from ${session.identity.name} in a chunk that is not loaded`
                     );
                     return;
                 }

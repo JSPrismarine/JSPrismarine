@@ -16,8 +16,7 @@ export default class MapCreateLockedCopyHandler implements ConnectionLaneHandler
     /** Logs the map being copied and the id asked for. */
     public handle(packet: MapCreateLockedCopyPacket, { session, log }: SessionContext): void {
         log.debug(
-            `${session.identity.name} locked map ${packet.originalMapId} as ${packet.newMapId}. The server stores no maps`,
-            'MapCreateLockedCopyHandler/handle'
+            `${session.identity.name} locked map ${packet.originalMapId} as ${packet.newMapId}. The server stores no maps`
         );
     }
 }

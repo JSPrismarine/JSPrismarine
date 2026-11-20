@@ -22,8 +22,7 @@ export default class BlockPickRequestHandler implements ConnectionLaneHandler<Bl
         const { position } = data;
 
         log.debug(
-            `${session.identity.name} picked the block at ${position.x}, ${position.y}, ${position.z}${data.withData ? ' with data' : ''} (${data.maxSlots} free hotbar slots). Block picking is not implemented`,
-            'BlockPickRequestHandler/handle'
+            `${session.identity.name} picked the block at ${position.x}, ${position.y}, ${position.z}${data.withData ? ' with data' : ''} (${data.maxSlots} free hotbar slots). Block picking is not implemented`
         );
     }
 }

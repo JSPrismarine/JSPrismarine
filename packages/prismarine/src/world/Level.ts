@@ -1100,7 +1100,7 @@ export class Level {
     private levelDataNow(): LevelDataAtCut {
         const spawn = this.spawn;
         if (spawn === null) {
-            this.server.getLogger().debug(`No spawn point to save for ${this.name}`, 'Level/saveLevelData');
+            this.server.getLogger().debug(`No spawn point to save for ${this.name}`);
         }
 
         const stems = Object.fromEntries(this.stems);

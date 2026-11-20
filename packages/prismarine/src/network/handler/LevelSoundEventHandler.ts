@@ -44,10 +44,7 @@ export default class LevelSoundEventHandler implements InputLaneHandler<LevelSou
 
         const drop = (reason: string) => {
             const sound = LevelSoundEventName[packet.sound] ?? packet.sound;
-            log.verbose(
-                `Dropped sound ${sound} from ${session.identity.name}: ${reason}`,
-                'LevelSoundEventHandler/handle'
-            );
+            log.verbose(`Dropped sound ${sound} from ${session.identity.name}: ${reason}`);
         };
 
         // A client only knows about the sounds it started, so the actor is itself or nobody.

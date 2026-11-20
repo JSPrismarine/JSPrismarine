@@ -19,9 +19,6 @@ export default class SubClientLoginHandler implements ConnectionLaneHandler<SubC
 
     /** Logs the refusal against the player who already holds the connection. */
     public handle(_packet: SubClientLoginPacket, { session, log }: SessionContext): void {
-        log.debug(
-            `${session.identity.name} tried to add a split screen player, which the server does not support`,
-            'SubClientLoginHandler/handle'
-        );
+        log.debug(`${session.identity.name} tried to add a split screen player, which the server does not support`);
     }
 }

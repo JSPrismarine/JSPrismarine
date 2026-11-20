@@ -104,7 +104,7 @@ export default class WorldManager implements Service {
         if (invalidHost !== undefined) {
             this.server
                 .getLogger()
-                .warn(`chunk-host "${invalidHost}" is not process or in-process, so process is used`, 'WorldManager');
+                .warn(`chunk-host "${invalidHost}" is not process or in-process, so process is used`);
         }
         const defaultName = config.getLevelName();
         // Throwing rather than warning-and-returning: `getDefaultWorld()` promises a world to
