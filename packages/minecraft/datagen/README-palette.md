@@ -92,3 +92,9 @@ and concrete stairs and slabs, and 123 with a changed property set. Every one of
 something the release notes announced — `minecraft:corner` on 65 stairs, and the four
 `minecraft:connection_*` states on 58 fences, panes, bars and trip wires. Again no value set
 disagreed.
+
+The 2259 capture, from the 1.26.70.24 preview server, was checked against the 1.26.60 one: 28
+new blocks and one gone. The new ones are the blocks Java 26.4 also adds: brittle ice, the
+calcite, polished calcite, packed ice brick and snow brick families, chiseled packed ice and
+chiseled soulshale. `minecraft:disc_press` is the one the preview no longer has. Three blocks
+gained a state: `locked` on both repeaters and `bottom` on scaffolding. No value set disagreed.
