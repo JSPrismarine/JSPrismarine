@@ -3,6 +3,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inflateRawSync } from 'node:zlib';
 
+import { defaultJavaRelease } from '../../../.test/javaServerJar';
+
 import { WorldgenData } from '../src/WorldgenData';
 
 const END_OF_CENTRAL_DIRECTORY = 0x06054b50;
@@ -76,11 +78,7 @@ const innerJarPath = (): string | undefined => {
     const override = process.env['JSP_JAVA_SERVER_JAR'];
     if (override) return existsSync(override) ? override : undefined;
 
-    const sourcesPath = join(repoRoot, 'packages/bedrock-data/sources.json');
-    if (!existsSync(sourcesPath)) return undefined;
-    // sources.json is parsed JSON; only the default Java release is read.
-    const sources = JSON.parse(readFileSync(sourcesPath, 'utf8')) as { javaServer: { defaultVersion: string } };
-    const version = sources.javaServer.defaultVersion;
+    const version = defaultJavaRelease;
     const path = join(
         repoRoot,
         'node_modules/.cache/jsprismarine/java',
