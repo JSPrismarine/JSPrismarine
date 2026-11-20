@@ -76,6 +76,40 @@ describe('a store player', () => {
             expect(fieldsOf(starved, 'attribute:health')).toHaveLength(1);
         });
 
+        it.each([
+            ['easy', 11, 10],
+            ['easy', 10, 10],
+            ['normal', 2, 1],
+            ['normal', 1, 1],
+            ['hard', 1, 0]
+        ] as const)('starves a player on %s from %d health to %d', (difficulty, health, after) => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ difficulty }));
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.food', 0);
+            player.instance.attributes.set('health', health);
+
+            fixture.runtime.tick(80);
+
+            expect(healthOf(player)).toBe(after);
+        });
+
+        it('keeps the food bar on Peaceful and refills it, healing a hurt player', () => {
+            const fixture = storePlayerFixture(new TestEntityWorld({ difficulty: 'peaceful' }));
+            const { player, components } = standingPlayer(fixture);
+            components.set('vitals.food', 10);
+            components.set('vitals.saturation', 0);
+            components.set('vitals.exhaustion', 5);
+            player.instance.attributes.set('health', 15);
+
+            fixture.runtime.tick(20);
+
+            // The exhaustion is spent without costing food, and the tick adds a point of food and
+            // half a heart.
+            expect(components.get('vitals.exhaustion')).toBe(1);
+            expect(components.get('vitals.food')).toBe(11);
+            expect(healthOf(player)).toBe(16);
+        });
+
         it('heals a well-fed player and pays for it in exhaustion, saturation first', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);

@@ -36,10 +36,12 @@ import type { PlayerMining } from '../playerComponents';
 import type { PlayerShownForm } from '../playerShown';
 import {
     addExhaustion,
+    addFood,
     addJumpExhaustion,
     addMovementExhaustion,
     applyHungerEffect,
     hungerOutcome,
+    peacefulRecovery,
     spendExhaustion
 } from '../playerHunger';
 import { cushions, land, trackFall } from '../playerFall';
@@ -479,8 +481,16 @@ export class PlayerSystems {
     }
 
     private tickHunger(entity: DataEntity, survival: SurvivalPlayer, tick: number): void {
-        spendExhaustion(survival.components);
-        const outcome = hungerOutcome(survival, tick, ruleIsOn(this.ports.level, NATURAL_REGENERATION));
+        const difficulty = this.ports.level.difficulty();
+        const regenerates = ruleIsOn(this.ports.level, NATURAL_REGENERATION);
+        const recovery = peacefulRecovery(survival, tick, regenerates, difficulty);
+        if (recovery !== undefined) {
+            if (recovery.heal > 0) this.ports.heal(entity.id, recovery.heal);
+            if (recovery.food > 0) addFood(survival.components, recovery.food);
+        }
+
+        spendExhaustion(survival.components, difficulty);
+        const outcome = hungerOutcome(survival, tick, regenerates, difficulty);
         if (outcome?.kind === 'starve') this.hurt(entity, DamageCause.Starvation, outcome.amount);
         else if (outcome?.kind === 'regenerate' && this.ports.heal(entity.id, outcome.amount))
             addExhaustion(survival, outcome.exhaustion);

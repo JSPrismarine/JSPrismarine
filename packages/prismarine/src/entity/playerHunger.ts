@@ -2,6 +2,8 @@
  * Hunger: exhaustion, saturation and food, and the four-second clock that starves an empty player
  * and heals a well-fed one. One home for both models of a player (see `survivalPlayer.ts`).
  */
+import type { Difficulty } from '@jsprismarine/engine-systems';
+
 import type { PlayerComponents } from './playerComponents';
 import type { SurvivalPlayer } from './survivalPlayer';
 
@@ -47,6 +49,15 @@ const STARVATION_DAMAGE = 1;
 
 /** Half-hearts a well-fed player heals per {@link VITALS_INTERVAL}. */
 const REGENERATION_HEALTH = 1;
+
+/** The most food a player holds, Java's `FoodData.needsFood` bound. */
+const MAX_FOOD = 20;
+
+/** How often Peaceful heals a player half a heart, Java's `Player.aiStep`. */
+const PEACEFUL_HEAL_INTERVAL = 20;
+
+/** How often Peaceful gives a hungry player a point of food, Java's `Player.aiStep`. */
+const PEACEFUL_FEED_INTERVAL = 10;
 
 /**
  * Movement further than this in a single update is a teleport, not a walk, and buys no
@@ -101,16 +112,18 @@ export const addExhaustion = (player: SurvivalPlayer, amount: number): void => {
 /**
  * One tick's spending of exhaustion, Java's `FoodData.tick`: once the counter is above four it
  * loses four, and that buys one point of saturation or, once saturation is gone, one point of food.
+ * Peaceful spends the saturation and never the food.
  * @param {PlayerComponents} components - The player's components.
+ * @param {Difficulty} difficulty - The world's difficulty.
  */
-export const spendExhaustion = (components: PlayerComponents): void => {
+export const spendExhaustion = (components: PlayerComponents, difficulty: Difficulty): void => {
     const exhaustion = components.get('vitals.exhaustion');
     if (exhaustion <= EXHAUSTION_PER_FOOD_POINT) return;
 
     components.set('vitals.exhaustion', exhaustion - EXHAUSTION_PER_FOOD_POINT);
     const saturation = components.get('vitals.saturation');
     if (saturation > 0) setSaturation(components, Math.max(saturation - 1, 0));
-    else components.set('vitals.food', Math.max(components.get('vitals.food') - 1, 0));
+    else if (difficulty !== 'peaceful') components.set('vitals.food', Math.max(components.get('vitals.food') - 1, 0));
 };
 
 /**
@@ -168,6 +181,13 @@ export type HungerOutcome =
     | { readonly kind: 'regenerate'; readonly amount: number; readonly exhaustion: number };
 
 /**
+ * Whether an empty food bar still hurts a player at this health, Java's `FoodData.tick`: always on
+ * Hard, down to half a heart on Normal, and down to five hearts on Easy and Peaceful.
+ */
+const starves = (health: number, difficulty: Difficulty): boolean =>
+    health > 10 || difficulty === 'hard' || (health > 1 && difficulty === 'normal');
+
+/**
  * The slow half of hunger: starving when the bar is empty, healing when it is nearly full. Both
  * run on vanilla's four-second clock, so most ticks answer undefined. The caller deals the damage
  * or heals, and a heal then costs {@link HungerOutcome} `exhaustion` through
@@ -175,16 +195,20 @@ export type HungerOutcome =
  * @param {SurvivalPlayer} player - The player, whom hunger reaches.
  * @param {number} tick - The world tick.
  * @param {boolean} regenerates - Whether the `naturalRegeneration` game rule is on.
+ * @param {Difficulty} difficulty - The world's difficulty, which decides how far starving goes.
  * @returns {HungerOutcome | undefined} What to do, or undefined for nothing.
  */
 export const hungerOutcome = (
     player: SurvivalPlayer,
     tick: number,
-    regenerates: boolean
+    regenerates: boolean,
+    difficulty: Difficulty
 ): HungerOutcome | undefined => {
     if (tick % VITALS_INTERVAL !== 0) return undefined;
 
-    if (player.components.get('vitals.food') <= 0) return { kind: 'starve', amount: STARVATION_DAMAGE };
+    if (player.components.get('vitals.food') <= 0) {
+        return starves(player.health(), difficulty) ? { kind: 'starve', amount: STARVATION_DAMAGE } : undefined;
+    }
 
     // Healing is not free: it is the main thing a well-fed player spends food on. A world with
     // natural regeneration turned off is one where food only stops you starving.
@@ -192,4 +216,32 @@ export const hungerOutcome = (
     if (player.components.get('vitals.food') >= REGENERATION_FOOD_LEVEL && player.health() < player.maxHealth())
         return { kind: 'regenerate', amount: REGENERATION_HEALTH, exhaustion: EXHAUSTION.regeneration };
     return undefined;
+};
+
+/** What Peaceful gives a player this tick: half-hearts to heal and food points to add. */
+export interface PeacefulRecovery {
+    readonly heal: number;
+    readonly food: number;
+}
+
+/**
+ * Peaceful's own recovery, Java's `Player.aiStep`: with natural regeneration on, a hurt player
+ * heals half a heart a second and a hungry one gains a point of food every half second.
+ * @param {SurvivalPlayer} player - The player, whom hunger reaches.
+ * @param {number} tick - The world tick.
+ * @param {boolean} regenerates - Whether the `naturalRegeneration` game rule is on.
+ * @param {Difficulty} difficulty - The world's difficulty; only Peaceful recovers.
+ * @returns {PeacefulRecovery | undefined} What to give, or undefined for nothing.
+ */
+export const peacefulRecovery = (
+    player: SurvivalPlayer,
+    tick: number,
+    regenerates: boolean,
+    difficulty: Difficulty
+): PeacefulRecovery | undefined => {
+    if (difficulty !== 'peaceful' || !regenerates) return undefined;
+
+    const heal = player.health() < player.maxHealth() && tick % PEACEFUL_HEAL_INTERVAL === 0 ? 1 : 0;
+    const food = player.components.get('vitals.food') < MAX_FOOD && tick % PEACEFUL_FEED_INTERVAL === 0 ? 1 : 0;
+    return heal === 0 && food === 0 ? undefined : { heal, food };
 };

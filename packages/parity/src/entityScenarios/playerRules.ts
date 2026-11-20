@@ -1,7 +1,7 @@
 import { addExperiencePoints, pointsForNextLevel } from '@jsprismarine/prismarine/entity/Experience';
 import type { ExperienceHolder } from '@jsprismarine/prismarine/entity/Experience';
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
-import { addExhaustion } from '@jsprismarine/prismarine/entity/playerHunger';
+import { addExhaustion, hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 
@@ -151,6 +151,32 @@ export const playerRuleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     `100 exhaustion at once leaves ${left} saturation and ${food} food, where Java caps it at ${cap} and spends one step a tick`
                 );
             return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
+    {
+        name: 'player-starvation',
+        java: 'An empty food bar hurts a player above 10 health on Easy, above 1 on Normal, and at any health on Hard.',
+        reference:
+            'Java FoodData.tick (foodLevel <= 0: hurt when health > 10, or difficulty is HARD, or health > 1 and difficulty is NORMAL); issue #2968',
+        subjects: () => playerSubjects('minecraft:player.exhaustion'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:player.exhaustion'],
+        run: () => {
+            const java = (health: number, difficulty: string): boolean =>
+                health > 10 || difficulty === 'hard' || (health > 1 && difficulty === 'normal');
+            const differences: string[] = [];
+            for (const difficulty of ['easy', 'normal', 'hard'] as const) {
+                for (const health of [20, 11, 10, 2, 1]) {
+                    const player = { ...survivalPlayer(), health: () => health };
+                    player.components.set('vitals.food', 0);
+                    const starves = hungerOutcome(player, 80, true, difficulty)?.kind === 'starve';
+                    if (starves !== java(health, difficulty))
+                        differences.push(
+                            `on ${difficulty} an empty bar ${starves ? 'hurts' : 'spares'} a player at ${health} health, where Java's ${starves ? 'spares' : 'hurts'} it`
+                        );
+                }
+            }
+            return differences.length === 0 ? undefined : differences.slice(0, 4).join('; ');
         }
     }
 ];
