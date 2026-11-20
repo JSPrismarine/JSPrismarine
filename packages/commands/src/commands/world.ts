@@ -25,7 +25,7 @@ import {
     timeArgument
 } from '../argumentTypes';
 import type { GameRule } from '../gamerules';
-import { JAVA_GAME_RULES } from '../gamerules';
+import { JAVA_GAME_RULES, bedrockGameRuleNames } from '../gamerules';
 import type { BlockRef, CommandSource } from '../host';
 import { suggestFromData } from '../suggestions';
 import type { CommandRegistry } from '../tree';
@@ -226,16 +226,25 @@ const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRe
 const fillModeArgument = () => enumArgument('FillMode', ['destroy', 'hollow', 'keep', 'outline', 'replace'] as const);
 
 /**
+ * The rule names Bedrock's `/gamerule` takes `true` or `false` for, in lowercase.
+ *
+ * Java's type is not always Bedrock's: 1.21.11 folded the boolean `doFireTick` into the integer
+ * `minecraft:fire_spread_radius_around_player`, and Bedrock's `BoolGameRule` enum still lists
+ * `dofiretick`. A spelling found here takes a boolean whatever the Java rule holds.
+ */
+const BEDROCK_BOOLEAN_RULES: ReadonlySet<string> = new Set(bedrockGameRuleNames().boolean);
+
+/**
  * One `/gamerule` branch: the bare name reads the rule, and a value after it writes it.
  *
  * @param spelling - The literal the player types, one of the rule's names.
  * @param rule - The rule it reads and writes, reported by its 1.21.11 id.
  */
 const gameRuleNode = (spelling: string, rule: GameRule) => {
-    const valueType: ArgumentType<string | number> =
-        rule.type === 'boolean'
-            ? enumArgument('BoolGameRuleValue', ['true', 'false'] as const)
-            : integerArgument(rule.min === undefined ? {} : { min: rule.min });
+    const takesBoolean = rule.type === 'boolean' || BEDROCK_BOOLEAN_RULES.has(spelling.toLowerCase());
+    const valueType: ArgumentType<string | number> = takesBoolean
+        ? enumArgument('BoolGameRuleValue', ['true', 'false'] as const)
+        : integerArgument(rule.min === undefined ? {} : { min: rule.min });
     return lit(spelling)
         .executes(
             command((context) => {
@@ -250,10 +259,7 @@ const gameRuleNode = (spelling: string, rule: GameRule) => {
                 command((context) => {
                     const current = source(context);
                     const raw = value<string | number>(context, 'value');
-                    const set = current.host.world.setGameRule(
-                        rule.name,
-                        rule.type === 'boolean' ? raw === 'true' : raw
-                    );
+                    const set = current.host.world.setGameRule(rule.name, takesBoolean ? raw === 'true' : raw);
                     return report(current, set ? 1 : 0, `${rule.name} = ${String(raw)}`);
                 })
             )
