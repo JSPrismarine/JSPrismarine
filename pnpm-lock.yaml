@@ -1392,17 +1392,17 @@ importers:
         version: 8.20.0
     devDependencies:
       '@spyglassmc/core':
-        specifier: 0.4.57
-        version: 0.4.57(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+        specifier: 0.4.58
+        version: 0.4.58(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       '@spyglassmc/java-edition':
         specifier: 0.3.71
         version: 0.3.71(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       '@spyglassmc/json':
-        specifier: 0.3.61
-        version: 0.3.61(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+        specifier: 0.3.62
+        version: 0.3.62(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       '@spyglassmc/mcdoc':
-        specifier: 0.3.61
-        version: 0.3.61(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+        specifier: 0.3.62
+        version: 0.3.62(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -3650,29 +3650,17 @@ packages:
     resolution: {integrity: sha512-fCTuZK4QBa+39Oz9l4OGfJfz+GpwCp3AqO7Zch3to99xHPgstVsRFpeQ8LNd2o1Gv8raL2mCFwiaHh7bFSp5DQ==}
     engines: {node: '>=22'}
 
-  '@spyglassmc/core@0.4.57':
-    resolution: {integrity: sha512-JaNdmnfqXYaHZ5xMdVqfULlptYJzHJQHqp735bwyn0fMgPI9U/w+02Y5SkhL8t2ujzITdRqVISBXNBY+Sluc9A==}
-
   '@spyglassmc/core@0.4.58':
     resolution: {integrity: sha512-uU3aTrksE9ED2jOaTqt53k5KTlyfOn5kw3vRUa9DCZ5TeVU9fZXVmVIYawZX8OvCadcSprjy34HOOxFIBdwZKA==}
 
   '@spyglassmc/java-edition@0.3.71':
     resolution: {integrity: sha512-vxYWcrKlROgl0MbdC/1mJFqFNLjgcaU0tj9Ic3Z4wXcXsIMwNZ8cHoTQrFfN1Ehjo9v9eWmaBKyZWGt3Je78Gg==}
 
-  '@spyglassmc/json@0.3.61':
-    resolution: {integrity: sha512-4+nBXxUCogDzz5gLXrNQg+1UI9T8lSw5VemjiPbUdbkS2QxmZootKFAdMjnB8qOlkxztLsOS1LrxFmQabJbDiA==}
-
   '@spyglassmc/json@0.3.62':
     resolution: {integrity: sha512-nFqsl9gMRnwVVpIgzyHl49Xvo6+0ZiQJwhsc8PLIlbXkV5qImQXUc4Wc7QTs4dKoL/E0LT3Uy3G3a3dN/onbYQ==}
 
-  '@spyglassmc/locales@0.3.30':
-    resolution: {integrity: sha512-WwUndset1ytdkeDMcUuzHsZukUseiuGQRIvU2uppTIsaMucv84Fqo14t7AFAabvI06dP55Mjfi4byVj9FD7OxQ==}
-
   '@spyglassmc/locales@0.3.31':
     resolution: {integrity: sha512-oKYrThZQFjCVBlW6MgidahxcWmZPgpCF9pxrY8HQNV7kS7oyVVjszCCsvGIQEsa9cE5i4GWHGe5ODWdsowVuKg==}
-
-  '@spyglassmc/mcdoc@0.3.61':
-    resolution: {integrity: sha512-JHDWL7bdiz5vSvABSDz+USHQtu5fzb6C5k5r5rr8D8JySN+LnaZcF/uHElAEa1PN1oIskR7RdnFfjuNtMdXqQQ==}
 
   '@spyglassmc/mcdoc@0.3.62':
     resolution: {integrity: sha512-D8Jd1yQa9vgZTtcx2G61uWSIJTPe/7OgLjj7gwtqbIi3cbBITJJiMjbGdGk4FBGK/gty2T+RlIx3pYwcY9Peuw==}
@@ -7055,23 +7043,6 @@ snapshots:
 
   '@simple-libs/stream-utils@2.0.0': {}
 
-  '@spyglassmc/core@0.4.57(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
-    dependencies:
-      '@spyglassmc/locales': 0.3.30
-      base64-arraybuffer: 1.0.2
-      binary-search: 1.3.6
-      decompress: '@xhmikosr/decompress@11.1.4(supports-color@10.2.2)'
-      follow-redirects: 1.16.3(debug@4.4.3(supports-color@10.2.2))
-      picomatch: 4.0.7
-      rfdc: 1.4.1
-      vscode-languageserver-textdocument: 1.0.16
-      whatwg-url: 14.2.0
-    transitivePeerDependencies:
-      - bare-abort-controller
-      - debug
-      - react-native-b4a
-      - supports-color
-
   '@spyglassmc/core@0.4.58(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:
       '@spyglassmc/locales': 0.3.31
@@ -7104,17 +7075,6 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@spyglassmc/json@0.3.61(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
-    dependencies:
-      '@spyglassmc/core': 0.4.57(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      '@spyglassmc/locales': 0.3.30
-      '@spyglassmc/mcdoc': 0.3.61(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-    transitivePeerDependencies:
-      - bare-abort-controller
-      - debug
-      - react-native-b4a
-      - supports-color
-
   '@spyglassmc/json@0.3.62(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:
       '@spyglassmc/core': 0.4.58(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
@@ -7126,19 +7086,7 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@spyglassmc/locales@0.3.30': {}
-
   '@spyglassmc/locales@0.3.31': {}
-
-  '@spyglassmc/mcdoc@0.3.61(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
-    dependencies:
-      '@spyglassmc/core': 0.4.57(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
-      '@spyglassmc/locales': 0.3.30
-    transitivePeerDependencies:
-      - bare-abort-controller
-      - debug
-      - react-native-b4a
-      - supports-color
 
   '@spyglassmc/mcdoc@0.3.62(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)':
     dependencies:

@@ -110,10 +110,10 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/packs",
     "devDependencies": {
-        "@spyglassmc/core": "0.4.57",
+        "@spyglassmc/core": "0.4.58",
         "@spyglassmc/java-edition": "0.3.71",
-        "@spyglassmc/json": "0.3.61",
-        "@spyglassmc/mcdoc": "0.3.61",
+        "@spyglassmc/json": "0.3.62",
+        "@spyglassmc/mcdoc": "0.3.62",
         "@types/node": "26.6.6",
         "glob": "14.0.6",
         "rimraf": "6.1.4",
@@ -127,10 +127,10 @@
         "ajv": "8.20.0"
     },
     "peerDependencies": {
-        "@spyglassmc/core": "0.4.57",
+        "@spyglassmc/core": "0.4.58",
         "@spyglassmc/java-edition": "0.3.71",
-        "@spyglassmc/json": "0.3.61",
-        "@spyglassmc/mcdoc": "0.3.61",
+        "@spyglassmc/json": "0.3.62",
+        "@spyglassmc/mcdoc": "0.3.62",
         "vscode-languageserver-textdocument": "1.0.16"
     },
     "peerDependenciesMeta": {
