@@ -41,6 +41,11 @@ export interface InputBarProps {
     onHint?(text: string | undefined): void;
     /** Called with the line after every change to it, typed, pasted or set. */
     onChange?(line: string): void;
+    /**
+     * Offered each paste before the command line takes it. Returning true means another part of
+     * the console, such as an open overlay, took it, and the line stays as it was.
+     */
+    onPaste?(text: string): boolean;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
     now?(): number;
 }
@@ -199,7 +204,9 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     const onPaste = (event: PasteEvent): void => {
         if (disposed) return;
         event.preventDefault();
-        insertPasted(new TextDecoder().decode(event.bytes));
+        const text = new TextDecoder().decode(event.bytes);
+        if (props.onPaste?.(text) === true) return;
+        insertPasted(text);
     };
 
     function layoutStrip(): void {

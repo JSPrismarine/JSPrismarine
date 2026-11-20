@@ -1265,6 +1265,20 @@ describe('createApp', () => {
             expect(byId(t, 'command-palette')?.visible).toBe(false);
         });
 
+        it('sends a paste to the open palette and leaves the command line alone', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            expect(byId(t, 'side-pane')?.visible).toBe(true);
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.mockInput.pasteBracketedText('side pane');
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+
+            expect(commandLine(t)).toBe('');
+            expect(byId(t, 'side-pane')?.visible).toBe(false);
+        });
+
         it('runs a console action chosen in the palette', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;

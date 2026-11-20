@@ -35,6 +35,21 @@ async function setup() {
 }
 
 describe('createCommandPalette', () => {
+    it('shortens a long description before the command name it describes', async () => {
+        const { test, palette } = await setup();
+        try {
+            palette.open([{ kind: 'command', name: 'gamerule', description: 'Reads and writes. '.repeat(6) }]);
+            await test.renderOnce();
+            const row = test
+                .captureCharFrame()
+                .split('\n')
+                .find((line) => line.includes('▸'));
+            expect(row).toContain('gamerule');
+        } finally {
+            await test.dispose();
+        }
+    });
+
     it('chooses the first item for an empty query, and closes before handing it over', async () => {
         const { test, palette, chosen, keys } = await setup();
         try {
