@@ -210,7 +210,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      `world.sendMessage` are the only world members with behavior; the script host is an optional
      dependency of `prismarine` while it is private and built for Linux x64 only
      ([#3215](https://github.com/JSPrismarine/JSPrismarine/issues/3215)).
-7. [ ] [#3204](https://github.com/JSPrismarine/JSPrismarine/issues/3204) **The debugger.** The protocol the VS Code extension speaks, `/script debugger
+7. [x] [#3204](https://github.com/JSPrismarine/JSPrismarine/issues/3204) **The debugger.** The protocol the VS Code extension speaks, `/script debugger
    listen|connect|detach` and the `script-debugger-*` properties, over koush's debugger patch
    ported to the pinned QuickJS. Planned with the skeleton, and split into its own slice right
    after it if the port is large.
@@ -252,10 +252,33 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      sends `ThreadEvent` exited and new around `/reload`, and sends a `terminated` event before
      `close` drops the connection. BDS's listener reset every connection on this host, so its
      listen-mode handshake was not captured.
-   - Left: `/reload` ends the debugger session instead of keeping it across the new engine as BDS
-     does; the extension's command box (`minecraftCommand`), the `terminated` event, the stats
-     and schema events and the profiler are not implemented; the VS Code check below has not run,
-     because VS Code is not available on the host that built this.
+   - Learned (2026-11-20), from a capture of the pinned BDS 1.26.51.1 in connect mode with the
+     `system-tasks` pack: the `SchemaEvent` comes right after the handshake, before the attach's
+     `PrintEvent`, and lists three tabs, `Client - Timings`, `Client - Memory` and `Server -
+     Scripting Engine`, the last a table fed by the `scripting_engine` statistic. `StatEvent2`
+     carries `{ tick, stats }`, each statistic `{ name, should_aggregate, values?, children? }`.
+     Every tick sends `handle_counts` and `entities`, about every other tick adds
+     `server_tick_timings`, and every tenth tick adds `scripting_engine` (QuickJS's memory usage
+     counts), `runtime_memory`, `app_memory`, `networking`, `chunks` and the event subscriber
+     counts. A `minecraftCommand` logs `[Scripting] Executing command [<command>]` at info, sends
+     it as a level 1 `PrintEvent`, and the command's error follows the same way; a `say` prints
+     nothing more. `/reload` sends `ThreadEvent` `exited`, the pack's discovery lines at level 0,
+     then `ThreadEvent` `new`, with no second `Debugger attached` line. `script debugger close`
+     sends `{ "type": "terminated" }` as the last event, with no `ThreadEvent` before it.
+     `stopProfiler` answers with a `ProfilerCapture` of `capture_base_path`, the path the
+     extension sent, and `capture_data`, a base64 `.cpuprofile` with a `$vscode` field, which the
+     extension's source-map pass needs; `startProfiler` sends nothing.
+   - Learned: JSPrismarine sends the same schema, `entities` each tick, and the engine's used
+     memory as `runtime_memory` and `scripting_engine` every tenth tick. Its profiler samples the
+     debugged pack's stack at each debugger poll, every `pollLines` lines, so it counts lines
+     rather than time and misses a script shorter than the poll interval. A command from the
+     command box runs between ticks, never inside a stopped or running script, as a script's
+     `Dimension.runCommand` in the named dimension. The handshake that BDS refuses ends without
+     `terminated`, since the refusal capture shows none.
+   - Left: the VS Code check below has not run, because VS Code is not available on the host
+     that built this. The diagnostics panel lacks BDS's other statistics and ignores
+     `diagnostics-set-active`
+     ([#3322](https://github.com/JSPrismarine/JSPrismarine/issues/3322)).
    - Checking it with VS Code: install the Minecraft Bedrock Debugger extension
      (`mojang-studios.minecraft-debugger`) and run
      `pnpm --filter @jsprismarine/script-host run build:native`. Give the server a flat world,
@@ -319,7 +342,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      whether the event fires with `script-watchdog-enable-shutdown` off, are not captured; the
      runtime sends it only before a shutdown and logs the unhandled exception after it.
      `ChatSendBeforeEvent.targets` and `Player.name` have no behavior yet.
-10. [ ] [#3207](https://github.com/JSPrismarine/JSPrismarine/issues/3207) **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
+10. [x] [#3207](https://github.com/JSPrismarine/JSPrismarine/issues/3207) **Core server breadth.** Players, entities, blocks, dimensions, items and the events the
     corpus uses most, in batches. Each batch names the corpus packs it makes run.
     - Batch 1 (2026-11-17): `world.getPlayers` and `getAllPlayers`, `Dimension.getEntities`,
       `spawnEntity`, `getBlock` and `runCommand`, `Entity` and `Player` with the inventory's
@@ -835,6 +858,11 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       networking library but not the script host's.
 19. [ ] [#3216](https://github.com/JSPrismarine/JSPrismarine/issues/3216) **scriptc.** The scriptc binding over the same C layer, once the server compiles under
     scriptc.
+    - Parked (2026-11-20): scriptc 0.4.14 compiles about half the packages once the error catalog
+      is stubbed, and stops on 124 blocker sites in the rest, most of them features it does not
+      support yet. The whole-server build's `SC3004` is a crash in scriptc's code generator.
+      [#3323](https://github.com/JSPrismarine/JSPrismarine/issues/3323) lists the blockers and the
+      repros.
 20. [x] [#3217](https://github.com/JSPrismarine/JSPrismarine/issues/3217) **The rest.** `debug-utilities`, `diagnostics` and `server-graphics`, as the corpus asks.
     - Done (2026-11-18): the corpus uses only `@minecraft/debug-utilities`, in the beta packs
       `canopy`, `construct` and `lushway`: the shape constructors, `color`, `scale`, `timeLeft`,

@@ -16,6 +16,7 @@ import type { ScriptPack } from '@jsprismarine/script-host/host/pack';
 import type { GameTestReply } from '@jsprismarine/script-host/host/gametest';
 import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/script-host/host/WorldScripts';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
+import type { DebuggerStat } from '@jsprismarine/script-host/debugger/protocol';
 
 import { about } from '../about';
 import type { ScriptDebuggerConfig, ScriptWatchdogConfig } from '../config/Config';
@@ -68,6 +69,9 @@ const DEBUGGER_OFF: ScriptDebuggerConfig = {
     autoAttachTimeout: 0,
     passcode: ''
 };
+
+/** How often an attached debugger gets the engine's memory, in ticks, as BDS sends it. */
+const MEMORY_STAT_TICKS = 10;
 
 /** A world whose tick runs the level's script flush. */
 export interface ScriptPhaseWorld {
@@ -163,7 +167,16 @@ export class LevelScripts {
             ...(options.debugger?.sleep === undefined ? {} : { sleep: options.debugger.sleep }),
             scripts: debuggableScripts(packs, () => scripts?.runtime),
             host: host.debuggerHost,
-            log: options.log
+            log: options.log,
+            // The extension's command box runs a command as a script's dimension does, and BDS
+            // prints it and its error to the content log.
+            runCommand: (command, dimension) => {
+                log.info(`${SCRIPTING_PREFIX}Executing command [${command}]`);
+                const result = world.runCommand(command, {
+                    dimension: dimension.includes(':') ? dimension : `minecraft:${dimension}`
+                });
+                if ('error' in result) log.info(`${SCRIPTING_PREFIX}${result.error}`);
+            }
         });
         // The content log's script lines also go to the debug console of an attached debugger.
         const log: ScriptLog = {
@@ -226,12 +239,39 @@ export class LevelScripts {
 
     /** Runs the script flush, for a level ticked by hand rather than through its world. */
     public flush(): void {
+        const tick = this.runtime.currentTick;
         this.world.beginFlush();
         try {
             this.runtime.flush();
         } finally {
             this.world.endFlush();
         }
+        this.debugger.tick(tick, () => this.debuggerStats(tick));
+    }
+
+    /**
+     * One tick's statistics for an attached debugger, in the names BDS streams: the level's
+     * entities each tick, and the engine's memory every {@link MEMORY_STAT_TICKS} ticks, for the
+     * extension's world and memory tabs and BDS's scripting engine table.
+     */
+    private debuggerStats(tick: number): DebuggerStat[] {
+        const entities = this.world.dimensions().reduce((sum, name) => sum + this.world.entities(name).length, 0);
+        const stats: DebuggerStat[] = [{ name: 'entities', should_aggregate: false, values: [entities] }];
+        if (tick % MEMORY_STAT_TICKS !== 0) return stats;
+        const used = this.runtime.stats().memoryUsed;
+        stats.push(
+            {
+                name: 'runtime_memory',
+                should_aggregate: false,
+                children: [{ name: 'used', should_aggregate: false, values: [used] }]
+            },
+            {
+                name: 'scripting_engine',
+                should_aggregate: false,
+                children: [{ name: 'Memory Used (KB)', should_aggregate: false, values: [used / 1000] }]
+            }
+        );
+        return stats;
     }
 
     /**
@@ -262,10 +302,10 @@ export class LevelScripts {
 
     /**
      * Reloads every pack's scripts, as `/reload` does. The reload replaces the engine, so an
-     * attached debugger detaches first.
+     * attached debugger detaches first, and attaches to the new engine once its pack has loaded.
      */
     public reload(): void {
-        this.debugger.detachForReload();
+        this.debugger.reloading();
         this.runtime.reload();
     }
 

@@ -291,8 +291,97 @@ describe.skipIf(!scriptHostAvailable())('the script debugger', () => {
 
         expect(await scripts.debugger.close()).toEqual({ ok: true, message: 'Debugger closed' });
         await vscode.until((ext) => ext.reports.some((report) => report.kind === 'closed'));
-        expect(vscode.events().at(-1)).toEqual({ type: 'ThreadEvent', reason: 'exited', thread: 1 });
+        // BDS ends the session with `terminated` just before it closes the connection.
+        expect(vscode.events().at(-1)).toEqual({ type: 'terminated' });
         expect(scripts.debugger.attached).toBe(false);
+    });
+
+    it('keeps the session across /reload, as BDS does, and stops at the same breakpoint again', async () => {
+        const lines = new Lines();
+        const scripts = await load({ allowInbound: true }, lines);
+        const reply = await scripts.debugger.listen(0);
+        const vscode = extension({
+            mode: 'connect',
+            port: portOf(reply?.message),
+            target: MODULE_UUID,
+            breakpoints: { path: 'main.js', lines: [RUN_A_LINE] }
+        });
+        expect(await scripts.debugger.whenConnected()).toBe(true);
+        scripts.start({ setScriptPhase: () => {} });
+        const stops = (ext: Extension) => ext.events().filter((event) => event.type === 'StoppedEvent').length;
+        for (let tick = 0; tick < 3; tick++) scripts.flush();
+        await vscode.until((ext) => stops(ext) === 1);
+
+        scripts.reload();
+        expect(scripts.debugger.attached).toBe(true);
+        for (let tick = 0; tick < 3; tick++) scripts.flush();
+        await vscode.until((ext) => stops(ext) === 2);
+
+        expect(
+            vscode
+                .events()
+                .filter((event) => event.type === 'ThreadEvent' || event.type === 'StoppedEvent')
+                .map((event) => `${String(event.type)} ${String(event.reason)}`)
+        ).toEqual([
+            'ThreadEvent new',
+            'StoppedEvent breakpoint',
+            'ThreadEvent exited',
+            'ThreadEvent new',
+            'StoppedEvent breakpoint'
+        ]);
+        expect(lines.debugger().filter((line) => line.includes('Debugger attached'))).toHaveLength(1);
+        expect(lines.list).not.toContain('warn [Scripting] Debugger connection closed.');
+    });
+
+    it('describes its tabs once, then streams one StatEvent2 for each tick while attached', async () => {
+        const scripts = await load({ allowInbound: true }, new Lines());
+        const reply = await scripts.debugger.listen(0);
+        const vscode = extension({ mode: 'connect', port: portOf(reply?.message), target: MODULE_UUID });
+        expect(await scripts.debugger.whenConnected()).toBe(true);
+        scripts.start({ setScriptPhase: () => {} });
+        const ticks = 12;
+        for (let tick = 0; tick < ticks; tick++) scripts.flush();
+        const stats = await vscode.until((ext) => {
+            const found = ext.events().filter((event) => event.type === 'StatEvent2');
+            return found.length === ticks && found;
+        });
+
+        expect(vscode.events().filter((event) => event.type === 'SchemaEvent')).toHaveLength(1);
+        expect(vscode.events()[1]?.type).toBe('SchemaEvent');
+        expect(stats.map((event) => event.tick)).toEqual([...Array(ticks).keys()]);
+        // The engine's memory comes every tenth tick, as on BDS; the entity count every tick.
+        const named = (name: string) =>
+            stats.filter(
+                (event) =>
+                    Array.isArray(event.stats) && event.stats.some((stat) => isRecord(stat) && stat.name === name)
+            );
+        expect(named('entities')).toHaveLength(ticks);
+        expect(named('scripting_engine').map((event) => event.tick)).toEqual([0, 10]);
+    });
+
+    it('runs the command box’s commands between ticks and shows what they print, as BDS does', async () => {
+        const lines = new Lines();
+        const scripts = await load({ allowInbound: true }, lines);
+        const reply = await scripts.debugger.listen(0);
+        const vscode = extension({ mode: 'connect', port: portOf(reply?.message), target: MODULE_UUID });
+        expect(await scripts.debugger.whenConnected()).toBe(true);
+        scripts.start({ setScriptPhase: () => {} });
+
+        vscode.send({
+            op: 'send',
+            message: { type: 'minecraftCommand', command: 'notacommand', dimension_type: 'overworld' }
+        });
+        await lines.until('info [Scripting] Executing command [notacommand]');
+        await vscode.until((ext) =>
+            ext
+                .events()
+                .some((event) => event.type === 'PrintEvent' && event.message === 'Executing command [notacommand]')
+        );
+        const printed = lines.list.slice(lines.list.indexOf('info [Scripting] Executing command [notacommand]'));
+        expect(printed).toEqual([
+            'info [Scripting] Executing command [notacommand]',
+            'info [Scripting] Unknown command: notacommand'
+        ]);
     });
 
     it('connects to an extension that listens, and logs the connection closing when it hangs up', async () => {
