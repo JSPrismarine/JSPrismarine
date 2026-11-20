@@ -18,7 +18,7 @@ import type {
     ScriptItem
 } from '@jsprismarine/script-host/host/world';
 import { ATTRIBUTES } from '@jsprismarine/entities/attributes';
-import type { AttributeName } from '@jsprismarine/entities/attributes';
+import type { AttributeName, AttributeSpec } from '@jsprismarine/entities/attributes';
 
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
@@ -126,14 +126,21 @@ const PLAYER_VITALS: Readonly<
 /** The largest a player's hunger, saturation or exhaustion reads. */
 const VITAL_MAX = 20;
 
-/** The attributes BDS gives every mob, whatever its definition says. */
-const LIQUID_SPEEDS: ReadonlySet<AttributeName> = new Set(['underwater_movement', 'lava_movement']);
-
-/** A mob's speed in water and in lava when its definition gives it none. */
-const LIQUID_SPEED = 0.02;
-
 /** The largest 32-bit float, which bounds an attribute BDS gives no maximum. */
 const FLOAT_MAX = 3.4028234663852886e38;
+
+/**
+ * The attributes BDS gives every mob whatever its definition says, with the values it gives one
+ * whose definition declares none, as the `entity-values` and `entity-attributes` scenarios
+ * recorded: an NPC declares no health and reads 20 with no upper bound, and an armor stand
+ * declares no movement and reads 0.7.
+ */
+const MOB_ATTRIBUTE_DEFAULTS: ReadonlyMap<AttributeName, AttributeSpec> = new Map<AttributeName, AttributeSpec>([
+    ['health', { base: 20, max: FLOAT_MAX }],
+    ['movement', { base: 0.7 }],
+    ['underwater_movement', { base: 0.02 }],
+    ['lava_movement', { base: 0.02 }]
+]);
 
 /** A player's game mode as the Script API names it, or undefined for one it has no name for. */
 export const gameModeName = (gamemode: number) => {
@@ -211,16 +218,17 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
     const javaDimension = (dimension: string): string => worldOf(dimension)?.getDimension().id ?? dimension;
     const entryOf = (item: ScriptItem) => containerEntryOf(server, item);
     /**
-     * An entity's attribute. A mob whose definition gives it no speed in water or lava has BDS's
-     * default of 0.02 for each, as the `entity-values` scenario recorded, which is declared on it
-     * the first time a script reads it.
+     * An entity's attribute. A mob whose definition leaves out one of the attributes BDS gives
+     * every mob has BDS's default for it, see {@link MOB_ATTRIBUTE_DEFAULTS}, declared on it the
+     * first time a script reads it.
      */
-    const liquidSpeedOf = (actor: StoreActor | undefined, name: AttributeName) => {
+    const attributeOf = (actor: StoreActor | undefined, name: AttributeName) => {
         const attributes = actor?.entity.instance.attributes;
         const found = attributes?.get(name);
-        if (found !== undefined || attributes === undefined || !LIQUID_SPEEDS.has(name)) return found;
+        const fallback = MOB_ATTRIBUTE_DEFAULTS.get(name);
+        if (found !== undefined || attributes === undefined || fallback === undefined) return found;
         const mob = attributes.get('health') !== undefined || attributes.get('movement') !== undefined;
-        return mob ? attributes.define(name, { base: LIQUID_SPEED }) : undefined;
+        return mob ? attributes.define(name, fallback) : undefined;
     };
     /** The attribute a component id names, such as `health` for `minecraft:health`. */
     const attributeName = (component: string): AttributeName | undefined =>
@@ -414,7 +422,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                 };
             }
             const name = attributeName(component);
-            const found = name === undefined ? undefined : liquidSpeedOf(actorOf(id), name);
+            const found = name === undefined ? undefined : attributeOf(actorOf(id), name);
             if (found === undefined) return undefined;
             // BDS keeps attributes as 32-bit floats, and bounds a speed only by the largest of them.
             return {
@@ -432,7 +440,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             }
             const name = attributeName(component);
             const attributes = actorOf(id)?.entity.instance.attributes;
-            const found = name === undefined ? undefined : liquidSpeedOf(actorOf(id), name);
+            const found = name === undefined ? undefined : attributeOf(actorOf(id), name);
             if (name === undefined || attributes === undefined || found === undefined) return;
             if (value > found.max) attributes.setMax(name, value);
             attributes.set(name, value);
