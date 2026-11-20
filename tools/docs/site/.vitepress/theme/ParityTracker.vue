@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import type { TrackerCase } from '../../../../../packages/parity/src/dashboard/tracker.ts';
 import {
     behaviorProgress,
     isBehaviorFamily,
@@ -8,7 +9,16 @@ import {
     trackerProgressPercent,
     trackerProgressTotal
 } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
-import { groupProgress, useTrackerSnapshot } from './parity';
+import type { TrackerSummaryFamily } from '../../../../../packages/parity/src/dashboard/trackerSummary.ts';
+import type { ParityPageData } from '../../parity.data.mts';
+import { groupProgress, useTrackerCases, withCases } from './parity';
+
+/**
+ * The page renders from the build-time summary, on the server and on the client's first render, so
+ * the two match. Once mounted, the group tiles become filters and the case chunks load; until they
+ * do, and if they fail, each family lists its open gaps from the summary instead of every case.
+ */
+const props = defineProps<{ snapshot: ParityPageData | null }>();
 
 const statuses = [
     { id: 'all', label: 'Any status' },
@@ -20,6 +30,8 @@ const statuses = [
     { id: 'defect', label: 'Known defects' }
 ] as const;
 const CASES_PER_FAMILY_PAGE = 20;
+/** One locale on the server and in every browser, so the hydrated numbers match the rendered ones. */
+const count = new Intl.NumberFormat('en-US');
 const activeGroup = ref('all');
 const activeStatus = ref<(typeof statuses)[number]['id']>('all');
 const query = ref('');
@@ -28,8 +40,15 @@ const expanded = ref(false);
 /** Families sort by pass rate, lowest first, so the open gaps lead; the toggle switches to A to Z. */
 const sortByName = ref(false);
 const familyCaseLimits = ref<Record<string, number>>({});
-const { tracker, loadError } = useTrackerSnapshot();
+/** False on the server and through hydration; controls that need JavaScript render only once it is true. */
+const hydrated = ref(false);
+const summary = computed(() => props.snapshot?.summary ?? null);
+const { cases, loadError } = useTrackerCases(props.snapshot?.caseChunks ?? []);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+onMounted(() => {
+    hydrated.value = true;
+});
 
 watch(query, (value) => {
     if (searchTimer !== undefined) clearTimeout(searchTimer);
@@ -48,11 +67,11 @@ onBeforeUnmount(() => {
 });
 
 const behavior = computed(() =>
-    tracker.value === null ? { passed: 0, tracked: 0 } : behaviorProgress(tracker.value.families)
+    summary.value === null ? { passed: 0, tracked: 0 } : behaviorProgress(summary.value.families)
 );
 
 const groups = computed(() => {
-    const snapshot = tracker.value;
+    const snapshot = summary.value;
     if (snapshot === null) return [{ id: 'all', label: 'All', passed: 0, tracked: 0 }];
     // A group with behavior families shows their score, the measure the headline and the landing page
     // use, so one label never carries two numbers; a group of data tables alone shows its comparisons.
@@ -79,61 +98,94 @@ const groups = computed(() => {
 });
 
 const sourceRevision = computed(() =>
-    tracker.value !== null && /^[0-9a-f]{40}$/i.test(tracker.value.sourceCommit) ? tracker.value.sourceCommit : 'master'
+    summary.value !== null && /^[0-9a-f]{40}$/i.test(summary.value.sourceCommit) ? summary.value.sourceCommit : 'master'
 );
 const commitUrl = computed(() => `https://github.com/JSPrismarine/JSPrismarine/commit/${sourceRevision.value}`);
 const sourceUrl = (file: string, line?: number): string =>
     `https://github.com/JSPrismarine/JSPrismarine/blob/${sourceRevision.value}/${file}${line === undefined ? '' : `#L${line}`}`;
 
+/** A family as the list shows it: its counts, how many cases match, and the ones on screen. */
+interface FamilyRow extends TrackerSummaryFamily {
+    readonly matchCount: number;
+    readonly visibleCases: readonly TrackerCase[];
+}
+
+/** Each family with its cases, grouped once when the chunks arrive rather than on every filter change. */
+const loadedFamilies = computed(() =>
+    summary.value === null || cases.value === null ? null : withCases(summary.value.families, cases.value)
+);
+
 const visibleFamilies = computed(() => {
-    const snapshot = tracker.value;
+    const snapshot = summary.value;
     if (snapshot === null) return [];
     const searchTerm = search.value.trim().toLocaleLowerCase();
+    const inGroup = (family: TrackerSummaryFamily) => activeGroup.value === 'all' || family.group === activeGroup.value;
 
-    return snapshot.families
-        .filter((family) => activeGroup.value === 'all' || family.group === activeGroup.value)
-        .map((family) => {
-            const matchingCases = family.cases.filter((entry) => {
-                const matchesStatus = activeStatus.value === 'all' || entry.status === activeStatus.value;
-                const searchable = [
-                    family.id,
-                    entry.title,
-                    entry.context,
-                    entry.details,
-                    entry.references?.map((part) => part.text).join(' '),
-                    entry.runtimeSupport?.status,
-                    entry.runtimeSupport?.details,
-                    entry.sourceFile
-                ]
-                    .filter(Boolean)
-                    .join(' ')
-                    .toLocaleLowerCase();
-                return matchesStatus && (searchTerm === '' || searchable.includes(searchTerm));
-            });
-            const limit = familyCaseLimits.value[family.id] ?? CASES_PER_FAMILY_PAGE;
-            return {
-                ...family,
-                matchCount: matchingCases.length,
-                visibleCases: matchingCases.slice(0, limit)
-            };
-        })
-        .filter(
-            (family) =>
-                family.matchCount > 0 ||
-                (searchTerm === '' && activeStatus.value === 'all' && family.cases.length === 0)
-        )
-        .sort((left, right) => {
-            if (sortByName.value) return left.id.localeCompare(right.id);
-            const rate = (family: (typeof snapshot.families)[number]) =>
-                family.passed / Math.max(trackerProgressTotal(family), 1);
-            return rate(left) - rate(right) || left.id.localeCompare(right.id);
-        });
+    // Before the cases load, a family lists its open gaps, and its count is every case it has.
+    const loaded = loadedFamilies.value;
+    const rows: FamilyRow[] =
+        loaded === null
+            ? snapshot.families
+                  .filter(inGroup)
+                  .map((family) => ({ ...family, matchCount: family.caseCount, visibleCases: family.openGaps }))
+            : loaded
+                  .filter(inGroup)
+                  .map((family) => {
+                      const matchingCases = family.cases.filter((entry) => {
+                          const matchesStatus = activeStatus.value === 'all' || entry.status === activeStatus.value;
+                          const searchable = [
+                              family.id,
+                              entry.title,
+                              entry.context,
+                              entry.details,
+                              entry.references?.map((part) => part.text).join(' '),
+                              entry.runtimeSupport?.status,
+                              entry.runtimeSupport?.details,
+                              entry.sourceFile
+                          ]
+                              .filter(Boolean)
+                              .join(' ')
+                              .toLocaleLowerCase();
+                          return matchesStatus && (searchTerm === '' || searchable.includes(searchTerm));
+                      });
+                      const limit = familyCaseLimits.value[family.id] ?? CASES_PER_FAMILY_PAGE;
+                      return {
+                          ...family,
+                          matchCount: matchingCases.length,
+                          visibleCases: matchingCases.slice(0, limit)
+                      };
+                  })
+                  .filter(
+                      (family) =>
+                          family.matchCount > 0 ||
+                          (searchTerm === '' && activeStatus.value === 'all' && family.cases.length === 0)
+                  );
+
+    return rows.sort((left, right) => {
+        if (sortByName.value) return left.id.localeCompare(right.id);
+        const rate = (family: FamilyRow) => family.passed / Math.max(trackerProgressTotal(family), 1);
+        return rate(left) - rate(right) || left.id.localeCompare(right.id);
+    });
 });
 
 const displayedCaseCount = computed(() =>
     visibleFamilies.value.reduce((total, family) => total + family.visibleCases.length, 0)
 );
 const matchingCaseCount = computed(() => visibleFamilies.value.reduce((total, family) => total + family.matchCount, 0));
+
+/** Failing checks, known defects and deferred work: everything the summary's open gaps are cut from. */
+const openGapCount = (family: TrackerSummaryFamily): number => family.failed + family.defects + family.deferred;
+
+/** The family's nonzero counts, by status, for the line a family shows before its cases load. */
+const familyCounts = (family: TrackerSummaryFamily) =>
+    [
+        { status: 'passed', label: 'passing', value: family.passed },
+        { status: 'failed', label: 'failing', value: family.failed },
+        { status: 'not-measured', label: 'not measured', value: family.notMeasured },
+        { status: 'intentional', label: 'intentional differences', value: family.intentional },
+        { status: 'deferred', label: 'deferred', value: family.deferred },
+        { status: 'defect', label: 'known defects', value: family.defects }
+    ].filter((entry) => entry.value > 0);
 
 const loadMoreCases = (familyId: string): void => {
     const currentLimit = familyCaseLimits.value[familyId] ?? CASES_PER_FAMILY_PAGE;
@@ -148,11 +200,11 @@ const percentage = trackerProgressPercent;
 </script>
 
 <template>
-    <div v-if="tracker" class="tracker">
+    <div v-if="summary" class="tracker">
         <header class="tracker-hero">
             <p class="tracker-eyebrow">
                 <i></i>Parity tracker · generated
-                <time :datetime="tracker.generatedAt">{{ tracker.generatedAt.slice(0, 10) }}</time>
+                <time :datetime="summary.generatedAt">{{ summary.generatedAt.slice(0, 10) }}</time>
                 <!-- A snapshot without a commit (a local build) names the branch, not a fake commit. -->
                 <template v-if="sourceRevision !== 'master'">
                     · commit <a :href="commitUrl">{{ sourceRevision.slice(0, 7) }}</a></template
@@ -166,12 +218,12 @@ const percentage = trackerProgressPercent;
                 <div class="score-copy">
                     <h2>behavior parity</h2>
                     <span
-                        >{{ behavior.passed.toLocaleString() }} of {{ behavior.tracked.toLocaleString() }} tracked
-                        behavior comparisons passing. All comparisons, including data tables:
-                        {{ trackerPrimaryProgressPercent(tracker.passed, trackerProgressTotal(tracker)) }}% ({{
-                            tracker.passed.toLocaleString()
+                        >{{ count.format(behavior.passed) }} of {{ count.format(behavior.tracked) }} tracked behavior
+                        comparisons passing. All comparisons, including data tables:
+                        {{ trackerPrimaryProgressPercent(summary.passed, trackerProgressTotal(summary)) }}% ({{
+                            count.format(summary.passed)
                         }}
-                        of {{ trackerProgressTotal(tracker).toLocaleString() }}).</span
+                        of {{ count.format(trackerProgressTotal(summary)) }}).</span
                     >
                 </div>
             </div>
@@ -186,22 +238,22 @@ const percentage = trackerProgressPercent;
             <p class="overview-counts-label">All comparisons, including data tables</p>
             <ul class="overview-counts" aria-label="All comparisons by status">
                 <li class="status-count passed">
-                    <b>{{ tracker.passed.toLocaleString() }}</b> passing
+                    <b>{{ count.format(summary.passed) }}</b> passing
                 </li>
-                <li class="status-count failed" :class="{ 'is-zero': tracker.failed === 0 }">
-                    <b>{{ tracker.failed.toLocaleString() }}</b> failing
+                <li class="status-count failed" :class="{ 'is-zero': summary.failed === 0 }">
+                    <b>{{ count.format(summary.failed) }}</b> failing
                 </li>
                 <li class="status-count not-measured">
-                    <b>{{ tracker.notMeasured.toLocaleString() }}</b> not measured
+                    <b>{{ count.format(summary.notMeasured) }}</b> not measured
                 </li>
                 <li class="status-count intentional">
-                    <b>{{ tracker.intentional.toLocaleString() }}</b> intentional differences
+                    <b>{{ count.format(summary.intentional) }}</b> intentional differences
                 </li>
                 <li class="status-count deferred">
-                    <b>{{ tracker.deferred.toLocaleString() }}</b> deferred
+                    <b>{{ count.format(summary.deferred) }}</b> deferred
                 </li>
                 <li class="status-count defect">
-                    <b>{{ tracker.defects.toLocaleString() }}</b> known defects
+                    <b>{{ count.format(summary.defects) }}</b> known defects
                 </li>
             </ul>
         </header>
@@ -226,14 +278,16 @@ const percentage = trackerProgressPercent;
         </details>
 
         <h2 class="tracker-section-title">Behavior groups</h2>
-        <section class="group-picker" aria-label="Filter by family group">
-            <button
+        <!-- The tiles filter the cases once the page is interactive; before that they are figures, not dead buttons. -->
+        <section class="group-picker" :aria-label="hydrated ? 'Filter by family group' : undefined">
+            <component
+                :is="hydrated ? 'button' : 'div'"
                 v-for="group in groups"
                 :key="group.id"
-                type="button"
+                :type="hydrated ? 'button' : undefined"
                 class="group-option"
                 :class="{ active: activeGroup === group.id }"
-                :aria-pressed="activeGroup === group.id"
+                :aria-pressed="hydrated ? activeGroup === group.id : undefined"
                 @click="selectedGroup(group.id)"
             >
                 <span class="group-option-name">{{ group.label }}</span>
@@ -248,7 +302,7 @@ const percentage = trackerProgressPercent;
                         }}%</b
                     >
                     <span
-                        >{{ group.passed.toLocaleString() }}/{{ group.tracked.toLocaleString() }}
+                        >{{ count.format(group.passed) }}/{{ count.format(group.tracked) }}
                         <i>{{ group.measure === 'behavior' ? 'checks' : 'rows' }}</i></span
                     >
                 </span>
@@ -258,12 +312,13 @@ const percentage = trackerProgressPercent;
                     :max="Math.max(group.tracked, 1)"
                     aria-hidden="true"
                 />
-            </button>
+            </component>
         </section>
 
         <h2 class="tracker-section-title">Cases</h2>
-        <section class="case-list" aria-label="Parity cases">
-            <div class="controls">
+        <section class="case-list" aria-label="Parity cases" :aria-busy="hydrated && cases === null && !loadError">
+            <!-- Filtering needs the cases, so the controls wait for them; they never render without JavaScript. -->
+            <div v-if="hydrated && !loadError" class="controls">
                 <div class="status-filters" role="group" aria-label="Filter by status">
                     <button
                         v-for="status in statuses"
@@ -271,6 +326,7 @@ const percentage = trackerProgressPercent;
                         type="button"
                         :class="{ active: activeStatus === status.id }"
                         :aria-pressed="activeStatus === status.id"
+                        :disabled="cases === null"
                         @click="activeStatus = status.id"
                     >
                         {{ status.label }}
@@ -278,16 +334,29 @@ const percentage = trackerProgressPercent;
                 </div>
                 <label class="search-field">
                     <span class="visually-hidden">Search parity cases</span>
-                    <input v-model="query" type="search" placeholder="Search cases, families, or files…" />
+                    <input
+                        v-model="query"
+                        type="search"
+                        placeholder="Search cases, families, or files…"
+                        :disabled="cases === null"
+                    />
                 </label>
             </div>
 
             <div class="results-heading">
-                <span
-                    >{{ displayedCaseCount.toLocaleString() }} of {{ matchingCaseCount.toLocaleString() }} matching
-                    cases shown · {{ tracker.cases.length.toLocaleString() }} tracked</span
+                <span v-if="cases"
+                    >{{ count.format(displayedCaseCount) }} of {{ count.format(matchingCaseCount) }} matching cases
+                    shown · {{ count.format(summary.caseCount) }} tracked</span
                 >
-                <span class="results-actions">
+                <span v-else-if="loadError"
+                    >Could not load the case list, so each family shows its open gaps only. Refresh to try again.</span
+                >
+                <span v-else-if="hydrated">Loading {{ count.format(summary.caseCount) }} cases…</span>
+                <span v-else
+                    >Open gaps only · {{ count.format(summary.caseCount) }} cases tracked. The full case list, filters
+                    and search need JavaScript.</span
+                >
+                <span v-if="hydrated" class="results-actions">
                     <button
                         type="button"
                         class="expand-toggle"
@@ -308,13 +377,13 @@ const percentage = trackerProgressPercent;
                 <summary>
                     <span class="family-title">
                         <span class="family-name">{{ family.id }}</span>
-                        <span class="family-count">{{ family.matchCount.toLocaleString() }} cases</span>
+                        <span class="family-count">{{ count.format(family.matchCount) }} cases</span>
                     </span>
                     <span class="family-progress">
                         <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
                             ><b>{{ percentage(family.passed, trackerProgressTotal(family)) }}%</b>
-                            {{ family.passed.toLocaleString() }} of
-                            {{ trackerProgressTotal(family).toLocaleString() }} checks pass</span
+                            {{ count.format(family.passed) }} of {{ count.format(trackerProgressTotal(family)) }} checks
+                            pass</span
                         >
                         <progress
                             :value="family.passed"
@@ -323,7 +392,13 @@ const percentage = trackerProgressPercent;
                         />
                     </span>
                 </summary>
-                <ul class="cases">
+                <!-- Until the cases load, the family says what its counts are made of, then lists its open gaps. -->
+                <ul v-if="cases === null" class="family-counts" aria-label="Cases by status">
+                    <li v-for="entry in familyCounts(family)" :key="entry.status">
+                        <b>{{ count.format(entry.value) }}</b> {{ entry.label }}
+                    </li>
+                </ul>
+                <ul v-if="family.visibleCases.length > 0 || cases !== null" class="cases">
                     <li v-for="entry in family.visibleCases" :key="entry.id" class="case">
                         <span
                             class="status-mark"
@@ -368,21 +443,25 @@ const percentage = trackerProgressPercent;
                             {{ entry.sourceFile.split('/').at(-1) }}
                         </a>
                     </li>
-                    <li v-if="family.visibleCases.length < family.matchCount" class="case-more">
+                    <li v-if="cases !== null && family.visibleCases.length < family.matchCount" class="case-more">
                         <button type="button" @click="loadMoreCases(family.id)">
                             Load next
                             {{ Math.min(CASES_PER_FAMILY_PAGE, family.matchCount - family.visibleCases.length) }}
                             cases · {{ family.matchCount - family.visibleCases.length }} remaining
                         </button>
                     </li>
+                    <li
+                        v-else-if="cases === null && openGapCount(family) > family.visibleCases.length"
+                        class="case-more case-more-note"
+                    >
+                        {{ count.format(openGapCount(family) - family.visibleCases.length) }} more open gaps in the full
+                        case list
+                    </li>
                 </ul>
             </details>
         </section>
     </div>
-    <p v-else-if="loadError" class="tracker tracker-message">
-        Could not load the parity tracker data. Refresh to try again.
-    </p>
-    <p v-else class="tracker tracker-message">Loading parity tracker…</p>
+    <p v-else class="tracker tracker-message">This build has no parity tracker snapshot.</p>
 </template>
 
 <style scoped>
@@ -667,13 +746,17 @@ progress::-moz-progress-bar {
     padding: 14px;
     color: var(--vp-c-text-1);
     text-align: left;
-    cursor: pointer;
     background: var(--tracker-surface);
     border: 2px solid transparent;
     border-radius: var(--jsp-radius-control);
 }
 
-.group-option:hover {
+/* A tile is a button once the page is interactive; until then it is a figure and shows no pointer. */
+button.group-option {
+    cursor: pointer;
+}
+
+button.group-option:hover {
     border-color: var(--jsp-accent);
 }
 
@@ -800,10 +883,17 @@ progress::-moz-progress-bar {
     border-radius: 99px;
 }
 
-.status-filters button:hover,
+.status-filters button:enabled:hover,
 .expand-toggle:hover,
 .case-more button:hover {
     border-color: var(--jsp-accent);
+}
+
+/* The filters wait for the case list; muted text, not an opacity, keeps them readable meanwhile. */
+.status-filters button:disabled,
+.search-field input:disabled {
+    color: var(--tracker-muted);
+    cursor: progress;
 }
 
 .status-filters button.active {
@@ -984,6 +1074,32 @@ progress::-moz-progress-bar {
     padding: 10px 0 6px;
     margin: 0;
     list-style: none;
+}
+
+.case-more-note {
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
+    color: var(--tracker-muted);
+}
+
+/* A family's counts by status, shown until its cases load: mono figures like the progress beside it. */
+.family-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    padding: 0 16px 10px;
+    margin: 0;
+    font: var(--jsp-label-size) var(--vp-font-family-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--tracker-muted);
+    list-style: none;
+}
+
+.family-counts li {
+    margin: 0;
+}
+
+.family-counts b {
+    color: var(--vp-c-text-1);
 }
 
 .status-mark {

@@ -6,6 +6,10 @@ aside: false
 outline: false
 ---
 
+<script setup>
+import { data } from './parity.data.mts';
+</script>
+
 <div class="vp-raw">
-<ParityTracker />
+<ParityTracker :snapshot="data" />
 </div>

@@ -1,5 +1,5 @@
 import { withBase } from 'vitepress';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, shallowRef } from 'vue';
 
 import type { TrackerCase, TrackerData, TrackerFamily } from '../../../../../packages/parity/src/dashboard/tracker.ts';
 import { trackerProgressTotal } from '../../../../../packages/parity/src/dashboard/trackerProgress.ts';
@@ -27,19 +27,45 @@ export function useTrackerSnapshot() {
     onMounted(async () => {
         try {
             const index = await fetchJson<TrackerIndex>('index.json');
-            const chunks = await Promise.all(index.caseChunks.map((name) => fetchJson<TrackerCase[]>(name)));
-            const cases = chunks.flat();
-            const byFamily = Map.groupBy(cases, (entry) => entry.family);
-            tracker.value = {
-                ...index,
-                cases,
-                families: index.families.map((family) => ({ ...family, cases: byFamily.get(family.id) ?? [] }))
-            };
+            const cases = await fetchCases(index.caseChunks);
+            tracker.value = { ...index, cases, families: withCases(index.families, cases) };
         } catch {
             loadError.value = true;
         }
     });
     return { tracker, loadError };
+}
+
+/**
+ * Loads the case chunks once the page has mounted. Until then, and if they fail to load, `cases` is
+ * null, so the page renders what it rendered on the server.
+ */
+export function useTrackerCases(caseChunks: readonly string[]) {
+    // A shallow ref: tens of thousands of cases never change once loaded, so nothing needs to track them.
+    const cases = shallowRef<readonly TrackerCase[] | null>(null);
+    const loadError = ref(false);
+    onMounted(async () => {
+        try {
+            cases.value = await fetchCases(caseChunks);
+        } catch {
+            loadError.value = true;
+        }
+    });
+    return { cases, loadError };
+}
+
+/** Gives each family the cases the chunks hold for it, in chunk order. */
+export function withCases<Family extends { readonly id: string }>(
+    families: readonly Family[],
+    cases: readonly TrackerCase[]
+) {
+    const byFamily = Map.groupBy(cases, (entry) => entry.family);
+    return families.map((family) => ({ ...family, cases: byFamily.get(family.id) ?? [] }));
+}
+
+async function fetchCases(caseChunks: readonly string[]): Promise<TrackerCase[]> {
+    const chunks = await Promise.all(caseChunks.map((name) => fetchJson<TrackerCase[]>(name)));
+    return chunks.flat();
 }
 
 async function fetchJson<T>(name: string): Promise<T> {
