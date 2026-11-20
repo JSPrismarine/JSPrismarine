@@ -97,8 +97,16 @@ function notices(t: AppHarness): string[] {
 }
 
 /** Levels of the log records the view shows. */
-const visibleLevels = (t: AppHarness) =>
-    t.store.visible().flatMap((record) => (record.kind === 'log' ? [record.level] : []));
+/** The level column of each log row the pane paints, top to bottom, lowercased. */
+const visibleLevels = (t: AppHarness): string[] => {
+    const levels: string[] = [];
+    for (let index = 0; ; index += 1) {
+        const row = byId(t, `log-row-text-${index}`);
+        if (!(row instanceof TextRenderable)) return levels;
+        const level = /^\d\d:\d\d:\d\d (\S+)/.exec(row.plainText)?.[1];
+        if (level !== undefined) levels.push(level.toLowerCase());
+    }
+};
 
 async function focusLog(t: AppHarness): Promise<void> {
     t.mockInput.pressEscape();
