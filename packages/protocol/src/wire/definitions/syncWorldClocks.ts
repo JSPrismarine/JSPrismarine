@@ -6,7 +6,7 @@
 import { definePacket } from '../define';
 import * as t from '../fieldTypes';
 
-import { SyncWorldClocksDataType } from '../../packet/SyncWorldClocksPacket';
+import { SyncWorldClocksDataType } from '../../packet/SyncWorldClocksDataType';
 
 import type { SyncWorldClocksData, TimeMarker, WorldClock, WorldClockState } from '../../packet/SyncWorldClocksPacket';
 import type { PayloadOf } from '../define';
