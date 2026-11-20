@@ -16,7 +16,7 @@ import { packageAreas } from './theme/packageAreas.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
-// The root manifest's homepage is where the site is published, on a custom GitHub Pages domain.
+// The root manifest's homepage is where Cloudflare Pages publishes the site.
 const siteUrl = manifest.homepage;
 // A pull request's preview is this same build at an address of its own, so it shares the site's base
 // path, and its canonical and Open Graph URLs point at the published site.
@@ -81,9 +81,7 @@ export default defineConfig({
     // Cloudflare Pages redirects `/page.html` to `/page`, so links and sitemap entries name the clean
     // path, the one a page's canonical URL already gives.
     cleanUrls: true,
-    /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root. */
     buildEnd(siteConfig) {
-        writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.
         writeFileSync(
