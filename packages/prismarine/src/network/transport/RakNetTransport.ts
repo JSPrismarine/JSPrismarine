@@ -71,6 +71,11 @@ export class RakNetTransportConnection implements TransportConnection {
         else this.session.disconnect(reason);
     }
 
+    /** The session's smoothed round trip time, from the acknowledgments of its datagrams. */
+    public roundTripTime(): number | undefined {
+        return this.session.getRTT() ?? undefined;
+    }
+
     /** The session underneath, for the legacy `RaknetConnectEvent` payload. */
     public getRakNetSession(): RakNetSession {
         return this.session;

@@ -658,6 +658,29 @@ describe('modules/ticker', () => {
             }
         });
 
+        it("reports the last tick's work by the clock it was given, unsmoothed, and zero before the first", () => {
+            let clock = 1_000;
+            const work = [12, 30];
+            const { deps } = buildHarness({
+                isTickingEnabled: () => false,
+                getWorlds: () => [
+                    {
+                        getName: () => 'world',
+                        update: () => {
+                            clock += work.shift() ?? 0;
+                        }
+                    }
+                ]
+            });
+            const ticker = new ServerTicker(deps, () => clock);
+            expect(ticker.getLastTickMs()).toBe(0);
+
+            ticker.advance();
+            expect(ticker.getLastTickMs()).toBe(12);
+            ticker.advance();
+            expect(ticker.getLastTickMs()).toBe(30);
+        });
+
         it('refuses to run beside the loop or from inside the tick it is running', async () => {
             const refused: unknown[] = [];
             const harness = buildHarness({

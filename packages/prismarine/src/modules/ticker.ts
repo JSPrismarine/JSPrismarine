@@ -220,6 +220,11 @@ export interface Ticker {
      * server reads well under the 50 ms period. Zero until the first tick completes.
      */
     getTickMs(): number;
+    /**
+     * How long the last tick's work took, in milliseconds, without the sleep before the next
+     * tick. Zero until the first tick completes.
+     */
+    getLastTickMs(): number;
 }
 
 /** What `/tick` can do to the loop: the rate it aims for, whether the world advances, and bursts of ticks. */
@@ -261,6 +266,7 @@ export class ServerTicker implements Ticker, TickControl {
     private tps = 20;
     private tpsAverages = TPS_AVERAGE_MINUTES.map(() => DEFAULT_TICK_RATE);
     private tickMs = 0;
+    private lastTickMs = 0;
     private currentTick = 0n;
     private tickRate = DEFAULT_TICK_RATE;
     private frozen = false;
@@ -307,6 +313,11 @@ export class ServerTicker implements Ticker, TickControl {
     /** The smoothed per-tick work duration in milliseconds; see {@link Ticker.getTickMs}. */
     public getTickMs(): number {
         return Number.parseFloat(this.tickMs.toFixed(2));
+    }
+
+    /** The last tick's work duration in milliseconds; see {@link Ticker.getLastTickMs}. */
+    public getLastTickMs(): number {
+        return Number.parseFloat(this.lastTickMs.toFixed(2));
     }
 
     /** The ticks per second the loop aims for. */
@@ -432,6 +443,7 @@ export class ServerTicker implements Ticker, TickControl {
                 } = phases;
                 const endTime = now();
                 const elapsedMs = endTime - tickStartedAt;
+                this.lastTickMs = elapsedMs;
                 this.recorder.record({
                     tick: Number(this.currentTick),
                     latenessMs: Math.max(0, tickStartedAt - dueAt),
@@ -574,10 +586,11 @@ export class ServerTicker implements Ticker, TickControl {
         const startedAt = this.now();
         try {
             const { tickHandlersMs, worldUpdatesMs, chunkCompletionsMs, chunkSchedulerMs } = this.runTick();
+            this.lastTickMs = this.now() - startedAt;
             this.recorder.record({
                 tick: Number(this.currentTick),
                 latenessMs: 0,
-                elapsedMs: this.now() - startedAt,
+                elapsedMs: this.lastTickMs,
                 tickHandlersMs,
                 worldUpdatesMs,
                 chunkCompletionsMs,

@@ -40,6 +40,23 @@ describe('BossBar', () => {
         expect(bar.players()).toEqual([session]);
     });
 
+    it('recolors the bar with a Remove and an Add in the new color, and sends nothing for the same color', async () => {
+        const { session, sent } = fakePlayer();
+        const bar = dragonBar();
+        await bar.addPlayer(session);
+        sent.length = 0;
+
+        await bar.setColor(BossBarColor.Red);
+        await bar.setColor(BossBarColor.Green);
+
+        const events = bossEvents(sent);
+        expect(events.map((event) => [event.eventType, event.color])).toEqual([
+            [BossEventUpdateType.Remove, BossBarColor.Red],
+            [BossEventUpdateType.Add, BossBarColor.Green]
+        ]);
+        expect(events[1]?.name).toBe('Ender Dragon');
+    });
+
     it('sends UpdatePercent, clamped to 0..1, only to added players', async () => {
         const added = fakePlayer();
         const bystander = fakePlayer();

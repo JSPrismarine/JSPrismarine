@@ -33,7 +33,7 @@ import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuild
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { BETA_APIS, WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
-import { JSPRISMARINE_SERVER } from '../../packages/script-host/src/host/jsprismarineServer.ts';
+import { JSPRISMARINE_SERVER, JSPRISMARINE_TYPES } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
 import { STEPS_PER_MILLISECOND } from '../../packages/script-host/src/host/WorldScripts.ts';
 import { PUBLISHED_PLATFORMS } from '../../packages/script-host/src/platform.ts';
@@ -382,14 +382,65 @@ function scriptingFacts() {
             DEFAULT_ALLOWED_MODULES.includes(module.module) ? 'yes' : 'no'
         ];
     });
-    const members = Object.entries(JSPRISMARINE_SERVER).flatMap(([name, member]) => [
-        [inlineCode(name), 'object', member.summary],
-        ...Object.entries(member.properties).map(([key, property]) => [
-            inlineCode(`${name}.${key}`),
-            'value' in property ? inlineCode(JSON.stringify(property.value)) : property.type,
-            property.summary
-        ])
-    ]);
+    /** A function's row name: its name and its parameters' names. */
+    const call = (name: string, parameters: string) =>
+        inlineCode(
+            `${name}(${parameters
+                .split(', ')
+                .map((parameter) => parameter.split(/\??:/)[0])
+                .join(', ')})`
+        );
+    /** A property's type as the table writes it. A union would break the table, so none is one. */
+    const typeCell = (type: string) => (['string', 'number', 'boolean'].includes(type) ? type : inlineCode(type));
+    const members = Object.entries(JSPRISMARINE_SERVER).flatMap(([name, member]): string[][] => {
+        if (member.kind === 'function') return [[call(name, member.parameters), 'function', member.summary]];
+        if (member.kind === 'methods') {
+            return [
+                [inlineCode(name), 'object', member.summary],
+                ...Object.entries(member.methods).map(([key, method]) => [
+                    call(`${name}.${key}`, method.parameters),
+                    'function',
+                    method.summary
+                ])
+            ];
+        }
+        return [
+            [inlineCode(name), 'object', member.summary],
+            ...Object.entries<{ readonly type: string; readonly summary: string; readonly value?: string }>(
+                member.properties
+            ).map(([key, property]) => [
+                inlineCode(`${name}.${key}`),
+                property.value !== undefined
+                    ? inlineCode(JSON.stringify(property.value))
+                    : typeCell(property.type === 'numbers' ? 'readonly number[]' : property.type),
+                property.summary
+            ])
+        ];
+    });
+    const types = Object.entries(JSPRISMARINE_TYPES).flatMap(([name, type]): string[][] => {
+        if (type.kind === 'union') {
+            return [
+                [
+                    inlineCode(name),
+                    'string',
+                    `${type.summary} One of ${type.values.map((value) => inlineCode(value)).join(', ')}.`
+                ]
+            ];
+        }
+        return [
+            [inlineCode(name), 'interface', type.summary],
+            ...Object.entries<{ readonly type: string; readonly summary: string; readonly optional?: true }>(
+                type.properties
+            ).map(([key, property]) => [
+                inlineCode(`${name}.${key}${property.optional === true ? '?' : ''}`),
+                typeCell(property.type),
+                property.summary
+            ]),
+            ...Object.entries<{ readonly parameters: string; readonly summary: string }>(
+                'methods' in type ? type.methods : {}
+            ).map(([key, method]) => [call(`${name}.${key}`, method.parameters), 'function', method.summary])
+        ];
+    });
     return {
         'scripting.serverBeta': beta,
         // A whole phrase, since the declared major version follows the newest one served.
@@ -400,7 +451,8 @@ function scriptingFacts() {
         )}\n`,
         'scripting.stepsPerMillisecond': String(STEPS_PER_MILLISECOND),
         'scripting.buildPlatforms': list(PUBLISHED_PLATFORMS.map(platformName)),
-        'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`
+        'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`,
+        'scripting.jspModule.types': `\n${table(['Type', 'Kind', 'What it is'], types)}\n`
     };
 }
 
