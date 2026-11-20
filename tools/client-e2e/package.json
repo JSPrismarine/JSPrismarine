@@ -11,6 +11,7 @@
         "typecheck": "tsc-ts --noEmit"
     },
     "devDependencies": {
+        "@jridgewell/trace-mapping": "^0.3.31",
         "@modelcontextprotocol/sdk": "^1.0.0"
     }
 }

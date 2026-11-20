@@ -16,6 +16,7 @@ import { OFFLINE_MESSAGE_DATA_ID } from '../../../packages/raknet/src/Constants.
 import { chunkWorkerCount } from '../../../packages/prismarine/src/world/generators/chunkConcurrency.ts';
 import { repoRoot } from './cinnabar.mts';
 import type { ClientTransport } from './cinnabar.mts';
+import { newestCoverageFile } from './scenario-coverage.mts';
 
 /** A running scratch server: its address, console, log stream, and shutdown. */
 export interface JspServer {
@@ -30,6 +31,11 @@ export interface JspServer {
     waitForLine: (pattern: RegExp, timeoutMs?: number) => Promise<string>;
     /** Asks the server to stop and waits for the process to exit. */
     stop: () => Promise<void>;
+    /**
+     * Has the server write a V8 coverage snapshot, and resolves with the new file's name. Resolves
+     * with `undefined` when the run collects no coverage, or no file appeared in time.
+     */
+    snapshotCoverage: () => Promise<string | undefined>;
 }
 
 /**
@@ -778,6 +784,23 @@ export const startServer = async (
         lines,
         command: (line) => child.stdin?.write(`${line}\n`),
         waitForLine,
+        snapshotCoverage: async () => {
+            const directory = process.env.NODE_V8_COVERAGE;
+            const { pid } = child;
+            if (!directory || pid === undefined || child.exitCode !== null) return undefined;
+            const prefix = `coverage-${pid}-`;
+            const ours = (): string[] => fs.readdirSync(directory).filter((name) => name.startsWith(prefix));
+            const before = new Set(ours());
+            child.kill('SIGUSR2');
+            const deadline = Date.now() + 10_000;
+            while (Date.now() < deadline) {
+                // The newest of what appeared, since the interval's own snapshot can land beside it.
+                const newest = newestCoverageFile(ours().filter((name) => !before.has(name)));
+                if (newest !== undefined) return newest;
+                await new Promise((resolve) => setTimeout(resolve, 25));
+            }
+            return undefined;
+        },
         stop: async () => {
             if (child.exitCode === null && child.signalCode === null) {
                 child.stdin?.write('stop\n');
