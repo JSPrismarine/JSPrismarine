@@ -9,6 +9,7 @@ import {
     readdirSync,
     rmSync,
     statSync,
+    symlinkSync,
     writeFileSync
 } from 'node:fs';
 import os from 'node:os';
@@ -84,6 +85,14 @@ if (child) {
                 consumerDirectory,
                 '--strip-components=1'
             ]);
+            // The packed runtime imports its dependencies, such as `@jsprismarine/content`, as an
+            // installed package would. The package's own `node_modules` holds them, and the
+            // `jsprismarine:dist` condition the script runs under resolves each to its build.
+            symlinkSync(
+                path.join(packageRoot, 'node_modules'),
+                path.join(consumerDirectory, 'node_modules'),
+                'junction'
+            );
 
             const distDirectory = path.join(consumerDirectory, 'dist');
             const assetPath = path.join(distDirectory, testCase.asset);
