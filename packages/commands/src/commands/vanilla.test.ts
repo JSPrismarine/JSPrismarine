@@ -95,7 +95,8 @@ describe('the command set', () => {
         // The Bedrock command data then moved to bedrock-samples v1.26.60.5, whose enums list the
         // 1.26.60 blocks, entities, biome and effect.
         // `/tickingarea` then joined the Bedrock-only commands.
-        expect(digest).toBe('9de6f95df8e371d874a6e024f41986613e8cc25e');
+        // `/gamerule dofiretick` and `doFireTick` then took a boolean, as Bedrock's enum lists them.
+        expect(digest).toBe('35e71b6a652dcb51530e10f3f7ddeed00d24170e');
     });
 });
 
@@ -685,6 +686,25 @@ describe('the world commands', () => {
         expect(set).toEqual([
             { name: 'minecraft:spawn_mobs', value: false },
             { name: 'minecraft:spawn_mobs', value: true }
+        ]);
+    });
+
+    it('/gamerule takes a boolean for a rule Bedrock keeps boolean and Java made an integer', () => {
+        const set: unknown[] = [];
+        const world = {
+            setGameRule: (name: string, value: boolean | number) => {
+                set.push({ name, value });
+                return true;
+            }
+        };
+        run('gamerule dofiretick false', { world });
+        run('gamerule doFireTick true', { world });
+        run('gamerule fire_spread_radius_around_player 16', { world });
+
+        expect(set).toEqual([
+            { name: 'minecraft:fire_spread_radius_around_player', value: false },
+            { name: 'minecraft:fire_spread_radius_around_player', value: true },
+            { name: 'minecraft:fire_spread_radius_around_player', value: 16 }
         ]);
     });
 
