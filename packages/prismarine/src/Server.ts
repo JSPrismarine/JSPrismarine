@@ -58,8 +58,11 @@ import { statsModule, statsProvidersModule } from './modules/stats';
 import { serverBStatsProvider } from './stats/bstats/serverBStats';
 import { serverMetrics } from './stats/serverMetrics';
 import type { StatsProvider } from './stats/StatsProvider';
-import { scriptsModule } from './modules/scripts';
+import { scriptsModule, startLevelScripts } from './modules/scripts';
+import { AddonManager } from './addons/AddonManager';
+import { cwd } from './utils/cwd';
 import type { LevelScripts } from './scripting/LevelScripts';
+import { ScriptSlot } from './scripting/ScriptSlot';
 import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
@@ -131,8 +134,13 @@ export default class Server {
     /** The wall clock an input step reads once, for script `Date`s; see {@link Server.getAdmittedClock}. */
     private readonly wallClock: () => number;
     private admittedClock: number;
-    /** The default level's behavior pack scripts, while the `prismarine:scripts` module runs them. */
-    private scripts: LevelScripts | undefined;
+    /**
+     * The default level's behavior pack scripts and the pack folders they came from, while the
+     * `prismarine:scripts` module runs them; see {@link Server.reloadScripts}.
+     */
+    private readonly scriptSlot = new ScriptSlot<LevelScripts>();
+    /** The server's addons, made on first use; see {@link Server.getAddons}. */
+    private addons: AddonManager | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
     private contentSettings: ContentSettings | undefined;
 
@@ -445,7 +453,10 @@ export default class Server {
         );
         kernel.register(
             contentModule(this, {
-                build: () => {
+                build: async () => {
+                    // The addons a lock names but `addons/` lacks install first, so the content
+                    // build and the scripts load them with the rest of the packs.
+                    await this.getAddons().sync({ reload: false });
                     const startedAt = startStartupPhase();
                     this.enableContent();
                     finishStartupPhase('content-build', startedAt);
@@ -549,7 +560,7 @@ export default class Server {
                 withheld: this.withheld,
                 packs: {
                     ...(settings.javaVersion === undefined ? {} : { javaVersion: settings.javaVersion }),
-                    worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
+                    worldPacks: this.getWorldPackDirectories().map((path) => ({ kind: 'directory', path })),
                     pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
                 }
             });
@@ -979,26 +990,64 @@ export default class Server {
 
     /** The default level's behavior pack scripts, while they run. */
     public getScripts(): LevelScripts | undefined {
-        return this.scripts;
+        return this.scriptSlot.current;
+    }
+
+    /**
+     * The default level's scripts and the pack folders they came from, which the
+     * `prismarine:scripts` module starts and stops.
+     * @internal
+     */
+    public getScriptSlot(): ScriptSlot<LevelScripts> {
+        return this.scriptSlot;
     }
 
     /**
      * Reloads the default level's behavior pack scripts, as Bedrock's `/reload` does: each pack
-     * gets `system.beforeEvents.shutdown`, then runs again from its top level. A server without
-     * scripts does nothing.
+     * gets `system.beforeEvents.shutdown`, then runs again from its top level. It reads the pack
+     * list again first, so an addon installed or removed since joins or leaves; when the list
+     * changed, the scripts close and load again from the new one. Reloads run one at a time.
+     * Before the scripts module has started, it does nothing.
+     *
+     * @param options - `restart` closes and loads the scripts even when the list is the same,
+     *   which reads each pack's manifest again; an addon replaced in place needs it.
      */
-    public reloadScripts(): void {
-        if (this.scripts === undefined) return;
-        this.scripts.reload();
-        this.logger.info('Script files have been reloaded.');
+    public async reloadScripts(options: { readonly restart?: boolean } = {}): Promise<void> {
+        const reloaded = await this.scriptSlot.reload(
+            () => this.getWorldPackDirectories(),
+            (packs) => startLevelScripts(this, packs, { autoAttach: false }),
+            options
+        );
+        if (reloaded) this.logger.info('Script files have been reloaded.');
     }
 
     /**
-     * Records the default level's scripts, which the `prismarine:scripts` module starts and stops.
-     * @internal
+     * The server's addons: what `addons.json` and `addons.lock.json` beside `config.json` record,
+     * installed under `addons/`. The console's `addon` command runs through it.
      */
-    public setScripts(scripts: LevelScripts | undefined): void {
-        this.scripts = scripts;
+    public getAddons(): AddonManager {
+        this.addons ??= new AddonManager({
+            directory: cwd(),
+            cwd: process.cwd(),
+            serverVersion: serverVersion(),
+            log: {
+                info: (message) => this.logger.info(message),
+                warn: (message) => this.logger.warn(message),
+                error: (message) => this.logger.error(message)
+            },
+            // An update replaces an addon's folder in place, so the manifests are read again.
+            reload: () => this.reloadScripts({ restart: true })
+        });
+        return this.addons;
+    }
+
+    /**
+     * The behavior pack folders the default world loads: the ones `content-world-packs` names,
+     * then each installed addon's, in the order of their local names.
+     * @throws {Error} Before the content has been built.
+     */
+    public getWorldPackDirectories(): readonly string[] {
+        return [...this.getContentSettings().worldPacks, ...this.getAddons().packDirectories()];
     }
 
     public getWorldManager(): WorldManager {

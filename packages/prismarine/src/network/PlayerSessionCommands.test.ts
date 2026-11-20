@@ -134,6 +134,16 @@ describe('PlayerSession', () => {
             );
         });
 
+        it("never sends an operator the console's own commands", async () => {
+            // `addon` runs on the console only; `*` grants its node, but no player has its level.
+            const names = (await commandsSentTo({ op: true, permissions: ['*'] })).map(
+                ({ commandName }) => commandName
+            );
+
+            expect(names).toContain('stop');
+            expect(names).not.toContain('addon');
+        });
+
         it('sends only the vanilla commands a player may run', async () => {
             // A fresh `permissions.json` grants `help`, `list` and `me` and nothing else, so
             // a player who is not an operator is told about those three and no more.

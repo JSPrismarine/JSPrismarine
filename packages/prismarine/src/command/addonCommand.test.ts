@@ -1,0 +1,140 @@
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it } from 'vitest';
+
+import type Server from '../Server';
+import type { AddonManager } from '../addons/AddonManager';
+import Console from '../Console';
+import type { PermissionManager } from '../permission/PermissionManager';
+import type SessionManager from '../SessionManager';
+import { canExecute } from '../permission/PermissionManager';
+import { testContent } from '../testing/entityServer';
+import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
+import { stub } from '../testing/stub.test.helper';
+import type GameRuleManager from '../world/GameRuleManager';
+import type { World } from '../world/World';
+import type WorldManager from '../world/WorldManager';
+import { Dimensions } from '../world/DimensionType';
+import { Position } from '../world/Position';
+import { CommandManager } from './CommandManager';
+
+/** A command manager over a server whose addons are a spy, and what the server logged. */
+const setUp = async () => {
+    const logged: string[] = [];
+    const listed: number[] = [];
+    const installs: [spec: string, as?: string][] = [];
+    const list: AddonManager['list'] = async () => {
+        listed.push(1);
+        return [];
+    };
+    const install: AddonManager['install'] = async (spec, as) => {
+        installs.push(as === undefined ? [spec] : [spec, as]);
+        return { url: 'https://example.com/a.mcpack', name: 'a', version: '1.0.0', sha256: '0'.repeat(64) };
+    };
+    const logger = stub<Logger>({
+        verbose() {},
+        debug() {},
+        info: (message: string) => {
+            logged.push(message);
+        },
+        warn() {},
+        error() {}
+    });
+    const world: World = stub<World>({
+        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
+        getDimension: () => Dimensions.Overworld
+    });
+    const server = stub<Server>({
+        getLogger: () => logger,
+        getContent: () => testContent(),
+        getSessionManager: () => stub<SessionManager>({ getSessions: () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
+        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
+        getAddons: () => stub<AddonManager>({ list, install })
+    });
+    const commands = new CommandManager(server);
+    await commands.enable();
+    /** A player standing in the default world, and what they were told. */
+    const player = (op: boolean) => {
+        const told: string[] = [];
+        const session = sessionOnPrototype({
+            isOp: () => op,
+            getPermissions: () => (op ? ['*'] : []),
+            getWorld: () => world,
+            getPosition: () => new Position(0, 64, 0, world),
+            sendMessage: async (message: string) => {
+                told.push(message);
+            }
+        });
+        return { session, told };
+    };
+    return { commands, server, logged, listed, installs, player };
+};
+
+describe('addon', () => {
+    it('runs for the console', async () => {
+        const { commands, server, logged, listed } = await setUp();
+        const console = new Console(server);
+
+        await expect(commands.dispatchCommand(console, console, 'addon list')).resolves.toBe(true);
+
+        expect(listed).toHaveLength(1);
+        expect(logged).toContain('No addons are installed; addon install <name> installs one');
+    });
+
+    it('hands install the addon and the local name after as', async () => {
+        const { commands, server, installs } = await setUp();
+        const console = new Console(server);
+
+        await commands.dispatchCommand(console, console, 'addon install someone/packs/warps@^2.0.0 as their-warps');
+
+        expect(installs).toEqual([['someone/packs/warps@^2.0.0', 'their-warps']]);
+    });
+
+    it('takes the name after as for a path with spaces, and none from a path alone', async () => {
+        const { commands, server, installs } = await setUp();
+        const console = new Console(server);
+
+        await commands.dispatchCommand(console, console, 'addon install /srv/My Addon as local-addon');
+        await commands.dispatchCommand(console, console, 'addon install /srv/My Addon');
+
+        expect(installs).toEqual([['/srv/My Addon', 'local-addon'], ['/srv/My Addon']]);
+    });
+
+    it('refuses a player without the permission, as any command it may not run', async () => {
+        const { commands, listed, player } = await setUp();
+        const { session, told } = player(false);
+
+        await expect(commands.dispatchCommand(session, session, '/addon list')).resolves.toBe(false);
+
+        expect(told).toEqual([expect.stringContaining('do not have permission')]);
+        expect(listed).toEqual([]);
+    });
+
+    it('refuses an operator, whose level is below the console’s', async () => {
+        const { commands, listed, player } = await setUp();
+        const { session, told } = player(true);
+
+        await expect(commands.dispatchCommand(session, session, '/addon list')).resolves.toBe(false);
+
+        expect(told).toEqual(['§cThat command needs a higher permission level']);
+        expect(listed).toEqual([]);
+    });
+
+    it('refuses an operator who reaches it through /execute', async () => {
+        const { commands, listed, player } = await setUp();
+        const { session, told } = player(true);
+
+        await expect(commands.dispatchCommand(session, session, '/execute run addon list')).resolves.toBe(false);
+
+        // The tree has no `addon` for a source the console did not type, so the line does not parse.
+        expect(told).toEqual([expect.stringContaining('Syntax error')]);
+        expect(listed).toEqual([]);
+    });
+
+    it("does not run from a script's command", async () => {
+        const { commands, listed } = await setUp();
+
+        expect(commands.runScriptCommand('addon list', { dimension: 'minecraft:overworld' })).toHaveProperty('error');
+        expect(listed).toEqual([]);
+    });
+});

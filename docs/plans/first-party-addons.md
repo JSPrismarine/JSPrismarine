@@ -186,9 +186,14 @@ Out of scope for now:
        `@jsprismarine/addon-tools` package, and `.github/workflows/addons-release.yml` is the
        reusable workflow. The installer reads the index with `parseAddonIndex` from
        `@jsprismarine/addon-tools/addonIndex`.
-4. [ ] [#3333](https://github.com/JSPrismarine/JSPrismarine/issues/3333) **The console command and the lockfile.** `addon` with install, update, list, remove and
+4. [x] [#3333](https://github.com/JSPrismarine/JSPrismarine/issues/3333) **The console command and the lockfile.** `addon` with install, update, list, remove and
        sync, from any source, a URL or a path; `addons.json` and `addons.lock.json`; restoring at
-       startup; loading without a restart.
+       startup; loading without a restart. The command's level is 5 and its tree requires a
+       source the console typed, so `/execute`, functions and scripts cannot reach it either. The
+       startup check compares each folder's manifest version with the lock and downloads again
+       when they differ; it does not hash the unpacked files. A folder installs as a link to it,
+       so edits show after `/reload`. A reload whose pack list changed closes the scripts and
+       loads them again, so `system.currentTick` starts over.
 5. [ ] [#3334](https://github.com/JSPrismarine/JSPrismarine/issues/3334) **The TPS bar.** The first addon, over slices 2 and 3, with its client-e2e scenario and a
        recording for the pull request.
 6. [ ] [#3335](https://github.com/JSPrismarine/JSPrismarine/issues/3335) **The site.** The Addons section, generated from the addons, and the installing, writing

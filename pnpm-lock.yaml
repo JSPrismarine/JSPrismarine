@@ -1582,6 +1582,9 @@ importers:
 
   packages/prismarine:
     dependencies:
+      '@jsprismarine/addon-tools':
+        specifier: workspace:*
+        version: link:../addon-tools
       '@jsprismarine/advancements':
         specifier: workspace:*
         version: link:../advancements

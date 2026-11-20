@@ -2307,6 +2307,8 @@ export default class PlayerSession {
         const commandManager = this.server.getCommandManager();
         for (const command of commandManager.getVanillaCommandList()) {
             const own = this.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
+            // A command above an operator's level is the console's alone, such as `addon`.
+            if (command.permissionLevel > CommandPermissionLevel.OWNER) continue;
             if (commandManager.isScriptCommand(command.name)) {
                 // A script's command has no permission node: its level alone decides, as on BDS.
                 if (command.permissionLevel > own) continue;

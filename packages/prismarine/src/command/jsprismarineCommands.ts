@@ -1,8 +1,8 @@
 /**
  * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
- * `/pardon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest` and `/scriptevent`,
- * which the shared command set leaves out because only a server that runs behavior pack scripts
- * has a debugger to attach, GameTests to run and scripts to send an event to.
+ * `/pardon`, the console's `addon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest`
+ * and `/scriptevent`, which the shared command set leaves out because only a server that runs
+ * behavior pack scripts has a debugger to attach, GameTests to run and scripts to send an event to.
  *
  * They register into the same `CommandRegistry` as the vanilla commands, so one dispatcher
  * parses them, one flattener advertises them and `/help` lists them. Their bodies reach the
@@ -32,6 +32,7 @@ import { describeSupportedProtocols } from '../network/codec/describeCodecs';
 import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
 import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
 import { softwareLabel } from '../version';
+import { registerAddonCommand } from './addonCommand';
 import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { resolvePlayer } from './host/support';
@@ -49,7 +50,8 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
     version: 'jsprismarine.command.version',
     debug: 'jsprismarine.command.debug',
     ban: 'minecraft.command.ban',
-    pardon: 'minecraft.command.pardon'
+    pardon: 'minecraft.command.pardon',
+    addon: 'jsprismarine.command.addon'
 };
 
 /**
@@ -393,4 +395,5 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     );
 
     registerGametestCommand(registry, server);
+    registerAddonCommand(registry, server);
 };

@@ -166,6 +166,11 @@
                 "import": "./dist/predicates.js",
                 "module": "./dist/predicates.js"
             },
+            "./prismarine/addon": {
+                "types": "./dist/prismarine/addon.d.ts",
+                "import": "./dist/prismarine/addon.js",
+                "module": "./dist/prismarine/addon.js"
+            },
             "./prismarine/command": {
                 "types": "./dist/prismarine/command.d.ts",
                 "import": "./dist/prismarine/command.js",
@@ -378,6 +383,10 @@
         "./predicates": {
             "jsprismarine:dist": "./dist/predicates.js",
             "default": "./src/predicates.ts"
+        },
+        "./prismarine/addon": {
+            "jsprismarine:dist": "./dist/prismarine/addon.js",
+            "default": "./src/prismarine/addon.ts"
         },
         "./prismarine/command": {
             "jsprismarine:dist": "./dist/prismarine/command.js",
