@@ -8,6 +8,15 @@ export abstract class NativeLibraryError extends JSPrismarineError {
 /** The errors `@jsprismarine/native-network` throws. */
 export const NativeNetworkErrors = defineErrors('native-network', {
     /**
+     * The Node.js running the server has no `node:ffi`, which the native networking library is
+     * loaded with. Run a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
+     */
+    FfiUnavailable: {
+        message:
+            'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.',
+        base: NativeLibraryError
+    },
+    /**
      * Downloading the native networking library failed with that HTTP status. Retry, or point
      * `JSP_NATIVE_NETWORK_LIBRARY` at a library you built.
      */
