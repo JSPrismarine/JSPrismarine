@@ -349,8 +349,17 @@ export const TREE_TRUNK_HEIGHT = 5;
  * The real species features live in the feature runtime; this is enough for
  * the sapling's own rule to be observable and tested, and it is the one
  * deliberately provisional piece of this package.
+ *
+ * A trunk with anything but air in its way does not grow, as Java's tree feature does not place a
+ * tree whose trunk is blocked; the sapling and the block above it stay as they were.
+ *
+ * @returns Whether the tree grew.
  */
-export const growTree = (world: WorldActions, block: HookBlock, species: string): void => {
+export const growTree = (world: WorldActions, block: HookBlock, species: string): boolean => {
+    for (let height = 1; height < TREE_TRUNK_HEIGHT; height += 1) {
+        if (world.getBlock(offset(block.position, 'up', height))?.identifier !== AIR) return false;
+    }
+
     const log = sibling(block.identifier, `${species}_log`);
     const leaves = sibling(block.identifier, `${species}_leaves`);
 
@@ -373,17 +382,26 @@ export const growTree = (world: WorldActions, block: HookBlock, species: string)
         }
     }
     world.notifyNeighbors(block.position);
+    return true;
 };
 
 /** Saplings and the mangrove propagule. */
 export const saplingFamily = defineFamily(
     'jsprismarine:sapling',
-    'Advances age_bit on a random tick and grows a tree on the next one. The tree shape is provisional until the feature runtime owns it.',
+    'Advances age_bit on a random tick and grows a tree on the next one, ages a hanging mangrove propagule and grows a planted one into a mangrove. The tree shape is provisional until the feature runtime owns it.',
     {
         onRandomTick: (event, world) => {
+            const propagule = hasState(event.block, 'propagule_stage');
+            // Java's `MangrovePropaguleBlock.randomTick`: a hanging propagule ages every random
+            // tick whatever the light, and only a planted one grows into a tree.
+            if (propagule && stateBoolean(event.block, 'hanging')) {
+                advanceCounter(world, event.block, 'propagule_stage', 4, 1);
+                return;
+            }
             if (world.lightLevel(offset(event.block.position, 'up')) < 9) return;
-            if (hasState(event.block, 'propagule_stage')) {
-                advanceCounter(world, event.block, 'propagule_stage', 4, 1 / 7);
+            if (propagule) {
+                // Bedrock's propagule has no `age_bit` stage, so it grows at its first success.
+                if (world.random() < 1 / 7) growTree(world, event.block, 'mangrove');
                 return;
             }
             if (!stateBoolean(event.block, 'age_bit')) {

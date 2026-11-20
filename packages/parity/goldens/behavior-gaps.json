@@ -230,11 +230,6 @@
             "reason": "The soil family tries only the six face neighbors, at 1/4 each and light 4, so grass never reaches a diagonal or a block below or above it.",
             "reference": "Java SpreadingSnowyBlock randomTick and canPropagate; issue #3092"
         },
-        "sapling-grows-tree:minecraft:mangrove_propagule": {
-            "kind": "defect",
-            "reason": "A sapling turns into a tree on random ticks once it reaches its second stage. Observed: it never grew into a tree.",
-            "reference": "Java SaplingBlock randomTick and advanceTree; issue #2909"
-        },
         "waterlogged-by-two-sources:minecraft:stone_slab": {
             "kind": "defect",
             "reason": "Flowing water never enters a waterloggable block here, and nothing writes the liquid layer at runtime, so a spread cannot waterlog one.",
