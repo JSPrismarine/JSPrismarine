@@ -1,0 +1,200 @@
+# Placeholders and the tab list
+
+Started 2026-11-21. This plan is a working document: tick slices off, and add or reshape them as
+the work teaches us things. It follows [JSPrismarine addons](first-party-addons.md), which built
+the addon format, the installer and the TPS bar, and it reads groups from
+[Permissions](permissions.md).
+
+## Goal
+
+Two addons and the module members they need.
+
+Placeholders are tokens such as `{player:ping}` that any pack can provide and any pack can render.
+A registry in `@jsprismarine/server` holds them, so a sidebar, a chat format or a tab list reads
+the same values without talking to the pack that computes them. The `placeholders` addon ships the
+providers every server wants.
+
+The tab list addon renames entries in the player list from a template, with a template per
+player, per permission group, or for everyone. Other packs assign templates over script events.
+
+What done looks like:
+
+- `placeholders` in `@jsprismarine/server` registers a namespace with a resolver and a list of
+  keys, resolves a text for a player, and lists what is registered. A namespace belongs to the pack
+  that registered it and goes when the pack's scripts stop, as boss bars do.
+- `playerList.setDisplayName(player, name)` and `playerList.reset(player)` change what every
+  client shows for a player in its player list, and nothing else.
+- `addon install placeholders` gives a server the `player`, `server` and `world` namespaces and
+  `/placeholders list` and `/placeholders parse <text>`.
+- `addon install tab-list`, then `/tablist format {player:name} &7{player:ping}ms`, and every
+  entry in the pause menu's player list shows the name and ping, refreshed once a second.
+- A pack sends `jsp_tablist:set_player` with a JSON message and that player's entry follows the
+  template it named.
+
+Out of scope for now:
+
+- A push model where a provider announces a changed value. Consumers poll.
+- Arguments on a token, such as `{player:ping|?}` for the text to show without a value. The
+  syntax leaves room for them.
+- Hiding players, ordering the list, or a header and footer. Bedrock's list shows a name, a skin
+  and a platform, and the server controls only the name.
+- Dependencies between addons in the installer. The tab list README says to install
+  placeholders first, and the addon warns on the console when the `player` namespace is missing.
+
+## What we know
+
+- `@jsprismarine/server` holds `jsprismarine`, `performance`, `getPing` and `bossBars`
+  ([guide](../guide/jsprismarine-module.md)). Boss bars already model pack ownership and cleanup
+  on reload, which the registry copies.
+- `system.sendScriptEvent` runs `/scriptevent`, and every pack receives it on the next script
+  flush. So a cross-pack call is asynchronous and one tick late, which is fine for commands between
+  addons and too slow for a lookup inside a render.
+- `playerListEntryOf` in `packages/prismarine/src/network/playerListEntry.ts` builds the entry
+  from the player's login name. The session manager keeps the entries, and a joining player gets
+  the whole map. A script's `nameTag` renames the actor above the head and never the list.
+- `/scriptevent` typed on the console does not reach scripts yet
+  ([#3238](https://github.com/JSPrismarine/JSPrismarine/issues/3238)), so the tab list's
+  script-event API is for packs, and owners use `/tablist`.
+- The script host fixes or records anything a script could read from the machine
+  ([ADR 0021](../adr/0021-the-script-watchdog-counts-steps.md)), so no provider reads the wall
+  clock.
+
+## Shape
+
+### The registry
+
+```ts
+interface PlaceholderProvider {
+    keys: readonly string[];
+    resolve(key: string, player?: Player): string | number | undefined;
+}
+
+interface Placeholders {
+    register(namespace: string, provider: PlaceholderProvider): { unregister(): void };
+    resolve(text: string, player?: Player): string;
+    readonly namespaces: ReadonlyArray<{ namespace: string; keys: readonly string[] }>;
+}
+```
+
+A token is `{namespace:key}`. Namespaces and keys are lowercase letters, digits and underscores,
+starting with a letter. Any other text between braces is not a token and stays as written, so
+there is no escape syntax. A token nobody provides stays as written too, so a missing provider is
+visible rather than swallowed.
+
+`register` throws for a malformed name, an empty key list, and a namespace another pack holds.
+The server may register namespaces of its own, such as `perms`, through the same registry.
+
+A resolver runs inside the caller's watchdog budget. A number renders through `String()`. A
+resolver that returns `undefined`, or that needs a player when `resolve` got none, leaves its
+token. A resolver that throws leaves its token, and the error reaches the content log once per
+namespace rather than every tick.
+
+### The standard providers
+
+The `placeholders` addon registers:
+
+| Namespace | Keys                                                                         |
+| --------- | ---------------------------------------------------------------------------- |
+| `player`  | `name`, `ping`, `health`, `max_health`, `gamemode`, `dimension`, `x`, `y`, `z`, `level` |
+| `server`  | `tps`, `mspt`, `online`, `max`, `version`, `uptime`                           |
+| `world`   | `time`, `day`, `weather`                                                     |
+
+`ping`, `tps` and `mspt` come from the module; the rest from `@minecraft/server`. `max` reads the
+server's `max-players`, which needs a `jsprismarine.maxPlayers` value the module lacks today, so
+slice 2 adds it beside `version`. `uptime` counts ticks since the world loaded, rendered as
+`1d 2h 3m`.
+
+`/placeholders list` prints each namespace with its keys. `/placeholders parse <text>` renders the
+text for the sender. Both are operator commands.
+
+### The player list member
+
+```ts
+interface PlayerList {
+    setDisplayName(player: Player, name: string): void;
+    reset(player: Player): void;
+}
+```
+
+`setDisplayName` stores the name on the player's entry in the session manager and broadcasts a
+remove and an add for that entry, so every client and every later joiner shows it. An empty name
+throws. The name a pack set reverts when that pack's scripts stop, and `reset` reverts it at once.
+Chat and the name above the head keep the login name.
+
+### The tab list addon
+
+Templates live at three levels, and the first that exists wins: the player's own, the one for the
+player's primary group, then the global one. The group comes from `{perms:primary_group}`, which
+the server provides once the permissions work lands; until then, or when the namespace is absent,
+the addon skips that tier and says so once on the console.
+
+Every 20 ticks the addon renders each online player's template through `placeholders.resolve`
+and calls `setDisplayName` only when the rendered name differs from the last one it sent. Until an
+owner sets a template, the list is untouched.
+
+Commands, all operator level:
+
+```text
+/tablist format [template]      show or set the global template
+/tablist reset                  clear it and restore every name
+/tablist group <group> <template>
+/tablist group <group> remove
+/tablist player <target> <template>
+/tablist player <target> reset
+/tablist show <target>          print what the target renders to now
+```
+
+A template typed in a command may use `&` color codes, which the addon stores as `§`. The global
+and group templates live in a world dynamic property; a player's template set by command lives in
+a dynamic property on the player, keyed by nothing else since it is theirs.
+
+Other packs send script events with a JSON message:
+
+| Id                        | Message                                      |
+| ------------------------- | -------------------------------------------- |
+| `jsp_tablist:set_global`  | `{ "template": "..." }`                       |
+| `jsp_tablist:set_group`   | `{ "group": "vip", "template": "..." }`       |
+| `jsp_tablist:clear_group` | `{ "group": "vip" }`                          |
+| `jsp_tablist:set_player`  | `{ "playerId": "...", "template": "...", "persist": false }` |
+| `jsp_tablist:clear_player`| `{ "playerId": "..." }`                       |
+
+`playerId` is `Player.id`, which is stable across sessions. A player template set over the API is
+for the session unless `persist` is true, so an AFK or vanish addon can set and clear without
+leaving residue, and a ranks addon can set once and keep it.
+
+## Verification
+
+- Unit tests for the registry: token parsing, unknown tokens, ownership, duplicate namespaces,
+  thrown resolvers and cleanup on reload.
+- Unit tests for the player list member: the entry in the session manager, the packets a client
+  receives, what a late joiner gets, and the revert when the pack stops.
+- Each addon's tests run its pack on a test server with a manual ticker, like the TPS bar's, and
+  assert rendered names, template precedence, persistence across a restart, and the script-event
+  API.
+- The parity suite's `scripting.lifecycle` scenario records the new members as `intentional`.
+- A client-e2e scenario installs both addons, sets a template and asserts the player list packet
+  a real client receives, with a pause-menu screenshot for the pull request if the client can open
+  that screen.
+
+## Slices
+
+1. [x] **The plan.** This document and its issues.
+2. [ ] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
+       and `script-types`, the fact tables on the module page, and the parity row.
+3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
+       tests.
+4. [ ] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
+       tables, and the parity row.
+5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels, the commands, the script-event API, the
+       README, its tests and the client-e2e scenario.
+
+Slice 3 needs 2. Slice 5 needs 2 and 4, and reads `perms` when permissions slice 5 exists. Slices
+2 and 4 are independent, so two branches carry them in parallel.
+
+## Risks
+
+- **Resolvers in the render loop.** A slow resolver slows every consumer, and the watchdog charges
+  the consumer. The registry logs a resolver that throws, and the docs tell providers to read, not
+  compute.
+- **Long names.** The module passes a name through and the addon does not truncate, so an owner
+  sees what the client makes of a long template. If a client misbehaves, the member gains a cap.
