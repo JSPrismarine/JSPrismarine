@@ -20,6 +20,18 @@ export function sourceLocationFromNamespace(namespace: string): SourceLocation |
     return { path: match[1], line: Number(match[2]), column: Number(match[3]) };
 }
 
+/**
+ * The name the namespace column shows: the file's name without its extension when verbose
+ * logging made the namespace a location such as `world/World.js:412:17`, which would otherwise
+ * be cut before anything that tells two rows apart. Other namespaces show as they are.
+ */
+export function namespaceLabel(namespace: string): string {
+    const location = sourceLocationFromNamespace(namespace);
+    if (location === undefined) return namespace;
+    const file = location.path.slice(location.path.replaceAll('\\', '/').lastIndexOf('/') + 1);
+    return file.replace(/\.[\w-]+$/, '') || namespace;
+}
+
 /** Finds a source location only when the clicked terminal column falls on its rendered path. */
 export function sourceLocationAtColumn(text: string, column: number): SourceLocation | undefined {
     for (const match of text.matchAll(SOURCE_REFERENCE)) {

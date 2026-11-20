@@ -94,6 +94,15 @@ describe('formatLogLine', () => {
         expect(row).toBe('12:05:33 INFO    AVeryLongNames… Server started');
     });
 
+    it.each([
+        ['world/World.js:412:17', 'World'],
+        ['C:\\jsp\\dist\\ban\\BanManager.js:40:9', 'BanManager'],
+        ['Server.js:221:13', 'Server']
+    ])('names the file of a verbose location namespace %s', (namespace, label) => {
+        const [row] = text(formatLogLine(record({ namespace }), options({ width: 60 })));
+        expect(row).toBe(`12:05:33 INFO    ${label.padEnd(15)} Server started`);
+    });
+
     it('converts § codes in the message through the theme', () => {
         const [row] = formatLogLine(record({ message: 'hello §cworld' }), options());
         const red = row!.chunks.find((chunk) => chunk.text === 'world');
