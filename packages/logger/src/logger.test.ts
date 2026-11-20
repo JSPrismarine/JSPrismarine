@@ -237,7 +237,7 @@ describe('a cataloged error', () => {
         logger.error(new TestErrors.Broken({ thing: 'world' }));
 
         expect(written[0]).toContain('The world broke');
-        expect(written[0]).toContain('More about TEST_BROKEN: https://jsprismarine.dev/errors/test.html#test-broken');
+        expect(written[0]).toContain('More about TEST_BROKEN: https://jsprismarine.dev/errors/test#test-broken');
     });
 
     it('leaves a plain error as it was', () => {

@@ -25,7 +25,7 @@ describe('defineErrors', () => {
     });
 
     it('links to the entry in the error reference', () => {
-        expect(new TestErrors.Plain().docs).toBe('https://jsprismarine.dev/errors/test-domain.html#test-domain-plain');
+        expect(new TestErrors.Plain().docs).toBe('https://jsprismarine.dev/errors/test-domain#test-domain-plain');
     });
 
     it('passes the cause through, with or without placeholders', () => {
@@ -60,7 +60,7 @@ describe('defineErrors', () => {
         const { inspect } = await import('node:util');
         const printed = inspect(new TestErrors.Filled({ file: 'a', reason: 'b' }));
         expect(printed).toContain("code: 'TEST_DOMAIN_FILLED'");
-        expect(printed).toContain('https://jsprismarine.dev/errors/test-domain.html#test-domain-filled');
+        expect(printed).toContain('https://jsprismarine.dev/errors/test-domain#test-domain-filled');
         expect(printed).not.toContain('params');
     });
 

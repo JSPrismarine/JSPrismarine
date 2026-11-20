@@ -101,7 +101,7 @@ export const constantCase = (name: string) =>
 export const codeAnchor = (code: string) => code.toLowerCase().replaceAll('_', '-');
 
 /** The address of a code's entry in the error reference. */
-export const docsUrlOf = (domain: string, code: string) => `${DOCS_URL}errors/${domain}.html#${codeAnchor(code)}`;
+export const docsUrlOf = (domain: string, code: string) => `${DOCS_URL}errors/${domain}#${codeAnchor(code)}`;
 
 /** Fills a template's placeholders the way a template literal would. */
 export const formatMessage = (template: string, params: Readonly<Record<string, unknown>>) =>

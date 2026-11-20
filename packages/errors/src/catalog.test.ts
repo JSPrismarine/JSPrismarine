@@ -75,7 +75,7 @@ describe('the error catalog', () => {
 
     it('links every error to its entry in the reference', () => {
         for (const { error } of entries) {
-            expect(error.docs).toBe(`${DOCS_URL}errors/${error.domain}.html#${codeAnchor(error.code)}`);
+            expect(error.docs).toBe(`${DOCS_URL}errors/${error.domain}#${codeAnchor(error.code)}`);
         }
     });
 

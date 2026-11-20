@@ -12,7 +12,7 @@ error, the last line names its code and links to the entry:
 
 <!-- fact:errors.example.reference -->
 ```text
-More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine.html#prismarine-player-not-found
+More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine#prismarine-player-not-found
 ```
 <!-- /fact -->
 
