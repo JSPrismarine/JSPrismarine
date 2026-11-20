@@ -207,6 +207,11 @@ jobs:
         needs: [release, executables]
         if: ${{ always() && needs.executables.result == 'success' }}
         runs-on: ubuntu-latest
+        # One publication at a time across every ref: a recovery started from another branch must
+        # not read the releases before a release from master lands and then mark Latest after it.
+        concurrency:
+            group: release-publish-executables
+            cancel-in-progress: false
         permissions:
             contents: write
         env:
@@ -237,14 +242,12 @@ jobs:
               run: |
                   tag="jsprismarine@${RELEASE_VERSION}"
                   title="JSPrismarine ${RELEASE_VERSION}"
-                  newest="$(
-                      {
-                          # Every page: several nightlies a day would push older stable releases past one.
-                          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-                              --jq '.[] | select(.prerelease == false and .draft == false and (.tag_name | startswith("jsprismarine@"))) | .tag_name | ltrimstr("jsprismarine@")'
-                          echo "$RELEASE_VERSION"
-                      } | sort -V | tail -n 1
-                  )"
+                  # A failed request stops the step here. Read together with the version below, its
+                  # failure would leave this version alone in the list, and mark it Latest.
+                  # Every page: several nightlies a day would push older stable releases past one.
+                  stable="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+                      --jq '.[] | select(.prerelease == false and .draft == false and (.tag_name | startswith("jsprismarine@"))) | .tag_name | ltrimstr("jsprismarine@")')"
+                  newest="$(printf '%s\n%s\n' "$stable" "$RELEASE_VERSION" | sort -V | tail -n 1)"
                   latest=false
                   if [ "$newest" = "$RELEASE_VERSION" ]; then latest=true; fi
                   echo "Newest stable release: $newest. Mark $tag as Latest: $latest."
