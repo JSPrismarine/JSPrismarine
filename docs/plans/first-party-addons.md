@@ -176,9 +176,12 @@ Out of scope for now:
        `@jsprismarine/server`, with the ping plumbing for RakNet and NetherNet, docs facts and
        tests. Parity: these are JSP-only, so the `scripting.lifecycle` scenario that imports the
        module records them as `intentional`.
-3. [ ] [#3332](https://github.com/JSPrismarine/JSPrismarine/issues/3332) **Addons in the repository.** `addons/`, `addon.json`, the build script, the index, and a
+3. [x] [#3332](https://github.com/JSPrismarine/JSPrismarine/issues/3332) **Addons in the repository.** `addons/`, `addon.json`, the build script, the index, and a
        workflow that builds every addon on pull requests and publishes the `addons` release on
-       master when an addon's version changes.
+       master when an addon's version changes. The build is `jsp-addon build` from the new
+       `@jsprismarine/addon-tools` package, and `.github/workflows/addons-release.yml` is the
+       reusable workflow. The installer reads the index with `parseAddonIndex` from
+       `@jsprismarine/addon-tools/addonIndex`.
 4. [ ] [#3333](https://github.com/JSPrismarine/JSPrismarine/issues/3333) **The console command and the lockfile.** `addon` with install, update, list, remove and
        sync, from any source, a URL or a path; `addons.json` and `addons.lock.json`; restoring at
        startup; loading without a restart.

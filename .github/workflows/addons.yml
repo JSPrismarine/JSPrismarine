@@ -1,0 +1,45 @@
+name: Addons
+
+# Builds JSPrismarine's own addons under addons/ with the addon tools from this checkout, and on
+# master publishes the versions the addons release lacks. addons-release.yml builds and publishes;
+# this workflow says when.
+on:
+    pull_request:
+        paths:
+            - 'addons/**'
+            - 'packages/addon-tools/**'
+            - 'packages/errors/src/addon-tools.ts'
+            - 'packages/packs/src/manifest.ts'
+            - 'packages/packs/src/zip.ts'
+            - '.github/workflows/addons.yml'
+            - '.github/workflows/addons-release.yml'
+    push:
+        branches:
+            - master
+        paths:
+            - 'addons/**'
+            - 'packages/addon-tools/**'
+            - 'packages/errors/src/addon-tools.ts'
+            - 'packages/packs/src/manifest.ts'
+            - 'packages/packs/src/zip.ts'
+            - '.github/workflows/addons.yml'
+            - '.github/workflows/addons-release.yml'
+
+# One publish at a time on master, as addons-release.yml asks.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    addons:
+        name: Addons
+        uses: ./.github/workflows/addons-release.yml
+        # The publish job attaches packs to the addons release.
+        permissions:
+            contents: write
+        with:
+            tools: workspace
+            publish: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}

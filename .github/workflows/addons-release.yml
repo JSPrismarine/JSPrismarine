@@ -1,0 +1,167 @@
+name: Addons release
+
+# Builds every addon in a repository with jsp-addon from @jsprismarine/addon-tools, and with
+# `publish` attaches the new packs and the merged index.json to the repository's addons release.
+# The build downloads the index already published and refuses a published version whose pack
+# changed, so a pull request that edits an addon without raising its version fails here.
+#
+# addons.yml calls it for this repository. Another repository that publishes addons calls it the
+# same way, giving `tools` an npm version of @jsprismarine/addon-tools:
+#
+#     concurrency:
+#         group: ${{ github.workflow }}-${{ github.ref }}
+#         cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+#     jobs:
+#         addons:
+#             uses: JSPrismarine/JSPrismarine/.github/workflows/addons-release.yml@<sha>
+#             permissions:
+#                 contents: write
+#             with:
+#                 tools: latest
+#                 publish: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+#
+# The caller's concurrency group runs one publish at a time; two at once would each merge their
+# packs into the index they downloaded, and the second upload would drop the first's entries.
+on:
+    workflow_call:
+        inputs:
+            addons:
+                description: 'The folder that holds one folder per addon'
+                required: false
+                type: string
+                default: 'addons'
+            tools:
+                description: >-
+                    The @jsprismarine/addon-tools version to run, such as `latest` or `0.23.0`.
+                    `workspace` runs the package from the caller's checkout, which only
+                    JSPrismarine's own repository has.
+                required: false
+                type: string
+                default: 'latest'
+            node-version:
+                description: 'The Node.js version to run a published @jsprismarine/addon-tools on'
+                required: false
+                type: string
+                default: 'lts/*'
+            publish:
+                description: 'Attach the new packs and the index to the addons release'
+                required: false
+                type: boolean
+                default: false
+
+permissions:
+    contents: read
+
+env:
+    HUSKY: 0
+
+jobs:
+    build:
+        name: 🔨 Build the addons
+        runs-on: ubuntu-latest
+        outputs:
+            tag: ${{ steps.build.outputs.tag }}
+            added: ${{ steps.build.outputs.added }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📦 Install
+              if: ${{ inputs.tools == 'workspace' }}
+              uses: ./.github/common/install
+              with:
+                  native-network: false
+                  script-host: false
+
+            - name: 🏎️ Setup Node
+              if: ${{ inputs.tools != 'workspace' }}
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+              with:
+                  node-version: ${{ inputs.node-version }}
+
+            # GITHUB_REPOSITORY names the caller's repository, whose release the index's URLs
+            # point at and whose published index the build merges with.
+            - name: 🔨 Check and pack every addon
+              id: build
+              shell: bash
+              env:
+                  ADDONS: ${{ inputs.addons }}
+                  TOOLS: ${{ inputs.tools }}
+              run: |
+                  if [ "$TOOLS" = workspace ]; then
+                      jsp_addon=(pnpm exec tsx packages/addon-tools/src/cli.ts)
+                  else
+                      jsp_addon=(npx --yes "@jsprismarine/addon-tools@$TOOLS")
+                  fi
+                  "${jsp_addon[@]}" build --addons "$ADDONS" --out dist/addons --github-output "$GITHUB_OUTPUT"
+
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: addons
+                  path: dist/addons/
+                  if-no-files-found: error
+
+    publish:
+        name: 🚚 Publish the new packs
+        needs: build
+        if: ${{ inputs.publish && needs.build.outputs.added != '' }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ github.token }}
+            GH_REPO: ${{ github.repository }}
+            TAG: ${{ needs.build.outputs.tag }}
+            ADDED: ${{ needs.build.outputs.added }}
+        steps:
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: addons
+                  path: addons
+
+            # The packs go up before the index, so the index never names a pack the release lacks.
+            # A pack never replaces one already there: lockfiles pin each published version's hash.
+            - name: 🏷️ Attach the packs and the index to the release
+              shell: bash
+              run: |
+                  if ! gh release view "$TAG" >/dev/null 2>&1; then
+                      gh release create "$TAG" --target "$GITHUB_SHA" --latest=false --title 'Addons' \
+                          --notes 'Addon packs and the index.json that addon install reads. Every version stays here once published, so the URL in a lockfile keeps working.'
+                  fi
+                  asset_id() {
+                      gh api "repos/$GH_REPO/releases/tags/$TAG" --jq ".assets[] | select(.name == \"$1\") | .id"
+                  }
+                  # A run that failed after some packs went up left them on the release while the
+                  # index still lacks them, so the next build lists them as added again. A pack
+                  # already there with the same SHA-256 is skipped; one with other bytes stops the run.
+                  published="$RUNNER_TEMP/published"
+                  mkdir -p "$published"
+                  # The pack names are space-separated and hold no spaces of their own.
+                  for pack in $ADDED; do
+                      if [ -z "$(asset_id "$pack")" ]; then
+                          gh release upload "$TAG" "addons/$pack"
+                          continue
+                      fi
+                      gh release download "$TAG" --pattern "$pack" --dir "$published" --clobber
+                      if [ "$(sha256sum < "$published/$pack")" != "$(sha256sum < "addons/$pack")" ]; then
+                          echo "::error::$pack is already on the $TAG release with other contents. Raise the addon's version."
+                          exit 1
+                      fi
+                      echo "$pack is already on the $TAG release with the same contents"
+                  done
+                  # Replacing an asset deletes it first, so a failed upload would leave the release
+                  # with no index. The old one is renamed to index.previous.json instead and deleted
+                  # once the new one is up; fetchPublishedIndex reads it when index.json is missing,
+                  # so a run after a failed upload still merges with every published version.
+                  current=$(asset_id index.json)
+                  if [ -n "$current" ]; then
+                      backup=$(asset_id index.previous.json)
+                      if [ -n "$backup" ]; then
+                          gh api --method DELETE "repos/$GH_REPO/releases/assets/$backup"
+                      fi
+                      gh api --method PATCH "repos/$GH_REPO/releases/assets/$current" -f name=index.previous.json >/dev/null
+                  fi
+                  gh release upload "$TAG" addons/index.json
+                  backup=$(asset_id index.previous.json)
+                  if [ -n "$backup" ]; then
+                      gh api --method DELETE "repos/$GH_REPO/releases/assets/$backup"
+                  fi
