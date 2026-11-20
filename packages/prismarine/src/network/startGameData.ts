@@ -95,7 +95,7 @@ export const createStartGameData = ({
         createdInEditor: false,
         exportedFromEditor: false,
         editorLevelMigrationVersion: EditorLevelMigrationVersion.Legacy,
-        dayCycleStopTime: world.getTicks(),
+        dayCycleStopTime: world.getDayTime(),
         educationEditionOffer: 0,
         educationFeaturesEnabled: false,
         educationProductId: '',

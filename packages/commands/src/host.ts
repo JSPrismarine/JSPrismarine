@@ -189,7 +189,11 @@ export interface WorldCommandHost {
     ): number;
     /** @returns How many blocks of the region match the other region. */
     compareRegions(dimension: string, begin: Vector3, end: Vector3, destination: Vector3, masked: boolean): number;
+    /** The time of day in ticks, which stands still while the day cycle is off. */
     getTime(): number;
+    /** The game clock in ticks, which never stops. */
+    getGameTime(): number;
+    /** Sets the time of day. */
     setTime(ticks: number): void;
     addTime(ticks: number): number;
     getWeather(): 'clear' | 'rain' | 'thunder';

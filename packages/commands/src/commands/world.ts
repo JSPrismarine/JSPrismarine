@@ -363,7 +363,7 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
                                     ? Math.floor(ticks / 24_000)
                                     : unit === 'daytime'
                                       ? ticks % 24_000
-                                      : ticks;
+                                      : current.host.world.getGameTime();
                             current.sendFeedback(`The time is ${measured}`);
                             return measured;
                         })

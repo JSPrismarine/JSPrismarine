@@ -926,7 +926,8 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/plans/script-api-host.md slice 10',
         packs: ['clocks'],
         experiments: ['gametest'],
-        needs: 'world'
+        // A real server, since the time of day the clock reads is the level's own.
+        needs: 'server'
     },
     {
         id: 'dimension-volumes',

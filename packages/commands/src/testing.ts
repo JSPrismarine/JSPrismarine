@@ -62,6 +62,7 @@ const world = (): WorldCommandHost => ({
     clone: () => 0,
     compareRegions: () => 0,
     getTime: () => 0,
+    getGameTime: () => 0,
     setTime: () => {},
     addTime: () => 0,
     getWeather: () => 'clear',

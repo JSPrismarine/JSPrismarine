@@ -145,7 +145,12 @@ const buildFixture = (): Fixture => {
         setTicks: (value: number) => {
             ticks = value;
         },
+        getDayTime: () => dayTime,
+        setDayTime: (value: number) => {
+            dayTime = value;
+        },
         sendTime: async () => {},
+        syncTime: () => {},
         breakBlock: (position: Vector3) => {
             blocks.set(key(position.getX(), position.getY(), position.getZ()), {
                 name: 'minecraft:air',
@@ -179,6 +184,8 @@ const buildFixture = (): Fixture => {
         getServer: () => server
     });
     let ticks = 0;
+    // Apart from the game clock, as a world keeps them, so a host that moves the wrong one shows.
+    let dayTime = 0;
 
     // Two stems, so `/execute in the_nether` parses; the Nether's world is ready for a move but,
     // as a lazy dimension's is, not among the loaded worlds.
@@ -698,6 +705,12 @@ describe('the server command host', () => {
         it('sets and queries the time', async () => {
             await expect(fixture.run('time set 6000')).resolves.toBe(6000);
             await expect(fixture.run('time query daytime')).resolves.toBe(6000);
+        });
+
+        it('leaves the game clock where it was when it sets the time of day', async () => {
+            await expect(fixture.run('time set 6000')).resolves.toBe(6000);
+
+            await expect(fixture.run('time query gametime')).resolves.toBe(0);
         });
 
         it('adds to the time', async () => {

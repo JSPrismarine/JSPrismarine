@@ -59,6 +59,8 @@ import { levelExperiments } from './WorldExperiments';
 import { LevelDynamicProperties } from './dynamicProperties';
 import { Scoreboard } from './Scoreboard';
 import GameRuleChangedEvent from '../events/other/GameRuleChangedEvent';
+import { ADVANCE_TIME, gameRuleValue } from '../content/world/gameRules';
+import { LevelClock } from './LevelClock';
 
 /** What older versions wrote beside the save before the provider kept the level's state. */
 const LEGACY_LEVEL_DATA_FILE_NAME = 'level.json';
@@ -192,7 +194,7 @@ export class Level {
      * its rules.
      */
     private readonly gameRuleManager: GameRuleManager;
-    private currentTick = 0;
+    private readonly clock = new LevelClock(() => gameRuleValue(this.gameRuleManager, ADVANCE_TIME) !== false);
 
     /** The weather cycle, its level events and the five numbers the save keeps. */
     private readonly weather: WorldWeather;
@@ -692,12 +694,35 @@ export class Level {
 
     /** The level's clock, in ticks since it was created. */
     public getTicks(): number {
-        return this.currentTick;
+        return this.clock.getGameTime();
     }
 
-    /** Sets the clock, which is what `/time set` does. */
+    /** Sets the game clock. The time of day moves with it. */
     public setTicks(tick: number): void {
-        this.currentTick = tick;
+        this.clock.setGameTime(tick);
+    }
+
+    /**
+     * The time of day in ticks, Bedrock's `Time`, which the sun, `/time` and the overworld's
+     * script clock read. It runs with {@link getTicks} except while it is held still.
+     */
+    public getDayTime(): number {
+        return this.clock.getDayTime();
+    }
+
+    /** Sets the time of day, which is what `/time set` does. The game clock keeps its count. */
+    public setDayTime(time: number): void {
+        this.clock.setDayTime(time);
+    }
+
+    /** Whether a script paused the overworld clock. */
+    public isDayTimePaused(): boolean {
+        return this.clock.isPaused();
+    }
+
+    /** Pauses or resumes the overworld clock, apart from the `minecraft:advance_time` rule. */
+    public setDayTimePaused(paused: boolean): void {
+        this.clock.setPaused(paused);
     }
 
     /** The level's game rules, one set for every world of the save. */
@@ -757,7 +782,7 @@ export class Level {
             level: {
                 name: this.name,
                 seed: this.seed.toString(),
-                tick: this.currentTick,
+                tick: this.getTicks(),
                 weather: { ...this.weather.saved() },
                 gameRules,
                 dimensions
@@ -804,7 +829,7 @@ export class Level {
         if (
             manifest.level.name !== this.name ||
             manifest.level.seed !== this.seed.toString() ||
-            manifest.level.tick !== this.currentTick ||
+            manifest.level.tick !== this.getTicks() ||
             JSON.stringify(manifest.level.weather) !== JSON.stringify(this.weather.saved()) ||
             JSON.stringify(manifest.level.gameRules) !== JSON.stringify(currentGameRules) ||
             JSON.stringify(manifest.level.dimensions) !== JSON.stringify(currentDimensions) ||
@@ -922,9 +947,12 @@ export class Level {
             this.scoreboard.restore(records.scoreboard);
         }
 
-        // The clock is written to `level.dat` alone, so it is read back from there; without it
-        // every boot started the day over at tick zero.
-        if (levelDat?.time !== undefined) this.currentTick = levelDat.time;
+        // The clocks are written to `level.dat` alone, so they are read back from there; without
+        // them every boot started the day over at tick zero. A save from before the game clock was
+        // written on its own held one clock, which was both.
+        const gameTime = levelDat?.currentTick ?? levelDat?.time;
+        if (gameTime !== undefined) this.setTicks(gameTime);
+        if (levelDat?.time !== undefined) this.setDayTime(levelDat.time);
         this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
@@ -964,8 +992,8 @@ export class Level {
     public update(tick: number): undefined {
         if (this.closing) return;
 
-        this.currentTick++;
-        this.weather.tick(this.currentTick);
+        this.clock.tick();
+        this.weather.tick(this.getTicks());
         const worlds = this.worldsInStemOrder();
         for (const world of worlds) {
             try {
@@ -980,7 +1008,7 @@ export class Level {
         // dimension (ADR 0018).
         const endSaveProfile = profileSpanStarter(this.server)?.(`Level.save:${this.name}`);
         try {
-            this.saves.tick(this.currentTick, worlds);
+            this.saves.tick(this.getTicks(), worlds);
         } finally {
             endSaveProfile?.();
         }
@@ -1091,7 +1119,8 @@ export class Level {
             },
             levelDat: {
                 ...(position === undefined ? {} : { spawn: position }),
-                time: this.currentTick,
+                time: this.getDayTime(),
+                currentTick: this.getTicks(),
                 stems,
                 netherScale: this.netherScale(),
                 // Java rewrites a save's data version to its own on every save, and so does this.

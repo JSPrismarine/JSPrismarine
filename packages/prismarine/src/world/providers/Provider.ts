@@ -18,8 +18,10 @@ import type { ChunkGeneration } from '../chunk/ChunkGeneration';
 export interface LevelDatInputs {
     /** The world spawn, which Bedrock always places in the Overworld. */
     readonly spawn?: { x: number; y: number; z: number };
-    /** The clock in ticks, Bedrock's `Time`. */
+    /** The time of day in ticks, Bedrock's `Time`, which stands still while the day cycle is off. */
     readonly time?: number;
+    /** The game clock in ticks, Bedrock's `currentTick`, which scheduled ticks count by. */
+    readonly currentTick?: number;
     /**
      * The resolved level stems by Java dimension id. The `minecraft:overworld` stem decides
      * `Generator` (2 for a flat generator, 1 otherwise) and `FlatWorldLayers`.

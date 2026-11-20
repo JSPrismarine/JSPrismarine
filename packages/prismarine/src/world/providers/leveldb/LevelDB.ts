@@ -1655,6 +1655,9 @@ export default class LevelDB extends BaseProvider {
             root.addValue('JSPrismarineSpawnKnown', new Types.ByteVal(1));
         }
         if (level.time !== undefined) root.addValue('Time', new Types.LongVal(BigInt(Math.trunc(level.time))));
+        if (level.currentTick !== undefined) {
+            root.addValue('currentTick', new Types.LongVal(BigInt(Math.trunc(level.currentTick))));
+        }
         if (level.netherScale !== undefined) root.addValue('NetherScale', new Types.NumberVal(level.netherScale));
         if (level.javaDataVersion !== undefined) {
             root.addValue(JAVA_DATA_VERSION_TAG, new Types.NumberVal(level.javaDataVersion));
@@ -1699,13 +1702,15 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * The clock, the Java data version and the experiments `level.dat` holds, which
-     * {@link LevelDB.saveLevelData} writes as `Time`, `JSPrismarineJavaDataVersion` and
-     * `experiments`. Only the experiments this server implements are read back.
+     * The clocks, the Java data version and the experiments `level.dat` holds, which
+     * {@link LevelDB.saveLevelData} writes as `Time`, `currentTick`, `JSPrismarineJavaDataVersion`
+     * and `experiments`. Only the experiments this server implements are read back.
      *
      * Null before the file exists. A file without the `Time` tag, which this server never writes
-     * but another might, answers no clock, so the level starts its own at zero. A file without the
-     * data version, written by BDS or by this server before it recorded one, answers none.
+     * but another might, answers no clock, so the level starts its own at zero. A file without
+     * `currentTick`, written by this server before it kept the game clock apart, answers only the
+     * time of day. A file without the data version, written by BDS or by this server before it
+     * recorded one, answers none.
      */
     public override readLevelData(): LevelDatInputs | null {
         const level = readLevelDat(this.getPath());
@@ -1714,9 +1719,11 @@ export default class LevelDB extends BaseProvider {
         const toggles = level.root.getCompound(LEVEL_DAT_EXPERIMENTS, false);
         const experiments = WORLD_EXPERIMENTS.filter((experiment) => toggles?.getByte(experiment, 0) === 1);
         const time = level.root.getLong('Time', -1n);
+        const currentTick = level.root.getLong('currentTick', -1n);
         const javaDataVersion = level.root.getNumber(JAVA_DATA_VERSION_TAG, -1);
         return {
             ...(time < 0n ? {} : { time: Number(time) }),
+            ...(currentTick < 0n ? {} : { currentTick: Number(currentTick) }),
             ...(javaDataVersion < 0 ? {} : { javaDataVersion }),
             experiments
         };

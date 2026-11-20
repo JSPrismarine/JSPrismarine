@@ -90,6 +90,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     const world = stub<World>({
         getName: () => 'test',
         getTicks: () => 0,
+        getDayTime: () => 0,
         getDimension: () => Dimensions.Overworld,
         // The block actions of a break are the world's own, named by its level and dimension.
         getLevel: () => stub<Level>({ name: 'test' }),

@@ -1953,11 +1953,6 @@
             "reason": "A command a script runs fails with Brigadier's message on JSPrismarine, such as \"Unknown command at position 0: <--[HERE]\", where BDS words it \"Syntax error: Unexpected \\\"jspnosuchcommand\\\": at \\\">>jspnosuchcommand<<\\\"\", and JSPrismarine's /time set takes \"nonsense\" where BDS refuses it. The players, dimensions, success counts and the scriptEventReceive event match BDS.",
             "reference": "docs/plans/script-api-host.md slice 10"
         },
-        "bds-record:world-clocks": {
-            "kind": "defect",
-            "reason": "A paused overworld clock keeps counting on JSPrismarine, so its time moves a tick in the tick after the pause where BDS holds it still, because the level's clock always advances. Every clock read and write, its time markers and errors, the splines, Trigger and the empty sound definition registry match BDS.",
-            "reference": "issue #3309"
-        },
         "bds-record:world-pending": {
             "kind": "deferred",
             "reason": "A playing sound's pause, resume, volume, pitch, fade, seek and stop, StructureManager.getPackStructureIds and placeJigsawStructure throw NotImplementedError on JSPrismarine, which sets no sound handle and loads no pack structures or Bedrock jigsaws. Dimension.poiManager's runtime condition error and placeFeature of a pack's feature match BDS.",

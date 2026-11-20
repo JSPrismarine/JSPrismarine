@@ -25,6 +25,7 @@ import GameRuleManager from '../world/GameRuleManager';
 import type { Generator } from '../world/Generator';
 import { GeneratorFactories } from '../world/GeneratorFactories';
 import { Level } from '../world/Level';
+import { LevelClock } from '../world/LevelClock';
 import { LevelSave } from '../world/LevelSave';
 import type { DimensionLoad } from '../world/Level';
 import type BaseProvider from '../world/providers/BaseProvider';
@@ -36,6 +37,7 @@ import type { LegacyWorldEntity } from '../world/WorldPersistence';
 import { testEntityServer } from './entityServer';
 import { stub } from './stub.test.helper';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+import { ADVANCE_TIME, gameRuleValue } from '../content/world/gameRules';
 
 /** The generator kind {@link testLevel} registers the test's generator under. */
 export const TEST_GENERATOR_KIND = 'jsprismarine:test';
@@ -94,7 +96,8 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         broadcast: () => {}
     });
     const worlds = options.worlds ?? (() => []);
-    let ticks = options.ticks ?? 0;
+    const clock = new LevelClock(() => gameRuleValue(gameRules, ADVANCE_TIME) !== false);
+    clock.setGameTime(options.ticks ?? 0);
     let spawn = options.spawn ?? null;
     const stems = options.stems ?? new Map([[OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM]]);
     const world = async (dimensionId: string): Promise<World> => {
@@ -137,10 +140,12 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         },
         getStems: () => stems,
         getDimensionTypes: () => options.dimensionTypes ?? new Map(),
-        getTicks: () => ticks,
-        setTicks: (tick) => {
-            ticks = tick;
-        },
+        getTicks: () => clock.getGameTime(),
+        setTicks: (tick) => clock.setGameTime(tick),
+        getDayTime: () => clock.getDayTime(),
+        setDayTime: (time) => clock.setDayTime(time),
+        isDayTimePaused: () => clock.isPaused(),
+        setDayTimePaused: (paused) => clock.setPaused(paused),
         getGameRuleManager: () => gameRules,
         getWeather: () => weather,
         getSpawn: () => spawn,
@@ -159,10 +164,10 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         getRespawnSearch: () => respawnSearch,
         customDimensionDefinitions: () => [...(options.customDimensionDefinitions ?? [])],
         update: (tick) => {
-            ticks++;
-            weather.tick(ticks);
+            clock.tick();
+            weather.tick(clock.getGameTime());
             for (const world of worlds()) world.update(tick);
-            saves?.tick(ticks, worlds());
+            saves?.tick(clock.getGameTime(), worlds());
         },
         save: async () => saves?.save(worlds()),
         saveWorlds: async (saved) => saves?.save(saved),
