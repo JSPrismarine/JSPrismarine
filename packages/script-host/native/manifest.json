@@ -1,6 +1,49 @@
 {
-    "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them. Empty until the first builds are published.",
-    "build": "",
-    "baseUrl": "",
-    "platforms": {}
+    "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
+    "build": "51357d3a66ef285c",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/script-host-build-51357d3a66ef285c",
+    "platforms": {
+        "darwin-arm64": {
+            "shared": {
+                "file": "darwin-arm64-libjsp_script_host.dylib",
+                "bytes": 866136,
+                "sha256": "8bb618ea76550b943729337886b24ff22c02f268da0d7f688be44bafbc46f894"
+            }
+        },
+        "linux-arm64-gnu": {
+            "shared": {
+                "file": "linux-arm64-gnu-libjsp_script_host.so",
+                "bytes": 919392,
+                "sha256": "e78bf8fd17f627401dbee81e1c41984443947e0948de79a2afc0aa38717b8594"
+            }
+        },
+        "linux-arm64-musl": {
+            "shared": {
+                "file": "linux-arm64-musl-libjsp_script_host.so",
+                "bytes": 984768,
+                "sha256": "d93344f97cb1ecc7dbf514f075b1f82868f1dbdc29cfbb473f31adc40a6c6761"
+            }
+        },
+        "linux-x64-gnu": {
+            "shared": {
+                "file": "linux-x64-gnu-libjsp_script_host.so",
+                "bytes": 960432,
+                "sha256": "101b4aac86d3d2a0a092fecba5ee37796dd709d83ae7332670cb9386af3e928d"
+            }
+        },
+        "linux-x64-musl": {
+            "shared": {
+                "file": "linux-x64-musl-libjsp_script_host.so",
+                "bytes": 1025816,
+                "sha256": "2329399204f6312081272a2aa057fbd9f8173727c9093663cca249e197f3c8df"
+            }
+        },
+        "win32-x64": {
+            "shared": {
+                "file": "win32-x64-libjsp_script_host.dll",
+                "bytes": 1132032,
+                "sha256": "46577af9b4e4727007debed11a7b374bb5d6ece51609835ea3949036325307cc"
+            }
+        }
+    }
 }
