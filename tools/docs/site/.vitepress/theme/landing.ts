@@ -4,6 +4,12 @@ import type { Audience } from './components/AudienceTabs.vue';
 export const tickerItems = ['Play it', 'Host it', 'Build on it', 'Fix it'];
 
 /**
+ * The hero's headline: two lines, the second ending on the highlighted word. The landing page's link
+ * preview card sets the same words.
+ */
+export const headline = { lines: ['The Bedrock', 'server you'], highlight: 'own.' } as const;
+
+/**
  * Looks up packages the page names, in the order given. A package that is no longer published fails the
  * docs build instead of leaving a stale name on the page.
  */

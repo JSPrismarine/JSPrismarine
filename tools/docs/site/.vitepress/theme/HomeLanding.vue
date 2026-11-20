@@ -18,6 +18,7 @@ import {
     buildAudiences,
     exampleExecutable,
     featuredPackageNames,
+    headline,
     minecraftRange,
     platformList,
     requirePackage,
@@ -43,7 +44,9 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                 <!-- The range wraps as one piece, so no version is left alone on a line. -->
                 <span class="landing__nowrap">Minecraft {{ minecraftRange(project) }}</span>
             </p>
-            <h1>The Bedrock<br />server you <em>own.</em></h1>
+            <h1>
+                {{ headline.lines[0] }}<br />{{ headline.lines[1] }} <em>{{ headline.highlight }}</em>
+            </h1>
             <div class="landing__copy">
                 <p class="landing__lede">
                     A dedicated server for Minecraft: Bedrock Edition. One binary to host it, real packages to build on
