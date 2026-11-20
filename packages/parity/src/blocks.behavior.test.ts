@@ -414,11 +414,7 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
                 return 'it did not spread onto the dirt one across and one below';
             }
             return undefined;
-        },
-        classify: () => ({
-            kind: 'defect',
-            reason: 'The soil family tries only the six face neighbors, at 1/4 each and light 4, so grass never reaches a diagonal or a block below or above it.'
-        })
+        }
     },
     {
         name: 'growing-plant-head',

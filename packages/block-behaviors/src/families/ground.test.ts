@@ -180,20 +180,92 @@ describe('soilFamily: farmland', () => {
 });
 
 describe('soilFamily: grass', () => {
-    it('spreads onto a lit dirt block and dies under a solid one', () => {
+    /** Java's three `nextInt` draws of one spread attempt, for an offset across, down and along z. */
+    const attempt = (dx: -1 | 0 | 1, dy: -3 | -2 | -1 | 0 | 1, dz: -1 | 0 | 1): number[] => [
+        (dx + 1.5) / 3,
+        (dy + 3.5) / 5,
+        (dz + 1.5) / 3
+    ];
+
+    it('spreads onto lit dirt diagonally below it, where no face neighbor is dirt', () => {
         const harness = bindFamily(soilFamily, 'minecraft:grass_block');
+        const target = { x: origin.x + 1, y: origin.y - 1, z: origin.z + 1 };
         harness.dimension.set(origin, 'minecraft:grass_block');
-        harness.dimension.set({ x: 1, y: 4, z: 0 }, 'minecraft:dirt');
-        harness.dimension.queueRandom(0.01);
+        harness.dimension.set(target, 'minecraft:dirt');
+        harness.dimension.setLight({ ...origin, y: origin.y + 1 }, 15);
+        harness.dimension.queueRandom(
+            ...attempt(1, -1, 1),
+            ...attempt(0, 1, 0),
+            ...attempt(0, 1, 0),
+            ...attempt(0, 1, 0)
+        );
 
         harness.randomTick(origin);
 
-        expect(harness.dimension.identifierAt({ x: 1, y: 4, z: 0 })).toBe('minecraft:grass_block');
+        expect(harness.dimension.identifierAt(target)).toBe('minecraft:grass_block');
+    });
 
-        harness.dimension.set({ x: 0, y: 5, z: 0 }, 'minecraft:stone');
-        harness.dimension.setLight({ x: 0, y: 5, z: 0 }, 3);
+    it('spreads nothing below light 9, and onto no dirt under water', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:mycelium');
+        const target = { x: origin.x + 1, y: origin.y, z: origin.z };
+        harness.dimension.set(origin, 'minecraft:mycelium');
+        harness.dimension.set(target, 'minecraft:dirt');
+        harness.dimension.setLight({ ...origin, y: origin.y + 1 }, 8);
+        harness.dimension.queueRandom(...attempt(1, 0, 0));
         harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(target)).toBe('minecraft:dirt');
 
+        harness.dimension.setLight({ ...origin, y: origin.y + 1 }, 15);
+        harness.dimension.set({ ...target, y: target.y + 1 }, 'minecraft:flowing_water', { liquid_depth: 3 });
+        harness.dimension.queueRandom(...[0, 1, 2, 3].flatMap(() => attempt(1, 0, 0)));
+        harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(target)).toBe('minecraft:dirt');
+    });
+
+    it('dies under a waterlogged block and lives under a dry one, and spreads under neither wet', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:grass_block');
+        const above = { ...origin, y: origin.y + 1 };
+        // A fence lets light through, as its block properties say.
+        harness.dimension.defineLightDampening('minecraft:oak_fence', 0);
+        harness.dimension.set(origin, 'minecraft:grass_block');
+        harness.dimension.set(above, 'minecraft:oak_fence');
+        harness.dimension.setLight(above, 0);
+        harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:grass_block');
+
+        harness.dimension.setLiquid(above, 'minecraft:water', { liquid_depth: 0 });
+        harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
+
+        const target = { x: origin.x + 1, y: origin.y, z: origin.z };
+        const spreading = bindFamily(soilFamily, 'minecraft:grass_block');
+        spreading.dimension.defineLightDampening('minecraft:oak_fence', 0);
+        spreading.dimension.set(origin, 'minecraft:grass_block');
+        spreading.dimension.set(target, 'minecraft:dirt');
+        spreading.dimension.set({ ...target, y: target.y + 1 }, 'minecraft:oak_fence');
+        spreading.dimension.setLiquid({ ...target, y: target.y + 1 }, 'minecraft:flowing_water', { liquid_depth: 2 });
+        spreading.dimension.setLight({ ...origin, y: origin.y + 1 }, 15);
+        spreading.dimension.queueRandom(...[0, 1, 2, 3].flatMap(() => attempt(1, 0, 0)));
+        spreading.randomTick(origin);
+        expect(spreading.dimension.identifierAt(target)).toBe('minecraft:dirt');
+    });
+
+    it('dies under an opaque block and a water source, and lives under a single snow layer', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:grass_block');
+        const above = { ...origin, y: origin.y + 1 };
+        harness.dimension.set(origin, 'minecraft:grass_block');
+        harness.dimension.set(above, 'minecraft:snow_layer', { height: 0 });
+        harness.dimension.setLight(above, 0);
+        harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:grass_block');
+
+        harness.dimension.set(above, 'minecraft:water', { liquid_depth: 0 });
+        harness.randomTick(origin);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
+
+        harness.dimension.set(origin, 'minecraft:grass_block');
+        harness.dimension.set(above, 'minecraft:stone');
+        harness.randomTick(origin);
         expect(harness.dimension.identifierAt(origin)).toBe('minecraft:dirt');
     });
 });
