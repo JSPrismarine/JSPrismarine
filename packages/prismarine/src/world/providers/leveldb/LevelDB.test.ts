@@ -484,6 +484,36 @@ describe('world', () => {
             await reopened.provider.disable();
         });
 
+        it('keeps the running raids in the world data record', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data = {
+                raids: [
+                    {
+                        id: 1,
+                        center: { x: 1, y: 64, z: 2 },
+                        status: 'ongoing',
+                        omenLevel: 1,
+                        groupsSpawned: 0,
+                        numGroups: 3,
+                        ticksActive: 10,
+                        waveCountdown: 0,
+                        celebrationTicks: 0,
+                        raiders: []
+                    }
+                ]
+            } satisfies WorldPersistenceData;
+
+            await provider.enable();
+            await provider.writeWorldData(data);
+            await provider.disable();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect((await reopened.provider.readWorldData())?.raids).toEqual(data.raids);
+            await reopened.provider.disable();
+        });
+
         it('keeps the dragon fight in the world data record', async () => {
             const worldPath = scratch();
             const { provider } = harness(worldPath);
