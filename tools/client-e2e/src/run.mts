@@ -310,6 +310,26 @@ const reportFailureContext = async (
     for (const line of noteworthy) console.error(`${scenario}: server: ${line.slice(0, 240)}`);
 };
 
+/**
+ * What the server logs when a chunk can be neither read nor generated: `World` for a chunk a
+ * ticket asked for, and the chunk scheduler for one on its way to a player. Neither logs a chunk
+ * a stopping generator refused.
+ */
+const FAILED_CHUNK = /Failed to load .*chunk|Failed to send chunk|Failed to flush a chunk batch/;
+
+/**
+ * Fails a scenario whose server could not load a chunk while it ran. The client never receives
+ * that chunk, and a scenario that does not stand in it would otherwise pass.
+ *
+ * @param lines - The server lines the scenario's run printed.
+ * @throws When any of them reports a chunk that failed to load.
+ */
+const assertNoChunkFailures = (lines: readonly string[]): void => {
+    const failed = lines.filter((line) => FAILED_CHUNK.test(line));
+    if (failed.length === 0) return;
+    throw new Error(`the server failed to load or send ${failed.length} chunk(s): ${failed.slice(0, 3).join('; ')}`);
+};
+
 /** Whether the client has fallen out of the world, back to a menu, as when the server drops it. */
 const clientLeftTheWorld = async (client: CinnabarClient): Promise<boolean> => {
     try {
@@ -473,6 +493,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     await additional.connect(suiteServer.port, transport === 'nethernet');
                     return additional;
                 };
+                const firstLine = suiteServer.lines.length;
                 await scenario.run({
                     server: suiteServer,
                     client,
@@ -498,6 +519,7 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     artifacts: scenarioArtifacts,
                     log: (message) => console.log(`${scenario.name}: ${message}`)
                 });
+                assertNoChunkFailures(suiteServer.lines.slice(firstLine));
                 results.push({ name: scenario.name, ok: true, note: scenario.description });
                 console.log(`${scenario.name}: ok (${scenario.description})`);
             } catch (error) {
