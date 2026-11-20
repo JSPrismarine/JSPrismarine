@@ -197,7 +197,11 @@ async function createRelease({ apiUrl, repository, token, tagName, body, prerele
             name: tagName,
             tag_name: tagName,
             body,
-            prerelease
+            prerelease,
+            // Latest stays on the JSPrismarine executables release, which `release.yml` creates once
+            // the executables are built. A package release left at GitHub's default became Latest,
+            // and stayed it whenever the executables failed.
+            make_latest: 'false'
         })
     });
     if (!response.ok) {
