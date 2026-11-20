@@ -26,8 +26,7 @@ a full bar means the server cannot keep up.
 
 MSPT is the average over the last ten or so ticks rather than the last tick alone, so one slow
 tick does not turn the bar red for a whole second. Ping shows `?` until your connection has
-measured a round trip, and always for a player who joined over NetherNet, which measures none
-yet.
+measured a round trip.
 
 ## Installing it
 

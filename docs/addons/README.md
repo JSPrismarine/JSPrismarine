@@ -38,7 +38,7 @@ Shows TPS, MSPT and ping on a boss bar.
 
 | Version | Runs on | License |
 | ------- | ------- | ------- |
-| `1.0.0` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+| `1.0.1` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
 
 ```text
 addon install tps-bar
