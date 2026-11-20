@@ -225,6 +225,18 @@ describe('createApp', () => {
         expect(byId(t, 'status-left-state')).toBeDefined();
     });
 
+    it("moves the footer's state to crashed when the supervisor reports a crash", async () => {
+        const t = await setup({ width: 80, height: 24 });
+        dispose = t.dispose;
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
+
+        t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'crashed', code: 1, generation: 1 });
+        await t.renderOnce();
+
+        const segment = byId(t, 'status-left-state');
+        expect(segment instanceof TextRenderable && segment.fg.equals(parseColor(defaultTheme.danger))).toBe(true);
+    });
+
     it('reports a crash on the state tile and the activity line, without a notice', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
