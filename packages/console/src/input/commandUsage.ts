@@ -35,6 +35,16 @@ export function usageFor(line: string, index: ReadonlyMap<string, CommandInfo>):
 }
 
 /**
+ * The forms worth showing for `match`: those that take the argument being typed. A form that
+ * ends before it, such as a bare `teleport` once a target is being typed, is no longer what the
+ * line can become. When no form reaches that far every form is kept, so the card never empties.
+ */
+export function formsFor({ command, argument }: UsageMatch): readonly string[] {
+    const reaching = command.usage.filter((form) => form.split(' ').length > argument + 1);
+    return reaching.length > 0 ? reaching : command.usage;
+}
+
+/**
  * The words of a usage form, such as `teleport`, `<targets>` and `[<yaw>`, with the argument at
  * `argument` marked. The command's name is word 0, so argument `n` is word `n + 1`.
  */

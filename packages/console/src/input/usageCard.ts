@@ -3,7 +3,7 @@ import type { TextChunk } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import type { UsageMatch } from './commandUsage';
-import { usageWords } from './commandUsage';
+import { formsFor, usageWords } from './commandUsage';
 
 /** The card above the command line that shows the forms of the command being typed. */
 export interface UsageCard {
@@ -46,12 +46,14 @@ export function createUsageCard(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>)
                 : fg(index === 0 ? theme.text : theme.textMuted)(text)
         ]);
 
-    const rowsFor = ({ command, argument }: UsageMatch): TextChunk[][] => {
+    const rowsFor = (match: UsageMatch): TextChunk[][] => {
+        const { command, argument } = match;
         const header: TextChunk[] = [fg(theme.accent)(bold(command.name))];
         if (command.aliases.length > 0) header.push(fg(theme.textMuted)(` (${command.aliases.join(', ')})`));
         if (command.description !== undefined) header.push(fg(theme.text)(`  ${command.description}`));
-        const rows = [header, ...command.usage.slice(0, SHOWN_FORMS).map((form) => formChunks(form, argument))];
-        const folded = command.usage.length - SHOWN_FORMS;
+        const forms = formsFor(match);
+        const rows = [header, ...forms.slice(0, SHOWN_FORMS).map((form) => formChunks(form, argument))];
+        const folded = forms.length - SHOWN_FORMS;
         if (folded > 0)
             rows.push([
                 fg(theme.textMuted)(`▸ ${folded} more form${folded === 1 ? '' : 's'}; help ${command.name} lists them`)
