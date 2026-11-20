@@ -47,7 +47,9 @@ import type { ComponentKind } from './customContent';
 import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
-import { JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
+import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
+import type { JsprismarineServerMembers } from './jsprismarineMembers';
+import { bossBarOptions, ScriptBossBars } from './jsprismarineMembers';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -167,6 +169,11 @@ export interface WorldScriptsOptions {
     readonly log: ScriptLog;
     /** The server the packs run on, which `@jsprismarine/server` tells them about. */
     readonly server: JsprismarineServerInfo;
+    /**
+     * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the running
+     * server. Without it, the module leaves those members out, as an older server would.
+     */
+    readonly members?: JsprismarineServerMembers;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog?: WatchdogSettings;
@@ -325,6 +332,11 @@ export class WorldScripts {
     private registering: 'startup' | 'worldInitialize' | undefined;
     /** Takes the custom commands and the component sink off the world, before a reload or a shutdown. */
     private releaseCustom: (() => void)[] = [];
+    /**
+     * The boss bars the packs show through `@jsprismarine/server`. A reload keeps counting their
+     * ids, so no bar of the new runtime shares one with a bar of the old.
+     */
+    private readonly bossBars: ScriptBossBars | undefined;
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
@@ -341,6 +353,7 @@ export class WorldScripts {
             free: (handle) => this.engine.free(handle)
         });
         this.custom = new CustomContent(this.engine);
+        this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
     }
 
     /**
@@ -566,6 +579,8 @@ export class WorldScripts {
         this.http.clear(this.options.world.http);
         // The world stops drawing what the runtime's shapes drew, since nothing can remove them after.
         this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.clear() ?? []));
+        // A bar belongs to the scripts that showed it, so it goes with them.
+        this.bossBars?.hideAll();
         for (const loaded of this.loaded) {
             loaded.forms?.destroy();
             loaded.net?.destroy();
@@ -842,14 +857,86 @@ export class WorldScripts {
         const declared = loaded.modules.get(name);
         if (declared !== undefined) return declared;
         if (name === JSPRISMARINE_MODULE) {
-            if (loaded.jsp === undefined) {
-                const namespace = this.engine.evaluate(jsprismarineServerSource(this.options.server));
-                if (namespace instanceof ScriptHandle) loaded.jsp = namespace;
-            }
+            loaded.jsp ??= this.jsprismarineNamespace(loaded);
             return loaded.jsp;
         }
         if (name.startsWith('@')) throw unrecognized(name);
         return readPackFile(loaded.pack, name);
+    }
+
+    /**
+     * Makes a pack's `@jsprismarine/server` namespace in its context, with the members that reach
+     * the running server when the server gives them.
+     */
+    private jsprismarineNamespace(loaded: LoadedPack): ScriptHandle {
+        const engine = this.engine;
+        const make = engine.evaluate(jsprismarineServerSource(this.options.server), '<jsprismarine/server>');
+        if (!(make instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The module maker' });
+        const { members } = this.options;
+        const bars = this.bossBars;
+        const host =
+            members === undefined || bars === undefined ? undefined : this.jsprismarineHost(loaded, members, bars);
+        try {
+            const namespace = engine.call(make, undefined, host);
+            if (!(namespace instanceof ScriptHandle))
+                throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/server namespace' });
+            return namespace;
+        } finally {
+            engine.free(make);
+            if (host !== undefined) engine.free(host);
+        }
+    }
+
+    /** The host functions a pack's `@jsprismarine/server` members call, on one object. */
+    private jsprismarineHost(
+        loaded: LoadedPack,
+        members: JsprismarineServerMembers,
+        bars: ScriptBossBars
+    ): ScriptHandle {
+        const engine = this.engine;
+        const host = engine.evaluate('({})');
+        if (!(host instanceof ScriptHandle))
+            throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/server host' });
+        /** The player a pack passed, or a `TypeError` naming the member it called. */
+        const playerOf = (value: ScriptValue, member: string) => {
+            const player = this.formPlayer(loaded, value);
+            if (player === undefined)
+                throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player', argument: 'player' });
+            return player;
+        };
+        const barId = (value: ScriptValue): number => (typeof value === 'number' ? value : 0);
+        const functions: Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> =
+            {
+                read: (name, index) => {
+                    const values: Readonly<Record<string, number | readonly number[]>> = members.performance();
+                    const value = typeof name === 'string' ? values[name] : undefined;
+                    if (typeof value === 'number') return value;
+                    return typeof index === 'number' ? value?.[index] : undefined;
+                },
+                ping: (value) => {
+                    const player = playerOf(value, 'getPing');
+                    return player.present ? members.ping(player.id) : undefined;
+                },
+                showBar: (value, options) => {
+                    const player = playerOf(value, 'bossBars.show');
+                    return bars.show(player.id, player.present, bossBarOptions(engine, options, 'bossBars.show'));
+                },
+                updateBar: (id, options) => {
+                    bars.update(barId(id), bossBarOptions(engine, options, 'BossBar.update'));
+                    return undefined;
+                },
+                hideBar: (id) => {
+                    bars.hide(barId(id));
+                    return undefined;
+                },
+                barValid: (id) => bars.isShown(barId(id))
+            };
+        for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
+            const fn = engine.hostFunction(name, functions[name]);
+            engine.set(host, name, fn);
+            engine.free(fn);
+        }
+        return host;
     }
 
     private instance(loaded: LoadedPack, className: string, tag: number, state = ''): ScriptHandle {
@@ -1123,6 +1210,7 @@ export class WorldScripts {
 
     /** `world.beforeEvents.playerLeave`, while a player leaves and before their entity goes. */
     private playerLeaving(player: string): void {
+        this.bossBars?.playerLeft(player);
         if (this.stopped || !this.subscriptions.some((each) => each.signal === 'PlayerLeaveBeforeEventSignal')) return;
         this.refreshClock();
         const tag = this.addEvent({ kind: 'playerLeaving', player: { id: player, typeId: PLAYER } });
@@ -1650,6 +1738,8 @@ export class WorldScripts {
         if (shutsDown) {
             this.options.log.error('[Scripting] [Watchdog] Watchdog shutting down server');
             this.stopped = true;
+            // Nothing redraws a bar once the scripts stop, so it goes now rather than at the teardown.
+            this.bossBars?.hideAll();
             this.options.onShutdown?.(kind);
         }
     }

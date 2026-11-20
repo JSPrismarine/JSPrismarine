@@ -13,6 +13,7 @@ import { WorldScripts } from './WorldScripts';
 import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
+import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {
@@ -79,6 +80,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             watchdog?: WatchdogSettings;
             critical?: CriticalException[];
             betaApis?: boolean;
+            members?: JsprismarineServerMembers;
         } = {}
     ) => {
         const world = options.world ?? new MemoryWorld();
@@ -93,6 +95,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             seed: options.seed ?? 1n,
             ...(options.watchdog === undefined ? {} : { watchdog: options.watchdog }),
             ...(options.betaApis === undefined ? {} : { betaApis: options.betaApis }),
+            ...(options.members === undefined ? {} : { members: options.members }),
             onShutdown: (reason) => options.critical?.push(reason)
         });
         runtimes.push(scripts);
@@ -681,6 +684,236 @@ system.run(() => {
             ]);
 
             expect(log.printed()).toEqual(['JSPrismarine']);
+        });
+
+        /** A server whose performance and pings the test sets, and which records every boss bar call. */
+        class RecordingMembers implements JsprismarineServerMembers {
+            public current: ScriptPerformance = { tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 };
+            public readonly pings = new Map<string, number>();
+            public readonly calls: string[] = [];
+            public performance(): ScriptPerformance {
+                return this.current;
+            }
+            public ping(player: string): number | undefined {
+                return this.pings.get(player);
+            }
+            public showBossBar(player: string, bar: number, state: ScriptBossBarState): void {
+                this.calls.push(`show ${player} ${bar} ${JSON.stringify(state)}`);
+            }
+            public updateBossBar(player: string, bar: number, state: ScriptBossBarState): void {
+                this.calls.push(`update ${player} ${bar} ${JSON.stringify(state)}`);
+            }
+            public hideBossBar(player: string, bar: number): void {
+                this.calls.push(`hide ${player} ${bar}`);
+            }
+        }
+
+        /** Each bar call the server got, as its kind, its player and the bar's id. */
+        const barCalls = (members: RecordingMembers) =>
+            members.calls.map((call) => {
+                const [kind, player, id] = call.split(' ');
+                return { kind, player, id: Number(id) };
+            });
+
+        /** Starts a pack whose top level keeps the module and the world's players in globals. */
+        const startWithMembers = (body: string) => {
+            const members = new RecordingMembers();
+            const world = new MemoryWorld();
+            const { scripts, log } = start(
+                [
+                    writePack(`import { system, world } from '@minecraft/server';
+                        const show = (label, call) => {
+                            try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                        };
+                        let jsp;
+                        import('@jsprismarine/server').then((module) => { jsp = module; });
+                        ${body}`)
+                ],
+                { world, members }
+            );
+            return { scripts, world, log, members };
+        };
+
+        it('reads performance from the server each time a script reads it', () => {
+            const { scripts, log, members } = startWithMembers(`
+                system.runInterval(() => show('tick', () => [jsp.performance.tps, jsp.performance.tpsAverages, jsp.performance.lastTickMs, jsp.performance.averageTickMs, Object.isFrozen(jsp.performance.tpsAverages)]), 1);`);
+            scripts.flush();
+            scripts.flush();
+            members.current = { tps: 12.5, tpsAverages: [19, 18.5, 18], lastTickMs: 80, averageTickMs: 61.25 };
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['tick [20,[20,20,20],0,0,true]', 'tick [12.5,[19,18.5,18],80,61.25,true]']);
+        });
+
+        it("gives a player's ping, undefined without a sample or once they left, and refuses what is not a player", () => {
+            const { scripts, world, log, members } = startWithMembers(`
+                let players;
+                const pings = () => players.map((player) => jsp.getPing(player) ?? 'none');
+                system.runTimeout(() => {
+                    players = world.getAllPlayers();
+                    show('pings', pings);
+                }, 1);
+                system.runTimeout(() => {
+                    show('after Steve left', pings);
+                    show('not a player', () => jsp.getPing({ id: players[1].id }));
+                }, 2);`);
+            const steve = world.join('Steve');
+            const alex = world.join('Alex');
+            // A third player, whose connection has no sample yet.
+            world.join('Nobody');
+            members.pings.set(steve, 42);
+            members.pings.set(alex, 30);
+            scripts.flush();
+            scripts.flush();
+            world.leave(steve);
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'pings [42,30,"none"]',
+                'after Steve left ["none",30,"none"]',
+                'not a player TypeError: getPing takes a Player as its player'
+            ]);
+        });
+
+        it('shows, updates and hides a boss bar, with what the options leave out kept', () => {
+            const { scripts, world, log, members } = startWithMembers(`
+                let bar;
+                system.runTimeout(() => {
+                    bar = jsp.bossBars.show(world.getAllPlayers()[0], { text: 'TPS: 20' });
+                    show('shown', () => [bar.isValid, bar.player === world.getAllPlayers()[0]]);
+                    bar.update({ progress: 1.5, color: 'red' });
+                    bar.update({ text: 'TPS: 12' });
+                }, 1);
+                system.runTimeout(() => {
+                    bar.hide();
+                    show('hidden', () => bar.isValid);
+                    bar.update({ text: 'gone' });
+                    bar.hide();
+                }, 2);`);
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['shown [true,true]', 'hidden false']);
+            const id = barCalls(members)[0]?.id;
+            expect(members.calls).toEqual([
+                `show ${steve} ${id} {"text":"TPS: 20","progress":1,"color":"pink"}`,
+                `update ${steve} ${id} {"text":"TPS: 20","progress":1,"color":"red"}`,
+                `update ${steve} ${id} {"text":"TPS: 12","progress":1,"color":"red"}`,
+                `hide ${steve} ${id}`
+            ]);
+        });
+
+        it('refuses boss bar options of the wrong type, naming the member and the property', () => {
+            const { scripts, world, log, members } = startWithMembers(`
+                system.runTimeout(() => {
+                    const player = world.getAllPlayers()[0];
+                    show('color', () => jsp.bossBars.show(player, { color: 'gold' }));
+                    show('progress', () => jsp.bossBars.show(player, { progress: Number.NaN }));
+                    show('text', () => jsp.bossBars.show(player, { text: 20 }));
+                    show('update', () => jsp.bossBars.show(player).update(7));
+                }, 1);`);
+            world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'color TypeError: bossBars.show takes one of pink, blue, red, green, yellow, purple, rebeccaPurple, white as its color',
+                'progress TypeError: bossBars.show takes a finite number as its progress',
+                'text TypeError: bossBars.show takes a string as its text',
+                'update TypeError: BossBar.update takes an object as its options'
+            ]);
+            expect(members.calls).toHaveLength(1);
+        });
+
+        it("takes a player's bars down as they leave, and shows none to a player who left", () => {
+            const { scripts, world, log, members } = startWithMembers(`
+                let bar;
+                let steve;
+                system.runTimeout(() => {
+                    steve = world.getAllPlayers()[0];
+                    bar = jsp.bossBars.show(steve, { text: 'one' });
+                }, 1);
+                system.runTimeout(() => {
+                    show('after leaving', () => [bar.isValid, jsp.bossBars.show(steve).isValid]);
+                }, 2);`);
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            world.leave(steve);
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['after leaving [false,false]']);
+            const id = barCalls(members)[0]?.id;
+            expect(members.calls).toEqual([
+                `show ${steve} ${id} {"text":"one","progress":1,"color":"pink"}`,
+                `hide ${steve} ${id}`
+            ]);
+        });
+
+        it('takes every bar down when the scripts stop, and gives the next runtime new bar ids', () => {
+            const { scripts, world, members } = startWithMembers(`
+                system.runTimeout(() => {
+                    const player = world.getAllPlayers()[0];
+                    jsp.bossBars.show(player, { text: 'one' });
+                    jsp.bossBars.show(player, { text: 'two' });
+                }, 1);`);
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            scripts.reload();
+            scripts.flush();
+            scripts.flush();
+            scripts.shutdown();
+
+            const calls = barCalls(members);
+            expect(calls.map(({ kind, player }) => `${kind} ${player}`)).toEqual([
+                ...Array<string>(2).fill(`show ${steve}`),
+                ...Array<string>(2).fill(`hide ${steve}`),
+                ...Array<string>(2).fill(`show ${steve}`),
+                ...Array<string>(2).fill(`hide ${steve}`)
+            ]);
+            const ids = calls.map(({ id }) => id);
+            // Each runtime's stop hides the bars it showed, and the next runtime's bars are new.
+            expect(ids.slice(2, 4)).toEqual(ids.slice(0, 2));
+            expect(ids.slice(6, 8)).toEqual(ids.slice(4, 6));
+            expect(new Set(ids).size).toBe(4);
+        });
+
+        it('takes every bar down when the watchdog stops the scripts', () => {
+            const members = new RecordingMembers();
+            const world = new MemoryWorld();
+            const { scripts } = start(
+                [
+                    writePack(`import { system, world } from '@minecraft/server';
+                        let jsp;
+                        import('@jsprismarine/server').then((module) => { jsp = module; });
+                        system.runTimeout(() => jsp.bossBars.show(world.getAllPlayers()[0], { text: 'one' }), 1);
+                        system.runTimeout(() => { const recurse = () => recurse() + 1; try { recurse(); } catch {} }, 2);`)
+                ],
+                { world, members, watchdog: { hangSteps: 1000, shutdown: true } }
+            );
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            const [shown] = barCalls(members);
+            expect(barCalls(members)).toEqual([shown, { kind: 'hide', player: steve, id: shown!.id }]);
+        });
+
+        it('leaves the members that reach the server out when the server gives none', () => {
+            const { scripts, log } = start([
+                writePack(`import { world } from '@minecraft/server';
+                    world.afterEvents.worldLoad.subscribe(async () => {
+                        const jsp = await import('@jsprismarine/server');
+                        console.warn(JSON.stringify(Object.keys(jsp)), 'performance' in jsp);
+                    });`)
+            ]);
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['["jsprismarine"] false']);
         });
 
         it('rejects another @jsprismarine/ module and an undeclared @minecraft/ one with BDS’s message', () => {
