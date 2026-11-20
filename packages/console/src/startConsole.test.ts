@@ -225,6 +225,29 @@ describe('startConsole', () => {
         }
     });
 
+    it('stops writing to a terminal that has gone away', async () => {
+        const t = await setup();
+        handle = t.handle;
+        const hangUp = Object.assign(new Error('write EIO'), { code: 'EIO' });
+
+        // A closed terminal fails every write; unhandled, the failure is an uncaught exception
+        // whose reset write fails again, a loop that starves the host of its own shutdown.
+        expect(() => process.stdout.emit('error', hangUp)).not.toThrow();
+        const write = vi.spyOn(process.stdout, 'write');
+        try {
+            const onUncaught = process
+                .listeners('uncaughtException')
+                .find((listener) => listener.name === 'onUncaught');
+            onUncaught?.(hangUp, 'uncaughtException');
+            expect(write).not.toHaveBeenCalled();
+        } finally {
+            write.mockRestore();
+        }
+
+        await t.handle.close();
+        expect(process.stdout.listeners('error').some((listener) => listener.name === 'onOutputError')).toBe(false);
+    });
+
     it('rejects with a clear error when the renderer cannot start', async () => {
         await expect(
             startConsole({
