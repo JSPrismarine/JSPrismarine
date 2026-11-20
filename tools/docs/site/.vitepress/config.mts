@@ -78,6 +78,9 @@ export default defineConfig({
         ]
     ],
     lastUpdated: true,
+    // Cloudflare Pages redirects `/page.html` to `/page`, so links and sitemap entries name the clean
+    // path, the one a page's canonical URL already gives.
+    cleanUrls: true,
     /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root. */
     buildEnd(siteConfig) {
         writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
@@ -102,6 +105,7 @@ export default defineConfig({
     transformPageData(pageData, { siteConfig }) {
         const title = pageData.frontmatter.title ?? pageData.title ?? siteConfig.site.title;
         const description = pageData.frontmatter.description ?? pageData.description ?? siteConfig.site.description;
+        // The sitemap derives each page's path from its source file the same way under `cleanUrls`.
         const url = new URL(pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, ''), siteUrl).href;
         pageData.frontmatter.head ??= [];
         pageData.frontmatter.head.push(
