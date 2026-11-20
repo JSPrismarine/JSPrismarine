@@ -275,17 +275,18 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             return matching;
         },
 
-        getTime: () => defaultWorld().getTicks(),
+        getTime: () => defaultWorld().getDayTime(),
+        getGameTime: () => defaultWorld().getTicks(),
         setTime: (ticks) => {
             const world = defaultWorld();
-            world.setTicks(ticks);
-            world.sendTime();
+            world.setDayTime(ticks);
+            world.syncTime();
         },
         addTime: (ticks) => {
             const world = defaultWorld();
-            const next = world.getTicks() + ticks;
-            world.setTicks(next);
-            world.sendTime();
+            const next = world.getDayTime() + ticks;
+            world.setDayTime(next);
+            world.syncTime();
             return next;
         },
 

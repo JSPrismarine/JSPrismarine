@@ -391,8 +391,46 @@ describe('Level', () => {
             expect(nether.getTicks()).toBe(3);
 
             // `/time set` through either world sets the one clock.
-            nether.setTicks(6000);
-            expect(overworld.getTicks()).toBe(6000);
+            nether.setDayTime(6000);
+            expect(overworld.getDayTime()).toBe(6000);
+            // The game clock keeps its count, since scheduled ticks are due by it.
+            expect(overworld.getTicks()).toBe(3);
+
+            await level.disable();
+        });
+
+        it('holds the time of day still while the day cycle rule is off, and the game clock runs on', async () => {
+            const { level } = buildLevel('daylight');
+            await level.enable();
+            level.setDayTime(1000);
+
+            level.getGameRuleManager().setGameRule(GameRules.DoDayLightCycle, false, true);
+            await level.update(1);
+            await level.update(2);
+            expect(level.getDayTime()).toBe(1000);
+            expect(level.getTicks()).toBe(2);
+
+            level.getGameRuleManager().setGameRule(GameRules.DoDayLightCycle, true, true);
+            await level.update(3);
+            expect(level.getDayTime()).toBe(1001);
+            expect(level.getTicks()).toBe(3);
+
+            await level.disable();
+        });
+
+        it('holds the time of day still while a script paused the clock', async () => {
+            const { level } = buildLevel('paused');
+            await level.enable();
+            level.setDayTime(500);
+
+            level.setDayTimePaused(true);
+            await level.update(1);
+            expect(level.getDayTime()).toBe(500);
+
+            level.setDayTimePaused(false);
+            await level.update(2);
+            expect(level.getDayTime()).toBe(501);
+            expect(level.getTicks()).toBe(2);
 
             await level.disable();
         });
@@ -494,6 +532,7 @@ describe('Level', () => {
             overworld.setSpawnPosition(new Vector3(12, 70, -8));
             overworld.getGameRuleManager().setGameRule(GameRules.DoFireTick, false, true);
             level.setTicks(777);
+            level.setDayTime(500);
             await level.save();
 
             // The Overworld's spawn is the level's, Bedrock's `SpawnX/Y/Z`.
@@ -504,7 +543,8 @@ describe('Level', () => {
             expect(levelDat?.root.getNumber('SpawnX', Number.NaN)).toBe(12);
             expect(levelDat?.root.getNumber('SpawnY', Number.NaN)).toBe(70);
             expect(levelDat?.root.getNumber('SpawnZ', Number.NaN)).toBe(-8);
-            expect(levelDat?.root.getLong('Time', -1n)).toBe(777n);
+            expect(levelDat?.root.getLong('Time', -1n)).toBe(500n);
+            expect(levelDat?.root.getLong('currentTick', -1n)).toBe(777n);
             expect(levelDat?.root.getNumber('Generator', -1)).toBe(GeneratorType.OVERWORLD);
             expect(levelDat?.root.getNumber('NetherScale', -1)).toBe(Dimensions.Nether.java.coordinateScale);
 
@@ -518,8 +558,9 @@ describe('Level', () => {
             const reopened = buildLevel('saved');
             await reopened.level.enable();
             expect(reopened.level.getSpawn()).toEqual(new Vector3(12, 70, -8));
-            // The clock carries on from `Time` rather than starting the day over.
+            // The clocks carry on from `currentTick` and `Time` rather than starting the day over.
             expect(reopened.level.getTicks()).toBe(777);
+            expect(reopened.level.getDayTime()).toBe(500);
             expect(reopened.level.getGameRuleManager().getGameRule(GameRules.DoFireTick)).toEqual([false, true]);
             // The spawn is known, so the Overworld opens without a search.
             const back = await reopened.level.world(OVERWORLD_STEM_ID);

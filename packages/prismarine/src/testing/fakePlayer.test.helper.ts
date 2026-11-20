@@ -157,6 +157,7 @@ export const fakePlayer = ({ underwater = false, worlds: others = [], name = 'Te
         dataEntities: () => entities.entityRuntime(Dimensions.Overworld.name),
         getEntityStore: () => entities.entityRuntime(Dimensions.Overworld.name).runtime.store,
         getTicks: () => clock.ticks,
+        getDayTime: () => clock.ticks,
         // What the phantom spawner reads of the sky and the water line on its first look.
         getWeather: () => 'clear',
         getSeaLevel: () => 63,

@@ -93,6 +93,7 @@ const harness = ({
     const world = stub<World>({
         getEntityStore: () => store,
         getTicks: () => 6000,
+        getDayTime: () => 6000,
         getLevel: () => level,
         getStem: () => TEST_OVERWORLD_STEM,
         getDimension: () => Dimensions.Overworld,

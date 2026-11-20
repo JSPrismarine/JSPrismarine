@@ -39,6 +39,7 @@ const scene = ({ pvp = true } = {}) => {
             stub<GameRuleManager>({ getGameRule: () => [pvp, true], findGameRule: () => undefined }),
         getLoadedChunk: () => null,
         getTicks: () => 0,
+        getDayTime: () => 0,
         getActor: (runtimeId: bigint) => live.actors.actorOf(Number(runtimeId)) ?? null,
         dataEntities: () => live
     });

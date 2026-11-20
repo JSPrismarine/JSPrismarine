@@ -588,6 +588,12 @@ describe('the world commands', () => {
         expect(results).toEqual([6000]);
     });
 
+    it('/time query gametime reads the game clock, which runs while the day stands still', () => {
+        const { results } = run('time query gametime', { world: { getTime: () => 1000, getGameTime: () => 5000 } });
+
+        expect(results).toEqual([5000]);
+    });
+
     it('/time set takes a named time of day as well as a tick count', () => {
         const set: number[] = [];
         const world = { setTime: (ticks: number) => void set.push(ticks) };

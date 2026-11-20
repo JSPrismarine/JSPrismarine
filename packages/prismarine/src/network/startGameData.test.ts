@@ -57,6 +57,7 @@ const worldOf = (
         getStem: () => stem,
         getDimension: () => dimension,
         getTicks: () => 0,
+        getDayTime: () => 0,
         getName: () => 'test',
         getUUID: () => 'uuid',
         getSeed: () => 1n,

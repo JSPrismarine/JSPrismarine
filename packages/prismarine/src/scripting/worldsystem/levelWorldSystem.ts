@@ -168,9 +168,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
     // The locator bar has no game rule on the wire, and cheats and hardcore no setting here.
     let playerWaypoints: ScriptGameRuleValue = SCRIPT_GAME_RULES.playerWaypoints.default;
     let cheats = true;
-    // The clock's pause and markers last as long as the level is loaded; the time keeps running,
-    // since the level's clock is also what its scheduled ticks count by.
-    let clockPaused = false;
+    // The clock's markers last as long as the level is loaded. Its pause is the level's own.
     const markers: ScriptTimeMarker[] = [];
     /** Each player's fog stack as the scripts built it, by entity id. */
     const fogs = new Map<string, readonly ScriptFogLayer[]>();
@@ -204,7 +202,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
     };
 
     return {
-        absoluteTime: () => level.getTicks(),
+        absoluteTime: () => level.getDayTime(),
         setAbsoluteTime: (time) => commands().setTime(time),
         difficulty: () => SCRIPT_DIFFICULTY[difficultyName(server.getConfig().getDifficulty())] ?? 'Normal',
         setDifficulty: (difficulty) => void commands().setDifficulty(difficulty),
@@ -431,10 +429,8 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             session.released(session.send(new PlayerFogPacket({ fogStack: layers.map((layer) => layer.fogId) })));
         },
         blockTags: (typeId) => blockFromContent(typeId, server.getContent())?.getTags() ?? [],
-        clockPaused: () => clockPaused,
-        setClockPaused: (paused) => {
-            clockPaused = paused;
-        },
+        clockPaused: () => level.isDayTimePaused(),
+        setClockPaused: (paused) => level.setDayTimePaused(paused),
         timeMarkers: () => markers,
         addTimeMarker: (marker) => void markers.push(marker),
         removeTimeMarker: (name) => {

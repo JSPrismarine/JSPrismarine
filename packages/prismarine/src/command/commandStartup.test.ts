@@ -263,7 +263,7 @@ describe('the command layer on a booted server', () => {
     it('changes the time through /time', async () => {
         await expect(run('/time set 6000')).resolves.toBe(true);
 
-        expect(world.getTicks()).toBe(6000);
+        expect(world.getDayTime()).toBe(6000);
     });
 
     it('reads and writes a gamerule under the name the world keeps', async () => {

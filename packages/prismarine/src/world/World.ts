@@ -4026,7 +4026,12 @@ export class World implements Service {
     public sendTime(): void {
         if (this.getTicks() % World.TIME_SYNC_INTERVAL_TICKS !== 0) return;
 
-        this.changes.timeChanged(this.getTicks());
+        this.syncTime();
+    }
+
+    /** Sends the time of day to all players in the world now, as `/time set` does. */
+    public syncTime(): void {
+        this.changes.timeChanged(this.getDayTime());
     }
 
     /**
@@ -4851,9 +4856,19 @@ export class World implements Service {
         return this.level.getTicks();
     }
 
-    /** Sets the level's clock, which is what `/time set` does. */
+    /** Sets the level's game clock. The time of day moves with it. */
     public setTicks(tick: number): void {
         this.level.setTicks(tick);
+    }
+
+    /** The level's time of day, which stands still while the day cycle is off. */
+    public getDayTime(): number {
+        return this.level.getDayTime();
+    }
+
+    /** Sets the level's time of day, which is what `/time set` does. */
+    public setDayTime(time: number): void {
+        this.level.setDayTime(time);
     }
 
     /** The level's provider, which serves every dimension of the save. */

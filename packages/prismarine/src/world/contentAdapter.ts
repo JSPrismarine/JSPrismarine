@@ -232,7 +232,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         },
         seed,
         gameTime: () => live().getTicks(),
-        dayTime: () => timeOfDay(live().getTicks()),
+        dayTime: () => timeOfDay(live().getDayTime()),
         difficulty: () => contentDifficulty(options.difficulty()),
         inhabitedTime: (at) =>
             live()
