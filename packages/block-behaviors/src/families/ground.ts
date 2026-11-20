@@ -2,7 +2,7 @@
  * The ground families: soil and the blocks that fall, ice, snow and the
  * dripstone and amethyst cluster.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockPosition, HookBlock } from '@jsprismarine/blocks';
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
@@ -10,6 +10,7 @@ import { offset, opposite } from '../geometry';
 import { AIR, isWater, WATER } from '../identifiers';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
 import { hasSilkTouch } from '../rules/heldItem';
+import { fluidAt } from '../rules/fluid';
 import { dampensLightMoreThan } from '../rules/light';
 import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
@@ -128,13 +129,41 @@ export const concretePowderFamily = defineFamily(
     }
 );
 
+/** How many blocks a grass or mycelium block tries to spread onto per random tick. */
+const GRASS_SPREAD_ATTEMPTS = 4;
+
+/** The light a block no light passes through dampens, Java's `LightEngine.MAX_LEVEL`. */
+const OPAQUE_DAMPENING = 15;
+
+/** Java's `RandomSource.nextInt(bound)`, over the world's random draw. */
+const nextInt = (world: WorldActions, bound: number): number => Math.floor(world.random() * bound);
+
+/**
+ * Java's `SpreadingSnowyBlock.canBeGrass`: grass lives under a single snow layer or anything
+ * light passes through, and dies under an opaque block or a water source.
+ */
+const canBeGrass = (world: WorldActions, at: BlockPosition): boolean => {
+    const abovePosition = offset(at, 'up');
+    const above = world.getBlock(abovePosition);
+    if (above === undefined) return true;
+    if (bareName(above.identifier) === 'snow_layer' && stateNumber(above, 'height') === 0) return true;
+    // A waterlogged block's water counts, which Bedrock keeps in the position's liquid layer.
+    const fluid = fluidAt(world, abovePosition);
+    if (fluid?.kind === 'water' && fluid.source) return false;
+    return !dampensLightMoreThan(world, above, OPAQUE_DAMPENING - 1);
+};
+
+/** Java's `SpreadingSnowyBlock.canPropagate`: grass could live there, and no water is above it. */
+const canPropagate = (world: WorldActions, at: BlockPosition): boolean =>
+    canBeGrass(world, at) && fluidAt(world, offset(at, 'up'))?.kind !== 'water';
+
 /**
  * Soil: dirt and its variants, sand and gravel, farmland and the spreading
  * ground covers.
  */
 export const soilFamily = defineFamily(
     'jsprismarine:soil',
-    'Falls when it is sand, gravel or a suspicious block, keeps farmland moisture from nearby water, turns farmland back to dirt when something lands on it, and spreads grass onto dirt.',
+    'Falls when it is sand, gravel or a suspicious block, keeps farmland moisture from nearby water, turns farmland back to dirt when something lands on it, and spreads grass and mycelium onto dirt as Java does, four tries at a block up to one across and three below or one above.',
     {
         onPlace: (event, world) => {
             if (isFallingBlock(event.block.identifier)) scheduleFall(world, event.block);
@@ -172,19 +201,24 @@ export const soilFamily = defineFamily(
             }
 
             if (name !== 'grass_block' && name !== 'mycelium') return;
-            const coverPosition = offset(event.block.position, 'up');
-            const cover = world.getBlock(coverPosition);
-            if (cover !== undefined && world.lightLevel(coverPosition) < 4 && dampensLightMoreThan(world, cover, 2)) {
+            if (!canBeGrass(world, event.block.position)) {
                 world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));
                 return;
             }
-            for (const face of BLOCK_FACES) {
-                const neighbor = world.getBlock(offset(event.block.position, face));
-                if (neighbor === undefined || bareName(neighbor.identifier) !== 'dirt') continue;
-                if (world.lightLevel(offset(neighbor.position, 'up')) < 4) continue;
-                if (world.random() >= 1 / 4) continue;
-                world.setBlock(neighbor.position, event.block.identifier);
-                return;
+            if (world.lightLevel(offset(event.block.position, 'up')) < 9) return;
+            // Java's four attempts, each at a block up to one across, three below and one above,
+            // with the three `nextInt` draws in Java's order.
+            for (let attempt = 0; attempt < GRASS_SPREAD_ATTEMPTS; attempt += 1) {
+                const { x, y, z } = event.block.position;
+                const target = {
+                    x: x + nextInt(world, 3) - 1,
+                    y: y + nextInt(world, 5) - 3,
+                    z: z + nextInt(world, 3) - 1
+                };
+                const block = world.getBlock(target);
+                if (block === undefined || bareName(block.identifier) !== 'dirt') continue;
+                if (!canPropagate(world, target)) continue;
+                world.setBlock(target, event.block.identifier);
             }
         },
         onEntityFallOn: (event, world) => {
