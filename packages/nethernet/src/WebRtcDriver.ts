@@ -63,6 +63,11 @@ export interface DriverPeer {
     remoteAddress(): PeerAddress | undefined;
     /** The local address of the selected pair, once connected. */
     localAddress(): PeerAddress | undefined;
+    /**
+     * The round trip time to the remote peer in milliseconds, as the stack measures it, or
+     * undefined before its first sample. A stack that measures none leaves it out.
+     */
+    roundTripTime?(): number | undefined;
     close(): void;
 }
 

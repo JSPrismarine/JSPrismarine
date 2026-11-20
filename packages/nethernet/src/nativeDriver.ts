@@ -93,6 +93,8 @@ const peerOf = (peer: PeerConnection, explain: Explain): DriverPeer => {
             const pair = peer.selectedCandidatePair();
             return pair === undefined ? undefined : candidateAddress(pair.local);
         },
+        // SCTP's smoothed round trip time, from the acknowledgments of the data channels' messages.
+        roundTripTime: () => peer.roundTripTime(),
         close: () => peer.close()
     };
 };
