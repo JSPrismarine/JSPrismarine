@@ -1,8 +1,14 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["local>NordcomInc/renovate-config", ":semanticCommits", ":automergeMajor"],
+    "extends": ["local>NordcomInc/renovate-config", ":semanticCommits", ":automergeMajor", "group:allNonMajor"],
     "commitMessageAction": "update",
     "packageRules": [
+        {
+            "description": "Open and rebase update pull requests only overnight (UTC). Each push to an update branch starts a full set of checks, and master requires a branch to be up to date before it merges, so an update rebased all day after every merge ran them over and over. Security updates ignore the schedule.",
+            "matchPackageNames": ["*"],
+            "schedule": ["before 6am"],
+            "updateNotScheduled": false
+        },
         {
             "matchManagers": ["github-actions"],
             "commitMessageTopic": "{{{depName}}}"
