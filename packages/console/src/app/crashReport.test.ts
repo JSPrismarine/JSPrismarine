@@ -25,6 +25,34 @@ describe('parseCrash', () => {
         expect(crash.trace.split('\n')).toHaveLength(3);
     });
 
+    it('takes a failure reported after the last trace over that trace', () => {
+        const crash = parseCrash([
+            'Error: a handled one',
+            '    at Old.place (file:///repo/packages/old/dist/Old.js:1:1)',
+            'fatal: configuration file is missing',
+            '',
+            'Node.js v26.12.1'
+        ]);
+        expect(crash.error).toMatch(/^fatal/);
+        expect(crash.frames).toHaveLength(0);
+    });
+
+    it("keeps the trace when only Node's own lines follow it", () => {
+        const crash = parseCrash([
+            'TypeError: boom',
+            '    at World.tick (file:///repo/packages/prismarine/dist/World.js:812:20)',
+            '',
+            'Node.js v26.12.1'
+        ]);
+        expect(crash.error).toMatch(/^TypeError/);
+        expect(crash.frames).toHaveLength(1);
+    });
+
+    it('decodes the path of a frame written as a file URL', () => {
+        const crash = parseCrash(['Error: boom', '    at run (file:///repo/my%20project/dist/Server.js:12:3)']);
+        expect(crash.frames[0]?.location).toEqual({ path: '/repo/my project/dist/Server.js', line: 12, column: 3 });
+    });
+
     it('falls back to the last line printed when there is no trace', () => {
         const crash = parseCrash(['starting', 'listen EADDRINUSE: address already in use :::19132', '  ']);
         expect(crash.error).toMatch(/EADDRINUSE/);

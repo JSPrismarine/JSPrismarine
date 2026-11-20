@@ -10,7 +10,7 @@ export interface SourceLocation {
     column: number;
 }
 
-const SOURCE_REFERENCE = /(?:[A-Za-z]:[\\/]|\/)?(?:[\w.@+-]+[\\/])*[\w.@+-]+\.[\w-]+:\d+:\d+/g;
+const SOURCE_REFERENCE = /(?:[A-Za-z]:[\\/]|\/)?(?:[\w.@+%-]+[\\/])*[\w.@+%-]+\.[\w-]+:\d+:\d+/g;
 const LOCATION_SUFFIX = /^(.*\.[\w-]+):(\d+):(\d+)$/;
 
 /** Returns the source location in a namespace when verbose logging supplied one. */
@@ -32,13 +32,27 @@ export function namespaceLabel(namespace: string): string {
     return file.replace(/\.[\w-]+$/, '') || namespace;
 }
 
+/**
+ * The location a {@link SOURCE_REFERENCE} match names. A match inside a `file://` URL, as a
+ * stack frame writes paths, has its percent escapes decoded, so `my%20project` opens `my project`.
+ */
+function referenceLocation(text: string, match: RegExpExecArray | RegExpMatchArray): SourceLocation | undefined {
+    const location = sourceLocationFromNamespace(match[0]);
+    if (location === undefined || !text.slice(0, match.index).endsWith('file://')) return location;
+    try {
+        return { ...location, path: decodeURIComponent(location.path) };
+    } catch {
+        return location;
+    }
+}
+
 /** Finds a source location only when the clicked terminal column falls on its rendered path. */
 export function sourceLocationAtColumn(text: string, column: number): SourceLocation | undefined {
     for (const match of text.matchAll(SOURCE_REFERENCE)) {
         const start = columns(text.slice(0, match.index));
         const end = start + columns(match[0]);
         if (column < start || column >= end) continue;
-        return sourceLocationFromNamespace(match[0]);
+        return referenceLocation(text, match);
     }
     return undefined;
 }
@@ -46,7 +60,7 @@ export function sourceLocationAtColumn(text: string, column: number): SourceLoca
 /** The first source location written anywhere in `text`, such as the file of a stack frame. */
 export function sourceLocationIn(text: string): SourceLocation | undefined {
     for (const match of text.matchAll(SOURCE_REFERENCE)) {
-        const location = sourceLocationFromNamespace(match[0]);
+        const location = referenceLocation(text, match);
         if (location !== undefined) return location;
     }
     return undefined;
