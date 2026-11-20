@@ -102,8 +102,8 @@ The mark is a prism: a triangle split down the middle into an `--jsp-accent` fac
 `--jsp-mint` face, with a small `--jsp-signal` triangle at its core whose right half is shaded with
 ink.
 
-- Use `PrismMark` rather than redrawing it. The favicon, the nav logo and the SVG files below come
-  from the same geometry in `prism.ts`.
+- Use `PrismMark` rather than redrawing it. The nav logo, the SVG files below and the site's favicon
+  and touch icons come from the same geometry in `prism.ts`.
 - Keep clear space of half the mark's width on every side.
 - Do not rotate, outline, add shadows or recolor the faces. The mark works unchanged on cream,
   forest and ink, so it has no inverted version.
@@ -120,7 +120,8 @@ avatar.
 | [`prism-tile.svg`](assets/prism-tile.svg) | The mark centered on a square forest tile with its clear space, for app icons and avatars. |
 
 `pnpm --filter @jsprismarine/docs run brand:assets` writes them from `prism.ts` and the palette, and
-`pnpm run lint:brand-assets` fails when the checked-in files differ.
+`pnpm run lint:brand-assets` fails when the checked-in files differ. Every docs build rasterizes them
+into the favicon, the touch icons and the web app manifest, which are not checked in.
 
 ## Shape and motion
 

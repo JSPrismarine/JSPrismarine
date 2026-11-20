@@ -19,6 +19,9 @@ export const facets: readonly Facet[] = [
     { color: 'signal', points: '50,50 72.4,90 50,90', shade: 0.18 }
 ];
 
+/** The wordmark: one word, camel case. The web app manifest names the site with it. */
+export const wordmark = 'JSPrismarine';
+
 /** The facets as SVG polygons with literal colors, for documents that cannot read the `--jsp-*` properties. */
 function facetShapes() {
     return facets
