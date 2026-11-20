@@ -8,6 +8,7 @@
  * pnpm --filter @jsprismarine/client-e2e run e2e --concurrency 2 --record # parallel suites, with recordings
  * pnpm --filter @jsprismarine/client-e2e run e2e --retry                 # failed scenarios run once more
  * pnpm --filter @jsprismarine/client-e2e run e2e --run-skipped           # also the scenarios pin-skips.mts skips
+ * pnpm --filter @jsprismarine/client-e2e run e2e --shard 2/4             # the second of four shares of the suites
  * ```
  *
  * Evidence lands in `--artifacts` (default: a fresh temporary directory, printed at the end).
@@ -26,6 +27,7 @@ import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import { pinSkips } from './pin-skips.mts';
+import { parseShard, shardSuites } from './shard.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import type { ScenarioSuite } from './suites.mts';
 import { suites } from './suites.mts';
@@ -48,7 +50,8 @@ const { values, positionals } = parseArgs({
         'public-ip': { type: 'string' },
         'compression-algorithm': { type: 'string', default: 'snappy' },
         'raknet-worker': { type: 'boolean', default: true },
-        concurrency: { type: 'string', default: '2' }
+        concurrency: { type: 'string', default: '2' },
+        shard: { type: 'string' }
     },
     allowPositionals: true,
     allowNegative: true
@@ -93,9 +96,19 @@ if (new Set(requestedNames).size !== requestedNames.length) {
     throw new Error('each scenario can only be selected once in a run');
 }
 const requested = new Set(requestedNames);
-const requestedSuites = suites
+const selectedSuitesOfEveryShard = suites
     .map((suite) => ({ ...suite, scenarios: suite.scenarios.filter((scenario) => requested.has(scenario.name)) }))
     .filter((suite) => suite.scenarios.length > 0);
+const shard = values.shard === undefined ? undefined : parseShard(values.shard);
+if (typeof shard === 'string') throw new Error(shard);
+// CI runs a shard per runner; see shard.mts for how the suites are split.
+const requestedSuites =
+    shard === undefined ? selectedSuitesOfEveryShard : shardSuites(selectedSuitesOfEveryShard, shard);
+if (shard !== undefined) {
+    const names = requestedSuites.map((suite) => suite.name).join(', ') || 'no suites';
+    console.log(`shard ${shard.index}/${shard.total}: ${names}`);
+    if (requestedSuites.length === 0) process.exit(0);
+}
 
 const artifacts = path.resolve(values.artifacts ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-')));
 fs.mkdirSync(artifacts, { recursive: true });

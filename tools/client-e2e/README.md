@@ -56,12 +56,13 @@ The scratch server runs RakNet on a worker thread, so a tick that overruns its b
 stop it answering the client's keepalives and acknowledgements, and the client keeps its session
 through a stall. `--no-raknet-worker` runs it on the game thread instead.
 
-Gameplay and dimension scenarios share one server and client; natural spawning uses a separate
-server because it needs a cow spawn fixture that could affect gameplay checks. The
+The gameplay and dimension scenarios run in four suites of about 14, each on a server and client of
+its own and a fresh world, so CI can play them on four runners at once. Natural spawning uses a
+separate server because it needs a cow spawn fixture that could affect gameplay checks. The
 `level-isolation` scenario gets a server of its own with a second `worlds` entry, whose mobs and
 world every other scenario would also have to tick. The runner resets
 the player, inventory, drops, and controls between scenarios, then stops each server and removes
-its temporary data. The two suites run concurrently by default; use `--concurrency 1` when
+its temporary data. Two suites run at once by default; use `--concurrency 1` when
 debugging or when passing `--port`. `--record` writes a separate `run.mp4` under each scenario's
 artifact directory and leaves the recorded client at full quality. Every other headless client
 saves cheap video settings before it launches (muted, frame-capped, short render distance,
@@ -87,7 +88,12 @@ suite with the compatibility default (`zlib`) on `ubuntu-latest` for each one, w
 rendering through Mesa's software Vulkan driver on a virtual X display. The job runs as many suites
 at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy`
 and `none` across every supported protocol, covering retail-client negotiation without duplicating
-the `zlib` jobs. Each run's job uploads evidence and an LCOV report to Codecov. A preceding job
+the `zlib` jobs. A pull request plays only the newest protocol over RakNet; a push to `master` and a
+manual run play every pin, and a push skips a pin the merged pull request passed in every shard.
+Each pin is played in four shards on runners of their own, or in one when a pull request runs only
+some scenarios. `--shard <index>/<total>` picks the suites one shard plays: whole suites, the
+largest first, each to the shard with the fewest scenarios so far (`src/shard.mts`). Each shard's
+job uploads evidence and an LCOV report to Codecov. A preceding job
 builds each pinned commit that has no cached build, once however many runs use it. It restores
 cargo's compiled dependencies from the closest earlier build, its own protocol's first and then any
 other, so a pin bump compiles only the crates that changed, and it links with `mold`. GitHub
