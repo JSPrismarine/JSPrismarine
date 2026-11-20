@@ -28,9 +28,10 @@ async function setup(
     const actions = { restart: vi.fn(), stop: vi.fn(), forceStop: vi.fn() };
     const store = new LogStore();
     const history = new CommandHistory();
+    let clipboardText: string | undefined;
     const clipboard = {
         copy: vi.fn(async (_text: string) => true),
-        read: vi.fn(async (): Promise<string | undefined> => undefined),
+        read: vi.fn(async (): Promise<string | undefined> => clipboardText),
         dispose: vi.fn(async () => {})
     };
     const app = createApp(
@@ -54,12 +55,22 @@ async function setup(
         app.dispose();
         await test.dispose();
     };
-    return { ...test, dispose, app, store, history, commands, actions, clipboard };
+    /** Sets what a read of the clipboard returns. */
+    const setClipboard = (text: string | undefined): void => {
+        clipboardText = text;
+    };
+    return { ...test, dispose, app, store, history, commands, actions, clipboard, setClipboard };
 }
 
 type AppHarness = Awaited<ReturnType<typeof setup>>;
 
 const byId = (t: AppHarness, id: string) => t.renderer.root.findDescendantById(id);
+
+/** Lets pending promise callbacks, such as a clipboard read, run. */
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
+const cmd = (letter: string) => `\u001B[${letter.charCodeAt(0)};9u`;
 
 /** Whether the command line has keyboard focus. */
 const inputFocused = (t: AppHarness): boolean => byId(t, 'command-input')?.focused === true;
@@ -454,7 +465,6 @@ describe('createApp', () => {
             await t.mockMouse.drag(start, row, start + text.length, row);
             await t.renderOnce();
         };
-        const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
         const reportTps = (t: AppHarness, tps: number): void =>
             t.app.applyServerMessage({
                 type: 'status',
@@ -466,8 +476,6 @@ describe('createApp', () => {
                 rssBytes: 100 * 1024 * 1024,
                 uptimeMs: 1000
             });
-        /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
-        const cmd = (letter: string) => `\u001B[${letter.charCodeAt(0)};9u`;
 
         it('copies a selection as soon as the mouse is released', async () => {
             const t = await setup({ width: 120, height: 40 });
@@ -1285,6 +1293,43 @@ describe('createApp', () => {
 
             expect(commandLine(t)).toBe('');
             expect(byId(t, 'side-pane')?.visible).toBe(false);
+        });
+
+        it('pastes the clipboard into the open palette on Cmd+V', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            t.setClipboard('side pane');
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            t.mockInput.pressKey(cmd('v'));
+            await flush();
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+
+            expect(commandLine(t)).toBe('');
+            expect(byId(t, 'side-pane')?.visible).toBe(false);
+        });
+
+        it('closes the TPS page when the palette puts a command on the line', async () => {
+            const t = await setup(
+                { width: 120, height: 40 },
+                { onComplete: async () => ({ completions: ['op', 'stop'], replace: '' }) }
+            );
+            dispose = t.dispose;
+            t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+            await focusLog(t);
+            t.mockInput.pressKey('t');
+            await t.renderOnce();
+            expect(byId(t, 'tps-page')?.visible).toBe(true);
+
+            t.mockInput.pressKey('k', { ctrl: true });
+            await t.mockInput.typeText('stop');
+            t.mockInput.pressEnter();
+            await t.mockInput.typeText('now');
+            await t.renderOnce();
+
+            expect(byId(t, 'tps-page')?.visible).toBe(false);
+            expect(commandLine(t)).toBe('stop now');
         });
 
         it('runs a console action chosen in the palette', async () => {

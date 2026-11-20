@@ -361,6 +361,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             run(item.id);
             return;
         }
+        // The TPS page takes plain keys while it shows, so it has to go for the line to get them.
+        tpsPage.hide();
         focusInput();
         if (item.kind === 'command') {
             input.setValue(`${item.name} `);
@@ -948,6 +950,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                     toasts.push({ tone: 'muted', text: 'the clipboard has no text to paste' });
                     return;
                 }
+                if (palette.isOpen) {
+                    palette.paste(text);
+                    return;
+                }
                 focusInput();
                 input.paste(text);
             })
@@ -1093,8 +1099,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             help.handleKeyPress(key);
             return;
         }
-        // Ctrl+K closes the palette as it opened it; every other key edits the query.
-        if (palette.isOpen && resolveCommand(key, { inputFocused: false }) !== 'view.palette') {
+        // Ctrl+K closes the palette as it opened it and a paste shortcut pastes into its query;
+        // every other key edits the query.
+        const paletteCommand = palette.isOpen ? resolveCommand(key, { inputFocused: false }) : undefined;
+        if (palette.isOpen && paletteCommand !== 'view.palette' && paletteCommand !== 'input.paste') {
             key.preventDefault();
             palette.handleKeyPress(key);
             return;
