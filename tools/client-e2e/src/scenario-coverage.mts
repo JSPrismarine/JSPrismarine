@@ -14,6 +14,9 @@ import { fileURLToPath } from 'node:url';
 
 import { originalPositionFor, TraceMap } from '@jridgewell/trace-mapping';
 
+import type { OwnerSets, ScenarioCoverageMap } from './scenario-coverage-map.mts';
+import { filesFrom } from './scenario-coverage-map.mts';
+
 /** A coverage file's place in its process's sequence, read from its name. */
 export interface CoverageFileName {
     pid: number;
@@ -57,28 +60,6 @@ interface V8Coverage {
         functions: Array<{ ranges: Array<{ startOffset: number; endOffset: number; count: number }> }>;
     }>;
     'source-map-cache'?: Record<string, { lineLengths: number[]; data: unknown }>;
-}
-
-/**
- * What ran of one source file. An owner is a scenario's index in {@link ScenarioCoverageMap.scenarios},
- * or `-1` for `always`.
- */
-export interface FileCoverage {
-    /** Who ran the module's top level, which runs once, when something first imports it. */
-    module: number[];
-    /**
-     * The file's functions, each as its line range and the owners that ran it. A function nobody
-     * ran has no owners, so a change inside it reaches no scenario.
-     */
-    functions: Array<[start: number, end: number, ...owners: number[]]>;
-}
-
-/** The map a selection reads: for each source file, which scenarios ran which of its functions. */
-export interface ScenarioCoverageMap {
-    version: 1;
-    scenarios: string[];
-    /** Repository-relative paths with forward slashes. */
-    files: Record<string, FileCoverage>;
 }
 
 /** Turns an offset into the generated code into a 1-based line and 0-based column. */
@@ -176,7 +157,7 @@ export const buildScenarioCoverageMap = (
         }
     }
 
-    const owners = new Map<string, { module: Set<number>; functions: Map<string, Set<number>> }>();
+    const owners: OwnerSets = new Map();
     const sourcePattern = /^packages\/[^/]+\/src\//;
     // Node reports resolved paths, such as /private/var on macOS for /var.
     const root = fs.realpathSync(repositoryRoot);
@@ -207,18 +188,5 @@ export const buildScenarioCoverageMap = (
         }
     }
 
-    const sorted = (set: Set<number>): number[] => [...set].sort((a, b) => a - b);
-    const files: Record<string, FileCoverage> = {};
-    for (const [file, { module, functions }] of [...owners].sort(([a], [b]) => a.localeCompare(b))) {
-        files[file] = {
-            module: sorted(module),
-            functions: [...functions]
-                .map(([key, set]): FileCoverage['functions'][number] => {
-                    const [start, end] = key.split(':').map(Number);
-                    return [start ?? 0, end ?? 0, ...sorted(set)];
-                })
-                .sort((a, b) => a[0] - b[0] || a[1] - b[1])
-        };
-    }
-    return { version: 1, scenarios, files };
+    return { version: 1, scenarios, files: filesFrom(owners) };
 };

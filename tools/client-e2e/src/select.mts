@@ -5,15 +5,23 @@
  * gh api --paginate "repos/$REPO/pulls/$NUMBER/files" --jq '.[].filename' | node src/select.mts
  *
  * Every scenario boots the whole server, so a change to anything the server can load runs them
- * all. Two kinds of change are narrower, and only those are treated differently:
- * a file the server never loads, which runs nothing, and a scenario's own file, which runs
- * that scenario.
+ * all. Three kinds of change are narrower, and only those are treated differently:
+ * a file the server never loads, which runs nothing; a scenario's own file, which runs
+ * that scenario; and, given the base commit's scenario coverage map (`--coverage-map`), a change
+ * to server source, which runs the scenarios that ran the functions it touches.
+ *
+ * With a map, standard input carries one JSON object per changed file, as GitHub's pull request
+ * files list gives it (`filename`, `previous_filename`, `patch`, `changes`); without one, it
+ * carries one path per line.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import { isRecord, repoRoot } from './cinnabar.mts';
+import type { Hunk, ScenarioCoverageMap } from './scenario-coverage-map.mts';
+import { parseHunks, scenariosReaching } from './scenario-coverage-map.mts';
 
 /** A workspace package, as far as the selection reads its manifest. */
 export interface WorkspacePackage {
@@ -66,12 +74,15 @@ export const loadedPackages = (packages: readonly WorkspacePackage[], entries: r
  * @param packages - Every workspace package.
  * @param scenariosIn - The names of the scenarios a scenario file defines, or `undefined` when
  * the file cannot stand for its scenarios alone, such as a deleted file or one another file imports.
+ * @param reach - The scenarios a change to a loaded file reaches, `'all'`, or `undefined` when that
+ * is not known, such as without a coverage map or for a file that is not server source.
  * @returns The selection. Anything this function cannot place runs every scenario.
  */
 export const selectScenarios = (
     changed: readonly string[],
     packages: readonly WorkspacePackage[],
-    scenariosIn: (file: string) => readonly string[] | undefined
+    scenariosIn: (file: string) => readonly string[] | undefined,
+    reach: (file: string) => readonly string[] | 'all' | undefined = () => undefined
 ): Selection => {
     const loaded = loadedPackages(packages, ENTRY_PACKAGES);
     const scenarios = new Set<string>();
@@ -85,7 +96,9 @@ export const selectScenarios = (
         }
         const owner = packages.find((entry) => file.startsWith(`${entry.root}/`));
         if (owner !== undefined && !loaded.has(owner.root)) continue;
-        return { mode: 'all', scenarios: [], because: file };
+        const reached = reach(file);
+        if (reached === undefined || reached === 'all') return { mode: 'all', scenarios: [], because: file };
+        for (const name of reached) scenarios.add(name);
     }
     return scenarios.size > 0 ? { mode: 'some', scenarios: [...scenarios] } : { mode: 'none', scenarios: [] };
 };
@@ -137,14 +150,63 @@ const readScenarios = async (files: readonly string[]): Promise<Map<string, read
     return names;
 };
 
+/** Server source, the only kind of file a coverage map can place. */
+const SERVER_SOURCE = /^packages\/[^/]+\/src\/.+\.[cm]?ts$/;
+
+/** One changed file as GitHub's pull request files list gives it, as far as the selection reads it. */
+interface ChangedFile {
+    filename: string;
+    previousFilename?: string;
+    /** Missing when GitHub leaves a large diff out. */
+    hunks?: readonly Hunk[];
+}
+
+/** Reads one changed file a line of standard input describes. */
+const readChangedFile = (line: string): ChangedFile => {
+    if (!line.startsWith('{')) return { filename: line };
+    const parsed: unknown = JSON.parse(line);
+    if (!isRecord(parsed) || typeof parsed.filename !== 'string') throw new Error(`not a changed file: ${line}`);
+    const previous = typeof parsed.previous_filename === 'string' ? parsed.previous_filename : undefined;
+    // A file whose diff GitHub left out has changes but no patch, so its reach is not known.
+    const hunks = typeof parsed.patch === 'string' ? parseHunks(parsed.patch) : parsed.changes === 0 ? [] : undefined;
+    return {
+        filename: parsed.filename,
+        ...(previous === undefined ? {} : { previousFilename: previous }),
+        ...(hunks === undefined ? {} : { hunks })
+    };
+};
+
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    const changed = fs
+    const { values } = parseArgs({ options: { 'coverage-map': { type: 'string' } } });
+    const files = fs
         .readFileSync(0, 'utf8')
         .split('\n')
         .map((line) => line.trim())
-        .filter((line) => line !== '');
+        .filter((line) => line !== '')
+        .map(readChangedFile);
+    // A rename lists both paths, since either can be what another file or scenario names.
+    const changed = files.flatMap((file) =>
+        file.previousFilename === undefined ? [file.filename] : [file.filename, file.previousFilename]
+    );
+    const byPath = new Map(
+        files.flatMap((file) =>
+            [file.filename, file.previousFilename].flatMap((name) =>
+                name === undefined ? [] : [[name, file] as const]
+            )
+        )
+    );
+    const mapPath = values['coverage-map'];
+    // Parsed JSON boundary: the map is the file scenario-coverage.mts wrote.
+    const map =
+        mapPath === undefined ? undefined : (JSON.parse(fs.readFileSync(mapPath, 'utf8')) as ScenarioCoverageMap);
+    const reach = (file: string): readonly string[] | 'all' | undefined => {
+        const change = byPath.get(file);
+        if (map === undefined || change?.hunks === undefined || !SERVER_SOURCE.test(file)) return undefined;
+        // The map and the hunks both describe the base commit, where the file had its old name.
+        return scenariosReaching(map, change.previousFilename ?? change.filename, change.hunks);
+    };
     const names = await readScenarios(changed.filter((file) => file.startsWith(SCENARIOS)));
-    const selection = selectScenarios(changed, readWorkspace(), (file) => names.get(file));
+    const selection = selectScenarios(changed, readWorkspace(), (file) => names.get(file), reach);
 
     const detail =
         selection.mode === 'all'

@@ -123,11 +123,46 @@ jobs:
               with:
                   node-version-file: '.nvmrc'
 
-            # Every scenario boots the whole server, so most changes run them all. A pull request
-            # that changes only files a running server never loads (tests, benchmarks, packages
-            # the server does not depend on) runs none, and one that changes only scenario files
-            # runs those scenarios. A push and a manual run keep every scenario, and a failure
-            # here leaves the outputs empty, which also runs them all.
+            # Which server functions each scenario ran on the base commit, merged from the maps its
+            # push run kept (see tools/client-e2e/src/scenario-coverage.mts). Only a map with all
+            # four shards of a full run of the pin a pull request plays is used, since a missing
+            # shard would leave its scenarios out of every selection. Without one, `map` stays
+            # empty and the selection below goes by package.
+            - name: Find the base commit's scenario coverage
+              id: coverage
+              if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BASE: ${{ github.event.pull_request.base.sha }}
+              run: |
+                  pin="$(node tools/client-e2e/src/pin-matrix.mts --latest-only | jq -r 'map(select(.transport == "raknet"))[0].name')"
+                  runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/client-e2e.yml/runs?head_sha=${BASE}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
+                  for run in $runs; do
+                      dir="$RUNNER_TEMP/scenario-coverage/$run"
+                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'scenario-coverage-*' --dir "$dir" 2> /dev/null || continue
+                      complete=true
+                      for shard in 1 2 3 4; do
+                          if [ -z "$(find "$dir" -path "*/scenario-coverage-${pin}-shard-${shard}/scenario-coverage.json" -print -quit)" ]; then
+                              complete=false
+                          fi
+                      done
+                      if [ "$complete" = true ]; then
+                          mapfile -t maps < <(find "$dir" -name scenario-coverage.json)
+                          node tools/client-e2e/src/scenario-coverage-map.mts "$RUNNER_TEMP/scenario-coverage.json" "${maps[@]}"
+                          echo "map=$RUNNER_TEMP/scenario-coverage.json" >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
+                  done
+                  echo "No complete scenario coverage for ${BASE}; selecting by package."
+
+            # Every scenario boots the whole server, so without a coverage map most changes run them
+            # all. A pull request that changes only files a running server never loads (tests,
+            # benchmarks, packages the server does not depend on) runs none, and one that changes
+            # only scenario files runs those scenarios. With the base commit's map, a change to
+            # server source runs the scenarios that ran the functions it touches, and all of them
+            # when it touches code that runs outside every scenario. A push and a manual run keep
+            # every scenario, and a failure here leaves the outputs empty, which also runs them all.
             - name: Select the scenarios the pull request affects
               id: select
               if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
@@ -135,11 +170,14 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   NUMBER: ${{ github.event.pull_request.number }}
+                  MAP: ${{ steps.coverage.outputs.map }}
               run: |
                   set -o pipefail
+                  map=()
+                  if [ -n "$MAP" ]; then map=(--coverage-map "$MAP"); fi
                   gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$NUMBER/files" \
-                      --jq '.[] | .filename, (.previous_filename // empty)' |
-                      node tools/client-e2e/src/select.mts
+                      --jq '.[] | {filename, previous_filename, patch, changes} | @json' |
+                      node tools/client-e2e/src/select.mts "${map[@]}"
 
             # What the jobs below run: the pins, the ones whose client has no cached build, and the
             # scenarios. They are read here, not in a job of their own, which would wait for a
@@ -169,8 +207,9 @@ jobs:
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
                   pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
                   if [ "$RAKNET_ONLY" = true ]; then pins="$(jq -c 'map(select(.transport == "raknet"))' <<< "$pins")"; fi
+                  # Four shards for a full run, or for a selection too large for one runner.
                   total=4
-                  if [ -n "$SCENARIOS" ]; then total=1; fi
+                  if [ -n "$SCENARIOS" ] && [ "$(wc -w <<< "$SCENARIOS")" -le 15 ]; then total=1; fi
                   # The pins still to play: a pin is left out when the merged pull request passed
                   # every one of its shards under the names client-e2e gives them.
                   remaining="$(jq -c --argjson passed "$PASSED" --argjson total "$total" '
@@ -528,9 +567,15 @@ jobs:
                   xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
                       pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --shard "$SHARD" --concurrency "$SUITES" $SCENARIOS
 
+            # A selection's shard can get no suite, and then there is nothing to cover.
             - name: 🔎 Verify client e2e coverage
               id: client-e2e-coverage
-              run: node scripts/check-client-e2e-coverage.mts
+              run: |
+                  if [ -f "$RUNNER_TEMP/client-e2e/empty-shard" ]; then
+                      echo 'This shard had no suite to play.'
+                      exit 0
+                  fi
+                  node scripts/check-client-e2e-coverage.mts
 
             # A run of some scenarios covers less than the full run, so it uploads nothing and
             # Codecov carries the last full report forward.
