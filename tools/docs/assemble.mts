@@ -1,18 +1,20 @@
 /**
- * Stages VitePress inputs that live outside this package: handwritten guides and a parity
- * tracker snapshot from the full suite. Each staged page gets the current docs facts in place of its
- * marked values (see `facts.mts`), so the site never quotes a value the code has moved past. The suite reads the generated bedrock-data, which
- * `pnpm run docs:generate` writes first.
+ * Stages VitePress inputs that live outside this package: handwritten guides, a page per addon from
+ * its README, and a parity tracker snapshot from the full suite. Each staged page gets the current
+ * docs facts in place of its marked values (see `facts.mts`), so the site never quotes a value the
+ * code has moved past. The suite reads the generated bedrock-data, which `pnpm run docs:generate`
+ * writes first.
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { addonPage, loadAddons } from './addons.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { writeSearchIndex } from './search-index.mts';
-import { isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
+import { addonPagePath, addonReadmePath, isUnpublished, pageTitle, rootPages, sections } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 import type { TrackerIndex } from './site/.vitepress/theme/parity.ts';
 
@@ -82,7 +84,12 @@ const manifest: { repository: { url: string } } = JSON.parse(readFileSync(path.j
 const blobUrl = `${manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '')}/blob/master`;
 const docsRoot = path.join(repoRoot, 'docs');
 const sectionDirs = sections.map(({ dir }) => path.join(docsRoot, dir));
-const rootSources = new Map(rootPages.map(({ source, page }) => [path.join(repoRoot, source), page]));
+const addons = await loadAddons();
+/** Root documents and addon READMEs, by their file, with the page each becomes. */
+const rootSources = new Map([
+    ...rootPages.map(({ source, page }): [string, string] => [path.join(repoRoot, source), page]),
+    ...addons.map(({ name }): [string, string] => [path.join(repoRoot, addonReadmePath(name)), addonPagePath(name)])
+]);
 
 /**
  * Points relative links at their published, site-absolute pages. A link to a file the site does not publish, such as
@@ -152,14 +159,21 @@ if (missingFacts.length) {
 }
 const staleFacts: string[] = [];
 
-/** A page as published: its links rewritten and its marked values filled with the current facts. */
-function stagePage(sourceFile: string) {
+/**
+ * A page as published: its marked values filled with the current facts and its links rewritten,
+ * links inside a fact's value included.
+ * @param markdown - The page's text, when it is not the source file's as written.
+ */
+function stagePage(sourceFile: string, markdown = readFileSync(sourceFile, 'utf8')) {
     const label = path.relative(repoRoot, sourceFile);
-    const { text, unknown, stale } = applyFacts(rewriteLinks(readFileSync(sourceFile, 'utf8'), sourceFile), facts);
+    const { text, unknown, stale } = applyFacts(markdown, facts);
     if (unknown.length) throw new Error(`${label} marks unknown docs facts: ${unknown.join(', ')}`);
     for (const { name } of stale) staleFacts.push(`${label}: ${name}`);
-    return text;
+    return rewriteLinks(text, sourceFile);
 }
+
+/** The image files a docs page may show. */
+const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 let pages = 0;
 for (const section of sections) {
@@ -167,7 +181,14 @@ for (const section of sections) {
     const targetDir = path.join(siteDir, section.dir);
     rmSync(targetDir, { recursive: true, force: true });
     for (const entry of readdirSync(sourceDir, { recursive: true, encoding: 'utf8' })) {
-        if (!entry.endsWith('.md') || isUnpublished(section, entry)) continue;
+        if (isUnpublished(section, entry)) continue;
+        // A page's images sit beside it, where its links point.
+        if (IMAGE.test(entry)) {
+            mkdirSync(path.dirname(path.join(targetDir, entry)), { recursive: true });
+            copyFileSync(path.join(sourceDir, entry), path.join(targetDir, entry));
+            continue;
+        }
+        if (!entry.endsWith('.md')) continue;
         const target = path.join(targetDir, toSitePage(entry));
         mkdirSync(path.dirname(target), { recursive: true });
         const sourceFile = path.join(sourceDir, entry);
@@ -176,6 +197,17 @@ for (const section of sections) {
     }
     const index = path.join(targetDir, 'index.md');
     if (!existsSync(index)) writeFileSync(index, indexPage(section, targetDir));
+}
+// The Addons section's overview is staged; each addon's page joins it.
+const addonCommand = facts.get('addons.command');
+if (!addonCommand) throw new Error('The docs facts no longer name the console command that installs addons.');
+for (const addon of addons) {
+    const page = path.join(siteDir, addonPagePath(addon.name));
+    if (addon.name === 'index' || existsSync(page))
+        throw new Error(`The addon ${addon.name} would replace the page ${path.relative(siteDir, page)}; rename one.`);
+    const readme = path.join(repoRoot, addonReadmePath(addon.name));
+    writeFileSync(page, stagePage(readme, addonPage(addon, addonCommand)));
+    pages++;
 }
 for (const { source, page } of rootPages) {
     const sourceFile = path.join(repoRoot, source);
@@ -187,7 +219,9 @@ if (staleFacts.length) {
     const message = `${staleFacts.length} docs fact(s) are newer than the Markdown; \`pnpm run docs:facts\` refreshes them: ${staleFacts.join('; ')}`;
     console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
 }
-console.log(`Staged ${pages} pages from ${sections.length} doc sections and ${rootPages.length} root documents.`);
+console.log(
+    `Staged ${pages} pages from ${sections.length} doc sections, ${addons.length} addon READMEs and ${rootPages.length} root documents.`
+);
 
 const search = await writeSearchIndex(siteDir);
 console.log(`Indexed ${search.pages} pages and ${search.headings} headings for the site menu's search.`);

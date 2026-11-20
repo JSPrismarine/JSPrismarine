@@ -25,15 +25,23 @@ import { pathToFileURL } from 'node:url';
 import {
     ADDON_INDEX_FILE,
     ADDON_INDEX_SCHEMA_VERSION,
-    ADDON_RELEASE_TAG
+    ADDON_RELEASE_TAG,
+    createAddonIndex,
+    packFileName,
+    serializeAddonIndex
 } from '../../packages/addon-tools/src/addonIndex.ts';
 import { ADDON_FILES, ADDON_MODULE_TYPES } from '../../packages/addon-tools/src/addon.ts';
+import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
+import { USAGE as ADDON_TOOLS_USAGE } from '../../packages/addon-tools/src/command.ts';
+import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/addons/addonFiles.ts';
 import {
     ADDONS_DIRECTORY,
     ADDONS_FILE,
     ADDONS_LOCK_FILE,
     ADDONS_LOCKFILE_VERSION,
-    DEFAULT_ADDON_SOURCE
+    DEFAULT_ADDON_SOURCE,
+    serializeAddonsFile,
+    serializeAddonsLockFile
 } from '../../packages/prismarine/src/addons/addonFiles.ts';
 import { CompressionType } from '../../packages/leveldb/src/compression/Compression.ts';
 import { CommandPermissionLevel } from '../../packages/minecraft/src/CommandPermissionLevel.ts';
@@ -41,6 +49,7 @@ import { resolveOptions } from '../../packages/leveldb/src/DatabaseOptions.ts';
 import { DEFAULT_BLOCK_SIZE } from '../../packages/leveldb/src/format/TableBuilder.ts';
 import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { BETA_APIS, WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
+import { DEFAULT_DEBUGGER_PORT } from '../../packages/script-host/src/debugger/protocol.ts';
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
 import { JSPRISMARINE_SERVER, JSPRISMARINE_TYPES } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
@@ -62,6 +71,7 @@ import {
 } from '../../packages/worldgen/src/blending/generationVersion.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
+import { addonCatalog, loadAddons, releaseWorkflow, releaseWorkflowInputs } from './addons.mts';
 import type { ErrorData, ErrorDomainData } from './code-data.mts';
 import {
     loadBStatsSettings,
@@ -911,9 +921,67 @@ export const addonNames = () =>
         .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
         .map((entry) => entry.name);
 
-/** The addon layout and index that `@jsprismarine/addon-tools` checks and writes, read from its constants. */
-function addonFacts() {
+/** A sample pack's entry in an index, its URL on the source's release as the build writes it. */
+const sampleIndexEntry = (source: string, name: string, version: string, minServer: string) => ({
+    name,
+    version,
+    description: 'Shows TPS, MSPT and ping on a boss bar.',
+    minServer,
+    url: `${releaseDownloadUrl(source)}/${packFileName(name, version)}`,
+    sha256: "<the pack's SHA-256>"
+});
+
+/**
+ * The addon layout and index that `@jsprismarine/addon-tools` checks and writes, the files and
+ * command a server installs with, and the catalog of JSPrismarine's own addons.
+ */
+async function addonFacts() {
+    const command = (await loadServerCommands()).find(({ name }) => name === 'addon');
+    if (!command) throw new Error('The docs facts no longer find the console command that installs addons.');
+    // Parsed JSON is an untyped boundary; only the command names are read.
+    const toolsManifest: { name: string; bin: Record<string, string> } = JSON.parse(
+        sourceText('packages', 'addon-tools', 'package.json')
+    );
+    const [cli] = Object.keys(toolsManifest.bin);
+    const inputs = releaseWorkflowInputs();
+    const input = (name: string) => {
+        const found = inputs.find((each) => each.name === name);
+        if (!found) throw new Error(`The addons release workflow no longer takes the ${name} input.`);
+        return found;
+    };
+    const { version: serverVersion } = loadProject();
+    const otherSource = 'someone/their-addons';
+    const requested = {
+        addons: {
+            'tps-bar': { source: DEFAULT_ADDON_SOURCE, version: '^1.0.0' },
+            'their-tps-bar': { source: otherSource, name: 'tps-bar', version: '^2.1.0' },
+            'my-addon': { path: '../my-addon' }
+        }
+    } satisfies AddonsFile;
+    const tpsBar = sampleIndexEntry(DEFAULT_ADDON_SOURCE, 'tps-bar', '1.0.0', serverVersion);
+    const theirs = sampleIndexEntry(otherSource, 'tps-bar', '2.1.3', serverVersion);
+    const lock = {
+        lockfileVersion: ADDONS_LOCKFILE_VERSION,
+        addons: {
+            'tps-bar': {
+                source: DEFAULT_ADDON_SOURCE,
+                name: 'tps-bar',
+                version: '1.0.0',
+                url: tpsBar.url,
+                sha256: tpsBar.sha256
+            },
+            'their-tps-bar': {
+                source: otherSource,
+                name: 'tps-bar',
+                version: '2.1.3',
+                url: theirs.url,
+                sha256: theirs.sha256
+            },
+            'my-addon': { path: '../my-addon', name: 'my-addon', version: '0.1.0' }
+        }
+    } satisfies AddonsLockFile;
     return {
+        'addons.catalog': addonCatalog(await loadAddons(), command.name),
         'addons.files': list(ADDON_FILES.map(inlineCode)),
         'addons.moduleTypes': list(ADDON_MODULE_TYPES.map(inlineCode)),
         'addons.releaseTag': inlineCode(ADDON_RELEASE_TAG),
@@ -924,6 +992,63 @@ function addonFacts() {
         'addons.lockfileVersion': inlineCode(String(ADDONS_LOCKFILE_VERSION)),
         'addons.directory': inlineCode(`${ADDONS_DIRECTORY}/`),
         'addons.defaultSource': inlineCode(DEFAULT_ADDON_SOURCE),
+        // Plain, since the docs build also reads it to write each addon's install command.
+        'addons.command': command.name,
+        'addons.installExample': `${command.name} install <name>`,
+        // The TPS bar's manifest with its UUIDs left for the author to generate, so the example's
+        // engine and Script API versions stay the ones the addon declares.
+        'addons.manifestExample': readFileSync(path.join(REPO_ADDONS_DIRECTORY, 'tps-bar', 'manifest.json'), 'utf8')
+            .trimEnd()
+            .replace(/"uuid": "[0-9a-f-]+"/, '"uuid": "<a new UUID>"')
+            .replaceAll(/"uuid": "[0-9a-f-]+"/g, '"uuid": "<another new UUID>"'),
+        'addons.commandLevel': String(command.level),
+        'addons.commandPermission': inlineCode(command.permission),
+        'addons.requestExample': serializeAddonsFile(requested).trimEnd(),
+        'addons.lockExample': serializeAddonsLockFile(lock).trimEnd(),
+        'addons.indexExample': serializeAddonIndex(
+            createAddonIndex([tpsBar, sampleIndexEntry(DEFAULT_ADDON_SOURCE, 'tps-bar', '1.1.0', serverVersion)])
+        ).trimEnd(),
+        // Where `addon install <owner>/<repo>/<name>` reads a source's index.
+        'addons.indexUrl': inlineCode(`${releaseDownloadUrl('<owner>/<repo>')}/${ADDON_INDEX_FILE}`),
+        'addons.cli': inlineCode(cli ?? ''),
+        'addons.cliUsage': ADDON_TOOLS_USAGE.trimEnd(),
+        'addons.workflowPath': inlineCode(releaseWorkflow),
+        // A repository of addons calling the reusable workflow. GitHub reads `uses` as a literal,
+        // so the example names the commit to pin instead of a value.
+        'addons.callerExample': [
+            'name: Addons',
+            '',
+            'on:',
+            '    pull_request:',
+            '    push:',
+            '        branches: [main]',
+            '',
+            "# One publish at a time: two at once would each upload an index that lacks the other's packs.",
+            'concurrency:',
+            '    group: ${{ github.workflow }}-${{ github.ref }}',
+            "    cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+            '',
+            'jobs:',
+            '    addons:',
+            `        uses: ${DEFAULT_ADDON_SOURCE}/${releaseWorkflow}@<commit sha>`,
+            '        permissions:',
+            '            contents: write',
+            '        with:',
+            `            ${input('publish').name}: \${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}`
+        ].join('\n'),
+        'addons.workflowInputs': `\n${table(
+            ['Input', 'Type', 'Default', 'What it does'],
+            inputs.map((each) => [
+                inlineCode(each.name),
+                each.type,
+                each.default === undefined ? (each.required ? 'required' : 'none') : inlineCode(each.default),
+                each.description
+            ])
+        )}\n`,
+        // The default of `tools`, which a caller outside JSPrismarine's repository runs.
+        'addons.toolsDefault': inlineCode(input('tools').default ?? ''),
+        'addons.publishDefault': inlineCode(input('publish').default ?? ''),
+        'addons.foldersDefault': inlineCode(input('addons').default ?? ''),
         ...Object.fromEntries(
             addonNames().map((name) => {
                 // Parsed JSON is an untyped boundary; `jsp-addon build` checks the file's shape.
@@ -1064,10 +1189,12 @@ export async function loadFacts(): Promise<Facts> {
             'world.experiments': WORLD_EXPERIMENTS.join(', '),
             // The one a pack that declares a beta Script API version needs.
             'world.betaApis': BETA_APIS,
+            // The port `/script debugger listen` and `connect` use when given none.
+            'scripting.debuggerPort': String(DEFAULT_DEBUGGER_PORT),
             ...scriptingFacts(),
             ...eventFacts(),
             ...prismarineEntryFacts(),
-            ...addonFacts(),
+            ...(await addonFacts()),
             ...(await tpsBarFacts()),
             ...leveldbFacts(),
             ...tickBudgetFacts(),

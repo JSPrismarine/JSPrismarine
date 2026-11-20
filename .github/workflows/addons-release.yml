@@ -26,25 +26,25 @@ on:
     workflow_call:
         inputs:
             addons:
-                description: 'The folder that holds one folder per addon'
+                description: 'The folder that holds one folder per addon.'
                 required: false
                 type: string
                 default: 'addons'
             tools:
                 description: >-
-                    The @jsprismarine/addon-tools version to run, such as `latest` or `0.23.0`.
+                    The `@jsprismarine/addon-tools` version to run, such as `latest` or `0.23.0`.
                     `workspace` runs the package from the caller's checkout, which only
                     JSPrismarine's own repository has.
                 required: false
                 type: string
                 default: 'latest'
             node-version:
-                description: 'The Node.js version to run a published @jsprismarine/addon-tools on'
+                description: 'The Node.js version to run a published `@jsprismarine/addon-tools` on.'
                 required: false
                 type: string
                 default: 'lts/*'
             publish:
-                description: 'Attach the new packs and the index to the addons release'
+                description: 'Whether to attach the new packs and the index to the `addons` release.'
                 required: false
                 type: boolean
                 default: false

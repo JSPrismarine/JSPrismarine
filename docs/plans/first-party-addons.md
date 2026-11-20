@@ -192,16 +192,22 @@ Out of scope for now:
        source the console typed, so `/execute`, functions and scripts cannot reach it either. The
        startup check compares each folder's manifest version with the lock and downloads again
        when they differ; it does not hash the unpacked files. A folder installs as a link to it,
-       so edits show after `/reload`. A reload whose pack list changed closes the scripts and
-       loads them again, so `system.currentTick` starts over.
+       so edits show after `/reload`. A reload whose pack list changed, and every reload an addon
+       operation starts, closes the scripts and loads them again with each manifest read anew,
+       so `system.currentTick` starts over. Reloads run one at a time.
 5. [x] [#3334](https://github.com/JSPrismarine/JSPrismarine/issues/3334) **The TPS bar.** The first addon, over slices 2 and 3, with its client-e2e scenario and a
        recording for the pull request. The bar shows `averageTickMs` as MSPT, since one tick's
        figure sampled once a second jumps around. The `tps-bar` scenario installs the addon
        through `content-world-packs`, and a real client showed
        the bar bound to the player's own entity.
-6. [ ] [#3335](https://github.com/JSPrismarine/JSPrismarine/issues/3335) **The site.** The Addons section, generated from the addons, and the installing, writing
+6. [x] [#3335](https://github.com/JSPrismarine/JSPrismarine/issues/3335) **The site.** The Addons section, generated from the addons, and the installing, writing
        and publishing guides. Slice 3 also publishes its build script and workflow for authors to
-       reuse, which the publishing guide documents.
+       reuse, which the publishing guide documents. The section's overview is `docs/addons/`,
+       whose list is the `addons.catalog` docs fact; the docs build reads each addon with
+       `readAddons`, the build's own check, and stages its README as `/addons/<name>`. The guides
+       are `docs/guide/installing-addons.md`, `writing-addons.md` and `publishing-addons.md`, and
+       the workflow's inputs table reads `addons-release.yml`. The list says no addon is published
+       until slice 5 adds the TPS bar; `pnpm run docs:facts` then writes it in.
 
 Slices 2 and 3 do not depend on each other. Slice 4 needs 3's index; slice 5 needs 2 and 3; slice
 6 needs 3, 4 and 5.

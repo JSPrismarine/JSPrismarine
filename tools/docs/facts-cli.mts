@@ -18,8 +18,9 @@ import { rootPages } from './sections.mts';
 
 const write = process.argv.includes('--write');
 
-/** Package pages outside the docs tree that quote values the code owns. */
+/** Package and addon pages outside the docs tree that quote values the code owns. */
 const packagePages = [
+    'addons/README.md',
     'packages/addon-tools/README.md',
     'packages/bedrock-data/README.md',
     'packages/commands/README.md',
