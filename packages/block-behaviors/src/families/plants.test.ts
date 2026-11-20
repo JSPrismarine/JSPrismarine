@@ -278,6 +278,44 @@ describe('saplingFamily', () => {
         expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
         expect(harness.dimension.drops).toEqual([]);
     });
+
+    it('grows a planted propagule into a mangrove in the light', () => {
+        const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule');
+        harness.dimension.set(ground, 'minecraft:mud');
+        harness.dimension.set(plant, 'minecraft:mangrove_propagule', { propagule_stage: 0, hanging: false });
+        harness.dimension.setLight({ x: 0, y: 2, z: 0 }, 15);
+        harness.dimension.queueRandom(0);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_log');
+    });
+
+    it('grows no tree through a block in the way of its trunk, and leaves both as they were', () => {
+        const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule');
+        const glass = { x: 0, y: 3, z: 0 };
+        harness.dimension.set(ground, 'minecraft:mud');
+        harness.dimension.set(plant, 'minecraft:mangrove_propagule', { propagule_stage: 0, hanging: false });
+        harness.dimension.set(glass, 'minecraft:glass');
+        harness.dimension.setLight({ x: 0, y: 2, z: 0 }, 15);
+        harness.dimension.queueRandom(0);
+
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
+        expect(harness.dimension.identifierAt(glass)).toBe('minecraft:glass');
+    });
+
+    it('ages a hanging propagule on every random tick, in the dark too, and grows no tree from it', () => {
+        const harness = bindFamily(saplingFamily, 'minecraft:mangrove_propagule');
+        harness.dimension.set(plant, 'minecraft:mangrove_propagule', { propagule_stage: 3, hanging: true });
+
+        harness.randomTick(plant);
+        harness.randomTick(plant);
+
+        expect(harness.dimension.identifierAt(plant)).toBe('minecraft:mangrove_propagule');
+        expect(harness.dimension.stateAt(plant, 'propagule_stage')).toBe(4);
+    });
 });
 
 describe('leavesFamily', () => {
