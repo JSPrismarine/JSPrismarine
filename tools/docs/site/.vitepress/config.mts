@@ -7,7 +7,8 @@ import { footerHtml } from './footer.mts';
 import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { siteIconHead } from '../../brand-assets.mts';
-import { isStagedPage, pageSource, sourceUpdatedAt } from '../../sections.mts';
+import { isStagedPage, pageSource, pageUrl, sourceUpdatedAt } from '../../sections.mts';
+import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { wordmark } from './theme/prism.ts';
@@ -113,7 +114,7 @@ export default defineConfig({
         const title = pageData.frontmatter.title || pageData.title || siteConfig.site.title;
         const description = pageData.frontmatter.description || pageData.description || siteConfig.site.description;
         // The sitemap derives each page's path from its source file the same way under `cleanUrls`.
-        const url = new URL(pageData.relativePath.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, ''), siteUrl).href;
+        const url = pageUrl(pageData.relativePath, siteUrl);
         pageData.frontmatter.head ??= [];
         pageData.frontmatter.head.push(
             ['meta', { property: 'og:title', content: title }],
@@ -133,6 +134,10 @@ export default defineConfig({
             kind: source.kind,
             url: `${repositoryUrl}/${source.kind === 'file' ? 'edit' : 'tree'}/master/${source.path}`
         };
+        // Last, so the JSON-LD reads the finished head and date.
+        const { relativePath, lastUpdated, frontmatter } = pageData;
+        const page = { relativePath, url, title, description, lastUpdated, frontmatter };
+        frontmatter.head.push(...structuredDataHead(page, { siteUrl, discordInvite, site: siteConfig.site }));
     },
     ignoreDeadLinks: [
         (link, source) => {
