@@ -399,7 +399,6 @@ const runPalettePass = async (): Promise<void> => {
     console.log(`${passLabel('palette')}: the block palette`);
     const datagen = join(repositoryRoot, 'packages/minecraft/datagen');
     const scratch = join(runRoot, 'palette');
-    await mkdir(scratch, { recursive: true });
     const statesFile = join(scratch, 'states.json');
     const domainsFile = join(scratch, 'domains.jsonl');
 
@@ -419,6 +418,9 @@ const runPalettePass = async (): Promise<void> => {
         levelName: 'jsp-palette-place',
         properties: { 'level-seed': REFERENCE_SEED, 'view-distance': '4' }
     });
+    // Staging deletes a run directory that holds no copy of this archive yet, so the scratch
+    // directory is made after it rather than before.
+    await mkdir(scratch, { recursive: true });
     await writeDumpPack(placed.root, placed.worldDirectory, 'place');
     const placeLines = await capture(
         placed,
