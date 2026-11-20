@@ -214,6 +214,8 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  *   newest. The server's default accepts the newest only, which refuses an older client.
  * @param options.javaVersion - The `content-java-version` the server runs: a Java release
  *   `sources.json` pins. Defaults to the default release.
+ * @param options.addons - Addons from the repository's `addons/` folder, by name, that the server
+ *   loads as world packs, as an installed addon is.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -233,6 +235,7 @@ export const startServer = async (
         publicIp?: string;
         protocolWindow?: number;
         javaVersion?: string;
+        addons?: readonly string[];
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -624,7 +627,11 @@ export const startServer = async (
             },
             ...(options.secondLevel === true ? { [SECOND_LEVEL]: { seed: '2', preset: 'minecraft:flat' } } : {})
         },
-        'content-world-packs': [behaviorPack, scriptPack],
+        'content-world-packs': [
+            behaviorPack,
+            scriptPack,
+            ...(options.addons ?? []).map((name) => path.join(repoRoot, 'addons', name))
+        ],
         'content-datapacks': [datapack],
         ...(options.javaVersion === undefined ? {} : { 'content-java-version': options.javaVersion }),
         // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.

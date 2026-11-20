@@ -373,7 +373,8 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             ...(worldgenSuite ? { worldgenSpawn: true } : {}),
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.secondLevel === true)
                 ? { secondLevel: true }
-                : {})
+                : {}),
+            addons: [...new Set(suite.scenarios.flatMap((scenario) => scenario.serverOptions?.addons ?? []))]
         });
         const suiteServer = server;
         console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);

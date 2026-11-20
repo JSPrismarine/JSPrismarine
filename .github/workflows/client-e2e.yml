@@ -97,6 +97,7 @@ jobs:
                           - '.github/scripts/pr-job-results.mjs'
                           - 'tools/client-e2e/**'
                           - 'packages/**'
+                          - 'addons/**'
                           - 'scripts/check-client-e2e-coverage.mts'
                           - 'package.json'
                           - 'pnpm-lock.yaml'

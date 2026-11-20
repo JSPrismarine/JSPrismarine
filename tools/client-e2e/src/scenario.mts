@@ -50,6 +50,8 @@ export interface Scenario {
         worldgenSpawn?: boolean;
         /** Adds a second flat level whose Overworld shares the default level's dimension. */
         secondLevel?: boolean;
+        /** Installs these addons from the repository's `addons/` folder, by name, as world packs. */
+        addons?: readonly string[];
     };
     run: (context: ScenarioContext) => Promise<void>;
 }
