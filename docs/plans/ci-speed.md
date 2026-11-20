@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
-Started 2026-11-20 on `perf/optimize-ci-workflows`. Phase 0, the agent guidance in `AGENTS.md`, is
-done. Phases 1 to 9 are planned. [What we know](#what-we-know) records what was measured on
+Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2 and 4 are done; phases 3 and 5
+to 9 are planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -24,7 +24,7 @@ job list or the repository's history decide, and that comes out the same on any 
 | Windows and macOS jobs per PR push, Script host aside  | 4           | 0           | 7     |
 | Renovate branch pushes per day                         | 34          | under 10    | 2, 7  |
 | Release pull request pushes per day                    | 15          | under 5     | 2     |
-| Full test runs per merged pull request                 | 2           | 1 per batch | 7     |
+| Full test runs per merged pull request                 | 2           | 1           | 7     |
 | Client draw passes per e2e scenario, screenshots aside | every frame | 0           | 8     |
 
 Each phase's pull request reports the counts it changes, measured from a real run's job list or the
@@ -159,6 +159,9 @@ and [Events that trigger workflows](https://docs.github.com/en/actions/writing-w
   which a group merges below the minimum size, whether to merge only pull requests that pass their
   required checks, and a status check timeout.
 - Moving a pull request to the top of the queue rebuilds every group in progress.
+- Each pull request in the queue gets a merge group build of its own, which holds it and every pull
+  request ahead of it. The group size limits how many pull requests merge in one push, not how many
+  builds run, so a burst of five queued pull requests is five full runs.
 - The documentation does not say whether the commit that lands on master is the one the merge group
   tested. A rebase merge outside the queue always writes new commit SHAs. The plan matches runs by
   tree, as `pr-job-results.mjs` already does, so it works either way.
@@ -192,7 +195,9 @@ jobs in a row, repeated test runs and Windows and macOS jobs, and to keep each l
 points here for the current counts. Phase 7 updates it to name the merge queue as the place for
 work that runs once per merge.
 
-### Phase 1: one required test gate, and shard results straight to Codecov
+### Phase 1: one required test gate, and shard results straight to Codecov (done)
+
+Landed in #3350. Making `✅ Tests` a required check is left to a repository admin.
 
 Replace the `tests` and `real-data` merge jobs in `test.yml` with one gate, and make it required.
 
@@ -212,17 +217,21 @@ Done when a pull request push runs one gate job and no merge job, a failing test
 button, and Codecov shows one `unit` and one `real-data` report for a master commit that matches the
 previous one in files covered.
 
-### Phase 2: fewer pushes from bots
+### Phase 2: fewer pushes from bots (done)
+
+Landed in #3349.
 
 Renovate and the release pull request start two in five of all runs.
 
 1. Group Renovate's non-major updates into one pull request and give Renovate a schedule, in
    `renovate.json`. Keep security updates unscheduled.
-2. Update the release pull request only when a push to master adds or removes a changeset. Today
-   `release.yml` runs `changesets/action` on every push, which rewrites the branch each time. Gate
-   that step alone, since the rest of `release.yml` publishes. A release pull request that falls
-   behind master is still tested against master when it merges, by the `strict` rule now and by the
-   merge queue after phase 7.
+2. Stop rewriting the release pull request after every push. Today `release.yml` runs
+   `changesets/action` on every push, which rewrites the branch whenever changesets are pending. A
+   push now runs the action only when no changesets are pending, which publishes and so retries a
+   publish that failed, or when no release pull request is open. A schedule every six hours
+   refreshes the release pull request, with no publish script, so it never publishes. A release
+   pull request that falls behind master is still tested against master when it merges, by the
+   `strict` rule now and by the merge queue after phase 7.
 
 Done when a day's runs show fewer than 10 Renovate pushes and fewer than 5 release pull request
 pushes. Phase 7 lowers the Renovate count further, since a branch no longer has to be up to date to
@@ -231,6 +240,10 @@ merge.
 ### Phase 3: build the parity dashboard from results that already exist
 
 The dashboard job stops running tests on pull requests, and master's job stops running them twice.
+It lands in two parts. The first, #3356, keeps master's `tracker.json` and `dashboard.md` as a
+`parity-report` artifact and has a pull request download its base commit's instead of building the
+base (step 4, without the raw report and side files). The second builds the pull request's own
+dashboard from the shards (the remaining steps).
 
 1. Give the shards the parity side files. A shard sets `PARITY_PROGRESS_FILE` and
    `PARITY_CASES_DIRECTORY` to paths under `.vitest/` and uploads them with its blob report.
@@ -239,12 +252,15 @@ The dashboard job stops running tests on pull requests, and master's job stops r
 3. The dashboard job downloads the shards' blob reports, runs
    `vitest --merge-reports --reporter=json` over them, keeps the parity package's files, and renders
    the dashboard. On master this is the whole report, since master runs every file.
-4. Master uploads `tracker.json` and `dashboard.md` as an artifact named after the commit SHA. A pull
-   request downloads its base commit's artifact instead of building the base.
-5. On a pull request, overlay the files the shards ran onto the base report. A file `--changed` left
-   out is one the diff cannot reach, and a change to the data inputs reruns every file through
-   `forceRerunTriggers`, so the base result still holds for it. Add the overlay to `packages/parity`
-   with unit tests, and run `familiesWithoutTests` on the overlaid report.
+4. Master uploads an artifact named after the commit SHA that holds `tracker.json`, `dashboard.md`,
+   the merged JSON report of the parity package's files and the parity side files. A pull request
+   downloads its base commit's artifact instead of building the base.
+5. On a pull request, first drop from the base report and side files every test file the diff
+   deletes or renames away, so a family whose last test was removed does not keep its base
+   results. Then overlay the files the shards ran. A file `--changed` left out is one the diff
+   cannot reach, and a change to the data inputs reruns every file through `forceRerunTriggers`, so
+   the base result still holds for it. Add the overlay to `packages/parity` with unit tests, and run
+   `familiesWithoutTests` on the overlaid report.
 6. Fall back to today's base build when the base artifact is missing, for example while the base
    commit's master run is still going.
 
@@ -255,7 +271,9 @@ Done when a pull request's dashboard job runs no Vitest test and builds no base 
 runs no Vitest test, and the dashboard and pull request comment match today's output for the same
 commits.
 
-### Phase 4: split client e2e across runners
+### Phase 4: split client e2e across runners (done)
+
+Landed in #3353, with four suites cut from `gameplay-and-dimensions`.
 
 1. Split `gameplay-and-dimensions` in `suites.mts` into four or five suites of similar scenario
    counts. Keep each ordering rule the comments record inside the suite it applies to.
@@ -312,37 +330,42 @@ unit tests report after 3 jobs in a row, and branch rules require `✅ CI` alone
    group runs everything, including every e2e protocol and transport, the Bedrock Dedicated Server
    suites, the executables, the Windows and macOS jobs and CodeQL.
 2. A repository admin turns on the merge queue for master and turns off the up-to-date requirement,
-   which the queue replaces. The settings, sized to about 9 merges a day that arrive in bursts of up
-   to 8 an hour:
+   which the queue replaces. Every queued pull request gets one full run of its own, so the queue
+   saves the second full run master does today, not runs within a burst. The settings, sized to
+   about 9 merges a day that arrive in bursts of up to 8 an hour:
 
    | Setting                              | Value      | Why                                                                                   |
    | ------------------------------------ | ---------- | ------------------------------------------------------------------------------------- |
    | Merge method                         | Rebase     | Keeps history linear, as branch protection requires.                                  |
-   | Build concurrency                    | 2          | Each group runs the full suite. Two at once leaves runners for pull requests.         |
-   | Minimum group size                   | 1          | A quiet hour merges each pull request as soon as its group passes.                    |
-   | Maximum group size                   | 5          | A burst queues behind the two building groups and goes in together, one run for five. |
+   | Build concurrency                    | 2          | Each build runs the full suite. Two at once leaves runners for pull requests.         |
+   | Minimum group size                   | 1          | A quiet hour merges each pull request as soon as its build passes.                    |
+   | Maximum group size                   | 5          | Pull requests whose builds passed merge in one push instead of one push each.         |
    | Wait time for the minimum group size | 0 minutes  | With a minimum of 1 there is nothing to wait for.                                     |
-   | Merge only non-failing pull requests | Yes        | A failing pull request leaves the group, and the others merge without it.             |
-   | Status check timeout                 | 60 minutes | Matches the longest job's limit, the client e2e job's 60.                             |
+   | Merge only non-failing pull requests | Yes        | A failing pull request leaves the queue, and the ones behind it rebuild without it.   |
+   | Status check timeout                 | 90 minutes | Covers the whole build: planning, runner waits and the client e2e job's 60 minutes.   |
 
-   Revisit the maximum group size after a week: if groups fail often, a failing pull request costs
-   every pull request in its group a rerun, and a smaller maximum costs less.
+   Revisit build concurrency after a week. A failing pull request rebuilds every build queued
+   behind it, so a higher concurrency costs more runners when failures are common.
 3. Teach `pr-job-results.mjs` to find the merge group run whose head commit has the pushed commit's
    tree, so master reuses all of it and runs only release and docs.
 4. A merge group run saves caches under its temporary ref, where nothing else reads them. Add a
    master job that looks up each cache key and rebuilds only a missing entry.
-5. Renovate enqueues through GitHub's auto-merge, which works with the queue. With the up-to-date
+5. Master pushes no longer run the parity dashboard, so the `parity-report` artifact a pull request
+   compares with comes from the merge group run instead. The lookup in the dashboard job searches
+   merge group runs as well as push runs, and accepts one whose head commit has the base commit's
+   tree, the same match as step 3.
+6. Renovate enqueues through GitHub's auto-merge, which works with the queue. With the up-to-date
    requirement gone, set Renovate to rebase only on a conflict.
-6. Update the GitHub workflows section of `AGENTS.md` to name the merge queue as where work that runs
+7. Update the GitHub workflows section of `AGENTS.md` to name the merge queue as where work that runs
    once per merge goes.
 
 If the merge queue has to wait, master can run `--changed` against the last master commit whose run
 passed, with a full run each night. The baseline is a fixed commit, so it is the same on every runner.
 
 Done when 9 jobs leave each pull request push (the 5 Executable jobs, the 2 generation host jobs,
-CodeQL and the Bedrock Dedicated Server suites), a merged pull request costs one full run per queue
-batch, master pushes start no test job, and a pull request is never rebased only to catch up with
-master.
+CodeQL and the Bedrock Dedicated Server suites), a merged pull request costs one full run, its merge
+group build, master pushes start no test job, and a pull request is never rebased only to catch up
+with master.
 
 ### Phase 8: a cinnabar patch that draws only for screenshots
 
