@@ -28,8 +28,10 @@ export interface SparklineOptions {
  * than the faint top edge of a braille plot. Fewer readings than columns give a shorter row.
  */
 export function sparkline(values: readonly number[], { columns, min, max }: SparklineOptions): SparkCell[] {
+    // `slice(-0)` is the whole array, so no room has to mean no bars explicitly.
+    if (columns <= 0) return [];
     const span = max - min;
-    return values.slice(-Math.max(0, columns)).map((value) => {
+    return values.slice(-columns).map((value) => {
         const share = span > 0 ? (value - min) / span : 1;
         const level = Math.round(Math.min(1, Math.max(0, share)) * (BARS.length - 1));
         return { level, tone: tpsTone(value, max) };

@@ -20,6 +20,11 @@ describe('sparkline', () => {
         expect(levels([10, 10, 10, 20, 20], 2)).toEqual([7, 7]);
     });
 
+    it('draws nothing when there is no room', () => {
+        expect(levels([20, 20], 0)).toEqual([]);
+        expect(levels([20, 20], -3)).toEqual([]);
+    });
+
     it('colors each bar by the reading against the tick rate', () => {
         const tones = sparkline([20, 18, 12], options).map((cell) => cell.tone);
         expect(tones).toEqual(['ok', 'warning', 'danger']);
