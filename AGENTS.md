@@ -124,6 +124,12 @@ commit messages and comments.
     docs build refills every fact from the code, so the site stays right even when the checked-in
     value lags behind.
   - Dated research, plans and decisions record values as they were when written, and stay unmarked.
+- Keep user docs in step with the code. A change that finishes, removes or changes a feature also
+  updates every page that describes it: search `docs/`, the READMEs and the addon READMEs for the
+  feature's name, its commands and settings, the issue numbers the change closes, and words like
+  "in progress", "not yet", "planned", "untested" and "until". Guides and READMEs say what the code
+  does now. Status and future work belong in `docs/plans/`, and a gap that stays open gets an
+  issue the page links to.
 - Whenever a change adds or changes data-driven compatibility behavior or a parity comparison
   surface, extend `packages/parity` with a test under a declared family. Exercise the public
   behavior through the parity suite's real data fixtures, and keep the family represented by a

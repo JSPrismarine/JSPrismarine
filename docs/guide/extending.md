@@ -229,8 +229,31 @@ from that file can still differ where a script reads them
 
 ### Debugging
 
-Support for the Minecraft Bedrock Debugger for VS Code is in progress and has not been checked
-against VS Code yet. [The script host plan](../plans/script-api-host.md) tracks it.
+JSPrismarine speaks the protocol of the Minecraft Bedrock Debugger for VS Code
+(`mojang-studios.minecraft-debugger`), as BDS does, so you can stop at breakpoints in a pack's
+scripts, step through them, inspect variables and run commands from the debug console.
+
+1. Turn on `allow-inbound-script-debugging` in `config.json` and start the server.
+2. Run `script debugger listen <!-- fact:scripting.debuggerPort -->19144<!-- /fact -->` on the console.
+3. In VS Code, open the pack's folder and start an `attach` configuration of type `minecraft-js`
+   with `"mode": "connect"`, the same port, `"localRoot"` set to the pack's `scripts/` folder, and
+   `"targetModuleUuid"` set to the UUID of the pack's script module.
+4. Run `script debugger close` on the console when you are done.
+
+To connect the other way, with VS Code listening, turn on `allow-outbound-script-debugging`, set
+`"mode": "listen"` and run `script debugger connect localhost <port>`. `script-debugger-auto-attach`
+attaches before the scripts start, so a breakpoint on a script's first lines stops too, and
+[Every setting](running.md#every-setting) lists the other `script-debugger-*` settings. While a
+script is stopped at a breakpoint, the server does not tick.
+
+The debugger stays attached across `/reload`, and the debug console's commands run between ticks.
+Two things differ from BDS:
+
+- BDS stops its server while it waits for the extension's handshake. JSPrismarine keeps ticking and
+  attaches once the answer arrives.
+- The profiler records the stack each time the debugger checks in, which happens after a fixed
+  number of script lines, so it measures lines run rather than time, and a short script may leave no
+  samples.
 
 ### Share a pack as an addon
 

@@ -167,8 +167,8 @@ breakpoints in an addon's scripts and inspect its variables:
 
 `script-debugger-auto-attach` attaches before the scripts start, so a breakpoint on a script's
 first lines stops too. [Every setting](running.md#every-setting) describes the
-`script-debugger-*` settings, and [Debugging](extending.md#debugging) says how far the debugger
-support has been checked.
+`script-debugger-*` settings, and [Debugging](extending.md#debugging) covers connecting the other
+way and where the debugger differs from BDS.
 
 ## Check the build
 
