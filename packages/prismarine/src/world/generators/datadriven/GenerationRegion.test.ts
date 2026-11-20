@@ -10,7 +10,7 @@ import type { HeightmapType } from '@jsprismarine/features';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { GenerationRegion, PackedBlockWrites } from './GenerationRegion';
+import { GenerationRegion, PackedBlockWrites, packWritePosition } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 
@@ -619,12 +619,14 @@ describe('neighbor chunk data', () => {
             biomeAt: () => 'minecraft:plains'
         });
         const writes = 200;
-        const positions = new Int32Array(writes * 3);
-        for (let index = 0; index < writes; index++)
-            positions.set([16 + (index % 16), 70 + (index >> 4), 8], index * 3);
-        const slots = Uint32Array.from({ length: writes }, (_, index) => index % 2);
+        const positions = Uint32Array.from({ length: writes }, (_, index) =>
+            packWritePosition(16 + (index % 16), 70 + (index >> 4), 8)
+        );
+        const slots = Uint16Array.from({ length: writes }, (_, index) => index % 2);
         const blocks = new PackedBlockWrites(
             [{ java: STONE }, { java: { name: 'minecraft:dirt', properties: {} } }],
+            1,
+            0,
             positions,
             slots
         );

@@ -229,25 +229,47 @@ export interface RegionBlockWrite {
 }
 
 /**
- * A patch's block writes as they cross a worker boundary: x, y and z of each write in one typed
- * array and its block as a slot in a palette of the distinct blocks, in write order.
+ * How far a packed write's y is shifted to make it unsigned. 24 bits of y leave 8 for the column
+ * within the chunk, so a write position is one 32-bit word.
+ */
+const PACKED_Y_BIAS = 1 << 23;
+
+/** Whether a packed write list can hold a write at height `y`. */
+export const isPackableY = (y: number): boolean => Number.isInteger(y) && y >= -PACKED_Y_BIAS && y < PACKED_Y_BIAS;
+
+/**
+ * One write's position within its chunk as a packed word: y above the bias, then z and x.
+ * The caller checks y with {@link isPackableY}.
+ */
+export const packWritePosition = (x: number, y: number, z: number): number =>
+    (((y + PACKED_Y_BIAS) << 8) | ((z & 15) << 4) | (x & 15)) >>> 0;
+
+/**
+ * A patch's block writes as they cross a worker boundary: each write's position within the
+ * patch's chunk as one 32-bit word, and its block as a slot in a palette of the distinct blocks,
+ * in write order.
  *
- * Applied as they are, so a patch that arrived from a worker is never spelled out as one object
- * per write.
+ * A write as world x, y and z and a 32-bit slot took 16 bytes; this takes 6, or 8 for a palette
+ * past 65,536 blocks. Applied as they are, so a patch that arrived from a worker is never spelled
+ * out as one object per write.
  */
 export class PackedBlockWrites {
     /**
      * @param palette - The distinct blocks the writes place.
-     * @param positions - x, y and z for each write.
+     * @param chunkX - The chunk every write is in.
+     * @param chunkZ - The chunk every write is in.
+     * @param positions - Each write's {@link packWritePosition} word.
      * @param slots - Each write's slot in `palette`.
      * @throws TypeError when the arrays disagree on the count or a slot is outside the palette.
      */
     public constructor(
         public readonly palette: readonly RegionBlock[],
-        public readonly positions: Int32Array,
-        public readonly slots: Uint32Array
+        public readonly chunkX: number,
+        public readonly chunkZ: number,
+        public readonly positions: Uint32Array,
+        public readonly slots: Uint16Array | Uint32Array
     ) {
-        if (positions.length !== slots.length * 3) throw new PrismarineGenerationErrors.PackedWriteCountMismatch();
+        if (positions.length !== slots.length) throw new PrismarineGenerationErrors.PackedWriteCountMismatch();
         for (const slot of slots) {
             if (slot >= palette.length) throw new PrismarineGenerationErrors.PackedWriteOutOfPalette();
         }
@@ -258,11 +280,19 @@ export class PackedBlockWrites {
         return this.slots.length;
     }
 
-    /** Calls `visit` for each write in order. */
+    /** Calls `visit` for each write in order, in world coordinates. */
     public forEach(visit: (x: number, y: number, z: number, block: RegionBlock) => void): void {
         const { palette, positions, slots } = this;
+        const baseX = this.chunkX * 16;
+        const baseZ = this.chunkZ * 16;
         for (let index = 0; index < slots.length; index++) {
-            visit(positions[index * 3]!, positions[index * 3 + 1]!, positions[index * 3 + 2]!, palette[slots[index]!]!);
+            const word = positions[index]!;
+            visit(
+                baseX + (word & 15),
+                (word >>> 8) - PACKED_Y_BIAS,
+                baseZ + ((word >>> 4) & 15),
+                palette[slots[index]!]!
+            );
         }
     }
 }
