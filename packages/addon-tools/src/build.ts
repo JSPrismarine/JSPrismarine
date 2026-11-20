@@ -23,14 +23,18 @@ export const releaseDownloadUrl = (repository: string): string =>
 /**
  * Downloads the index a release publishes.
  * @param baseUrl - Where the release's files download from, as {@link releaseDownloadUrl} gives.
+ * @param fetcher - What downloads it; the global `fetch` unless a caller routes requests itself.
  * @returns The index, or undefined when the release has none yet.
  * @throws {InvalidAddonIndexError} When the index does not follow the schema.
  */
-export const fetchPublishedIndex = async (baseUrl: string): Promise<AddonIndex | undefined> => {
+export const fetchPublishedIndex = async (
+    baseUrl: string,
+    fetcher: typeof fetch = fetch
+): Promise<AddonIndex | undefined> => {
     const url = `${baseUrl.replace(/\/+$/, '')}/${ADDON_INDEX_FILE}`;
     let response: Response;
     try {
-        response = await fetch(url);
+        response = await fetcher(url);
     } catch (cause) {
         throw new AddonToolsErrors.PublishedIndexUnavailable({ url, status: 'no response' }, { cause });
     }

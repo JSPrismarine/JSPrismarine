@@ -111,6 +111,10 @@ const index = parseAddonIndex(await (await fetch(url)).json());
 ```
 
 `parseAddonIndex` throws an `InvalidAddonIndexError` from `@jsprismarine/errors/addon-tools` for
-an index that breaks the schema, and drops keys an entry has beyond it. `mergeAddonIndex`,
+an index that breaks the schema, and drops keys an entry has beyond it. `addonVersionsInRange`
+lists one addon's versions that match a range such as `^1.0.0`, `~1.2.0`, `1.2.3` or `*`, newest
+first, the way npm reads those ranges, and `satisfiesAddonRange` tests one version. `mergeAddonIndex`,
 `createAddonIndex` and `serializeAddonIndex` build one. `@jsprismarine/addon-tools/addon` reads
 and packs one addon, and `@jsprismarine/addon-tools/build` builds a folder of them.
+`fetchPublishedIndex` from `@jsprismarine/addon-tools/build` downloads a release's index, through
+the `fetch` you pass it or the global one.

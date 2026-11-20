@@ -152,6 +152,18 @@ describe('fetchPublishedIndex', () => {
         );
     });
 
+    it('downloads through the fetch it is given', async () => {
+        const base = await serve(200, JSON.stringify(createAddonIndex([])));
+        const requested: string[] = [];
+        const fetcher: typeof fetch = (input, init) => {
+            requested.push(String(input));
+            return fetch(String(input).replace(BASE_URL, base), init);
+        };
+
+        expect(await fetchPublishedIndex(BASE_URL, fetcher)).toEqual(createAddonIndex([]));
+        expect(requested).toEqual([`${BASE_URL}/index.json`]);
+    });
+
     it('refuses an index that does not follow the schema', async () => {
         await expect(fetchPublishedIndex(await serve(200, '{"schemaVersion": 1}'))).rejects.toBeInstanceOf(
             AddonToolsErrors.InvalidAddonIndex

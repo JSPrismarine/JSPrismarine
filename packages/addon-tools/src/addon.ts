@@ -79,7 +79,15 @@ const readFiles = async (addon: string, root: string): Promise<Map<string, Uint8
     return files;
 };
 
-const parseMetadata = (addon: string, bytes: Uint8Array): AddonMetadata => {
+/**
+ * Reads and checks an addon's `addon.json`: a `description` on one line, a `minServer` version
+ * and a `license`, each a non-empty string, and no other keys.
+ *
+ * @param addon - The addon's name, for the error message.
+ * @param bytes - The file's contents.
+ * @throws {InvalidAddonError} `InvalidAddonJson` when the file breaks any of those rules.
+ */
+export const parseAddonMetadata = (addon: string, bytes: Uint8Array): AddonMetadata => {
     const fail = (problem: string) => new AddonToolsErrors.InvalidAddonJson({ addon, problem });
     let value: unknown;
     try {
@@ -169,7 +177,7 @@ export const readAddon = async (directory: string): Promise<Addon> => {
         if (!files.has(file)) throw new AddonToolsErrors.MissingAddonFile({ addon: name, file });
     }
     const version = checkManifest(name, files);
-    return { name, version, ...parseMetadata(name, files.get('addon.json')!), files };
+    return { name, version, ...parseAddonMetadata(name, files.get('addon.json')!), files };
 };
 
 /**

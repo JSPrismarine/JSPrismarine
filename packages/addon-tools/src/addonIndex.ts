@@ -67,6 +67,53 @@ export const compareAddonVersions = (a: string, b: string): number => {
     return left[0]! - right[0]! || left[1]! - right[1]! || left[2]! - right[2]!;
 };
 
+/** A range of versions an installer picks from: `^1.2.3`, `~1.2.3` or an exact `1.2.3`; `*` is read apart. */
+const RANGE = /^(\^|~)?(.*)$/;
+
+/** A range's operator and the version it starts from, or undefined for `*` and what is not a range. */
+const rangeBase = (range: string): { readonly operator: string | undefined; readonly base: string } | undefined => {
+    const match = RANGE.exec(range);
+    return match && isAddonVersion(match[2]!) ? { operator: match[1], base: match[2]! } : undefined;
+};
+
+/** Whether a string is a version range {@link satisfiesAddonRange} reads. */
+export const isAddonRange = (range: string): boolean => range === '*' || rangeBase(range) !== undefined;
+
+/**
+ * Whether a version falls in a range, as npm reads the same range:
+ *
+ * - `1.2.3` matches that version only.
+ * - `~1.2.3` matches `1.2.3` and later patches of `1.2`.
+ * - `^1.2.3` matches `1.2.3` and anything later with the same major version. Below `1.0.0` the
+ *   first non-zero part is the one that stays: `^0.2.3` stops before `0.3.0`, and `^0.0.3`
+ *   matches `0.0.3` only.
+ * - `*` matches every version.
+ *
+ * @returns False for a version or a range neither form takes.
+ */
+export const satisfiesAddonRange = (version: string, range: string): boolean => {
+    if (!isAddonVersion(version)) return false;
+    if (range === '*') return true;
+    const parsed = rangeBase(range);
+    if (parsed === undefined) return false;
+    const { operator, base } = parsed;
+    if (compareAddonVersions(version, base) < 0) return false;
+    const [major, minor, patch] = base.split('.').map(Number);
+    const [vMajor, vMinor, vPatch] = version.split('.').map(Number);
+    if (operator === undefined) return vMajor === major && vMinor === minor && vPatch === patch;
+    if (operator === '~') return vMajor === major && vMinor === minor;
+    if (major !== 0) return vMajor === major;
+    if (minor !== 0) return vMajor === 0 && vMinor === minor;
+    return vMajor === 0 && vMinor === 0 && vPatch === patch;
+};
+
+/**
+ * The versions of one addon an index lists that fall in a range, newest first: the order an
+ * installer tries them in.
+ */
+export const addonVersionsInRange = (index: AddonIndex, name: string, range: string): AddonIndexEntry[] =>
+    index.addons.filter((entry) => entry.name === name && satisfiesAddonRange(entry.version, range)).reverse();
+
 const parseEntry = (value: unknown, index: number): AddonIndexEntry => {
     const fail = (problem: string) =>
         new AddonToolsErrors.InvalidAddonIndex({ problem: `addons[${index}] ${problem}` });
