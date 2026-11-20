@@ -9,6 +9,10 @@ export interface LoopbackResult {
     readonly bytesSent: number;
     readonly bytesReceived: number;
     readonly answererPair: { local: string; remote: string } | undefined;
+    /** The answerer's round trip time before it had the offer, which no connection can have measured. */
+    readonly answererRoundTripTimeBeforeOffer: number | undefined;
+    /** The answerer's round trip time once every message arrived. */
+    readonly answererRoundTripTime: number | undefined;
 }
 
 /**
@@ -19,7 +23,7 @@ export interface LoopbackResult {
  * @param answerer - The answering peer's options, such as a mux port.
  * @param messages - How many messages to send.
  * @param size - Each message's size.
- * @returns The bytes sent and received, and the answerer's selected pair.
+ * @returns The bytes sent and received, and the answerer's selected pair and round trip times.
  */
 export const runLoopback = async (
     network: NativeNetwork,
@@ -53,6 +57,7 @@ export const runLoopback = async (
         const reliable = offering.createDataChannel('ReliableDataChannel');
         offering.createDataChannel('UnreliableDataChannel', { unordered: true, maxRetransmits: 0 });
         await gathered;
+        const answererRoundTripTimeBeforeOffer = answering.roundTripTime();
         answering.setRemoteDescription({ type: 'offer', sdp: offering.currentLocalSdp() ?? '' });
         await once(reliable, 'open');
 
@@ -62,7 +67,13 @@ export const runLoopback = async (
             if (reliable.send(payload)) sent += size;
         }
         const bytesReceived = await received;
-        return { bytesSent: sent, bytesReceived, answererPair: answering.selectedCandidatePair() };
+        return {
+            bytesSent: sent,
+            bytesReceived,
+            answererPair: answering.selectedCandidatePair(),
+            answererRoundTripTimeBeforeOffer,
+            answererRoundTripTime: answering.roundTripTime()
+        };
     } finally {
         offering.close();
         answering.close();

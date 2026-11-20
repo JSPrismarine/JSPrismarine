@@ -4,7 +4,8 @@
         "version": "0.24.6",
         "url": "https://codeload.github.com/paullouisageneau/libdatachannel/tar.gz/v0.24.6",
         "sha256": "22a66aebebd8dae561d8e5181da96f2fcc203e067c5b2186c07b39af913464c0",
-        "into": "libdatachannel"
+        "into": "libdatachannel",
+        "patches": ["patches/libdatachannel-round-trip-time.patch"]
     },
     "libjuice": {
         "version": "b89c792e3612faf2f12cf35bcc56857313a06be3",

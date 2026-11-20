@@ -31,6 +31,8 @@ export interface NativeSymbols {
     jsp_pc_add_remote_candidate(pc: number, candidate: Uint8Array, mid: Uint8Array): number;
     jsp_pc_local_description(pc: number, buffer: Uint8Array, size: number): number;
     jsp_pc_selected_pair(pc: number, buffer: Uint8Array, size: number): number;
+    /** Missing from a library built before it, which {@link bindLibrary} still loads. */
+    jsp_pc_round_trip_time?(pc: number): number;
     jsp_pc_close(pc: number): number;
     jsp_pc_delete(pc: number): number;
     jsp_dc_create(pc: number, label: Uint8Array, unordered: number, maxRetransmits: number): number;
@@ -78,6 +80,7 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsp_pc_add_remote_candidate: ['i32', ['i32', 'buffer', 'buffer']],
     jsp_pc_local_description: ['i32', ['i32', 'buffer', 'i32']],
     jsp_pc_selected_pair: ['i32', ['i32', 'buffer', 'i32']],
+    jsp_pc_round_trip_time: ['i32', ['i32']],
     jsp_pc_close: ['i32', ['i32']],
     jsp_pc_delete: ['i32', ['i32']],
     jsp_dc_create: ['i32', ['i32', 'buffer', 'i32', 'i32']],
@@ -93,12 +96,32 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsp_mux_stats: ['i32', ['i32', 'buffer', 'i32']]
 };
 
+/**
+ * Symbols a library built from older sources lacks. Such a build stays loadable, because an
+ * install keeps the published one until the manifest points at a newer one, and the binding
+ * leaves each symbol it lacks undefined.
+ */
+const optionalSymbols: ReadonlySet<string> = new Set(['jsp_pc_round_trip_time'] satisfies (keyof NativeSymbols)[]);
+
+const requiredSignatures = Object.entries(signatures).filter(([name]) => !optionalSymbols.has(name));
+const optionalSignatures = Object.entries(signatures).filter(([name]) => optionalSymbols.has(name));
+
 /** The part of `node:ffi` this binding uses; Node.js 26 ships no types for it yet. */
 export interface NodeFfi {
     dlopen(
         path: string,
         definitions: Record<string, { arguments: string[]; return: string }>
-    ): { functions: Record<string, (...args: unknown[]) => unknown>; lib: { close(): void } };
+    ): {
+        functions: Record<string, (...args: unknown[]) => unknown>;
+        lib: {
+            close(): void;
+            /** Binds one more symbol; throws when the library does not export it. */
+            getFunction(
+                name: string,
+                definition: { arguments: string[]; return: string }
+            ): (...args: unknown[]) => unknown;
+        };
+    };
     getRawPointer(memory: ArrayBufferLike): bigint;
 }
 
@@ -159,36 +182,59 @@ export const bindLibrary = (path: string): BoundLibrary => {
     if (process.versions.bun !== undefined) {
         // `bun:ffi` has no types in this workspace; BunFfi above is the part this file calls.
         const bun = process.getBuiltinModule('bun:ffi' as 'node:fs') as unknown as BunFfi;
+        const definitionOf = ([result, parameters]: readonly [Kind, readonly Kind[]]) => ({
+            args: parameters.map((kind) => bunKinds[kind]),
+            returns: bunKinds[result]
+        });
         const opened = bun.dlopen(
             path,
-            Object.fromEntries(
-                Object.entries(signatures).map(([name, [result, parameters]]) => [
-                    name,
-                    { args: parameters.map((kind) => bunKinds[kind]), returns: bunKinds[result] }
-                ])
-            )
+            Object.fromEntries(requiredSignatures.map(([name, signature]) => [name, definitionOf(signature)]))
         );
+        const symbols = { ...opened.symbols };
+        // `bun:ffi` binds symbols only through `dlopen`, which refuses a missing one, so each
+        // optional symbol opens the library once more.
+        const extra: { close(): void }[] = [];
+        for (const [name, signature] of optionalSignatures) {
+            try {
+                const one = bun.dlopen(path, { [name]: definitionOf(signature) });
+                extra.push(one);
+                const bound = one.symbols[name];
+                if (bound !== undefined) symbols[name] = bound;
+            } catch {
+                // A build from before the symbol: it stays undefined.
+            }
+        }
         return {
             // The definitions above name every NativeSymbols member with its C signature.
-            symbols: opened.symbols as unknown as NativeSymbols,
+            symbols: symbols as unknown as NativeSymbols,
             pointerOf: (memory) => bun.ptr(new Uint8Array(memory)),
-            close: () => opened.close()
+            close: () => {
+                for (const one of extra) one.close();
+                opened.close();
+            }
         };
     }
 
     const node = loadNodeFfi();
+    const definitionOf = ([result, parameters]: readonly [Kind, readonly Kind[]]) => ({
+        arguments: parameters.map((kind) => nodeKinds[kind]),
+        return: nodeKinds[result]
+    });
     const opened = node.dlopen(
         path,
-        Object.fromEntries(
-            Object.entries(signatures).map(([name, [result, parameters]]) => [
-                name,
-                { arguments: parameters.map((kind) => nodeKinds[kind]), return: nodeKinds[result] }
-            ])
-        )
+        Object.fromEntries(requiredSignatures.map(([name, signature]) => [name, definitionOf(signature)]))
     );
+    const functions = { ...opened.functions };
+    for (const [name, signature] of optionalSignatures) {
+        try {
+            functions[name] = opened.lib.getFunction(name, definitionOf(signature));
+        } catch {
+            // A build from before the symbol: it stays undefined.
+        }
+    }
     return {
         // The definitions above name every NativeSymbols member with its C signature.
-        symbols: opened.functions as unknown as NativeSymbols,
+        symbols: functions as unknown as NativeSymbols,
         pointerOf: (memory) => node.getRawPointer(memory),
         close: () => opened.lib.close()
     };

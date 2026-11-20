@@ -288,6 +288,18 @@ export class PeerConnection extends EventEmitter {
     }
 
     /**
+     * The SCTP association's smoothed round trip time, which libdatachannel reads from usrsctp.
+     * One synchronous call into the library; nothing is sampled in between.
+     * @returns Milliseconds, or undefined before SCTP connects, after the connection is freed,
+     * or with a library built before it could tell.
+     */
+    public roundTripTime(): number | undefined {
+        if (this.deleted) return undefined;
+        const milliseconds = this.network.symbols.jsp_pc_round_trip_time?.(this.id);
+        return milliseconds === undefined || milliseconds < 0 ? undefined : milliseconds;
+    }
+
+    /**
      * Closes the connection and its channels. libdatachannel shuts SCTP down gracefully, so what
      * was sent before still arrives; the native objects are freed once it reports `closed`, and
      * deleting them sooner would cut that shutdown short.

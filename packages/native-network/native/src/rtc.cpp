@@ -219,6 +219,8 @@ JSP_EXPORT int32_t jsp_pc_selected_pair(int32_t pc, uint8_t *buffer, int32_t siz
 	return static_cast<int32_t>(localSize + remoteSize);
 }
 
+JSP_EXPORT int32_t jsp_pc_round_trip_time(int32_t pc) { return rtcGetRoundTripTime(pc); }
+
 JSP_EXPORT int32_t jsp_pc_close(int32_t pc) { return rtcClosePeerConnection(pc); }
 
 JSP_EXPORT int32_t jsp_pc_delete(int32_t pc) {
