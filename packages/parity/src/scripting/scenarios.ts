@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 import type { Family } from '../families.ts';
 import type { ScenarioClient } from './formClient.ts';
-import type { Observation, ScenarioRecord } from './record.ts';
+import type { Observation, ObservedValue, ScenarioRecord } from './record.ts';
 import { isRecord } from '../isRecord.ts';
 
 /** A family of the `scripting` group. */
@@ -97,14 +97,17 @@ export interface ScriptScenario {
     readonly httpServer?: boolean;
     /**
      * Observations JSPrismarine makes differently from BDS on purpose, by event: what JSPrismarine
-     * records instead of the golden's value or error, why, and the decision record that says so.
-     * The scenario's row reports each as an intentional difference.
+     * records instead of the golden's value or error, or the fields of the golden's object value it
+     * records differently, why, and the decision record that says so. The scenario's row reports
+     * each as an intentional difference.
      */
     readonly jsprismarineDiffers?: Readonly<
         Record<
             string,
-            {
-                readonly observed: Pick<Observation, 'value' | 'error'>;
+            (
+                | { readonly observed: Pick<Observation, 'value' | 'error'> }
+                | { readonly fields: Readonly<Record<string, ObservedValue>> }
+            ) & {
                 readonly because: string;
                 readonly reference: string;
             }
@@ -973,11 +976,33 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         experiments: ['gametest'],
         needs: 'server',
         jsprismarineDiffers: {
+            'game rule defaults': {
+                fields: { spawnRadius: 10, tntExplosionDropDecay: false },
+                because:
+                    'A world starts spawnRadius at 10 and tntExplosionDropDecay off, the values the pinned BDS ' +
+                    'writes to level.dat and sends clients in GameRulesChangedPacket, and a script reads the rule ' +
+                    "the world holds. BDS's Script API reads 0 and true for the two",
+                reference: 'packages/prismarine/src/world/GameRuleManager.ts'
+            },
+            'set every game rule': {
+                fields: { spawnRadius: 13, tntExplosionDropDecay: true },
+                because:
+                    'The script raises each number by 3 and flips each boolean from what it read, so the two ' +
+                    'rules start from the world defaults, 10 and off, where BDS starts from 0 and true',
+                reference: 'packages/prismarine/src/world/GameRuleManager.ts'
+            },
+            'game rules after the commands': {
+                fields: { tntExplosionDropDecay: true },
+                because:
+                    'A gamerule command writes back the value the script set, so tntExplosionDropDecay keeps ' +
+                    'the flipped world default',
+                reference: 'packages/prismarine/src/world/GameRuleManager.ts'
+            },
             'server defaults': {
                 observed: { value: { randomTickSpeed: 3, showCoordinates: true } },
                 because:
                     "JSPrismarine's random ticks follow Java's random_tick_speed, whose 3 draws per section a world " +
-                    "starts with, since Bedrock's 1 names only a relative speed, and a level shows coordinates.",
+                    "starts with, since Bedrock's 1 names only a relative speed, and a level shows coordinates",
                 reference: 'packages/engine-systems/src/randomTick.ts and packages/prismarine/src/world/Level.ts'
             }
         }

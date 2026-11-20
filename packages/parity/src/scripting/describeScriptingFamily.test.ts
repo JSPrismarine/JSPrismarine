@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { runScenarios } from '../behaviorScenarios.ts';
+import { isRecord } from '../isRecord.ts';
 import { expectedOnJsp, scenarioRecordComparison } from './describeScriptingFamily.ts';
 import type { ScenarioRecord } from './record.ts';
 import { readScenarioGolden } from './record.ts';
@@ -29,5 +30,24 @@ describe('scenarioRecordComparison', () => {
         const row = rowFor(golden);
 
         expect(row?.gap?.kind).toBe('defect');
+    });
+});
+
+describe('expectedOnJsp', () => {
+    it('patches only the fields a difference names in an object value', () => {
+        const worldSettings = SCRIPT_SCENARIOS.find((scenario) => scenario.id === 'world-settings');
+        const golden = readScenarioGolden('world-settings');
+        if (worldSettings === undefined || golden === undefined) throw new Error('world-settings has a golden');
+        const defaults = (record: ScenarioRecord) =>
+            record.observations.find((observation) => observation.event === 'game rule defaults')?.value;
+
+        const recorded = defaults(golden);
+        if (!isRecord(recorded)) throw new Error('BDS recorded the defaults as an object');
+
+        expect(defaults(expectedOnJsp(golden, worldSettings))).toEqual({
+            ...recorded,
+            spawnRadius: 10,
+            tntExplosionDropDecay: false
+        });
     });
 });
