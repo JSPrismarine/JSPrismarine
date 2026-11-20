@@ -48,6 +48,28 @@ describe('network/transport/NetherNetTransport', () => {
             };
         };
 
+        it("answers the peer connection's round trip time on each call, and undefined before its first", () => {
+            const { peer } = fakePeer(9n);
+            const samples = [undefined, 41, 37];
+            let reads = 0;
+            const under = new NetherNetTransportConnection(
+                3,
+                { ...peer, peer: { ...peer.peer, roundTripTime: () => samples[reads++] } },
+                new InetAddress('192.0.2.1', 5)
+            );
+
+            expect([under.roundTripTime(), under.roundTripTime(), under.roundTripTime()]).toStrictEqual([
+                undefined,
+                41,
+                37
+            ]);
+            expect(reads).toBe(3);
+        });
+
+        it('has no round trip time when the WebRTC stack measures none', () => {
+            expect(connection().connection.roundTripTime()).toBeUndefined();
+        });
+
         it('says the wire is encrypted, so the login skips its own encryption', () => {
             expect(connection().connection.capabilities.encrypted).toBe(true);
         });

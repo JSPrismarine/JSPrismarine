@@ -175,8 +175,8 @@ Out of scope for now:
 2. [x] [#3331](https://github.com/JSPrismarine/JSPrismarine/issues/3331) **The script module members.** `performance`, `getPing` and `bossBars` in
        `@jsprismarine/server`, with the ping plumbing for RakNet and NetherNet, docs facts and
        tests. Parity: these are JSP-only, so the `scripting.lifecycle` scenario that imports the
-       module records them as `intentional`. NetherNet has no round trip time to give yet, so
-       `getPing` answers `undefined` for its players
+       module records them as `intentional`. NetherNet's round trip time came later, from
+       SCTP's under the data channels
        ([#3337](https://github.com/JSPrismarine/JSPrismarine/issues/3337)). A player bar is bound
        to the player's own entity, so they see one script bar at a time, the one shown last; no
        client has shown one yet, which slice 5's client-e2e scenario does.

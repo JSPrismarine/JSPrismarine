@@ -139,9 +139,9 @@ world.afterEvents.worldLoad.subscribe(async () => {
 A bar belongs to the scripts that showed it. It goes when the player leaves, and every bar goes
 when the scripts stop, on `/reload` or at shutdown, so a pack never leaves one behind. A player who
 has bars from several packs sees the one shown last, and the one before it again once that one is
-hidden. `getPing` answers `undefined` until the player's connection has measured a round trip, and
-always for a player who joined over NetherNet, which measures none yet
-([#3337](https://github.com/JSPrismarine/JSPrismarine/issues/3337)).
+hidden. `getPing` answers `undefined` until the player's connection has measured a round trip:
+RakNet's from the acknowledgments of its datagrams, NetherNet's from SCTP's under the data
+channels.
 
 Later JSPrismarine versions add members. To use one that an older server may lack, check for it
 before you call it, the same way you check for the module:

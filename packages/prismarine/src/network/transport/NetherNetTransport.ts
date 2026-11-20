@@ -35,7 +35,7 @@ const UNKNOWN_ADDRESS = new InetAddress('0.0.0.0', 0);
 
 /** The part of a NetherNet {@link Connection} the transport uses, so a test can stand one in. */
 export type NetherNetPeer = Pick<Connection, 'id' | 'closed' | 'send' | 'close' | 'provesKey'> & {
-    readonly peer: Pick<Connection['peer'], 'remoteAddress'>;
+    readonly peer: Pick<Connection['peer'], 'remoteAddress' | 'roundTripTime'>;
 };
 
 /**
@@ -70,9 +70,6 @@ export const selectedCandidateAddress: NetherNetPeerAddress = (peer) => {
 /**
  * One NetherNet peer as a {@link TransportConnection}. Frames go out on the reliable data
  * channel without their `0xFE` batch id, which NetherNet's wire does not carry.
- *
- * It has no `roundTripTime`: the native library exposes no round trip time of the peer
- * connection yet ([#3337](https://github.com/JSPrismarine/JSPrismarine/issues/3337)).
  */
 export class NetherNetTransportConnection implements TransportConnection {
     public readonly capabilities = NETHERNET_CAPABILITIES;
@@ -108,6 +105,15 @@ export class NetherNetTransportConnection implements TransportConnection {
      */
     public close(reason?: string): void {
         this.peer.close(reason);
+    }
+
+    /**
+     * The SCTP association's smoothed round trip time under the data channels, read from the
+     * peer connection on each call. Undefined before SCTP connects, or when the WebRTC stack
+     * measures none.
+     */
+    public roundTripTime(): number | undefined {
+        return this.peer.peer.roundTripTime?.();
     }
 
     /**
