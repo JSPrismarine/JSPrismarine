@@ -191,8 +191,7 @@
             "$comment": [
                 "Minecraft Preview 1.26.70.24, BDS preview 1.26.70.24: a preview protocol. The server",
                 "negotiates it but advertises the newest release, and it is replaced, not kept beside, when",
-                "the next preview or the 1.26.70 release lands. It has no `blocks` entry: no palette of",
-                "the BDS preview is captured.",
+                "the next preview or the 1.26.70 release lands.",
                 "",
                 "See `docs/research/protocol-2259-delta.md` for what 2259 changed on the wire."
             ],
@@ -235,6 +234,11 @@
                 "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
                 "minecraftVersion": "1.26.40",
                 "networkProtocolVersion": 2168
+            },
+            "blocks": {
+                "$comment": "Captured from BDS preview 1.26.70.24 the way 2193's was; `README-palette.md` is how.",
+                "source": "snapshot/v2259/block-palette.json",
+                "target": "../src/generated/v2259/block-schemas.ts"
             }
         }
     },
