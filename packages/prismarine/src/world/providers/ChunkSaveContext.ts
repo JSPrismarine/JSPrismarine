@@ -1,3 +1,5 @@
+import type { TickKind } from '@jsprismarine/engine-systems';
+
 import type { StoreActor } from '../../entity/data/storeActors';
 import { byRuntimeId } from '../runtimeIdOrder';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
@@ -15,27 +17,31 @@ export interface ChunkSaveContext {
     /** The persistent entity with the lowest runtime id for each existing actor id. */
     readonly firstEntityByActorId: ReadonlyMap<bigint, StoreActor>;
     /**
-     * The fluid ticks still scheduled in each chunk, by {@link Chunk.packXZ} index, and the world
-     * tick they are due against. Absent when the caller does not track them, which leaves what a
-     * chunk was saved with alone; present, a chunk missing from the map has none.
+     * The block and fluid ticks still scheduled in each chunk, by {@link Chunk.packXZ} index, and
+     * the world tick they are due against. Absent when the caller does not track them, which leaves
+     * what a chunk was saved with alone; present, a chunk missing from the map has none.
      */
-    readonly pendingFluidTicks?: PendingFluidTicksToSave;
+    readonly pendingTicks?: PendingTicksToSave;
 }
 
-/** One scheduled fluid tick as a save writes it. */
-export interface FluidTickToSave {
+/** One scheduled tick as a save writes it. */
+export interface TickToSave {
     readonly x: number;
     readonly y: number;
     readonly z: number;
     /** The absolute world tick it is due on. */
     readonly triggerTick: number;
+    /** Which of the world's tick lists it is on. */
+    readonly kind: TickKind;
+    /** The block or fluid it was scheduled for. */
+    readonly type: string;
 }
 
-/** A world's scheduled fluid ticks, grouped for a save. */
-export interface PendingFluidTicksToSave {
+/** A world's scheduled ticks, grouped for a save. */
+export interface PendingTicksToSave {
     /** The world tick the save is made at, which a saved tick's due tick is read against. */
     readonly currentTick: number;
-    readonly byChunk: ReadonlyMap<number, readonly FluidTickToSave[]>;
+    readonly byChunk: ReadonlyMap<number, readonly TickToSave[]>;
 }
 
 /**
@@ -44,14 +50,14 @@ export interface PendingFluidTicksToSave {
  * The entities may come in any order. What the indexes hold is put in ascending runtime id order,
  * so a chunk saves its entities in the same order whatever order the world keeps them in.
  *
- * @param pendingFluidTicks - The world's scheduled fluid ticks, when it tracks them; see
- *   {@link ChunkSaveContext.pendingFluidTicks}.
+ * @param pendingTicks - The world's scheduled block and fluid ticks, when it tracks them; see
+ *   {@link ChunkSaveContext.pendingTicks}.
  */
 export const createChunkSaveContext = (
     dimensionId: number,
     entities: Iterable<StoreActor>,
     chunkIndexOf: (entity: StoreActor) => number,
-    pendingFluidTicks?: PendingFluidTicksToSave
+    pendingTicks?: PendingTicksToSave
 ): ChunkSaveContext => {
     const entitiesByChunk = new Map<number, StoreActor[]>();
     const persistentEntitiesByChunk = new Map<number, StoreActor[]>();
@@ -97,6 +103,6 @@ export const createChunkSaveContext = (
         persistentEntitiesByChunk,
         actorIdsInWorld,
         firstEntityByActorId,
-        ...(pendingFluidTicks === undefined ? {} : { pendingFluidTicks })
+        ...(pendingTicks === undefined ? {} : { pendingTicks })
     };
 };

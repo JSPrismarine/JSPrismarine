@@ -18,6 +18,7 @@ import { inertEntityRuntime, liveTestEntities, testContent } from '../testing/en
 import { testLevel } from '../testing/level';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
+import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 import { subChunkCount } from './Dimension';
 import { Dimensions } from './DimensionType';
@@ -519,7 +520,7 @@ describe('a write outside a pass', () => {
     });
 });
 
-describe('a chunk that unloads with fluid still due to move', () => {
+describe('a chunk that unloads with ticks still due', () => {
     it('takes its fluid ticks off the world queue and brings them back from its PendingTicks record', async () => {
         const { level, overworld } = await harness('fluid-ticks-unload');
         const water = BlockRuntimeIds.getByName('minecraft:water');
@@ -543,6 +544,68 @@ describe('a chunk that unloads with fluid still due to move', () => {
         await level.disable();
     });
 
+    it('brings a block tick back after a restart while its block stands', async () => {
+        const first = await harness('block-ticks-restart');
+        const repeater = BlockRuntimeIds.getByName('minecraft:powered_repeater');
+        const chunk = first.overworld.getLoadedChunk(0, 0)!;
+        chunk.setBlockRuntimeId(3, 100, 3, repeater);
+        chunk.setBlockRuntimeId(5, 100, 5, repeater);
+        const now = first.overworld.getTicks();
+        const queued = first.overworld.getSystems().ticks.list('block');
+        queued.schedule({ x: 3, y: 100, z: 3 }, 'minecraft:powered_repeater', now + 4);
+        // Scheduled for a block that has since been replaced, so it would do nothing.
+        queued.schedule({ x: 5, y: 100, z: 5 }, 'minecraft:observer', now + 2);
+        await first.level.save();
+        await first.level.disable();
+
+        const second = await harness('block-ticks-restart');
+        const restored = second.overworld.getSystems().ticks.list('block');
+        expect(restored.ticksInChunk(0, 0).map(({ at, type, triggerTick }) => ({ at, type, triggerTick }))).toEqual([
+            {
+                at: { x: 3, y: 100, z: 3 },
+                type: 'minecraft:powered_repeater',
+                triggerTick: second.overworld.getTicks() + 4
+            }
+        ]);
+        await second.level.disable();
+    });
+
+    it('saves a chunk whose tick record is still in an open pass, so a tick spent meanwhile is not brought back', async () => {
+        const { level, overworld, provider } = await harness('block-ticks-outstanding');
+        const repeater = BlockRuntimeIds.getByName('minecraft:powered_repeater');
+        const chunk = overworld.getLoadedChunk(0, 0)!;
+        chunk.setBlockRuntimeId(3, 100, 3, repeater);
+        await level.save();
+        const blocks = overworld.getSystems().ticks.list('block');
+        const due = overworld.getTicks() + 4;
+        blocks.schedule({ x: 3, y: 100, z: 3 }, 'minecraft:powered_repeater', due);
+
+        // A pass puts the tick's record and has not committed it yet when the tick runs.
+        const pass = provider.beginSavePass();
+        pass.cutChunk(
+            chunk,
+            createChunkSaveContext(overworld.getDimension().bedrockId, [], () => 0, {
+                currentTick: overworld.getTicks(),
+                byChunk: new Map([
+                    [
+                        Chunk.packXZ(0, 0),
+                        [{ x: 3, y: 100, z: 3, triggerTick: due, kind: 'block', type: 'minecraft:powered_repeater' }]
+                    ]
+                ])
+            })
+        );
+        blocks.clearChunk(0, 0);
+
+        await overworld['unloadChunks']([chunk]);
+        await pass.commit({ sync: false });
+        await level.save();
+        expect(overworld.getLoadedChunk(0, 0)).toBeNull();
+
+        await overworld.getChunk(0, 0);
+        expect(blocks.ticksInChunk(0, 0)).toEqual([]);
+        await level.disable();
+    });
+
     it('stays loaded when a fluid tick was queued after its save', async () => {
         const { level, overworld } = await harness('fluid-ticks-late');
         await level.save();
@@ -553,7 +616,11 @@ describe('a chunk that unloads with fluid still due to move', () => {
         // The save's list did not hold the tick, so leaving now would lose it.
         expect(overworld['leaveChunk'](chunk, [])).toBe(false);
         expect(overworld.getLoadedChunk(2, 0)).toBe(chunk);
-        expect(overworld['leaveChunk'](chunk, [{ x: 35, y: 100, z: 3, triggerTick: due }])).toBe(true);
+        expect(
+            overworld['leaveChunk'](chunk, [
+                { x: 35, y: 100, z: 3, triggerTick: due, kind: 'fluid' as const, type: 'minecraft:water' }
+            ])
+        ).toBe(true);
         await level.disable();
     });
 
@@ -561,7 +628,14 @@ describe('a chunk that unloads with fluid still due to move', () => {
         const { level, overworld } = await harness('fluid-ticks-spent');
         await level.save();
         const chunk = overworld.getLoadedChunk(2, 0)!;
-        const spent = { x: 35, y: 100, z: 3, triggerTick: overworld.getTicks() - 1 };
+        const spent = {
+            x: 35,
+            y: 100,
+            z: 3,
+            triggerTick: overworld.getTicks() - 1,
+            kind: 'fluid' as const,
+            type: 'minecraft:water'
+        };
 
         // The record holds a tick no longer queued, so a reload would run it again.
         expect(overworld['leaveChunk'](chunk, [spent])).toBe(false);

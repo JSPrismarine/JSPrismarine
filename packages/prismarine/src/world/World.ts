@@ -73,7 +73,7 @@ import { createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
-import type { Weather } from '@jsprismarine/engine-systems';
+import type { TickKind, Weather } from '@jsprismarine/engine-systems';
 import { showContainerLid } from '../inventory/containerLid';
 import type { ContentPosition } from '../content/world/adapter';
 import { profileSpanStarter } from '../profiling/ServerProfiler';
@@ -102,7 +102,7 @@ import type { SpawnerSurroundings } from './spawners';
 import type { GameEventListener } from './GameEventListenerRegistry';
 import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
-import type { ChunkSaveContext, FluidTickToSave, PendingFluidTicksToSave } from './providers/ChunkSaveContext';
+import type { ChunkSaveContext, PendingTicksToSave, TickToSave } from './providers/ChunkSaveContext';
 import type { ProviderSavePass } from './providers/SavePass';
 import { createChunkSaveContext } from './providers/ChunkSaveContext';
 import type { Level } from './Level';
@@ -139,6 +139,9 @@ const isLiquidRuntimeId = (runtimeId: number): boolean => {
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
+
+/** The world's two tick lists, which a save writes and a chunk's leave clears together. */
+const TICK_KINDS = ['block', 'fluid'] as const satisfies readonly TickKind[];
 
 /** How many ticks apart the world looks for freshly generated chunks that have settled. */
 const SETTLED_CHECK_INTERVAL = 20;
@@ -1914,6 +1917,23 @@ export class World implements Service {
     }
 
     /**
+     * Schedules the block ticks a chunk was saved with, each with the delay it had left. A tick is
+     * scheduled only while the block it names still stands, since a block tick runs for its block.
+     */
+    private schedulePendingBlockTicks(chunk: Chunk): void {
+        const pending = chunk.takePendingBlockTicks();
+        if (pending.length === 0) return;
+
+        const blockTicks = this.systems.ticks.list('block');
+        const now = this.getTicks();
+        for (const tick of pending) {
+            const { name } = chunk.getBlock(tick.x & 0xf, tick.y, tick.z & 0xf);
+            if (name !== tick.type) continue;
+            blockTicks.schedule({ x: tick.x, y: tick.y, z: tick.z }, tick.type, now + tick.delay);
+        }
+    }
+
+    /**
      * Settles each block a chunk brought a shape update for against its neighbors, the half of
      * Java's `LevelChunk.postProcessGeneration` that runs `Block.updateFromNeighbourShapes` on a
      * position generation marked: a torch whose wall a later structure piece took away lets go,
@@ -1965,19 +1985,21 @@ export class World implements Service {
     }
 
     /**
-     * The world's scheduled fluid ticks by chunk, for a save to write with each chunk; see
-     * {@link ChunkSaveContext.pendingFluidTicks}.
+     * The world's scheduled block and fluid ticks by chunk, for a save to write with each chunk; see
+     * {@link ChunkSaveContext.pendingTicks}.
      */
-    private pendingFluidTicksToSave(): PendingFluidTicksToSave {
-        const byChunk = new Map<number, FluidTickToSave[]>();
-        for (const tick of this.systems.ticks.list('fluid').snapshot()) {
-            const index = Chunk.packXZ(tick.at.x >> 4, tick.at.z >> 4);
-            let ticks = byChunk.get(index);
-            if (ticks === undefined) {
-                ticks = [];
-                byChunk.set(index, ticks);
+    private pendingTicksToSave(): PendingTicksToSave {
+        const byChunk = new Map<number, TickToSave[]>();
+        for (const kind of TICK_KINDS) {
+            for (const tick of this.systems.ticks.list(kind).snapshot()) {
+                const index = Chunk.packXZ(tick.at.x >> 4, tick.at.z >> 4);
+                let ticks = byChunk.get(index);
+                if (ticks === undefined) {
+                    ticks = [];
+                    byChunk.set(index, ticks);
+                }
+                ticks.push({ ...tick.at, triggerTick: tick.triggerTick, kind, type: tick.type });
             }
-            ticks.push({ x: tick.at.x, y: tick.at.y, z: tick.at.z, triggerTick: tick.triggerTick });
         }
         return { currentTick: this.getTicks(), byChunk };
     }
@@ -2087,6 +2109,7 @@ export class World implements Service {
         this.measured('chunk-fluids', () => {
             if (chunk.takeFreshlyGenerated()) this.markChunkSettling(x, z);
             this.schedulePendingFluidTicks(chunk);
+            this.schedulePendingBlockTicks(chunk);
             this.settlePendingShapes(chunk);
         });
 
@@ -4197,11 +4220,11 @@ export class World implements Service {
             // Held for the level's next pass rather than written, so the chunk can leave as soon
             // as this returns, and reads of it answer from the held bytes until the pass commits
             // them (ADR 0018).
-            // A chunk whose fluid is still due to move is written for its ticks alone.
-            const ticking = saveContext.pendingFluidTicks?.byChunk.has(index) === true;
+            // A chunk with a tick still due is written for its ticks alone.
+            const ticking = saveContext.pendingTicks?.byChunk.has(index) === true;
             if (
                 !this.chunkRetained(chunk) &&
-                (chunk.getHasChanged() || entities.length > 0 || ticking || chunk.hasStoredFluidTicks())
+                (chunk.getHasChanged() || entities.length > 0 || ticking || chunk.hasStoredTicks())
             ) {
                 await this.getProvider().writeChunk(chunk, saveContext);
             }
@@ -4212,8 +4235,8 @@ export class World implements Service {
             return { left: Promise.resolve(false) };
         }
 
-        const savedFluidTicks = saveContext.pendingFluidTicks?.byChunk.get(index) ?? [];
-        const leave = () => this.leaveChunk(chunk, savedFluidTicks);
+        const savedTicks = saveContext.pendingTicks?.byChunk.get(index) ?? [];
+        const leave = () => this.leaveChunk(chunk, savedTicks);
         const admissions = this.admissions;
         if (admissions === undefined) return { left: Promise.resolve(leave()) };
         return {
@@ -4230,15 +4253,13 @@ export class World implements Service {
      * the world, unless something wants it again: a load, a change since the save, a fluid tick
      * the save did not write, or a player who came back.
      *
-     * The fluid ticks leave with the chunk as Java's `LevelTicks.removeContainer` takes them: the
-     * save wrote them to its `PendingTicks` record and a reload schedules them again. Block ticks
-     * stay queued. This server does not persist them, so taking them off would lose them, where
-     * leaving them lets a chunk that comes back before they fall due still run them.
+     * The block and fluid ticks leave with the chunk as Java's `LevelTicks.removeContainer` takes
+     * them: the save wrote them to its `PendingTicks` record and a reload schedules them again.
      *
-     * @param savedFluidTicks - The chunk's fluid ticks as the save wrote them.
+     * @param savedTicks - The chunk's scheduled ticks as the save wrote them.
      * @returns Whether it left.
      */
-    private leaveChunk(chunk: Chunk, savedFluidTicks: readonly FluidTickToSave[]): boolean {
+    private leaveChunk(chunk: Chunk, savedTicks: readonly TickToSave[]): boolean {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.getPlayerChunkRefCounts().synchronize(this.players);
         if (
@@ -4246,7 +4267,7 @@ export class World implements Service {
             this.loading.has(index) ||
             chunk.getHasChanged() ||
             this.chunkRetained(chunk) ||
-            !this.fluidTicksSaved(chunk, savedFluidTicks)
+            !this.ticksSaved(chunk, savedTicks)
         )
             return false;
 
@@ -4259,20 +4280,32 @@ export class World implements Service {
             live.runtime.remove(item.id, 'chunk unload');
 
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
-        this.systems.ticks.list('fluid').clearChunk(chunk.getX(), chunk.getZ());
+        for (const kind of TICK_KINDS) this.systems.ticks.list(kind).clearChunk(chunk.getX(), chunk.getZ());
         this.dropChunk(chunk, index);
         return true;
     }
 
     /**
-     * Whether the chunk's queued fluid ticks are exactly the ones its save wrote: none queued since,
-     * and none of the written ones run since, which a reload would schedule a second time.
+     * Whether the chunk's queued ticks are exactly the ones its save wrote: none queued since, and
+     * none of the written ones run since, which a reload would schedule a second time.
      */
-    private fluidTicksSaved(chunk: Chunk, saved: readonly FluidTickToSave[]): boolean {
-        const queued = this.systems.ticks.list('fluid').ticksInChunk(chunk.getX(), chunk.getZ());
-        const written = new Set(saved.map((tick) => `${tick.x},${tick.y},${tick.z},${tick.triggerTick}`));
-        const queuedKeys = new Set(queued.map((tick) => `${tick.at.x},${tick.at.y},${tick.at.z},${tick.triggerTick}`));
-        return queuedKeys.size === written.size && [...queuedKeys].every((key) => written.has(key));
+    private ticksSaved(chunk: Chunk, saved: readonly TickToSave[]): boolean {
+        // The type too: the scheduler keeps one tick per position and type, so two of different
+        // types can share a position and a due tick.
+        const key = (kind: string, type: string, x: number, y: number, z: number, triggerTick: number) =>
+            `${kind},${type},${x},${y},${z},${triggerTick}`;
+        const written = new Set(
+            saved.map((tick) => key(tick.kind, tick.type, tick.x, tick.y, tick.z, tick.triggerTick))
+        );
+        const queued = new Set(
+            TICK_KINDS.flatMap((kind) =>
+                this.systems.ticks
+                    .list(kind)
+                    .ticksInChunk(chunk.getX(), chunk.getZ())
+                    .map((tick) => key(kind, tick.type, tick.at.x, tick.at.y, tick.at.z, tick.triggerTick))
+            )
+        );
+        return queued.size === written.size && [...queued].every((entry) => written.has(entry));
     }
 
     /**
@@ -4406,7 +4439,7 @@ export class World implements Service {
                 const position = entity.getPosition();
                 return Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
             },
-            this.pendingFluidTicksToSave()
+            this.pendingTicksToSave()
         );
     }
 
@@ -4800,8 +4833,8 @@ export class World implements Service {
             if (
                 !chunk.getHasChanged() &&
                 !saveContext.entitiesByChunk.has(index) &&
-                saveContext.pendingFluidTicks?.byChunk.has(index) !== true &&
-                !chunk.hasStoredFluidTicks()
+                saveContext.pendingTicks?.byChunk.has(index) !== true &&
+                !chunk.hasStoredTicks()
             )
                 continue;
             try {

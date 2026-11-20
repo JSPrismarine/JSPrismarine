@@ -41,6 +41,7 @@ import {
 } from './ChunkGenerationRecord';
 import { GENERATION_DATA_VERSION } from '@jsprismarine/worldgen/blending/generationVersion';
 import { createChunkSaveContext } from '../ChunkSaveContext';
+import type { TickToSave } from '../ChunkSaveContext';
 import { parseLevelStem } from '@jsprismarine/worldgen';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
@@ -1024,9 +1025,16 @@ describe('world', () => {
                         [
                             Chunk.packXZ(0, 0),
                             [
-                                { x: 2, y: 70, z: 3, triggerTick: 105 },
+                                {
+                                    x: 2,
+                                    y: 70,
+                                    z: 3,
+                                    triggerTick: 105,
+                                    kind: 'fluid' as const,
+                                    type: 'minecraft:water'
+                                },
                                 // The water there has gone, so the tick would do nothing; it is not kept.
-                                { x: 5, y: 70, z: 5, triggerTick: 101 }
+                                { x: 5, y: 70, z: 5, triggerTick: 101, kind: 'fluid' as const, type: 'minecraft:water' }
                             ]
                         ]
                     ])
@@ -1041,7 +1049,7 @@ describe('world', () => {
                 // Changed, so the next save writes the record again once the tick has run.
                 expect(restored.getHasChanged()).toBe(true);
                 // And it stays due a save while the record holds ticks, even if a save clears the change.
-                expect(restored.hasStoredFluidTicks()).toBe(true);
+                expect(restored.hasStoredTicks()).toBe(true);
 
                 // Saved again with nothing scheduled, the record goes.
                 await reopened.provider.writeChunk(
@@ -1051,7 +1059,7 @@ describe('world', () => {
                         byChunk: new Map()
                     })
                 );
-                expect(restored.hasStoredFluidTicks()).toBe(false);
+                expect(restored.hasStoredTicks()).toBe(false);
                 await reopened.provider.disable();
                 const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
                 const recordKey = encodeChunkKey({
@@ -1062,6 +1070,36 @@ describe('world', () => {
                 });
                 expect(database.get(recordKey)).toBeNull();
                 await database.close();
+            });
+
+            it('tells the chunk its PendingTicks record is gone only once the pass that deletes it commits', async () => {
+                const { provider } = harness(scratch());
+                await provider.enable();
+                const chunk = buildChunk();
+                chunk.setBlockRuntimeId(2, 70, 3, id('minecraft:water'));
+                const ticking = (ticks: TickToSave[]) =>
+                    createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
+                        currentTick: 0,
+                        byChunk: new Map(ticks.length === 0 ? [] : [[Chunk.packXZ(0, 0), ticks]])
+                    });
+                await provider.writeChunk(
+                    chunk,
+                    ticking([{ x: 2, y: 70, z: 3, triggerTick: 5, kind: 'fluid', type: 'minecraft:water' }])
+                );
+                expect(chunk.hasStoredTicks()).toBe(true);
+
+                // A pass that would delete the record, abandoned: the record is still in the
+                // database, so the chunk still says so and the next pass saves it again.
+                const abandoned = provider.beginSavePass();
+                abandoned.cutChunk(chunk, ticking([]));
+                abandoned.abandon();
+                expect(chunk.hasStoredTicks()).toBe(true);
+
+                const committed = provider.beginSavePass();
+                committed.cutChunk(chunk, ticking([]));
+                await committed.commit({ sync: false });
+                expect(chunk.hasStoredTicks()).toBe(false);
+                await provider.disable();
             });
 
             it('keeps the fluid tick of water in the liquid layer', async () => {
@@ -1076,7 +1114,12 @@ describe('world', () => {
                     chunk,
                     createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
                         currentTick: 0,
-                        byChunk: new Map([[Chunk.packXZ(0, 0), [{ x: 2, y: 70, z: 3, triggerTick: 5 }]]])
+                        byChunk: new Map([
+                            [
+                                Chunk.packXZ(0, 0),
+                                [{ x: 2, y: 70, z: 3, triggerTick: 5, kind: 'fluid' as const, type: 'minecraft:water' }]
+                            ]
+                        ])
                     })
                 );
                 await provider.disable();
@@ -1099,7 +1142,21 @@ describe('world', () => {
                     chunk,
                     createChunkSaveContext(Dimensions.Overworld.bedrockId, [], () => 0, {
                         currentTick: 0,
-                        byChunk: new Map([[Chunk.packXZ(0, 0), [{ x: 2, y: 70, z: 3, triggerTick: 30 }]]])
+                        byChunk: new Map([
+                            [
+                                Chunk.packXZ(0, 0),
+                                [
+                                    {
+                                        x: 2,
+                                        y: 70,
+                                        z: 3,
+                                        triggerTick: 30,
+                                        kind: 'fluid' as const,
+                                        type: 'minecraft:water'
+                                    }
+                                ]
+                            ]
+                        ])
                     })
                 );
                 chunk.setBlockRuntimeId(1, 70, 1, id('minecraft:stone'));

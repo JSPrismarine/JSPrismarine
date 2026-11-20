@@ -402,7 +402,7 @@ describe('world player chunk counts', () => {
             ],
             true,
             async (chunk, context) => {
-                contextTicks.push(context?.pendingFluidTicks?.currentTick);
+                contextTicks.push(context?.pendingTicks?.currentTick);
                 if (chunk.getX() === 20) await firstGate;
                 chunk.markSaved();
             }
@@ -425,10 +425,10 @@ describe('world player chunk counts', () => {
         const saved: number[] = [];
         const world = worldWith([[20, 0]], true, async (chunk) => {
             saved.push(chunk.getX());
-            chunk.setStoredFluidTicks(false);
+            chunk.setStoredTicks(false);
         });
         world['players'].set(1, playerAt(world, 0, 0));
-        world.getLoadedChunk(20, 0)?.setStoredFluidTicks(true);
+        world.getLoadedChunk(20, 0)?.setStoredTicks(true);
 
         await world['unloadDistantChunks']();
 
