@@ -33,6 +33,7 @@ import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { hashFile } from '../fetch/hash.ts';
+import { isRecord } from '../isRecord.ts';
 import { extractJavaLang, javaLangPath } from './extract-lang.ts';
 import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome, jdkBinaryPath } from './jdk.ts';
@@ -141,9 +142,11 @@ install(join(outputDir, 'reports'), join(reportsDir, 'reports'));
  */
 const sortLootContextRequirements = (path: string): void => {
     if (!existsSync(path)) return;
-    // Parsed JSON: an object of context sets, each an object of parameter-name arrays.
-    const report = JSON.parse(readFileSync(path, 'utf8')) as Record<string, Record<string, unknown>>;
+    // An object of context sets, each an object of parameter-name arrays.
+    const report: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    if (!isRecord(report)) throw new Error(`${path} is not a JSON object of loot context sets`);
     for (const set of Object.values(report)) {
+        if (!isRecord(set)) continue;
         for (const [key, value] of Object.entries(set)) {
             if (Array.isArray(value)) set[key] = value.toSorted();
         }
