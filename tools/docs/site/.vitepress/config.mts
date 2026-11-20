@@ -84,6 +84,12 @@ export default defineConfig({
     /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root. */
     buildEnd(siteConfig) {
         writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
+        // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
+        // the file it serves.
+        writeFileSync(
+            path.join(siteConfig.outDir, 'robots.txt'),
+            ['User-agent: *', 'Allow: /', '', `Sitemap: ${new URL('sitemap.xml', siteUrl).href}`, ''].join('\n')
+        );
         // Cloudflare Pages also serves every upload on pages.dev: the project's own address, each pull
         // request's `pr-<n>` preview and each deployment's hash address. Search engines index only the
         // published domain. Cloudflare marks some previews `noindex` by itself, but not the project
