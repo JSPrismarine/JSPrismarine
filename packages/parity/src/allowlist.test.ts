@@ -5,7 +5,7 @@ import { ENTITY_LOSSES } from '@jsprismarine/mapping/lossList';
 import { describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';
-import { allowList, checkAllowList } from './allowlist.ts';
+import { allowList, checkAllowList, checkGapKinds } from './allowlist.ts';
 
 // These tests pin the two failure modes the mechanism promises: a gap with no entry is
 // unexpected, and an entry whose gap closed is stale. The first two read the real allow list
@@ -128,5 +128,24 @@ describe('allow list', () => {
             unexpected: [],
             stale: []
         });
+    });
+
+    it('reports a gap whose observed kind differs from the recorded one', () => {
+        const entries = [
+            {
+                family: FAMILIES.registryItems,
+                id: 'minecraft:open_gap',
+                kind: 'intentional' as const,
+                reason: 'fixture',
+                reference: 'this test'
+            }
+        ];
+
+        expect(checkGapKinds(FAMILIES.registryItems, [{ id: 'minecraft:open_gap', kind: 'defect' }], entries)).toEqual([
+            { id: 'minecraft:open_gap', recorded: 'intentional', observed: 'defect' }
+        ]);
+        expect(
+            checkGapKinds(FAMILIES.registryItems, [{ id: 'minecraft:open_gap', kind: 'intentional' }], entries)
+        ).toEqual([]);
     });
 });

@@ -1777,7 +1777,7 @@
             "reference": "issue #3298"
         },
         "bds-record:block-world-components": {
-            "kind": "deferred",
+            "kind": "defect",
             "reason": "The sign, piston, jukebox and cauldron components (issue #3302), the redstone producer and note block instrument components (issue #3303), liquidCanFlowFromDirection (issue #3304) and a bundle's item container (issue #3305) throw NotImplementedError on JSPrismarine, which gives the script host no seam to those systems yet. canPlace matches BDS.",
             "reference": "issue #3302"
         },
@@ -1831,7 +1831,7 @@
             "reference": "docs/plans/script-api-host.md slice 10 (#3207)"
         },
         "bds-record:world-event-gaps": {
-            "kind": "deferred",
+            "kind": "defect",
             "reason": "JSPrismarine has no world clocks, script-registered dimensions, pack settings, sound lengths, tripwire or target block redstone, input permissions or entity upgrades, so the world events that report on them and startup's dimension and world clock registries throw NotImplementedError, where BDS lets a script subscribe to each and hands it both registries.",
             "reference": "#3290, #3291, #3292, #3293, #3294, #3295, #3296"
         }
@@ -1869,7 +1869,7 @@
             "reference": "docs/plans/script-api-host.md slice 10"
         },
         "bds-record:world-pending": {
-            "kind": "deferred",
+            "kind": "defect",
             "reason": "A playing sound's pause, resume, volume, pitch, fade, seek and stop, StructureManager.getPackStructureIds and placeJigsawStructure throw NotImplementedError on JSPrismarine, which sets no sound handle and loads no pack structures or Bedrock jigsaws. Dimension.poiManager's runtime condition error and placeFeature of a pack's feature match BDS.",
             "reference": "issues #3314 and #3315"
         },
