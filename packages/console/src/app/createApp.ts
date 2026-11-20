@@ -329,6 +329,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onHint: guard((text: string | undefined) => statusBar.setHint(text)),
         serverStopping: () => state === 'stopping',
         onChange: guard(() => refreshUsage()),
+        // An open palette owns the keyboard, so a paste belongs to its query, not the hidden line.
+        onPaste: (text) => {
+            if (!palette.isOpen) return false;
+            palette.paste(text);
+            return true;
+        },
         onFocusChange: guard((focused: boolean) => {
             if (inputFocused === focused) return;
             inputFocused = focused;

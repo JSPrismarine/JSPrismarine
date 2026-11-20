@@ -22,6 +22,8 @@ export interface CommandPalette {
     readonly isOpen: boolean;
     /** Edits the query and moves the selection; Enter and Tab choose. */
     handleKeyPress(key: KeyEvent): void;
+    /** Adds pasted text to the query, up to its first line break. */
+    paste(text: string): void;
     dispose(): void;
 }
 
@@ -84,7 +86,13 @@ export function createCommandPalette(
 
     const labelChunks = (result: PaletteResult, isSelected: boolean, width: number): TextChunk[] => {
         const label = paletteLabel(result.item);
-        const right = kindLabel(result.item);
+        // The name is what tells rows apart, so a long description gives way to it: the name
+        // keeps at least a third of the row (or all of itself, when shorter).
+        const nameFloor = Math.min(columns(label), Math.max(8, Math.floor(width / 3)));
+        const rightRoom = Math.max(0, width - 3 - nameFloor);
+        const kind = kindLabel(result.item);
+        const right =
+            columns(kind) <= rightRoom ? kind : rightRoom > 1 ? `${sliceColumns(kind, 0, rightRoom - 1)}…` : '';
         const room = Math.max(1, width - columns(right) - 3);
         const shown = columns(label) > room ? `${sliceColumns(label, 0, room - 1)}…` : label;
         const matched = new Set(result.positions);
@@ -197,6 +205,13 @@ export function createCommandPalette(
                 query += typed;
                 refilter();
             }
+        },
+        paste(text) {
+            const line = text.split(/[\r\n]/, 1)[0] ?? '';
+            const printable = [...line].filter((point) => point >= ' ').join('');
+            if (printable === '') return;
+            query += printable;
+            refilter();
         },
         dispose() {
             renderer.off(CliRenderEvents.RESIZE, onResize);
