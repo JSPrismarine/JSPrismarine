@@ -85,10 +85,10 @@ describe('GameRuleManager', () => {
     });
 
     it('keeps the spelling a new rule arrives with', () => {
-        gameRuleManager.setGameRule('doImmediateRespawn', false, true);
+        gameRuleManager.setGameRule('showTags', false, true);
 
-        expect(gameRuleManager.getGameRules().has('doImmediateRespawn')).toBe(true);
-        expect(gameRuleManager.getGameRule('DOIMMEDIATERESPAWN')).toEqual([false, true]);
+        expect(gameRuleManager.getGameRules().has('showTags')).toBe(true);
+        expect(gameRuleManager.getGameRule('SHOWTAGS')).toEqual([false, true]);
     });
 
     it('tells the listener about a change, under the wire name, and not about the defaults', () => {
@@ -109,11 +109,12 @@ describe('GameRuleManager', () => {
 
     it('serializes the defaults as a varuint count and one camelCase rule each', () => {
         const expected = Buffer.concat([
-            Buffer.from([19]),
+            Buffer.from([30]),
             rule('commandBlockOutput', true, [0x01, 0x01]),
             rule('doDayLightCycle', true, [0x01, 0x01]),
             rule('doEntityDrops', true, [0x01, 0x01]),
             rule('doFireTick', true, [0x01, 0x01]),
+            rule('doLimitedCrafting', true, [0x01, 0x00]),
             rule('doMobLoot', true, [0x01, 0x01]),
             rule('doMobSpawning', true, [0x01, 0x01]),
             rule('doTileDrops', true, [0x01, 0x01]),
@@ -123,23 +124,33 @@ describe('GameRuleManager', () => {
             rule('fireDamage', true, [0x01, 0x01]),
             rule('keepInventory', true, [0x01, 0x00]),
             rule('mobGriefing', true, [0x01, 0x01]),
-            rule('naturalRegeneration', true, [0x01, 0x01]),
             rule('pvp', true, [0x01, 0x01]),
             rule('showCoordinates', true, [0x01, 0x00]),
-            // An integer is a signed int32 LE, four fixed bytes.
-            rule('randomTickSpeed', true, [0x02, 0x03, 0x00, 0x00, 0x00]),
+            rule('naturalRegeneration', true, [0x01, 0x01]),
             rule('tntExplodes', true, [0x01, 0x01]),
-            rule('sendCommandFeedback', true, [0x01, 0x01])
+            rule('sendCommandFeedback', true, [0x01, 0x01]),
+            // An integer is a signed int32 LE, four fixed bytes.
+            rule('maxCommandChainLength', true, [0x02, 0xff, 0xff, 0x00, 0x00]),
+            rule('doInsomnia', true, [0x01, 0x01]),
+            rule('commandBlocksEnabled', true, [0x01, 0x01]),
+            rule('randomTickSpeed', true, [0x02, 0x03, 0x00, 0x00, 0x00]),
+            rule('doImmediateRespawn', true, [0x01, 0x00]),
+            rule('showDeathMessages', true, [0x01, 0x01]),
+            rule('spawnRadius', true, [0x02, 0x0a, 0x00, 0x00, 0x00]),
+            rule('freezeDamage', true, [0x01, 0x01]),
+            rule('playersSleepingPercentage', true, [0x02, 0x64, 0x00, 0x00, 0x00]),
+            rule('projectilesCanBreakBlocks', true, [0x01, 0x01]),
+            rule('tntExplosionDropDecay', true, [0x01, 0x00])
         ]);
 
         expect(serialize(gameRuleManager)).toEqual(expected);
     });
 
     it('writes a negative integer rather than throwing', () => {
-        gameRuleManager.setGameRule('spawnRadius', -1, true);
+        gameRuleManager.setGameRule('functionCommandLimit', -1, true);
 
         const bytes = serialize(gameRuleManager);
-        const tail = rule('spawnRadius', true, [0x02, 0xff, 0xff, 0xff, 0xff]);
+        const tail = rule('functionCommandLimit', true, [0x02, 0xff, 0xff, 0xff, 0xff]);
 
         expect(bytes.subarray(bytes.length - tail.length)).toEqual(tail);
     });
