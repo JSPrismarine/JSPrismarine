@@ -114,6 +114,18 @@ jobs:
                   rm -rf node_modules/.cache/jsprismarine/java/*/dump-classes
                   rm -rf node_modules/.cache/jsprismarine/java/*/dump-out
 
+            # Each link preview card is cached under a hash of its content and its renderer, so a build
+            # copies every card that did not change instead of drawing it again, and drops the rest. The
+            # key changes with every commit, so each run saves the cards it built, and restores the
+            # newest set an earlier run saved.
+            - name: Cache link preview cards
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: tools/docs/site/.vitepress/cache/og
+                  key: ${{ runner.os }}-docs-og-${{ github.sha }}
+                  restore-keys: |
+                      ${{ runner.os }}-docs-og-
+
             - name: 📖 Build docs
               env:
                   # The contributors page reads GitHub's contributor list at build time.

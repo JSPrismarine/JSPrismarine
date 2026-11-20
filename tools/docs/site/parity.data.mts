@@ -22,19 +22,28 @@ export interface ParityPageData {
     caseChunks: readonly string[];
 }
 
+/**
+ * The staged tracker index: every total and family count, without the cases. The link preview card
+ * reads its score from it. Null when `docs:stage` has staged no snapshot.
+ */
+export function readTrackerIndex(): TrackerIndex | null {
+    const indexFile = path.join(trackerDir, 'index.json');
+    if (!existsSync(indexFile)) return null;
+    // `docs:stage` writes these files from the typed parity tracker generator.
+    return JSON.parse(readFileSync(indexFile, 'utf8')) as TrackerIndex;
+}
+
 declare const data: ParityPageData | null;
 export { data };
 
 export default {
     watch: ['./public/parity-tracker/index.json'],
     load(): ParityPageData | null {
-        const indexFile = path.join(trackerDir, 'index.json');
-        if (!existsSync(indexFile)) {
+        const index = readTrackerIndex();
+        if (!index) {
             console.warn('No parity tracker snapshot is staged; run `pnpm run docs:stage` to stage one.');
             return null;
         }
-        // `docs:stage` writes these files from the typed parity tracker generator.
-        const index = JSON.parse(readFileSync(indexFile, 'utf8')) as TrackerIndex;
         const cases = index.caseChunks.flatMap(
             (name) => JSON.parse(readFileSync(path.join(trackerDir, name), 'utf8')) as TrackerCase[]
         );

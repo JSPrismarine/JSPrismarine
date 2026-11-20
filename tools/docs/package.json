@@ -25,6 +25,7 @@
         "@resvg/resvg-js": "2.6.2",
         "focus-trap": "8.2.5",
         "minisearch": "7.2.0",
+        "satori": "0.63.2",
         "tinykeys": "4.0.1",
         "tsx": "4.23.15",
         "typedoc": "0.28.20",

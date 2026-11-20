@@ -16,6 +16,11 @@ import { sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { packageAreas } from './theme/packageAreas.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
+import { checkImageFiles, imageTags, landingPage } from './og/cardImage.ts';
+import type { CardRequest } from './og/cardContent.ts';
+import { loadCardContext } from './og/cardContext.ts';
+import { resolvePageImage } from './og/pageCards.ts';
+import { writeCards } from './og/renderCards.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
 // The root manifest's homepage is where Cloudflare Pages publishes the site.
@@ -57,10 +62,20 @@ function menuSidebar(section: string) {
     }));
 }
 
+/**
+ * The link preview card each page asked for, by source file, gathered as VitePress transforms the
+ * pages and rendered once at the end of the build.
+ */
+const cardRequests = new Map<string, CardRequest>();
+
+/** The site file each page's `image` front matter names, by source file, checked once the site is built. */
+const imageFiles = new Map<string, string>();
+
 export default defineConfig({
     lang: 'en-US',
     title: wordmark,
-    description: 'Dedicated Minecraft Bedrock Edition server written in TypeScript',
+    // The landing page's description, and every page's when it has none of its own.
+    description: manifest.description,
     base,
     head: [
         ['style', {}, paletteCss],
@@ -69,7 +84,8 @@ export default defineConfig({
         ['meta', { name: 'theme-color', content: palette.forest.hex }],
         ['meta', { property: 'og:type', content: 'website' }],
         ['meta', { property: 'og:site_name', content: wordmark }],
-        ['meta', { name: 'twitter:card', content: 'summary' }],
+        // Every page has a wide preview image: its own card, or the landing page's.
+        ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
         ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
         [
@@ -84,7 +100,16 @@ export default defineConfig({
     // Cloudflare Pages redirects `/page.html` to `/page`, so links and sitemap entries name the clean
     // path, the one a page's canonical URL already gives.
     cleanUrls: true,
-    buildEnd(siteConfig) {
+    async buildEnd(siteConfig) {
+        checkImageFiles(imageFiles, siteConfig.outDir);
+        const cards = await writeCards(cardRequests.values(), {
+            context: await loadCardContext(siteConfig.srcDir, siteConfig.pages),
+            outDir: siteConfig.outDir,
+            cacheDir: path.join(siteConfig.cacheDir, 'og')
+        });
+        console.log(
+            `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes.`
+        );
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.
         writeFileSync(
@@ -108,19 +133,28 @@ export default defineConfig({
         );
     },
     sitemap: { hostname: siteUrl },
-    /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
+    /** Per-page Open Graph title, description, URL and image, so shared links preview the page itself. */
     transformPageData(pageData, { siteConfig }) {
         // VitePress gives a page without a title or description an empty string, which `??` would keep.
         const title = pageData.frontmatter.title || pageData.title || siteConfig.site.title;
-        const description = pageData.frontmatter.description || pageData.description || siteConfig.site.description;
-        // The sitemap derives each page's path from its source file the same way under `cleanUrls`.
+        const ownDescription =
+            pageData.frontmatter.description ||
+            pageData.description ||
+            // The landing page speaks for the site, so its description is the site's.
+            (pageData.relativePath === landingPage ? siteConfig.site.description : undefined);
+        const description = ownDescription ?? siteConfig.site.description;
         const url = pageUrl(pageData.relativePath, siteUrl);
+        // A card shows only a description of the page's own, never the site's in its place.
+        const { image, card, file } = resolvePageImage(pageData, { title, description: ownDescription, siteUrl });
+        if (card) cardRequests.set(pageData.relativePath, card);
+        if (file) imageFiles.set(pageData.relativePath, file);
         pageData.frontmatter.head ??= [];
         pageData.frontmatter.head.push(
             ['meta', { property: 'og:title', content: title }],
             ['meta', { property: 'og:description', content: description }],
             ['meta', { property: 'og:url', content: url }],
-            ['link', { rel: 'canonical', href: url }]
+            ['link', { rel: 'canonical', href: url }],
+            ...imageTags(image)
         );
         // VitePress serializes theme config functions into the client bundle, so the edit link is resolved
         // here at build time and read by the theme's EditSource component.

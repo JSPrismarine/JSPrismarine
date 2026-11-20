@@ -1,7 +1,7 @@
 {
     "name": "jsprismarine",
     "version": "0.0.0",
-    "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
+    "description": "A dedicated server for Minecraft: Bedrock Edition, written in TypeScript.",
     "prettier": "@nordcom/prettier",
     "sideEffects": false,
     "private": true,

@@ -69,6 +69,7 @@ import {
     GENERATION_DATA_VERSION,
     OLD_GENERATION_BELOW_DATA_VERSION
 } from '../../packages/worldgen/src/blending/generationVersion.ts';
+import { cardStyles } from './site/.vitepress/og/cardImage.ts';
 import { brandPurposes } from './site/.vitepress/theme/brandCatalog.ts';
 import { palette } from './site/.vitepress/theme/tokens.ts';
 import { addonCatalog, loadAddons, releaseWorkflow, releaseWorkflowInputs } from './addons.mts';
@@ -1176,6 +1177,8 @@ export async function loadFacts(): Promise<Facts> {
                 4
             ),
             ...Object.fromEntries(Object.entries(palette).map(([name, { hex }]) => [`palette.${name}`, hex])),
+            // The styles a page's `image` front matter may ask its link preview card for.
+            'og.cardStyles': cardStyles.map((style) => `\`${style}\``).join(' or '),
             'brand.components': `\n${table(
                 ['Component', 'Purpose'],
                 Object.entries(brandPurposes).map(([name, purpose]) => [`\`${name}\``, purpose])

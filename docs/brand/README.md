@@ -16,6 +16,7 @@ each component live from the same source.
 | Project facts            | `tools/docs/project.mts`                      |
 | Docs facts               | `tools/docs/facts.mts`                        |
 | Release notes            | `tools/docs/site/releases.data.mts`           |
+| Link preview cards       | `tools/docs/site/.vitepress/og/`              |
 
 ## Position
 
@@ -102,8 +103,8 @@ The mark is a prism: a triangle split down the middle into an `--jsp-accent` fac
 `--jsp-mint` face, with a small `--jsp-signal` triangle at its core whose right half is shaded with
 ink.
 
-- Use `PrismMark` rather than redrawing it. The nav logo, the SVG files below and the site's favicon
-  and touch icons come from the same geometry in `prism.ts`.
+- Use `PrismMark` rather than redrawing it. The nav logo, the SVG files below, the site's favicon and
+  touch icons, and the link preview cards come from the same geometry in `prism.ts`.
 - Keep clear space of half the mark's width on every side.
 - Do not rotate, outline, add shadows or recolor the faces. The mark works unchanged on cream,
   forest and ink, so it has no inverted version.
@@ -212,6 +213,51 @@ scrolling off the screen edge, under a strip that holds the label and the copy b
 - The header's controls (Search, and on phones the Menu button) are controls, not primary actions:
   an edge and no offset shadow. While the phone menu is open, its own search field replaces the header's
   search button, which keeps its space so Close stays where Menu was.
+
+## Link preview cards
+
+Every page has its own image for link previews, which the docs build renders from the palette, the
+mark and the two typefaces. A card is set at twice the site's sizes from `brand.css`, since a preview
+shows it at about half. Labels are set at two and a half times, since X and chat apps show a card
+about 400 pixels wide.
+
+- The landing page and every page one level below it, which are the root pages (the parity tracker,
+  the releases) and the section overviews, take the hero: the landing hero's forest slab, with a mono
+  label and the title in display type at the top and the mark beside them. The label names the menu
+  group that links the page, such as Status for the parity tracker. A figure the repository records,
+  such as the parity score, the latest version or a section's page count, is set large in accent in
+  the lower left, with a mint label under it. A page with no figure sets its title and description
+  there instead. The wordmark is in the lower right, clear of the domain label X lays over the lower
+  left. The landing page's card repeats its headline.
+- Every other page takes the bento: the title on a forest tile with its description at the foot,
+  beside a tile in the color of the menu the page belongs to (`menuTones` in `og/cardContent.ts`).
+  The error reference is signal. The tile names the section and shows a figure the repository
+  records, such as a decision's number and status, the date a research note or plan gives, a
+  package's error or class count, or an API symbol's kind.
+- A page with no figure shows the mark in its tile, with clear space of half its width on every side.
+  The mark keeps its faces only on cream, forest and ink, so on an accent, mint or signal tile it sits
+  on a cream plate, and on ink it stands alone.
+- A title takes the largest size that fits its box and breaks at spaces. A class name too long for a
+  line breaks between the words in its name, and an identifier stays on one line when that costs it
+  less than a third of its size. A word that fits no line breaks between letters with a hyphen. Text
+  that fits at no size ends in an ellipsis on its last line. Titles that are identifiers, such as class
+  and package names, are mono. A figure that does not fit fails the build, since a figure cut short
+  would misstate it.
+- The fonts have no emoji, no CJK and few symbols. The build leaves out a character none of them has,
+  rather than draw an empty box, and warns with the page's path.
+
+A page picks its card with `image` in its front matter:
+
+| `image`                                             | Preview                                                         |
+| --------------------------------------------------- | --------------------------------------------------------------- |
+| absent                                              | A card in the page's style.                                     |
+| a site path such as `/card.png`, or an `https:` URL | That image, as it is.                                           |
+| `false`                                             | The landing page's card.                                        |
+| `{ style, title, description }`                     | A card in that style, with its own words. Each key is optional. |
+
+The styles are <!-- fact:og.cardStyles -->`hero` or `bento`<!-- /fact -->. The build fails on any
+other value, on a site path the built site does not have, and on `image` set on the landing page,
+whose card stands in for `image: false`.
 
 ## The landing page
 

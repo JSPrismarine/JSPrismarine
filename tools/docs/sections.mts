@@ -75,17 +75,25 @@ export function isStagedPage(relativePath: string) {
 }
 
 /**
- * A page's published URL under `siteUrl`, from its file (`guide/index.md`) or from a site link
- * (`/guide/running#worlds`). The canonical link, `og:url` and the structured data all use it, so a page
- * has one address.
+ * A page's path under `cleanUrls`, without a leading slash, from its file (`guide/index.md` is
+ * `guide/`) or from a site link (`/guide/running#worlds` is `guide/running`). The landing page's is
+ * empty.
  */
-export function pageUrl(page: string, siteUrl: string) {
-    const route = page
+export function pageRoute(page: string) {
+    return page
         .replace(/^\//, '')
         .replace(/#.*$/, '')
         .replace(/(^|\/)index(\.md)?$/, '$1')
         .replace(/\.md$/, '');
-    return new URL(route, siteUrl).href;
+}
+
+/**
+ * A page's published URL under `siteUrl`, from its file or a site link, as `pageRoute` reads them. The
+ * canonical link, `og:url`, the structured data and the link preview cards all use it, so a page has
+ * one address.
+ */
+export function pageUrl(page: string, siteUrl: string) {
+    return new URL(pageRoute(page), siteUrl).href;
 }
 
 /**
@@ -211,6 +219,25 @@ export function pageSummary(markdown: string) {
     }
     const unlabeled = text.replace(summaryLabel, '');
     return firstSentence(unlabeled === text ? text : `${unlabeled.charAt(0).toUpperCase()}${unlabeled.slice(1)}`);
+}
+
+/** What the verb of a dated opening sentence says about the note, for a card's label. */
+const datedVerbs: Record<string, string> = {
+    Researched: 'Researched',
+    'Research note': 'Researched',
+    'Research notes': 'Researched',
+    Written: 'Written',
+    Plan: 'Written',
+    Started: 'Started'
+};
+
+/**
+ * The date a research note or plan gives in its opening sentence, such as `2026-10-24` from
+ * "Researched 2026-10-24.", with what happened on it: `Researched`, `Written` or `Started`.
+ */
+export function pageDate(markdown: string) {
+    const lead = datedLead(firstSentence(introBlocks(markdown)[0] ?? ''));
+    return lead && { date: lead.date, label: datedVerbs[lead.verb] ?? lead.verb };
 }
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
