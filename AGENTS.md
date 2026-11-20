@@ -167,6 +167,26 @@ priority is lowered or a control group is throttled, treat it as a diagnostic:
 A target written in milliseconds or chunks per second needs a deterministic proxy before work
 starts. When the plan has none, say so and propose one instead of benchmarking around it.
 
+## GitHub workflows
+
+Every job a pull request push starts waits for a runner of its own, and on a busy day that wait is
+longer than most of the jobs run. When you add or change a job in `.github/workflows/`, count what
+the change does to one pull request push, and keep each count level or lower:
+
+- Jobs started. Add a step to a job that already checked out and installed, and start a new job
+  only for another runner OS or for work long enough to be worth splitting across runners.
+- Jobs in a row before a check reports. Each `needs:` hop waits for a runner again.
+- Runs of the same test. Reuse a result an earlier job or master already produced, such as a blob
+  report, an artifact or a cache entry keyed by commit.
+- Windows and macOS jobs, which draw on a smaller pool of runners. Run them on pull requests only
+  for behavior that differs by platform.
+
+Gate work on what the diff reaches, through path filters and `vitest --changed`. Work that only has
+to pass once before a merge, such as every protocol, every platform and release builds, belongs in
+the jobs that run once per merge. Put the before and after counts in the pull request description,
+as [Measuring performance](#measuring-performance) asks. [The CI speed plan](docs/plans/ci-speed.md)
+records the current counts and the changes under way.
+
 ## Running a test server
 
 Give a server you start for testing a flat world: set the world's `preset` to `minecraft:flat` in
