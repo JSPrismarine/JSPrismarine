@@ -25,8 +25,14 @@ describe('usageFor', () => {
         expect(usageFor('  tp  filfat   1', index)?.argument).toBe(1);
     });
 
+    it('finds a command typed with a leading slash, as the console sends it', () => {
+        expect(usageFor('/tp filfat', index)?.command).toBe(teleport);
+        expect(usageFor('/stop', index)?.command.name).toBe('stop');
+    });
+
     it('leaves search lines, empty lines and unknown commands alone', () => {
-        expect(usageFor('/tp', index)).toBeUndefined();
+        expect(usageFor('/steve joined', index)).toBeUndefined();
+        expect(usageFor('/', index)).toBeUndefined();
         expect(usageFor('   ', index)).toBeUndefined();
         expect(usageFor('nonsense here', index)).toBeUndefined();
     });
