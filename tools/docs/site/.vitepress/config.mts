@@ -81,6 +81,21 @@ export default defineConfig({
     /** GitHub Pages serves the site's custom domain from a `CNAME` file at the branch root. */
     buildEnd(siteConfig) {
         writeFileSync(path.join(siteConfig.outDir, 'CNAME'), `${new URL(siteUrl).hostname}\n`);
+        // Cloudflare Pages also serves every upload on pages.dev: the project's own address, each pull
+        // request's `pr-<n>` preview and each deployment's hash address. Search engines index only the
+        // published domain. Cloudflare marks some previews `noindex` by itself, but not the project
+        // address or a production deployment's hash address.
+        writeFileSync(
+            path.join(siteConfig.outDir, '_headers'),
+            [
+                'https://:project.pages.dev/*',
+                '  X-Robots-Tag: noindex',
+                '',
+                'https://:deployment.:project.pages.dev/*',
+                '  X-Robots-Tag: noindex',
+                ''
+            ].join('\n')
+        );
     },
     sitemap: { hostname: siteUrl },
     /** Per-page Open Graph title, description and URL, so shared links preview the page itself. */
