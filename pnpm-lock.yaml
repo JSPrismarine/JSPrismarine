@@ -2115,6 +2115,9 @@ importers:
 
   tools/client-e2e:
     devDependencies:
+      '@jridgewell/trace-mapping':
+        specifier: ^0.3.31
+        version: 0.3.31
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.32.2(supports-color@10.2.2)(zod@3.25.76)

@@ -93,7 +93,13 @@ manual run play every pin, and a push skips a pin the merged pull request passed
 Each pin is played in four shards on runners of their own, or in one when a pull request runs only
 some scenarios. `--shard <index>/<total>` picks the suites one shard plays: whole suites, the
 largest first, each to the shard with the fewest scenarios so far (`src/shard.mts`). Each shard's
-job uploads evidence and an LCOV report to Codecov. A preceding job
+job uploads evidence and an LCOV report to Codecov.
+
+A run that collects coverage also writes `scenario-coverage.json` to its artifacts: for each server
+source file, the line ranges of the functions each scenario ran, read from V8 coverage snapshots the
+server takes right before and right after every scenario (`src/scenario-coverage.mts`). Code that
+ran outside every scenario, at boot, between scenarios or in another process, belongs to all of
+them. A CI run of every scenario keeps the map as an artifact for 30 days. A preceding job
 builds each pinned commit that has no cached build, once however many runs use it. It restores
 cargo's compiled dependencies from the closest earlier build, its own protocol's first and then any
 other, so a pin bump compiles only the crates that changed, and it links with `mold`. GitHub

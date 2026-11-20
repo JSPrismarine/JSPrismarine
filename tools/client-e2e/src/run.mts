@@ -19,7 +19,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { buildCommit, buildName, containsCommit, ensureCinnabar, parseTransport, readManifest } from './cinnabar.mts';
+import {
+    buildCommit,
+    buildName,
+    containsCommit,
+    ensureCinnabar,
+    parseTransport,
+    readManifest,
+    repoRoot
+} from './cinnabar.mts';
 import { CinnabarClient } from './client.mts';
 import { startServer, UDP_PORTS_LAYOUTS } from './jsp-server.mts';
 import { createMutex } from './mutex.mts';
@@ -27,6 +35,8 @@ import type { ScenarioResult } from './retry.mts';
 import { mergeRetries, retrySuites } from './retry.mts';
 import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import { pinSkips } from './pin-skips.mts';
+import type { ScenarioWindow } from './scenario-coverage.mts';
+import { buildScenarioCoverageMap } from './scenario-coverage.mts';
 import { parseShard, shardSuites } from './shard.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import type { ScenarioSuite } from './suites.mts';
@@ -205,6 +215,8 @@ for (const skip of skipped) {
 const skippedCount = runSkipped ? 0 : skipped.length;
 
 const serverLogs: string[] = new Array(selectedSuites.length);
+/** The coverage snapshots each scenario ran between, when the run collects coverage. */
+const coverageWindows: ScenarioWindow[] = [];
 
 /**
  * Lets one scenario at a time, across every suite, run clients beside its suite's own.
@@ -508,31 +520,39 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
                     return additional;
                 };
                 const firstLine = suiteServer.lines.length;
-                await scenario.run({
-                    server: suiteServer,
-                    client,
-                    connectClient,
-                    launchClient,
-                    connect: (additional) => additional.connect(suiteServer.port, transport === 'nethernet'),
-                    createClient: async (displayName) => {
-                        // Before the join's budget starts, which a wait for the turn must not spend.
-                        await takeAdditionalClientTurn();
-                        const additionalJoined = suiteServer.waitForLine(
-                            new RegExp(`${displayName} joined the game`),
-                            120_000
-                        );
-                        const additional = await connectClient(displayName);
-                        await additional.waitFor('in_world', 120_000);
-                        await additional.waitForScreenAbsent('Loading', 120_000);
-                        await additionalJoined;
-                        return additional;
-                    },
-                    playerName,
-                    ...(playerSpawnMs === undefined ? {} : { playerSpawnMs }),
-                    ...(radius2ChunkReadyMs === undefined ? {} : { radius2ChunkReadyMs }),
-                    artifacts: scenarioArtifacts,
-                    log: (message) => console.log(`${scenario.name}: ${message}`)
-                });
+                const coverageStart = await suiteServer.snapshotCoverage();
+                try {
+                    await scenario.run({
+                        server: suiteServer,
+                        client,
+                        connectClient,
+                        launchClient,
+                        connect: (additional) => additional.connect(suiteServer.port, transport === 'nethernet'),
+                        createClient: async (displayName) => {
+                            // Before the join's budget starts, which a wait for the turn must not spend.
+                            await takeAdditionalClientTurn();
+                            const additionalJoined = suiteServer.waitForLine(
+                                new RegExp(`${displayName} joined the game`),
+                                120_000
+                            );
+                            const additional = await connectClient(displayName);
+                            await additional.waitFor('in_world', 120_000);
+                            await additional.waitForScreenAbsent('Loading', 120_000);
+                            await additionalJoined;
+                            return additional;
+                        },
+                        playerName,
+                        ...(playerSpawnMs === undefined ? {} : { playerSpawnMs }),
+                        ...(radius2ChunkReadyMs === undefined ? {} : { radius2ChunkReadyMs }),
+                        artifacts: scenarioArtifacts,
+                        log: (message) => console.log(`${scenario.name}: ${message}`)
+                    });
+                } finally {
+                    const coverageEnd = await suiteServer.snapshotCoverage();
+                    if (coverageStart !== undefined && coverageEnd !== undefined) {
+                        coverageWindows.push({ scenario: scenario.name, start: coverageStart, end: coverageEnd });
+                    }
+                }
                 assertNoChunkFailures(suiteServer.lines.slice(firstLine));
                 results.push({ name: scenario.name, ok: true, note: scenario.description });
                 console.log(`${scenario.name}: ok (${scenario.description})`);
@@ -703,6 +723,14 @@ if (runSkipped) {
     }
 }
 fs.writeFileSync(path.join(artifacts, 'server.log'), serverLogs.filter(Boolean).join('\n'));
+// Which server functions each scenario ran, so a later change can run only the scenarios it reaches.
+if (process.env.NODE_V8_COVERAGE && coverageWindows.length > 0) {
+    const map = buildScenarioCoverageMap(process.env.NODE_V8_COVERAGE, coverageWindows, repoRoot);
+    fs.writeFileSync(path.join(artifacts, 'scenario-coverage.json'), `${JSON.stringify(map)}\n`);
+    console.log(
+        `scenario coverage: ${map.scenarios.length} scenarios across ${Object.keys(map.files).length} source files`
+    );
+}
 // On GitHub Actions, put the verdicts on the run's summary page beside the uploaded artifacts.
 if (process.env.GITHUB_STEP_SUMMARY) {
     const escape = (text: string): string => text.replaceAll('|', '\\|').replaceAll('\n', ' ');

@@ -4,3 +4,6 @@ import { takeCoverage } from 'node:v8';
 // period, so snapshots during the run preserve coverage before that forced exit.
 setInterval(takeCoverage, 10_000).unref();
 process.on('exit', takeCoverage);
+// The runner signals right before and right after each scenario. V8 resets its counts at every
+// snapshot, so the files between the two hold what the scenario ran; see scenario-coverage.mts.
+process.on('SIGUSR2', takeCoverage);
