@@ -10,21 +10,13 @@ const ci = !!process.env.GITHUB_ACTIONS;
  * Locally every test is listed. CI prints the failed tests with their errors, the warnings and
  * errors any test wrote, and the totals: `minimal` lists failures only, and turning its silencing
  * off keeps what passing tests wrote, which `onConsoleLog` below narrows to `stderr`. GitHub gets
- * the failure annotations and the JUnit file for Codecov.
+ * the failure annotations and the JUnit file for Codecov. A CI shard reports the same for its own
+ * files, and Codecov combines the shards' uploads.
  */
 const minimal = ['minimal', { silent: false }] as const;
-/**
- * A CI shard (`VITEST_SHARD` set by the workflow) prints the same and also writes the blob the
- * merge job reads. The annotations and JUnit come from the merge job alone, so each failure is
- * annotated once.
- */
 /** A line in the log every time another tenth of the run's test files finishes. */
 const progress = resolve(dirname(fileURLToPath(import.meta.url)), '.test/progressReporter.ts');
-const reporters = !ci
-    ? ['verbose']
-    : process.env.VITEST_SHARD
-      ? [minimal, progress, 'blob']
-      : [minimal, progress, 'github-actions', 'junit'];
+const reporters = !ci ? ['verbose'] : [minimal, progress, 'github-actions', 'junit'];
 const exclude = [
     '.claude/**/*.*',
     '.changeset/**/*.*',
@@ -153,10 +145,10 @@ export default defineConfig({
             exclude: [...exclude, '**/*.test.helper.ts', '**/*.test-utils.ts'],
             provider: 'v8',
             // LCOV for Codecov, with paths relative to the repository like the client e2e report's,
-            // so the two merge file by file; JSON for the GitHub coverage comment. `lcovonly`
-            // rather than `lcov`, which also renders an HTML page per source file that nothing
-            // reads, written one by one after the run while the job waits.
-            reporter: ['json', 'json-summary', 'lcovonly', 'text-summary'],
+            // so the two merge file by file. `lcovonly` rather than `lcov`, which also renders an
+            // HTML page per source file that nothing reads, written one by one after the run while
+            // the job waits.
+            reporter: ['lcovonly', 'text-summary'],
             reportOnFailure: true
         },
 

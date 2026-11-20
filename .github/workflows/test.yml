@@ -140,8 +140,8 @@ jobs:
                   echo "bedrock_server=$([ "$bds_files" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
     # The unit suite runs in up to four shards, each on its own runner with a share of the test files.
-    # Each shard writes a blob report holding its results and its coverage, and `tests` merges
-    # them. Every file used to report in about seven minutes on one runner, and a Vitest that
+    # Each shard annotates its own failures and uploads its coverage and JUnit file to Codecov, which
+    # combines the shards' uploads of a commit by flag. Every file used to report in about seven minutes on one runner, and a Vitest that
     # stopped there held the runner for two hours, so a shard now fails after 15 minutes.
     tests-shard:
         name: 🧪 Tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
@@ -190,7 +190,7 @@ jobs:
             - name: 🧪 Test
               env:
                   CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
-                  # Prints failures here and writes the blob report; see `reporters` in `vitest.config.ts`.
+                  # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
               # The jar check is folded away, so the step opens on what Vitest reports.
               run: |
@@ -199,64 +199,9 @@ jobs:
                   echo "::endgroup::"
                   pnpm exec vitest run --coverage --tagsFilter='!real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
-            - name: 📤 Keep the shard report
-              if: ${{ !cancelled() }}
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-              with:
-                  name: vitest-blob-${{ matrix.shard }}
-                  path: .vitest
-                  include-hidden-files: true
-                  retention-days: 1
-
-    # The one unit result branch rules require: the shards merged into one set of results, one
-    # JUnit file and one coverage report, which go to GitHub and Codecov as before.
-    tests:
-        name: 🧪 Tests (ubuntu-latest)
-        needs: [changes, tests-shard]
-        if: ${{ !cancelled() && needs.changes.outputs.tests == 'true' }}
-        # runs-on: blacksmith-2vcpu-ubuntu-2404
-        runs-on: ubuntu-latest
-        timeout-minutes: 15
-        permissions:
-            contents: read
-            # The coverage comment.
-            pull-requests: write
-        steps:
-            # - uses: useblacksmith/checkout@v1
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-              with:
-                  # Merging the reports runs Vitest alone, a root dependency, and no test.
-                  root-only: true
-
-            - name: ⬇️ Collect the shard reports
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  pattern: vitest-blob-*
-                  path: .vitest
-                  merge-multiple: true
-
-            # Fails when a test failed in any shard, and the next step fails when a shard did not
-            # finish at all, which leaves no report to merge.
-            - name: 🧪 Merge the shard reports
-              run: pnpm exec vitest run --merge-reports --coverage
-
-            - name: 🔎 Check every shard finished
-              if: ${{ !cancelled() && needs.tests-shard.result != 'success' }}
-              run: |
-                  echo "A unit test shard ended with ${{ needs.tests-shard.result }}."
-                  exit 1
-
-            - name: 🦺 Report Coverage to GitHub
-              if: ${{ !cancelled() }}
-              uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
-
-            # Named files only: a search also picked up the JSON summaries. Codecov merges this
-            # with the real-data and client e2e uploads of the same commit by flag. A pull request
-            # covers only the suites it ran, so it uploads under `unit-changed` and Codecov carries
-            # the base's full `unit` report forward beside it; see `codecov.yml`.
+            # Named files only: a search also picked up other reports. A pull request covers only the
+            # suites it ran, so it uploads under `unit-changed` and Codecov carries the base's full
+            # `unit` report forward beside it; see `codecov.yml`.
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -447,8 +392,8 @@ jobs:
                   key: ${{ steps.key.outputs.key }}
 
     # Four shards, each with a quarter of the files that declare a `real-data` test, laid out like
-    # the unit shards: the same progress lines, failures printed in place, a blob report that
-    # `real-data` merges.
+    # the unit shards: the same progress lines, failures annotated in place, and coverage and test
+    # results uploaded to Codecov under the `real-data` flags.
     real-data-shard:
         name: 🗃️ Real data (shard ${{ matrix.shard }}/${{ strategy.job-total }})
         needs: [changes, plan, real-data-setup]
@@ -496,21 +441,36 @@ jobs:
             - name: 🧪 Test
               env:
                   CHANGED: ${{ github.event_name == 'pull_request' && format('--changed={0}', github.event.pull_request.base.sha) || '' }}
-                  # Prints failures here and writes the blob report; see `reporters` in `vitest.config.ts`.
+                  # Labels the progress lines; see `.test/progressReporter.ts`.
                   VITEST_SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
               run: |
                   mapfile -t files < <(git grep -l "'real-data'" -- ':(glob)**/*.test.*' ':(glob)**/*.spec.*')
                   echo "${#files[@]} files declare a real-data test"
                   pnpm exec vitest run --coverage --tagsFilter='real-data && !performance' $CHANGED --shard=${{ matrix.shard }}/${{ strategy.job-total }} "${files[@]}"
 
-            - name: 📤 Keep the shard report
+            # Named files only: a search also picked up other reports. A pull request covers only the
+            # suites it ran, so it uploads under `real-data-changed` and Codecov carries the base's full
+            # `real-data` report forward beside it; see `codecov.yml`.
+            - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
-                  name: vitest-real-data-blob-${{ matrix.shard }}
-                  path: .vitest
-                  include-hidden-files: true
-                  retention-days: 1
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: coverage/lcov.info
+                  disable_search: true
+                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
+
+            - name: 🦺 Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  report_type: test_results
+                  files: junit.xml
+                  disable_search: true
+                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
 
     # Suites tagged `bedrock-server` boot the pinned Bedrock Dedicated Server and check what we
     # read and write against what it reads and writes, LevelDB first. They take minutes, so they
@@ -548,64 +508,6 @@ jobs:
               run: |
                   mapfile -t files < <(git grep -l "'bedrock-server'" -- ':(glob)**/*.test.*')
                   pnpm exec vitest run --tagsFilter='bedrock-server' "${files[@]}"
-
-    # The one real-data result branch rules see: the shards merged into one set of results, one
-    # JUnit file and one coverage report, uploaded to Codecov as the unit ones are.
-    real-data:
-        name: 🗃️ Real data suites
-        needs: [changes, real-data-setup, real-data-shard]
-        if: ${{ !cancelled() && needs.changes.outputs.tests == 'true' }}
-        # runs-on: blacksmith-2vcpu-ubuntu-2404
-        runs-on: ubuntu-latest
-        timeout-minutes: 15
-        permissions:
-            contents: read
-        steps:
-            # - uses: useblacksmith/checkout@v1
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-              with:
-                  # Merging the reports runs Vitest alone, a root dependency, and no test.
-                  root-only: true
-
-            - name: ⬇️ Collect the shard reports
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  pattern: vitest-real-data-blob-*
-                  path: .vitest
-                  merge-multiple: true
-
-            - name: 🧪 Merge the shard reports
-              run: pnpm exec vitest run --merge-reports --coverage
-
-            - name: 🔎 Check every shard finished
-              if: ${{ !cancelled() && (needs.real-data-setup.result != 'success' || needs.real-data-shard.result != 'success') }}
-              run: |
-                  echo "The real data was ${{ needs.real-data-setup.result }} and the shards ended with ${{ needs.real-data-shard.result }}."
-                  exit 1
-
-            - name: 🦺 Codecov Coverage Reports
-              if: ${{ !cancelled() }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  files: coverage/lcov.info
-                  disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
-
-            - name: 🦺 Upload test results to Codecov
-              if: ${{ !cancelled() }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  report_type: test_results
-                  files: junit.xml
-                  disable_search: true
-                  flags: ${{ github.event_name == 'pull_request' && 'real-data-changed' || 'real-data' }}
 
     # The dashboard runs the whole parity package, the untagged suites as well as the real-data
     # ones, because its report has to name every family's tests. It runs beside the shards rather
@@ -718,3 +620,37 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PARITY_BASELINE_REPORT_PATH: ${{ runner.temp }}/parity-base-report
               run: pnpm --filter @jsprismarine/parity run comment:pr
+
+    # The one test result branch rules require. A matrix job's name depends on its shard count, and
+    # a skipped job reports under its unexpanded name, so neither can be required directly. Every
+    # job above is listed, so a job that skipped because one it needs failed is caught by that
+    # job's own failure.
+    tests-passed:
+        name: ✅ Tests
+        needs:
+            - changes
+            - plan
+            - tests-shard
+            - generation-host
+            - typecheck
+            - real-data-setup
+            - real-data-shard
+            - bedrock-server
+            - parity-dashboard
+        if: ${{ always() }}
+        # runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check the test results
+              env:
+                  NEEDS: ${{ toJSON(needs) }}
+              run: |
+                  jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+                  if [ "$(jq -r '.changes.result' <<< "$NEEDS")" != 'success' ]; then
+                      echo 'Could not detect whether code changed.' >&2
+                      exit 1
+                  fi
+                  # Skips are on purpose: a change no test reaches, the release pull request, a push
+                  # that reuses the merged pull request's typecheck, or no Bedrock Dedicated Server
+                  # suite in reach.
+                  jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<< "$NEEDS" > /dev/null
