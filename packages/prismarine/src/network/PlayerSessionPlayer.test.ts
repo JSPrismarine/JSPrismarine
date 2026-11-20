@@ -146,6 +146,23 @@ describe("PlayerSession's player", () => {
             expect(session.isConnected()).toBe(true);
         });
 
+        it('posts playerConnect with the address, and playerDisconnect once before the world lets go', async () => {
+            const { session, server, roster } = fakePlayer({ name: 'Visitor' });
+            const { events } = server.getKernel();
+            const seen: string[] = [];
+            events.on('playerConnect', (event) => void seen.push(`connect ${event.getInetAddr().getAddress()}`));
+            // What the world had been asked to do with the player when the listener ran.
+            events.on('playerDisconnect', () => void seen.push(`disconnect after [${roster.join(', ')}]`));
+
+            session.enable();
+            await session.join();
+            await session.leave();
+
+            // The save and the removal come after the event, so a listener still finds the player.
+            expect(seen).toEqual(['connect 127.0.0.1', 'disconnect after []']);
+            expect(roster).toEqual(['save', 'remove']);
+        });
+
         it('joins the chat fan-out under its key, which disable leaves', async () => {
             const { session, server } = fakePlayer({ name: 'Chatter' });
             const chat = server.getChatManager();
