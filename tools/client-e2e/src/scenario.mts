@@ -223,6 +223,47 @@ export const standAt = async (
     }
 };
 
+/**
+ * Teleports the player into another dimension and waits until the client reports it.
+ *
+ * A change the server is still finishing refuses the next one, so the teleport is asked for
+ * again every five seconds until the client is there.
+ *
+ * @param context - The suite's server, client and player, and where a repeated request is logged.
+ * @param dimension - The Java dimension id the server's `execute in` takes.
+ * @param accepted - The values the client's `dimension` state may report for it.
+ * @param at - Where in the dimension the player lands.
+ * @returns The client's state once it reports the dimension.
+ */
+export const changeDimension = async (
+    context: Pick<ScenarioContext, 'server' | 'client' | 'playerName' | 'log'>,
+    dimension: string,
+    accepted: readonly (number | string)[],
+    at: { x: number; y: number; z: number }
+): Promise<Record<string, unknown>> => {
+    const { server, client, playerName, log } = context;
+    const teleport = (): void =>
+        server.command(`execute in ${dimension} run teleport ${playerName} ${at.x} ${at.y} ${at.z}`);
+    teleport();
+
+    let nextAsk = Date.now() + 5_000;
+    const deadline = Date.now() + 30_000;
+    for (;;) {
+        const state = await client.state();
+        if (accepted.some((value) => value === state.dimension)) return state;
+        assert.ok(
+            Date.now() < deadline,
+            `client stayed in dimension ${JSON.stringify(state.dimension)} after teleporting to ${dimension}`
+        );
+        if (Date.now() >= nextAsk) {
+            log(`the change to ${dimension} did not start, asking again`);
+            teleport();
+            nextAsk = Date.now() + 5_000;
+        }
+        await sleep(250);
+    }
+};
+
 /** Reads `[x, y, z]` out of a state snapshot key such as `feet` or `server_position`. */
 export const vec3 = (state: Record<string, unknown>, key: string): [number, number, number] => {
     const value = state[key];
