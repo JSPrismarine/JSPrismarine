@@ -26,7 +26,7 @@
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
 import type { ComponentStateSnapshot } from '@jsprismarine/entities/componentState';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 import { merchantSnapshotIn } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
 import { Types } from '@jsprismarine/nbt';
@@ -281,6 +281,23 @@ export const actorMotionIn = (nbt: NBTTagCompound): EntityPosition | undefined =
     if (x === undefined || y === undefined || z === undefined || ![x, y, z].every(Number.isFinite)) return undefined;
 
     return { x, y, z };
+};
+
+/**
+ * The health an actor record's `Attributes` list holds, Bedrock's `minecraft:health` entry and its
+ * `Current` value, as Bedrock Dedicated Server writes every mob's.
+ * @returns The health, or undefined when the record lists none.
+ */
+export const actorHealthIn = (nbt: NBTTagCompound): number | undefined => {
+    const list = nbt.getList('Attributes', false);
+    if (list === undefined || list === null) return undefined;
+
+    for (const entry of list) {
+        if (!(entry instanceof NBTTagCompound) || entry.getString('Name', '') !== 'minecraft:health') continue;
+        const current = entry.getFloat('Current', Number.NaN);
+        return Number.isFinite(current) ? current : undefined;
+    }
+    return undefined;
 };
 
 /** Saved projectile flight state, after checking every field the runtime reads. */
