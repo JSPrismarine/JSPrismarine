@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadProject } from './project.mts';
+import { loadProject, packageScope } from './project.mts';
 import { groupPackages } from './site/.vitepress/theme/packageAreas.ts';
 
 const packageDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +21,7 @@ const sections = groupPackages(packages).map((area) => {
     return [`## ${area.title}`, '', area.description, '', ...links].join('\n');
 });
 
-const scope = packages[0]?.name.split('/')[0] ?? '';
+const scope = packageScope(packages);
 writeFileSync(
     path.join(packageDirectory, 'site', 'api', 'index.md'),
     `${intro}\n\nEvery package is published under the \`${scope}\` scope.\n\n${sections.join('\n\n')}\n`

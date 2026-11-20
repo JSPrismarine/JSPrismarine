@@ -71,6 +71,20 @@ export function isStagedPage(relativePath: string) {
     );
 }
 
+/**
+ * A page's published URL under `siteUrl`, from its file (`guide/index.md`) or from a site link
+ * (`/guide/running#worlds`). The canonical link, `og:url` and the structured data all use it, so a page
+ * has one address.
+ */
+export function pageUrl(page: string, siteUrl: string) {
+    const route = page
+        .replace(/^\//, '')
+        .replace(/#.*$/, '')
+        .replace(/(^|\/)index(\.md)?$/, '$1')
+        .replace(/\.md$/, '');
+    return new URL(route, siteUrl).href;
+}
+
 /** Reads a page's title from its first heading, falling back to its file name. */
 export function pageTitle(markdown: string, fallback: string) {
     return /^# (.+)$/m.exec(markdown)?.[1].trim() ?? fallback;

@@ -92,6 +92,11 @@ export interface ProjectData {
     version: string;
 }
 
+/** The npm scope the packages are published under, such as `@jsprismarine`, read from the first one. */
+export function packageScope(packages: readonly PublishedPackage[]) {
+    return packages[0]?.name.split('/')[0] ?? '';
+}
+
 /** Reads a JSON manifest; the file is parsed at a boundary the compiler cannot see. */
 function readManifest(file: string): Manifest {
     return JSON.parse(readFileSync(file, 'utf8'));
