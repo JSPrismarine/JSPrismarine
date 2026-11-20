@@ -243,6 +243,15 @@ export const PrismarineGenerationErrors = defineErrors('prismarine', {
         base: TypeError
     },
     /**
+     * A feature patch holds a block write outside the chunk it belongs to, so the write cannot be
+     * packed as a position within that chunk. This is a bug in world generation; report it with
+     * the stack trace.
+     */
+    PackedWriteOutsideChunk: {
+        message: 'A packed write at {x} {y} {z} lies outside its chunk',
+        base: RangeError
+    },
+    /**
      * The terrain cache on disk was opened without the fingerprint that keeps old terrain from
      * being reused after the data changes. This is a bug in world generation; report it with the
      * stack trace.

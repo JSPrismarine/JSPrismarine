@@ -77,6 +77,36 @@ describe('featurePatchWire', () => {
         expect(packed?.palette).toHaveLength(2);
     });
 
+    it('carries a write in 6 bytes: a position within the chunk and a 16-bit slot', () => {
+        const writes = 1000;
+        const [packed] = packFeaturePatches([patch(writes)]).payload;
+
+        expect((packed?.writePositions.byteLength ?? 0) + (packed?.writeBlocks.byteLength ?? 0)).toBe(writes * 6);
+    });
+
+    it('keeps 32-bit slots for a palette past 65,536 blocks', () => {
+        const writes = 70_000;
+        const many: RegionChunkPatch = {
+            ...patch(0),
+            blocks: Array.from({ length: writes }, (_, index) => ({
+                x: 48 + (index % 16),
+                y: index >> 8,
+                z: -32 + ((index >> 4) % 16),
+                block: { java: { name: 'minecraft:stone', properties: { n: String(index) } } }
+            }))
+        };
+
+        const [unpacked] = unpackFeaturePatches(deserialize(serialize(packFeaturePatches([many]).payload)));
+
+        expect(writesOf(unpacked?.blocks ?? [])).toEqual(many.blocks);
+    });
+
+    it("refuses to pack a write outside the patch's chunk", () => {
+        const stray: RegionChunkPatch = { ...patch(0), blocks: [{ x: 64, y: 0, z: -32, block: STONE }] };
+
+        expect(() => packFeaturePatches([stray])).toThrowError(RangeError);
+    });
+
     it('lists every buffer it packed for transfer', () => {
         const { payload, transferList } = packFeaturePatches([patch(10), patch(20)]);
 

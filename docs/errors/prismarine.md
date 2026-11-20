@@ -1170,6 +1170,16 @@ Thrown as `PrismarineGenerationErrors.PackedWriteOutOfPalette`, which extends `T
 A packed block write points past its palette. This is a bug in world generation; report it
 with the stack trace.
 
+### `PRISMARINE_PACKED_WRITE_OUTSIDE_CHUNK`
+
+`A packed write at {x} {y} {z} lies outside its chunk`
+
+Thrown as `PrismarineGenerationErrors.PackedWriteOutsideChunk`, which extends `RangeError`.
+
+A feature patch holds a block write outside the chunk it belongs to, so the write cannot be
+packed as a position within that chunk. This is a bug in world generation; report it with
+the stack trace.
+
 ### `PRISMARINE_PARTIAL_BIOME_SECTIONS`
 
 `A generation region must carry both biome section buffers or neither`

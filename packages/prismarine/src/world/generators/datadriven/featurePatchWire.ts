@@ -2,22 +2,31 @@
  * The form a feature pass's patches take across a worker or process boundary.
  *
  * A pass writes several thousand blocks, and as `{ x, y, z, block }` records each one is an
- * object the structured clone has to walk and rebuild on the other side. Packed, the positions
- * and the block of each write are three typed arrays and a palette of the distinct blocks, so
- * the receiving thread copies buffers instead of decoding thousands of objects.
+ * object the structured clone has to walk and rebuild on the other side. Packed, each write is
+ * its position within the patch's chunk and a slot in a palette of the distinct blocks, two
+ * typed arrays, so the receiving thread copies buffers instead of decoding thousands of objects.
  */
 import { isRecord } from '../../../utils/isRecord';
 import type { RegionBlock, RegionBlockPosition, RegionChunkPatch } from './GenerationRegion';
-import { forEachBlockWrite, isOptionalFluidTickList, PackedBlockWrites } from './GenerationRegion';
+import {
+    forEachBlockWrite,
+    isOptionalFluidTickList,
+    isPackableY,
+    PackedBlockWrites,
+    packWritePosition
+} from './GenerationRegion';
 import { PrismarineGenerationErrors } from '@jsprismarine/errors/prismarine/generation';
 
 /** One chunk's patch, packed. */
 export interface PackedRegionChunkPatch extends Omit<RegionChunkPatch, 'blocks' | 'structureBlocks'> {
     /** The distinct blocks the writes place, by identity. */
     readonly palette: readonly RegionBlock[];
-    /** `Int32Array` of x, y and z for each write, in write order. */
+    /** `Uint32Array` of each write's position within the chunk, in write order; see {@link packWritePosition}. */
     readonly writePositions: ArrayBuffer;
-    /** `Uint32Array` of each write's slot in {@link palette}. */
+    /**
+     * Each write's slot in {@link palette}: a `Uint16Array`, or a `Uint32Array` for a palette past
+     * 65,536 blocks, which the byte length tells apart.
+     */
     readonly writeBlocks: ArrayBuffer;
     /** `Int32Array` of x, y and z for each structure block. */
     readonly structureBlocks: ArrayBuffer;
@@ -43,7 +52,7 @@ const unpackPositions = (buffer: ArrayBuffer): RegionBlockPosition[] => {
 };
 
 /** A typed array's own buffer when the array covers all of it, or a copy of just its bytes. */
-const wholeBuffer = (array: Int32Array | Uint32Array): ArrayBuffer =>
+const wholeBuffer = (array: Uint16Array | Uint32Array): ArrayBuffer =>
     array.byteOffset === 0 && array.byteLength === array.buffer.byteLength && array.buffer instanceof ArrayBuffer
         ? array.buffer
         : array.slice().buffer;
@@ -76,21 +85,24 @@ export const packFeaturePatches = (
 
         const palette: RegionBlock[] = [];
         const slotOf = new Map<RegionBlock, number>();
-        const writeBlocks = new Uint32Array(blocks.length);
-        const writePositions = new Int32Array(blocks.length * 3);
+        const slots = new Uint32Array(blocks.length);
+        const writePositions = new Uint32Array(blocks.length);
         let index = 0;
         forEachBlockWrite(blocks, (x, y, z, block) => {
+            if (Math.floor(x / 16) !== rest.chunkX || Math.floor(z / 16) !== rest.chunkZ || !isPackableY(y)) {
+                throw new PrismarineGenerationErrors.PackedWriteOutsideChunk({ x, y, z });
+            }
             let slot = slotOf.get(block);
             if (slot === undefined) {
                 slot = palette.push(block) - 1;
                 slotOf.set(block, slot);
             }
-            writeBlocks[index] = slot;
-            writePositions[index * 3] = x;
-            writePositions[index * 3 + 1] = y;
-            writePositions[index * 3 + 2] = z;
+            slots[index] = slot;
+            writePositions[index] = packWritePosition(x, y, z);
             index++;
         });
+        // A pass places a few dozen distinct blocks, so a slot nearly always fits in 16 bits.
+        const writeBlocks = palette.length <= 0x10000 ? Uint16Array.from(slots) : slots;
 
         const packed = {
             ...rest,
@@ -114,7 +126,9 @@ export const isPackedPatch = (patch: unknown): patch is PackedRegionChunkPatch =
     patch.writePositions instanceof ArrayBuffer &&
     patch.writeBlocks instanceof ArrayBuffer &&
     patch.structureBlocks instanceof ArrayBuffer &&
-    patch.writePositions.byteLength === patch.writeBlocks.byteLength * 3 &&
+    (patch.writePositions.byteLength === patch.writeBlocks.byteLength * 2 ||
+        patch.writePositions.byteLength === patch.writeBlocks.byteLength) &&
+    patch.writePositions.byteLength % 4 === 0 &&
     Array.isArray(patch.blockEntityRemovals) &&
     Array.isArray(patch.blockEntities) &&
     Array.isArray(patch.entitySpawns) &&
@@ -134,7 +148,16 @@ export const unpackFeaturePatches = (value: unknown): RegionChunkPatch[] => {
     // Kept packed: the region applies them as they are, so no write becomes an object of its own.
     return value.map(({ palette, writePositions, writeBlocks, structureBlocks, ...rest }) => ({
         ...rest,
-        blocks: new PackedBlockWrites(palette, new Int32Array(writePositions), new Uint32Array(writeBlocks)),
+        blocks: new PackedBlockWrites(
+            palette,
+            rest.chunkX,
+            rest.chunkZ,
+            new Uint32Array(writePositions),
+            // Equal byte lengths mean 32-bit slots; see `PackedRegionChunkPatch.writeBlocks`.
+            writeBlocks.byteLength === writePositions.byteLength
+                ? new Uint32Array(writeBlocks)
+                : new Uint16Array(writeBlocks)
+        ),
         structureBlocks: unpackPositions(structureBlocks)
     }));
 };
