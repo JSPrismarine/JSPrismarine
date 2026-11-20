@@ -1,16 +1,16 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 
 import { AddonToolsErrors } from '@jsprismarine/errors/addon-tools';
 import { readZip } from '@jsprismarine/packs/zip';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, assert, describe, expect, it } from 'vitest';
 
 import { createAddonIndex, parseAddonIndex } from './addonIndex';
-import { buildAddons, fetchPublishedIndex, releaseDownloadUrl } from './build';
-import { copyHello, setHelloVersion, temporaryDirectory } from './fixture.test-utils';
+import { buildAddons, fetchPublishedIndex, readAddons, releaseDownloadUrl } from './build';
+import { copyHello, FIXTURE_ADDONS, setHelloVersion, temporaryDirectory } from './fixture.test-utils';
 
 const BASE_URL = releaseDownloadUrl('owner/repo');
 
@@ -98,6 +98,22 @@ describe('buildAddons', () => {
         ).rejects.toBeInstanceOf(AddonToolsErrors.PublishedVersionChanged);
     });
 
+    it('leaves the last build in the output folder when it refuses a changed published version', async () => {
+        const { addons, addon } = await copyHello();
+        const out = await temporaryDirectory();
+        const first = await buildAddons({ addonsDirectory: addons, outDirectory: out, baseUrl: BASE_URL });
+        const pack = await readFile(path.join(out, 'hello-1.2.3.mcpack'));
+        const index = await readFile(path.join(out, 'index.json'), 'utf8');
+        await writeFile(path.join(addon, 'scripts', 'main.js'), '// changed\n');
+
+        await expect(
+            buildAddons({ addonsDirectory: addons, outDirectory: out, baseUrl: BASE_URL, published: first.index })
+        ).rejects.toBeInstanceOf(AddonToolsErrors.PublishedVersionChanged);
+
+        expect(await readFile(path.join(out, 'hello-1.2.3.mcpack'))).toEqual(pack);
+        expect(await readFile(path.join(out, 'index.json'), 'utf8')).toBe(index);
+    });
+
     it('writes an index of the published versions when the folder has no addons', async () => {
         const published = createAddonIndex([]);
         const result = await buildAddons({
@@ -110,6 +126,23 @@ describe('buildAddons', () => {
         expect(result).toEqual({ index: published, built: [], added: [] });
     });
 
+    it.each([
+        ['https://example.com/download', 'https://example.com/download/hello-1.2.3.mcpack'],
+        ['https://example.com/download///', 'https://example.com/download/hello-1.2.3.mcpack'],
+        ['https://example.com/download/?token=x', 'https://example.com/download/hello-1.2.3.mcpack?token=x'],
+        [`https://example.com${'/'.repeat(100_000)}`, 'https://example.com/hello-1.2.3.mcpack']
+    ])('adds the pack to the path of the base URL %s', async (baseUrl, url) => {
+        const { addons } = await copyHello();
+
+        const { built } = await buildAddons({
+            addonsDirectory: addons,
+            outDirectory: await temporaryDirectory(),
+            baseUrl
+        });
+
+        expect(built.map((entry) => entry.url)).toEqual([url]);
+    });
+
     it('refuses a base URL that is not https', async () => {
         await expect(
             buildAddons({
@@ -118,6 +151,27 @@ describe('buildAddons', () => {
                 baseUrl: 'http://example.com'
             })
         ).rejects.toBeInstanceOf(AddonToolsErrors.InvalidBaseUrl);
+    });
+});
+
+describe('readAddons', () => {
+    it('reads every addon folder in name order, skipping files and dot folders', async () => {
+        const { addons } = await copyHello('zeta');
+        await cp(path.join(FIXTURE_ADDONS, 'hello'), path.join(addons, 'alpha'), { recursive: true });
+        await mkdir(path.join(addons, '.cache'));
+        await writeFile(path.join(addons, 'README.md'), '# Addons\n');
+
+        const read = await readAddons(addons);
+
+        expect(read.map(({ name, version }) => [name, version])).toEqual([
+            ['alpha', '1.2.3'],
+            ['zeta', '1.2.3']
+        ]);
+        expect(read[0]).toMatchObject({ description: 'Says hello.', minServer: '0.22.0' });
+    });
+
+    it('reads none from a folder without addons', async () => {
+        expect(await readAddons(await temporaryDirectory())).toEqual([]);
     });
 });
 
@@ -146,6 +200,26 @@ describe('fetchPublishedIndex', () => {
         expect(await fetchPublishedIndex(await serve(404, 'Not Found'))).toBeUndefined();
     });
 
+    it('reads the old index a failed upload left when the release has no index.json', async () => {
+        const index = createAddonIndex([]);
+        const requested: string[] = [];
+        const server = createServer((request, response) => {
+            requested.push(request.url ?? '');
+            if (request.url?.endsWith('/index.previous.json')) response.writeHead(200).end(JSON.stringify(index));
+            else response.writeHead(404).end('Not Found');
+        });
+        servers.push(server);
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        // listen() on a TCP port gives an AddressInfo.
+        const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/releases/download/addons`;
+
+        expect(await fetchPublishedIndex(base)).toEqual(index);
+        expect(requested).toEqual([
+            '/releases/download/addons/index.json',
+            '/releases/download/addons/index.previous.json'
+        ]);
+    });
+
     it('refuses any other error', async () => {
         await expect(fetchPublishedIndex(await serve(500, ''))).rejects.toBeInstanceOf(
             AddonToolsErrors.PublishedIndexUnavailable
@@ -162,6 +236,26 @@ describe('fetchPublishedIndex', () => {
 
         expect(await fetchPublishedIndex(BASE_URL, fetcher)).toEqual(createAddonIndex([]));
         expect(requested).toEqual([`${BASE_URL}/index.json`]);
+    });
+
+    it('adds each index file to the path of a base URL with a query', async () => {
+        const requested: string[] = [];
+        const server = createServer((request, response) => {
+            requested.push(request.url ?? '');
+            response.writeHead(404).end('Not Found');
+        });
+        servers.push(server);
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        const address = server.address();
+        assert(address !== null && typeof address === 'object', 'listen() on a TCP port gives an AddressInfo');
+
+        expect(
+            await fetchPublishedIndex(`http://127.0.0.1:${address.port}/releases/download/addons/?token=x`)
+        ).toBeUndefined();
+        expect(requested).toEqual([
+            '/releases/download/addons/index.json?token=x',
+            '/releases/download/addons/index.previous.json?token=x'
+        ]);
     });
 
     it('refuses an index that does not follow the schema', async () => {
