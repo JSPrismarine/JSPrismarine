@@ -78,8 +78,11 @@ export interface NoiseGeneratorSettings {
     readonly seaLevel: number;
     /** Whether the generator suppresses the first mob spawn pass. */
     readonly disableMobGeneration: boolean;
-    /** The aquifer functions, absent in dimensions that generate no aquifers. */
-    readonly aquifers: AquiferConfig | undefined;
+    /**
+     * The aquifer functions, absent in dimensions that generate no aquifers. The key is left out
+     * rather than set to `undefined`, so the settings stay a JSON value a cache key can hash.
+     */
+    readonly aquifers?: AquiferConfig;
     /** Whether the world seeds its randoms with the 48-bit legacy generator. */
     readonly useLegacyRandomSource: boolean;
 }
@@ -209,7 +212,7 @@ export const parseNoiseGeneratorSettings = (
         materialRule: normalizeIdentifier(raw['material_rule']),
         seaLevel: integer(raw['sea_level'], `${path}.sea_level`),
         disableMobGeneration: boolean(raw['disable_mob_generation'], `${path}.disable_mob_generation`),
-        aquifers,
+        ...(aquifers === undefined ? {} : { aquifers }),
         useLegacyRandomSource: boolean(raw['legacy_random_source'], `${path}.legacy_random_source`)
     };
 };

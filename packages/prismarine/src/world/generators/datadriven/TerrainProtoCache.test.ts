@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { parseNoiseGeneratorSettings } from '@jsprismarine/worldgen';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { GenerationRegionPayload } from './GenerationRegion';
@@ -234,5 +235,37 @@ describe('TerrainProtoCache', () => {
             { ...input, chunk: { x: 4, z: -4 } }
         ];
         for (const value of changed) expect(terrainProtoCacheKey(value)).not.toBe(terrainProtoCacheKey(input));
+    });
+
+    it('fingerprints the settings of a dimension without aquifers', () => {
+        // The Nether and the End name no `aquifers`, and their terrain cache keys hash the settings.
+        const routerSlots = [
+            'temperature',
+            'vegetation',
+            'continents',
+            'erosion',
+            'depth',
+            'ridges',
+            'chunk_surface_level',
+            'final_density'
+        ];
+        const settings = parseNoiseGeneratorSettings(
+            {
+                noise: { min_y: 0, height: 128 },
+                default_block: { Name: 'minecraft:end_stone' },
+                default_fluid: { Name: 'minecraft:air' },
+                noise_router: Object.fromEntries(routerSlots.map((slot) => [slot, 0])),
+                material_rule: 'minecraft:end',
+                sea_level: 0,
+                disable_mob_generation: true,
+                legacy_random_source: true
+            },
+            (id) => {
+                throw new TypeError(`no reference expected, got ${id}`);
+            }
+        );
+
+        expect(settings.aquifers).toBeUndefined();
+        expect(() => fingerprintWorldgenInput({ seed: '1', settings })).not.toThrow();
     });
 });

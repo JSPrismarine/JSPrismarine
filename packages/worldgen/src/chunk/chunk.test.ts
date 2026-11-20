@@ -183,7 +183,6 @@ describe('the global fluid picker', () => {
         materialRule: 'minecraft:overworld',
         seaLevel: 63,
         disableMobGeneration: false,
-        aquifers: undefined,
         useLegacyRandomSource: false,
         spawnTargets: []
     };
