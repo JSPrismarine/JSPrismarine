@@ -111,7 +111,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/packs",
     "devDependencies": {
         "@spyglassmc/core": "0.4.57",
-        "@spyglassmc/java-edition": "0.3.70",
+        "@spyglassmc/java-edition": "0.3.71",
         "@spyglassmc/json": "0.3.61",
         "@spyglassmc/mcdoc": "0.3.61",
         "@types/node": "26.6.6",
@@ -128,7 +128,7 @@
     },
     "peerDependencies": {
         "@spyglassmc/core": "0.4.57",
-        "@spyglassmc/java-edition": "0.3.70",
+        "@spyglassmc/java-edition": "0.3.71",
         "@spyglassmc/json": "0.3.61",
         "@spyglassmc/mcdoc": "0.3.61",
         "vscode-languageserver-textdocument": "1.0.16"
