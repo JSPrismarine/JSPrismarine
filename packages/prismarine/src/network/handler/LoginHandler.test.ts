@@ -39,6 +39,7 @@ import { useLoginKeys } from '@jsprismarine/auth/server';
 import { testContent } from '../../testing/entityServer';
 import { fakeLevel } from '../../testing/level';
 import { ChatManager } from '../../chat/ChatManager';
+import { testKernel } from '../../testing/kernel.test.helper';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
@@ -165,9 +166,12 @@ describe('network', () => {
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
                 getTick: () => 0,
+                // What a session posts `playerConnect` on.
+                getKernel: () => kernel,
                 on: vi.fn(),
                 removeListener: vi.fn()
             });
+            const kernel = testKernel();
             const chat = new ChatManager(new KernelEventBus<ServerEvents>());
 
             // The session is built by `createConnectedPlayer` now, not mocked in: the

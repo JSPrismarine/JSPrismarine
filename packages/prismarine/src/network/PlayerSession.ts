@@ -27,6 +27,8 @@ import { EYE_HEIGHT } from '../entity/playerEyes';
 import { mayFlyIn } from '../entity/playerComponents';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import PlayerDespawnEvent from '../events/player/PlayerDespawnEvent';
+import PlayerConnectEvent from '../events/player/PlayerConnectEvent';
+import PlayerDisconnectEvent from '../events/player/PlayerDisconnectEvent';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerGamemodeChangedEvent from '../events/player/PlayerGamemodeChangedEvent';
 import PlayerDimensionChangedEvent from '../events/player/PlayerDimensionChangedEvent';
@@ -619,10 +621,15 @@ export default class PlayerSession {
      * Not done in the constructor: a session that is built and then thrown away - a join that
      * fails part way through - would stay in the scheduler's set for the life of the server,
      * because the scheduler only ever skips the disconnected and removes on request.
+     *
+     * Posts `playerConnect`, which {@link PlayerSession.leave} pairs with `playerDisconnect`.
      * @group Lifecycle
      */
     public enable(): void {
         this.server.getChunkScheduler().add(this);
+        this.server
+            .getKernel()
+            .events.post('playerConnect', new PlayerConnectEvent(this, this.connection.getAddress()));
     }
 
     /**
@@ -666,6 +673,10 @@ export default class PlayerSession {
         // brought the player's entity back into the world with no session behind it.
         this.world.getEntityStore().afterUnit(() => {
             try {
+                // Before anything is taken down, so a listener still finds the player in its world.
+                this.server
+                    .getKernel()
+                    .events.post('playerDisconnect', new PlayerDisconnectEvent(this, this.connection.getAddress()));
                 this.takePlayerOff();
             } finally {
                 this.disable();
