@@ -394,3 +394,26 @@ export const screenContaining = async (client: CinnabarClient, fragment: string)
         await sleep(250);
     }
 };
+
+/**
+ * Presses the death screen's respawn button and waits until the client is back in play with
+ * health, as a player who died does.
+ * @returns The health the client shows after the respawn.
+ */
+export const respawnFromDeathScreen = async (client: CinnabarClient, server: JspServer): Promise<ShownHealth> => {
+    const deathScreen = await screenContaining(client, 'Death');
+    // The death screen ignores clicks for a moment after it opens.
+    await waitTicks(server, 30);
+    await client.input({ pointer: [640, 510], press: ['MouseLeft'], press_frames: 3 });
+    await client.input({ release_all: true });
+    await client.waitForScreenAbsent(deathScreen, 15_000);
+    await client.waitForScreenAbsent('Loading', 30_000);
+
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+        const health = readHealth(await client.state());
+        if (health !== undefined && health.current > 0) return health;
+        assert.ok(Date.now() < deadline, `player never regained health after respawning: ${JSON.stringify(health)}`);
+        await sleep(250);
+    }
+};

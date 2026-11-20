@@ -28,6 +28,9 @@ const idOf = (name: string): string => {
 /** `minecraft:advance_time`: whether the time of day moves on. */
 export const ADVANCE_TIME = idOf('doDaylightCycle');
 
+/** `minecraft:keep_inventory`: whether a player keeps their items and experience through a death. */
+export const KEEP_INVENTORY = idOf('keepInventory');
+
 /** `minecraft:mob_griefing`: whether a mob may change the world around it. */
 export const MOB_GRIEFING = idOf('mobGriefing');
 

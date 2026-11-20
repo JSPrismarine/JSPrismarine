@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 
 import type { Scenario } from '../scenario.mts';
-import { readHealth, screenContaining, sleep, vec3, waitTicks } from '../scenario.mts';
+import { respawnFromDeathScreen, sleep, vec3, waitTicks } from '../scenario.mts';
 
 export const deathRespawn: Scenario = {
     name: 'death-respawn',
@@ -24,28 +24,8 @@ export const deathRespawn: Scenario = {
         assert.equal((await client.state()).dimension, 1, 'the client never reached the Nether');
         await waitTicks(server, 40);
         server.command(`kill ${playerName}`);
-        const deathScreen = await screenContaining(client, 'Death');
-
-        // The death screen ignores clicks for a moment after it opens.
-        await waitTicks(server, 30);
-        await client.input({ pointer: [640, 510], press: ['MouseLeft'], press_frames: 3 });
-        await client.input({ release_all: true });
-        await client.waitForScreenAbsent(deathScreen, 15_000);
-        await client.waitForScreenAbsent('Loading', 30_000);
-
-        const deadline = Date.now() + 15_000;
-        for (;;) {
-            const health = readHealth(await client.state());
-            if (health !== undefined && health.current > 0) {
-                log(`respawned with ${health.current} health`);
-                break;
-            }
-            assert.ok(
-                Date.now() < deadline,
-                `player never regained health after respawning: ${JSON.stringify(health)}`
-            );
-            await sleep(250);
-        }
+        const health = await respawnFromDeathScreen(client, server);
+        log(`respawned with ${health.current} health`);
 
         const feet = vec3(await client.state(), 'feet');
         assert.ok(

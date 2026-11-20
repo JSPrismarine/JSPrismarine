@@ -28,6 +28,7 @@ import { playerKnockback } from './scenarios/player-knockback.mts';
 import { fallDamage } from './scenarios/fall-damage.mts';
 import { title } from './scenarios/title.mts';
 import { blockPlacement } from './scenarios/block-placement.mts';
+import { deathInventory } from './scenarios/death-inventory.mts';
 import { deathRespawn } from './scenarios/death-respawn.mts';
 import { teleportWhileDead } from './scenarios/teleport-while-dead.mts';
 import { spawnpointRespawn } from './scenarios/spawnpoint-respawn.mts';
@@ -81,6 +82,7 @@ export const suites: ScenarioSuite[] = [
             summonEntity,
             summonRefused,
             deathRespawn,
+            deathInventory,
             teleportWhileDead,
             blockPlacement,
             title,

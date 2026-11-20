@@ -280,6 +280,18 @@ describe('world', () => {
             expect(items().length).toBe(World.ITEM_ENTITY_LIMIT);
         });
 
+        it("drops a dead player's stacks past the limit, which exist nowhere else", async () => {
+            const { world, items } = emptyWorld();
+            const position = new Vector3(10, 64, -20);
+            const stacks = (count: number) =>
+                Array.from({ length: count }, () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 }));
+            await world.dropContents(position, stacks(World.ITEM_ENTITY_LIMIT));
+
+            await world.dropContents(position, stacks(3), { pastLimit: true });
+
+            expect(items().length).toBe(World.ITEM_ENTITY_LIMIT + 3);
+        });
+
         it('preserves an explicit zero item count', () => {
             expect(Item.air().getAmount()).toBe(0);
             expect(new Item({ name: 'minecraft:stone', count: 0 }).getAmount()).toBe(0);

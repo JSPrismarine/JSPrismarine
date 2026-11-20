@@ -71,6 +71,9 @@ import type { PlayerContainer } from '../inventory/slotLog';
 import { playerContainerNamed } from '../inventory/slotLog';
 import { WindowTypes } from '../inventory/WindowTypes';
 import type { Item } from '../item/Item';
+import CraftingInput from '../crafting/CraftingInput';
+import { KEEP_INVENTORY, gameRuleValue } from '../content/world/gameRules';
+import { experienceOrbs } from '../entity/data/deathExperience';
 import BlockPosition from '../world/BlockPosition';
 import { Position } from '../world/Position';
 import type { Level } from '../world/Level';
@@ -235,6 +238,18 @@ const ARRIVAL_HOLD_TICKS = 40;
 
 /** The block position a `PlayerActionPacket` carries when the action has no block. */
 const NO_BLOCK = { x: 0, y: 0, z: 0 };
+
+/** The orbs a dead player leaves are of this entity type. */
+const EXPERIENCE_ORB = 'minecraft:xp_orb';
+
+/** Experience points a death drops per level, Java's `Player.getBaseExperienceReward`. */
+const DEATH_EXPERIENCE_PER_LEVEL = 7;
+
+/** The most experience points a death drops, whatever the level. */
+const MAX_DEATH_EXPERIENCE = 100;
+
+/** The curse that destroys a stack where a death would drop it, by its Java id. */
+const VANISHING_CURSE = 'minecraft:vanishing_curse';
 
 /** Screens whose primary content packet spans several named request containers. */
 const COMBINED_BLOCK_CONTENT_SCREENS = new Set([
@@ -3822,6 +3837,12 @@ export default class PlayerSession {
                 this.released(this.sendDeathScreen(Vector3.fromObject(answer.announced), message));
             });
 
+        // Before anything is awaited, so a send that fails cannot leave the player holding what
+        // the rule says they drop, and the attribute send below carries the emptied experience bar.
+        if (gameRuleValue(this.world.getGameRuleManager(), KEEP_INVENTORY) !== true) {
+            this.released(this.dropOnDeath(actor));
+        }
+
         this.showOwnHealth();
         await this.sendAttributes();
         this.world.sendActorEvent(actor, ActorEvent.DEATH_ANIMATION);
@@ -3835,6 +3856,67 @@ export default class PlayerSession {
                 type: ChatType.TRANSLATION
             })
         );
+    }
+
+    /**
+     * What a death without `minecraft:keep_inventory` leaves where the player fell, Java's
+     * `Player.dropEquipment` and `getBaseExperienceReward`: every stack the player holds, less the
+     * ones cursed with vanishing, which are destroyed, and seven experience points a level, at
+     * most a hundred.
+     *
+     * Every stack is the inventory, the armor and the off hand, and also the cursor, the crafting
+     * grid and the inputs of an open window, which a later close would otherwise hand back. The
+     * window is closed on the server, and the experience is taken here rather than at the
+     * respawn, so the rule is read once and a change before the respawn cannot contradict it.
+     *
+     * Everything is taken before the first await; the promise is the drop's and the sends'.
+     */
+    private async dropOnDeath(actor: StorePlayerActor): Promise<void> {
+        const player = this.getPlayer();
+        const inventory = this.getInventory();
+        const held: Item[] = [];
+        for (const container of [inventory, inventory.getArmor(), inventory.getOffhand()]) {
+            for (let slot = 0; slot < container.getSlotCount(); slot += 1) {
+                const entry = container.getEntry(slot);
+                if (entry === null || entry.getCount() === 0 || entry.getItem().getName() === 'minecraft:air') continue;
+                container.removeItem(slot);
+                held.push(entry.getItem().withCount(entry.getCount()));
+            }
+        }
+
+        const cursor = inventory.getCursor();
+        if (cursor !== null) {
+            held.push(cursor);
+            inventory.setCursor(null);
+        }
+        const grid = player.getCraftingInput();
+        for (let slot = 0; slot < CraftingInput.SLOTS; slot += 1) {
+            const item = grid.get(slot);
+            if (item === null) continue;
+            held.push(item);
+            grid.set(slot, null);
+        }
+        const open = this.getOpenBlockContainer();
+        if (open !== undefined) {
+            held.push(...open.inputs.filter((item) => item !== null));
+            this.closeWindow(open.windowId);
+        }
+
+        const experience = this.getExperience();
+        const points = Math.min(experience.getLevel() * DEATH_EXPERIENCE_PER_LEVEL, MAX_DEATH_EXPERIENCE);
+        experience.setLevel(0);
+        experience.setProgress(0);
+        const at = actor.getPosition();
+        for (const value of experienceOrbs(points)) {
+            this.world
+                .dataEntities()
+                .runtime.spawn(EXPERIENCE_ORB, { x: at.getX(), y: at.getY(), z: at.getZ() }, { data: { value } });
+        }
+
+        const dropped = held.filter(
+            (item) => item.getName() !== 'minecraft:air' && !item.getEnchantments().has(VANISHING_CURSE)
+        );
+        await Promise.all([this.world.dropContents(at, dropped, { pastLimit: true }), this.sendInventory()]);
     }
 
     /**

@@ -19,11 +19,19 @@ export const diedVitals = (player: SurvivalPlayer): void => {
  * is not running, crouching, flying or sleeping. These survive a death because nothing else resets
  * them, and the client draws what it is told. Health is the caller's, because a legacy player's
  * lives in the attribute table this resets and a store player's on its entity.
+ *
+ * The experience level and bar are attributes too, and they come through as the death left them:
+ * a death without `minecraft:keep_inventory` already took them (see `PlayerSession.die`), and one
+ * with it keeps them, as Java's `ServerPlayer.restoreFrom` does.
  * @param {SurvivalPlayer} player - The player coming back.
  */
 export const respawnVitals = (player: SurvivalPlayer): void => {
     const { components } = player;
+    const level = components.get('experience.level');
+    const progress = components.get('experience.progress');
     components.resetAttributes();
+    components.set('experience.level', level);
+    components.set('experience.progress', progress);
     refillBreath(player);
     components.set('movement.sprinting', false);
     components.set('movement.sneaking', false);
