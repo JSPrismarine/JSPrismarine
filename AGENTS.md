@@ -52,6 +52,18 @@ commit messages and comments.
 - Keep history linear. Integrate by rebasing onto the target branch. To combine parallel work, rebase
   the side branch onto the target and fast-forward the target onto it. Leave merge commits out of
   this repository's history.
+- Create every new package or addon with its generator in `turbo/generators/`, then build on the
+  files it writes. Pass the answers with `--args` in prompt order, since an agent cannot answer
+  the prompts:
+  - `pnpm exec turbo gen Package --args <name> <description>` writes `packages/<name>/` and adds
+    it to `tsconfig.build.json`. Run `pnpm install` afterwards to link it.
+  - `pnpm exec turbo gen Addon --args <name> <title> <description> <minServer>` writes
+    `addons/<name>/` with fresh UUIDs. Run `pnpm run docs:facts` afterwards to list it in the
+    addon catalog.
+
+  When a new package or addon needs a file or setting the templates lack, change the templates in
+  the same change. To start a new kind of workspace that has no generator, add one to
+  `turbo/generators/config.ts` first and create the workspace with it.
 - When adding a skill under `.agents/skills/<name>/`, add a relative symlink at
   `.claude/skills/<name>` pointing to that directory so Claude Code discovers it. Keep the skill
   files in `.agents/skills/` as the source of truth.

@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": {{{ json title }}},
+        "description": {{{ json description }}},
+        "uuid": "{{ uuid }}",
+        "version": [1, 0, 0],
+        "min_engine_version": [{{ minEngineVersion }}]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "{{ uuid }}",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "{{ scriptApiVersion }}" }]
+}

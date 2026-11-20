@@ -5,7 +5,9 @@ JSPrismarine's own addons: optional behavior packs that a server owner installs 
 
 Each folder here is one addon, named for it, with its pack files and an `addon.json`.
 [`@jsprismarine/addon-tools`](../packages/addon-tools/README.md#an-addon) describes the layout
-and what the build checks. The [Addons workflow](../.github/workflows/addons.yml) builds every
+and what the build checks. Start a new addon from the repository root with
+`pnpm exec turbo gen Addon`, which asks for its name, title, description and oldest server, and
+writes the folder with a fresh manifest. The [Addons workflow](../.github/workflows/addons.yml) builds every
 addon on a pull request that changes one, and on `master` attaches each new version to the
 <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release with the index servers install from.
 

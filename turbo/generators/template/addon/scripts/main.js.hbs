@@ -1,0 +1,5 @@
+import { world } from '@minecraft/server';
+
+world.afterEvents.worldLoad.subscribe(() => {
+    // The world has loaded: subscribe to events and start the addon's work here.
+});

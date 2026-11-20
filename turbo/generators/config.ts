@@ -1,16 +1,44 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { PlopTypes } from '@turbo/gen';
 
+import { isAddonName } from '../../packages/addon-tools/src/addonIndex.ts';
 import pkg from '../../packages/prismarine/package.json' with { type: 'json' };
+import scriptApi from '../../packages/script-host/src/generated/script-modules/server.json' with { type: 'json' };
+import { SCRIPT_METADATA_SOURCE } from '../../packages/script-host/src/generated/scriptModules.ts';
+import server from '../../packages/server/package.json' with { type: 'json' };
 
+const DIR_ADDONS = 'addons';
 const DIR_PACKAGES = 'packages';
 const TARGET_TSCONFIG = 'tsconfig.build.json';
+
+/**
+ * The newest stable `@minecraft/server` version the script host offers. A new addon depends on it,
+ * so it starts with the whole stable API.
+ */
+const scriptApiVersion = scriptApi.versions.findLast(({ stability }) => stability === 'stable')?.version;
+
+/**
+ * The engine version of the `bedrock-samples` release the script host's modules come from, such as
+ * `1, 26, 60` for `v1.26.60.5`. Bedrock Dedicated Server loads a stable module version only from
+ * that engine version on, so a new addon asks for no older one.
+ */
+const minEngineVersion = SCRIPT_METADATA_SOURCE.tag.slice(1).split('.').slice(0, 3).join(', ');
+
+/** `tps-bar` as `Tps Bar`, the default display name of an addon. */
+const titleCase = (name: string): string =>
+    name
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 
 export default function generator(plop: PlopTypes.NodePlopAPI): void {
     // Templates fill JSON strings with `{{{ json value }}}`, which quotes and escapes the value.
     plop.setHelper('json', (value: unknown) => JSON.stringify(value));
+    // Each use gives a new UUID, so a manifest's header and modules get one each.
+    plop.setHelper('uuid', () => randomUUID());
 
     plop.setActionType('updateTsConfig', (answers) => {
         const file = path.join(plop.getDestBasePath(), TARGET_TSCONFIG);
@@ -70,6 +98,52 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 type: 'updateTsConfig'
             },
             () => 'Run `pnpm install` to link the new package into the workspace'
+        ]
+    });
+
+    plop.setGenerator('Addon', {
+        description: 'Create a new addon',
+        prompts: [
+            {
+                type: 'input',
+                name: 'name',
+                message: `What's the name of the addon? Owners install it by this name.`,
+                validate: (input: string) =>
+                    isAddonName(input) || 'An addon name is lowercase letters and digits, with single hyphens between.'
+            },
+            {
+                type: 'input',
+                name: 'title',
+                message: 'What do players see it called?',
+                default: (answers: { name: string }) => titleCase(answers.name)
+            },
+            {
+                type: 'input',
+                name: 'description',
+                message: 'What does it do, in one line?',
+                validate: (input: string) =>
+                    (input.trim().length > 0 && !/[\r\n]/.test(input)) || 'The description is one non-empty line.'
+            },
+            {
+                type: 'input',
+                name: 'minServer',
+                message: 'What is the oldest JSPrismarine version it runs on?',
+                default: server.version
+            }
+        ],
+        actions: [
+            {
+                type: 'addMany',
+                destination: `{{ turbo.paths.root }}/${DIR_ADDONS}/{{ name }}`,
+                base: 'template/addon',
+                templateFiles: 'template/addon/**/*',
+                data: {
+                    minEngineVersion,
+                    scriptApiVersion
+                },
+                abortOnFail: true
+            },
+            () => 'Run `pnpm run docs:facts` to add the addon to the catalog in docs/addons/README.md'
         ]
     });
 }
