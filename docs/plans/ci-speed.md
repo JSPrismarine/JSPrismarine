@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
-Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2 and 4 are done; phases 3 and 5
-to 9 are planned. [What we know](#what-we-know) records what was measured on
+Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2 and 4 are done, and phases 3
+and 10 are part done; phases 5 to 9 are planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -273,7 +273,10 @@ commits.
 
 ### Phase 4: split client e2e across runners (done)
 
-Landed in #3353, with four suites cut from `gameplay-and-dimensions`.
+Landed in #3353, with four suites cut from `gameplay-and-dimensions`. Its own run played the four
+shards of protocol 2225 in 309, 497, 538 and 818 seconds, against about 1,770 for the one job before
+(one run on hosted runners, so a picture, not a target). Scenario counts balance the shards poorly,
+since some suites boot heavier worlds; phase 5's recorded durations can split them too.
 
 1. Split `gameplay-and-dimensions` in `suites.mts` into four or five suites of similar scenario
    counts. Keep each ordering rule the comments record inside the suite it applies to.
@@ -304,6 +307,9 @@ transport, and master still runs all three.
 
 Done when the shards' recorded totals differ by less than the longest single file, checked in a unit
 test of the assignment script, and the workflow carries no file-count constants.
+
+The same applies to client e2e, whose `--shard` splits suites by scenario count. The runner can
+record each suite's duration on master and assign suites by it instead.
 
 ### Phase 6: one CI workflow with one planning job
 
@@ -411,6 +417,23 @@ the pnpm store, the 1.1 GB of real data and the cinnabar build on disk, and one 
 draw the client without lavapipe. The repository is public, so such a runner must take only
 same-repository pull requests and the merge queue, never forks, and each job needs a fresh VM.
 Revisit this after phase 7, when the count of jobs per push shows whether runner waits still matter.
+
+### Phase 10: run only the tests a change reaches (part done)
+
+Added on 2026-11-20. Every run should test only what its changes can reach.
+
+1. Vitest on master: a push passes `--changed` the last master commit whose run passed, and a
+   nightly run tests every suite. Landed in #3357.
+2. Client e2e coverage map: the server snapshots V8 coverage right before and right after each
+   scenario, and the runner writes which functions each scenario ran. Code that runs outside every
+   scenario belongs to all of them. In #3359.
+3. Client e2e selection: a pull request runs the scenarios whose functions its diff touches, when
+   the base commit kept a complete map. In #3360.
+4. Master e2e: a push could select by coverage against the last passing master commit too. It still
+   plays every pin in full, partly because those runs are what keep the maps complete.
+
+Done when a pull request that changes one server function some scenarios run plays only those
+scenarios, and a master push runs only the Vitest suites its commits reach.
 
 ## Open questions
 
