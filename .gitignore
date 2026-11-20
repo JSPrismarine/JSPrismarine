@@ -45,6 +45,8 @@ report.*.json
 # Generated site output
 assets/
 *.html
+# The brand's logo and icon files are checked in; the pattern above is for build output.
+!/docs/brand/assets/
 
 
 # Pinned upstream sources for datagen. Committed on purpose: Mojang keeps only a rolling

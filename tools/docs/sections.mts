@@ -20,7 +20,8 @@ export interface DocSection {
 export const sections = [
     { dir: 'guide', title: 'Guides', first: ['joining', 'running', 'extending', 'log-levels'] },
     { dir: 'errors', title: 'Errors' },
-    { dir: 'brand', title: 'Brand' },
+    // The site serves no copy of the logo and icon files, so the guide's links to them go to GitHub.
+    { dir: 'brand', title: 'Brand', unpublished: ['assets/'] },
     { dir: 'data-driven', title: 'Data-driven engine' },
     { dir: 'adr', title: 'Decisions' },
     { dir: 'plans', title: 'Plans' },
@@ -38,10 +39,15 @@ export const sections = [
     }
 ] satisfies DocSection[];
 
-/** Whether a file under a section, given relative to that section, is left off the site. */
+/**
+ * Whether a file or folder under a section, given relative to that section, is left off the site. A
+ * folder entry covers the folder itself too, so a link to it goes to GitHub as well.
+ */
 export function isUnpublished(section: DocSection, relativeFile: string) {
     const file = relativeFile.split('\\').join('/');
-    return (section.unpublished ?? []).some((entry) => (entry.endsWith('/') ? file.startsWith(entry) : file === entry));
+    return (section.unpublished ?? []).some((entry) =>
+        entry.endsWith('/') ? `${file}/`.startsWith(entry) : file === entry
+    );
 }
 
 /** A repository-root document the site publishes as a single page. */

@@ -9,6 +9,7 @@ each component live from the same source.
 | Palette hex values       | `packages/console/src/theme/brand.ts`         |
 | Palette uses             | `tools/docs/site/.vitepress/theme/tokens.ts`  |
 | Mark geometry            | `tools/docs/site/.vitepress/theme/prism.ts`   |
+| Logo and icon files      | [`docs/brand/assets/`](assets/)               |
 | Derived shades and sizes | `tools/docs/site/.vitepress/theme/brand.css`  |
 | Code colors              | `tools/docs/site/.vitepress/theme/codeTheme.ts` |
 | Components               | `tools/docs/site/.vitepress/theme/components/` |
@@ -101,12 +102,25 @@ The mark is a prism: a triangle split down the middle into an `--jsp-accent` fac
 `--jsp-mint` face, with a small `--jsp-signal` triangle at its core whose right half is shaded with
 ink.
 
-- Use `PrismMark` rather than redrawing it. The favicon and the nav logo come from the same geometry
-  in `prism.ts`.
+- Use `PrismMark` rather than redrawing it. The favicon, the nav logo and the SVG files below come
+  from the same geometry in `prism.ts`.
 - Keep clear space of half the mark's width on every side.
 - Do not rotate, outline, add shadows or recolor the faces. The mark works unchanged on cream,
   forest and ink, so it has no inverted version.
 - The wordmark is `JSPrismarine`: one word, camel case, set in Bricolage Grotesque 800.
+
+### Files
+
+Use these files wherever the mark appears outside the site, such as a README, a package page or an
+avatar.
+
+| File                                      | What                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [`prism.svg`](assets/prism.svg)           | The mark on a transparent background.                                                       |
+| [`prism-tile.svg`](assets/prism-tile.svg) | The mark centered on a square forest tile with its clear space, for app icons and avatars. |
+
+`pnpm --filter @jsprismarine/docs run brand:assets` writes them from `prism.ts` and the palette, and
+`pnpm run lint:brand-assets` fails when the checked-in files differ.
 
 ## Shape and motion
 
@@ -314,7 +328,8 @@ changes; `pnpm run docs:facts` refreshes the values in the Markdown.
 ## Changing the brand
 
 Change a color in `packages/console/src/theme/brand.ts`, a color's use in `tokens.ts`, a shape in
-`prism.ts`, and a derived value in `brand.css`, never a hex value in a component. The terminal
-shades (`--jsp-term-text`, `--jsp-term-bar` and `--jsp-term-muted`) are mixed twice: by `color-mix`
-in `brand.css` for the page, and by `TERMINAL_SHADES` in `brand.ts` for the console and the code
+`prism.ts`, and a derived value in `brand.css`, never a hex value in a component. After a color or
+shape change, run `pnpm --filter @jsprismarine/docs run brand:assets` to rewrite the
+[mark's files](#files). The terminal shades (`--jsp-term-text`, `--jsp-term-bar` and
+`--jsp-term-muted`) are mixed twice: by `color-mix` in `brand.css` for the page, and by `TERMINAL_SHADES` in `brand.ts` for the console and the code
 theme. Change both mixes together, or the page and the terminal drift apart. Update this guide in the same commit when a token, font or rule changes.

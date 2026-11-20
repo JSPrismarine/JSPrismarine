@@ -40,6 +40,8 @@ same source the site uses, so what you see here is what ships.
 <PrismMark :size="48" />
 ```
 
+The [brand guide](./brand/#files) links the mark's SVG files for use outside the site.
+
 ## Type
 
 <div class="kit-type">
