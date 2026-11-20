@@ -1,6 +1,7 @@
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { DimensionConfig, GeneratorDefinitionJson, WorldData } from './JsonConfigTypes';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+import { WORLD_EXPERIMENTS, isWorldExperiment } from '../world/WorldExperiments';
 
 /** The `worldgen/world_preset` a world uses when its entry names none. */
 export const DEFAULT_WORLD_PRESET = 'minecraft:normal';
@@ -96,6 +97,8 @@ const flatGeneratorOf = (layers: readonly FlatLayer[]): GeneratorDefinitionJson 
  *   the error message.
  * @throws When `generator` is a string other than `Overworld` or `Flat`, in any case, which is
  *   what the old generator manager refused before this.
+ * @throws When `experiments` lists an id the server does not implement. The schema refuses one,
+ *   but a file read without it would start the world with the experiment off and say nothing.
  */
 export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly string[]): NormalizedWorldData => {
     const { seed, provider, generator, layers } = data;
@@ -116,6 +119,16 @@ export const normalizeWorldData = (data: LegacyWorldData, knownKinds: readonly s
         }
         deprecations.push(`\`generator: '${generator}'\` is deprecated; write \`preset: '${legacyPreset}'\`.`);
         preset ??= legacyPreset;
+    }
+
+    // The type says every id is known; a file the schema never checked can say otherwise.
+    for (const experiment of data.experiments ?? []) {
+        if (!isWorldExperiment(experiment)) {
+            throw new PrismarineServerErrors.UnknownWorldExperiment({
+                experiment,
+                known: WORLD_EXPERIMENTS.join(', ')
+            });
+        }
     }
 
     if (layers !== undefined) {

@@ -80,6 +80,15 @@ describe('normalizeWorldData', () => {
         );
     });
 
+    it('refuses an experiment the server does not implement, and names the ones it does', () => {
+        // Parsed JSON the schema never checked, which is how a typo reaches the server.
+        const entry: unknown = JSON.parse('{ "seed": 1, "experiments": ["gametests"] }');
+
+        expect(() => normalizeWorldData(entry as Parameters<typeof normalizeWorldData>[0], KINDS)).toThrow(
+            /Unknown world experiment gametests.*gametest/
+        );
+    });
+
     it('leaves layers out of the translation when the generator was not Flat', () => {
         const normalized = normalizeWorldData({ seed: 1, layers: [{ block: 'minecraft:stone', size: 3 }] }, KINDS);
 
