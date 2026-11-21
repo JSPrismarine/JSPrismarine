@@ -52,6 +52,29 @@ const exclude = [
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Files, relative to the repository root, that the suites read from disk or that change how
+ * everything runs, so no import graph leads to them. The docs pages are the ones the parity
+ * conformance suites check against the code. The docs build hashes them, with the packages, to tell
+ * whether the parity tracker it last built is still current.
+ */
+export const forceRerunTriggers = [
+    'package.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    'tsconfig*.json',
+    '{vitest,vite}.config.*',
+    '.test/**',
+    'scripts/vitest-changed-files.ts',
+    'packages/bedrock-data/sources.json',
+    'packages/bedrock-data/pack-hashes.json',
+    'packages/bedrock-data/src/generated/**',
+    'packages/bedrock-data/src/jsp/**',
+    'docs/data-driven/parity.md',
+    'docs/plans/data-driven-vanilla.md',
+    'docs/research/edition-behavior-differences.md'
+];
+
 /** The repository root as a glob that matches only itself, in the forward slashes Vitest compares. */
 const rootPattern = normalizePath(__dirname).replace(/[$()*+?[\\\]^{|}!@]/g, '\\$&');
 
@@ -84,28 +107,11 @@ export default defineConfig({
         maxWorkers: process.env.GITHUB_ACTIONS ? '200%' : 4,
         passWithNoTests: true,
         // `--changed` runs only the suites whose import graph reaches a changed file, and a match
-        // on any of these runs every suite instead. They are inputs the suites read from disk or
-        // that change how everything runs, so no import graph leads to them. Each is anchored at
-        // the repository root: Vitest's defaults match a `package.json` or a Vite config in any
-        // directory, so one package's manifest used to run every suite. The provider below gives
-        // such a file to its own package. The docs pages are the ones the parity conformance
-        // suites check against the code.
-        forceRerunTriggers: [
-            'package.json',
-            'pnpm-lock.yaml',
-            'pnpm-workspace.yaml',
-            'tsconfig*.json',
-            '{vitest,vite}.config.*',
-            '.test/**',
-            'scripts/vitest-changed-files.ts',
-            'packages/bedrock-data/sources.json',
-            'packages/bedrock-data/pack-hashes.json',
-            'packages/bedrock-data/src/generated/**',
-            'packages/bedrock-data/src/jsp/**',
-            'docs/data-driven/parity.md',
-            'docs/plans/data-driven-vanilla.md',
-            'docs/research/edition-behavior-differences.md'
-        ].map((pattern) => `${rootPattern}/${pattern}`),
+        // on any of these runs every suite instead. Each is anchored at the repository root:
+        // Vitest's defaults match a `package.json` or a Vite config in any directory, so one
+        // package's manifest used to run every suite. The provider below gives such a file to its
+        // own package.
+        forceRerunTriggers: forceRerunTriggers.map((pattern) => `${rootPattern}/${pattern}`),
         experimental: {
             // `--since-last-run` replaces this with Vitest's own `mtime` provider.
             vcsProvider: resolve(__dirname, 'scripts/vitest-changed-files.ts')
