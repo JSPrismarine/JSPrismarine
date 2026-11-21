@@ -30,6 +30,9 @@ stack.destroy();
 laid out as records, and `eval(x, y, z)` runs it one position at a time with the same bits as the
 worldgen package's closures.
 
+`native.createClimate(tree)` registers a biome climate search tree as the worldgen package flattens
+it, and `find(candidate, ...target)` returns the nearest leaf.
+
 `NativeWorldgen.load()` throws a `NativeLibraryError` when there is no build for the machine.
 The library is optional: a caller keeps its TypeScript noise wherever `load()` throws.
 

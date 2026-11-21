@@ -46,6 +46,43 @@ JWG_EXPORT void jwg_program_destroy(double handle);
  */
 JWG_EXPORT double jwg_program_eval(double handle, double x, double y, double z);
 
+/*
+ * Registers a climate search tree as packages/worldgen/src/biome/Climate.ts flattens it: per node,
+ * seven min/max bound pairs, its child range, its leaf value index (-1 for a subtree) and its
+ * first leaf rank; then the child list. Returns the tree's handle, or 0 when a node names a child
+ * that does not exist or memory runs out.
+ */
+JWG_EXPORT double jwg_climate_create(
+    const double *bounds,
+    const uint32_t *childStarts,
+    const uint32_t *childCounts,
+    const int32_t *valueIndices,
+    const uint32_t *firstLeafRanks,
+    int32_t nodeCount,
+    const uint32_t *children,
+    int32_t childTotal,
+    int32_t maxDepth
+);
+
+/* Frees a climate tree. A handle of 0 is ignored. */
+JWG_EXPORT void jwg_climate_destroy(double handle);
+
+/*
+ * The leaf nearest the quantized target, starting from the candidate leaf the previous search
+ * returned (-1 for none), as closestLeaf in Climate.ts finds it. Returns -1 when the tree yields
+ * no leaf. A tree is not reentrant: its search stack belongs to the thread that calls it.
+ */
+JWG_EXPORT double jwg_climate_find(
+    double handle,
+    double candidate,
+    double temperature,
+    double humidity,
+    double continentalness,
+    double erosion,
+    double depth,
+    double weirdness
+);
+
 #endif
 
 /* The interface version; the binding refuses a library that answers another. */
@@ -103,5 +140,42 @@ JWG_EXPORT void jwg_program_destroy(double handle);
  * reentrant: its caches belong to the thread that calls it.
  */
 JWG_EXPORT double jwg_program_eval(double handle, double x, double y, double z);
+
+/*
+ * Registers a climate search tree as packages/worldgen/src/biome/Climate.ts flattens it: per node,
+ * seven min/max bound pairs, its child range, its leaf value index (-1 for a subtree) and its
+ * first leaf rank; then the child list. Returns the tree's handle, or 0 when a node names a child
+ * that does not exist or memory runs out.
+ */
+JWG_EXPORT double jwg_climate_create(
+    const double *bounds,
+    const uint32_t *childStarts,
+    const uint32_t *childCounts,
+    const int32_t *valueIndices,
+    const uint32_t *firstLeafRanks,
+    int32_t nodeCount,
+    const uint32_t *children,
+    int32_t childTotal,
+    int32_t maxDepth
+);
+
+/* Frees a climate tree. A handle of 0 is ignored. */
+JWG_EXPORT void jwg_climate_destroy(double handle);
+
+/*
+ * The leaf nearest the quantized target, starting from the candidate leaf the previous search
+ * returned (-1 for none), as closestLeaf in Climate.ts finds it. Returns -1 when the tree yields
+ * no leaf. A tree is not reentrant: its search stack belongs to the thread that calls it.
+ */
+JWG_EXPORT double jwg_climate_find(
+    double handle,
+    double candidate,
+    double temperature,
+    double humidity,
+    double continentalness,
+    double erosion,
+    double depth,
+    double weirdness
+);
 
 #endif

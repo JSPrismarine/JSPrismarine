@@ -10,6 +10,16 @@ category: Errors
 These are the errors `@jsprismarine/native-worldgen` throws. [The error reference](README.md) explains how to read an entry.
 
 <!-- fact:errors.page.native-worldgen -->
+## `NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED`
+
+`The native worldgen library could not create a climate tree of {nodes} nodes`
+
+Thrown as `NativeWorldgenErrors.ClimateTreeNotCreated`, which extends `Error`.
+
+The native library refused a climate search tree: a node names a child that does not exist,
+or memory ran out. A tree the worldgen package flattened is never malformed, so this is a
+bug; report it.
+
 ## `NATIVE_WORLDGEN_INVALID_PERMUTATION_TABLE`
 
 `Layer {layer} has a permutation table of {length} entries; a layer needs 256`
@@ -43,10 +53,6 @@ in `packages/native-worldgen`.
 `The native worldgen library could not create a density program of {nodes} nodes`
 
 Thrown as `NativeWorldgenErrors.ProgramNotCreated`, which extends `Error`.
-
-The native library refused a density program: a record names a node, constant, link, stack
-or cache slot that does not exist, or memory ran out. A program the worldgen package
-encoded is never malformed, so this is a bug; report it.
 
 ## `NATIVE_WORLDGEN_STACK_DESTROYED`
 

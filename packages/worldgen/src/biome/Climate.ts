@@ -1,5 +1,7 @@
 import { f32 } from '../math';
 import { asObject, number } from '../json';
+import { nativeWorldgen } from '../noise/nativeNoise';
+import type { NativeClimateSearch } from '@jsprismarine/native-worldgen';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /**
@@ -545,6 +547,57 @@ export interface ClimateEntry<T> {
     readonly value: T;
 }
 
+/** How a climate index searches. */
+export interface ClimateIndexOptions {
+    /**
+     * Whether lookups run in `@jsprismarine/native-worldgen`'s C search, which finds the same leaf,
+     * ties included. On by default whenever the library loads on the thread; false keeps the
+     * TypeScript search.
+     */
+    readonly native?: boolean;
+}
+
+/**
+ * One index's nearest-leaf search: the native tree when the library loads, else
+ * {@link closestLeaf}, seeded with the leaf the previous lookup returned either way.
+ */
+class LeafSearch {
+    private lastResult = -1;
+    /** The native tree, made on the first lookup so building an index never loads the library. */
+    private native: NativeClimateSearch | null | undefined;
+
+    public constructor(
+        private readonly tree: ClimateSearchArrays,
+        private readonly stack: ClimateSearchStack,
+        private readonly maxDepth: number,
+        options: ClimateIndexOptions
+    ) {
+        if (options.native === false) this.native = null;
+    }
+
+    /** The leaf nearest the target. */
+    public find(target: ClimateTargetPoint): number {
+        if (this.native === undefined) {
+            this.native = nativeWorldgen()?.createClimate({ ...this.tree, maxDepth: this.maxDepth }) ?? null;
+        }
+        const leaf =
+            this.native === null
+                ? closestLeaf(this.tree, this.stack, this.lastResult, target)
+                : this.native.find(
+                      this.lastResult,
+                      target.temperature,
+                      target.humidity,
+                      target.continentalness,
+                      target.erosion,
+                      target.depth,
+                      target.weirdness
+                  );
+        if (leaf < 0) throw new WorldgenErrors.ClimateSearchFoundNoLeaf();
+        this.lastResult = leaf;
+        return leaf;
+    }
+}
+
 /**
  * A list of climate boxes with the search tree Java builds over it.
  *
@@ -562,27 +615,29 @@ export interface ClimateEntry<T> {
 export class ClimateParameterList<T> implements ClimateParameterIndex<T> {
     private readonly tree: ClimateSearchArrays;
     private readonly values: T[];
-    private lastResult = -1;
-    private readonly searchStack: ClimateSearchStack;
+    /** The most nodes from the root through one leaf, which sizes a search stack. */
+    private readonly maxDepth: number;
+    private readonly search: LeafSearch;
 
     public constructor(
         /** The boxes, in the order the data pack lists them. */
         public readonly entries: readonly ClimateEntry<T>[],
-        childrenPerNode = CLIMATE_CHILDREN_PER_NODE
+        childrenPerNode = CLIMATE_CHILDREN_PER_NODE,
+        options: ClimateIndexOptions = {}
     ) {
         if (entries.length === 0) throw new WorldgenErrors.EmptyClimateParameterList();
         const leaves = entries.map((entry) => new TreeLeaf(entry.point, entry.value));
         const tree = flattenTree(buildTree<T>(leaves, childrenPerNode));
         this.tree = tree;
         this.values = tree.values;
+        this.maxDepth = tree.maxDepth;
         // Searches are synchronous, so one instance-owned stack avoids allocating a frame per lookup.
-        this.searchStack = createClimateSearchStack(tree.maxDepth);
+        this.search = new LeafSearch(tree, createClimateSearchStack(tree.maxDepth), tree.maxDepth, options);
     }
 
     /** Returns the value of the nearest box, breaking exact ties by first tree order. */
     public find(target: ClimateTargetPoint): T {
-        const leaf = closestLeaf(this.tree, this.searchStack, this.lastResult, target);
-        this.lastResult = leaf;
+        const leaf = this.search.find(target);
         const valueIndex = this.tree.valueIndices[leaf] ?? -1;
         // Flattening assigns every leaf one dense value-table index.
         return this.values[valueIndex] as T;
@@ -659,7 +714,7 @@ export class ClimateParameterList<T> implements ClimateParameterIndex<T> {
         header.setUint32(8, nodeCount, true);
         header.setUint32(12, entryCount, true);
         header.setUint32(16, distinctValues.length, true);
-        header.setUint32(20, this.searchStack.nodes.length, true);
+        header.setUint32(20, this.maxDepth, true);
         header.setUint32(24, encodedValues.byteLength, true);
         header.setUint32(28, totalBytes, true);
         header.setUint32(32, offsets.bounds, true);
@@ -693,8 +748,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
     private readonly entryBounds: Float64Array;
     private readonly entryValueIndices: Uint32Array;
     private readonly values: readonly string[];
-    private readonly searchStack: ClimateSearchStack;
-    private lastResult = -1;
+    private readonly search: LeafSearch;
     private materializedEntries: readonly ClimateEntry<string>[] | undefined;
 
     /**
@@ -703,7 +757,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
      * @param buffer - The shared table emitted by {@link ClimateParameterList.toSharedArrayBuffer}.
      * @throws TypeError when the buffer has an unsupported version, invalid offsets, or an invalid value dictionary.
      */
-    public constructor(buffer: SharedArrayBuffer) {
+    public constructor(buffer: SharedArrayBuffer, options: ClimateIndexOptions = {}) {
         if (buffer.byteLength < SHARED_CLIMATE_HEADER_BYTES) {
             throw new WorldgenErrors.SharedClimateTableIsShorter();
         }
@@ -766,7 +820,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
         this.entryBounds = new Float64Array(buffer, offsets.entryBounds, entryCount * CLIMATE_PARAMETER_COUNT * 2);
         this.entryValueIndices = new Uint32Array(buffer, entryValueOffset, entryCount);
         this.values = decodedValues;
-        this.searchStack = createClimateSearchStack(maxDepth);
+        this.search = new LeafSearch(this.tree, createClimateSearchStack(maxDepth), maxDepth, options);
     }
 
     /** Source entries, materialized only when a caller asks for them. */
@@ -782,8 +836,7 @@ export class SharedClimateParameterList implements ClimateParameterIndex<string>
 
     /** Returns the value of the nearest box, breaking exact ties by first tree order. */
     public find(target: ClimateTargetPoint): string {
-        const leaf = closestLeaf(this.tree, this.searchStack, this.lastResult, target);
-        this.lastResult = leaf;
+        const leaf = this.search.find(target);
         const valueIndex = this.tree.valueIndices[leaf] ?? -1;
         const dictionaryIndex = this.treeValueIndices[valueIndex] ?? -1;
         return this.valueAt(dictionaryIndex);
