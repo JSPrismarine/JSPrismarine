@@ -115,6 +115,9 @@ export class ConnectionContexts {
             get bans() {
                 return server.getBanManager();
             },
+            get allowList() {
+                return server.getAllowList();
+            },
             get permissions() {
                 return server.getPermissionManager();
             },

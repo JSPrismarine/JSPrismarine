@@ -2,14 +2,16 @@
  * The behavior of `@minecraft/server-admin` for one pack: `variables` and `secrets`, which read the
  * pack's `config/<script module uuid>/variables.json` and `secrets.json` ({@link readScriptConfig}),
  * `SecretString`, `transferPlayer`, `opPlayer`, `deopPlayer`, `kickPlayer`, and
- * `dedicatedServer`'s `stopServer` and reloads. The allow list, the level storage and the async
- * join event are present and throw `NotImplementedError`
+ * `dedicatedServer`'s allow list, `stopServer` and reloads. The level storage and the async join
+ * event are present and throw `NotImplementedError`
  * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
  * The `admin-server` scenario recorded `dedicatedServer`: its reloads return nothing, and
  * `reloadCDNConfig` has nothing to read on a server without a CDN config. It recorded the
  * operator functions too: a second `opPlayer` throws, a second `deopPlayer` does not, and a
- * simulated player stays in the world when kicked.
+ * simulated player stays in the world when kicked. And it recorded the allow list: a name matches
+ * exactly, adding a listed player changes nothing, removing one who is not listed throws, and an
+ * entry with neither a name nor a xuid is refused.
  *
  * The `admin-config` scenario of the parity suite's `scripting.admin` family recorded what the
  * pinned Bedrock Dedicated Server does: `variables.get` returns a copy whose object keys are in
@@ -26,7 +28,13 @@ import { ScriptHandle } from '../values';
 import type { FormPlayer } from './minecraftServerUi';
 import type { ScriptModuleConfig } from './pack';
 import { COMMON } from './serverObjects';
-import type { ScriptAdminServer, ScriptTransferTarget, ScriptWorld } from './world';
+import type {
+    ScriptAdminServer,
+    ScriptAllowList,
+    ScriptAllowListPlayer,
+    ScriptTransferTarget,
+    ScriptWorld
+} from './world';
 
 /** The module the implementations here belong to. */
 export const SERVER_ADMIN = '@minecraft/server-admin';
@@ -34,7 +42,9 @@ export const SERVER_ADMIN = '@minecraft/server-admin';
 /** The tags of the objects this module's members make. */
 export const ADMIN_TAG = {
     /** A `SecretString`; its state is {@link secretState} of its text. */
-    secret: 40
+    secret: 40,
+    /** `dedicatedServer.allowList`. */
+    allowList: 45
 } as const;
 
 /** What one pack's `@minecraft/server-admin` reaches of the runtime and the world. */
@@ -130,6 +140,39 @@ export const serverAdminImplementations = (
         return player;
     };
 
+    /** The allow list, or BDS's error when the server has none to reach. */
+    const allowList = (): ScriptAllowList => {
+        const list = host.server?.allowList;
+        if (list === undefined) throw new ScriptHostErrors.NotAnObject({ what: 'The allow list' });
+        return list;
+    };
+    /**
+     * Who an allow list member's first argument names: a player in the world, or an
+     * `AllowListEntryNameInfo` with a name, a xuid or both.
+     */
+    const listedPlayer = (call: ScriptCall): ScriptAllowListPlayer => {
+        const player = host.player(call.args[0]);
+        if (player !== undefined) {
+            const found = player.present ? allowList().playerOf(player.id) : undefined;
+            if (found !== undefined) return found;
+        }
+        const json = player === undefined ? call.stringify(call.args[0]) : undefined;
+        // The engine wrote it with its own JSON.stringify.
+        const details: unknown = json === undefined ? undefined : JSON.parse(json);
+        const text = (value: unknown): string | undefined =>
+            typeof value === 'string' && value.length > 0 ? value : undefined;
+        const name = isRecord(details) ? text(details.name) : undefined;
+        const xuid = isRecord(details) ? text(details.xuid) : undefined;
+        if (name === undefined && xuid === undefined) {
+            throw new ScriptApiError(
+                COMMON,
+                'InvalidArgumentError',
+                'Invalid value passed to argument [0]. Missing or empty: Entry data must contain a name and/or a xuid'
+            );
+        }
+        return { ...(name === undefined ? {} : { name }), ...(xuid === undefined ? {} : { xuid }) };
+    };
+
     return (
         implementations
             .implement(SERVER_ADMIN, 'ServerVariables', 'get', (call) => {
@@ -168,6 +211,67 @@ export const serverAdminImplementations = (
             })
             // A server without a CDN config has nothing to read again.
             .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'reloadCDNConfig', () => undefined)
+            .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'allowList', {
+                get: (call) => call.engine.release(host.create('AllowList', ADMIN_TAG.allowList, ''))
+            })
+            .implement(SERVER_ADMIN, 'AllowList', 'enabled', {
+                get: () => allowList().enabled(),
+                set: (call) => {
+                    allowList().setEnabled(call.args[0] === true);
+                    return undefined;
+                }
+            })
+            .implement(SERVER_ADMIN, 'AllowList', 'entries', {
+                get: (call) => {
+                    const entries = allowList()
+                        .entries()
+                        .map((entry) => ({
+                            ...(entry.name === undefined ? {} : { name: entry.name }),
+                            ...(entry.xuid === undefined ? {} : { xuid: entry.xuid }),
+                            ignoresPlayerLimit: entry.ignoresPlayerLimit
+                        }));
+                    const parsed = host.parse(JSON.stringify(entries));
+                    return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
+                }
+            })
+            .implement(SERVER_ADMIN, 'AllowList', 'contains', (call) => allowList().contains(listedPlayer(call)), {
+                converts: ['playerDetails']
+            })
+            .implement(
+                SERVER_ADMIN,
+                'AllowList',
+                'add',
+                (call) => {
+                    allowList().add({ ...listedPlayer(call), ignoresPlayerLimit: call.args[1] === true });
+                    return undefined;
+                },
+                { converts: ['playerDetails'] }
+            )
+            .implement(
+                SERVER_ADMIN,
+                'AllowList',
+                'remove',
+                (call) => {
+                    const player = listedPlayer(call);
+                    if (!allowList().remove(player)) {
+                        throw new ScriptApiError(
+                            SERVER_ADMIN,
+                            'AllowListModificationError',
+                            `Unable to remove player '${player.name ?? player.xuid}' from allow list`
+                        );
+                    }
+                    return undefined;
+                },
+                { converts: ['playerDetails'] }
+            )
+            .implement(SERVER_ADMIN, 'AllowList', 'clear', () => {
+                allowList().clear();
+                return undefined;
+            })
+            .implement(SERVER_ADMIN, 'AllowList', 'reloadFile', () => {
+                allowList().reload();
+                return undefined;
+            })
             .implement(
                 SERVER_ADMIN,
                 '',

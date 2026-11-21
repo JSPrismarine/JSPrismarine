@@ -228,6 +228,12 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             );
             return;
         }
+        if (
+            !login.allowList.allows({ name: identity.displayName, ...(identity.xuid ? { xuid: identity.xuid } : {}) })
+        ) {
+            await connection.disconnect('You are not invited to this server.', false, DisconnectReason.NOT_ALLOWED);
+            return;
+        }
 
         let settle!: () => void;
         const joined = new Promise<void>((resolve) => {

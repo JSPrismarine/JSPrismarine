@@ -19,6 +19,14 @@ Thrown as `PrismarineServerErrors.AdvertisedCodecWithoutVersion`, which extends 
 The protocol the server advertises names no Minecraft version. This is a bug in the server;
 report it with the stack trace.
 
+## `PRISMARINE_ALLOW_LIST_NOT_LIST`
+
+`{fileName} must hold a list of allowed players`
+
+Thrown as `PrismarineServerErrors.AllowListNotList`, which extends `Error`.
+
+`allowlist.json` is not a JSON list. Fix it, or delete it to start with an empty allow list.
+
 ## `PRISMARINE_BAN_LIST_NOT_LIST`
 
 `{fileName} must hold a list of banned players`

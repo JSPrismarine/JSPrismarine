@@ -12,6 +12,7 @@ import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type Server from '../../Server';
 import SessionManager from '../../SessionManager';
 import type PlayerSession from '../PlayerSession';
+import type AllowList from '../../allowlist/AllowList';
 import type BanManager from '../../ban/BanManager';
 import type { Config } from '../../config/Config';
 import type { PermissionManager } from '../../permission/PermissionManager';
@@ -172,6 +173,7 @@ describe('network', () => {
                 getConfig: config,
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
+                getAllowList: () => stub<AllowList>({ allows: () => true }),
                 getTick: () => 0,
                 // What a session posts `playerConnect` on.
                 getKernel: () => kernel,
@@ -579,6 +581,28 @@ describe('network', () => {
                     false,
                     DisconnectReason.NOT_ALLOWED
                 );
+            });
+
+            it('refuses a player the allow list does not have, while it is on, with NOT_ALLOWED', async () => {
+                const asked: unknown[] = [];
+                const closed = {
+                    getAllowList: () =>
+                        stub<AllowList>({
+                            allows: (player) => {
+                                asked.push(player);
+                                return false;
+                            }
+                        })
+                };
+
+                const disconnect = await refused(closed, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'You are not invited to this server.',
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
+                expect(asked).toHaveLength(1);
             });
 
             it('lets the operator list and the ban list claim an entry keyed before subjects, then checks the ban', async () => {

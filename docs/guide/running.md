@@ -401,7 +401,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->47<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->48<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -431,6 +431,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                                                                                                                                                                 |
 | `protocol-window`                     | How many Bedrock releases to accept, counted back from the newest this server supports. 1 accepts the newest only. Upgrading the server moves the window with it.                                                                                                                                                                                   |
 | `protocol-content`                    | Which release in protocol-window the world's blocks, items and mobs come from: newest, or oldest so every accepted client has all of them. With newest and a wider window, older clients see a placeholder for what their release lacks.                                                                                                            |
+| `allow-list`                          | Whether only the players in allowlist.json may join, as on Bedrock Dedicated Server.                                                                                                                                                                                                                                                                |
 | `online-mode`                         | Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to the account Mojang's session server vouches for.                                                                                                                                                                                                           |
 | `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                                                                                                                                                             |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                                                                                                                                                                  |
@@ -842,6 +843,17 @@ matching the name it was written for; the first login it turns away adds the acc
 `id` to the entry, and the name match stays. `/ban` on a player who is online writes their name
 and account; on a name nobody online holds, it writes the name alone. `/pardon` lifts every ban on
 a name.
+
+### The allow list
+
+With `allow-list` on, only the players in `allowlist.json` may join; anybody else is turned away
+with "You are not invited to this server." The file is Bedrock Dedicated Server's: a list of
+entries, each with a `name`, a `xuid` or both, and `ignoresPlayerLimit`. A name matches exactly,
+case and all, and a xuid matches the signed-in account. The server writes an empty file on its
+first start. A behavior pack script with `@minecraft/server-admin` reads and changes the list
+through `dedicatedServer.allowList`, and each change is written to the file at once. There is no
+`/allowlist` command yet, and `ignoresPlayerLimit` is kept but not applied: a full server turns
+away a listed player too ([#3642](https://github.com/JSPrismarine/JSPrismarine/issues/3642)).
 
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that

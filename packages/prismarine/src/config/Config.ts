@@ -106,6 +106,7 @@ const COMMENTS = {
         "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag, keeps flowing fluids out of waterloggable blocks and lets a water source waterlog one, bedrock follows each block's Bedrock liquid reaction.",
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
+    'allow-list': 'Whether only the players in allowlist.json may join, as on Bedrock Dedicated Server.',
     'online-mode':
         "Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to the account Mojang's session server vouches for.",
     'enable-raknet': 'Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.',
@@ -275,6 +276,7 @@ const DEFAULTS = {
     'fluid-replacement': DEFAULT_FLUID_REPLACEMENT,
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
+    'allow-list': false,
     'online-mode': true,
     'enable-raknet': true,
     'use-raknet-worker': true,
@@ -458,6 +460,7 @@ export class Config {
     private fluidReplacement: string = DEFAULTS['fluid-replacement'];
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
+    private allowList: boolean = DEFAULTS['allow-list'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
     private enableRakNet: boolean = DEFAULTS['enable-raknet'];
     private useRakNetWorker: boolean = DEFAULTS['use-raknet-worker'];
@@ -615,6 +618,7 @@ export class Config {
         this.fluidReplacement = read('fluid-replacement', DEFAULTS['fluid-replacement']);
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
+        this.allowList = read('allow-list', DEFAULTS['allow-list']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
         this.enableRakNet = read('enable-raknet', DEFAULTS['enable-raknet']);
         this.useRakNetWorker = read('use-raknet-worker', DEFAULTS['use-raknet-worker']);
@@ -1117,6 +1121,11 @@ export class Config {
      */
     public getOnlineMode(): boolean {
         return this.onlineMode;
+    }
+
+    /** Whether only the players in `allowlist.json` may join, when the server starts. */
+    public getAllowList(): boolean {
+        return this.allowList;
     }
 
     /** Whether the server accepts clients over RakNet. */

@@ -61,6 +61,7 @@ describe('the config file a boot generates', () => {
         'entity-tracking-interval',
         'protocol-window',
         'protocol-content',
+        'allow-list',
         'online-mode',
         'enable-raknet',
         'use-raknet-worker',

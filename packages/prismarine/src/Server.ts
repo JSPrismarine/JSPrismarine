@@ -9,6 +9,7 @@ import { ConsoleSender } from './command/ConsoleSender';
 import { registerContentBlockSchemas } from './block/state/BlockStateSchema';
 import SessionManager from './SessionManager';
 import { ShutdownLifecycle } from './ShutdownLifecycle';
+import type AllowList from './allowlist/AllowList';
 import type BanManager from './ban/BanManager';
 import type { Random } from './utils/Random';
 import { seededRandom } from '@jsprismarine/predicates';
@@ -41,6 +42,7 @@ import PacketHandlerRegistry from './network/PacketHandlerRegistry';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
+import { allowListModule } from './modules/allowList';
 import { bansModule } from './modules/bans';
 import { accountLinksModule } from './modules/accountLinks';
 import { commandsModule, loadFunctionsModule } from './modules/commands';
@@ -67,7 +69,7 @@ import { worldsModule } from './modules/worlds';
 import { ServerTicker, tickerModule } from './modules/ticker';
 import type { TickRecorder } from './profiling/TickRecorder';
 import type { TickControl } from './modules/ticker';
-import { bansToken, chatToken, permissionsToken } from './modules/tokens';
+import { allowListToken, bansToken, chatToken, permissionsToken } from './modules/tokens';
 import type { ServerEventName, ServerEvents } from './events/ServerEvents';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
@@ -488,6 +490,7 @@ export default class Server {
         kernel.register(packetHandlersModule(this.packetHandlerRegistry));
         kernel.register(permissionsModule(this));
         kernel.register(bansModule(this));
+        kernel.register(allowListModule(this));
         kernel.register(accountLinksModule(this));
         kernel.register(socialModule(this));
         kernel.register(tickerModule(this.ticker));
@@ -1418,6 +1421,11 @@ export default class Server {
      */
     public getBanManager(): BanManager {
         return this.kernel.get(bansToken);
+    }
+
+    /** The allow list, which `allowlist.json` and the `allow-list` setting hold. */
+    public getAllowList(): AllowList {
+        return this.kernel.get(allowListToken);
     }
 
     /**

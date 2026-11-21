@@ -3006,8 +3006,8 @@
         },
         "bds-record:admin-server": {
             "kind": "defect",
-            "reason": "dedicatedServer's allow list throws NotImplementedError on JSPrismarine, where BDS adds, finds and removes entries. The reloads, stopServer, opPlayer, deopPlayer and kickPlayer match BDS.",
-            "reference": "#3633"
+            "reason": "dedicatedServer.levelStorage throws NotImplementedError on JSPrismarine, where BDS returns its LevelStorage. The allow list, the reloads, stopServer, opPlayer, deopPlayer and kickPlayer match BDS.",
+            "reference": "#3636"
         }
     },
     "scripting.blocks": {

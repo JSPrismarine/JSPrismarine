@@ -171,6 +171,8 @@ export interface ConfigFile {
     'protocol-window'?: number;
     /** Which release in the protocol window the world's content comes from: the newest, or the oldest so every accepted client has all of it. */
     'protocol-content'?: 'newest' | 'oldest';
+    /** Whether only the players in `allowlist.json` may join. */
+    'allow-list'?: boolean;
     /** Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to Mojang's session server. */
     'online-mode'?: boolean;
     /** Whether to accept clients over RakNet, Bedrock's UDP transport before NetherNet. */
@@ -294,6 +296,7 @@ export const CONFIG_KEY_ORDER = [
     'entity-tracking-interval',
     'protocol-window',
     'protocol-content',
+    'allow-list',
     'online-mode',
     'enable-raknet',
     'use-raknet-worker',

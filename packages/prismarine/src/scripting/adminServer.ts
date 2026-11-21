@@ -31,6 +31,23 @@ export const scriptAdminServer = (server: Server): ScriptAdminServer => ({
         const sent = server.getPermissionManager().setOpNow(session, operator, { persist: !session.isSimulated() });
         void sent?.catch((error: unknown) => server.getLogger().error(error));
     },
+    allowList: {
+        enabled: () => server.getAllowList().isEnabled(),
+        setEnabled: (enabled) => server.getAllowList().setEnabled(enabled),
+        entries: () => server.getAllowList().getEntries(),
+        contains: (player) => server.getAllowList().contains(player),
+        add: (entry) => server.getAllowList().add(entry),
+        remove: (player) => server.getAllowList().remove(player),
+        clear: () => server.getAllowList().clear(),
+        reload: () => server.getAllowList().reload(),
+        playerOf: (player) => {
+            const session = sessionOf(server, player);
+            if (session === undefined) return undefined;
+            const { name, xuid } = session.identity;
+            // A simulated player has no xuid, so BDS lists it by name alone.
+            return { name, ...(xuid ? { xuid } : {}) };
+        }
+    },
     kick: (player, reason) => {
         const session = sessionOf(server, player);
         // BDS keeps a simulated player in the world when it is kicked, as the `admin-server`

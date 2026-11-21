@@ -184,8 +184,10 @@ of bed, job site and portal blocks kept per loaded chunk, and this server keeps 
 
 Separately, 29 of Bedrock's own commands are not implemented at all. They group by reason:
 
-- Eight need a subsystem no server here has: `/allowlist`, `/save`, `/setmaxplayers`, `/mobevent`,
-  `/tickingarea`, `/structure`, `/clearspawnpoint` and `/toggledownfall`. `/structure` is the
+- Eight need a subsystem no server here has, or are still to be written over one it has:
+  `/allowlist`, whose list the server keeps
+  ([#3642](https://github.com/JSPrismarine/JSPrismarine/issues/3642)), `/save`, `/setmaxplayers`,
+  `/mobevent`, `/tickingarea`, `/structure`, `/clearspawnpoint` and `/toggledownfall`. `/structure` is the
   closest to arriving, since `@jsprismarine/structures` already reads and writes the NBT template
   format; what is missing is somewhere to save a player-made template and read it back.
 - Nine need a packet this repository does not write yet: `/camera`, `/hud`, `/music`, `/dialogue`,

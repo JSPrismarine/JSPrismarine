@@ -1059,6 +1059,36 @@ export interface ScriptComponentSink {
     item(event: ScriptItemHookEvent): void;
 }
 
+/** One player on the server's allow list, by name, xuid or both. */
+export interface ScriptAllowListEntry {
+    readonly name?: string;
+    readonly xuid?: string;
+    readonly ignoresPlayerLimit: boolean;
+}
+
+/** Who an allow list lookup names: a name, a xuid, or both. */
+export interface ScriptAllowListPlayer {
+    readonly name?: string;
+    readonly xuid?: string;
+}
+
+/** The server's allow list, which `dedicatedServer.allowList` reads and writes. */
+export interface ScriptAllowList {
+    enabled(): boolean;
+    setEnabled(enabled: boolean): void;
+    entries(): readonly ScriptAllowListEntry[];
+    contains(player: ScriptAllowListPlayer): boolean;
+    /** Adds a player, unless the list has them already. */
+    add(entry: ScriptAllowListEntry): void;
+    /** @returns Whether the player was on the list. */
+    remove(player: ScriptAllowListPlayer): boolean;
+    clear(): void;
+    /** Reads the list's file again. */
+    reload(): void;
+    /** The name and xuid of a player in the world, by their id, which a `Player` argument names. */
+    playerOf(player: string): ScriptAllowListPlayer | undefined;
+}
+
 /**
  * The dedicated server `@minecraft/server-admin`'s `dedicatedServer` and its functions reach,
  * which is the server's, not one world's.
@@ -1074,6 +1104,7 @@ export interface ScriptAdminServer {
     setOperator(player: string, operator: boolean): void;
     /** Disconnects a player, with the reason their client shows. */
     kick(player: string, reason: string | undefined): void;
+    readonly allowList: ScriptAllowList;
 }
 
 /** What the script host reads and writes of one world. */

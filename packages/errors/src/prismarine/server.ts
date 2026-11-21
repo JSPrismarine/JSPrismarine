@@ -127,6 +127,8 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
     InvalidLoggedSlot: { message: 'A logged slot cannot hold {value}', base: TypeError },
     /** The ban list file is not a JSON list. Fix it, or delete it to start with no bans. */
     BanListNotList: '{fileName} must hold a list of banned players',
+    /** `allowlist.json` is not a JSON list. Fix it, or delete it to start with an empty allow list. */
+    AllowListNotList: '{fileName} must hold a list of allowed players',
     /** `ops.json` is not a JSON list. Fix it, or delete it to start with no operators. */
     OpsNotList: '{opsFileName} must hold a list of operators',
     /**

@@ -1,5 +1,6 @@
 import { createToken } from '@jsprismarine/kernel';
 
+import type AllowList from '../allowlist/AllowList';
 import type BanManager from '../ban/BanManager';
 import type { ChatManager } from '../chat/ChatManager';
 import type { CommandManager } from '../command/CommandManager';
@@ -20,6 +21,9 @@ export interface ContentSource {
 // Service tokens for the manager modules the server registers on its kernel.
 // They carry the manager classes while no narrower interfaces exist; the types
 // shrink to capability interfaces as the managers grow them.
+
+/** The allow list, provided by the `prismarine:allow-list` module. */
+export const allowListToken = createToken<AllowList>('prismarine:allow-list');
 
 /** The ban list, provided by the `prismarine:bans` module. */
 export const bansToken = createToken<BanManager>('prismarine:bans');
