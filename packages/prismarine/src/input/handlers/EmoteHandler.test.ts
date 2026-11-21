@@ -1,28 +1,27 @@
+import { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';
 import { inputContext } from '../../testing/handlerContext.test.helper';
+import { STEVE } from '../../testing/sessionIdentity.test.helper';
+import { stub } from '../../testing/stub.test.helper';
 import type { OccurrenceKinds } from '../../world/changelog/ChangeEntry';
 import type { World } from '../../world/World';
-import type { StubMembers } from '../../testing/stub.test.helper';
-import { stub } from '../../testing/stub.test.helper';
-import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
-import type PlayerSession from '../PlayerSession';
+import type PlayerSession from '../../network/PlayerSession';
 import EmoteHandler from './EmoteHandler';
-import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';
 
 const EMOTE_ID = '4c8ae710-df2e-47cd-814d-cc7bf21a3d67';
 
 /** The sender, runtime id 7, in a world that records the emotes it is asked to show. */
-const setup = (xuid: string | null) => {
+const setup = (xuid: string) => {
     const logged: string[] = [];
     const relayed: OccurrenceKinds['emote'][] = [];
-    const log = stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') });
+    const log = stub<Logger>({ debug: (...message) => void logged.push(String(message[0] ?? '')) });
     const world = stub<World>({ relayEmote: (emote) => void relayed.push(emote) });
     const session: PlayerSession = stub<PlayerSession>({
         runtimeId: 7n,
-        identity: { ...STEVE, xuid: xuid ?? '' },
+        identity: { ...STEVE, xuid },
         getWorld: () => world
     });
     const posted: string[] = [];
@@ -40,29 +39,17 @@ const setup = (xuid: string | null) => {
     return { logged, relayed, context, outputs, posted };
 };
 
-const request = (overrides: StubMembers<EmotePacket> = {}) =>
-    Object.assign(
-        new EmotePacket(),
-        {
-            actorRuntimeId: 7n,
-            emoteId: EMOTE_ID,
-            emoteLengthTicks: 40,
-            xuid: 'somebody-elses-xuid',
-            platformId: 'p',
-            flags: EmoteFlags.MuteChat
-        },
-        overrides
-    );
-
-describe('EmoteHandler', () => {
-    it('relays the emote under the sender XUID with the ServerSide flag, and logs it', () => {
+describe('input/handlers/EmoteHandler', () => {
+    it('relays the emote under the sender XUID with the ServerSide flag, posts the event and logs it', () => {
         const { logged, relayed, context, outputs, posted } = setup('steve-xuid');
 
-        new EmoteHandler().handle(request(), context);
+        new EmoteHandler().handle(
+            { kind: 'emote', emote: EMOTE_ID, lengthTicks: 40, platformId: 'p', flags: EmoteFlags.MuteChat },
+            context
+        );
 
         // The server's `playerEmote`, which a script's `world.afterEvents.playerEmote` hears.
         expect(posted).toEqual([EMOTE_ID]);
-
         // Logged in the handler's unit, and sent by replication after the tick seals.
         expect(outputs).toHaveLength(0);
         expect(relayed).toStrictEqual([
@@ -76,23 +63,5 @@ describe('EmoteHandler', () => {
             }
         ]);
         expect(logged).toEqual([`Steve played emote ${EMOTE_ID} for 40 ticks`]);
-    });
-
-    it('drops an emote for another runtime id at debug level', () => {
-        const { logged, relayed, context } = setup('steve-xuid');
-
-        new EmoteHandler().handle(request({ actorRuntimeId: 999n }), context);
-
-        expect(relayed).toEqual([]);
-        expect(logged).toEqual(['Steve sent an Emote for runtime id 999, dropped']);
-    });
-
-    it('drops an emote whose id is not a uuid string', () => {
-        const { logged, relayed, context } = setup('steve-xuid');
-
-        new EmoteHandler().handle(request({ emoteId: 'wave' }), context);
-
-        expect(relayed).toEqual([]);
-        expect(logged).toEqual(['Steve sent an Emote whose id "wave" is not a uuid, dropped']);
     });
 });

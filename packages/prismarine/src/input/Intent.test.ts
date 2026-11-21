@@ -6,7 +6,16 @@ describe('input/Intent', () => {
     it('lists the supported kinds, each once', () => {
         // A literal list, so a kind dropped from the table fails here rather than passing by
         // comparing the table with itself.
-        expect([...INTENT_KINDS].sort()).toEqual(['animate', 'openInventory', 'openNpc', 'queryBossBar']);
+        expect([...INTENT_KINDS].sort()).toEqual([
+            'animate',
+            'chat',
+            'eat',
+            'emote',
+            'openInventory',
+            'openNpc',
+            'playSound',
+            'queryBossBar'
+        ]);
     });
 
     it('declares a lane for every kind', () => {

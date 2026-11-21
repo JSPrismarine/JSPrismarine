@@ -44,6 +44,37 @@ export interface IntentPayloads {
     };
     /** The player asked about a boss bar it has on screen, naming the bar's actor by unique id. */
     readonly queryBossBar: { readonly actor: bigint };
+    /** The player started eating. `item` is the item's network id, as the Bedrock client reports it. */
+    readonly eat: { readonly item: number };
+    /**
+     * The player played an emote, by the emote piece's uuid, for `lengthTicks`. `platformId` and
+     * `flags` are what the client sent; the handler adds the server's own account id and flag.
+     */
+    readonly emote: {
+        readonly emote: string;
+        readonly lengthTicks: number;
+        readonly platformId: string;
+        readonly flags: number;
+    };
+    /**
+     * The player made a sound at a point, which the server relays to the players near it. The
+     * fields are the sound as the Bedrock client reports it: `sound` is the level sound id,
+     * `type` the actor identifier it attributes the sound to, and `actor` its unique id or -1.
+     */
+    readonly playSound: {
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly sound: number;
+        readonly data: number;
+        readonly type: string;
+        readonly baby: boolean;
+        readonly global: boolean;
+        readonly actor: bigint;
+        readonly firedAt: { readonly x: number; readonly y: number; readonly z: number } | null;
+    };
+    /** The player typed a chat message, already cut to what a chat box could have produced. */
+    readonly chat: { readonly message: string };
 }
 
 /** What the table declares about one intent. */
@@ -63,7 +94,15 @@ export const Intents = {
     // Logs an occurrence that replication relays to the players that see the sender.
     animate: { lane: 'input' },
     // Reads the bar the player already has and answers only the asking player.
-    queryBossBar: { lane: 'read' }
+    queryBossBar: { lane: 'read' },
+    // Relays to the players that see the sender, so it is an input though it writes nothing.
+    eat: { lane: 'input' },
+    // Logs an occurrence that replication relays to the players that see the sender.
+    emote: { lane: 'input' },
+    // Logs an occurrence that replication relays to the players near the sound.
+    playSound: { lane: 'input' },
+    // The chat event calls the plugins' listeners in the input's unit.
+    chat: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

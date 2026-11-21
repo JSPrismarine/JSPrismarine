@@ -1,4 +1,3 @@
-import ActorEventHandler from './handler/ActorEventHandler';
 import ActorPickRequestHandler from './handler/ActorPickRequestHandler';
 import AnvilDamageHandler from './handler/AnvilDamageHandler';
 import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
@@ -12,14 +11,12 @@ import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
 import DisconnectHandler from './handler/DisconnectHandler';
-import EmoteHandler from './handler/EmoteHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
 import ScriptMessageHandler from './handler/ScriptMessageHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import LabTableHandler from './handler/LabTableHandler';
 import LecternUpdateHandler from './handler/LecternUpdateHandler';
-import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LoginHandler from './handler/LoginHandler';
 import MapCreateLockedCopyHandler from './handler/MapCreateLockedCopyHandler';
 import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
@@ -65,12 +62,10 @@ import StructureBlockUpdateHandler from './handler/StructureBlockUpdateHandler';
 import StructureTemplateDataRequestHandler from './handler/StructureTemplateDataRequestHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
-import TextHandler from './handler/TextHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 
 export {
-    ActorEventHandler,
     ActorPickRequestHandler,
     AnvilDamageHandler,
     BlockPickRequestHandler,
@@ -84,13 +79,11 @@ export {
     CommandRequestHandler,
     ContainerCloseHandler,
     DisconnectHandler,
-    EmoteHandler,
     EmoteListHandler,
     InventoryTransactionHandler,
     ItemStackRequestHandler,
     LabTableHandler,
     LecternUpdateHandler,
-    LevelSoundEventHandler,
     LoginHandler,
     MapCreateLockedCopyHandler,
     MapInfoRequestHandler,
@@ -137,7 +130,6 @@ export {
     StructureTemplateDataRequestHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
-    TextHandler,
     TickingAreasLoadStatusHandler,
     UpdateClientOptionsHandler
 };
