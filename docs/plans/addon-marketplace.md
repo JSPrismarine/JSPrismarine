@@ -99,7 +99,9 @@ The docs build must not depend on other people's servers being up. `pnpm run add
 fetches each listed repository's index, picks the newest version of each listed addon, verifies the
 listing files against their hashes and writes `addons/listings.lock.json`: per addon, the newest
 version's index entry with every listing file's URL and SHA-256, and the version, `minServer` and
-pack SHA-256 of every published version, which the page's version list shows. The docs build reads the lock, downloads
+pack SHA-256 of every published version, which the page's version list shows, with the day the
+release attached each pack. It records JSPrismarine's own addons the same way, for their version
+lists, though their pages come from `addons/`. The docs build reads the lock, downloads
 the pinned files into the shared cache and checks each hash. A file that has gone away or changed
 leaves that addon's page without it, with a warning, instead of failing the deploy.
 
@@ -119,7 +121,7 @@ An addon becomes deprecated in one of three ways:
 | -------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------- |
 | Its author     | `"deprecated": "Use warps-plus instead."` in `addon.json`, in a new version.        | The author's text.                              |
 | A maintainer   | `"deprecated": "…"` on the addon in `listings.json`, in a reviewed pull request.     | The maintainer's text.                          |
-| The snapshot   | Its repository is archived, or its release has been gone for seven daily refreshes. | "Its repository is archived.", and so on.       |
+| The snapshot   | Its repository is archived, or its release has been gone for seven days.            | "Its repository is archived.", and so on.       |
 
 An author can also name a replacement with `"replacedBy": "warps-plus"`, an install id, and the
 pages link to it. When the snapshot can no longer download an addon's files, it keeps the text

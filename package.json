@@ -27,6 +27,7 @@
         "build:docs": "pnpm --filter @jsprismarine/docs run docs",
         "check:docs": "pnpm --filter @jsprismarine/docs run docs:check",
         "docs:facts": "pnpm --filter @jsprismarine/docs run docs:facts",
+        "addons:listings": "pnpm --filter @jsprismarine/docs run addons:listings",
         "dev:docs": "pnpm --filter @jsprismarine/docs run docs:dev",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
