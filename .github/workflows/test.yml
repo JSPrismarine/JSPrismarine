@@ -661,8 +661,11 @@ jobs:
                       packages/parity/dist/dashboard.md
                   retention-days: 90
 
-            # Any completed push run of the base commit that kept a report will do. Finding none
-            # leaves `found` false, and the steps below build the base instead.
+            # Any completed push run of the base commit that kept a report will do. The base
+            # commit's own run is often still going when a pull request is rebased onto it, or was
+            # cancelled while pending behind another push, so the search walks back master's
+            # history to the newest commit that kept one. Finding none leaves `found` false, and
+            # the steps below build the base instead.
             - name: ⬇️ Find the pull request base's parity report
               id: parity_base_report
               if: ${{ !cancelled() && steps.parity_dashboard.outcome == 'success' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -670,19 +673,27 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   BASE: ${{ github.event.pull_request.base.sha }}
+                  # How far back to look: about two days of merges.
+                  DEPTH: '20'
               run: |
                   found=false
-                  runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?head_sha=${BASE}&event=push&status=completed&per_page=10" --jq '.workflow_runs[].id')"
-                  for run in $runs; do
-                      if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name parity-report --dir "$RUNNER_TEMP/parity-base" 2> /dev/null \
-                          && [ -f "$RUNNER_TEMP/parity-base/tracker.json" ]; then
-                          cp "$RUNNER_TEMP/parity-base/tracker.json" "$RUNNER_TEMP/parity-base-report"
-                          echo "Using the parity report of run $run for ${BASE}."
-                          found=true
-                          break
-                      fi
+                  for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=10" --jq '.workflow_runs[].id')"
+                      for run in $runs; do
+                          if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name parity-report --dir "$RUNNER_TEMP/parity-base" 2> /dev/null \
+                              && [ -f "$RUNNER_TEMP/parity-base/tracker.json" ]; then
+                              cp "$RUNNER_TEMP/parity-base/tracker.json" "$RUNNER_TEMP/parity-base-report"
+                              if [ "$commit" = "$BASE" ]; then
+                                  echo "Using the parity report of run $run for ${BASE}."
+                              else
+                                  echo "No report for ${BASE} yet; using the parity report of run $run for its ancestor ${commit}."
+                              fi
+                              found=true
+                              break 2
+                          fi
+                      done
                   done
-                  if [ "$found" = false ]; then echo "No parity report for ${BASE}; building the base instead."; fi
+                  if [ "$found" = false ]; then echo "No parity report for ${BASE} or its last ${DEPTH} ancestors; building the base instead."; fi
                   echo "found=$found" >> "$GITHUB_OUTPUT"
 
             - name: Check out the pull request base

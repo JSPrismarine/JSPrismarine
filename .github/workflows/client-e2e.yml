@@ -128,6 +128,12 @@ jobs:
             # four shards of a full run of the pin a pull request plays is used, since a missing
             # shard would leave its scenarios out of every selection. Without one, `map` stays
             # empty and the selection below goes by package.
+            #
+            # The base commit's own run is often still going when a pull request is rebased onto
+            # it, or was cancelled while pending behind another push, so the search walks back
+            # master's history to the newest commit that kept a complete map. An ancestor's map
+            # names the functions by the lines they had then, so it is used only when none of the
+            # files the pull request changes changed between that ancestor and the base.
             - name: Find the base commit's scenario coverage
               id: coverage
               if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
@@ -135,26 +141,48 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   BASE: ${{ github.event.pull_request.base.sha }}
+                  NUMBER: ${{ github.event.pull_request.number }}
+                  # How far back to look: about two days of merges.
+                  DEPTH: '20'
               run: |
                   pin="$(node tools/client-e2e/src/pin-matrix.mts --latest-only | jq -r 'map(select(.transport == "raknet"))[0].name')"
-                  runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/client-e2e.yml/runs?head_sha=${BASE}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
-                  for run in $runs; do
-                      dir="$RUNNER_TEMP/scenario-coverage/$run"
-                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'scenario-coverage-*' --dir "$dir" 2> /dev/null || continue
-                      complete=true
-                      for shard in 1 2 3 4; do
-                          if [ -z "$(find "$dir" -path "*/scenario-coverage-${pin}-shard-${shard}/scenario-coverage.json" -print -quit)" ]; then
-                              complete=false
+                  for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/client-e2e.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
+                      for run in $runs; do
+                          dir="$RUNNER_TEMP/scenario-coverage/$run"
+                          gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'scenario-coverage-*' --dir "$dir" 2> /dev/null || continue
+                          complete=true
+                          for shard in 1 2 3 4; do
+                              if [ -z "$(find "$dir" -path "*/scenario-coverage-${pin}-shard-${shard}/scenario-coverage.json" -print -quit)" ]; then
+                                  complete=false
+                              fi
+                          done
+                          if [ "$complete" != true ]; then continue; fi
+                          if [ "$commit" != "$BASE" ]; then
+                              # The files that changed between the ancestor and the base, against the
+                              # ones the pull request changes. The compare lists at most 300 files, so a
+                              # larger span is treated as changing everything.
+                              compared="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${commit}...${BASE}" --jq '.files')"
+                              if [ "$(jq 'length' <<< "$compared")" -ge 300 ]; then
+                                  echo "More than 300 files changed between ${commit} and ${BASE}; selecting by package."
+                                  exit 0
+                              fi
+                              overlap="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}/files" --jq '.[] | .filename, (.previous_filename // empty)' |
+                                  jq -R -s --argjson compared "$compared" 'split("\n") | map(select(. != "")) | . as $changed
+                                      | $compared | map(.filename, (.previous_filename // empty)) | map(select(IN($changed[]))) | unique')"
+                              if [ "$(jq 'length' <<< "$overlap")" -gt 0 ]; then
+                                  echo "The map of ${commit} predates changes to $(jq -r 'join(", ")' <<< "$overlap"); selecting by package."
+                                  exit 0
+                              fi
+                              echo "No complete map for ${BASE} yet; using the map of run $run for its ancestor ${commit}."
                           fi
-                      done
-                      if [ "$complete" = true ]; then
                           mapfile -t maps < <(find "$dir" -name scenario-coverage.json)
                           node tools/client-e2e/src/scenario-coverage-map.mts "$RUNNER_TEMP/scenario-coverage.json" "${maps[@]}"
                           echo "map=$RUNNER_TEMP/scenario-coverage.json" >> "$GITHUB_OUTPUT"
                           exit 0
-                      fi
+                      done
                   done
-                  echo "No complete scenario coverage for ${BASE}; selecting by package."
+                  echo "No complete scenario coverage for ${BASE} or its last ${DEPTH} ancestors; selecting by package."
 
             # Every scenario boots the whole server, so without a coverage map most changes run them
             # all. A pull request that changes only files a running server never loads (tests,
