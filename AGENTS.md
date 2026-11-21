@@ -253,8 +253,8 @@ by biome, `/locate`, or portals between dimensions.
 - `pnpm run lint` and `pnpm run format` run Prettier and Biome on the files that differ from the
   merge base with `master`, including staged, unstaged and untracked files. A change to the
   formatters' configuration, the root `package.json` or the lockfile checks every file.
-  `pnpm run lint:all` and `pnpm run format:all` always cover every file; the lint workflow runs
-  `lint:all`.
+  `pnpm run lint:all` and `pnpm run format:all` always cover every file; the CI workflow's plan job
+  runs `lint:all`.
 - After changing repository files, run `pnpm run lint:custom` after your final edit. Its script in
   the root `package.json` lists the checks it runs, and `pnpm run lint` includes it.
 - `scripts/agent-lint-gate.mts` runs as a Claude Code and Codex hook (`.claude/settings.json`, `.codex/hooks.json`). It lints the uncommitted changes before `git commit` and when you finish, and blocks either on failure. Prettier and Biome check only files that differ from `HEAD`, a clean tree skips the lint, and changes that already passed are not linted again. `git push` is not gated, since each commit passed the commit gate. Fix the reported problems instead of working around the hook. Codex asks to trust the project hooks on first use; review them with `/hooks`.

@@ -82,7 +82,7 @@ file repeats the server's whole source map cache, so a full run leaves about a h
 about 35 MB each. `.c8rc.json` sets `merge-async`, so the report reads and merges them one at a
 time rather than holding every one in memory at once.
 
-In CI, `.github/workflows/client-e2e.yml` builds a matrix of every declared transport of every
+In CI, `.github/workflows/ci.yml` builds a matrix of every declared transport of every
 released BDS protocol in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and runs the full
 suite with the compatibility default (`zlib`) on `ubuntu-latest` for each one, with the client
 rendering through Mesa's software Vulkan driver on a virtual X display. The job runs as many suites

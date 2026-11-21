@@ -34,7 +34,7 @@ log. Exit 0 means the join and every scenario passed. When a change alters clien
 behavior, add a scenario for it: see "Adding a scenario" in
 [`tools/client-e2e/README.md`](../../../tools/client-e2e/README.md).
 
-CI runs the same suite on macOS through `.github/workflows/client-e2e.yml` for pull requests
+CI runs the same suite on Linux through `.github/workflows/ci.yml` for pull requests
 touching the wire or gameplay packages, with each pinned commit's cinnabar build cached once and the
 artifacts uploaded as `client-e2e-evidence`. A red Client E2E check means a real client failed
 against the PR's server; read the job summary table and the uploaded artifacts first. Every

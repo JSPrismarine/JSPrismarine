@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
-Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2 and 4 are done, and phases 3
-and 10 are part done; phases 5 to 9 are planned. [What we know](#what-we-know) records what was measured on
+Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2, 4, 5 and 6 are done, and
+phases 3, 7 and 10 are part done; phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -19,8 +19,8 @@ job list or the repository's history decide, and that comes out the same on any 
 | Scenarios one client e2e runner plays                  | 60          | about 12    | 4     |
 | Client e2e protocol and transport runs per PR push     | 3           | 1           | 4     |
 | Parity package runs in the dashboard job per PR push   | 2           | 0           | 3     |
-| Jobs that only plan or merge, per PR push              | 7           | 2           | 1, 6  |
-| Jobs in a row before unit tests report                 | 4           | 3           | 6     |
+| Jobs that only plan or merge, per PR push              | 7           | 2 (done)    | 1, 6  |
+| Jobs in a row before unit tests report                 | 4           | 2 (done)    | 6     |
 | Windows and macOS jobs per PR push, Script host aside  | 4           | 0           | 7     |
 | Renovate branch pushes per day                         | 34          | under 10    | 2, 7  |
 | Release pull request pushes per day                    | 15          | under 5     | 2     |
@@ -316,30 +316,33 @@ The same now applies to client e2e: each shard of a full run on master keeps a `
 for 14 days, the `changes` job reads the newest run's, and `--suite-times` makes `--shard` weigh
 each suite by its seconds, scaled to the scenarios a selection plays, instead of by scenario count.
 
-### Phase 6: one CI workflow with one planning job
+### Phase 6: one CI workflow with one planning job (done)
 
-1. Add `.github/workflows/ci.yml`, triggered by `pull_request` and pushes to master, whose first job
-   does what the separate `changes` and `plan` jobs and the nightly version job do today: filter
-   paths, size shards, look up the real-data and cinnabar caches, and decide which workflows run.
-2. Turn `test.yml`, `client-e2e.yml`, `lint.yml`, `commitlint.yml`, `codeql.yml` and the pull
-   request side of `nightly.yml` into reusable workflows that `ci.yml` calls with the plan's outputs.
-   Setup jobs whose cache hits start only on a miss.
-3. End `ci.yml` with one `✅ CI` job that folds in `✅ Tests` and `✅ Client E2E` and passes when every
-   called job passed or was skipped on purpose.
-4. Ask a repository admin to make `✅ CI` the one required check.
+Built as one file rather than reusable workflows: `.github/workflows/ci.yml` replaces `test.yml`,
+`client-e2e.yml`, `lint.yml` and `commitlint.yml`. Its `🧭 Plan` job does what their first jobs did
+(the two change detectors, the shard sizing, the real-data cache check and preparation, the e2e
+selection, matrix and build lookup) and runs the four checks that need no runner of their own:
+commit messages, lint, docs validation and typecheck. Each of the four reports its outcome without
+failing the job, so the tests still run beside a lint failure, and `✅ CI` fails on the outcomes.
+`✅ CI` folds in `✅ Tests` and `✅ Client E2E`. The workflow also triggers on `merge_group`, where
+every tier runs in full, ready for phase 7. `codeql.yml`, `docs.yml`, `pull-request.yml` and
+`nightly.yml` stay separate: CodeQL has its own permissions and runs two minutes, and the others
+run on master or on a path filter.
 
-Check the reusable workflow limits and how `github.workflow` reads inside a called workflow, since
-the concurrency groups use it.
+The first master run of `ci.yml` finds no earlier `ci.yml` run, so it tests every suite, builds the
+parity base once more for the pull requests based on it, and splits the shards by count; the runs
+after it have what they need.
 
-Done when a pull request push runs 2 jobs that only plan or merge, the planning job and `✅ CI`,
-unit tests report after 3 jobs in a row, and branch rules require `✅ CI` alone.
+Branch rules now require `✅ CI` alone. Each pull request push starts 2 jobs that only plan or
+merge, and the unit tests report after 2 jobs in a row.
 
 ### Phase 7: run the full suite once, in a merge queue
 
-1. Add `merge_group` to `ci.yml`. The planning job picks the tier from the event: a pull request
-   runs lint, typecheck, the unit and real-data tests its diff reaches and one e2e protocol; a merge
-   group runs everything, including every e2e protocol and transport, the Bedrock Dedicated Server
-   suites, the executables, the Windows and macOS jobs and CodeQL.
+1. Add `merge_group` to `ci.yml` (done with phase 6). The planning job picks the tier from the
+   event: a pull request runs lint, typecheck, the unit and real-data tests its diff reaches and one
+   e2e protocol; a merge group runs everything in `ci.yml`, including every e2e protocol and
+   transport, the Bedrock Dedicated Server suites and the Windows and macOS jobs. The executables
+   and CodeQL keep their own workflows.
 2. A repository admin turns on the merge queue for master and turns off the up-to-date requirement,
    which the queue replaces. Every queued pull request gets one full run of its own, so the queue
    saves the second full run master does today, not runs within a burst. The settings, sized to

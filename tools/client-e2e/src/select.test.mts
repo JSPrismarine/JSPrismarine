@@ -35,7 +35,7 @@ describe('selectScenarios', () => {
         'tools/client-e2e/src/run.mts',
         'tools/client-e2e/cinnabar.json',
         'pnpm-lock.yaml',
-        '.github/workflows/client-e2e.yml'
+        '.github/workflows/ci.yml'
     ])('runs every scenario when %s changes', (file) => {
         expect(select([file, 'tools/client-e2e/src/scenarios/chat.mts'])).toEqual({
             mode: 'all',
