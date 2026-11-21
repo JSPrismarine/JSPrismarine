@@ -45,6 +45,16 @@ export interface WireLayout<D extends PacketDefinition = PacketDefinition> {
     decode(stream: BinaryStream): PayloadOf<D>;
 }
 
+/**
+ * Defined `true` by `.github/scripts/build-aot.mjs`. An AOT-compiled Bun executable has no JIT
+ * and interprets code built from strings, while the field walker is compiled ahead of time with
+ * the rest of the program, so the executable keeps the walker. Undefined everywhere else.
+ */
+declare const JSP_AOT_EXECUTABLE: boolean | undefined;
+
+/** Whether generated layouts run compiled here, which they do everywhere but an AOT executable. */
+const generatedCodeIsCompiled = (): boolean => typeof JSP_AOT_EXECUTABLE === 'undefined' || !JSP_AOT_EXECUTABLE;
+
 /** The cache key for a gate-free definition, which resolves the same at every version. */
 const UNVERSIONED = Symbol('unversioned');
 
@@ -125,7 +135,7 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
     const frozenFields = Object.freeze(fields.map((field) => Object.freeze(field)));
     const frozenAbsent = Object.freeze(absent);
     let compiled: CompiledLayout | undefined;
-    if (useCompiler) {
+    if (useCompiler && generatedCodeIsCompiled()) {
         try {
             compiled = compileLayout(frozenFields, frozenAbsent);
         } catch {

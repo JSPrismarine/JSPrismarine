@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
 import { definePacket, gated, isGated, versioned } from './define';
 import type { FieldSpec } from './define';
@@ -223,6 +223,24 @@ describe('a wire layout', () => {
         expect(decoded).toEqual(payload);
         expect(Object.hasOwn(decoded, '__proto__')).toBe(true);
         expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
+    });
+
+    describe('in an AOT-compiled executable', () => {
+        // Outside a bundle the define is a global binding, which this sets as the build would.
+        afterEach(() => {
+            Reflect.deleteProperty(globalThis, 'JSP_AOT_EXECUTABLE');
+        });
+
+        it('keeps the field walker, which runs compiled where generated code would be interpreted', () => {
+            Reflect.set(globalThis, 'JSP_AOT_EXECUTABLE', true);
+            const definition = definePacket('AotExecutablePacket', { value: t.varuint32 });
+            const layout = layoutAt(definition, PROTOCOL_2193);
+            const stream = new BinaryStream();
+            layout.encode(stream, { value: 300 });
+
+            expect(layout.implementation).toBe('walker');
+            expect(layout.decode(new BinaryStream(stream.getBuffer()))).toEqual({ value: 300 });
+        });
     });
 
     it.each([true, false])(
