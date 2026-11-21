@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->66<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->67<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -34,6 +34,45 @@ anything.
 
 For how the server parses commands, what differs from Bedrock Edition and how to run functions from
 a datapack, see [Commands and functions](../data-driven/commands.md).
+
+## Permissions
+
+`/perms` manages the groups and users of `permissions.json`, which
+[the running guide](running.md#permissions) describes. A target is a selector that names one online
+player, such as `@p`, or a name: an online player's, or one the file knows. A name on more than one
+platform is refused with the forms the command takes instead, `xbox:Steve`, `java:Steve` or
+`offline:Steve`; that spelling is command syntax only and never appears in a file. `[expires]` is an
+ISO 8601 instant such as `2027-01-01T00:00:00Z`, or a duration from now: `90s`, `45m`, `12h`, `30d`
+or `2w`.
+
+```text
+/perms user <target> info
+/perms user <target> permission set <node> [expires]
+/perms user <target> permission unset <node>
+/perms user <target> group add <group> [expires]
+/perms user <target> group remove <group>
+/perms user <target> meta set <key> <value>
+/perms user <target> meta unset <key>
+/perms group list
+/perms group create <group>
+/perms group delete <group>
+/perms group <group> info
+/perms group <group> permission set <node> [expires]
+/perms group <group> permission unset <node>
+/perms group <group> parent add <group>
+/perms group <group> parent remove <group>
+/perms group <group> weight <n>
+/perms group <group> meta set <key> <value>
+/perms group <group> meta unset <key>
+/perms reload
+```
+
+The command is gated by `jsprismarine.command.perms`, and each subcommand by a node under it named
+by its words: `jsprismarine.command.perms.user.permission.set`, `jsprismarine.command.perms.group.list`,
+`jsprismarine.command.perms.reload` and so on. The bare `jsprismarine.command.perms` covers every
+subcommand, so to give a moderator part of the command, grant the bare node and negate the
+subcommands they may not use, such as `-jsprismarine.command.perms.group.delete`. An operator and the
+console run every subcommand.
 
 ## Addons
 
@@ -122,6 +161,7 @@ does the same thing.
 | `/op`                 | Grants operator status.                                                                                   | `minecraft.command.op`            | 4     | Operators   |
 | `/pardon`             | Pardon a player.                                                                                          | `minecraft.command.pardon`        | 2     | Operators   |
 | `/particle`           | Spawns particles.                                                                                         | `minecraft.command.particle`      | 1     | Operators   |
+| `/perms`              | Manages the groups and users of permissions.json.                                                         | `jsprismarine.command.perms`      | 0     | Operators   |
 | `/playanimation`      | Makes one or more entities play a one-off animation.                                                      | `minecraft.command.playanimation` | 1     | Operators   |
 | `/playsound`          | Plays a sound.                                                                                            | `minecraft.command.playsound`     | 1     | Operators   |
 | `/random`             | Draws from a reproducible random sequence.                                                                | `minecraft.command.random`        | 0     | Operators   |
