@@ -4,17 +4,22 @@
  * `bun build --compile --aot --explain=json` lists every place the compiler could not type: a
  * call it cannot resolve (`unknown-callee`), an object whose shape it does not know
  * (`unknown-object`) and an operator on a value it lost track of (`lost-track`). Each one costs a
- * lookup or a check at run time. `scripts/aot-explain-baseline.json` records how many of each the
- * report finds in each workspace package's own code; dependencies are left out, since an update
- * moves their counts without a change here. The check fails when a package has more than its
- * entry allows, past a small slack, and `--update` lowers entries the code has gone below, so
- * the baseline only shrinks.
+ * lookup or a check at run time. `scripts/aot-explain-baseline.json` records two things, both for
+ * the repository's own code; dependencies are left out, since an update moves their counts
+ * without a change here:
  *
- * The count does not depend on the machine's speed or load, which is what the repository's
- * performance rules ask for, but Bun 1.4.6's report is not quite deterministic: two compiles of
- * the same tree differed by up to two causes in one package. `SLACK` absorbs that. A different
- * Bun build can move counts either way; when an update to Bun raises one, delete the baseline
- * and run `--update` to seed it again.
+ * - `accessesByName`: how many property accesses the report's summary says are looked up by
+ *   name. Bun reports the same total on every compile of the same tree, so this is compared
+ *   exactly.
+ * - `packages`: how many causes of each kind each workspace package has, which says where a
+ *   regression is. Bun 1.4.6 lists causes not quite deterministically (two compiles of the same
+ *   tree differed by up to two in one package), so each entry gets a small slack.
+ *
+ * The check fails when either goes above the baseline, and `--update` lowers what the code has
+ * gone below, so the baseline only shrinks. Neither depends on the machine's speed or load,
+ * which is what the repository's performance rules ask for. A different Bun build can move them
+ * either way; when an update to Bun raises one, delete the baseline and run `--update` to seed
+ * it again.
  *
  * Usage:
  *   node scripts/check-aot-explain.mts [--report <file>] [--update]
@@ -87,14 +92,44 @@ const isCounts = (value: unknown): value is Counts =>
             )
     );
 
+/** What the baseline file holds. */
+export interface Baseline {
+    readonly accessesByName: number;
+    readonly packages: Counts;
+}
+
+const isBaseline = (value: unknown): value is Baseline =>
+    isRecord(value) &&
+    typeof value.accessesByName === 'number' &&
+    Number.isInteger(value.accessesByName) &&
+    isCounts(value.packages);
+
 const total = (counts: Counts): number =>
     Object.values(counts).reduce(
         (sum, entry) => sum + CAUSES.reduce((inEntry, cause) => inEntry + (entry[cause] ?? 0), 0),
         0
     );
 
-const write = (counts: Counts): void =>
-    writeFileSync(baselinePath, `${JSON.stringify(shrinkCounts(CAUSES, counts, counts), null, 4)}\n`);
+const write = ({ accessesByName, packages }: Baseline): void =>
+    writeFileSync(
+        baselinePath,
+        `${JSON.stringify({ accessesByName, packages: shrinkCounts(CAUSES, packages, packages) }, null, 4)}\n`
+    );
+
+/**
+ * Reads the property accesses of the program's own code that the report's summary line says are
+ * looked up by name.
+ */
+export const accessesByNameOf = (report: string): number => {
+    const line = report.split('\n').find((candidate) => candidate.startsWith('{"accesses"'));
+    if (line === undefined) throw new Error('The --explain report has no summary line.');
+    // Bun writes the report; read only the field this check needs and verify it.
+    const summary: unknown = JSON.parse(line);
+    if (!isRecord(summary) || !isRecord(summary.accesses) || typeof summary.accesses.byName !== 'number') {
+        throw new Error(`The --explain summary has no accesses.byName: ${line.slice(0, 200)}`);
+    }
+    return summary.accesses.byName;
+};
 
 /** The workspace directory a reported file belongs to, or undefined for a dependency. */
 const workspaceOf = (file: string): string | undefined => /^(packages|addons|tools)\/[^/]+(?=\/)/.exec(file)?.[0];
@@ -160,38 +195,60 @@ if (import.meta.main) {
     const reportPath = reportIndex === -1 ? undefined : process.argv[reportIndex + 1];
     if (reportIndex !== -1 && reportPath === undefined) throw new Error('--report needs a file');
     const update = process.argv.includes('--update');
-    const found = countCauses(reportPath === undefined ? buildReport() : readFileSync(reportPath, 'utf8'));
+    const report = reportPath === undefined ? buildReport() : readFileSync(reportPath, 'utf8');
+    const found: Baseline = { accessesByName: accessesByNameOf(report), packages: countCauses(report) };
 
     if (!existsSync(baselinePath)) {
-        if (!update)
+        if (!update) {
             throw new Error(
                 `${baselinePath} is missing; run \`node scripts/check-aot-explain.mts --update\` to create it.`
             );
+        }
         write(found);
-        console.log(`AOT slow-path baseline created: ${Object.keys(found).length} packages, ${total(found)} causes.`);
+        console.log(
+            `AOT slow-path baseline created: ${found.accessesByName} accesses by name, ${total(found.packages)} causes.`
+        );
         process.exit(0);
     }
 
     const parsed: unknown = JSON.parse(readFileSync(baselinePath, 'utf8'));
-    if (!isCounts(parsed)) throw new Error(`${baselinePath} must map package directories to positive cause counts.`);
-    const { added, removed } = compare(found, parsed);
+    if (!isBaseline(parsed)) {
+        throw new Error(`${baselinePath} must hold accessesByName and positive cause counts for each package.`);
+    }
+    const { added, removed } = compare(found.packages, parsed.packages);
     for (const { file, rule, allowed, found: count } of added) {
         console.error(`${file} ${rule}: ${count} found, ${allowed} allowed`);
     }
-    if (added.length > 0) {
+    const byNameGrew = found.accessesByName > parsed.accessesByName;
+    if (byNameGrew) {
+        console.error(`Accesses looked up by name: ${found.accessesByName} found, ${parsed.accessesByName} allowed`);
+    }
+    if (added.length > 0 || byNameGrew) {
         console.error(
-            `\n${new Set(added.map(({ file }) => file)).size} packages add code the AOT compiler cannot type. Run \`bun build --compile --aot --explain\` and follow each entry's fix; the baseline never grows.`
+            "\nThe change adds code the AOT compiler cannot type. Run `bun build --compile --aot --explain` and follow each entry's fix; the baseline never grows."
         );
         process.exit(1);
     }
     if (update) {
-        const next = shrinkCounts(CAUSES, found, parsed);
+        const next = {
+            accessesByName: found.accessesByName,
+            packages: shrinkCounts(CAUSES, found.packages, parsed.packages)
+        };
         write(next);
-        console.log(`AOT slow-path baseline updated: ${removed.length} entries lowered, ${total(next)} causes left.`);
+        console.log(
+            `AOT slow-path baseline updated: ${next.accessesByName} accesses by name, ${total(next.packages)} causes.`
+        );
     } else {
         for (const { file, rule, allowed, found: count } of removed) {
             console.log(`${file} ${rule}: ${count} found, ${allowed} allowed; \`--update\` lowers it`);
         }
-        console.log(`No new AOT slow paths (${total(found)} found, ${total(parsed)} baselined).`);
+        if (found.accessesByName < parsed.accessesByName) {
+            console.log(
+                `Accesses looked up by name: ${found.accessesByName} found, ${parsed.accessesByName} allowed; \`--update\` lowers it`
+            );
+        }
+        console.log(
+            `No new AOT slow paths (${found.accessesByName} accesses by name, ${total(found.packages)} causes).`
+        );
     }
 }
