@@ -159,7 +159,9 @@ export const serverSideCommandHost = (
             return carryOut(shutdown, undefined);
         },
         // Bedrock's `/reload`: the behavior pack scripts start over, and the server keeps running.
-        reload: () => carryOut(server.reloadScripts(), undefined),
+        // The permission files are read again with them.
+        reload: () =>
+            carryOut(Promise.all([server.reloadScripts(), server.getPermissionManager().reload()]), undefined),
 
         ticking: {
             rate: () => server.getTickControl().getTickRate(),

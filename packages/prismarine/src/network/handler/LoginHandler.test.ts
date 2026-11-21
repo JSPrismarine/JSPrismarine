@@ -1,7 +1,7 @@
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../../events/ServerEvents';
 import type { Logger } from '@jsprismarine/logger';
-import { DisconnectReason } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress } from '@jsprismarine/raknet';
 import { generateKeyPairSync, sign } from 'node:crypto';
@@ -148,7 +148,9 @@ describe('network', () => {
 
             const permissionManager = (): PermissionManager =>
                 stub<PermissionManager>({
-                    getPermissions: async () => [],
+                    nodesOf: () => [],
+                    has: () => false,
+                    commandLevelOf: () => CommandPermissionLevel.ANY,
                     isOp: () => false,
                     claimLegacy: () => false
                 });

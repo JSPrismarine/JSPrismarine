@@ -10,6 +10,8 @@ import { Logger } from '@jsprismarine/logger';
 import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
+import type { ConfigPath } from '../config/ConfigDocument';
+import { subjectId } from '../identity/Subject';
 import type SessionManager from '../SessionManager';
 import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type PlayerSession from '../network/PlayerSession';
@@ -17,6 +19,7 @@ import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
+import { DEFAULT_GROUP, OPERATOR_GROUP } from './model';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import type { Subject } from '../identity/Subject';
 
@@ -30,90 +33,35 @@ const kernelPosting = (listener: (event: PlayerToggleOperatorEvent) => void) => 
     return testKernel(events);
 };
 
-const FILFAT_UUID = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
-
 /** Reads JSONC without treating the `//` inside a URL as a comment. */
 const plain = (text: string): unknown => parseConfigDocument(text).get([]);
 
 describe('permission', () => {
-    describe('PermissionManager', () => {
-        it('can().execute() should work', () => {
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['namespace.scope.action']
-                }).execute('namespace.scope.action')
-            ).toBe(true);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['namespace.scope.action']
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(true);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['namespace.scope.action.subaction.whoop']
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(false);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['namespace.scope.*']
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(true);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['*']
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(true);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => ['othernamespace.scope.action']
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(false);
-
-            expect(
-                canExecute({
-                    isOp: () => false,
-                    getPermissions: () => []
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(false);
+    describe('canExecute', () => {
+        /** A player who is not an operator and holds these nodes. */
+        const holder = (...nodes: string[]) => ({
+            isOp: () => false,
+            hasPermission: (node: string) => nodes.includes(node)
         });
 
-        it('can().execute() should handle op', () => {
-            expect(
-                canExecute({
-                    isOp: () => true,
-                    getPermissions: () => []
-                }).execute('namespace.scope.action.subaction')
-            ).toBe(true);
-
-            expect(
-                canExecute({
-                    isOp: () => true,
-                    getPermissions: () => []
-                })
-                    .not()
-                    .execute('namespace.scope.action.subaction')
-            ).toBe(false);
-        });
-
-        it('can().execute() should allow the console', () => {
+        it('passes the console, an operator and a holder of the node, and nobody else', () => {
+            expect(canExecute(holder('namespace.scope.action')).execute('namespace.scope.action')).toBe(true);
+            expect(canExecute(holder('namespace.scope.action')).execute('namespace.scope.other')).toBe(false);
+            expect(canExecute(holder()).execute('namespace.scope.action')).toBe(false);
+            expect(canExecute({ isOp: () => true, hasPermission: () => false }).execute('namespace.scope.action')).toBe(
+                true
+            );
             const console: Console = Object.create(Console.prototype);
-
             expect(canExecute(console).execute('namespace.scope.action')).toBe(true);
         });
 
-        it('can().execute() should handle no permission', () => {
-            expect(canExecute({ isOp: () => false, getPermissions: () => [] }).execute()).toBe(true);
+        it('negates with not(), and passes a check with no permission', () => {
+            expect(
+                canExecute({ isOp: () => true, hasPermission: () => false })
+                    .not()
+                    .execute('x.y')
+            ).toBe(false);
+            expect(canExecute(holder()).execute()).toBe(true);
         });
     });
 
@@ -121,6 +69,29 @@ describe('permission', () => {
         let directory: string;
         let logger: Logger;
         let manager: PermissionManager;
+        /** The clock the managers under test read, movable by a test. */
+        let now: number;
+        const NOON = Date.parse('2026-11-21T12:00:00Z');
+        const LATER = '2026-11-22T12:00:00.000Z';
+        const permissionsFile = () => path.join(directory, 'permissions.json');
+        const permissionsText = () => readFileSync(permissionsFile(), 'utf8');
+        const permissions = () => plain(permissionsText());
+        /** The file's text with one value changed, as an owner's editor would write it. */
+        const edited = (at: ConfigPath, value: unknown): string => {
+            const document = parseConfigDocument(permissionsText());
+            document.set(at, value);
+            return document.toString();
+        };
+        const server = (): PermissionManagerServer => ({
+            getLogger: () => logger,
+            getSessionManager: () => {
+                throw new Error('not needed here');
+            },
+            getKernel: () => {
+                throw new Error('not needed here');
+            }
+        });
+        const steve = identityNamed('Steve', '00000000-0000-0000-0000-000000000005');
 
         beforeEach(() => {
             directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-permission-test-'));
@@ -128,97 +99,320 @@ describe('permission', () => {
             logger = new Logger();
             vi.spyOn(logger, 'warn').mockImplementation(() => {});
             vi.spyOn(logger, 'error').mockImplementation(() => {});
-            const server: PermissionManagerServer = {
-                getLogger: () => logger,
-                getSessionManager: () => {
-                    throw new Error('not needed here');
-                },
-                getKernel: () => {
-                    throw new Error('not needed here');
-                }
-            };
-            manager = new PermissionManager(server);
+            vi.spyOn(logger, 'info');
+            now = NOON;
+            manager = new PermissionManager(server(), { now: () => now, watch: false });
         });
 
-        afterEach(() => {
+        afterEach(async () => {
+            await manager.disable();
             vi.unstubAllEnvs();
             vi.restoreAllMocks();
             rmSync(directory, { recursive: true, force: true });
         });
 
-        it('creates both files on first start, with the permissions explained', async () => {
+        it('creates both files on first start, with the layout explained', async () => {
             await manager.enable();
 
-            const permissions = readFileSync(path.join(directory, 'permissions.json'), 'utf8');
-            expect(permissions).toContain('// Permissions every player has.');
-            expect(permissions).toContain('// Permissions every operator has on top of the defaults.');
-            expect(plain(permissions)).toStrictEqual({
+            const text = permissionsText();
+            expect(text).toContain('// Every group by name.');
+            expect(text).toContain('// Users by platform:');
+            expect(permissions()).toStrictEqual({
                 $schema: `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/permissions.schema.json`,
-                defaultPermissions: [
-                    'minecraft.command.help',
-                    'minecraft.command.list',
-                    'minecraft.command.me',
-                    'jsprismarine.command.plugins',
-                    'jsprismarine.command.version',
-                    'jsprismarine.command.tps'
-                ],
-                defaultOperatorPermissions: ['*'],
-                players: [{ name: 'filfat', uuid: FILFAT_UUID, permissions: ['*'] }]
+                schemaVersion: 2,
+                groups: {
+                    default: {
+                        weight: 0,
+                        parents: [],
+                        nodes: [
+                            'minecraft.command.help',
+                            'minecraft.command.list',
+                            'minecraft.command.me',
+                            'jsprismarine.command.plugins',
+                            'jsprismarine.command.version',
+                            'jsprismarine.command.tps'
+                        ].map((node) => ({ node })),
+                        meta: {}
+                    },
+                    operator: { weight: 100, parents: [], nodes: [{ node: '*' }], meta: {} }
+                },
+                users: { xbox: {}, java: {}, offline: {} }
             });
             expect(readFileSync(path.join(directory, 'ops.json'), 'utf8')).toContain('// JSPrismarine schema:');
-            expect(manager.getDefaultPermissions()).toHaveLength(6);
+            expect(manager.groupNames()).toEqual([DEFAULT_GROUP, OPERATOR_GROUP]);
+            expect(manager.has(steve, 'minecraft.command.help')).toBe(true);
+            expect(manager.has(steve, 'minecraft.command.stop')).toBe(false);
         });
 
-        it('grants the default owner permission to run /op by UUID', async () => {
-            await manager.enable();
-
-            let grants: string[] = [];
-            const owner = stub<PlayerSession>({
-                getName: () => 'Filfat',
-                isOp: () => false,
-                getPermissions: () => grants
-            });
-            grants = await manager.getPermissions(identityNamed('Filfat', FILFAT_UUID));
-
-            expect(manager.can(owner).execute('minecraft.command.op')).toBe(true);
-
-            let otherGrants: string[] = [];
-            const sameNameWithAnotherUuid = stub<PlayerSession>({
-                getName: () => 'filfat',
-                isOp: () => false,
-                getPermissions: () => otherGrants
-            });
-            otherGrants = await manager.getPermissions(identityNamed('filfat', '00000000-0000-0000-0000-000000000001'));
-
-            expect(manager.can(sameNameWithAnotherUuid).execute('minecraft.command.op')).toBe(false);
-        });
-
-        it('reads and sets permissions by the UUID of a login identity', async () => {
-            await manager.enable();
-            const identity = identityNamed('Filfat', FILFAT_UUID);
-
-            expect(await manager.getPermissions(identity)).toContain('*');
-
-            const other = identityNamed('Other', '00000000-0000-0000-0000-000000000004');
-            manager.setPermissions(other, ['namespace.scope.action']);
-            expect(await manager.getPermissions(other)).toContain('namespace.scope.action');
-        });
-
-        it('loads commented permission entries by UUID and operator entries by subject', async () => {
-            const permissionUuid = '00000000-0000-0000-0000-000000000002';
-            const operatorUuid = '00000000-0000-0000-0000-000000000003';
-            writeFileSync(
-                path.join(directory, 'permissions.json'),
-                `{
+        describe('migration', () => {
+            const LEGACY = `{
   // trimmed down
+  "defaultPermissions": ["minecraft.command.help"],
+  "defaultOperatorPermissions": ["minecraft.command.*"],
   "players": [
-    { "name": "alice", "uuid": "${permissionUuid}", "permissions": ["minecraft.command.kick"] },
+    { "name": "alice", "uuid": "00000000-0000-0000-0000-000000000002", "permissions": ["minecraft.command.kick"] },
     { "name": "legacy", "permissions": ["*"] },
     { "name": 7 }
   ]
 }
-`
-            );
+`;
+
+            it('turns a file without a schemaVersion into groups and pending users, keeping the old file as .bak', async () => {
+                writeFileSync(permissionsFile(), LEGACY);
+
+                await manager.enable();
+
+                expect(readFileSync(`${permissionsFile()}.bak`, 'utf8')).toBe(LEGACY);
+                expect(permissions()).toMatchObject({
+                    schemaVersion: 2,
+                    groups: {
+                        default: { weight: 0, parents: [], nodes: [{ node: 'minecraft.command.help' }], meta: {} },
+                        operator: { weight: 100, parents: [], nodes: [{ node: 'minecraft.command.*' }], meta: {} }
+                    },
+                    users: { xbox: {}, java: {}, offline: {} },
+                    pending: [
+                        {
+                            name: 'alice',
+                            legacyUuid: '00000000-0000-0000-0000-000000000002',
+                            groups: [],
+                            nodes: [{ node: 'minecraft.command.kick' }],
+                            meta: {}
+                        }
+                    ]
+                });
+                expect(logger.info).toHaveBeenCalledWith(
+                    expect.stringContaining('00000000-0000-0000-0000-000000000002')
+                );
+                // The same effective permissions as before, for everyone and for an operator.
+                expect(manager.has(steve, 'minecraft.command.help')).toBe(true);
+                expect(manager.has(steve, 'minecraft.command.list')).toBe(false);
+                manager['ops'].add(subjectId(steve.subject));
+                expect(manager.has(steve, 'minecraft.command.stop')).toBe(true);
+                expect(manager.has(steve, 'jsprismarine.command.debug')).toBe(false);
+            });
+
+            it('files a pending user under the account of the login that claims it, and keeps the one never claimed', async () => {
+                writeFileSync(permissionsFile(), LEGACY);
+                await manager.enable();
+                const alice = identityNamed('Alice', '00000000-0000-0000-0000-000000000002');
+                const impostor = identityNamed('alice', '00000000-0000-0000-0000-000000000009');
+
+                expect(manager.has(alice, 'minecraft.command.kick')).toBe(false);
+                expect(manager.claimLegacy(impostor)).toBe(false);
+                expect(manager.claimLegacy(alice)).toBe(true);
+                expect(manager.claimLegacy(alice)).toBe(false);
+
+                expect(manager.has(alice, 'minecraft.command.kick')).toBe(true);
+                expect(manager.has(impostor, 'minecraft.command.kick')).toBe(false);
+                await manager.disable();
+                expect(permissions()).toMatchObject({
+                    users: {
+                        offline: {
+                            Alice: { name: 'Alice', groups: [], nodes: [{ node: 'minecraft.command.kick' }], meta: {} }
+                        }
+                    },
+                    pending: []
+                });
+            });
+
+            it('refuses a file a newer server wrote', async () => {
+                writeFileSync(permissionsFile(), '{ "schemaVersion": 3, "groups": {}, "users": {} }');
+
+                await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
+                expect(logger.error).toHaveBeenCalledWith(
+                    expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
+                );
+            });
+        });
+
+        it('refuses a permissions file that does not parse', async () => {
+            writeFileSync(permissionsFile(), '{ "schemaVersion": 2, "groups": [');
+
+            await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
+        });
+
+        describe('writes', () => {
+            it('writes a user under their platform, and keeps the comments around the record', async () => {
+                await manager.enable();
+                const xbox = { ...steve, subject: { kind: 'xbox', xuid: '2535400000000001' } as const };
+
+                await manager.grantUser(xbox, 'minecraft.command.kick');
+                await manager.grantUser(steve, '-minecraft.command.help');
+
+                expect(permissionsText()).toContain('// Users by platform:');
+                expect(permissions()).toMatchObject({
+                    users: {
+                        xbox: {
+                            '2535400000000001': {
+                                name: 'Steve',
+                                groups: [],
+                                nodes: [{ node: 'minecraft.command.kick' }],
+                                meta: {}
+                            }
+                        },
+                        offline: { Steve: { name: 'Steve', nodes: [{ node: '-minecraft.command.help' }] } }
+                    }
+                });
+                expect(manager.has(xbox, 'minecraft.command.kick')).toBe(true);
+                expect(manager.has(steve, 'minecraft.command.kick')).toBe(false);
+                expect(manager.has(steve, 'minecraft.command.help')).toBe(false);
+                expect(manager.subjectsNamed('Steve')).toEqual([xbox.subject, steve.subject]);
+            });
+
+            it('manages groups: create, grant, parents, weight, meta, membership and delete', async () => {
+                await manager.enable();
+
+                await manager.createGroup('vip');
+                await manager.createGroup('staff');
+                await manager.grantGroup('vip', 'minecraft.command.me');
+                await manager.grantGroup('staff', 'minecraft.command.kick');
+                await manager.addParent('staff', 'vip');
+                await manager.setGroupWeight('staff', 50);
+                await manager.setGroupMeta('staff', 'prefix', 'Staff ');
+                await manager.addToGroup(steve, 'staff');
+
+                expect(manager.groupOf('staff')).toEqual({
+                    weight: 50,
+                    parents: ['vip'],
+                    nodes: [{ node: 'minecraft.command.kick' }],
+                    meta: { prefix: 'Staff ' }
+                });
+                expect(manager.has(steve, 'minecraft.command.kick')).toBe(true);
+                expect(manager.has(steve, 'minecraft.command.me')).toBe(true);
+                expect(manager.groupsOf(steve)).toEqual(['staff', 'default']);
+                expect(manager.primaryGroupOf(steve)).toBe('staff');
+                expect(manager.metaOf(steve, 'prefix')).toBe('Staff ');
+
+                expect(await manager.revokeGroup('staff', 'minecraft.command.kick')).toBe(true);
+                expect(await manager.revokeGroup('staff', 'minecraft.command.kick')).toBe(false);
+                expect(await manager.removeParent('staff', 'vip')).toBe(true);
+                await manager.setGroupMeta('staff', 'prefix', undefined);
+                expect(await manager.removeFromGroup(steve, 'staff')).toBe(true);
+                await manager.deleteGroup('vip');
+
+                expect(manager.groupOf('staff')).toEqual({ weight: 50, parents: [], nodes: [], meta: {} });
+                expect(manager.groupNames()).toEqual([DEFAULT_GROUP, OPERATOR_GROUP, 'staff']);
+                expect(manager.has(steve, 'minecraft.command.kick')).toBe(false);
+                expect(permissions()).toMatchObject({
+                    groups: { staff: { weight: 50, parents: [], nodes: [], meta: {} } },
+                    users: { offline: { Steve: { groups: [], nodes: [], meta: {} } } }
+                });
+            });
+
+            it('refuses what the model does not allow', async () => {
+                await manager.enable();
+
+                await expect(manager.createGroup('default')).rejects.toThrow('already exists');
+                await expect(manager.createGroup('bad name')).rejects.toThrow('whitespace');
+                await expect(manager.deleteGroup('operator')).rejects.toThrow('built in');
+                await expect(manager.deleteGroup('nobody')).rejects.toThrow('No permission group');
+                await expect(manager.addToGroup(steve, 'nobody')).rejects.toThrow('No permission group');
+                await expect(manager.addParent('default', 'default')).rejects.toThrow('own parent');
+                await expect(manager.grantUser(steve, 'bad node')).rejects.toThrow('not spelled');
+                await expect(manager.grantUser(steve, 'a.*.b')).rejects.toThrow('not spelled');
+                await expect(manager.grantUser(steve, 'a.b', 'yesterday')).rejects.toThrow('ISO 8601');
+                await expect(manager.grantUser(steve, 'a.b', '2026-11-21T11:00:00Z')).rejects.toThrow('ISO 8601');
+            });
+
+            it('writes an expiry, skips the node once it passes, and prunes it on the next write', async () => {
+                await manager.enable();
+
+                await manager.grantUser(steve, 'minecraft.command.kick', LATER);
+                await manager.addToGroup(steve, 'operator', LATER);
+                expect(manager.userOf(steve.subject)?.nodes).toEqual([
+                    { node: 'minecraft.command.kick', expires: LATER }
+                ]);
+                expect(manager.has(steve, 'minecraft.command.stop')).toBe(true);
+
+                now = Date.parse(LATER) + 1;
+                expect(manager.has(steve, 'minecraft.command.kick')).toBe(false);
+                expect(manager.has(steve, 'minecraft.command.stop')).toBe(false);
+                expect(manager.groupsOf(steve)).toEqual([DEFAULT_GROUP]);
+
+                await manager.setUserMeta(steve, 'prefix', 'S');
+                expect(permissions()).toMatchObject({
+                    users: { offline: { Steve: { groups: [], nodes: [], meta: { prefix: 'S' } } } }
+                });
+            });
+
+            it('tells its listeners what each write touched, and names nothing on a reload', async () => {
+                await manager.enable();
+                const changes: unknown[] = [];
+                const stop = manager.onChange((change) => void changes.push(change));
+
+                await manager.grantUser(steve, 'a.b');
+                await manager.createGroup('vip');
+                await manager.reload();
+                stop();
+                await manager.setGroupWeight('vip', 3);
+
+                expect(changes).toEqual([{ subject: steve.subject }, { group: 'vip' }, {}]);
+            });
+        });
+
+        describe('reload', () => {
+            it('reads what somebody else wrote to the file, and keeps memory when the new text does not parse', async () => {
+                await manager.enable();
+                await manager.createGroup('vip');
+                writeFileSync(permissionsFile(), edited(['groups', 'vip', 'meta'], { prefix: 'V' }));
+
+                await manager.reload();
+                expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
+
+                writeFileSync(permissionsFile(), '{ "schemaVersion": 2, "groups": {');
+                await manager.reload();
+                expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
+                expect(logger.error).toHaveBeenCalled();
+            });
+
+            it('reloads when the file changes on disk, and not after its own writes', async () => {
+                const watching = new PermissionManager(server(), { now: () => now });
+                await watching.enable();
+                try {
+                    await watching.createGroup('vip');
+                    const reloaded = new Promise<void>((resolve) => {
+                        const stop = watching.onChange((change) => {
+                            if (change.group === undefined && change.subject === undefined) {
+                                stop();
+                                resolve();
+                            }
+                        });
+                    });
+                    expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('changed on disk'));
+
+                    writeFileSync(permissionsFile(), edited(['groups', 'vip', 'weight'], 9));
+
+                    await reloaded;
+                    expect(watching.groupOf('vip')?.weight).toBe(9);
+                } finally {
+                    await watching.disable();
+                }
+            });
+        });
+
+        it('gives the command level the level meta names, and an operator level 4', async () => {
+            await manager.enable();
+
+            expect(manager.commandLevelOf(steve)).toBe(0);
+            await manager.setGroupMeta(DEFAULT_GROUP, 'level', '1');
+            expect(manager.commandLevelOf(steve)).toBe(1);
+            await manager.setUserMeta(steve, 'level', '3');
+            expect(manager.commandLevelOf(steve)).toBe(3);
+            manager['ops'].add(subjectId(steve.subject));
+            expect(manager.commandLevelOf(steve)).toBe(4);
+            // The operator group outweighs default, so its node comes first.
+            expect(manager.nodesOf(steve)).toEqual([
+                '*',
+                'minecraft.command.help',
+                'minecraft.command.list',
+                'minecraft.command.me',
+                'jsprismarine.command.plugins',
+                'jsprismarine.command.version',
+                'jsprismarine.command.tps'
+            ]);
+        });
+
+        it('loads operator entries by subject, and keeps a legacy one waiting', async () => {
             writeFileSync(
                 path.join(directory, 'ops.json'),
                 `[
@@ -232,29 +426,12 @@ describe('permission', () => {
 
             await manager.enable();
 
-            const playerWithPermission = async (name: string, uuid: string) => {
-                const identity = identityNamed(name, uuid);
-                let grants: string[] = [];
-                const player = stub<PlayerSession>({
-                    getName: () => name,
-                    isOp: () => manager.isOp(identity.subject),
-                    getPermissions: () => grants
-                });
-                grants = await manager.getPermissions(identity);
-                return player;
-            };
-            const renamedPlayer = await playerWithPermission('renamed-alice', permissionUuid);
-            const nameCollision = await playerWithPermission('alice', '00000000-0000-0000-0000-000000000004');
-            const operator = await playerWithPermission('bob', operatorUuid);
-
-            expect(manager.can(renamedPlayer).execute('minecraft.command.kick')).toBe(true);
-            expect(manager.can(nameCollision).execute('minecraft.command.kick')).toBe(false);
-            expect(operator.isOp()).toBe(true);
+            expect(manager.isOp(offline('bob'))).toBe(true);
             expect(manager.isOp({ kind: 'xbox', xuid: '2535400000000001' })).toBe(true);
             // An offline steve is not the Xbox account named steve.
             expect(manager.isOp(offline('steve'))).toBe(false);
             expect(manager.isOp(offline('legacy-op'))).toBe(false);
-            expect(manager.can(operator).execute('minecraft.command.stop')).toBe(true);
+            expect(manager.has(identityNamed('bob'), 'minecraft.command.stop')).toBe(true);
         });
 
         describe('claimLegacy', () => {
@@ -268,7 +445,6 @@ describe('permission', () => {
 
             it("waits for a login with the entry's UUID, then keys the entry by the account where it was", async () => {
                 writeFileSync(path.join(directory, 'ops.json'), legacyOps);
-                vi.spyOn(logger, 'info');
                 await manager.enable();
                 const bob = {
                     ...identityNamed('Bobby', BOB_UUID),
@@ -302,12 +478,6 @@ describe('permission', () => {
 
                 expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toHaveLength(2);
             });
-        });
-
-        it('refuses a permissions file that does not parse', async () => {
-            writeFileSync(path.join(directory, 'permissions.json'), '{ "defaultPermissions": [');
-
-            await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
         });
 
         it('makes an online player an operator through its session', async () => {
@@ -346,11 +516,14 @@ describe('permission', () => {
         it('sends the command list once the operator change is made, so it lists what the player may now run', async () => {
             const uuid = '00000000-0000-0000-0000-000000000008';
             const opWhenListed: boolean[] = [];
-            const opManager: PermissionManager = new PermissionManager({
-                getLogger: () => logger,
-                getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
-                getKernel: () => kernelPosting(() => {})
-            });
+            const opManager: PermissionManager = new PermissionManager(
+                {
+                    getLogger: () => logger,
+                    getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
+                    getKernel: () => kernelPosting(() => {})
+                },
+                { watch: false }
+            );
             const session = stub<PlayerSession>({
                 identity: identityNamed('dave', uuid),
                 sendAvailableCommands: async () => void opWhenListed.push(opManager.isOp(offline('dave'))),
@@ -478,11 +651,14 @@ describe('permission', () => {
         const operatorCandidate = async (sendAvailableCommands?: () => Promise<void>) => {
             const { session, server } = fakePlayer({ name: 'erin' });
             const permissionsWhenCommandsSent: boolean[] = [];
-            const real = new PermissionManager({
-                getLogger: () => logger,
-                getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
-                getKernel: () => kernelPosting(() => {})
-            });
+            const real = new PermissionManager(
+                {
+                    getLogger: () => logger,
+                    getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
+                    getKernel: () => kernelPosting(() => {})
+                },
+                { watch: false }
+            );
             Object.assign(server, { getPermissionManager: () => real });
             vi.spyOn(session, 'sendAvailableCommands').mockImplementation(
                 sendAvailableCommands ??
@@ -508,13 +684,13 @@ describe('permission', () => {
             expect(permissionsWhenCommandsSent).toStrictEqual([true, false]);
         });
 
-        it("applies a player's replaced grants without a reconnect", async () => {
+        it("applies a player's granted and revoked nodes without a reconnect", async () => {
             const { session, manager: real } = await operatorCandidate();
 
-            real.setPermissions(session.identity, ['minecraft.command.kick']);
+            await real.grantUser(session.identity, 'minecraft.command.kick');
             expect(real.can(session).execute('minecraft.command.kick')).toBe(true);
 
-            real.setPermissions(session.identity, []);
+            expect(await real.revokeUser(session.identity, 'minecraft.command.kick')).toBe(true);
             expect(real.can(session).execute('minecraft.command.kick')).toBe(false);
         });
 

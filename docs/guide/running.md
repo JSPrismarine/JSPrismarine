@@ -635,6 +635,28 @@ entry it means to and leaves your comments in place. These files may hold
 an older world's `level.json` once into its provider and removes the file after
 the migration succeeds.
 
+### Permissions
+
+`permissions.json` holds `groups` and `users`. A group has a `weight`, `parents`, `nodes` and
+`meta`; a user has `groups` (memberships), `nodes` and `meta` of their own. Every player holds the
+`default` group and every operator holds `operator`, which a fresh file gives `*`. A node is
+`scope.name`, `scope.*` for a whole scope or `*` for everything, and a leading `-` takes it away.
+A node or a membership may carry an `expires` instant in ISO 8601, after which the server skips
+it and drops it at the next write. The `level` meta, from 0 to 4, sets a player's command level;
+an operator runs at 4 whatever their groups say. Users are filed under one section per platform,
+`xbox` by XUID, `java` by UUID and `offline` by name, the same keys as `ops.json`.
+
+A check walks the player's own nodes, then each group they hold directly from the heaviest down,
+and each group's parents behind it. The first node that names the query decides it; in one tier a
+specific node beats a wildcard and a negation beats a grant of the same specificity. `prefix`,
+`suffix` and any other meta resolve the same way.
+
+The server reads the file again on `/reload` and when it changes on disk. A file written before
+`schemaVersion` existed migrates at the next start: `defaultPermissions` becomes the `default`
+group's nodes, `defaultOperatorPermissions` the `operator` group's, and each `players` entry waits
+under `pending` with its UUID as `legacyUuid` until a login with that UUID claims it. The old file
+stays beside the new one as `permissions.json.bak`.
+
 An entry in `ops.json` or `banned-players.json` names a player by `kind` and
 `id`: `xbox` with the XUID of an account the server verified against Xbox Live,
 `offline` with the name a player typed on a server with `online-mode` off, or

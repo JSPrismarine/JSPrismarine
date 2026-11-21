@@ -7,7 +7,7 @@
  * assertions count the packets each viewer receives.
  */
 import type { Logger } from '@jsprismarine/logger';
-import { Gametype, WindowIds } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, Gametype, WindowIds } from '@jsprismarine/minecraft';
 import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
 import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
@@ -87,7 +87,8 @@ const fixture = () => {
     const server = stub<Server>({
         getContent: () => store.content,
         getStorePlayers: () => players,
-        getPermissionManager: () => stub<PermissionManager>({ isOp: () => false }),
+        getPermissionManager: () =>
+            stub<PermissionManager>({ isOp: () => false, commandLevelOf: () => CommandPermissionLevel.ANY }),
         getConfig: () =>
             stub<Config>({
                 getProximityBroadcast: () => true,

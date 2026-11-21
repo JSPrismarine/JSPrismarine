@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
@@ -58,7 +59,8 @@ const setUp = async () => {
         const told: string[] = [];
         const session = sessionOnPrototype({
             isOp: () => op,
-            getPermissions: () => (op ? ['*'] : []),
+            hasPermission: () => op,
+            getCommandLevel: () => (op ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY),
             getWorld: () => world,
             getPosition: () => new Position(0, 64, 0, world),
             sendMessage: async (message: string) => {

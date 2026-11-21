@@ -135,6 +135,38 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
      */
     PermissionsNotObject: '{permissionFileName} must hold an object',
     /**
+     * `permissions.json` names a `schemaVersion` this server does not read, so it was written by
+     * a newer server. Update the server, or restore the file an older one wrote.
+     */
+    PermissionsSchemaUnsupported:
+        '{permissionFileName} has schemaVersion {schemaVersion}, and this server reads up to {supported}',
+    /**
+     * A permission node is not spelled as `scope.name`, `scope.*` or `*`, with at most one leading
+     * `-`. Dots separate non-empty segments, and `*` can only be the last one.
+     */
+    InvalidPermissionNode: {
+        message: 'Permission node "{node}" is not spelled as scope.name, scope.* or *',
+        base: RangeError
+    },
+    /** An expiry is not an ISO 8601 instant in the future, such as `2030-01-01T00:00:00Z`. */
+    InvalidPermissionExpiry: {
+        message: 'Expiry "{expires}" is not an ISO 8601 instant in the future',
+        base: RangeError
+    },
+    /** A command or a script named a permission group `permissions.json` does not have. */
+    PermissionGroupNotFound: 'No permission group named "{group}"',
+    /** A command or a script asked to create a permission group that already exists. */
+    PermissionGroupExists: 'A permission group named "{group}" already exists',
+    /** `default` and `operator` cannot be deleted: every subject holds the first and every operator the second. */
+    PermissionGroupBuiltIn: 'The permission group "{group}" is built in and cannot be deleted',
+    /** A group's parent must be another group; a group cannot inherit itself. */
+    PermissionGroupOwnParent: 'A permission group cannot be its own parent: {group}',
+    /** A group's name is empty or has whitespace. */
+    InvalidPermissionGroupName: {
+        message: 'Permission group name "{group}" is empty or has whitespace',
+        base: RangeError
+    },
+    /**
      * NetherNet signaling could not bind its TCP port, usually because another process holds it.
      * Free the port, or set `enable-nethernet` to `false`.
      */

@@ -60,6 +60,9 @@ import { serverCommandHost } from './serverCommandHost';
 import { entityRefOf } from './support';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 
+/** What the fixture's permission manager was asked to reload. */
+const permissionReloads: string[] = [];
+
 /** One block position's contents, keyed as `x,y,z`. */
 type BlockTable = Map<string, { name: string; states: Record<string, string | number | boolean> }>;
 
@@ -221,6 +224,9 @@ const buildFixture = (): Fixture => {
             stub<PermissionManager>({
                 isOp: () => false,
                 setOp: async () => true,
+                reload: async () => {
+                    permissionReloads.push('permissions.reload');
+                },
                 can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
             }),
         getRandom: () => () => 0.5,
@@ -752,8 +758,9 @@ describe('the server command host', () => {
     });
 
     describe('reload', () => {
-        it('reloads the behavior pack scripts, as Bedrock’s /reload does, and keeps the server running', () => {
+        it('reloads the behavior pack scripts and the permission files, as Bedrock’s /reload does, and keeps the server running', () => {
             const calls: string[] = [];
+            permissionReloads.length = 0;
             const server = Object.assign(Object.create(fixture.server), {
                 reloadScripts: async () => {
                     calls.push('reloadScripts');
@@ -766,6 +773,7 @@ describe('the server command host', () => {
             serverCommandHost(server).server.reload();
 
             expect(calls).toEqual(['reloadScripts']);
+            expect(permissionReloads).toEqual(['permissions.reload']);
         });
     });
 

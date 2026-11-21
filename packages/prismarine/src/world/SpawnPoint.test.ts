@@ -139,7 +139,7 @@ const buildScene = async (name: string) => {
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ nodesOf: () => [] }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getRespawnRequests: () => respawnRequests,
         getContent: () => {

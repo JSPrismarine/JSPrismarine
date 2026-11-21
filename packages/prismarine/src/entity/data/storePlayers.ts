@@ -25,6 +25,7 @@
  */
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
+import type { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
 import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
@@ -352,6 +353,11 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
     }
 
     /** @inheritdoc */
+    public getCommandLevel(): CommandPermissionLevel {
+        return this.getServer().getPermissionManager().commandLevelOf({ subject: this.player.getSubject() });
+    }
+
+    /** @inheritdoc */
     public isFlying(): boolean {
         return this.player.isFlying();
     }
@@ -371,7 +377,7 @@ export class DetachedPlayerView implements ShownPlayer {
      */
     public constructor(
         public readonly player: StorePlayer,
-        private readonly facts: { box(): EntityBox; isOp(): boolean }
+        private readonly facts: { box(): EntityBox; isOp(): boolean; commandLevel(): CommandPermissionLevel }
     ) {}
 
     /** @inheritdoc */
@@ -473,6 +479,11 @@ export class DetachedPlayerView implements ShownPlayer {
     /** @inheritdoc */
     public isOp(): boolean {
         return this.facts.isOp();
+    }
+
+    /** @inheritdoc */
+    public getCommandLevel(): CommandPermissionLevel {
+        return this.facts.commandLevel();
     }
 
     /** @inheritdoc */

@@ -1450,7 +1450,8 @@ export default class PlayerSession {
                 gamemode: target.gamemode,
                 canFly: target.metadata.canFly,
                 flying: target.isFlying(),
-                op: target.isOp()
+                op: target.isOp(),
+                commandLevel: target.getCommandLevel()
             })
         );
     }
@@ -2305,8 +2306,8 @@ export default class PlayerSession {
         pk.softEnums = [players];
 
         const commandManager = this.server.getCommandManager();
+        const own = this.getCommandLevel();
         for (const command of commandManager.getVanillaCommandList()) {
-            const own = this.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
             // A command above an operator's level is the console's alone, such as `addon`.
             if (command.permissionLevel > CommandPermissionLevel.OWNER) continue;
             if (commandManager.isScriptCommand(command.name)) {
@@ -3502,7 +3503,8 @@ export default class PlayerSession {
         if (actor !== undefined) return actor;
         this.detached ??= new DetachedPlayerView(this.getPlayer(), {
             box: () => this.getBox(),
-            isOp: () => this.isOp()
+            isOp: () => this.isOp(),
+            commandLevel: () => this.getCommandLevel()
         });
         return this.detached;
     }
@@ -3660,11 +3662,21 @@ export default class PlayerSession {
     }
 
     /**
-     * The permissions the player holds, read from the permission manager on every call so a
-     * revoked operator status or grant applies at once.
+     * Every node that applies to the player, in resolution order, read from the permission
+     * manager on every call so a revoked operator status or grant applies at once.
      */
     public getPermissions(): string[] {
-        return this.server.getPermissionManager().permissionsOf(this.identity);
+        return this.server.getPermissionManager().nodesOf(this.identity);
+    }
+
+    /** Whether the player holds a node after resolution, read on every call like {@link PlayerSession.isOp}. */
+    public hasPermission(node: string): boolean {
+        return this.server.getPermissionManager().has(this.identity, node);
+    }
+
+    /** The command level the player runs at: the `level` meta, or 4 for an operator. */
+    public getCommandLevel(): CommandPermissionLevel {
+        return this.server.getPermissionManager().commandLevelOf(this.identity);
     }
 
     /**
