@@ -27,7 +27,7 @@ export const isSubChunkVersion = (version: number): version is SubChunkVersion =
  */
 export interface ReadonlySubChunk extends Pick<
     SubChunk,
-    'getRevision' | 'isEmpty' | 'getBlock' | 'getBlockRuntimeId' | 'networkSerialize'
+    'getRevision' | 'isEmpty' | 'getBlock' | 'getBlockRuntimeId' | 'getBlockStorage' | 'networkSerialize'
 > {
     readonly sourceVersion: SubChunkVersion;
     getStorages(): readonly ReadonlyBlockStorage[];
@@ -90,6 +90,16 @@ export default class SubChunk implements ReadonlySubChunk {
         }
 
         return this.storages[index]!;
+    }
+
+    /**
+     * One layer's storage, without the array {@link getStorages} builds.
+     *
+     * @param layer - The block storage layer: 0 for blocks, 1 for what a waterlogged block holds.
+     * @returns The storage, or undefined when the layer is empty.
+     */
+    public getBlockStorage(layer = 0): ReadonlyBlockStorage | undefined {
+        return this.storages[layer];
     }
 
     public getStorages(): BlockStorage[] {
