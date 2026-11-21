@@ -3,9 +3,9 @@
  *
  * Node's single executable has `node:sea`'s asset table to hold the data bundle; Bun's
  * `--compile` has no equivalent this code can read back, and Bun does not implement `node:sea`
- * at all. What Bun does bundle reliably is module source, so the packager rewrites the two
+ * at all. What Bun does bundle reliably is module source, so the packager rewrites the
  * constants below with the real payload, compiles, and restores this file. A checkout therefore
- * always holds the empty pair, which {@link hasEmbeddedData} reads as "not a packaged build" —
+ * always holds empty constants, which {@link hasEmbeddedData} reads as "not a packaged build" —
  * the same answer `isSea()` gives outside a single executable.
  *
  * Base64 costs a third more bytes than the raw bundle and one decode at startup, which is the
@@ -26,6 +26,12 @@ export const EMBEDDED_DATA_MANIFEST = '';
  * in an executable for a platform with no published build.
  */
 export const EMBEDDED_NATIVE_LIBRARY = '';
+
+/**
+ * Base64 of the script host's library for the executable's platform. Empty in a checkout, and in
+ * an executable for a platform with no published build.
+ */
+export const EMBEDDED_SCRIPT_HOST_LIBRARY = '';
 
 /** Whether this build carries embedded data, which only a Bun-compiled executable does. */
 export const hasEmbeddedData = (): boolean => EMBEDDED_DATA_BUNDLE.length > 0;

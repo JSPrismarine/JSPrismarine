@@ -1,12 +1,13 @@
 /**
- * Binds the library's flat C interface (`native/include/jsp_script_host.h`) through `node:ffi`.
- * Every call is synchronous. The engine calls back into JavaScript through one callback per
- * engine, on the thread that created it, while a call into the engine is running.
+ * Binds the library's flat C interface (`native/include/jsp_script_host.h`) through the runtime's
+ * own FFI: `node:ffi` under Node.js, `bun:ffi` under Bun. Every call is synchronous. The engine
+ * calls back into JavaScript through one callback per engine, on the thread that created it, while
+ * a call into the engine is running.
  */
 
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
-/** A native address, as `node:ffi` passes one. */
+/** A native address, as `node:ffi` passes one. The Bun binding converts its numbers to and from it. */
 export type NativePointer = bigint;
 
 /** The C interface, one method per exported function. */
@@ -105,7 +106,10 @@ const signatures: Record<keyof NativeSymbols, readonly [Kind, readonly Kind[]]> 
     jsh_debug_properties: ['int32', ['pointer', 'int32', 'int32', 'int32']]
 };
 
-const hostCallbackSignature = { arguments: ['int32', 'int32', 'int32'], return: 'int32' };
+const hostCallbackSignature = {
+    arguments: ['int32', 'int32', 'int32'],
+    return: 'int32'
+} as const satisfies { arguments: readonly Kind[]; return: Kind };
 
 /** The part of `node:ffi` this binding uses; Node.js 26 ships no types for it yet. */
 interface NodeFfi {
@@ -125,6 +129,102 @@ interface NodeFfi {
     };
     getRawPointer(memory: ArrayBufferLike): bigint;
 }
+
+/** The part of `bun:ffi` this binding uses. */
+export interface BunFfi {
+    dlopen(
+        path: string,
+        definitions: Record<string, { args: string[]; returns: string }>
+    ): { symbols: Record<string, (...args: unknown[]) => unknown>; close(): void };
+    ptr(view: Uint8Array): number;
+    JSCallback: new (
+        callback: (...args: number[]) => number,
+        definition: { args: string[]; returns: string }
+    ) => { readonly ptr: number | null; close(): void };
+}
+
+const bunKinds: Record<Kind, string> = {
+    int32: 'i32',
+    float64: 'f64',
+    void: 'void',
+    pointer: 'ptr',
+    string: 'ptr',
+    buffer: 'ptr'
+};
+
+/**
+ * Adapts one `bun:ffi` function to the `node:ffi` calling convention the engine uses. Bun passes
+ * pointers as numbers and answers null for a null one, where `node:ffi` uses bigints, and it takes
+ * a string argument only as the address of NUL-terminated bytes.
+ */
+const bunFunction =
+    (bound: (...args: unknown[]) => unknown, [result, parameters]: readonly [Kind, readonly Kind[]]) =>
+    (...args: unknown[]): unknown => {
+        const converted = args.map((argument, index) => {
+            const kind = parameters[index];
+            if (kind === 'pointer' && typeof argument === 'bigint') return Number(argument);
+            if (kind === 'string' && typeof argument === 'string') return Buffer.from(`${argument}\0`, 'utf8');
+            return argument;
+        });
+        const value = bound(...converted);
+        if (result !== 'pointer') return value;
+        return typeof value === 'number' || typeof value === 'bigint' ? BigInt(value) : 0n;
+    };
+
+/** Loads `bun:ffi`, which only Bun has. */
+const loadBunFfi = (): BunFfi =>
+    // `bun:ffi` has no types in this workspace; BunFfi above is the part this file calls.
+    process.getBuiltinModule('bun:ffi' as 'node:fs') as unknown as BunFfi;
+
+/**
+ * Opens the library with `bun:ffi`.
+ * @param path - The shared library's file.
+ * @param bun - The `bun:ffi` module; a parameter so a test under Node.js can pass its own.
+ * @returns The bound library.
+ */
+export const bindBunLibrary = (path: string, bun: BunFfi = loadBunFfi()): BoundLibrary => {
+    const opened = bun.dlopen(
+        path,
+        Object.fromEntries(
+            Object.entries(signatures).map(([name, [result, parameters]]) => [
+                name,
+                { args: parameters.map((kind) => bunKinds[kind]), returns: bunKinds[result] }
+            ])
+        )
+    );
+    // `dlopen` refuses a library that lacks a symbol, so every one in `signatures` is bound here.
+    const symbols = Object.fromEntries(
+        Object.entries(signatures).flatMap(([name, signature]) => {
+            const bound = opened.symbols[name];
+            return bound === undefined ? [] : [[name, bunFunction(bound, signature)]];
+        })
+    );
+    // A callback lives until it is unregistered, by the pointer the engine was given.
+    const callbacks = new Map<bigint, { close(): void }>();
+    return {
+        // The definitions above name every NativeSymbols member with its C signature.
+        symbols: symbols as unknown as NativeSymbols,
+        registerHostCallback: (callback) => {
+            const registered = new bun.JSCallback(callback, {
+                args: hostCallbackSignature.arguments.map((kind) => bunKinds[kind]),
+                returns: bunKinds[hostCallbackSignature.return]
+            });
+            const pointer = BigInt(registered.ptr ?? 0);
+            callbacks.set(pointer, registered);
+            return pointer;
+        },
+        unregisterHostCallback: (pointer) => {
+            callbacks.get(pointer)?.close();
+            callbacks.delete(pointer);
+        },
+        pointerOf: (memory) => BigInt(bun.ptr(new Uint8Array(memory))),
+        close: () => {
+            for (const registered of callbacks.values()) registered.close();
+            callbacks.clear();
+            opened.close();
+        }
+    };
+};
 
 /**
  * Loads `node:ffi` without its experimental warning, which would otherwise print on every start.
@@ -151,12 +251,13 @@ const loadNodeFfi = (): NodeFfi => {
 };
 
 /**
- * Opens the library with `node:ffi`.
+ * Opens the library with the running runtime's FFI.
  * @param path - The shared library's file.
  * @returns The bound library.
- * @throws {Error} When the runtime has no `node:ffi` or the library does not load.
+ * @throws {Error} When Node.js has no `node:ffi` or the library does not load.
  */
 export const bindLibrary = (path: string): BoundLibrary => {
+    if (process.versions.bun !== undefined) return bindBunLibrary(path);
     const ffi = loadNodeFfi();
     const opened = ffi.dlopen(
         path,

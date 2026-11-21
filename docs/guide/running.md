@@ -191,9 +191,8 @@ entry. To build a comparison without it, save the first executable before runnin
 `pnpm run package -- --no-code-cache`; the remaining packaging inputs stay the same. On first run it
 provisions its data the way the prebuilt server does. It also carries the native networking library
 and the script host's library for its platform, and writes them to `node_modules/.cache/jsprismarine/`
-on first run, so NetherNet and behavior pack scripts work without a download. The prebuilt
-executables carry only the networking library and do not run behavior pack scripts yet
-([#3505](https://github.com/JSPrismarine/JSPrismarine/issues/3505)). It uses the plain line console, and embeds its workers as SEA assets: the RakNet
+on first run, so NetherNet and behavior pack scripts work without a download, as the prebuilt
+executables do. It uses the plain line console, and embeds its workers as SEA assets: the RakNet
 socket worker, the LevelDB table builder, the default chunk worker and the generation pipelines, so
 they run without importing modules from disk. If a terrain asset is missing or a custom pipeline is not embedded, the
 server logs the reason and generates terrain on the server thread instead.

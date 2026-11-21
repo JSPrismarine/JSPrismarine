@@ -35,7 +35,13 @@ import { provideEmbeddedLibrary as provideEmbeddedScriptHostLibrary } from '@jsp
 import { readZip } from '@jsprismarine/packs';
 
 import { decodeDataBundle } from './dataBundle';
-import { EMBEDDED_DATA_BUNDLE, EMBEDDED_DATA_MANIFEST, EMBEDDED_NATIVE_LIBRARY, hasEmbeddedData } from './embeddedData';
+import {
+    EMBEDDED_DATA_BUNDLE,
+    EMBEDDED_DATA_MANIFEST,
+    EMBEDDED_NATIVE_LIBRARY,
+    EMBEDDED_SCRIPT_HOST_LIBRARY,
+    hasEmbeddedData
+} from './embeddedData';
 import { userCacheDir } from './userCache';
 import { ServerErrors } from '@jsprismarine/errors/server';
 
@@ -86,9 +92,10 @@ const packagedAssets = (): PackagedAssets | undefined => {
             bundle: () => Buffer.from(EMBEDDED_DATA_BUNDLE, 'base64'),
             nativeLibrary: () =>
                 EMBEDDED_NATIVE_LIBRARY.length > 0 ? Buffer.from(EMBEDDED_NATIVE_LIBRARY, 'base64') : undefined,
-            // The script host binds its library through `node:ffi`, which Bun lacks, so a Bun
-            // executable carries none.
-            scriptHostLibrary: () => undefined
+            scriptHostLibrary: () =>
+                EMBEDDED_SCRIPT_HOST_LIBRARY.length > 0
+                    ? Buffer.from(EMBEDDED_SCRIPT_HOST_LIBRARY, 'base64')
+                    : undefined
         };
     }
 

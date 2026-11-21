@@ -131,7 +131,7 @@ console.log(
     `Embedding ${packaged.fileCount} data files (${(packaged.bundle.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped)`
 );
 
-/** The native networking library's platform key for each Bun target; darwin-x64 has no build. */
+/** The native libraries' platform key for each Bun target; darwin-x64 has no build. */
 const nativePlatforms = {
     'bun-linux-x64': 'linux-x64-gnu',
     'bun-linux-arm64': 'linux-arm64-gnu',
@@ -152,6 +152,19 @@ if (nativeLibrary === undefined) {
     console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
 }
 
+const { libraryForPlatform: scriptHostLibraryForPlatform } = await tsImport(
+    pathToFileURL(path.join(repositoryRoot, 'packages', 'script-host', 'src', 'embed.ts')).href,
+    import.meta.url
+);
+// The script host publishes a build for the same platforms as the networking library.
+const scriptHostLibrary =
+    nativePlatforms[target] === undefined ? undefined : await scriptHostLibraryForPlatform(nativePlatforms[target]);
+if (scriptHostLibrary === undefined) {
+    console.warn(`No script host library for ${target}: the executable cannot run behavior pack scripts.`);
+} else {
+    console.log(`Embedding the script host library (${scriptHostLibrary.byteLength} bytes)`);
+}
+
 const checkedInSource = readFileSync(embeddedDataPath, 'utf8');
 const withPayload = checkedInSource
     .replace(
@@ -165,6 +178,10 @@ const withPayload = checkedInSource
     .replace(
         "export const EMBEDDED_NATIVE_LIBRARY = '';",
         `export const EMBEDDED_NATIVE_LIBRARY = '${nativeLibrary === undefined ? '' : Buffer.from(nativeLibrary).toString('base64')}';`
+    )
+    .replace(
+        "export const EMBEDDED_SCRIPT_HOST_LIBRARY = '';",
+        `export const EMBEDDED_SCRIPT_HOST_LIBRARY = '${scriptHostLibrary === undefined ? '' : Buffer.from(scriptHostLibrary).toString('base64')}';`
     );
 if (withPayload === checkedInSource) {
     throw new Error(`${embeddedDataPath} no longer holds the empty constants this script fills in`);
