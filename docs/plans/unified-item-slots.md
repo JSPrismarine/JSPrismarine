@@ -130,15 +130,73 @@ Slice 2 is independent of 3 to 5. Slices 3, 4 and 5 touch the same files and lan
 | 1 | Landed |
 | 2 | Not started |
 | 3 | Landed |
-| 4 | Not started |
+| 4 | Landed |
 | 5 | Not started |
 | 6 | Not started |
+
+## Slice 4: how mobs carry items
+
+Recorded when slice 4 landed, on 2026-11-21.
+
+- **Every mob has an `EntityInventory`.** `MobBody.inventory` is built from `mobLayout(0)`, and
+  the runtime sizes its `inventory` container from the active `minecraft:inventory` at spawn, at
+  restore and on each tick. A store player's body has one too and leaves it empty, since the
+  player's slots are the store player's `HumanInventory`.
+- **The main hand replaced `carried`, and the container replaced the flat list.** The goals'
+  `heldItem`, `carriedItem` and `setCarriedItem` read and write `equipment('mainhand')` through
+  `EntityRuntime.setHeldItem`, which writes one of the item and nothing when the hand already
+  holds it. The goals' `inventory()` and `shareInventory()` list the `inventory` container one
+  identifier per item (`entity/data/mobInventory.ts`), and villager work edits that list and
+  writes back only the difference, so a stack the work did not touch keeps its name and
+  enchantments. Pickups, gifts and crafts put stacks into the container. A mob takes off the
+  ground only what its hand and its container can keep, and a stack handed to it that does not
+  fit drops at its feet. A mob with no `minecraft:inventory` no longer keeps an unbounded list.
+- **Aliases replace the second copy.** `MobBody.equipmentInventorySlots` stays the logged alias
+  map, and every change to it points `EntityInventory.setAlias` at the `inventory` slot. A
+  horse's armor is one stack in `inventory` slot 1, which `equipment('body')` reads; its own
+  `body` slot stays empty while the alias is set.
+- **A capacity change is logged.** `inventorySize` is a logged body field. A shrink empties the
+  slots it takes away first, each an `inventory-slot` entry, and logs the size after them, so an
+  undo restores the size before it writes the stacks back. The runtime drops what a shrink took
+  at the mob's feet, where Java's `AbstractHorse.createInventory` would lose it.
+- **Equipment changes come from slot writes.** A write to a slot an equipment slot reads, or a
+  change of alias, moves `equipmentRevision` and calls `onEquipmentChanged(slot, equipped)`,
+  which fires the components' `on_equip` events. An undo moves the revision and calls nothing.
+- **Replication reads slot entries.** A mob's membership entry derives its slots from the
+  record's `containerSlots` and `equipment`, and its alias map from `equipmentInventorySlots`.
+  `EntityReplica.equipmentAddresses` resolves where each equipment slot reads, and replication
+  sends equipment packets when a tick writes one of those slots or the alias map. `EntityView`
+  no longer carries equipment.
+- **The record keeps its keys.** `equipment`, `containerSlots` and `equipmentInventorySlots`
+  are written from the inventory in their old shapes, with an aliased slot in both `equipment`
+  and `containerSlots` as before. `carried` and `inventory` are no longer written. A legacy
+  `carried` fills the main hand when `equipment` has none, and legacy `inventory` identifiers go
+  into the container after its saved slots. A record that holds more than the container takes
+  grows it on load, and the first tick's resize drops the rest at the mob's feet.
+- **A hopper minecart fills slot by slot.** `suckInItems` keeps `insertStack`, Java's
+  `HopperBlockEntity.addItem` order, because `ItemContainer.add` tops up every matching stack
+  before it takes an empty slot.
+
+### What slice 5 reads from a mob
+
+- `mainhand`, `offhand` and `body` are one-slot containers. `armor` is head, chest, legs, feet.
+- A mount's `inventory` container is the `minecraft:inventory` of its tamed group: the horse's
+  2 slots (saddle 0, armor 1), the donkey's 16 (saddle 0, chest slots after it), the llama's
+  16 less 3 for each strength point it lacks (carpet in slot 1), and the camel's one saddle slot,
+  sized from its `minecraft:equippable`. An untamed horse has no container.
+- Equipping horse armor or a carpet into its container slot aliases `body` to that slot, so
+  `equipment('body')` and `inventory` slot 1 are the same stack. The saddle has no equipment
+  slot: it is `inventory` slot 0 and nothing else. A parser that writes `equipment('body')`
+  writes the container slot whenever the alias is set.
 
 ## Open questions
 
 - Bedrock sends a mob's inventory screen (`ContainerOpen` with `WindowTypes.HORSE`) and has an
   `ItemStackRequest` container for it. The server sends neither, so a player cannot open a horse.
   That is outside this plan, but `EntityInventory` gives it a store to serve.
+- An `Item` has no keep-on-death flag, item lock or script dynamic properties, so a script that
+  puts a stack carrying them into a mob's container gets it back without them, as a player's
+  inventory already did. A `ContentItemDrop` carried them before slice 4.
 - Stack network ids are written onto the stored `Item`. They are Bedrock wire state, and a
   per-session table keyed by container and slot would keep them out of the world model. This
   plan leaves them where they are.
