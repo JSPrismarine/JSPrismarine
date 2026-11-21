@@ -66,7 +66,7 @@ const shownAreas = computed(() => {
                         <!-- The name opens the API reference, and so does the whole card; README and npm follow as
                              quieter links. -->
                         <h3>
-                            <a :href="withBase(`/api/${pkg.name}/`)"
+                            <a :href="withBase(pkg.reference)"
                                 ><span class="package-card__scope" :class="{ 'is-shared': scope }">{{
                                     pkg.name.slice(0, pkg.name.indexOf('/') + 1)
                                 }}</span

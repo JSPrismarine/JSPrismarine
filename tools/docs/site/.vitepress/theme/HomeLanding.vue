@@ -159,7 +159,7 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                 </p>
                 <ul class="landing__packages">
                     <li v-for="pkg in featured" :key="pkg.name">
-                        <a :href="withBase(`/api/${pkg.name}/`)" :title="pkg.description">{{ pkg.name }}</a>
+                        <a :href="withBase(pkg.reference)" :title="pkg.description">{{ pkg.name }}</a>
                     </li>
                     <li>
                         <a :href="withBase('/packages')">All {{ project.packages.length }}</a>

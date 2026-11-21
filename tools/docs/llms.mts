@@ -273,7 +273,7 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
     core.push({
         title: 'Packages',
         links: groupPackages(source.project.packages).flatMap(({ packages }) =>
-            packages.map((pkg) => ({ title: pkg.name, link: `/api/${pkg.name}/`, note: pkg.description }))
+            packages.map((pkg) => ({ title: pkg.name, link: pkg.reference, note: pkg.description }))
         )
     });
     const rest = source.pages

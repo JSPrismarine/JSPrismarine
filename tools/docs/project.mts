@@ -7,6 +7,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import typedoc from './typedoc.json' with { type: 'json' };
+
 /**
  * The license identifiers in an SPDX expression, such as `MIT` and `MPL-2.0` for
  * `(MIT OR MPL-2.0)`, without its operators and parentheses.
@@ -38,6 +40,11 @@ export interface PublishedPackage {
     directory: string;
     name: string;
     version: string;
+    /**
+     * Where the package is documented: its API reference on the site, `/api/<name>/`, or its README on
+     * GitHub when `typedoc.json` excludes it, so the API reference has no page for it.
+     */
+    reference: string;
 }
 
 /** A protocol version the server speaks and the Minecraft releases that use it. */
@@ -132,6 +139,11 @@ export function loadProject(): ProjectData {
             throw new Error(`The docs landing page shows "pnpm run ${script}", which is gone.`);
     }
 
+    const repositoryUrl = (root.repository?.url ?? '').replace(/^git\+/, '').replace(/\.git$/, '');
+    // TypeDoc documents every package folder except the ones its config excludes by path.
+    const undocumented = new Set(
+        typedoc.exclude.flatMap((entry) => /^\.\.\/\.\.\/packages\/([^/*]+)$/.exec(entry)?.[1] ?? [])
+    );
     const packages = readdirSync(packagesDir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
         .flatMap((entry) => {
@@ -151,7 +163,10 @@ export function loadProject(): ProjectData {
             name,
             description,
             directory,
-            version
+            version,
+            reference: undocumented.has(directory)
+                ? `${repositoryUrl}/tree/master/packages/${directory}#readme`
+                : `/api/${name}/`
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -225,8 +240,6 @@ export function loadProject(): ProjectData {
             ? [{ file: `prismarine-${name}${os === 'windows' ? '.exe' : ''}`, os }]
             : []
     );
-    const repositoryUrl = (root.repository?.url ?? '').replace(/^git\+/, '').replace(/\.git$/, '');
-
     return {
         executables,
         releasesUrl: `${repositoryUrl}/releases?q=jsprismarine%40&expanded=true`,
