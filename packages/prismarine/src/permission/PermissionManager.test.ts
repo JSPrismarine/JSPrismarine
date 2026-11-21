@@ -1215,6 +1215,18 @@ describe('permission', () => {
                 expect(opsFile()).toEqual([{ name: 'erin', kind: 'offline', id: 'erin', level: 4 }]);
             });
 
+            it('leaves the file as it is for a player it cannot name, as BDS does for a simulated player', async () => {
+                const ivy = online('ivy', '00000000-0000-0000-0000-00000000000d');
+                const { opManager } = managerOf();
+                await opManager.enable();
+
+                await opManager.setOpNow(ivy, true, { persist: false });
+                expect(opManager.isOp(offline('ivy'))).toBe(true);
+                await opManager.disable();
+
+                expect(opsFile()).toEqual([]);
+            });
+
             it('writes every change made in a row, in order, without losing one', async () => {
                 const frankUuid = '00000000-0000-0000-0000-00000000000a';
                 const gwenUuid = '00000000-0000-0000-0000-00000000000b';

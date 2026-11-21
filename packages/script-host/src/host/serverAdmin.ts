@@ -1,13 +1,15 @@
 /**
  * The behavior of `@minecraft/server-admin` for one pack: `variables` and `secrets`, which read the
  * pack's `config/<script module uuid>/variables.json` and `secrets.json` ({@link readScriptConfig}),
- * `SecretString`, `transferPlayer`, and `dedicatedServer`'s `stopServer` and reloads. The allow
- * list, the level storage, the async join event and the operator and kick functions are present
- * and throw `NotImplementedError`
+ * `SecretString`, `transferPlayer`, `opPlayer`, `deopPlayer`, `kickPlayer`, and
+ * `dedicatedServer`'s `stopServer` and reloads. The allow list, the level storage and the async
+ * join event are present and throw `NotImplementedError`
  * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
  *
  * The `admin-server` scenario recorded `dedicatedServer`: its reloads return nothing, and
- * `reloadCDNConfig` has nothing to read on a server without a CDN config.
+ * `reloadCDNConfig` has nothing to read on a server without a CDN config. It recorded the
+ * operator functions too: a second `opPlayer` throws, a second `deopPlayer` does not, and a
+ * simulated player stays in the world when kicked.
  *
  * The `admin-config` scenario of the parity suite's `scripting.admin` family recorded what the
  * pinned Bedrock Dedicated Server does: `variables.get` returns a copy whose object keys are in
@@ -115,6 +117,19 @@ export const serverAdminImplementations = (
     implementations: ScriptApiImplementations,
     host: AdminPackHost
 ): ScriptApiImplementations => {
+    /** The player a function's first argument names, with BDS's error for anything else. */
+    const playerArgument = (call: ScriptCall): FormPlayer => {
+        const player = host.player(call.args[0]);
+        if (player === undefined) {
+            throw new ScriptApiError(
+                COMMON,
+                'InvalidArgumentError',
+                'Invalid type passed to argument [0]. Expected type: Player'
+            );
+        }
+        return player;
+    };
+
     return (
         implementations
             .implement(SERVER_ADMIN, 'ServerVariables', 'get', (call) => {
@@ -153,6 +168,48 @@ export const serverAdminImplementations = (
             })
             // A server without a CDN config has nothing to read again.
             .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'reloadCDNConfig', () => undefined)
+            .implement(
+                SERVER_ADMIN,
+                '',
+                'opPlayer',
+                (call) => {
+                    const player = playerArgument(call);
+                    if (!player.present || host.server === undefined) return undefined;
+                    if (host.server.isOperator(player.id)) {
+                        throw new ScriptApiError(
+                            SERVER_ADMIN,
+                            'PlayerAlreadyOpError',
+                            'Player already has op permissions'
+                        );
+                    }
+                    host.server.setOperator(player.id, true);
+                    return undefined;
+                },
+                { converts: ['player'] }
+            )
+            .implement(
+                SERVER_ADMIN,
+                '',
+                'deopPlayer',
+                (call) => {
+                    const player = playerArgument(call);
+                    if (player.present) host.server?.setOperator(player.id, false);
+                    return undefined;
+                },
+                { converts: ['player'] }
+            )
+            .implement(
+                SERVER_ADMIN,
+                '',
+                'kickPlayer',
+                (call) => {
+                    const player = playerArgument(call);
+                    const reason = call.args[1];
+                    if (player.present) host.server?.kick(player.id, typeof reason === 'string' ? reason : undefined);
+                    return undefined;
+                },
+                { converts: ['player'] }
+            )
             .implement(SERVER_ADMIN, 'SecretString', 'constructor', (call) => secretState(String(call.args[0])))
             .implement(
                 SERVER_ADMIN,

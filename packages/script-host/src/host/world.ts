@@ -1068,6 +1068,12 @@ export interface ScriptAdminServer {
     stopServer(): void;
     /** Reads the server's permission files again. */
     reloadPermissions(): void;
+    /** Whether a player in the world is an operator, by their id. */
+    isOperator(player: string): boolean;
+    /** Makes a player an operator, or stops them being one. */
+    setOperator(player: string, operator: boolean): void;
+    /** Disconnects a player, with the reason their client shows. */
+    kick(player: string, reason: string | undefined): void;
 }
 
 /** What the script host reads and writes of one world. */

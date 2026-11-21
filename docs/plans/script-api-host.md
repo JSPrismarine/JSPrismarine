@@ -787,14 +787,16 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     - Done (#3635): `dedicatedServer.stopServer`, `reloadPermissions`, `reloadScriptingConfig`,
       which reads the `config/` folder again for every pack, and `reloadCDNConfig`, which has
       nothing to read. The `admin-server` scenario records them on BDS.
+    - Done (#3634): `opPlayer`, `deopPlayer` and `kickPlayer`. A second `opPlayer` throws
+      `PlayerAlreadyOpError` and a second `deopPlayer` does nothing. A simulated player's op is
+      not written to `ops.json`, and a kick leaves it in the world, as on BDS.
     - Left: `variables.names` lists the file's order, where BDS lists its hash map's
       ([#3249](https://github.com/JSPrismarine/JSPrismarine/issues/3249)); a NetherNet
       `transferPlayer` sends nothing, as its packet is not captured; the replay trace does not
       write the recorded results to its file yet, as with the clock
       ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226)); these throw
       `NotImplementedError`: the allow list
-      ([#3633](https://github.com/JSPrismarine/JSPrismarine/issues/3633)), the operator and kick
-      functions ([#3634](https://github.com/JSPrismarine/JSPrismarine/issues/3634)), the
+      ([#3633](https://github.com/JSPrismarine/JSPrismarine/issues/3633)), the
       level storage ([#3636](https://github.com/JSPrismarine/JSPrismarine/issues/3636)),
       `asyncPlayerJoin` ([#3637](https://github.com/JSPrismarine/JSPrismarine/issues/3637)),
       `HttpResponse.deserialize` and the request limits

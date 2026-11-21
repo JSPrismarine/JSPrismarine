@@ -3006,8 +3006,8 @@
         },
         "bds-record:admin-server": {
             "kind": "defect",
-            "reason": "dedicatedServer's allow list and opPlayer, deopPlayer and kickPlayer throw NotImplementedError on JSPrismarine, and a missing Player argument fails with the engine's conversion TypeError, where BDS throws InvalidArgumentError. The reloads and stopServer match BDS.",
-            "reference": "#3633, #3634"
+            "reason": "dedicatedServer's allow list throws NotImplementedError on JSPrismarine, where BDS adds, finds and removes entries. The reloads, stopServer, opPlayer, deopPlayer and kickPlayer match BDS.",
+            "reference": "#3633"
         }
     },
     "scripting.blocks": {

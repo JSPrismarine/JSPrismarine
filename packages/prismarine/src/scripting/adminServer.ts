@@ -3,6 +3,7 @@
  */
 import type { ScriptAdminServer } from '@jsprismarine/script-host/host/world';
 
+import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
 
 /**
@@ -20,5 +21,28 @@ export const scriptAdminServer = (server: Server): ScriptAdminServer => ({
             .getPermissionManager()
             .reload()
             .catch((error: unknown) => server.getLogger().error(error));
+    },
+    isOperator: (player) => sessionOf(server, player)?.isOp() === true,
+    setOperator: (player, operator) => {
+        const session = sessionOf(server, player);
+        if (session === undefined) return;
+        // A simulated player has no identity to keep in `ops.json`, which BDS logs as
+        // "Missing id, won't persist permissions on disk."
+        const sent = server.getPermissionManager().setOpNow(session, operator, { persist: !session.isSimulated() });
+        void sent?.catch((error: unknown) => server.getLogger().error(error));
+    },
+    kick: (player, reason) => {
+        const session = sessionOf(server, player);
+        // BDS keeps a simulated player in the world when it is kicked, as the `admin-server`
+        // scenario recorded; its GameTest removes it.
+        if (session === undefined || session.isSimulated()) return;
+        void session.kick(reason).catch((error: unknown) => server.getLogger().error(error));
     }
 });
+
+/** The session of a player the scripts name by their runtime id. */
+const sessionOf = (server: Server, player: string): PlayerSession | undefined =>
+    server
+        .getSessionManager()
+        .getSessions()
+        .find((session) => String(session.getRuntimeId()) === player);

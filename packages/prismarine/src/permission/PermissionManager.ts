@@ -1050,12 +1050,17 @@ export class PermissionManager implements Service {
      *
      * @param target - The player's session.
      * @param op - Whether the player should be an operator.
+     * @param options - `persist: false` leaves `ops.json` as it is, for a player it cannot name.
      * @returns The sends that tell the player's client its new commands and abilities, already
      *   started, or `undefined` when a listener canceled the change.
      */
-    public setOpNow(target: PlayerSession, op: boolean): Promise<void> | undefined {
+    public setOpNow(
+        target: PlayerSession,
+        op: boolean,
+        options: { readonly persist?: boolean } = {}
+    ): Promise<void> | undefined {
         if (!this.toggleOp(target, op)) return undefined;
-        void this.persistOp(target.identity.subject, target.identity.name, op);
+        if (options.persist !== false) void this.persistOp(target.identity.subject, target.identity.name, op);
         return (async () => {
             // After the change, because the list holds only the commands the player may now run.
             await target.sendAvailableCommands();
