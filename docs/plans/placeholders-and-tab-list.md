@@ -54,9 +54,9 @@ Out of scope for now:
 - `playerListEntryOf` in `packages/prismarine/src/network/playerListEntry.ts` builds the entry
   from the player's login name. The session manager keeps the entries, and a joining player gets
   the whole map. A script's `nameTag` renames the actor above the head and never the list.
-- `/scriptevent` typed on the console does not reach scripts yet
-  ([#3238](https://github.com/JSPrismarine/JSPrismarine/issues/3238)), so the tab list's
-  script-event API is for packs, and owners use `/tablist`.
+- `/scriptevent` reaches scripts from the console, with the source type `Server`, and from a
+  player, with the player as its source entity, so an owner can drive the tab list's script-event
+  API from the console as well as with `/tablist`.
 - The script host fixes or records anything a script could read from the machine
   ([ADR 0021](../adr/0021-the-script-watchdog-counts-steps.md)), so no provider reads the wall
   clock.
