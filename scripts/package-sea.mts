@@ -23,6 +23,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { rolldown } from 'rolldown';
 import { tsImport } from 'tsx/esm/api';
 import { buildPackagedData } from './data-bundle.mts';
+import { embeddableLibrary } from './native/embed-library.mts';
 import { rewriteSeaWorkerRequireBase } from './sea-worker-bundle.ts';
 import { yargsCjsImportMetaPlugin } from './yargs-cjs-import-meta.ts';
 
@@ -129,18 +130,15 @@ console.log(
 const manifestPath = path.join(seaDir, 'data-manifest.json');
 writeFileSync(manifestPath, packaged.manifest);
 
-// The native networking library for this platform, which the executable writes to its cache
-// directory on start. Without it, NetherNet cannot start.
-const nativeNetworkSource = (file: string): string =>
-    pathToFileURL(path.join(repoRoot, 'packages', 'native-network', 'src', file)).href;
-// tsImport returns an untyped module; these are the two exports this script calls.
-const { libraryForPlatform } = (await tsImport(nativeNetworkSource('embed.ts'), import.meta.url)) as {
-    libraryForPlatform: (platform: string) => Promise<Uint8Array | undefined>;
-};
-const { platformKey } = (await tsImport(nativeNetworkSource('platform.ts'), import.meta.url)) as {
-    platformKey: () => string;
-};
-const nativeLibrary = await libraryForPlatform(platformKey());
+// The native networking library and the script host's library for this platform, which the
+// executable writes to its cache directory on start. Without them, NetherNet cannot start and
+// behavior pack scripts do not run.
+// tsImport returns an untyped module; this is the export this script calls.
+const { platformKey } = (await tsImport(
+    pathToFileURL(path.join(repoRoot, 'packages', 'native-network', 'src', 'platform.ts')).href,
+    import.meta.url
+)) as { platformKey: () => string };
+const nativeLibrary = await embeddableLibrary('native-network', platformKey());
 const nativeLibraryPath = path.join(seaDir, 'native-network-library.bin');
 if (nativeLibrary === undefined) {
     console.warn(`No native networking library for ${platformKey()}: the executable can run RakNet only.`);
@@ -149,15 +147,7 @@ if (nativeLibrary === undefined) {
     console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
 }
 
-// The script host's library, which the executable writes to the same cache directory. Without it,
-// behavior pack scripts do not run.
-const { libraryForPlatform: scriptHostLibraryForPlatform } = (await tsImport(
-    pathToFileURL(path.join(repoRoot, 'packages', 'script-host', 'src', 'embed.ts')).href,
-    import.meta.url
-)) as {
-    libraryForPlatform: (platform: string) => Promise<Uint8Array | undefined>;
-};
-const scriptHostLibrary = await scriptHostLibraryForPlatform(platformKey());
+const scriptHostLibrary = await embeddableLibrary('script-host', platformKey());
 const scriptHostLibraryPath = path.join(seaDir, 'script-host-library.bin');
 if (scriptHostLibrary === undefined) {
     console.warn(`No script host library for ${platformKey()}: the executable cannot run behavior pack scripts.`);

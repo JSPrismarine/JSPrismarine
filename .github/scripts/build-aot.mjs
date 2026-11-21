@@ -140,25 +140,25 @@ const nativePlatforms = {
     'bun-darwin-arm64': 'darwin-arm64',
     'bun-windows-x64': 'win32-x64'
 };
-const { libraryForPlatform } = await tsImport(
-    pathToFileURL(path.join(repositoryRoot, 'packages', 'native-network', 'src', 'embed.ts')).href,
+// Fails when a platform has a published build but the checkout has none to embed; see
+// scripts/native/embed-library.mts.
+const { embeddableLibrary } = await tsImport(
+    pathToFileURL(path.join(repositoryRoot, 'scripts', 'native', 'embed-library.mts')).href,
     import.meta.url
 );
 const nativeLibrary =
-    nativePlatforms[target] === undefined ? undefined : await libraryForPlatform(nativePlatforms[target]);
+    nativePlatforms[target] === undefined
+        ? undefined
+        : await embeddableLibrary('native-network', nativePlatforms[target]);
 if (nativeLibrary === undefined) {
     console.warn(`No native networking library for ${target}: the executable can run RakNet only.`);
 } else {
     console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
 }
 
-const { libraryForPlatform: scriptHostLibraryForPlatform } = await tsImport(
-    pathToFileURL(path.join(repositoryRoot, 'packages', 'script-host', 'src', 'embed.ts')).href,
-    import.meta.url
-);
 // The script host publishes a build for the same platforms as the networking library.
 const scriptHostLibrary =
-    nativePlatforms[target] === undefined ? undefined : await scriptHostLibraryForPlatform(nativePlatforms[target]);
+    nativePlatforms[target] === undefined ? undefined : await embeddableLibrary('script-host', nativePlatforms[target]);
 if (scriptHostLibrary === undefined) {
     console.warn(`No script host library for ${target}: the executable cannot run behavior pack scripts.`);
 } else {
