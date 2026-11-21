@@ -180,7 +180,10 @@ const capture = async (scenario: ScriptScenario): Promise<ScenarioGolden> => {
     const http: ScenarioHttpServer | undefined = base === undefined ? undefined : await startScenarioHttpServer(base);
     const server = startServer({
         // Only a scenario with a client needs the server's ports published.
-        ...launcher.launch(staged.root, { clientConnects: scenario.client !== undefined }),
+        ...launcher.launch(staged.root, {
+            clientConnects: scenario.client !== undefined,
+            serverPort: Number(properties['server-port'])
+        }),
         cwd: staged.root,
         onLine: (line) => console.log(`  ${line}`)
     });

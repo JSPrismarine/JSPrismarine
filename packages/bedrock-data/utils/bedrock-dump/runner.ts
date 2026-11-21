@@ -322,6 +322,13 @@ export interface LaunchNeeds {
      * published port they never use is one more way for the pass to fail.
      */
     clientConnects?: boolean;
+    /**
+     * The IPv4 port the staged server listens on, when it is not 19132: the port and the next one
+     * up are published in place of {@link PUBLISHED_UDP_PORTS}, and the port in place of
+     * {@link PUBLISHED_TCP_PORTS}. The scripting capture stages its server on another port, so it
+     * stays clear of a server already on the default ones.
+     */
+    serverPort?: number;
 }
 
 /** Starts the staged server one way or the other, and cleans up after itself. */
@@ -476,8 +483,18 @@ export const createLauncher = (plan: RunnerPlan, options: LauncherOptions = {}):
                 runRoot,
                 platform: plan.emulated ? CONTAINER_PLATFORM : undefined,
                 user: options.user,
-                udpPorts: needs?.clientConnects === true ? PUBLISHED_UDP_PORTS : undefined,
-                tcpPorts: needs?.clientConnects === true ? PUBLISHED_TCP_PORTS : undefined,
+                udpPorts:
+                    needs?.clientConnects !== true
+                        ? undefined
+                        : needs.serverPort === undefined
+                          ? PUBLISHED_UDP_PORTS
+                          : [needs.serverPort, needs.serverPort + 1],
+                tcpPorts:
+                    needs?.clientConnects !== true
+                        ? undefined
+                        : needs.serverPort === undefined
+                          ? PUBLISHED_TCP_PORTS
+                          : [needs.serverPort],
                 // The server loads its own shared objects out of its working directory, which is
                 // the mount; the native path sets the same variable in the child's environment.
                 env: { LD_LIBRARY_PATH: '.' },
