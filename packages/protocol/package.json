@@ -1011,7 +1011,17 @@
                 "import": "./dist/java/versions/26.3/registries.js",
                 "module": "./dist/java/versions/26.3/registries.js"
             },
-            "./package.json": "./package.json"
+            "./package.json": "./package.json",
+            "./bedrock/packet/LevelEventGenericPacket": {
+                "types": "./dist/bedrock/packet/LevelEventGenericPacket.d.ts",
+                "import": "./dist/bedrock/packet/LevelEventGenericPacket.js",
+                "module": "./dist/bedrock/packet/LevelEventGenericPacket.js"
+            },
+            "./bedrock/packet/PlayerUpdateEntityOverridesPacket": {
+                "types": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js",
+                "module": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js"
+            }
         }
     },
     "type": "module",
@@ -1883,7 +1893,15 @@
             "jsprismarine:dist": "./dist/java/versions/26.3/registries.js",
             "default": "./src/java/versions/26.3/registries.ts"
         },
-        "./package.json": "./package.json"
+        "./package.json": "./package.json",
+        "./bedrock/packet/LevelEventGenericPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LevelEventGenericPacket.js",
+            "default": "./src/bedrock/packet/LevelEventGenericPacket.ts"
+        },
+        "./bedrock/packet/PlayerUpdateEntityOverridesPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerUpdateEntityOverridesPacket.js",
+            "default": "./src/bedrock/packet/PlayerUpdateEntityOverridesPacket.ts"
+        }
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
