@@ -4051,11 +4051,6 @@
             "reason": "The server advertises no recipe of this kind to the client, so no player can make it.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3523"
         },
-        "saturated-regeneration:mechanic/natural-regeneration": {
-            "kind": "defect",
-            "reason": "The server heals a well-fed player only on its 80-tick clock, so a full, saturated food bar heals eight times slower than in Java.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3512"
-        },
         "villager-profession-trades:minecraft:mason": {
             "kind": "defect",
             "reason": "Every Java villager profession that trades has a trade table on the server. Observed: no trade table is named for the minecraft:mason profession.",

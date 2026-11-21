@@ -110,9 +110,10 @@ describe('a store player', () => {
             expect(healthOf(player)).toBe(16);
         });
 
-        it('heals a well-fed player and pays for it in exhaustion, saturation first', () => {
+        it('heals a well-fed player and pays for it in exhaustion, food once saturation is gone', () => {
             const fixture = storePlayerFixture();
             const { player, components } = standingPlayer(fixture);
+            components.set('vitals.saturation', 0);
             player.instance.attributes.set('health', 15);
 
             const healed = logged(fixture.runtime, () => fixture.runtime.tick(80));
@@ -121,13 +122,25 @@ describe('a store player', () => {
             expect(components.get('vitals.exhaustion')).toBe(6);
             expect(fieldsOf(healed, 'vitals.exhaustion')).toHaveLength(1);
 
-            // The next tick spends it, as Java's FoodData.tick does: one point of saturation and
-            // two left over.
+            // The next tick spends it, as Java's FoodData.tick does: one point of food and two
+            // left over.
             const spent = logged(fixture.runtime, () => fixture.runtime.tick(81));
-            expect(components.get('vitals.saturation')).toBe(4);
+            expect(components.get('vitals.food')).toBe(19);
             expect(components.get('vitals.exhaustion')).toBe(2);
-            expect(fieldsOf(spent, 'vitals.saturation')).toHaveLength(1);
+            expect(fieldsOf(spent, 'vitals.food')).toHaveLength(1);
             expect(fieldsOf(spent, 'vitals.exhaustion')).toHaveLength(1);
+        });
+
+        it('heals a full, saturated player every half second, spending the saturation', () => {
+            const fixture = storePlayerFixture();
+            const { player, components } = standingPlayer(fixture);
+            player.instance.attributes.set('health', 15);
+
+            // A fresh player holds 5 saturation, so Java's FoodData.tick heals 5 / 6 at tick 10.
+            fixture.runtime.tick(10);
+
+            expect(healthOf(player)).toBeCloseTo(15 + 5 / 6, 10);
+            expect(components.get('vitals.exhaustion')).toBe(5);
         });
 
         it('does not heal with natural regeneration turned off', () => {
@@ -174,6 +187,8 @@ describe('a store player', () => {
             const fixture = storePlayerFixture();
             fixture.world.setBlock(HEAD, 'minecraft:water');
             const { player, components } = standingPlayer(fixture);
+            // A full, saturated bar would heal between the blows, as Java's does.
+            components.set('vitals.saturation', 0);
             components.set('vitals.air', 0);
 
             ticks(fixture, 19);
@@ -223,7 +238,9 @@ describe('a store player', () => {
         it('hurts a player whose eyes are in a block once a grace period, as Java does', () => {
             const fixture = storePlayerFixture();
             fixture.world.setBlock(HEAD, 'minecraft:stone');
-            const { player } = standingPlayer(fixture);
+            const { player, components } = standingPlayer(fixture);
+            // A full, saturated bar would heal between the blows, as Java's does.
+            components.set('vitals.saturation', 0);
 
             ticks(fixture, 1);
             expect(healthOf(player)).toBe(19);

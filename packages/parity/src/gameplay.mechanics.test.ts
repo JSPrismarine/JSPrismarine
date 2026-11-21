@@ -201,11 +201,6 @@ const playerScenarios: readonly BehaviorScenario<GameplaySubject>[] = [
         subjects: () => [subject('mechanic', 'natural-regeneration')],
         idOf: (entry) => entry.id,
         aspects: () => ['behavior'],
-        classify: () => ({
-            kind: 'defect',
-            reason: 'The server heals a well-fed player only on its 80-tick clock, so a full, saturated food bar heals eight times slower than in Java.',
-            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3512'
-        }),
         run: () => {
             let healed = 0;
             for (let tick = 1; tick <= 80; tick++) {

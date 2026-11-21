@@ -50,6 +50,15 @@ const STARVATION_DAMAGE = 1;
 /** Half-hearts a well-fed player heals per {@link VITALS_INTERVAL}. */
 const REGENERATION_HEALTH = 1;
 
+/** How often a full, saturated food bar heals, Java's `FoodData.tick`. */
+const SATURATED_REGENERATION_INTERVAL = 10;
+
+/**
+ * The most saturation one fast heal spends; it heals a sixth of it, so a heal is at most one
+ * half-heart, Java's `Math.min(saturationLevel, 6.0F)`.
+ */
+const SATURATED_REGENERATION_CAP = 6;
+
 /** The most food a player holds, Java's `FoodData.needsFood` bound. */
 const MAX_FOOD = 20;
 
@@ -189,7 +198,8 @@ const starves = (health: number, difficulty: Difficulty): boolean =>
 
 /**
  * The slow half of hunger: starving when the bar is empty, healing when it is nearly full. Both
- * run on vanilla's four-second clock, so most ticks answer undefined. The caller deals the damage
+ * run on vanilla's four-second clock, so most ticks answer undefined, except that a full bar with
+ * saturation left heals every half second. The caller deals the damage
  * or heals, and a heal then costs {@link HungerOutcome} `exhaustion` through
  * {@link addExhaustion}.
  * @param {SurvivalPlayer} player - The player, whom hunger reaches.
@@ -204,6 +214,20 @@ export const hungerOutcome = (
     regenerates: boolean,
     difficulty: Difficulty
 ): HungerOutcome | undefined => {
+    // A full bar with saturation left heals fast, on its own clock, and spends the saturation it
+    // heals with; the slow clock below only runs once that stops.
+    const saturation = player.components.get('vitals.saturation');
+    if (
+        regenerates &&
+        saturation > 0 &&
+        player.components.get('vitals.food') >= MAX_FOOD &&
+        player.health() < player.maxHealth()
+    ) {
+        if (tick % SATURATED_REGENERATION_INTERVAL !== 0) return undefined;
+        const spent = Math.min(saturation, SATURATED_REGENERATION_CAP);
+        return { kind: 'regenerate', amount: spent / SATURATED_REGENERATION_CAP, exhaustion: spent };
+    }
+
     if (tick % VITALS_INTERVAL !== 0) return undefined;
 
     if (player.components.get('vitals.food') <= 0) {
