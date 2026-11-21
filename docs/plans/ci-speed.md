@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
-Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2, 4, 5 and 6 are done, and
-phases 3, 7 and 10 are part done; phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
+Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2, 4, 5, 6 and 7 are done,
+phases 3 and 10 are part done, and phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -336,7 +336,7 @@ after it have what they need.
 Branch rules now require `✅ CI` alone. Each pull request push starts 2 jobs that only plan or
 merge, and the unit tests report after 2 jobs in a row.
 
-### Phase 7: run the full suite once, in a merge queue (part done)
+### Phase 7: run the full suite once, in a merge queue (done)
 
 1. Add `merge_group` to `ci.yml` (done with phase 6). The planning job picks the tier from the
    event: a pull request runs lint, typecheck, the unit and real-data tests its diff reaches and one
@@ -376,8 +376,9 @@ merge, and the unit tests report after 2 jobs in a row.
 7. Update the GitHub workflows section of `AGENTS.md` to name the merge queue as where work that runs
    once per merge goes. Done.
 
-Left for a repository admin, once the workflow side has merged: step 2, turning the queue on with
-the settings above and turning the up-to-date requirement off. Through the API:
+Step 2 was done on 2026-11-21: ruleset 27780795, "Merge queue for master", holds the settings
+above, and master's branch protection no longer requires an up-to-date branch. The commands, for
+the record:
 
 ```
 gh api -X POST repos/JSPrismarine/JSPrismarine/rulesets --input ruleset.json   # merge_queue rule, see the settings table
