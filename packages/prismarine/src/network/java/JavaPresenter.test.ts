@@ -1,9 +1,11 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
 import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
 import { describe, expect, it } from 'vitest';
 
+import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type { ShownMessage } from '../presenter/SessionPresenter';
 import type { ShownEntity, ShownEntityFacts } from '../../world/ShownActor';
@@ -71,6 +73,36 @@ describe('JavaPresenter', () => {
             name: 'Synchronize Player Position',
             value: { teleportId: 2, x: 1, y: 64, z: 2, yaw: 90, pitch: 5 }
         });
+    });
+
+    it("sends a section's lone change as a block update in Java's state ids, and a section's several as one", async () => {
+        const { sent, java } = presenter();
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const air = BlockRuntimeIds.getByName('minecraft:air');
+        const javaStone = BLOCK_STATES.idOf('minecraft:stone');
+        const javaAir = BLOCK_STATES.idOf('minecraft:air');
+
+        await java.showBlocks([
+            { x: -1, y: -60, z: 17, runtimeId: stone },
+            { x: 0, y: 64, z: 0, runtimeId: stone },
+            { x: 1, y: 65, z: 2, runtimeId: stone },
+            { x: 0, y: 64, z: 0, runtimeId: air }
+        ]);
+
+        expect(sent).toEqual([
+            { name: 'Block Update', value: { position: { x: -1, y: -60, z: 17 }, state: javaStone } },
+            {
+                name: 'Update Section Blocks',
+                value: {
+                    section: { x: 0, y: 4, z: 0 },
+                    // The later change to (0, 64, 0) replaced the earlier one.
+                    blocks: [
+                        { state: javaAir, x: 0, y: 0, z: 0 },
+                        { state: javaStone, x: 1, y: 1, z: 2 }
+                    ]
+                }
+            }
+        ]);
     });
 
     it("tells the client its game mode in Java's numbers", async () => {

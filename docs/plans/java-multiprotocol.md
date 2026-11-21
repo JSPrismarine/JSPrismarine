@@ -26,7 +26,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, done ([#3489](https://github.com/JSPrismarine/JSPrismarine/pull/3489)). 9d, other players and mobs shown to Java players, done ([#3498](https://github.com/JSPrismarine/JSPrismarine/pull/3498)). The first joinable milestone is met. |
-| 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
+| 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | In progress. Entities and other players came with 9d. 10a, block changes shown to Java players, in review: the replicator hands a Java viewer the main-layer changes in its view, and the Java presenter sends `Block Update` or `Update Section Blocks`. A waterlogged block's water, which the world keeps in the liquid layer, reaches neither a Java chunk nor a block change yet. Breaking and placing blocks come next. |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | In review. Existing `permissions.json` files get the link nodes from the file migrator. |
 
@@ -359,7 +359,10 @@ The Java chunk packet carries the sky and block light arrays from `@jsprismarine
 PR 9, so a world is lit on arrival. PR 9b reads them through the world's settled light reads, one
 chunk at a time, gives every section above a chunk's highest block one shared full-sky array, and
 lists dark sections as empty, as vanilla does; the lighting README says who sees its light now.
-Incremental light updates after block changes go with the blocks slice in PR 10.
+A Java client relights a block it is told changed with its own light engine, as it does under
+a vanilla server, so PR 10a sends block changes without `Light Update`. A light update from the
+server, for light a client cannot work out from the blocks it holds, waits until a scenario shows a
+difference.
 
 ## 8. Identity
 

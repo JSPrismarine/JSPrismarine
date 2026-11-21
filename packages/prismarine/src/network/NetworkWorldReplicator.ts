@@ -510,7 +510,12 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.pendingBlocks.clear();
         this.pendingLiquids.clear();
 
-        const viewers = this.world.getViewers();
+        const proximity = this.server.getConfig().getProximityBroadcast();
+        const viewers: PlayerSession[] = [];
+        for (const session of this.world.getViewers()) {
+            if (session.presenter.edition === 'bedrock') viewers.push(session);
+            else this.showBlocksTo(session, changes, proximity);
+        }
         if (viewers.length === 0) return;
 
         const config = this.server.getConfig();
@@ -519,7 +524,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
         // With proximity off every client is told about everything, so the bytes are identical and
         // one compression per protocol version serves every client who speaks it.
-        if (!this.server.getConfig().getProximityBroadcast()) {
+        if (!proximity) {
             // Grouped by how each release writes the blocks, since an older one writes some
             // differently; sessions whose ids agree still share one batch per protocol.
             const byTranslation = new Map<BlockTranslation, ClientConnection[]>();
@@ -675,6 +680,34 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         this.released(sends);
+    }
+
+    /**
+     * Hands a client of another edition the block changes it sees as plain data, which its
+     * presenter encodes; the shared batches are Bedrock's.
+     *
+     * Only the block layer goes, as in the chunks a Java client is sent. Java keeps a waterlogged
+     * block's water in the block's own `waterlogged` property, which neither reads from the
+     * liquid layer yet.
+     * @param session - The viewer.
+     * @param changes - This tick's changes, in the order made.
+     * @param proximity - Whether a client sees only the changes in its view, or every one.
+     */
+    private showBlocksTo(session: PlayerSession, changes: readonly BlockChange[], proximity: boolean): void {
+        const viewer = session.getViewPosition();
+        const viewDistance = session.getViewDistance();
+        const shown = changes
+            .filter(
+                ({ position, layer }) =>
+                    layer === 0 && (!proximity || isInView({ event: position, viewer, viewDistance }))
+            )
+            .map(({ position, blockRuntimeId }) => ({
+                x: position.getX(),
+                y: position.getY(),
+                z: position.getZ(),
+                runtimeId: blockRuntimeId
+            }));
+        if (shown.length > 0) this.released([session.presenter.showBlocks(shown)]);
     }
 
     /**

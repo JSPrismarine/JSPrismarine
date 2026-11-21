@@ -54,6 +54,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
 
     const session = {
         send: async (packet: any) => void sent.push(packet),
+        presenter: { edition: 'bedrock' },
         getViewPosition: () => new Vector3(10, 64, -20),
         getViewDistance: () => 10,
         getConnection: () => ({

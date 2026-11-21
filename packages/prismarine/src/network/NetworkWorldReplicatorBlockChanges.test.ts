@@ -11,6 +11,7 @@ import type { World } from '../world/World';
 import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
+import type { SessionPresenter, ShownBlockChange } from './presenter/SessionPresenter';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
@@ -29,7 +30,13 @@ import { blockEntry, sealBlockWrite, sealEntries } from '../testing/sealedBlocks
 
 /** Viewers' sessions and the block updates the replicator batches for each. */
 const replicatorFor = (
-    viewers: readonly { readonly x: number; readonly z: number; readonly viewDistance: number }[],
+    viewers: readonly {
+        readonly x: number;
+        readonly z: number;
+        readonly viewDistance: number;
+        /** Makes the viewer a Java client, whose presenter's block changes land here. */
+        readonly shown?: ShownBlockChange[][];
+    }[],
     codec: ProtocolCodec | ((viewerIndex: number) => ProtocolCodec) = Codec2225,
     compression: (viewerIndex: number) => { algorithm: PacketCompressionAlgorithm; threshold: number } = () => ({
         algorithm: PacketCompressionAlgorithm.ZLIB,
@@ -48,7 +55,16 @@ const replicatorFor = (
             compressionThreshold: threshold,
             sendSharedBatch: async (content) => void batches[index]!.push(content)
         });
+        const { shown } = viewer;
+        const presenter =
+            shown === undefined
+                ? stub<SessionPresenter>({ edition: 'bedrock' })
+                : stub<SessionPresenter>({
+                      edition: 'java',
+                      showBlocks: async (changes) => void shown.push([...changes])
+                  });
         return stub<PlayerSession>({
+            presenter,
             getConnection: () => connection,
             getViewPosition: () => new Position(viewer.x, 64, viewer.z, world),
             getViewDistance: () => viewer.viewDistance
@@ -256,6 +272,29 @@ describe('NetworkWorldReplicator block changes', () => {
         expect(lone.packet.layer).toBe(UpdateBlockLayerType.Liquid);
         expect(lone.packet.blockRuntimeId).toBe(water >>> 0);
         expect(batch.data.blocksChanged.standards.map((info) => info.runtimeId)).toEqual([stone >>> 0]);
+        expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0]);
+    });
+
+    it("hands a Java viewer the main-layer changes in its view as plain data, and Bedrock's batches to no one else", async () => {
+        const shown: ShownBlockChange[][] = [];
+        const { batches, replicator } = replicatorFor([
+            { x: 8, z: 8, viewDistance: 4 },
+            { x: 8, z: 8, viewDistance: 4, shown }
+        ]);
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+
+        sealEntries(replicator, [
+            blockEntry({ x: 2, y: 64, z: -3 }, stone),
+            blockEntry({ x: 2, y: 64, z: -3 }, water, 1),
+            blockEntry({ x: 4_000, y: 64, z: 4_000 }, stone)
+        ]);
+        await replicator.flushBlockChanges();
+
+        expect(shown).toEqual([[{ x: 2, y: 64, z: -3, runtimeId: stone }]]);
+        expect(batches[1]).toEqual([]);
+        const [batch] = packetsIn(batches[0]!);
+        if (batch?.kind !== 'sub-chunk') throw new Error('expected the Bedrock viewer a sub chunk batch');
         expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0]);
     });
 

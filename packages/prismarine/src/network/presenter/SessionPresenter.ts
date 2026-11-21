@@ -77,6 +77,15 @@ export interface ShownEntityMove {
     readonly onGround: boolean;
 }
 
+/** One block's new state this tick, as plain data. */
+export interface ShownBlockChange {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    /** The block's Bedrock runtime id. */
+    readonly runtimeId: number;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -165,6 +174,13 @@ export interface SessionPresenter {
      * @param moves - This tick's moves of entities the client tracks.
      */
     moveEntities(moves: readonly ShownEntityMove[]): Promise<void>;
+
+    /**
+     * Changes blocks the client sees, for a client the shared Bedrock batches do not reach.
+     *
+     * @param changes - This tick's changes to the blocks in the client's view, in the order made.
+     */
+    showBlocks(changes: readonly ShownBlockChange[]): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.

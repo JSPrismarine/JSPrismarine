@@ -34,6 +34,7 @@ import { TransportNames } from '../transport/Transport';
 import { accountLinksToken } from '../../modules/tokens';
 import type { TransportConnection } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
+import { javaBlockTranslation } from './editionTranslation';
 import type { JavaSend } from './JavaPresenter';
 import { JavaPresenter } from './JavaPresenter';
 
@@ -108,6 +109,8 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
     const report = (error: unknown) => server.getLogger().error(error);
     // Read when an intent arrives, as the dispatcher reads its handlers, not when the listener starts.
     const intents = () => server.getPacketHandlerRegistry().getIntentHandlers();
+    // One cache of Java block states for every Java session, rather than one each.
+    const blocks = javaBlockTranslation();
 
     return {
         join: async (profile, verified, id, send) => {
@@ -138,7 +141,7 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
                 player,
                 identity,
                 world,
-                presenter: new JavaPresenter(send, player.getRuntimeId())
+                presenter: new JavaPresenter(send, player.getRuntimeId(), blocks)
             });
             try {
                 await session.join();

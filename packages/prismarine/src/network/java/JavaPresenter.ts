@@ -8,8 +8,10 @@
  */
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import type { SectionBlock } from '@jsprismarine/protocol/java/packet/play';
 import {
     AddEntity,
+    BlockUpdate,
     CHANGE_GAME_MODE,
     GameEvent,
     PlayerInfoAction,
@@ -17,6 +19,7 @@ import {
     PlayerInfoRemove,
     RemoveEntities,
     RotateHead,
+    SectionBlocksUpdate,
     SynchronizePlayerPosition,
     SystemChat,
     TeleportEntity
@@ -25,9 +28,16 @@ import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
 import { EYE_HEIGHT } from '../../entity/playerEyes';
-import type { SessionPresenter, ShownEntityMove, ShownMessage, ShownMove } from '../presenter/SessionPresenter';
+import type {
+    SessionPresenter,
+    ShownBlockChange,
+    ShownEntityMove,
+    ShownMessage,
+    ShownMove
+} from '../presenter/SessionPresenter';
 import type { ShownEntity } from '../../world/ShownActor';
-import { javaEntityTranslation } from './editionTranslation';
+import type { EditionTranslation } from './editionTranslation';
+import { javaBlockTranslation, javaEntityTranslation } from './editionTranslation';
 
 /** A UUID for an entity that has none of its own to show, made from its id so it stays the same. */
 const entityUuidOf = (runtimeId: bigint): string => hyphenatedUuid(runtimeId.toString(16).padStart(32, '0'));
@@ -88,10 +98,12 @@ export class JavaPresenter implements SessionPresenter {
     /**
      * @param send - Sends to the session's client.
      * @param ownRuntimeId - The session's own player, whose moves its client is told.
+     * @param blocks - Bedrock runtime ids to Java state ids, which every Java session can share.
      */
     public constructor(
         private readonly send: JavaSend,
-        private readonly ownRuntimeId: bigint
+        private readonly ownRuntimeId: bigint,
+        private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation()
     ) {}
 
     /** Not shown yet: the time of day comes with the world state slice, PR 10. */
@@ -200,6 +212,34 @@ export class JavaPresenter implements SessionPresenter {
                 onGround
             });
             this.send(RotateHead, { entityId: Number(runtimeId), headYaw });
+        }
+    }
+
+    /**
+     * Sends a section's one changed block as `Block Update`, and a section's several as one
+     * `Update Section Blocks`, as vanilla does. A later change to a block in the same tick wins.
+     */
+    public async showBlocks(changes: readonly ShownBlockChange[]): Promise<void> {
+        const sections = new Map<string, { x: number; y: number; z: number; blocks: Map<number, SectionBlock> }>();
+        for (const { x, y, z, runtimeId } of changes) {
+            const key = `${x >> 4},${y >> 4},${z >> 4}`;
+            let section = sections.get(key);
+            if (section === undefined) {
+                section = { x: x >> 4, y: y >> 4, z: z >> 4, blocks: new Map() };
+                sections.set(key, section);
+            }
+            const block = { state: this.blocks.toJava(runtimeId), x: x & 15, y: y & 15, z: z & 15 };
+            section.blocks.set((block.x << 8) | (block.z << 4) | block.y, block);
+        }
+        for (const section of sections.values()) {
+            const blocks = [...section.blocks.values()];
+            const [only] = blocks;
+            if (blocks.length === 1 && only !== undefined) {
+                this.send(BlockUpdate, {
+                    position: { x: section.x * 16 + only.x, y: section.y * 16 + only.y, z: section.z * 16 + only.z },
+                    state: only.state
+                });
+            } else this.send(SectionBlocksUpdate, { section: { x: section.x, y: section.y, z: section.z }, blocks });
         }
     }
 
