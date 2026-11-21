@@ -23,6 +23,7 @@ import { expect, it } from 'vitest';
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
+import { javaItemBehaviors } from './javaItemClasses.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -79,6 +80,9 @@ const itemComponentIndex = () => {
  * The behaviors one Java item has that full parity has to compare with Java: each Java component
  * it carries by default, and placing its block when it names one.
  *
+ * Each hook of `Item` its Java class overrides is a behavior too, such as a bucket's `use` or a
+ * bow's `releaseUsing` (see `javaItemClasses.ts`).
+ *
  * Components every item carries (its stack size, name, model, animations, attribute modifiers and
  * repair cost) are left out: they hold the generic item behavior, which is not this item's own,
  * and counting them would add every item's row for one shared rule.
@@ -91,6 +95,9 @@ const itemAspects = (javaId: string): readonly BehaviorAspect[] => {
         .map((component) => ({ id: component, description: `what ${component} does, against Java` }));
     if (javaId in blocksTable.blocks && javaId !== 'minecraft:air') {
         aspects.push({ id: 'places-block', description: 'placing the block it names, against Java' });
+    }
+    for (const { kind, evidence } of javaItemBehaviors(javaId)) {
+        aspects.push({ id: kind.aspect, description: `${kind.description} (${evidence.join(', ')}), against Java` });
     }
     return aspects;
 };
@@ -267,7 +274,7 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     },
     {
         name: 'spawn-egg-spawns-mob',
-        aspects: () => ['minecraft:entity_data'],
+        aspects: () => ['minecraft:entity_data', 'use-on-block'],
         java: 'A spawn egg spawns the mob its `minecraft:entity_data` names.',
         reference: 'Java SpawnEggItem and the data/minecraft/items entity_data component',
         subjects: () => withComponent('minecraft:entity_data').filter((item) => item.javaId.endsWith('_spawn_egg')),
@@ -434,7 +441,12 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
 
 describeFamily(
     FAMILIES.itemsBehavior,
-    [REFERENCES.javaItemRegistry, REFERENCES.bedrockBehaviorPack, REFERENCES.javaWorldgenData],
+    [
+        REFERENCES.javaItemRegistry,
+        REFERENCES.bedrockBehaviorPack,
+        REFERENCES.javaWorldgenData,
+        REFERENCES.javaServerJar
+    ],
     () => {
         it('exercises each Java item behavior through the real item hooks', { timeout: 180_000 }, () => {
             const rows = measureScenarios(FAMILIES.itemsBehavior, import.meta.filename, scenarioGroup(scenarios));
