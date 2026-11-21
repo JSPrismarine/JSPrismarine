@@ -502,54 +502,68 @@
             "pack": "blocks",
             "seq": 42,
             "tick": 0,
-            "event": "getLightLevel in an unloaded chunk",
+            "event": "getSkyLightLevel under a one-block roof",
             "value": 15
         },
         {
             "pack": "blocks",
             "seq": 43,
             "tick": 0,
-            "event": "getLightLevel above the world",
+            "event": "getLightLevel under glowstone",
             "value": 15
         },
         {
             "pack": "blocks",
             "seq": 44,
             "tick": 0,
-            "event": "getBiome",
-            "value": "minecraft:plains"
+            "event": "getLightLevel in an unloaded chunk",
+            "value": 15
         },
         {
             "pack": "blocks",
             "seq": 45,
             "tick": 0,
-            "event": "getBiome in an unloaded chunk",
-            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+            "event": "getLightLevel above the world",
+            "value": 15
         },
         {
             "pack": "blocks",
             "seq": 46,
             "tick": 0,
-            "event": "BiomeTypes.get",
+            "event": "getBiome",
             "value": "minecraft:plains"
         },
         {
             "pack": "blocks",
             "seq": 47,
             "tick": 0,
+            "event": "getBiome in an unloaded chunk",
+            "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
+        },
+        {
+            "pack": "blocks",
+            "seq": 48,
+            "tick": 0,
+            "event": "BiomeTypes.get",
+            "value": "minecraft:plains"
+        },
+        {
+            "pack": "blocks",
+            "seq": 49,
+            "tick": 0,
             "event": "BiomeTypes.get with the namespace",
             "value": "minecraft:desert"
         },
         {
             "pack": "blocks",
-            "seq": 48,
+            "seq": 50,
             "tick": 0,
             "event": "BiomeTypes.get of an unknown biome",
             "value": null
         },
         {
             "pack": "blocks",
-            "seq": 49,
+            "seq": 51,
             "tick": 0,
             "event": "BiomeTypes.getAll includes plains and desert",
             "value": [
@@ -560,7 +574,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 50,
+            "seq": 52,
             "tick": 0,
             "event": "BiomeType.getTags",
             "value": [
@@ -573,7 +587,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 51,
+            "seq": 53,
             "tick": 0,
             "event": "BiomeType.hasTags",
             "value": [
@@ -584,7 +598,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 52,
+            "seq": 54,
             "tick": 0,
             "event": "getEntitiesAtBlockLocation",
             "value": [
@@ -593,14 +607,14 @@
         },
         {
             "pack": "blocks",
-            "seq": 53,
+            "seq": 55,
             "tick": 0,
             "event": "getEntitiesAtBlockLocation of an empty block",
             "value": []
         },
         {
             "pack": "blocks",
-            "seq": 54,
+            "seq": 56,
             "tick": 0,
             "event": "getEntitiesFromRay",
             "value": [
@@ -613,14 +627,14 @@
         },
         {
             "pack": "blocks",
-            "seq": 55,
+            "seq": 57,
             "tick": 0,
             "event": "getEntitiesFromRay within 5",
             "value": 0
         },
         {
             "pack": "blocks",
-            "seq": 56,
+            "seq": 58,
             "tick": 0,
             "event": "getEntitiesFromRay through a block",
             "value": [
@@ -630,7 +644,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 57,
+            "seq": 59,
             "tick": 0,
             "event": "getBlockFromRay down",
             "value": {
@@ -650,7 +664,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 58,
+            "seq": 60,
             "tick": 0,
             "event": "getBlockFromRay sideways",
             "value": {
@@ -670,7 +684,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 59,
+            "seq": 61,
             "tick": 0,
             "event": "getBlockFromRay at an angle",
             "value": {
@@ -690,21 +704,21 @@
         },
         {
             "pack": "blocks",
-            "seq": 60,
+            "seq": 62,
             "tick": 0,
             "event": "getBlockFromRay within 3",
             "value": null
         },
         {
             "pack": "blocks",
-            "seq": 61,
+            "seq": 63,
             "tick": 0,
             "event": "getBlockFromRay up into nothing",
             "value": null
         },
         {
             "pack": "blocks",
-            "seq": 62,
+            "seq": 64,
             "tick": 0,
             "event": "getBlockFromRay through water",
             "value": [
@@ -714,7 +728,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 63,
+            "seq": 65,
             "tick": 0,
             "event": "spawnItem",
             "value": {
@@ -724,35 +738,35 @@
         },
         {
             "pack": "blocks",
-            "seq": 64,
+            "seq": 66,
             "tick": 0,
             "event": "spawnItem in an unloaded chunk",
             "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
         },
         {
             "pack": "blocks",
-            "seq": 65,
+            "seq": 67,
             "tick": 0,
             "event": "spawnXp",
             "value": "undefined"
         },
         {
             "pack": "blocks",
-            "seq": 66,
+            "seq": 68,
             "tick": 0,
             "event": "spawnXp of nothing",
             "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 0, Argument bounds: [1, 12000]"
         },
         {
             "pack": "blocks",
-            "seq": 67,
+            "seq": 69,
             "tick": 0,
             "event": "spawnXp in an unloaded chunk",
             "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
         },
         {
             "pack": "blocks",
-            "seq": 68,
+            "seq": 70,
             "tick": 0,
             "event": "createExplosion without breaking blocks",
             "value": [
@@ -762,7 +776,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 69,
+            "seq": 71,
             "tick": 0,
             "event": "createExplosion",
             "value": [
@@ -772,56 +786,56 @@
         },
         {
             "pack": "blocks",
-            "seq": 70,
+            "seq": 72,
             "tick": 0,
             "event": "createExplosion of radius 0",
             "value": false
         },
         {
             "pack": "blocks",
-            "seq": 71,
+            "seq": 73,
             "tick": 0,
             "event": "createExplosion of radius 2000",
             "error": "ArgumentOutOfBoundsError: Unsupported or out of bounds value passed to function argument [1]. Value: 2000, Argument bounds: [0, 1000]"
         },
         {
             "pack": "blocks",
-            "seq": 72,
+            "seq": 74,
             "tick": 0,
             "event": "createExplosion in an unloaded chunk",
             "error": "LocationInUnloadedChunkError: Trying to access location (100000.0, 20.0, 0.0) which is not in a chunk currently loaded and ticking."
         },
         {
             "pack": "blocks",
-            "seq": 73,
+            "seq": 75,
             "tick": 0,
             "event": "placeFeature of an unknown feature",
             "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature name jsp:missing cannot be found in the registry"
         },
         {
             "pack": "blocks",
-            "seq": 74,
+            "seq": 76,
             "tick": 0,
             "event": "placeFeature of an unknown feature that throws",
             "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature name jsp:missing cannot be found in the registry"
         },
         {
             "pack": "blocks",
-            "seq": 75,
+            "seq": 77,
             "tick": 0,
             "event": "placeFeatureRule of an unknown rule",
             "error": "InvalidArgumentError: Invalid value passed to argument [0]. Feature rule jsp:missing cannot be found"
         },
         {
             "pack": "blocks",
-            "seq": 76,
+            "seq": 78,
             "tick": 0,
             "event": "getGeneratedStructures",
             "value": []
         },
         {
             "pack": "blocks",
-            "seq": 77,
+            "seq": 79,
             "tick": 2,
             "event": "entities after a tick",
             "value": [
@@ -831,7 +845,7 @@
         },
         {
             "pack": "blocks",
-            "seq": 78,
+            "seq": 80,
             "tick": 2,
             "event": "experience orbs",
             "value": true
