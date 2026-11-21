@@ -908,16 +908,21 @@ describe('the command layer on a server with packs of its own', () => {
         expect(inventory?.equipment('body')?.getName()).toBe('minecraft:iron_horse_armor');
     });
 
-    it("fills a tamed llama's chest past its carpet slot", async () => {
+    it("fills a tamed llama's chest past its carpet slot once it carries one", async () => {
         const llama = await tamed('minecraft:llama', 24);
+        // Its chest slots are there only once it carries a chest.
+        await expect(run('/replaceitem entity @e[type=llama] slot.chest 0 minecraft:diamond')).resolves.toBe(false);
+        llama?.instance.fire('minecraft:on_chest');
+        llama?.instance.applyQueuedEvents();
 
         await expect(run('/replaceitem entity @e[type=llama] slot.chest 0 minecraft:diamond 3')).resolves.toBe(true);
         await expect(run('/item replace entity @e[type=llama] horse.1 with minecraft:emerald')).resolves.toBe(true);
 
         const container = llama?.body.inventory.container('inventory');
-        // Slot 1 is the carpet's, so the chest is slots 0, 2, 3 and on.
-        expect(container?.get(0)?.getName()).toBe('minecraft:diamond');
-        expect(container?.get(1)).toBeNull();
+        // Slot 0 is the carpet's, where the llama's `equip_item_slot` puts it, so the chest is
+        // slots 1 and on.
+        expect(container?.get(0)).toBeNull();
+        expect(container?.get(1)?.getName()).toBe('minecraft:diamond');
         expect(container?.get(2)?.getName()).toBe('minecraft:emerald');
     });
 });

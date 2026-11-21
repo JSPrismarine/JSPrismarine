@@ -1240,6 +1240,11 @@
                 "import": "./dist/inventory/slotLog.js",
                 "module": "./dist/inventory/slotLog.js"
             },
+            "./inventory/slotAddress": {
+                "types": "./dist/inventory/slotAddress.d.ts",
+                "import": "./dist/inventory/slotAddress.js",
+                "module": "./dist/inventory/slotAddress.js"
+            },
             "./network/replica/BlockReplica": {
                 "types": "./dist/network/replica/BlockReplica.d.ts",
                 "import": "./dist/network/replica/BlockReplica.js",
@@ -2713,6 +2718,10 @@
         "./inventory/slotLog": {
             "jsprismarine:dist": "./dist/inventory/slotLog.js",
             "default": "./src/inventory/slotLog.ts"
+        },
+        "./inventory/slotAddress": {
+            "jsprismarine:dist": "./dist/inventory/slotAddress.js",
+            "default": "./src/inventory/slotAddress.ts"
         },
         "./network/replica/BlockReplica": {
             "jsprismarine:dist": "./dist/network/replica/BlockReplica.js",

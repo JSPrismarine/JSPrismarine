@@ -21,7 +21,10 @@
  */
 import { BLOCK_EQUIPMENT_SLOTS } from '@jsprismarine/commands';
 
+import type { DataEntity } from '../entity/data/DataEntity';
 import type { EquippableSlot } from '../entity/data/equippable';
+import { equippableSlotsOf } from '../entity/data/equippable';
+import { isRecord } from '../utils/isRecord';
 import type { MobEquipmentSlot } from '../entity/equipment';
 import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf } from '../entity/equipment';
 import type { EntityInventory, SlotAddress } from './EntityInventory';
@@ -57,8 +60,29 @@ export type SlotHolder =
           readonly containerType: string | undefined;
           /** The slots the active `minecraft:equippable` lists, in its order. */
           readonly equippable: readonly EquippableSlot[];
+          /**
+           * Whether a mount carries a chest (`minecraft:is_chested`). Its chest slots are there
+           * only then, as Java's `AbstractChestedHorse` answers `horse.N` only with a chest on.
+           */
+          readonly chested: boolean;
       }
     | { readonly kind: 'block'; readonly size: number };
+
+/**
+ * A mob as a slot holder: its inventory, what its `minecraft:inventory` container is for, what
+ * its `minecraft:equippable` lists, and whether it carries a chest.
+ */
+export const mobSlotHolder = (entity: Pick<DataEntity, 'body' | 'instance'>): SlotHolder => {
+    const declared = entity.instance.componentParams('minecraft:inventory');
+    return {
+        kind: 'mob',
+        inventory: entity.body.inventory,
+        containerType:
+            isRecord(declared) && typeof declared['containerType'] === 'string' ? declared['containerType'] : undefined,
+        equippable: equippableSlotsOf(entity.instance),
+        chested: entity.instance.hasComponent('minecraft:is_chested')
+    };
+};
 
 /** Which side of a copy a refusal is about, which is the word Java's messages use. */
 export type SlotRole = 'source' | 'target';
@@ -135,6 +159,10 @@ JAVA_SLOT_NAMES.set('saddle', [JAVA_SADDLE]);
 JAVA_SLOT_NAMES.set('horse.chest', [JAVA_HORSE_CHEST_OR_CURSOR]);
 JAVA_SLOT_NAMES.set('player.cursor', [JAVA_HORSE_CHEST_OR_CURSOR]);
 addRange('player.crafting.', JAVA_HORSE_OR_CRAFTING, 4);
+
+/** The names Java 26.3's `SlotRanges` has, without the older spellings added below. */
+const CURRENT_JAVA_SLOT_NAMES: readonly string[] = [...JAVA_SLOT_NAMES.keys()];
+
 // Two spellings older releases had and 26.3 does not: `villager.N`, which 1.21.5 renamed
 // `mob.inventory.N`, and `horse.saddle`, which the `saddle` equipment slot replaced. Datapacks
 // written for those releases still name them, and each has one meaning here.
@@ -159,6 +187,9 @@ export const javaSlotNames = (): readonly string[] => [...JAVA_SLOT_NAMES.keys()
  */
 export const SLOT_OFFSET_LIMIT = Math.max(...[...JAVA_SLOT_NAMES.values()].flat()) + 1;
 
+/** The Java slot names Java 26.3 has, leaving out the older spellings this server still reads. */
+export const currentJavaSlotNames = (): readonly string[] => CURRENT_JAVA_SLOT_NAMES;
+
 /** A slot the holder has, nothing, or one the holder has that this server cannot write yet. */
 type SlotLookup = HeldSlot | 'missing' | 'unreachable';
 
@@ -175,25 +206,41 @@ const takesSaddle = (slot: EquippableSlot): boolean =>
     slot.acceptedItems.some((name) => name === 'saddle' || name.endsWith(':saddle'));
 
 /**
- * A mob's `inventory` slots that its `minecraft:equippable` does not claim, in order: a donkey's
+ * The container slot of the first equippable slot that passes `test`, or undefined for none.
+ *
+ * An equippable slot keeps its item in the container slot of its place in the component's list,
+ * which is where the llama's own `equip_item_slot` puts its carpet. Its `slot` is its place on
+ * Bedrock's mount screen, which is not a container index: the llama's carpet shows at 1.
+ */
+const equippableSlot = (
+    holder: Extract<SlotHolder, { kind: 'mob' }>,
+    test: (slot: EquippableSlot) => boolean
+): number | undefined => {
+    const index = holder.equippable.findIndex(test);
+    return index < 0 ? undefined : index;
+};
+
+/**
+ * A mob's `inventory` slots past the ones its `minecraft:equippable` claims, in order: a donkey's
  * or a llama's chest. A horse's two slots are both claimed, so it has none.
  */
 const chestSlotsOf = (holder: Extract<SlotHolder, { kind: 'mob' }>): number[] => {
+    if (!holder.chested) return [];
     const size = holder.inventory.containerNamed('inventory')?.size ?? 0;
-    const claimed = new Set(holder.equippable.map((slot) => slot.slot));
-    return Array.from({ length: size }, (_unused, slot) => slot).filter((slot) => !claimed.has(slot));
+    const claimed = holder.equippable.length;
+    return Array.from({ length: Math.max(0, size - claimed) }, (_unused, index) => claimed + index);
 };
 
 /** Where a mob's equipment slot is, including a mount's body armor in its own container slot. */
 const mobEquipmentSlot = (holder: Extract<SlotHolder, { kind: 'mob' }>, slot: MobEquipmentSlot): SlotLookup => {
     if (slot === 'body' && holder.containerType === 'horse') {
-        // A mount wears its armor or its carpet in the container slot its equippable lists for
-        // it, so the horse's screen shows it there. Once a write lands there the body reads it.
-        const armor = holder.equippable.find((entry) => !takesSaddle(entry));
+        // A mount wears its armor or its carpet in the container slot of its equippable entry,
+        // so the mount's screen shows it there. Once a write lands there the body reads it.
+        const armor = equippableSlot(holder, (entry) => !takesSaddle(entry));
         const current = holder.inventory.equipmentAddress('body');
         if (current?.container === 'inventory') return current;
-        if (armor !== undefined && holder.inventory.containerNamed('inventory')?.has(armor.slot) === true)
-            return { container: 'inventory', slot: armor.slot, alias: 'body' };
+        if (armor !== undefined && holder.inventory.containerNamed('inventory')?.has(armor) === true)
+            return { container: 'inventory', slot: armor, alias: 'body' };
     }
     return holder.inventory.equipmentAddress(slot) ?? 'missing';
 };
@@ -217,8 +264,8 @@ const mobJavaSlot = (holder: Extract<SlotHolder, { kind: 'mob' }>, id: number): 
     const equipment = EQUIPMENT_OF_JAVA_ID.get(id);
     if (equipment !== undefined) return mobEquipmentSlot(holder, equipment);
     if (id === JAVA_SADDLE) {
-        const saddle = holder.equippable.find(takesSaddle);
-        return saddle === undefined ? 'missing' : inventorySlot(holder.inventory, saddle.slot);
+        const saddle = equippableSlot(holder, takesSaddle);
+        return saddle === undefined ? 'missing' : inventorySlot(holder.inventory, saddle);
     }
 
     const type = holder.containerType;
@@ -287,10 +334,8 @@ const bedrockGroupSlots = (holder: SlotHolder, group: string): readonly SlotLook
         case 'slot.enderchest':
             return all('ender_chest');
         case 'slot.saddle': {
-            const saddle = holder.kind === 'mob' ? holder.equippable.find(takesSaddle) : undefined;
-            return saddle === undefined
-                ? []
-                : [inventorySlot(inventory, saddle.slot)].filter((slot) => slot !== 'missing');
+            const saddle = holder.kind === 'mob' ? equippableSlot(holder, takesSaddle) : undefined;
+            return saddle === undefined ? [] : [inventorySlot(inventory, saddle)].filter((slot) => slot !== 'missing');
         }
         case 'slot.chest':
             return holder.kind === 'mob' && holder.containerType === 'horse'
@@ -299,7 +344,7 @@ const bedrockGroupSlots = (holder: SlotHolder, group: string): readonly SlotLook
         case 'slot.equippable':
             return holder.kind === 'mob'
                 ? holder.equippable
-                      .map((entry) => inventorySlot(inventory, entry.slot))
+                      .map((_entry, index) => inventorySlot(inventory, index))
                       .filter((slot) => slot !== 'missing')
                 : [];
         default:
