@@ -561,7 +561,8 @@ or as a herd's first member, is grown, as Java's `AgeableMob.finalizeSpawn` leav
 rabbit and strider spawn rules give the baby roll to the herd's later members instead: every rabbit
 after the first is a baby, and each later strider is one half the time. The vanilla fox rule already
 makes a fox herd's third member on a baby, as Java does. The `variant-at-spawn`, `tropical-fish-look`,
-`jockey-riders`, `jockey-chance` and `lone-spawn-grown` rows check each rule against Java.
+`jockey-riders` and `jockey-chance` rows check those rules against Java, and the `lone-spawn-grown`
+rows check that the four mobs spawn grown on their own.
 
 One cycle reads the pool's cap, samples 8 chunks within 4 chunks of each player, tries 3 positions
 per chunk for the surface pass and 3 for the underground pass, collects every rule condition that
