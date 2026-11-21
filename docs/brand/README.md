@@ -145,7 +145,8 @@ into the favicon, the touch icons and the web app manifest, which are not checke
   from the accent figure tiles on the light page and from the ink surfaces on the dark one. A
   selectable tile, such as a parity group, is a figure tile and stays accent when selected.
 - Grids are tight: `10px` gaps (`--jsp-gap`) between solid blocks.
-- A page's blocks sit in one centered column. A page may break out of it once, with a full-width band:
+- A page's blocks sit in one centered column, `--jsp-page-width` wide with a `--jsp-page-gutter` on
+  each side, which is 16px on phones. A page may break out of it once, with a full-width band:
   a deep surface from one edge of the window to the other, square-cornered, with its content centered.
   Keep it for the one thing the page most wants tried. On the landing page that is the demo server.
 - Every control shows a signal-orange focus ring when reached by keyboard, with an ink band between
@@ -347,6 +348,8 @@ component, give it a line there, register it in `theme/index.ts`, and run `pnpm 
 | `LatestRelease`    | The newest release's version, date and first changes.                                                                                                                |
 | `ReleaseNotes`     | Release notes from the changelog, with long groups collapsed.                                                                                                        |
 | `PackageDirectory` | A filterable grid of the published packages.                                                                                                                         |
+| `AddonMarket`      | The addon marketplace: a console line that filters the cards as you type, publisher and tag filters, and a card per addon.                                           |
+| `AddonPage`        | One addon's page: its install command with Copy, deprecation and review notices, screenshots, README and versions.                                                   |
 | `Ticker`           | A looping banner of short phrases, with a Pause button.                                                                                                              |
 <!-- /fact -->
 

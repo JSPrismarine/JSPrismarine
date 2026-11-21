@@ -24,7 +24,9 @@
     },
     "devDependencies": {
         "@resvg/resvg-js": "2.6.2",
+        "@types/markdown-it": "14.2.0",
         "focus-trap": "8.2.5",
+        "markdown-it": "14.3.3",
         "minisearch": "7.2.0",
         "satori": "0.63.2",
         "tinykeys": "4.0.1",

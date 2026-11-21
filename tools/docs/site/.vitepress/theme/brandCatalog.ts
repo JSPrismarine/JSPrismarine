@@ -23,6 +23,10 @@ export const brandPurposes = {
     LatestRelease: "The newest release's version, date and first changes.",
     ReleaseNotes: 'Release notes from the changelog, with long groups collapsed.',
     PackageDirectory: 'A filterable grid of the published packages.',
+    AddonMarket:
+        'The addon marketplace: a console line that filters the cards as you type, publisher and tag filters, and a card per addon.',
+    AddonPage:
+        "One addon's page: its install command with Copy, deprecation and review notices, screenshots, README and versions.",
     Ticker: 'A looping banner of short phrases, with a Pause button.'
 } as const;
 

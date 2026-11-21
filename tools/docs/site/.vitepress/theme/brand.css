@@ -44,6 +44,9 @@
     --jsp-input-size: 16px;
     /* Touch targets on phones. */
     --jsp-target: 44px;
+    /* The widest column a page sets its text and grids in, and the gutter beside it. */
+    --jsp-page-width: 1152px;
+    --jsp-page-gutter: 24px;
     --jsp-term-text: color-mix(in srgb, var(--jsp-cream) 85%, var(--jsp-mint));
     --jsp-term-bar: color-mix(in srgb, var(--jsp-ink) 85%, var(--jsp-accent));
     --jsp-term-muted: color-mix(in srgb, var(--jsp-ink) 30%, var(--jsp-mint));
@@ -299,6 +302,13 @@
     box-shadow: inset -1px 0 0 var(--jsp-dark-edge);
 }
 
+/* Phones keep a 16px gutter beside the page column. */
+@media (max-width: 760px) {
+    :root {
+        --jsp-page-gutter: 16px;
+    }
+}
+
 /* On phones, code wraps instead of running off the screen edge with no sign that it scrolls. */
 @media (max-width: 640px) {
     /* Break between words and at the hyphens names already have, never inside a word. */
@@ -390,7 +400,7 @@
 
 /* Pages with `pageClass: is-wide` use the full content width for their grids. */
 .is-wide .VPDoc:not(.has-sidebar) :is(.container, .content, .content-container) {
-    max-width: 1152px;
+    max-width: var(--jsp-page-width);
 }
 
 .is-wide .VPDoc.has-sidebar .content-container {

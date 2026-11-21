@@ -1,6 +1,6 @@
 /**
- * The site's Addons section, read from the addons under `addons/`: the catalog the section's
- * overview lists, a page per addon from its README, and the reusable release workflow's inputs.
+ * JSPrismarine's own addons, read from `addons/`: the catalog `docs/addons/README.md` lists on
+ * GitHub, and the reusable release workflow's inputs. The site's marketplace is `addonMarket.mts`.
  * Each addon goes through `readAddons` from `@jsprismarine/addon-tools`, the same check the build
  * runs, so the site lists exactly the addons and versions a release would publish.
  */
@@ -14,7 +14,7 @@ import type { Addon } from '../../packages/addon-tools/src/addon.ts';
 import { readAddons } from '../../packages/addon-tools/src/build.ts';
 import { isRecord } from '../../scripts/isRecord.mts';
 import { repoRoot } from './project.mts';
-import { addonReadmePath, findUnfencedLine, pageTitle } from './sections.mts';
+import { addonReadmePath } from './sections.mts';
 
 /** The folder of JSPrismarine's own addons. */
 export const addonsDirectory = path.join(repoRoot, 'addons');
@@ -50,44 +50,13 @@ export function addonCatalog(addons: readonly Addon[], command: string): string 
     if (addons.length === 0) return '\nJSPrismarine has not published any addons yet.\n';
     const sections = addons.map((addon) =>
         [
-            `### [${pageTitle(addonReadme(addon), addon.name)}](../../${addonReadmePath(addon.name)})`,
+            `### [${addon.title}](../../${addonReadmePath(addon.name)})`,
             addon.description,
             summaryTable(addon),
             `\`\`\`text\n${installCommand(command, addon)}\n\`\`\``
         ].join('\n\n')
     );
     return `\n${sections.join('\n\n')}\n`;
-}
-
-/**
- * An addon's page on the site: its README, with the version, the oldest server, the license and
- * the install command after the README's introduction. Links are relative to the README, as the
- * docs build rewrites them.
- *
- * @param command - The console command that installs addons.
- */
-export function addonPage(addon: Addon, command: string): string {
-    const readme = addonReadme(addon).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-    const lines = readme.split('\n');
-    const title = findUnfencedLine(lines, 0, /^# /);
-    const firstSection = findUnfencedLine(lines, title + 1, /^## /);
-    const split = firstSection === -1 ? lines.length : firstSection;
-    const intro = lines.slice(0, split).join('\n').trimEnd();
-    const rest = lines.slice(split).join('\n').trim();
-    const install = [
-        summaryTable(addon),
-        // Relative to the README, like every other link on the page.
-        `Install it from the [server console](../../docs/guide/installing-addons.md):`,
-        `\`\`\`text\n${installCommand(command, addon)}\n\`\`\``
-    ].join('\n\n');
-    const frontMatter = [
-        '---',
-        `title: ${JSON.stringify(pageTitle(readme, addon.name))}`,
-        `description: ${JSON.stringify(addon.description)}`,
-        '---'
-    ].join('\n');
-    const heading = title === -1 ? `# ${addon.name}\n\n` : '';
-    return `${frontMatter}\n\n${heading}${intro ? `${intro}\n\n` : ''}${install}\n${rest ? `\n${rest}\n` : ''}`;
 }
 
 /** One input of a reusable workflow. */

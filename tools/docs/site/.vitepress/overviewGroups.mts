@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { linkRoute } from '../../sections.mts';
 import { plainText } from './markdownText.ts';
 
 const siteDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,9 +19,6 @@ export interface OverviewGroup {
     items: OverviewLink[];
     text: string;
 }
-
-/** A staged link as a route: no `.md`, and a folder's index as the folder. */
-const linkRoute = (link: string) => link.replace(/\.md(?=#|$)/, '').replace(/\/index(?=#|$)/, '/');
 
 /**
  * The groups of a staged overview page (`<dir>/index.md`): each second-level heading with the first

@@ -12,15 +12,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { codeAnchor } from '../../packages/errors/src/JSPrismarineError.ts';
-import { addonPage, loadAddons } from './addons.mts';
+import { addonJsonLd, buildMarket, cachedDownloader, MARKET_MEDIA_DIRECTORY } from './addonMarket.mts';
+import { addonReadme, loadAddons } from './addons.mts';
 import { runStep } from './build-cache.mts';
 import { loadErrors } from './code-data.mts';
 import { applyFacts, loadFacts } from './facts.mts';
+import { loadListingsLock } from './listings.mts';
+import { loadProject } from './project.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
     addonPagePath,
     addonReadmePath,
     isUnpublished,
+    linkRoute,
     pageSummary,
     pageTitle,
     rootPages,
@@ -121,30 +125,31 @@ rmSync(repoImageDir, { recursive: true, force: true });
 function rewriteLinks(markdown: string, sourceFile: string) {
     return markdown.replace(
         /\]\(((?!https?:|mailto:|#)[^)\s#]+)(#[^)\s]*)?\)/g,
-        (_match, target: string, anchor = '') => {
-            const resolved = path.resolve(path.dirname(sourceFile), target);
-            const rootPage = rootSources.get(resolved);
-            // VitePress adds the base to site-absolute links.
-            if (rootPage) return `](/${rootPage.replace(/\.md$/, '')}${anchor})`;
-            const section = sections.find(({ dir }) => resolved.startsWith(path.join(docsRoot, dir) + path.sep));
-            const published =
-                sectionDirs.some((dir) => resolved === dir) ||
-                (section !== undefined &&
-                    !isUnpublished(section, path.relative(path.join(docsRoot, section.dir), resolved)));
-            if (!published) {
-                const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
-                if (IMAGE.test(resolved) && !repoPath.startsWith('../') && existsSync(resolved)) {
-                    mkdirSync(path.dirname(path.join(repoImageDir, repoPath)), { recursive: true });
-                    copyFileSync(resolved, path.join(repoImageDir, repoPath));
-                    return `](/repo/${repoPath}${anchor})`;
-                }
-                return `](${blobUrl}/${repoPath}${anchor})`;
-            }
-            // Site-absolute, so a root page links into a section as reliably as a page inside it.
-            const sitePath = toSitePage(path.relative(docsRoot, resolved)).split(path.sep).join('/');
-            return `](/${sitePath}${anchor})`;
-        }
+        (_match, target: string, anchor = '') => `](${linkTarget(target, sourceFile)}${anchor})`
     );
+}
+
+/** Where a relative link from a source file opens on the site; see {@link rewriteLinks}. */
+function linkTarget(target: string, sourceFile: string) {
+    const resolved = path.resolve(path.dirname(sourceFile), target);
+    const rootPage = rootSources.get(resolved);
+    // VitePress adds the base to site-absolute links.
+    if (rootPage) return `/${rootPage.replace(/\.md$/, '')}`;
+    const section = sections.find(({ dir }) => resolved.startsWith(path.join(docsRoot, dir) + path.sep));
+    const published =
+        sectionDirs.some((dir) => resolved === dir) ||
+        (section !== undefined && !isUnpublished(section, path.relative(path.join(docsRoot, section.dir), resolved)));
+    if (!published) {
+        const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
+        if (IMAGE.test(resolved) && !repoPath.startsWith('../') && existsSync(resolved)) {
+            mkdirSync(path.dirname(path.join(repoImageDir, repoPath)), { recursive: true });
+            copyFileSync(resolved, path.join(repoImageDir, repoPath));
+            return `/repo/${repoPath}`;
+        }
+        return `${blobUrl}/${repoPath}`;
+    }
+    // Site-absolute, so a root page links into a section as reliably as a page inside it.
+    return `/${toSitePage(path.relative(docsRoot, resolved)).split(path.sep).join('/')}`;
 }
 
 /** Lists a section's top-level pages, each with its opening sentence, for sections whose source has no README. */
@@ -194,7 +199,8 @@ for (const section of sections) {
             copyFileSync(path.join(sourceDir, entry), path.join(targetDir, entry));
             continue;
         }
-        if (!entry.endsWith('.md')) continue;
+        // A generated section's pages come from the build, below, so its Markdown stays on GitHub.
+        if (!entry.endsWith('.md') || section.generated) continue;
         const target = path.join(targetDir, toSitePage(entry));
         mkdirSync(path.dirname(target), { recursive: true });
         const sourceFile = path.join(sourceDir, entry);
@@ -202,17 +208,87 @@ for (const section of sections) {
         pages++;
     }
     const index = path.join(targetDir, 'index.md');
-    if (!existsSync(index)) writeFileSync(index, indexPage(section, targetDir));
+    if (!section.generated && !existsSync(index)) writeFileSync(index, indexPage(section, targetDir));
 }
-// The Addons section's overview is staged; each addon's page joins it.
-const addonCommand = facts.get('addons.command');
-if (!addonCommand) throw new Error('The docs facts no longer name the console command that installs addons.');
-for (const addon of addons) {
-    const page = path.join(siteDir, addonPagePath(addon.name));
-    if (addon.name === 'index' || existsSync(page))
-        throw new Error(`The addon ${addon.name} would replace the page ${path.relative(siteDir, page)}; rename one.`);
-    const readme = path.join(repoRoot, addonReadmePath(addon.name));
-    writeFileSync(page, stagePage(readme, addonPage(addon, addonCommand)));
+// The Addons section's overview is the marketplace, with a page per addon, JSPrismarine's from
+// addons/ and other people's from the snapshot in addons/listings.lock.json.
+const project = loadProject();
+const marketBuild = await buildMarket({
+    firstParty: addons,
+    lock: loadListingsLock(),
+    serverVersion: project.version,
+    repositoryUrl: project.repositoryUrl,
+    firstPartyReadme: (addon) => applyFacts(addonReadme(addon), facts).text,
+    firstPartyLink: (addon, href) => {
+        const [target = '', anchor] = href.split('#');
+        const readme = path.join(repoRoot, addonReadmePath(addon.name));
+        const url = target === '' ? '' : linkTarget(target, readme);
+        // The README reaches its page as HTML, which VitePress does not turn into routes, so this does.
+        return linkRoute(anchor === undefined ? url : `${url}#${anchor}`);
+    },
+    download: cachedDownloader(
+        path.join(repoRoot, 'node_modules', '.cache', 'jsprismarine', 'addon-listings'),
+        (message) => console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message)
+    )
+});
+const marketMedia = path.join(publicDir, MARKET_MEDIA_DIRECTORY);
+rmSync(marketMedia, { recursive: true, force: true });
+for (const [file, bytes] of marketBuild.media) {
+    mkdirSync(path.dirname(path.join(publicDir, file)), { recursive: true });
+    writeFileSync(path.join(publicDir, file), bytes);
+}
+/** A page's front matter; JSON is YAML, so each value is written as JSON. */
+const frontMatter = (fields: Record<string, unknown>) =>
+    `---\n${Object.entries(fields)
+        .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+        .join('\n')}\n---\n`;
+const addonsDir = path.join(siteDir, 'addons');
+mkdirSync(addonsDir, { recursive: true });
+writeFileSync(path.join(addonsDir, 'market.json'), JSON.stringify(marketBuild.market));
+writeFileSync(
+    path.join(addonsDir, 'index.md'),
+    `${frontMatter({
+        title: 'Addons',
+        description:
+            'Behavior packs you add to a running JSPrismarine server from its console: find one, copy its install command, or list your own.',
+        layout: 'page',
+        sidebar: false,
+        aside: false
+    })}
+<script setup>
+import market from './market.json';
+</script>
+
+<AddonMarket :market="market" />
+`
+);
+for (const addonPage of marketBuild.pages) {
+    const relative = `${addonPage.path.replace(/^\//, '')}`;
+    const page = path.join(siteDir, `${relative}.md`);
+    if (path.basename(page) === 'index.md' || existsSync(page))
+        throw new Error(
+            `The addon ${addonPage.id} would replace the page ${path.relative(siteDir, page)}; rename one.`
+        );
+    mkdirSync(path.dirname(page), { recursive: true });
+    // The data goes in a file of its own: a README's text in the page itself could close its script tag.
+    writeFileSync(`${page.slice(0, -'.md'.length)}.addon.json`, JSON.stringify(addonPage));
+    writeFileSync(
+        page,
+        `${frontMatter({
+            title: addonPage.title,
+            description: addonPage.description,
+            layout: 'page',
+            sidebar: false,
+            aside: false,
+            jsonLd: addonJsonLd(addonPage)
+        })}
+<script setup>
+import addon from './${path.basename(relative)}.addon.json';
+</script>
+
+<AddonPage :addon="addon" />
+`
+    );
     pages++;
 }
 for (const { source, page } of rootPages) {
@@ -226,7 +302,7 @@ if (staleFacts.length) {
     console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
 }
 console.log(
-    `Staged ${pages} pages from ${sections.length} doc sections, ${addons.length} addon READMEs and ${rootPages.length} root documents.`
+    `Staged ${pages} pages from ${sections.length} doc sections, ${marketBuild.pages.length} addons and ${rootPages.length} root documents.`
 );
 
 // A split domain's errors moved from its page to a page per module, so the site forwards old links.

@@ -4,22 +4,28 @@ import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        href: string; /** `outline` sits on forest or ink; `secondary` sits on the page background. */
+        /** Where it goes; without one it is a `<button>` for the page to handle. */
+        href?: string; /** `outline` sits on forest or ink; `secondary` sits on the page background. */
         variant?: 'primary' | 'outline' | 'secondary';
     }>(),
     { variant: 'primary' }
 );
 /** Site paths get the deploy base; full URLs are left alone. */
-const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withBase(props.href)));
+const target = computed(() =>
+    props.href === undefined ? undefined : /^[a-z]+:/i.test(props.href) ? props.href : withBase(props.href)
+);
 </script>
 
 <template>
-    <a class="brand-button" :class="`is-${variant}`" :href="target"><slot /></a>
+    <a v-if="target !== undefined" class="brand-button" :class="`is-${variant}`" :href="target"><slot /></a>
+    <button v-else type="button" class="brand-button" :class="`is-${variant}`"><slot /></button>
 </template>
 
 <style scoped>
 .brand-button {
     display: inline-block;
+    font-family: var(--vp-font-family-base);
+    cursor: pointer;
     padding: 13px 22px;
     font-size: 17px;
     font-weight: 800;
@@ -77,6 +83,16 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
 
 .is-secondary:hover {
     background: var(--vp-c-bg-soft);
+}
+
+/* A button with nothing to do yet is an outline in the muted terminal color, and does not move. */
+.brand-button:disabled {
+    color: var(--jsp-term-muted);
+    cursor: default;
+    background: transparent;
+    border-color: var(--jsp-term-muted);
+    box-shadow: none;
+    transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

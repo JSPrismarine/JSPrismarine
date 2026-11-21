@@ -5,6 +5,8 @@ import type { Component } from 'vue';
 import './brand.css';
 import './site-menu/site-menu.css';
 import type { BrandComponentName } from './brandCatalog';
+import AddonMarket from './components/AddonMarket.vue';
+import AddonPage from './components/AddonPage.vue';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
@@ -34,6 +36,8 @@ import ServerBenchmarks from './ServerBenchmarks.vue';
  * for, and this has to hold exactly the components it lists: the brand guide's table is generated from it.
  */
 const brandComponents = {
+    AddonMarket,
+    AddonPage,
     AudienceTabs,
     BentoGrid,
     BentoTile,
