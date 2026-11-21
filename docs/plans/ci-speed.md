@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
-Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0, 1, 2, 4, 5, 6 and 7 are done,
-phases 3 and 10 are part done, and phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
+Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0 to 7 are done, phase 10 is part
+done, and phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -18,7 +18,7 @@ job list or the repository's history decide, and that comes out the same on any 
 | ------------------------------------------------------ | ----------- | ----------- | ----- |
 | Scenarios one client e2e runner plays                  | 60          | about 12    | 4     |
 | Client e2e protocol and transport runs per PR push     | 3           | 1           | 4     |
-| Parity package runs in the dashboard job per PR push   | 2           | 0           | 3     |
+| Parity package runs in the dashboard job per PR push   | 2           | 0 (done)    | 3     |
 | Jobs that only plan or merge, per PR push              | 7           | 2 (done)    | 1, 6  |
 | Jobs in a row before unit tests report                 | 4           | 2 (done)    | 6     |
 | Windows and macOS jobs per PR push, Script host aside  | 4           | 0           | 7     |
@@ -237,10 +237,14 @@ Done when a day's runs show fewer than 10 Renovate pushes and fewer than 5 relea
 pushes. Phase 7 lowers the Renovate count further, since a branch no longer has to be up to date to
 merge.
 
-### Phase 3: build the parity dashboard from results that already exist
+### Phase 3: build the parity dashboard from results that already exist (done)
 
 The dashboard job stops running tests on pull requests, and master's job stops running them twice.
-It lands in two parts. The first, #3356, keeps master's `tracker.json` and `dashboard.md` as a
+Landed in two parts, with one change to the steps below: the shards keep Vitest's JSON report
+(`vitest-report.json`, a `json` reporter beside `junit`) rather than blob reports, and the plan job
+chooses `since` as the newest commit within reach whose run kept complete inputs, so `--changed`
+and the overlay always speak of the same commit; a run that finds none runs every file. The
+nightly, a manual run and a merge group run every file and need no base. The first, #3356, keeps master's `tracker.json` and `dashboard.md` as a
 `parity-report` artifact and has a pull request download its base commit's instead of building the
 base (step 4, without the raw report and side files). The second builds the pull request's own
 dashboard from the shards (the remaining steps).

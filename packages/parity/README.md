@@ -358,8 +358,14 @@ pnpm --filter @jsprismarine/parity run dashboard
 Runs the suite with the JSON reporter and renders a Markdown table to stdout and
 `dist/dashboard.md`, one row per declared family with its status and its passed, failed,
 not-measured, intentional-difference, deferred, and defect counts. In CI the real-data job appends the table to
-`$GITHUB_STEP_SUMMARY`. On same-repository pull requests, the job also runs the dashboard at the
-PR's base commit, then creates or updates one comment comparing the current dashboard with that
+`$GITHUB_STEP_SUMMARY`. In CI the script runs no test: `--update <dir>...` reads the JSON report and
+parity side files the test shards kept, and `--base <dir>` lays them over the complete inputs an
+earlier run kept (`src/dashboard/inputs.ts`), so a shard that ran only the files a change reaches
+still yields a complete dashboard. The base is the commit `--changed` compared with: the pull
+request's base commit, or the newest earlier master commit whose run kept its inputs while the
+base's own run is still going. A run that finds none runs every file and passes no `--base`. On
+same-repository pull requests, the job downloads that commit's tracker, names the commit in the
+comment when it is not the base, and creates or updates one comment comparing the current dashboard with that
 baseline. The updater searches every comment page for its marker and edits the existing bot comment
 in place. The renderer is a pure function with its own tests,
 [`src/dashboard/render.ts`](src/dashboard/render.ts).
