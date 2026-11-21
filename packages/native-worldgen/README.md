@@ -41,6 +41,10 @@ lays a density tree out as, and `fill(corners, out)` fills a whole interpolation
 programs, its positional seed and its fluids, and `fill(densities, cell, out)` decides every block of
 an interpolation cell with the same answers as `@jsprismarine/worldgen`'s `NoiseBasedAquifer`.
 
+`native.createSurface(source)` registers a material rule program laid out for the surface pass,
+and `chunk(...)` runs it over a chunk's columns with the same blocks as `@jsprismarine/worldgen`'s
+`MaterialRuleInterpreter`, handing back the blocks that reach a condition it does not answer.
+
 `native.biomeJitter(seedHi, seedLo, x, y, z)` returns the jitter bits Java's `BiomeManager` draws
 for one biome lattice point, packed into one number.
 

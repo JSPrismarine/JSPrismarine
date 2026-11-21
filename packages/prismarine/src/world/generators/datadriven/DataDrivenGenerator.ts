@@ -2682,6 +2682,7 @@ export class DataDrivenGenerator implements Generator {
             rule: pipeline.materialRule,
             biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
             biomeCellAt: (quartX, quartY, quartZ) => biomes.cellBiome(quartX, quartY, quartZ),
+            biomeZoomSeed: biomes.zoomSeed,
             biomeClimate: pipeline.climateOf,
             sampleContext: sampler.context,
             possibleBiomes: pipeline.possibleBiomes,

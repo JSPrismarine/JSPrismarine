@@ -86,6 +86,32 @@ const UNKNOWN = 0;
 const BARREN = 1;
 const MAYBE = 2;
 
+const verdictBox: DensityBox = { minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0 };
+const verdictRange: DensityRange = { lo: 0, hi: 0 };
+
+/**
+ * Whether a vein's density cannot be positive anywhere in one cell, by its bound over the cell's
+ * box; such a cell places nothing and draws nothing. Cells are counted in `cellBound.cell` units.
+ */
+export const isBarrenVeinCell = (
+    cellBound: OreVeinCellBound,
+    context: SampleContext,
+    cellX: number,
+    cellY: number,
+    cellZ: number
+): boolean => {
+    const { xz, y: height } = cellBound.cell;
+    verdictBox.minX = cellX * xz;
+    verdictBox.minY = cellY * height;
+    verdictBox.minZ = cellZ * xz;
+    verdictBox.maxX = verdictBox.minX + xz - 1;
+    verdictBox.maxY = verdictBox.minY + height - 1;
+    verdictBox.maxZ = verdictBox.minZ + xz - 1;
+    cellBound.density(context, verdictBox, verdictRange);
+    // An unbounded range may hide a NaN density, which the placer does not turn away.
+    return Number.isFinite(verdictRange.lo) && Number.isFinite(verdictRange.hi) && verdictRange.hi <= 0;
+};
+
 /**
  * Compiles an ore vein rule into a placer.
  *
@@ -129,8 +155,6 @@ export const compileOreVeinRule = (
     const shiftY = (height & (height - 1)) === 0 ? Math.log2(height) : -1;
     const keys = new Int32Array(VERDICT_SLOTS * 3);
     const verdicts = new Uint8Array(VERDICT_SLOTS);
-    const box: DensityBox = { minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0 };
-    const range: DensityRange = { lo: 0, hi: 0 };
     // A verdict holds for the context it was reached in; a blending context can move the density.
     let verdictContext: SampleContext | undefined;
 
@@ -147,15 +171,7 @@ export const compileOreVeinRule = (
         const key = slot * 3;
         let verdict = verdicts[slot];
         if (verdict === UNKNOWN || keys[key] !== cellX || keys[key + 1] !== cellY || keys[key + 2] !== cellZ) {
-            box.minX = cellX * xz;
-            box.minY = cellY * height;
-            box.minZ = cellZ * xz;
-            box.maxX = box.minX + xz - 1;
-            box.maxY = box.minY + height - 1;
-            box.maxZ = box.minZ + xz - 1;
-            cellBound.density(context, box, range);
-            // An unbounded range may hide a NaN density, which `place` does not turn away.
-            verdict = Number.isFinite(range.lo) && Number.isFinite(range.hi) && range.hi <= 0 ? BARREN : MAYBE;
+            verdict = isBarrenVeinCell(cellBound, context, cellX, cellY, cellZ) ? BARREN : MAYBE;
             keys[key] = cellX;
             keys[key + 1] = cellY;
             keys[key + 2] = cellZ;

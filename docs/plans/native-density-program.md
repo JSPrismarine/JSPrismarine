@@ -52,6 +52,9 @@ Each step is its own pull request, proven by the bit comparison against the clos
 6. **Done: `interpolated` in point programs.** A point program lays an `interpolated` node out as a record over its input, and the C samples it per block as `compile.ts`'s `sampleAt` does: the cell's corners from a lattice cache, interpolated along x, then y, then z. The ore veins' density, richness and gap run in C this way, where they ran as closures. A sample whose context has interpolation buffers on keeps its closure, since the buffers hold the cell walk's values in Java's volume order; an `interpolated` node under another stays in TypeScript.
    - Bits: every router and aquifer tree of every vanilla setting matches its closures with buffers off, `final_density` and the vein trees among them.
    - Counts: per terrain tile, the ore vein placer's 1,837 placements evaluate their trees in C, about 2,300 more native samples a tile and that many fewer closure trees.
+7. **Done: the surface pass in C.** `SurfaceSystem` hands a chunk's columns to the native surface program in one call: the walk with its stone depth and water counters, the material rule program's ops and conditions, the jittered biome lookup over the chunk's cells, which TypeScript resolves once up to the highest column, and the ore veins over their point programs, with each cell's barren verdict from the TypeScript bound. A block that reaches `temperature`, a noise that runs in TypeScript or `bandlands` comes back with its counters for the interpreter; badlands pillars and frozen ocean icebergs stay in TypeScript, before and after the call.
+   - Bits: every dimension's vector chunk and every synthetic condition rule match Java's columns through the native pass.
+   - Counts: per run of 64 chunks, TypeScript rule runs fall from 11,051,652 to 6, and every terrain tile's surface runs in C; climate searches stay at 1,779 a tile.
 
 ## Risks
 

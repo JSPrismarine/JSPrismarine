@@ -88,6 +88,7 @@ run(compiler, [
     join(nativeDir, 'src', 'biome.c'),
     join(nativeDir, 'src', 'cell.c'),
     join(nativeDir, 'src', 'aquifer.c'),
+    join(nativeDir, 'src', 'surface.c'),
     '-lm'
 ]);
 if (!values.debug && process.platform === 'darwin') run('strip', ['-x', shared]);
