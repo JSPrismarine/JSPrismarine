@@ -49,15 +49,22 @@ export interface EntityBlockState {
     readonly states: Readonly<Record<string, string | number | boolean>>;
 }
 
-/** A Bedrock equipment slot watched by `minecraft:on_equipment_changed`. */
-export type EntityEquipmentSlot =
-    | 'slot.armor.body'
-    | 'slot.armor.chest'
-    | 'slot.armor.feet'
-    | 'slot.armor.head'
-    | 'slot.armor.legs'
-    | 'slot.weapon.mainhand'
-    | 'slot.weapon.offhand';
+/**
+ * The Bedrock equipment slots an entity component names, as `minecraft:on_equipment_changed`
+ * and `minecraft:burns_in_daylight` spell them.
+ */
+export const ENTITY_EQUIPMENT_SLOT_NAMES = [
+    'slot.armor.body',
+    'slot.armor.chest',
+    'slot.armor.feet',
+    'slot.armor.head',
+    'slot.armor.legs',
+    'slot.weapon.mainhand',
+    'slot.weapon.offhand'
+] as const;
+
+/** One of {@link ENTITY_EQUIPMENT_SLOT_NAMES}. */
+export type EntityEquipmentSlot = (typeof ENTITY_EQUIPMENT_SLOT_NAMES)[number];
 
 /**
  * What a goal does to the entity it runs on.

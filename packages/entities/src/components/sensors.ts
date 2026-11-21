@@ -9,6 +9,7 @@ import { parseEventTarget } from '../events';
 import { damagerSubjects, isPlayerView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityEquipmentSlot, EntityHooks } from '../hooks';
+import { ENTITY_EQUIPMENT_SLOT_NAMES } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { TriggerComponentParams } from '../triggers';
 import type { ComponentRecord } from './schemas';
@@ -714,16 +715,6 @@ export interface EquipmentChangedParams {
     readonly slots: readonly EquipmentChangedSlot[];
 }
 
-const EQUIPMENT_CHANGED_SLOTS: readonly EntityEquipmentSlot[] = [
-    'slot.armor.body',
-    'slot.armor.chest',
-    'slot.armor.feet',
-    'slot.armor.head',
-    'slot.armor.legs',
-    'slot.weapon.mainhand',
-    'slot.weapon.offhand'
-];
-
 /** `minecraft:on_equipment_changed`, with a distinct event for equip and unequip per slot. */
 export const equipmentChanged: ComponentFactory<EntityHooks, EquipmentChangedParams> = {
     name: 'minecraft:on_equipment_changed',
@@ -742,7 +733,7 @@ export const equipmentChanged: ComponentFactory<EntityHooks, EquipmentChangedPar
 
             if (raw.slot !== undefined && typeof raw.slot !== 'string') return rejected('slot must be a string');
             const requestedSlot = typeof raw.slot === 'string' ? raw.slot : 'slot.weapon.mainhand';
-            const slot = EQUIPMENT_CHANGED_SLOTS.find((candidate) => candidate === requestedSlot);
+            const slot = ENTITY_EQUIPMENT_SLOT_NAMES.find((candidate) => candidate === requestedSlot);
             if (slot === undefined) return rejected(`unsupported equipment slot ${requestedSlot}`);
 
             slots.push({

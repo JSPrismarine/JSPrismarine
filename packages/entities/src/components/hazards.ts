@@ -7,7 +7,7 @@ import { defineComponentState, stateField } from '../componentState';
 import type { EntityInstance } from '../entityInstance';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
-import { TICKS_PER_SECOND } from '../hooks';
+import { ENTITY_EQUIPMENT_SLOT_NAMES, TICKS_PER_SECOND } from '../hooks';
 import { asList, booleanAt, isRecord, numberAt, parseFilterValue, stringAt } from './schemas';
 import type { SensorTrigger } from './shared';
 import { parseComponentTrigger } from './shared';
@@ -106,16 +106,8 @@ export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParam
     }
 };
 
-/** Equipment slots accepted for `minecraft:burns_in_daylight` protection. */
-export const BURNS_IN_DAYLIGHT_PROTECTION_SLOTS = [
-    'slot.armor.body',
-    'slot.armor.chest',
-    'slot.armor.feet',
-    'slot.armor.head',
-    'slot.armor.legs',
-    'slot.weapon.mainhand',
-    'slot.weapon.offhand'
-] as const;
+/** Equipment slots accepted for `minecraft:burns_in_daylight` protection: every equipment slot. */
+export const BURNS_IN_DAYLIGHT_PROTECTION_SLOTS = ENTITY_EQUIPMENT_SLOT_NAMES;
 
 /** A Bedrock protection slot accepted by `minecraft:burns_in_daylight`. */
 export type BurnsInDaylightProtectionSlot = (typeof BURNS_IN_DAYLIGHT_PROTECTION_SLOTS)[number];
