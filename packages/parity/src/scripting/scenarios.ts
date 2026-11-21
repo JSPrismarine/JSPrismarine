@@ -701,6 +701,17 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'block-liquid-flow',
+        family: 'scripting.blocks',
+        description:
+            'Block.liquidCanFlowFromDirection lets water in from every side, except a slab, stairs, a shelf, a sculk ' +
+            'sensor and a heavy core, which close the sides their solid faces cover.',
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3304',
+        packs: ['flow'],
+        experiments: ['gametest'],
+        needs: 'server'
+    },
+    {
         id: 'items',
         family: 'scripting.items',
         description:
