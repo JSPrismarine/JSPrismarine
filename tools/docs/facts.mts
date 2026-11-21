@@ -23,6 +23,11 @@ import path from 'node:path';
 
 import { parse } from 'yaml';
 
+import {
+    ACTIONS as MULTIVERSE_ACTIONS,
+    PLAYER_ACTIONS,
+    PROPERTIES as MULTIVERSE_PROPERTIES
+} from '../../addons/multiverse/src/worlds.ts';
 import { PLACEHOLDERS } from '../../addons/standard-placeholders/src/placeholders.ts';
 import { DEFAULT_INTERVAL, EVENTS as TAB_LIST_EVENTS } from '../../addons/tab-list/src/templates.ts';
 import { MSPT_LEVELS, TICK_BUDGET_MS, TPS_LEVELS } from '../../addons/tps-bar/src/bar.ts';
@@ -1389,6 +1394,20 @@ function standardPlaceholdersFacts() {
     return { 'addons.standard-placeholders.keys': `\n${table(['Token', 'What it renders'], rows)}\n` };
 }
 
+/** Multiverse's actions and rules, read from the module that decides them. */
+function multiverseFacts() {
+    return {
+        'addons.multiverse.playerActions': list(PLAYER_ACTIONS.map(inlineCode)),
+        'addons.multiverse.operatorActions': list(
+            MULTIVERSE_ACTIONS.filter((action) => !PLAYER_ACTIONS.includes(action)).map(inlineCode)
+        ),
+        'addons.multiverse.properties': `\n${table(
+            ['Property', 'Value'],
+            Object.entries(MULTIVERSE_PROPERTIES).map(([property, value]) => [inlineCode(property), value])
+        )}\n`
+    };
+}
+
 /** The tab list's default interval and script event ids, read from the module that decides them. */
 function tabListFacts() {
     const id = (kind: keyof typeof TAB_LIST_EVENTS): string => inlineCode(TAB_LIST_EVENTS[kind]);
@@ -1521,6 +1540,7 @@ export async function loadFacts(): Promise<Facts> {
             ...tpsBarFacts(),
             ...standardPlaceholdersFacts(),
             ...tabListFacts(),
+            ...multiverseFacts(),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
