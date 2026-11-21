@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 5 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Every phase is built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -245,7 +245,7 @@ the built site.
    2. Done: the addon pages and the marketplace.
    3. Done: Parity and Benchmarks.
 5. Done: `/api/llms.txt` from the package areas, and a Markdown copy of every API page.
-6. The `<link rel="alternate">` head entry.
+6. Done: the `<link rel="alternate">` head entry, on every page that has a Markdown copy.
 
 Each phase is one pull request, and each leaves the site working with what it adds.
 
