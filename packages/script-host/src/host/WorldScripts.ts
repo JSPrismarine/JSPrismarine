@@ -51,6 +51,8 @@ import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSou
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
 import { bossBarOptions, ScriptBossBars } from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
+import type { TemplateHost } from './templates';
+import { parseShorthand, renderTemplate, templateOf } from './templates';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -282,6 +284,16 @@ const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPla
 
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
 const unrecognized = (name: string): ReferenceError => new ScriptHostErrors.UnrecognizedModule({ name });
+
+/** A template as the pack's `JSON.stringify` wrote it, parsed; the renderer checks its shape after. */
+const templateJson = (source: string): unknown => {
+    try {
+        // The pack's own JSON.stringify wrote it, so only a value JSON cannot carry fails here.
+        return JSON.parse(source) as unknown;
+    } catch {
+        throw new ScriptHostErrors.TemplateInvalid({ where: 'template', problem: 'must be an object JSON can carry' });
+    }
+};
 
 /** A thrown value as the content log shows it: a script's error with its stack, anything else as text. */
 const describeThrown = (error: unknown): string => {
@@ -973,7 +985,32 @@ export class WorldScripts {
                     const player = value === undefined ? undefined : playerOf(value, member);
                     return this.placeholders.resolve(text, player?.present === true ? player.id : undefined);
                 },
-                namespaces: () => JSON.stringify(this.placeholders.namespaces())
+                namespaces: () => JSON.stringify(this.placeholders.namespaces()),
+                parseTemplate: (shorthand) => {
+                    if (typeof shorthand !== 'string') {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'placeholders.parse',
+                            expected: 'a string',
+                            argument: 'shorthand'
+                        });
+                    }
+                    return JSON.stringify(parseShorthand(shorthand));
+                },
+                renderTemplate: (source, shorthand, value) => {
+                    const member = 'placeholders.render';
+                    if (typeof source !== 'string') {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member,
+                            expected: 'a template or a string',
+                            argument: 'template'
+                        });
+                    }
+                    const player = value === undefined ? undefined : playerOf(value, member);
+                    const template = shorthand === true ? parseShorthand(source) : templateOf(templateJson(source));
+                    return JSON.stringify(
+                        renderTemplate(template, this.templateHost(player?.present === true ? player.id : undefined))
+                    );
+                }
             };
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
             const fn = engine.hostFunction(name, functions[name]);
@@ -981,6 +1018,41 @@ export class WorldScripts {
             engine.free(fn);
         }
         return host;
+    }
+
+    /** What a render reads from the world, for the player the text is for. */
+    private templateHost(player: string | undefined): TemplateHost {
+        const world = this.options.world;
+        const nameOf = (id: string): string | undefined => {
+            const entity = world.entity(id);
+            return entity?.name ?? (entity === undefined ? undefined : entity.nameTag);
+        };
+        return {
+            tick: this.tick,
+            placeholder: (namespace, key) => this.placeholders.value(namespace, key, player),
+            score: (name, objective) => {
+                const scoreboard = world.scoreboard;
+                if (scoreboard.objective(objective) === undefined) return undefined;
+                const ref =
+                    name === '*' || name === '@s' ? (player === undefined ? undefined : { entity: player }) : { name };
+                const participant = ref === undefined ? undefined : scoreboard.participant(ref);
+                return participant === undefined ? undefined : scoreboard.score(objective, participant.id);
+            },
+            selector: (selector) => {
+                if (selector === '@a' || selector === '@e') {
+                    return world
+                        .players()
+                        .map(nameOf)
+                        .filter((name) => name !== undefined)
+                        .join(', ');
+                }
+                if (selector === '@s' || selector === '@p' || selector === '@r') {
+                    const id = selector === '@s' ? player : (player ?? world.players()[0]);
+                    return id === undefined ? undefined : nameOf(id);
+                }
+                return selector.startsWith('@') ? undefined : selector;
+            }
+        };
     }
 
     /**

@@ -51,7 +51,25 @@ if (jsp !== undefined) {
         // @ts-expect-error The list is read-only.
         placeholders.namespaces.push({ namespace: 'x', keys: [] });
         registration.unregister();
-        void [text, names];
+        const template = placeholders.parse('{player:name} &7{player:ping}ms');
+        const tree: import('@jsprismarine/server').Template = {
+            rawtext: [
+                'Hi ',
+                { placeholder: 'player:name' },
+                { if: '{player:ping} > 150', then: [{ text: ' §c' }], else: [' §7'] },
+                { animate: { interval: 10, frames: [[{ text: '.' }], ['..']] } },
+                { gradient: { colors: ['#ff0000', '#0000ff'], rawtext: [{ text: 'VIP' }] } },
+                { translate: 'commands.op.success', with: ['Steve'] },
+                { score: { name: '@s', objective: 'kills' } },
+                { selector: '@a' }
+            ]
+        };
+        const rendered = placeholders.render(tree, player);
+        const again = placeholders.render('{player:name}');
+        const next: number | undefined = rendered.nextChangeTick;
+        // @ts-expect-error A node kind the renderer does not know.
+        placeholders.render({ rawtext: [{ bold: true }] });
+        void [text, names, template.rawtext.length, again.text, next];
     }
 }
 

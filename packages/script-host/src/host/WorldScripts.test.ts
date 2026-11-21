@@ -1062,6 +1062,60 @@ system.run(() => {
             ]);
         });
 
+        it('parses shorthand into a frozen tree and renders a tree or shorthand for a player, with the next change tick', () => {
+            const { scripts, world, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    jsp.placeholders.register('demo', { keys: ['name', 'ping'], resolve: (key, player) => player === undefined ? undefined : key === 'name' ? player.name : 180 });
+                }, 1);`,
+                `system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    const template = jsp.placeholders.parse('{demo:name} &7{demo:ping}ms');
+                    show('parsed', () => template);
+                    show('frozen', () => [Object.isFrozen(template), Object.isFrozen(template.rawtext), Object.isFrozen(template.rawtext[0])]);
+                    show('tree', () => jsp.placeholders.render(template, steve));
+                    show('shorthand', () => jsp.placeholders.render('{demo:name} &7{demo:ping}ms', steve));
+                    show('no player', () => jsp.placeholders.render(template));
+                    const animated = { rawtext: [
+                        { if: '{demo:ping} > 150', then: ['§c', { placeholder: 'demo:ping' }], else: ['§7fast'] },
+                        { animate: { interval: 10, frames: [['.'], ['..']] } },
+                        { gradient: { colors: ['#ff5555', '#5555ff'], rawtext: ['VIP'] } },
+                        { score: { name: '@s', objective: 'kills' } }, ' ', { score: { name: 'Nobody', objective: 'kills' } },
+                        ' ', { selector: '@s' }, '|', { selector: '@a' }, '|', { selector: 'Alex' }, '|', { selector: '@e[type=pig]' },
+                        ' ', { translate: 'commands.op.success', with: ['x'] }
+                    ] };
+                    show('animated', () => jsp.placeholders.render(animated, steve));
+                    show('rendered frozen', () => Object.isFrozen(jsp.placeholders.render(animated, steve)));
+                    show('bad node', () => jsp.placeholders.render({ rawtext: [{ bold: true }] }));
+                    show('bad condition', () => jsp.placeholders.render({ rawtext: [{ if: '{demo:ping} >', then: [] }] }));
+                    show('not a template', () => jsp.placeholders.render(7));
+                    show('not a player', () => jsp.placeholders.render('x', { id: '1' }));
+                    show('not shorthand', () => jsp.placeholders.parse(7));
+                }, 2);`
+            );
+            const steve = world.join('Steve');
+            world.join('Alex');
+            world.scoreboard.addObjective('kills', 'Kills');
+            world.scoreboard.setScore('kills', { entity: steve }, 7);
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'parsed {"rawtext":[{"placeholder":"demo:name"},{"text":" §7"},{"placeholder":"demo:ping"},{"text":"ms"}]}',
+                'frozen [true,true,true]',
+                'tree {"text":"Steve §7180ms"}',
+                'shorthand {"text":"Steve §7180ms"}',
+                'no player {"text":"{demo:name} §7{demo:ping}ms"}',
+                'animated {"text":"§c180.§cV§uI§9P§r7  Steve|Steve, Alex|Alex| commands.op.success","nextChangeTick":10}',
+                'rendered frozen true',
+                'bad node TypeError: The template node at template.rawtext[0] must be a text, placeholder, if, animate, gradient, translate, score or selector node',
+                'bad condition TypeError: The condition {demo:ping} > expects a value, a placeholder or a quoted text at its end',
+                'not a template TypeError: The template node at template must be an object with a rawtext list',
+                'not a player TypeError: placeholders.render takes a Player as its player',
+                'not shorthand TypeError: placeholders.parse takes a string as its shorthand'
+            ]);
+        });
+
         it('passes no player to a resolver for a player who left', () => {
             const { scripts, world, log } = startTwoPacks(
                 `system.runTimeout(() => {

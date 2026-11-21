@@ -433,6 +433,19 @@ export const ScriptHostErrors = defineErrors('script-host', {
      */
     PlaceholderNamespaceTaken: 'The placeholder namespace {namespace} is registered already',
     /**
+     * A pack passed `placeholders.render` or `placeholders.parse` a template with a node the
+     * renderer does not know, or a node whose property is of the wrong type or value. `where`
+     * is the path to the node in the template. The script sees a `TypeError`. Give each node the
+     * shape the module's `TemplateNode` type declares.
+     */
+    TemplateInvalid: { message: 'The template node at {where} {problem}', base: TypeError },
+    /**
+     * An `if` node's condition did not parse: comparisons with `==`, `!=`, `<`, `<=`, `>`, `>=`,
+     * `contains` and `startsWith` between placeholders and literals, joined by `&&` and `||`,
+     * with parentheses. The script sees a `TypeError`. Fix the condition where the message says.
+     */
+    TemplateCondition: { message: 'The condition {condition} {problem}', base: TypeError },
+    /**
      * A script closed the forms of a player who has left. The script sees Bedrock Dedicated
      * Server's `Error`.
      */

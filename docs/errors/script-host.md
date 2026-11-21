@@ -769,6 +769,27 @@ The host scheduled a script task with a delay that is not a finite number. The S
 argument check refuses those first, as Bedrock Dedicated Server does, so this is a bug in the
 script host.
 
+## `SCRIPT_HOST_TEMPLATE_CONDITION`
+
+`The condition {condition} {problem}`
+
+Thrown as `ScriptHostErrors.TemplateCondition`, which extends `TypeError`.
+
+An `if` node's condition did not parse: comparisons with `==`, `!=`, `<`, `<=`, `>`, `>=`,
+`contains` and `startsWith` between placeholders and literals, joined by `&&` and `||`,
+with parentheses. The script sees a `TypeError`. Fix the condition where the message says.
+
+## `SCRIPT_HOST_TEMPLATE_INVALID`
+
+`The template node at {where} {problem}`
+
+Thrown as `ScriptHostErrors.TemplateInvalid`, which extends `TypeError`.
+
+A pack passed `placeholders.render` or `placeholders.parse` a template with a node the
+renderer does not know, or a node whose property is of the wrong type or value. `where`
+is the path to the node in the template. The script sees a `TypeError`. Give each node the
+shape the module's `TemplateNode` type declares.
+
 ## `SCRIPT_HOST_TEST_NO_LONGER_BOUND`
 
 `Native function [Test::{member}] object bound to prototype does not exist.`

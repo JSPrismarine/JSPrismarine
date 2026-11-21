@@ -34,7 +34,13 @@ const recordingHost = () => {
         register: record('register', () => 3),
         unregister: record('unregister', () => undefined),
         resolve: record('resolve', (text) => String(text).toUpperCase()),
-        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }]))
+        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }])),
+        parseTemplate: record('parseTemplate', (shorthand) =>
+            JSON.stringify({ rawtext: [{ text: String(shorthand) }] })
+        ),
+        renderTemplate: record('renderTemplate', (template) =>
+            JSON.stringify({ text: String(template).toUpperCase(), nextChangeTick: 20 })
+        )
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     return { host, calls };
 };
@@ -148,6 +154,32 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('passes templates to the host as JSON, shorthand as it is, and gives frozen trees back', () => {
+        const { host, calls } = recordingHost();
+        const { placeholders } = namespaceOf(host);
+        const player = { id: '-4294967295' };
+        const parse = at(placeholders, 'parse');
+        const render = at(placeholders, 'render');
+        if (typeof parse !== 'function' || typeof render !== 'function')
+            throw new TypeError('placeholders has no parse');
+
+        const template: unknown = parse('{player:name}');
+        expect(template).toEqual({ rawtext: [{ text: '{player:name}' }] });
+        expect(Object.isFrozen(template)).toBe(true);
+        expect(Object.isFrozen(at(template, 'rawtext'))).toBe(true);
+        expect(Object.isFrozen(at(at(template, 'rawtext'), '0'))).toBe(true);
+        const rendered: unknown = render(template, player);
+        expect(rendered).toEqual({ text: '{"RAWTEXT":[{"TEXT":"{PLAYER:NAME}"}]}', nextChangeTick: 20 });
+        expect(Object.isFrozen(rendered)).toBe(true);
+        render('{player:name}');
+
+        expect(calls).toEqual([
+            ['parseTemplate', '{player:name}'],
+            ['renderTemplate', '{"rawtext":[{"text":"{player:name}"}]}', false, player],
+            ['renderTemplate', '{player:name}', true, undefined]
+        ]);
+    });
+
     it('declares every member, property and type it defines, under the module name, with its summary', () => {
         const typings = jsprismarineServerTypings();
 
@@ -163,7 +195,7 @@ describe('@jsprismarine/server', () => {
         expect(typings).toContain('    export function getPing(player: Player): number | undefined;');
         expect(typings).toContain('        show(player: Player, options?: BossBarOptions): BossBar;');
         for (const [name, type] of Object.entries(JSPRISMARINE_TYPES)) {
-            const declaration = type.kind === 'union' ? `export type ${name} =` : `export interface ${name} {`;
+            const declaration = type.kind === 'interface' ? `export interface ${name} {` : `export type ${name} =`;
             expect(typings).toContain(`    /** ${type.summary} */\n    ${declaration}`);
         }
         expect(typings).toContain('        readonly color?: BossBarColor;');
@@ -177,5 +209,8 @@ describe('@jsprismarine/server', () => {
                 '        register(namespace: string, provider: PlaceholderProvider): PlaceholderRegistration;'
         );
         expect(typings).toContain('        resolve(key: string, player?: Player): string | number | undefined;');
+        expect(typings).toContain('        render(template: Template | string, player?: Player): RenderedTemplate;');
+        expect(typings).toContain('    export type TemplateNode =\n        | { readonly text: string }');
+        expect(typings).toContain('        readonly nextChangeTick?: number;');
     });
 });

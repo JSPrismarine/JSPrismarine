@@ -258,7 +258,13 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         },
                         getPing: 'function',
                         bossBars: { show: 'function' },
-                        placeholders: { namespaces: 'object', register: 'function', resolve: 'function' },
+                        placeholders: {
+                            namespaces: 'object',
+                            parse: 'function',
+                            register: 'function',
+                            render: 'function',
+                            resolve: 'function'
+                        },
                         allFrozen: true
                     }
                 },

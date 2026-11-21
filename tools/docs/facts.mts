@@ -444,6 +444,8 @@ function scriptingFacts() {
         ];
     });
     const types = Object.entries(JSPRISMARINE_TYPES).flatMap(([name, type]): string[][] => {
+        // A union of objects would break the table, so the summary says what the alias holds.
+        if (type.kind === 'alias') return [[inlineCode(name), 'type', type.summary]];
         if (type.kind === 'union') {
             return [
                 [

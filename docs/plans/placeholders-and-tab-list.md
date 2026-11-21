@@ -281,8 +281,12 @@ and clear without leaving residue, and a ranks addon can set once and keep it.
        tables, and the parity row.
 5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
        the script-event API, the README, its tests and the client-e2e scenario.
-6. [ ] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
-       condition grammar and the next-change tick.
+6. [x] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
+       condition grammar and the next-change tick. The renderer gives text, so the rawtext kinds
+       render on the server: `translate` as its key, since the server has no language table,
+       `score` from the scoreboard and `selector` as player names. A gradient colors each
+       character with the nearest of Bedrock's `§` colors and ends with `§r`. A `with` on a
+       `translate` is checked and dropped.
 7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
        guide.
 
