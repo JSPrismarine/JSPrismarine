@@ -81,47 +81,6 @@ Thrown as `PrismarineCommandErrors.ReturnOutsideFunction`, which extends `Error`
 
 `/return` was run outside an `.mcfunction` file, where it has nothing to return from.
 
-## `PRISMARINE_SNBT_EXPECTED_CHARACTER`
-
-`expected '{character}'`
-
-Thrown as `PrismarineCommandErrors.SnbtExpectedCharacter`, which extends `SnbtSyntaxError`.
-
-A function macro's arguments miss a character SNBT needs here, such as a closing brace or a
-colon.
-
-## `PRISMARINE_SNBT_EXPECTED_VALUE`
-
-`expected a value`
-
-Thrown as `PrismarineCommandErrors.SnbtExpectedValue`, which extends `SnbtSyntaxError`.
-
-A function macro's arguments have a key without a value.
-
-## `PRISMARINE_SNBT_STRING_ENDS_IN_BACKSLASH`
-
-`the string ends in a backslash`
-
-Thrown as `PrismarineCommandErrors.SnbtStringEndsInBackslash`, which extends `SnbtSyntaxError`.
-
-A function macro's arguments end inside an escape.
-
-## `PRISMARINE_SNBT_TEXT_AFTER_COMPOUND`
-
-`there is text after the compound`
-
-Thrown as `PrismarineCommandErrors.SnbtTextAfterCompound`, which extends `SnbtSyntaxError`.
-
-A function macro's arguments continue after the closing brace of the compound.
-
-## `PRISMARINE_SNBT_UNTERMINATED_STRING`
-
-`unterminated string`
-
-Thrown as `PrismarineCommandErrors.SnbtUnterminatedString`, which extends `SnbtSyntaxError`.
-
-A function macro's arguments open a quote they never close.
-
 ## `PRISMARINE_STARTUP_ONLY_SETTING`
 
 `Config key "{key}" can't be set at runtime`

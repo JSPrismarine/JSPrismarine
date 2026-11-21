@@ -1,192 +1,119 @@
-import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 /**
- * The argument compound of `/function <name> <arguments>`, read as SNBT.
+ * The argument compound of `/function <name> <arguments>` and `/function <name> with …`, read as
+ * SNBT.
  *
- * `@jsprismarine/mcfunction` reads a macro's argument compound as JSON by
- * default and says so: SNBT needs a parser the package does not own, and it
- * takes one through its `parseArguments` seam instead. This is that parser,
- * and it is deliberately only as big as the seam needs.
+ * `@jsprismarine/mcfunction` reads a macro's argument compound as JSON by default and takes an
+ * SNBT reader through its `parseArguments` seam. This is that reader: it parses the text with
+ * `@jsprismarine/nbt/snbt` and turns each entry into the text Java's `MacroFunction` substitutes
+ * for it:
  *
- * What SNBT adds over JSON, all of which a datapack author writes by habit:
- * unquoted keys and unquoted bare values, single-quoted strings, and the type
- * suffixes `b`, `s`, `l`, `f` and `d` on a number. What it does not add here
- * is typed arrays (`[I; 1, 2]`): the macro grammar renders a list back out as
- * SNBT text, and a plain list is the only list shape a macro argument is ever
- * read as.
- *
- * A number keeps its numeric form so the macro substitution prints it without
- * its suffix, which is the 1.20.2 fix; `1b` therefore reaches a command as
- * `1` rather than as `1b`. `true` and `false` stay booleans, which Java also
- * substitutes as `true` and `false` rather than as `1b` and `0b`.
+ * - an integer without its type suffix, so `1b` substitutes as `1`;
+ * - a float or a double as Java's `DecimalFormat("#")` prints it, with at most 15 fraction digits,
+ *   no trailing zeros and no zero before the point, so `1.0d` substitutes as `1` and `0.5d` as `.5`;
+ * - a string as its contents, with no quotes;
+ * - a list, an array or a compound as its SNBT.
  */
+import { JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
+import { formatSnbt, parseSnbtCompound } from '@jsprismarine/nbt/snbt';
+import type { NbtTag } from '@jsprismarine/nbt/tag';
 
-/** The suffixes a number may carry, which say its NBT type and nothing else here. */
-const NUMBER_SUFFIXES = 'bBsSlLfFdD';
+/** The most fraction digits `MacroFunction` prints a float or a double with. */
+const MACRO_FRACTION_DIGITS = 15;
 
-/** A bare, unquoted word: what an unquoted key and an unquoted value are made of. */
-const BARE_PATTERN = /^[A-Za-z0-9_+.-]+$/;
-
-/** One pass over the text, carrying the cursor the whole parse shares. */
-class Reader {
-    public offset = 0;
-
-    public constructor(private readonly text: string) {}
-
-    public get atEnd(): boolean {
-        return this.offset >= this.text.length;
-    }
-
-    public peek(): string {
-        return this.text[this.offset] ?? '';
-    }
-
-    public skipWhitespace(): void {
-        while (!this.atEnd && /\s/.test(this.peek())) this.offset += 1;
-    }
-
-    public expect(character: string): void {
-        this.skipWhitespace();
-        if (this.peek() !== character) this.fail(new PrismarineCommandErrors.SnbtExpectedCharacter({ character }));
-        this.offset += 1;
-    }
-
-    public fail(error: Error): never {
-        throw error;
-    }
-
-    /** Reads a quoted string, honoring `\\` and the escape of its own quote. */
-    public readQuoted(quote: string): string {
-        this.offset += 1;
-        let value = '';
-        while (!this.atEnd) {
-            const character = this.peek();
-            this.offset += 1;
-            if (character === '\\') {
-                if (this.atEnd) this.fail(new PrismarineCommandErrors.SnbtStringEndsInBackslash());
-                value += this.peek();
-                this.offset += 1;
-                continue;
-            }
-            if (character === quote) return value;
-            value += character;
-        }
-        this.fail(new PrismarineCommandErrors.SnbtUnterminatedString());
-    }
-
-    /** Reads an unquoted run of bare characters. */
-    public readBare(): string {
-        const start = this.offset;
-        while (!this.atEnd && BARE_PATTERN.test(this.peek())) this.offset += 1;
-        if (this.offset === start) this.fail(new PrismarineCommandErrors.SnbtExpectedValue());
-        return this.text.slice(start, this.offset);
-    }
-}
+/** A double's exact value as `mantissa * 2^exponent`, both integers. */
+const exactParts = (value: number): { readonly mantissa: bigint; readonly exponent: number } => {
+    const view = new DataView(new ArrayBuffer(8));
+    view.setFloat64(0, Math.abs(value));
+    const bits = view.getBigUint64(0);
+    const biased = Number(bits >> 52n);
+    const fraction = bits & ((1n << 52n) - 1n);
+    // A subnormal has no implicit leading 1 and the smallest exponent.
+    return biased === 0
+        ? { mantissa: fraction, exponent: -1074 }
+        : { mantissa: fraction | (1n << 52n), exponent: biased - 1075 };
+};
 
 /**
- * Reads a bare word as the value it spells: a boolean, a number with or
- * without its type suffix, or, failing both, the word itself as a string,
- * which is how SNBT spells an unquoted string.
+ * `|value| * 10^15` rounded half to even on the exact binary value, which is where Java's
+ * `DecimalFormat` rounds a double it cannot print in 15 fraction digits.
  */
-const valueOfBareWord = (word: string): unknown => {
-    if (word === 'true') return true;
-    if (word === 'false') return false;
-
-    const suffix = word.at(-1) ?? '';
-    const body = NUMBER_SUFFIXES.includes(suffix) ? word.slice(0, -1) : word;
-    // `+` and `.` are bare characters, so `.` alone and `+` alone reach here
-    // and must not read as numbers.
-    if (body.length > 0 && /^[+-]?(\d+\.?\d*|\.\d+)$/.test(body)) {
-        const parsed = Number(body);
-        if (Number.isFinite(parsed)) return parsed;
-    }
-    return word;
+const scaledHalfEven = (value: number): bigint => {
+    const { mantissa, exponent } = exactParts(value);
+    const numerator = mantissa * 10n ** BigInt(MACRO_FRACTION_DIGITS);
+    if (exponent >= 0) return numerator << BigInt(exponent);
+    const denominator = 1n << BigInt(-exponent);
+    const quotient = numerator / denominator;
+    const twice = (numerator % denominator) * 2n;
+    if (twice > denominator || (twice === denominator && quotient % 2n === 1n)) return quotient + 1n;
+    return quotient;
 };
 
-const readValue = (reader: Reader): unknown => {
-    reader.skipWhitespace();
-    const character = reader.peek();
-    if (character === '"' || character === "'") return reader.readQuoted(character);
-    if (character === '{') return readCompound(reader);
-    if (character === '[') return readList(reader);
-    return valueOfBareWord(reader.readBare());
+/**
+ * A float or a double as `MacroFunction` prints it: Java's `DecimalFormat("#")` under
+ * `Locale.ROOT` with at most 15 fraction digits. The digits are the shortest that read back,
+ * rounded half to even past the 15th fraction digit; there is no zero before the point, so
+ * `0.5` is `.5`, and a negative value that rounds to nothing is `-0`.
+ */
+const macroDecimal = (value: number): string => {
+    if (Number.isNaN(value)) return 'NaN';
+    const sign = value < 0 || Object.is(value, -0) ? '-' : '';
+    if (!Number.isFinite(value)) return `${sign}∞`;
+    if (value === 0) return `${sign}0`;
+
+    const [mantissa = '0', exponentText = '0'] = Math.abs(value).toExponential().split('e');
+    const digits = mantissa.replace('.', '');
+    const exponent = Number(exponentText);
+    let whole: string;
+    let fraction: string;
+    if (digits.length - 1 - exponent <= MACRO_FRACTION_DIGITS) {
+        whole = exponent >= 0 ? digits.slice(0, exponent + 1).padEnd(exponent + 1, '0') : '';
+        fraction = exponent >= 0 ? digits.slice(exponent + 1) : `${'0'.repeat(-exponent - 1)}${digits}`;
+    } else {
+        const scaled = scaledHalfEven(value)
+            .toString()
+            .padStart(MACRO_FRACTION_DIGITS + 1, '0');
+        whole = scaled.slice(0, -MACRO_FRACTION_DIGITS).replace(/^0+/, '');
+        fraction = scaled.slice(-MACRO_FRACTION_DIGITS).replace(/0+$/, '');
+    }
+    if (fraction === '') return `${sign}${whole === '' ? '0' : whole}`;
+    return `${sign}${whole}.${fraction}`;
 };
 
-const readList = (reader: Reader): unknown[] => {
-    reader.expect('[');
-    const values: unknown[] = [];
-
-    reader.skipWhitespace();
-    if (reader.peek() === ']') {
-        reader.offset += 1;
-        return values;
-    }
-
-    for (;;) {
-        values.push(readValue(reader));
-        reader.skipWhitespace();
-        if (reader.peek() === ',') {
-            reader.offset += 1;
-            continue;
-        }
-        reader.expect(']');
-        return values;
-    }
-};
-
-const readCompound = (reader: Reader): Record<string, unknown> => {
-    reader.expect('{');
-    const compound: Record<string, unknown> = {};
-
-    reader.skipWhitespace();
-    if (reader.peek() === '}') {
-        reader.offset += 1;
-        return compound;
-    }
-
-    for (;;) {
-        reader.skipWhitespace();
-        const quote = reader.peek();
-        const key = quote === '"' || quote === "'" ? reader.readQuoted(quote) : reader.readBare();
-        reader.expect(':');
-        compound[key] = readValue(reader);
-
-        reader.skipWhitespace();
-        if (reader.peek() === ',') {
-            reader.offset += 1;
-            continue;
-        }
-        reader.expect('}');
-        return compound;
+/** The text Java's `MacroFunction.stringify` substitutes for a tag. */
+const macroText = (tag: NbtTag): string => {
+    switch (tag.type) {
+        case 'byte':
+        case 'short':
+        case 'int':
+        case 'long':
+            return String(tag.value);
+        case 'float':
+        case 'double':
+            // Java widens a float to a double before it formats it, so `0.1f` prints its error.
+            return macroDecimal(tag.value);
+        case 'string':
+            return tag.value;
+        default:
+            return formatSnbt(tag);
     }
 };
 
 /**
- * Reads one SNBT compound.
+ * Reads a macro call's argument compound, in the shape `FunctionExecutor` takes its
+ * `parseArguments` in.
  *
- * @param text - The compound source, braces included.
- * @returns The compound as a plain object, suitable as a macro's arguments.
- * @throws {SnbtSyntaxError} When the text is not one compound, or carries
- *   anything past its closing brace.
+ * @param stored - Whether the text is a stored compound printed back, as `/function … with`
+ *   passes it. Its `Infinityd` and `NaNf` then read as the numbers they were printed from; typed by
+ *   a player, they are strings, as Java's reader makes them.
+ * @returns Each entry's substitution text by name, or undefined when the text is not one SNBT
+ *   compound.
  */
-export const parseSnbtCompound = (text: string): Record<string, unknown> => {
-    const reader = new Reader(text);
-    const compound = readCompound(reader);
-
-    reader.skipWhitespace();
-    if (!reader.atEnd) reader.fail(new PrismarineCommandErrors.SnbtTextAfterCompound());
-    return compound;
-};
-
-/**
- * The same, reported rather than thrown, which is the shape
- * `FunctionExecutor` takes its `parseArguments` in.
- *
- * @returns The compound, or undefined when the text does not read as one.
- */
-export const readMacroArguments = (text: string): Record<string, unknown> | undefined => {
+export const readMacroArguments = (text: string, stored = false): Record<string, string> | undefined => {
     try {
-        return parseSnbtCompound(text);
-    } catch {
-        return undefined;
+        const compound = parseSnbtCompound(text, { nonFinite: stored });
+        return Object.fromEntries(Object.entries(compound.value).map(([key, tag]) => [key, macroText(tag)]));
+    } catch (error) {
+        if (error instanceof JSPrismarineError) return undefined;
+        throw error;
     }
 };
