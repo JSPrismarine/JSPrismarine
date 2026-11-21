@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 and 2 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -135,8 +135,9 @@ repository often needs one by name. The label tells it how old the page is:
 
 ### What `/llms-full.txt` contains
 
-The Markdown of every page `/llms.txt` links outside `Optional` and outside Errors, in the same
-order, each page separated by its URL and a rule:
+The Markdown copy of every page `/llms.txt` links outside `Optional`, Packages and the sections
+`sections.mts` marks `lookup` (the errors), in the same order, each page once and under a block
+giving its URL:
 
 ```markdown
 ---
@@ -150,6 +151,9 @@ url: https://jsprismarine.dev/guide/running
 That keeps it near the size of the guides and data-driven pages, about 140k tokens. Errors stay out
 because a model looking up an error needs one page, which the per-page Markdown serves, and 460 kB of
 error catalog would crowd out the guides for a reader with a smaller context.
+
+`FULL_TEXT_BUDGET` in `llms.mts` caps the file at 800,000 bytes, about 200k tokens. The build fails
+when the file would be larger, and says to split a section off or move one to `Optional`.
 
 ### Turning a page into Markdown for a model
 
@@ -203,8 +207,10 @@ staged site:
 - No generated Markdown contains a fact marker, front matter, a VitePress container or a
   site-absolute link.
 - `/llms.txt` parses as the format asks: one H1, a blockquote, H2 sections of links.
-- `/llms-full.txt` stays under a byte budget set in the test, so a section that grows past what a
-  model can read fails the build and the maintainer decides what to move to `Optional`.
+- `/llms-full.txt` holds each documentation page once, in order, and leaves out lookup sections and
+  `Optional`.
+- A full text over `FULL_TEXT_BUDGET` fails the build rather than being written, so a section that
+  grows past what a model can read stops the build and the maintainer decides what to move.
 
 The test uses a small staged site as a fixture rather than the full build, so it runs in the docs
 package's `test` script without TypeDoc or the parity suite.
@@ -220,7 +226,7 @@ the built site.
 1. Done: `llms.mts` with the page-to-Markdown function and per-page `.md` files for the staged
    sections, the `_headers` entry and the tests for them.
 2. Done: `/llms.txt` from the sections, overview groups and packages, and the footer link.
-3. `/llms-full.txt` with its byte budget.
+3. Done: `/llms-full.txt` with its byte budget.
 4. Markdown bodies for the component pages: Packages, addons, Releases, Parity and Benchmarks.
 5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
 6. The `<link rel="alternate">` head entry.
@@ -247,7 +253,7 @@ context pays for in guides it can no longer read. `/llms.txt` still links every 
 ### No per-section full files until the byte budget trips
 
 The full file is about 140k tokens, which fits the context of the models most tools use. When the
-test's budget fails, splitting the full file by section, such as `/guide/llms-full.txt`, is the first
+budget fails the build, splitting the full file by section, such as `/guide/llms-full.txt`, is the first
 fix to consider, before moving pages to `Optional`.
 
 ### No `Accept: text/markdown` negotiation for now
