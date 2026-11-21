@@ -23,6 +23,7 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import { isLiquid } from '@jsprismarine/block-behaviors';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 
+import Chunk from './chunk/Chunk';
 import { maxY, minSubChunk, subChunkCount } from './Dimension';
 import type { DimensionType } from './DimensionType';
 import type { ContentRedstoneUpdateHandlers } from './redstoneUpdates';
@@ -209,7 +210,7 @@ export class WorldSystems {
     private activeTick: BlockPosition | undefined;
 
     /** The active light columns, separate from chunks which are merely loaded in memory. */
-    private readonly litChunks = new Map<string, { readonly x: number; readonly z: number }>();
+    private readonly litChunks = new Map<number, { readonly x: number; readonly z: number }>();
 
     /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
     private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
@@ -219,12 +220,12 @@ export class WorldSystems {
     /** The list {@link unlitChunks} and {@link unreadyChunks} were last built from. */
     private requiredLightChunks: Iterable<{ readonly x: number; readonly z: number }> | undefined;
     /** Chunks the light ring requires that are not in the light model yet, in the order to take them in. */
-    private readonly unlitChunks = new Map<string, { readonly x: number; readonly z: number }>();
+    private readonly unlitChunks = new Map<number, { readonly x: number; readonly z: number }>();
     /** Chunks the light ring requires whose first light has not finished, in the order to finish them. */
-    private readonly unreadyChunks = new Map<string, { readonly x: number; readonly z: number }>();
+    private readonly unreadyChunks = new Map<number, { readonly x: number; readonly z: number }>();
     /** Chunks whose first light has finished; see {@link isLightReady}. */
-    private readonly readyChunks = new Set<string>();
-    private readonly lightHintsByChunk = new Map<string, Map<number, { revision: number; hint: LightSectionHint }>>();
+    private readonly readyChunks = new Set<number>();
+    private readonly lightHintsByChunk = new Map<number, Map<number, { revision: number; hint: LightSectionHint }>>();
 
     public constructor(options: WorldSystemsOptions) {
         this.view = options.view;
@@ -303,7 +304,7 @@ export class WorldSystems {
 
     /** Rebuilds what the light ring requires from a new list, and drops the light of chunks it left out. */
     private requireLight(lightChunks: Iterable<{ readonly x: number; readonly z: number }>): void {
-        const required = new Map<string, { readonly x: number; readonly z: number }>();
+        const required = new Map<number, { readonly x: number; readonly z: number }>();
         for (const chunk of lightChunks) required.set(this.lightChunkKey(chunk.x, chunk.z), chunk);
 
         // Chunks left behind as a player moves no longer need resident light; returning chunks
@@ -644,7 +645,7 @@ export class WorldSystems {
         const palette = this.view.lightSectionAt?.(chunkX, sectionY, chunkZ);
         if (palette === undefined) return undefined;
 
-        const chunkKey = `${chunkX},${chunkZ}`;
+        const chunkKey = this.lightChunkKey(chunkX, chunkZ);
         let hints = this.lightHintsByChunk.get(chunkKey);
         const previous = hints?.get(sectionY);
         if (previous?.revision === palette.revision) return previous.hint;
@@ -712,8 +713,13 @@ export class WorldSystems {
         this.litChunks.set(this.lightChunkKey(chunkX, chunkZ), { x: chunkX, z: chunkZ });
     }
 
-    private lightChunkKey(chunkX: number, chunkZ: number): string {
-        return `${chunkX},${chunkZ}`;
+    /**
+     * A chunk's key in the light bookkeeping. A number, as the world keys its loaded chunks: the
+     * readiness of every simulated chunk and its neighbors is asked each tick, and a string key
+     * was built and hashed for every one of those questions.
+     */
+    private lightChunkKey(chunkX: number, chunkZ: number): number {
+        return Chunk.packXZ(chunkX, chunkZ);
     }
 
     /**
