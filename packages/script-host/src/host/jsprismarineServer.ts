@@ -73,6 +73,8 @@ export type MemberDefinition =
 /** A type a module's members take or give. */
 export type TypeDefinition =
     | { readonly kind: 'union'; readonly summary: string; readonly values: readonly string[] }
+    /** A type alias written in TypeScript, for a shape an interface cannot say, such as a union of objects. */
+    | { readonly kind: 'alias'; readonly summary: string; readonly type: string }
     | {
           readonly kind: 'interface';
           readonly summary: string;
@@ -262,6 +264,20 @@ export const JSPRISMARINE_PLACEHOLDERS = {
         summary: 'Every registered namespace with its keys, oldest first, as a new frozen list each call.',
         parameters: '',
         returns: 'readonly PlaceholderNamespace[]'
+    },
+    parse: {
+        kind: 'function',
+        summary:
+            'Parses the shorthand `{player:name} &7{player:ping}ms` into a template: each token a `placeholder` node, the rest `text` nodes, and `&` before a format code `§`.',
+        parameters: 'shorthand: string',
+        returns: 'Template'
+    },
+    render: {
+        kind: 'function',
+        summary:
+            'Renders a template, or a shorthand string, for the player when one is given: the text, and the tick an animation in it next changes the text. Throws a `TypeError` for a node the renderer does not know or a condition that does not parse.',
+        parameters: 'template: Template | string, player?: Player',
+        returns: 'RenderedTemplate'
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -310,6 +326,42 @@ export const JSPRISMARINE_PLACEHOLDER_TYPES = {
             namespace: { type: 'string', summary: 'Its name, the part of a token before the colon.' },
             keys: { type: 'readonly string[]', summary: 'The keys its provider answers.' }
         }
+    },
+    Template: {
+        kind: 'interface',
+        summary:
+            "A template: a tree in the shape of Bedrock's rawtext, the format `/tellraw` takes, with a few more node kinds. `placeholders.parse` makes one from shorthand, and a file or a script can hold one.",
+        properties: { rawtext: { type: 'readonly TemplateNode[]', summary: 'The nodes, rendered in order.' } }
+    },
+    TemplateNode: {
+        kind: 'alias',
+        summary:
+            "One node of a template: a `text`; a `placeholder` named `namespace:key`; an `if` with a condition over placeholders and literals (`==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, joined by `&&` and `||`, with parentheses; two sides that both parse as numbers compare as numbers) and its `then` and `else` nodes; an `animate` with `frames` and an `interval` in ticks; a `gradient` with `#rrggbb` colors over its `rawtext`, each character in the nearest `§` color; and rawtext's `translate`, which renders as its key, `score`, which reads the scoreboard, and `selector`, which reads as the names of the entities the server's selector grammar matches, so `@a[tag=vip]` works. A bare string is a `text` node.",
+        type: [
+            '',
+            '        | { readonly text: string }',
+            '        | { readonly placeholder: string }',
+            '        | { readonly if: string; readonly then: readonly TemplateNode[]; readonly else?: readonly TemplateNode[] }',
+            '        | { readonly animate: { readonly interval: number; readonly frames: readonly (readonly TemplateNode[])[] } }',
+            '        | { readonly gradient: { readonly colors: readonly string[]; readonly rawtext: readonly TemplateNode[] } }',
+            '        | { readonly translate: string; readonly with?: readonly string[] | Template }',
+            '        | { readonly score: { readonly name: string; readonly objective: string } }',
+            '        | { readonly selector: string }',
+            '        | string'
+        ].join('\n')
+    },
+    RenderedTemplate: {
+        kind: 'interface',
+        summary: 'What `placeholders.render` gave.',
+        properties: {
+            text: { type: 'string', summary: 'The rendered text.' },
+            nextChangeTick: {
+                type: 'number',
+                optional: true,
+                summary:
+                    'The tick at which an animation in the template next changes the text, so a consumer that refreshes on an interval renders again then. Absent when the template holds no animation with more than one frame.'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -349,10 +401,18 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
 
 /**
  * The functions `@jsprismarine/placeholders` calls, which the embedder makes in the pack's
- * context: `host.namespaces()` answers the registered namespaces as JSON, and the others are
- * named for what they do.
+ * context: `host.namespaces()` answers the registered namespaces as JSON, `host.parseTemplate` and
+ * `host.renderTemplate` take and give templates as JSON, and the others are named for what they
+ * do.
  */
-export const JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS = ['register', 'unregister', 'resolve', 'namespaces'] as const;
+export const JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS = [
+    'register',
+    'unregister',
+    'resolve',
+    'namespaces',
+    'parseTemplate',
+    'renderTemplate'
+] as const;
 
 /**
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
@@ -437,6 +497,14 @@ export const placeholdersModuleSource = (): string =>
         '((host) => {',
         '    const freeze = Object.freeze;',
         '    const parse = JSON.parse;',
+        '    const stringify = JSON.stringify;',
+        '    const deepFreeze = (value) => {',
+        '        if (typeof value === "object" && value !== null) {',
+        '            for (const key of Object.keys(value)) deepFreeze(value[key]);',
+        '            freeze(value);',
+        '        }',
+        '        return value;',
+        '    };',
         '    return freeze({',
         '        register: (namespace, provider) => {',
         '            const id = host.register(namespace, provider);',
@@ -444,7 +512,12 @@ export const placeholdersModuleSource = (): string =>
         '        },',
         '        resolve: (text, player) => host.resolve(text, player),',
         '        namespaces: () =>',
-        '            freeze(parse(host.namespaces()).map(({ namespace, keys }) => freeze({ namespace, keys: freeze(keys) })))',
+        '            freeze(parse(host.namespaces()).map(({ namespace, keys }) => freeze({ namespace, keys: freeze(keys) }))),',
+        '        parse: (shorthand) => deepFreeze(parse(host.parseTemplate(shorthand))),',
+        '        render: (template, player) => {',
+        '            const shorthand = typeof template === "string";',
+        '            return deepFreeze(parse(host.renderTemplate(shorthand ? template : stringify(template), shorthand, player)));',
+        '        }',
         '    });',
         '})'
     ].join('\n');
@@ -498,6 +571,7 @@ const typeLines = (name: string, type: TypeDefinition): string[] => {
     if (type.kind === 'union') {
         return [comment, `    export type ${name} = ${type.values.map((value) => JSON.stringify(value)).join(' | ')};`];
     }
+    if (type.kind === 'alias') return [comment, `    export type ${name} =${type.type};`];
     return [
         comment,
         `    export interface ${name} {`,

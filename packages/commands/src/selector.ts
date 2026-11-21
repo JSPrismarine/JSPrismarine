@@ -154,6 +154,8 @@ export interface SelectorParseResult {
     readonly selector: SelectorModel;
     /** Arguments from the other edition's grammar, in the order they appeared. */
     readonly notes: readonly SelectorNote[];
+    /** How many characters of the input the selector took, leading whitespace included. */
+    readonly length: number;
 }
 
 /** The six base selectors Java's `EntitySelectorParser` declares. */
@@ -779,7 +781,7 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
         const model = emptyModel('@p');
         model.literal = literal;
         model.limit = 1;
-        return { selector: freeze(model, dialect), notes };
+        return { selector: freeze(model, dialect), notes, length: reader.cursor };
     }
 
     const bases = dialect === 'java' ? JAVA_BASE_SELECTORS : BEDROCK_BASE_SELECTORS;
@@ -800,13 +802,13 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
     reader.cursor += matched.length;
 
     const model = emptyModel(matched);
-    if (reader.peek() !== '[') return { selector: freeze(model, dialect), notes };
+    if (reader.peek() !== '[') return { selector: freeze(model, dialect), notes, length: reader.cursor };
 
     reader.cursor += 1;
     reader.skipWhitespace();
     if (reader.peek() === ']') {
         reader.cursor += 1;
-        return { selector: freeze(model, dialect), notes };
+        return { selector: freeze(model, dialect), notes, length: reader.cursor };
     }
 
     while (true) {
@@ -841,5 +843,5 @@ export const parseSelector = (input: string, dialect: SelectorDialect): Selector
         break;
     }
 
-    return { selector: freeze(model, dialect), notes };
+    return { selector: freeze(model, dialect), notes, length: reader.cursor };
 };

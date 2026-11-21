@@ -109,22 +109,34 @@ export class ScriptPlaceholders {
      * @param player - The entity id of the player the text is for, or undefined for no one.
      */
     public resolve(text: string, player: string | undefined): string {
-        return text.replace(TOKEN, (token: string, namespace: string, key: string) => {
-            const registration = this.find(namespace);
-            if (registration === undefined || !registration.provider.keys.includes(key)) return token;
-            let value: string | number | undefined;
-            try {
-                value = registration.provider.resolve(key, player);
-            } catch (error) {
-                if (this.options.fatal?.(error) === true) throw error;
-                if (!registration.reported) {
-                    registration.reported = true;
-                    this.options.failed(registration.owner, namespace, error);
-                }
-                return token;
+        return text.replace(
+            TOKEN,
+            (token: string, namespace: string, key: string) => this.value(namespace, key, player) ?? token
+        );
+    }
+
+    /**
+     * The value of one token, as text, or undefined when nobody provides it, its provider gives
+     * no string or number, or its provider throws an error that is not fatal.
+     * @param player - The entity id of the player the text is for, or undefined for no one.
+     * @throws The error a resolver threw when `fatal` says it ends the render, such as the
+     *   watchdog's; a render passes it on rather than leaving the token.
+     */
+    public value(namespace: string, key: string, player: string | undefined): string | undefined {
+        const registration = this.find(namespace);
+        if (registration === undefined || !registration.provider.keys.includes(key)) return undefined;
+        let value: string | number | undefined;
+        try {
+            value = registration.provider.resolve(key, player);
+        } catch (error) {
+            if (this.options.fatal?.(error) === true) throw error;
+            if (!registration.reported) {
+                registration.reported = true;
+                this.options.failed(registration.owner, namespace, error);
             }
-            return typeof value === 'string' || typeof value === 'number' ? String(value) : token;
-        });
+            return undefined;
+        }
+        return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
     }
 
     /** Every registered namespace with its keys, oldest first. */

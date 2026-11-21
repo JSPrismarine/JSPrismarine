@@ -255,6 +255,17 @@ describe('command', () => {
             });
         });
 
+        it('selects for a script by the Bedrock grammar, and refuses a selector that does not parse or has text after it', async () => {
+            const { commandManager } = managerWithPermissionSpy();
+            await commandManager.enable();
+            const source = { dimension: 'minecraft:overworld' };
+
+            expect(commandManager.selectForScript('@a[tag=vip]', source)).toEqual([]);
+            expect(commandManager.selectForScript('@a[tag=vip] ', source)).toEqual([]);
+            expect(commandManager.selectForScript('@a[tag=vip]junk', source)).toBeUndefined();
+            expect(commandManager.selectForScript('@a[tag=', source)).toBeUndefined();
+        });
+
         it('should refuse an unknown command without throwing at the caller', async () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();
