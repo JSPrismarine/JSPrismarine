@@ -6,6 +6,7 @@
  * merges the JSON and renders the site, as the `packages` strategy would have.
  *
  * Run from `tools/docs`. The JSON lives under the site's VitePress cache, which CI restores.
+ * Arguments go to the merging TypeDoc run, so `--emit none` checks the reference without writing it.
  */
 
 import { execFileSync, spawn } from 'node:child_process';
@@ -149,7 +150,8 @@ execFileSync(
         'typedoc',
         '--entryPointStrategy',
         'merge',
-        ...packages.map((pkg) => path.relative(docsDir, path.join(cacheDir, `${pkg.folder}.json`)))
+        ...packages.map((pkg) => path.relative(docsDir, path.join(cacheDir, `${pkg.folder}.json`))),
+        ...process.argv.slice(2)
     ],
     { cwd: docsDir, stdio: 'inherit' }
 );
