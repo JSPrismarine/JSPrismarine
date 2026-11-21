@@ -43,6 +43,11 @@ import {
     ADDON_TAGS
 } from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
+import {
+    ADDON_SOURCE_ENTRIES,
+    ADDON_SOURCE_MAP_EXTENSION,
+    ADDON_TSCONFIG_FILE
+} from '../../packages/addon-tools/src/compile.ts';
 import { USAGE as ADDON_TOOLS_USAGE } from '../../packages/addon-tools/src/command.ts';
 import { deprecationWarning } from '../../packages/prismarine/src/addons/AddonManager.ts';
 import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/addons/addonFiles.ts';
@@ -1232,6 +1237,9 @@ async function addonFacts() {
         'addons.listingKeys': list(ADDON_JSON_OPTIONAL_KEYS.map(inlineCode)),
         'addons.tags': list(ADDON_TAGS.map(inlineCode)),
         'addons.mediaDirectory': inlineCode(`${ADDON_MEDIA_DIRECTORY}/`),
+        'addons.tsconfigFile': inlineCode(ADDON_TSCONFIG_FILE),
+        'addons.sourceEntries': list(ADDON_SOURCE_ENTRIES.map(inlineCode)),
+        'addons.sourceMapExtension': inlineCode(ADDON_SOURCE_MAP_EXTENSION),
         'addons.iconFile': inlineCode(ADDON_ICON_FILE),
         'addons.screenshotTypes': list(ADDON_SCREENSHOT_TYPES.map(inlineCode), 'or'),
         'addons.releaseTag': inlineCode(ADDON_RELEASE_TAG),

@@ -33,6 +33,25 @@ Every file in the folder goes into the pack, except those whose names start with
 under <!-- fact:addons.mediaDirectory -->`media/`<!-- /fact -->, which holds the screenshots for the
 addon's listing. A symbolic link fails the build, so keep real files there.
 
+The scripts can also be TypeScript, as JSPrismarine's own addons are. Such an addon keeps its
+sources in `src/` and has a `tsconfig.json`, and the build compiles `src/` into `scripts/`:
+
+```text
+tps-bar/
+├── manifest.json
+├── addon.json
+├── README.md
+├── package.json
+├── tsconfig.json
+└── src/
+    └── main.ts
+```
+
+Its pack leaves out
+<!-- fact:addons.sourceEntries -->`package.json`, `tsconfig.json`, `src` and `node_modules`<!-- /fact -->
+and the source maps, so it holds the compiled scripts and not the project that built them.
+[Write it in TypeScript](#write-it-in-typescript) shows the project.
+
 ## The manifest
 
 `manifest.json` is an ordinary behavior pack manifest, and the header's `version` is the addon's
@@ -114,6 +133,54 @@ icon. [Listing an addon](listing-addons.md) covers each key and the review a lis
 who may run them, and anything an owner should set up. For JSPrismarine's own addons, the README
 is also the addon's page on this site, and its first heading is the page's title.
 
+## Write it in TypeScript
+
+A <!-- fact:addons.tsconfigFile -->`tsconfig.json`<!-- /fact --> beside the manifest makes an
+addon a TypeScript addon. The build runs [`tsc-ts`](https://www.npmjs.com/package/tsc-ts), the
+TypeScript 7 compiler, on that project before it reads the addon, so the project's `outDir` has to
+be the folder the manifest's script `entry` is in:
+
+```json
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["ES2022"],
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": true,
+        "noEmitOnError": true,
+        "sourceMap": true,
+        "types": ["@jsprismarine/script-types"],
+        "rootDir": "src",
+        "outDir": "scripts"
+    },
+    "include": ["src"]
+}
+```
+
+The compiler needs the typings, so put them in a `package.json` and install them before you build:
+`@minecraft/server` at the version the manifest depends on, `@jsprismarine/script-types` for
+JSPrismarine's own modules, and `tsc-ts`.
+
+```bash
+npm install --save-dev @minecraft/server@<version> @jsprismarine/script-types tsc-ts
+```
+
+The `@minecraft/server` typings leave out `console`, which every pack has. Declare it in a
+`.d.ts` file in `src/`:
+
+```ts
+// src/globals.d.ts
+declare const console: {
+    log(...data: unknown[]): void;
+    info(...data: unknown[]): void;
+    warn(...data: unknown[]): void;
+    error(...data: unknown[]): void;
+};
+```
+
+`npx tsc-ts -p tsconfig.json --watch` rebuilds `scripts/` as you edit.
+
 ## Use JSPrismarine-only features
 
 `@jsprismarine/server` gives a script what only JSPrismarine has, such as the server's ticks per
@@ -193,7 +260,8 @@ addon install ./tps-bar
 
 A folder installs as a link to it rather than a copy, so the server runs the files you are
 editing. After you change a script, run `/reload` on the console and the scripts start over with
-your change. A change to anything besides the scripts and texts, such as an entity or an item,
+your change. The server runs `scripts/`, so build a TypeScript addon before you install it, and
+again before each `/reload`. A change to anything besides the scripts and texts, such as an entity or an item,
 loads when the server restarts. `addon list` shows the folder as linked, and
 `addon remove tps-bar` takes it out again without touching your folder.
 
@@ -210,7 +278,9 @@ breakpoints in an addon's scripts and inspect its variables:
 2. Run `script debugger listen <!-- fact:scripting.debuggerPort -->19144<!-- /fact -->` on the console.
 3. In VS Code, open the addon's folder and start an `attach` configuration of type
    `minecraft-js` with `"mode": "connect"`, the same port, `"localRoot"` set to the folder of the
-   scripts, and `"targetModuleUuid"` set to the UUID of the addon's script module.
+   scripts, and `"targetModuleUuid"` set to the UUID of the addon's script module. For a
+   TypeScript addon, set `"localRoot"` to `src/`, and `"sourceMapRoot"` and
+   `"generatedSourceRoot"` to `scripts/`, so breakpoints go in the TypeScript sources.
 4. Run `script debugger close` on the console when you are done.
 
 `script-debugger-auto-attach` attaches before the scripts start, so a breakpoint on a script's
@@ -227,8 +297,9 @@ Before you publish, build the addon the way a release will. From the folder that
 npx @jsprismarine/addon-tools build --offline --repository owner/repo
 ```
 
-It checks each addon against every rule on this page, including the module versions and the
-script entry, and fails with the reason when one breaks a rule. It writes `<name>-<version>.mcpack`
+It compiles each TypeScript addon, then checks each addon against every rule on this page,
+including the module versions and the script entry, and fails with the reason when one breaks a
+rule or does not compile. It writes `<name>-<version>.mcpack`
 and an index into `dist/addons/`. `--offline` skips downloading the index a repository has already
 published, and `--repository` names the repository whose release the index's URLs point at. [Publishing addons](publishing-addons.md)
 explains the build in full and how to release from GitHub Actions.

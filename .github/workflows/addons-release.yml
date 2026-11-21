@@ -82,6 +82,12 @@ jobs:
               with:
                   node-version: ${{ inputs.node-version }}
 
+            # A TypeScript addon compiles against the typings its repository's package.json names, so
+            # they are installed first. JSPrismarine's own install above already has them.
+            - name: 📦 Install the addons' dependencies
+              if: ${{ inputs.tools != 'workspace' && hashFiles('package-lock.json') != '' }}
+              run: npm ci
+
             # GITHUB_REPOSITORY names the caller's repository, whose release the index's URLs
             # point at and whose published index the build merges with.
             - name: 🔨 Check and pack every addon
