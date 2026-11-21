@@ -686,36 +686,38 @@ const ratioCaption = (metric: MetricId) =>
                 <h3>{{ serverName(server) }} {{ results.servers[server]?.version }}</h3>
                 <p class="bench-source">{{ results.servers[server]?.source }}</p>
                 <pre class="bench-command"><code>{{ results.servers[server]?.command }}</code></pre>
-                <table class="bench-settings">
-                    <thead>
-                        <tr>
-                            <th scope="col">Setting</th>
-                            <th scope="col">Value</th>
-                            <th scope="col">Default</th>
-                            <th scope="col">Why</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="setting in results.servers[server]?.settings ?? []"
-                            :key="`${setting.key}=${setting.value}`"
-                        >
-                            <td data-label="Setting">
-                                <code>{{ setting.key }}</code>
-                            </td>
-                            <td data-label="Value">
-                                <code>{{ setting.value }}</code>
-                                <small v-if="scenariosNote(setting.scenarios)" class="bench-scope">{{
-                                    scenariosNote(setting.scenarios)
-                                }}</small>
-                            </td>
-                            <td data-label="Default">
-                                <code>{{ setting.default }}</code>
-                            </td>
-                            <td data-label="Why">{{ setting.reason }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="bench-table-scroll">
+                    <table class="bench-settings">
+                        <thead>
+                            <tr>
+                                <th scope="col">Setting</th>
+                                <th scope="col">Value</th>
+                                <th scope="col">Default</th>
+                                <th scope="col">Why</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="setting in results.servers[server]?.settings ?? []"
+                                :key="`${setting.key}=${setting.value}`"
+                            >
+                                <td data-label="Setting">
+                                    <code>{{ setting.key }}</code>
+                                </td>
+                                <td data-label="Value">
+                                    <code>{{ setting.value }}</code>
+                                    <small v-if="scenariosNote(setting.scenarios)" class="bench-scope">{{
+                                        scenariosNote(setting.scenarios)
+                                    }}</small>
+                                </td>
+                                <td data-label="Default">
+                                    <code>{{ setting.default }}</code>
+                                </td>
+                                <td data-label="Why">{{ setting.reason }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -1226,6 +1228,9 @@ const ratioCaption = (metric: MetricId) =>
 .bench-history {
     --hist-gutter: 68px;
     display: grid;
+    /* Without a track of its own, the column grows to the runs table's width instead of letting
+       the table scroll inside .bench-table-scroll, and the whole page scrolls sideways. */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--jsp-gap);
 }
 
