@@ -12,8 +12,9 @@ import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockSta
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Chunk from '../../world/chunk/Chunk';
+import { isWaterIdentifier } from '../../entity/data/navigationView';
 import type { EditionTranslation } from './editionTranslation';
-import { JAVA_BIOMES, javaBiomeTranslation, javaBlockTranslation } from './editionTranslation';
+import { JAVA_BIOMES, javaBiomeTranslation, javaBlockTranslation, javaWaterloggedOf } from './editionTranslation';
 
 const JAVA_AIR = new Set(['minecraft:air', 'minecraft:cave_air', 'minecraft:void_air']);
 
@@ -179,10 +180,17 @@ export class JavaChunkTranslator {
             const blocks = new Array<number>(4096);
             let blockCount = 0;
             let fluidCount = 0;
+            // Only a section with a second storage layer can hold a waterlogged block.
+            const liquids = sub !== null && sub.getStorages().length > 1;
             for (let i = 0; i < 4096; i++) {
-                const id = this.blocks.toJava(
-                    sub === null ? air : sub.getBlockRuntimeId(i & 15, i >> 8, (i >> 4) & 15)
-                );
+                const x = i & 15;
+                const y = i >> 8;
+                const z = (i >> 4) & 15;
+                const main = this.blocks.toJava(sub === null ? air : sub.getBlockRuntimeId(x, y, z));
+                const id =
+                    liquids && isWaterIdentifier(BlockRuntimeIds.getState(sub.getBlockRuntimeId(x, y, z, 1))?.name)
+                        ? javaWaterloggedOf(main)
+                        : main;
                 blocks[i] = id;
                 const facts = this.factsOf(id);
                 if (!facts.air) blockCount += 1;

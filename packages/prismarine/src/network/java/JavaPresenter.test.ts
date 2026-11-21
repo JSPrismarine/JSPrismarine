@@ -83,10 +83,10 @@ describe('JavaPresenter', () => {
         const javaAir = BLOCK_STATES.idOf('minecraft:air');
 
         await java.showBlocks([
-            { x: -1, y: -60, z: 17, runtimeId: stone },
-            { x: 0, y: 64, z: 0, runtimeId: stone },
-            { x: 1, y: 65, z: 2, runtimeId: stone },
-            { x: 0, y: 64, z: 0, runtimeId: air }
+            { x: -1, y: -60, z: 17, runtimeId: stone, waterlogged: false },
+            { x: 0, y: 64, z: 0, runtimeId: stone, waterlogged: false },
+            { x: 1, y: 65, z: 2, runtimeId: stone, waterlogged: false },
+            { x: 0, y: 64, z: 0, runtimeId: air, waterlogged: false }
         ]);
 
         expect(sent).toEqual([
@@ -100,6 +100,26 @@ describe('JavaPresenter', () => {
                         { state: javaAir, x: 0, y: 0, z: 0 },
                         { state: javaStone, x: 1, y: 1, z: 2 }
                     ]
+                }
+            }
+        ]);
+    });
+
+    it('sends a block that shares its space with water as its waterlogged Java state', async () => {
+        const { sent, java } = presenter();
+        const slab = BlockRuntimeIds.tryGetByState('minecraft:oak_slab', {
+            'minecraft:vertical_half': 'bottom'
+        });
+        if (slab === null) throw new Error('a bottom oak slab must be in the block palette');
+
+        await java.showBlocks([{ x: 1, y: 2, z: 3, runtimeId: slab, waterlogged: true }]);
+
+        expect(sent).toEqual([
+            {
+                name: 'Block Update',
+                value: {
+                    position: { x: 1, y: 2, z: 3 },
+                    state: BLOCK_STATES.idOf('minecraft:oak_slab', { type: 'bottom', waterlogged: 'true' })
                 }
             }
         ]);

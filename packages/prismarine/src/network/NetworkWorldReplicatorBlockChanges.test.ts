@@ -8,6 +8,7 @@ import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { stub } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
+import type Chunk from '../world/chunk/Chunk';
 import { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type PlayerSession from './PlayerSession';
@@ -42,7 +43,9 @@ const replicatorFor = (
         algorithm: PacketCompressionAlgorithm.ZLIB,
         threshold: 256
     }),
-    fullFlushFragments = false
+    fullFlushFragments = false,
+    /** What the world's loaded chunks hold, by `x,y,z` and then layer; air where it says nothing. */
+    standing: ReadonlyMap<string, readonly number[]> = new Map()
 ) => {
     const world = stub<World>({ getName: () => 'test' });
     const batches = viewers.map((): Buffer[] => []);
@@ -70,9 +73,14 @@ const replicatorFor = (
             getViewDistance: () => viewer.viewDistance
         });
     });
+    const air = BlockRuntimeIds.getByName('minecraft:air');
     const visibleWorld = stub<World>({
         getName: () => 'test',
-        getViewers: () => players
+        getViewers: () => players,
+        getLoadedChunk: () =>
+            stub<Chunk>({
+                getBlockRuntimeId: (x, y, z, layer = 0) => standing.get(`${x},${y},${z}`)?.[layer] ?? air
+            })
     });
     const server = stub<Server>({
         getConfig: () =>
@@ -275,27 +283,44 @@ describe('NetworkWorldReplicator block changes', () => {
         expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0]);
     });
 
-    it("hands a Java viewer the main-layer changes in its view as plain data, and Bedrock's batches to no one else", async () => {
+    it("hands a Java viewer each changed block in its view as it stands, water and all, and Bedrock's batches to no one else", async () => {
         const shown: ShownBlockChange[][] = [];
-        const { batches, replicator } = replicatorFor([
-            { x: 8, z: 8, viewDistance: 4 },
-            { x: 8, z: 8, viewDistance: 4, shown }
-        ]);
         const water = BlockRuntimeIds.getByName('minecraft:water');
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        const slab = BlockRuntimeIds.getByName('minecraft:oak_slab');
+        const { batches, replicator } = replicatorFor(
+            [
+                { x: 8, z: 8, viewDistance: 4 },
+                { x: 8, z: 8, viewDistance: 4, shown }
+            ],
+            Codec2225,
+            undefined,
+            false,
+            new Map([
+                ['2,64,-3', [stone, water]],
+                // A slab that stood there before: only the water came this tick.
+                ['3,64,-3', [slab, water]]
+            ])
+        );
 
         sealEntries(replicator, [
             blockEntry({ x: 2, y: 64, z: -3 }, stone),
             blockEntry({ x: 2, y: 64, z: -3 }, water, 1),
+            blockEntry({ x: 3, y: 64, z: -3 }, water, 1),
             blockEntry({ x: 4_000, y: 64, z: 4_000 }, stone)
         ]);
         await replicator.flushBlockChanges();
 
-        expect(shown).toEqual([[{ x: 2, y: 64, z: -3, runtimeId: stone }]]);
+        expect(shown).toEqual([
+            [
+                { x: 2, y: 64, z: -3, runtimeId: stone, waterlogged: true },
+                { x: 3, y: 64, z: -3, runtimeId: slab, waterlogged: true }
+            ]
+        ]);
         expect(batches[1]).toEqual([]);
         const [batch] = packetsIn(batches[0]!);
         if (batch?.kind !== 'sub-chunk') throw new Error('expected the Bedrock viewer a sub chunk batch');
-        expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0]);
+        expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0, water >>> 0]);
     });
 
     it('names the sub chunk a negative column belongs to by its own origin corner', async () => {

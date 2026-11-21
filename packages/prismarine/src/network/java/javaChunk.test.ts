@@ -47,6 +47,23 @@ describe('JavaChunkTranslator', () => {
         expect(new Set(unpackHeightmap(read.heightmaps[0]!.data, 384))).toEqual(new Set([4]));
     });
 
+    it('sends a block with water in its second layer as its waterlogged state, and counts it a fluid', () => {
+        const chunk = flatChunk();
+        const slab = BlockRuntimeIds.tryGetByState('minecraft:oak_slab', { 'minecraft:vertical_half': 'bottom' });
+        if (slab === null) throw new Error('a bottom oak slab must be in the block palette');
+        chunk.setBlockRuntimeId(7, -60, 5, slab);
+        chunk.setBlockRuntimeId(7, -60, 5, BlockRuntimeIds.getByName('minecraft:water'), 1);
+        chunk.setBlockRuntimeId(8, -60, 5, slab);
+
+        const bottom = decodeSections(new JavaChunkTranslator().columnOf(chunk).data, 24, JAVA_SECTION_KINDS)[0]!;
+
+        expect([bottom.blocks[4 * 256 + 5 * 16 + 7], bottom.blocks[4 * 256 + 5 * 16 + 8]]).toEqual([
+            BLOCK_STATES.idOf('minecraft:oak_slab', { type: 'bottom', waterlogged: 'true' }),
+            BLOCK_STATES.idOf('minecraft:oak_slab', { type: 'bottom', waterlogged: 'false' })
+        ]);
+        expect(bottom.fluidCount).toBe(1);
+    });
+
     it('lights the sky above the ground and nothing below it', () => {
         const column = new JavaChunkTranslator().columnOf(flatChunk());
         const bottomLight = column.skyLight[0]!;

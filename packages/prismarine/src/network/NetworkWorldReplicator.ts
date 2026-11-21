@@ -61,7 +61,9 @@ import type { BlockTranslation } from './codec/blockTranslation';
 import { CRACK_PARTICLES } from '../entity/playerMining';
 import { allSent } from './allSent';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
-import type { ShownEntityMove } from './presenter/SessionPresenter';
+import type { ShownBlockChange, ShownEntityMove } from './presenter/SessionPresenter';
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { isWaterIdentifier } from '../entity/data/navigationView';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -686,9 +688,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * Hands a client of another edition the block changes it sees as plain data, which its
      * presenter encodes; the shared batches are Bedrock's.
      *
-     * Only the block layer goes, as in the chunks a Java client is sent. Java keeps a waterlogged
-     * block's water in the block's own `waterlogged` property, which neither reads from the
-     * liquid layer yet.
+     * One change per block that changed in either layer, as the block now stands: its main
+     * state, and whether water shares it. Read from the loaded chunk, since another edition
+     * keeps both in one state - Java's `waterlogged` - and water flowing into a slab changes
+     * only the second layer. A block whose chunk is gone is sent as its last main-layer change.
      * @param session - The viewer.
      * @param changes - This tick's changes, in the order made.
      * @param proximity - Whether a client sees only the changes in its view, or every one.
@@ -696,18 +699,27 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     private showBlocksTo(session: PlayerSession, changes: readonly BlockChange[], proximity: boolean): void {
         const viewer = session.getViewPosition();
         const viewDistance = session.getViewDistance();
-        const shown = changes
-            .filter(
-                ({ position, layer }) =>
-                    layer === 0 && (!proximity || isInView({ event: position, viewer, viewDistance }))
-            )
-            .map(({ position, blockRuntimeId }) => ({
-                x: position.getX(),
-                y: position.getY(),
-                z: position.getZ(),
-                runtimeId: blockRuntimeId
-            }));
-        if (shown.length > 0) this.released([session.presenter.showBlocks(shown)]);
+        const blocks = new Map<string, ShownBlockChange>();
+        for (const { position, layer, blockRuntimeId } of changes) {
+            if (proximity && !isInView({ event: position, viewer, viewDistance })) continue;
+            const x = position.getX();
+            const y = position.getY();
+            const z = position.getZ();
+            const chunk = this.world.getLoadedChunk(x >> 4, z >> 4);
+            const key = `${x},${y},${z}`;
+            blocks.delete(key);
+            if (chunk !== null) {
+                const water = BlockRuntimeIds.getState(chunk.getBlockRuntimeId(x, y, z, 1))?.name;
+                blocks.set(key, {
+                    x,
+                    y,
+                    z,
+                    runtimeId: chunk.getBlockRuntimeId(x, y, z),
+                    waterlogged: isWaterIdentifier(water)
+                });
+            } else if (layer === 0) blocks.set(key, { x, y, z, runtimeId: blockRuntimeId, waterlogged: false });
+        }
+        if (blocks.size > 0) this.released([session.presenter.showBlocks([...blocks.values()])]);
     }
 
     /**

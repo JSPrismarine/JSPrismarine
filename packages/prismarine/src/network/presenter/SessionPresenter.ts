@@ -84,6 +84,8 @@ export interface ShownBlockChange {
     readonly z: number;
     /** The block's Bedrock runtime id. */
     readonly runtimeId: number;
+    /** Whether water shares the block, which Bedrock keeps in its second storage layer. */
+    readonly waterlogged: boolean;
 }
 
 /** A stack as plain data: the item's Bedrock identifier and how many. */

@@ -81,6 +81,28 @@ export const javaBlockTranslation = (): EditionTranslation<number, number> => {
     });
 };
 
+/** Each Java state's waterlogged form, as it is first asked for. */
+const waterloggedStates = new Map<number, number>();
+
+/**
+ * A Java state with water in it: the same block with `waterlogged` true, which is how Java keeps
+ * what Bedrock keeps in a block's second storage layer. A state with no `waterlogged` property
+ * holds no water and stays as it is.
+ * @param javaId - The Java state id.
+ * @returns The waterlogged state's id.
+ */
+export const javaWaterloggedOf = (javaId: number): number => {
+    const known = waterloggedStates.get(javaId);
+    if (known !== undefined) return known;
+    const state = BLOCK_STATES.stateOf(javaId);
+    const waterlogged =
+        state === undefined || !('waterlogged' in state.properties)
+            ? javaId
+            : (BLOCK_STATES.idOf(state.name, { ...state.properties, waterlogged: 'true' }) ?? javaId);
+    waterloggedStates.set(javaId, waterlogged);
+    return waterlogged;
+};
+
 /** The biome registry a Java client was configured with, in network id order. */
 export const JAVA_BIOMES: readonly string[] =
     CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:worldgen/biome')?.entries ?? [];

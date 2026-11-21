@@ -50,7 +50,12 @@ import type {
 } from '../presenter/SessionPresenter';
 import type { ShownEntity } from '../../world/ShownActor';
 import type { EditionTranslation } from './editionTranslation';
-import { javaBlockTranslation, javaEntityTranslation, javaItemTranslation } from './editionTranslation';
+import {
+    javaBlockTranslation,
+    javaEntityTranslation,
+    javaItemTranslation,
+    javaWaterloggedOf
+} from './editionTranslation';
 
 /** A UUID for an entity that has none of its own to show, made from its id so it stays the same. */
 const entityUuidOf = (runtimeId: bigint): string => hyphenatedUuid(runtimeId.toString(16).padStart(32, '0'));
@@ -289,14 +294,16 @@ export class JavaPresenter implements SessionPresenter {
      */
     public async showBlocks(changes: readonly ShownBlockChange[]): Promise<void> {
         const sections = new Map<string, { x: number; y: number; z: number; blocks: Map<number, SectionBlock> }>();
-        for (const { x, y, z, runtimeId } of changes) {
+        for (const { x, y, z, runtimeId, waterlogged } of changes) {
             const key = `${x >> 4},${y >> 4},${z >> 4}`;
             let section = sections.get(key);
             if (section === undefined) {
                 section = { x: x >> 4, y: y >> 4, z: z >> 4, blocks: new Map() };
                 sections.set(key, section);
             }
-            const block = { state: this.blocks.toJava(runtimeId), x: x & 15, y: y & 15, z: z & 15 };
+            const main = this.blocks.toJava(runtimeId);
+            const state = waterlogged ? javaWaterloggedOf(main) : main;
+            const block = { state, x: x & 15, y: y & 15, z: z & 15 };
             section.blocks.set((block.x << 8) | (block.z << 4) | block.y, block);
         }
         for (const section of sections.values()) {
