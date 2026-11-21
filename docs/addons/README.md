@@ -1,6 +1,6 @@
 ---
 title: Addons
-description: The optional behavior packs JSPrismarine publishes, and how to install, write and publish one.
+description: The optional behavior packs JSPrismarine publishes, and how to install, write, publish and list one.
 group: Documents
 category: Addons
 ---
@@ -73,9 +73,11 @@ addon install tps-bar
 
 Any GitHub repository can publish addons the same way JSPrismarine does, several to one
 repository. Install one by its repository and name, such as
-`addon install someone/their-addons/warps`. JSPrismarine does not list or review other people's
-addons, so the console prints which repository each install came from and whether an index's
-hash checked the download.
+`addon install someone/their-addons/warps`. The [marketplace](https://jsprismarine.dev/addons/)
+on jsprismarine.dev lists these addons beside JSPrismarine's own, from the repositories
+<!-- fact:addons.listingsFile -->`addons/listings.json`<!-- /fact --> names. JSPrismarine reviews
+each listing, not the addon's scripts, so the console prints which repository each install came
+from and whether an index's hash checked the download.
 
 ## Guides
 
@@ -84,5 +86,7 @@ hash checked the download.
   startup.
 - [Writing an addon](../guide/writing-addons.md): the folder layout, `addon.json`, JSPrismarine's
   script module, and testing a pack on a local server.
+- [Listing an addon](../guide/listing-addons.md): a page in the marketplace for an addon you
+  publish, the listing keys in `addon.json`, and deprecating an addon.
 - [Publishing addons](../guide/publishing-addons.md): a repository of your own,
   <!-- fact:addons.cli -->`jsp-addon`<!-- /fact --> `build`, the release workflow and the index servers install from.

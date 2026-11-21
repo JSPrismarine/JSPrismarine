@@ -49,6 +49,7 @@ Start from what you are here to do.
 - [Writing an addon](writing-addons.md): turn a script pack into an addon owners install from the
   console, and test it on a server.
 - [Publishing addons](publishing-addons.md): release addons from a GitHub repository of your own.
+- [Listing an addon](listing-addons.md): give an addon you publish a page in the marketplace.
 - [Run from source](running.md#run-from-source): `pnpm run dev`, which restarts the server when your
   pack or code changes.
 

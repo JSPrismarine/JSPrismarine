@@ -94,6 +94,20 @@ file takes only the listing keys
 which the [addon tools' README](../../packages/addon-tools/README.md#the-listing) describes. Any
 other key fails the build, so a version written here by mistake cannot disagree with the manifest.
 
+The listing keys fill in the addon's page in the [marketplace](../addons/README.md):
+
+- `title`, the addon's name for people, which defaults to the README's first heading.
+- `tags` from <!-- fact:addons.tags -->`admin`, `chat`, `gameplay`, `performance` and `world`<!-- /fact -->,
+  for the marketplace's filters.
+- `authors`, the people who wrote it.
+- `screenshots`, images under <!-- fact:addons.mediaDirectory -->`media/`<!-- /fact -->, each with
+  a `file` and an `alt` that says what it shows. The pack leaves `media/` out.
+- `deprecated` and `replacedBy`, which say why owners should stop installing the addon and which
+  addon replaces it. Servers warn with both.
+
+A square <!-- fact:addons.iconFile -->`pack_icon.png`<!-- /fact --> in the folder is the addon's
+icon. [Listing an addon](listing-addons.md) covers each key and the review a listing goes through.
+
 ## The README
 
 `README.md` goes into the pack beside the scripts. Say what the addon does, the commands it adds,

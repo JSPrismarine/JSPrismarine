@@ -41,8 +41,10 @@ came from.
 A bare name installs from <!-- fact:addons.defaultSource -->`JSPrismarine/JSPrismarine`<!-- /fact -->.
 A name with an owner and a repository installs from that repository's
 <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release, which any GitHub repository can publish;
-[Publishing addons](publishing-addons.md) explains how. JSPrismarine does not list or review other
-people's addons, so install from repositories you trust.
+[Publishing addons](publishing-addons.md) explains how. The [marketplace](../addons/README.md) on
+jsprismarine.dev lists JSPrismarine's addons and those of other repositories, with the command that
+installs each. JSPrismarine checks that a listed addon is what it says it is, but nobody reviews
+other people's scripts, so install from repositories you trust.
 
 ### Version ranges
 
@@ -160,7 +162,21 @@ The `addons/` folder can always be rebuilt from them.
 ## List, update and remove
 
 `addon list` shows each local name, its version and where it came from. It also shows an entry
-that only one of the two files names, with what `addon sync` would do about it.
+that only one of the two files names, with what `addon sync` would do about it, and marks an addon
+whose author has deprecated the installed version.
+
+An author deprecates an addon in a new version, with the reason and, when there is one, the addon
+that replaces it. `addon install` and `addon update` print both as a warning when they install or
+keep that version:
+
+<!-- fact:addons.deprecationWarning -->
+```text
+warps 2.0.0 is deprecated: "Use warps-plus instead." Install its replacement with addon install someone/their-addons/warps-plus.
+```
+<!-- /fact -->
+
+Neither refuses a deprecated addon, so it keeps working until you move. `addons.lock.json` records
+the reason beside the addon's lock.
 
 `addon update` looks for a newer version of every addon within its range, and
 `addon update tps-bar` for one. It installs what changed, rewrites the lock and reloads the
