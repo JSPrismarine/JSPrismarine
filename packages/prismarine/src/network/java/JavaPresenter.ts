@@ -15,6 +15,10 @@ import {
     CHANGE_GAME_MODE,
     ContainerSetContent,
     ContainerSetSlot,
+    PlayerCombatKill,
+    Respawn,
+    SetHealth,
+    START_WAITING_FOR_LEVEL_CHUNKS,
     GameEvent,
     PlayerInfoAction,
     PlayerInfoAdd,
@@ -27,6 +31,7 @@ import {
     SystemChat,
     TeleportEntity
 } from '@jsprismarine/protocol/java/packet/play';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 import type { JavaText } from '@jsprismarine/protocol/java/wire/javaTypes';
 import { hyphenatedUuid } from '@jsprismarine/protocol/java/wire/javaTypes';
 
@@ -35,11 +40,13 @@ import type {
     SessionPresenter,
     ShownBlockChange,
     ShownContainer,
+    ShownDeath,
     ShownEntityMove,
     ShownInventory,
     ShownMessage,
     ShownMove,
-    ShownStack
+    ShownStack,
+    ShownVitals
 } from '../presenter/SessionPresenter';
 import type { ShownEntity } from '../../world/ShownActor';
 import type { EditionTranslation } from './editionTranslation';
@@ -72,6 +79,29 @@ export type JavaSend = <T>(definition: JavaPacketDefinition<T>, value: T) => voi
 /** Java's game modes, by Bedrock's numbers: Bedrock's spectator is 6, Java's is 3. */
 export const javaGameModeOf = (gamemode: Gametype): number =>
     gamemode === Gametype.SPECTATOR ? 3 : gamemode === Gametype.CREATIVE ? 1 : gamemode === Gametype.ADVENTURE ? 2 : 0;
+
+/** The dimension type registry a client was configured with, in network id order. */
+const DIMENSION_TYPES: readonly string[] =
+    CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
+
+/**
+ * The world a Java player spawns into, as `Login (play)` and `Respawn` both carry it: the
+ * overworld, where every Java player is until dimensions reach Java clients.
+ * @param gamemode - The player's game mode.
+ * @returns The spawn fields.
+ */
+export const overworldSpawnInfo = (gamemode: Gametype) => ({
+    dimensionType: Math.max(0, DIMENSION_TYPES.indexOf('minecraft:overworld')),
+    dimension: 'minecraft:overworld',
+    hashedSeed: 0n,
+    gameMode: javaGameModeOf(gamemode),
+    previousGameMode: null,
+    isDebug: false,
+    isFlat: false,
+    deathLocation: null,
+    portalCooldown: 0,
+    seaLevel: 63
+});
 
 /**
  * A message as Java text. A player's chat takes vanilla's `chat.type.text` translation, which
@@ -299,6 +329,29 @@ export class JavaPresenter implements SessionPresenter {
             slot: javaWindowSlotOf(container, slot),
             item: this.javaStackOf(stack)
         });
+    }
+
+    /** Sends `Set Health`: Java's food level is a whole number, as the hunger bar's halves are. */
+    public async showVitals({ health, food, saturation }: ShownVitals): Promise<void> {
+        this.send(SetHealth, { health, food: Math.round(food), saturation });
+    }
+
+    /** Sends `Combat Death` for the client's own player, which opens its death screen with the message. */
+    public async showDeath({ key, parameters }: ShownDeath): Promise<void> {
+        this.send(PlayerCombatKill, {
+            playerId: Number(this.ownRuntimeId),
+            message: { translate: key, with: [...parameters] }
+        });
+    }
+
+    /**
+     * Sends `Respawn` into the overworld the client already holds, keeping nothing of the dead
+     * player, and the event that has it wait for the chunks around where it comes back, as vanilla
+     * does. The position follows from the session.
+     */
+    public async showRespawn(gamemode: Gametype): Promise<void> {
+        this.send(Respawn, { ...overworldSpawnInfo(gamemode), dataToKeep: 0 });
+        this.send(GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */

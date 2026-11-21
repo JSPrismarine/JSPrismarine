@@ -137,6 +137,7 @@ import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from './presenter/BedrockPresenter';
 import type { MoveMode, SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
 import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
+import { VITAL_ATTRIBUTES, vitalsOf } from './presenter/shownVitals';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
@@ -2557,6 +2558,13 @@ export default class PlayerSession {
      */
     public async sendAttributesFor(entity: Pick<ShownActor, 'getRuntimeId'>, attributes: Attribute[]): Promise<void> {
         if (attributes.length === 0) return;
+        // A client of another edition is shown its own vitals as plain values; other entities'
+        // attributes come with their replication there.
+        if (this.presenter.edition !== 'bedrock') {
+            if (entity.getRuntimeId() !== this.runtimeId) return;
+            if (!attributes.some((attribute) => VITAL_ATTRIBUTES.has(attribute.getName()))) return;
+            return this.presenter.showVitals(vitalsOf(this.own().attributes));
+        }
 
         const packet = new UpdateAttributesPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
@@ -3080,6 +3088,9 @@ export default class PlayerSession {
      *   the `%` the chat packet wants.
      */
     public sendDeathScreen(announced: Vector3, { key, parameters }: DeathMessage): Promise<void> {
+        if (this.presenter.edition !== 'bedrock') {
+            return this.presenter.showDeath({ key: key.replace(/^%/, ''), parameters });
+        }
         return allSent([
             this.sendRespawn(announced, PlayerRespawnState.SEARCHING_FOR_SPAWN),
             this.connection.sendDataPacket(new DeathInfoPacket({ cause: key.replace(/^%/, ''), messages: parameters }))
@@ -4027,6 +4038,9 @@ export default class PlayerSession {
         // keeps everything. The answer still goes out: the client repeats the request once a
         // second until it gets one, and silence is what leaves it on the death screen.
         if (player.getHealth() <= 0) {
+            // A Java client is spawned again before it is moved; a Bedrock one came back at the
+            // `ReadyToSpawn` position already.
+            if (this.presenter.edition !== 'bedrock') this.released(this.presenter.showRespawn(player.gamemode));
             // The entity never left the store: the revival brings it back with the same id at
             // full health, and the player systems reset the attributes, the lungs and the movement
             // flags. Each write is logged.

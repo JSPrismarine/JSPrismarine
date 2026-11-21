@@ -136,6 +136,22 @@ describe('JavaPresenter', () => {
         expect(slot).toMatchObject({ name: 'Set Container Slot', value: { window: 0, slot: 37, item: null } });
     });
 
+    it('shows the vitals with a whole food level, a death on its own screen, and a respawn that waits for chunks', async () => {
+        const { sent, java } = presenter();
+
+        await java.showVitals({ health: 7.5, food: 17.6, saturation: 2 });
+        await java.showDeath({ key: 'death.attack.generic', parameters: ['Steve'] });
+        await java.showRespawn(Gametype.SURVIVAL);
+
+        expect(sent.map(({ name }) => name)).toEqual(['Set Health', 'Combat Death', 'Respawn', 'Game Event']);
+        expect(sent[0]?.value).toEqual({ health: 7.5, food: 18, saturation: 2 });
+        expect(sent[1]?.value).toEqual({
+            playerId: 7,
+            message: { translate: 'death.attack.generic', with: ['Steve'] }
+        });
+        expect(sent[2]?.value).toMatchObject({ dimension: 'minecraft:overworld', gameMode: 0, dataToKeep: 0 });
+    });
+
     it("tells the client its game mode in Java's numbers", async () => {
         const { sent, java } = presenter();
 

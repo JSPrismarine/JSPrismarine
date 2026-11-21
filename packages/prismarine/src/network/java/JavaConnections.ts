@@ -41,6 +41,8 @@ import {
     ChatMessage,
     ChunkBatchFinished,
     ChunkBatchStart,
+    ClientCommand,
+    ClientCommandAction,
     ClientboundKeepAlive,
     ConfirmTeleportation,
     GameEvent,
@@ -83,7 +85,7 @@ import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from './javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from './javaMining';
 import { javaUseItemOnIntentOf } from './javaUseItemOn';
 import type { JavaPlayers } from './javaPlayers';
-import { javaGameModeOf } from './JavaPresenter';
+import { overworldSpawnInfo } from './JavaPresenter';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';
 
@@ -130,10 +132,6 @@ const KEEP_ALIVE_INTERVAL_MS = 15_000;
  * `network-compression-threshold` defaults to.
  */
 const COMPRESSION_THRESHOLD = 256;
-
-/** The dimension type registry a client was configured with, in network id order. */
-const DIMENSION_TYPES: readonly string[] =
-    CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
 
 /** Every packet a client may send in the configuration phase. */
 const CONFIGURATION_SERVERBOUND: ReadonlySet<number> = new Set(Object.values(PACKETS.configuration.serverbound));
@@ -437,16 +435,7 @@ export class JavaConnections {
             reducedDebugInfo: false,
             showDeathScreen: true,
             doLimitedCrafting: false,
-            dimensionType: Math.max(0, DIMENSION_TYPES.indexOf('minecraft:overworld')),
-            dimension: 'minecraft:overworld',
-            hashedSeed: 0n,
-            gameMode: javaGameModeOf(player.gamemode),
-            previousGameMode: null,
-            isDebug: false,
-            isFlat: false,
-            deathLocation: null,
-            portalCooldown: 0,
-            seaLevel: 63,
+            ...overworldSpawnInfo(player.gamemode),
             onlineMode: this.options.onlineMode(),
             enforcesSecureChat: false
         });
@@ -548,6 +537,10 @@ export class JavaConnections {
                 const intent = javaCreativeSlotIntentOf(expect(SetCreativeModeSlot), this.items);
                 return intent === undefined ? undefined : queue(players.intent(session, intent));
             }
+            case ClientCommand.id:
+                // The death screen's button; statistics are not kept.
+                if (expect(ClientCommand).action !== ClientCommandAction.PerformRespawn) return;
+                return queue(players.intent(session, { kind: 'pressRespawn' }));
             case UseItemOn.id: {
                 const use = expect(UseItemOn);
                 const intent = javaUseItemOnIntentOf(use);
