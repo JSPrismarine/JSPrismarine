@@ -8,7 +8,7 @@
  * replaces, file by file, what the shards ran. A file `--changed` left out is one the diff cannot
  * reach, so its base result still holds; a file that is gone from the checkout is dropped.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { familyOf, isFamily } from '../families.ts';
@@ -113,12 +113,14 @@ export const readInputs = (directory: string): DashboardInputs => {
 
 /**
  * Writes inputs the way `readInputs` reads them, so a run's complete inputs can be kept for the
- * runs based on it.
+ * runs based on it. Case files already in the directory are replaced, since `readInputs` reads
+ * every one it finds.
  *
  * @param directory - Created if missing.
  * @param inputs - What to write.
  */
 export const writeInputs = (directory: string, inputs: DashboardInputs): void => {
+    rmSync(join(directory, 'cases'), { recursive: true, force: true });
     mkdirSync(join(directory, 'cases'), { recursive: true });
     writeFileSync(join(directory, 'report.json'), `${JSON.stringify(inputs.report)}\n`);
     writeFileSync(
@@ -163,9 +165,10 @@ export const mergeInputs = (shards: readonly DashboardInputs[]): DashboardInputs
  *
  * A file the run reported replaces the base's report of it, its data-level cases, and the
  * measurements of the families its assertions claim. A base file that is gone from the checkout
- * is dropped, cases and all, so a family whose last test was removed does not keep its base
- * results. Everything else keeps the base result: `--changed` left it out because the diff cannot
- * reach it, and a change to the data inputs reruns every file through `forceRerunTriggers`.
+ * is dropped, cases and all, and a base measurement stays only while a kept file still claims its
+ * family, so a family whose last test was removed does not keep its base results. Everything else
+ * keeps the base result: `--changed` left it out because the diff cannot reach it, and a change to
+ * the data inputs reruns every file through `forceRerunTriggers`.
  *
  * @param base - The base commit's complete inputs.
  * @param update - What the run re-ran, every shard merged.
@@ -180,13 +183,16 @@ export const overlayInputs = (
     const rerun = new Set(update.report.testResults.map((file) => file.name));
     const keptFiles = base.report.testResults.filter((file) => exists(file.name) && !rerun.has(file.name));
     const kept = new Set(keptFiles.map((file) => file.name));
+    const keptFamilies = new Set(keptFiles.flatMap((file) => [...familiesOf(file)]));
     const rerunFamilies = new Set(update.report.testResults.flatMap((file) => [...familiesOf(file)]));
     return {
         report: {
             testResults: [...keptFiles, ...update.report.testResults].sort((a, b) => a.name.localeCompare(b.name))
         },
         measurements: [
-            ...base.measurements.filter((measurement) => !rerunFamilies.has(measurement.family)),
+            ...base.measurements.filter(
+                (measurement) => keptFamilies.has(measurement.family) && !rerunFamilies.has(measurement.family)
+            ),
             ...update.measurements
         ],
         cases: [...base.cases.filter((entry) => kept.has(entry.sourceFile)), ...update.cases]

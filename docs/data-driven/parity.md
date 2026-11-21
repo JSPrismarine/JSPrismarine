@@ -176,11 +176,14 @@ script prints the table to stdout, writes it to `packages/parity/dist/dashboard.
 it to `$GITHUB_STEP_SUMMARY` when CI provides one. It exits 0 even when tests fail, because its
 job is to report the failures; the test run gates CI separately. The parity dashboard job in
 `.github/workflows/ci.yml` is where CI publishes it, because that job has the fetched sources
-the measured rows need. For same-repository pull requests, CI compares the current dashboard
-with the base commit's report in one comment. It downloads that report from the base commit's
-master run, or, while that run is still going, from the newest earlier master commit whose run
-kept one, and the comment then names that commit; only when no commit within twenty is found
-does it build the base and run the dashboard there. Later runs update the comment.
+the measured rows need. In CI the dashboard runs no test of its own: the test shards keep Vitest's
+JSON report and the parity side files, and the dashboard job lays them over the complete inputs the
+run of the commit `--changed` compared with kept, file by file
+(`packages/parity/src/dashboard/inputs.ts`). That commit is the pull request's base, or the newest
+earlier master commit whose run kept its inputs while the base's run is still going; the workflow
+sets how far back it looks. A run that finds none runs every file and needs no base. For same-repository pull
+requests, CI compares the current tracker with that commit's in one comment, naming the commit when
+it is not the base. Later runs update the comment.
 
 ### Keeping the claim honest
 

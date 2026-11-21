@@ -81,15 +81,18 @@ describe('readInputs and writeInputs', () => {
         expect(readInputs(directory)).toEqual({ report: { testResults: [] }, measurements: [], cases: [] });
     });
 
-    it('reads back what it wrote', () => {
+    it('reads back what it wrote, and nothing a run left in the directory before', () => {
         directory = mkdtempSync(join(tmpdir(), 'parity-inputs-'));
+        const out = join(directory, 'out');
+        mkdirSync(join(out, 'cases'), { recursive: true });
+        writeFileSync(join(out, 'cases', 'stale.jsonl'), `${JSON.stringify(parityCase(ITEMS, 'minecraft:stick'))}\n`);
         const inputs: DashboardInputs = {
             report: { testResults: [file(BLOCKS, FAMILIES.registryBlocks)] },
             measurements: [{ family: FAMILIES.registryBlocks, name: 'blocks', value: 3 }],
             cases: [parityCase(BLOCKS, 'minecraft:stone')]
         };
-        writeInputs(join(directory, 'out'), inputs);
-        expect(readInputs(join(directory, 'out'))).toEqual(inputs);
+        writeInputs(out, inputs);
+        expect(readInputs(out)).toEqual(inputs);
     });
 });
 
@@ -161,6 +164,8 @@ describe('overlayInputs', () => {
         );
         expect(result.report.testResults.map((entry) => entry.name)).toEqual([CLAIM, BLOCKS]);
         expect(result.cases.map((entry) => entry.id)).toEqual(['minecraft:stone']);
+        // The deleted file was the only one claiming its family, so its measurement goes too.
+        expect(result.measurements).toEqual([{ family: FAMILIES.registryBlocks, name: 'blocks', value: 1 }]);
     });
 
     it('adds a file the base never had', () => {
