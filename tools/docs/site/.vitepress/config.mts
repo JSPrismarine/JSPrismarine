@@ -8,7 +8,9 @@ import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
+import { changelogUrl, loadChangelog, releaseDates } from '../../changelog.mts';
 import { markdownHeaders, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
+import { packagesMarkdown, releasesMarkdown } from '../../llmsPages.mts';
 import { loadProject } from '../../project.mts';
 import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
@@ -123,20 +125,27 @@ export default defineConfig({
         console.log(
             `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes, linked from ${linking} pages.`
         );
-        const markdownPages = writeMarkdownPages({
-            srcDir: siteConfig.srcDir,
-            outDir: siteConfig.outDir,
-            pages: siteConfig.pages,
-            siteUrl
-        });
-        console.log(`Markdown copies: ${markdownPages} pages.`);
-        const llms = writeLlmsFiles({
+        const project = loadProject();
+        const site = {
             srcDir: siteConfig.srcDir,
             outDir: siteConfig.outDir,
             pages: siteConfig.pages,
             siteUrl,
+            // Pages written with components get a copy written from the data the component renders.
+            generated: new Map([
+                ['packages.md', packagesMarkdown(project)],
+                [
+                    'releases.md',
+                    releasesMarkdown(loadChangelog(), { dateOf: releaseDates(), changelogUrl: changelogUrl() })
+                ]
+            ])
+        };
+        const markdownPages = writeMarkdownPages(site);
+        console.log(`Markdown copies: ${markdownPages} pages.`);
+        const llms = writeLlmsFiles({
+            ...site,
             summary: manifest.description,
-            project: loadProject(),
+            project,
             sections,
             // The sidebar is each section's page order, and a card page's groups are its sections.
             sectionLinks: (section) => sidebarLinks(sidebar[`/${section.dir}/`] ?? []),

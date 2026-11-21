@@ -91,8 +91,18 @@ describe('pageMarkdown', () => {
 
 describe('markdownPages', () => {
     it('takes the pages staged from the repository, not those written for the site or by TypeDoc', () => {
-        const pages = markdownPages(['guide/running.md', 'contributing.md', 'packages.md', 'api/index.md', 'index.md']);
+        const pages = markdownPages({
+            pages: ['guide/running.md', 'contributing.md', 'packages.md', 'api/index.md', 'index.md']
+        });
         expect([...pages]).toEqual(['guide/running.md', 'contributing.md']);
+    });
+
+    it('takes a page written for the site when the build writes its copy from data', () => {
+        const pages = markdownPages({
+            pages: ['guide/running.md', 'packages.md', 'parity.md'],
+            generated: new Map([['packages.md', '# Packages\n']])
+        });
+        expect([...pages]).toEqual(['guide/running.md', 'packages.md']);
     });
 });
 
@@ -128,6 +138,26 @@ describe('writeMarkdownPages', () => {
                 else expect(Object.keys(pages)).toContain(`${file}.md`);
             }
         }
+    });
+
+    it("writes a component page's copy from the Markdown the build gives it, and links other copies to it", () => {
+        root = mkdtempSync(path.join(tmpdir(), 'llms-'));
+        const srcDir = path.join(root, 'src');
+        const outDir = path.join(root, 'out');
+        mkdirSync(path.join(srcDir, 'guide'), { recursive: true });
+        writeFileSync(path.join(srcDir, 'guide/running.md'), '# Running\n\nSee the [packages](/packages).\n');
+        writeFileSync(path.join(srcDir, 'packages.md'), '<PackageDirectory />\n');
+        const generated = new Map([['packages.md', '# Packages\n\n- [nbt](/api/@jsprismarine/nbt/)\n']]);
+
+        expect(
+            writeMarkdownPages({ srcDir, outDir, pages: ['guide/running.md', 'packages.md'], siteUrl, generated })
+        ).toBe(2);
+        expect(readFileSync(path.join(outDir, 'packages.md'), 'utf8')).toBe(
+            '# Packages\n\n- [nbt](https://docs.example/api/@jsprismarine/nbt/)\n'
+        );
+        expect(readFileSync(path.join(outDir, 'guide/running.md'), 'utf8')).toContain(
+            '[packages](https://docs.example/packages.md)'
+        );
     });
 });
 
