@@ -1,5 +1,9 @@
 # @jsprismarine/recipes
 
+## 0.23.2
+
+No changes in this release.
+
 ## 0.23.1
 
 ### Patch Changes

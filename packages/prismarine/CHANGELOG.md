@@ -1,5 +1,55 @@
 # @jsprismarine/prismarine
 
+## 0.23.2
+
+### Patch Changes
+
+- [#3483](https://github.com/JSPrismarine/JSPrismarine/pull/3483) [`5f48cd1`](https://github.com/JSPrismarine/JSPrismarine/commit/5f48cd10e4ca5b53ef19ebd214b70b1de18acca9) Thanks [@filiphsps](https://github.com/filiphsps)! - Pack a generated chunk's biome sections from the cells its terrain pass already sampled. When generation runs on the server thread (one core, or `chunk-workers: 0`), the terrain tile carries its biome cells but no packed sections, and translation resolved every cell from the biome source again, searching the climate tree wherever the memo had evicted it. Over a 3 by 3 block of decorated chunks, climate searches for the chunks' own cells fall from 21,211 to 15,476, against 13,824 cells. The packed biomes are the same.
+- Updated dependencies [[`8db0f69`](https://github.com/JSPrismarine/JSPrismarine/commit/8db0f69109c70f63f1ba1feacf3cabdf756d2317), [`5f48cd1`](https://github.com/JSPrismarine/JSPrismarine/commit/5f48cd10e4ca5b53ef19ebd214b70b1de18acca9)]:
+  - @jsprismarine/protocol@0.23.2
+  - @jsprismarine/errors@0.23.2
+  - @jsprismarine/addon-tools@0.23.2
+  - @jsprismarine/auth@0.23.2
+  - @jsprismarine/binaryutils@0.23.2
+  - @jsprismarine/block-behaviors@0.23.2
+  - @jsprismarine/blocks@0.23.2
+  - @jsprismarine/brigadier@0.23.2
+  - @jsprismarine/chunkgen@0.23.2
+  - @jsprismarine/commands@0.23.2
+  - @jsprismarine/console-protocol@0.23.2
+  - @jsprismarine/content@0.23.2
+  - @jsprismarine/engine-systems@0.23.2
+  - @jsprismarine/entities@0.23.2
+  - @jsprismarine/entity-brains@0.23.2
+  - @jsprismarine/entity-goals@0.23.2
+  - @jsprismarine/features@0.23.2
+  - @jsprismarine/items@0.23.2
+  - @jsprismarine/kernel@0.23.2
+  - @jsprismarine/leveldb@0.23.2
+  - @jsprismarine/lighting@0.23.2
+  - @jsprismarine/logger@0.23.2
+  - @jsprismarine/loot@0.23.2
+  - @jsprismarine/mapping@0.23.2
+  - @jsprismarine/minecraft@0.23.2
+  - @jsprismarine/native-network@0.23.2
+  - @jsprismarine/nbt@0.23.2
+  - @jsprismarine/nethernet@0.23.2
+  - @jsprismarine/packs@0.23.2
+  - @jsprismarine/predicates@0.23.2
+  - @jsprismarine/raknet@0.23.2
+  - @jsprismarine/spawning@0.23.2
+  - @jsprismarine/structures@0.23.2
+  - @jsprismarine/trading@0.23.2
+  - @jsprismarine/worldgen@0.23.2
+  - @jsprismarine/bedrock-data@0.23.2
+  - @jsprismarine/math@0.23.2
+  - @jsprismarine/item-behaviors@0.23.2
+  - @jsprismarine/recipes@0.23.2
+  - @jsprismarine/advancements@0.23.2
+  - @jsprismarine/enchantments@0.23.2
+  - @jsprismarine/color-parser@0.23.2
+  - @jsprismarine/mcfunction@0.23.2
+
 ## 0.23.1
 
 ### Patch Changes

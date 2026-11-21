@@ -1,5 +1,21 @@
 # @jsprismarine/protocol
 
+## 0.23.2
+
+### Patch Changes
+
+- [`8db0f69`](https://github.com/JSPrismarine/JSPrismarine/commit/8db0f69109c70f63f1ba1feacf3cabdf756d2317) Thanks [@filiphsps](https://github.com/filiphsps)! - The built `java/versions/26.3/configuration` and `java/versions/26.3/blockStates` modules export `CONFIGURATION` and `BLOCK_STATES` again. The build made each module's JSON capture an entry of the same name, which replaced the module in `dist`, so a server started from the built packages failed to import `CONFIGURATION`.
+- Updated dependencies [[`5f48cd1`](https://github.com/JSPrismarine/JSPrismarine/commit/5f48cd10e4ca5b53ef19ebd214b70b1de18acca9)]:
+  - @jsprismarine/errors@0.23.2
+  - @jsprismarine/binaryutils@0.23.2
+  - @jsprismarine/blocks@0.23.2
+  - @jsprismarine/content@0.23.2
+  - @jsprismarine/items@0.23.2
+  - @jsprismarine/minecraft@0.23.2
+  - @jsprismarine/nbt@0.23.2
+  - @jsprismarine/math@0.23.2
+  - @jsprismarine/recipes@0.23.2
+
 ## 0.23.1
 
 ### Patch Changes

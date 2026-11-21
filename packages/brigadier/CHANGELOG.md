@@ -1,5 +1,12 @@
 # @jsprismarine/client
 
+## 0.23.2
+
+### Patch Changes
+
+- Updated dependencies [[`5f48cd1`](https://github.com/JSPrismarine/JSPrismarine/commit/5f48cd10e4ca5b53ef19ebd214b70b1de18acca9)]:
+  - @jsprismarine/errors@0.23.2
+
 ## 0.23.1
 
 ### Patch Changes
