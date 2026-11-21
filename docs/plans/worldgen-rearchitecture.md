@@ -221,10 +221,11 @@ So the first native slices replace noise leaves through per-sample calls with th
 volume runtime exists. The order:
 
 1. Take the native loader code that `native-network` and `script-host` each copy (platform key,
-   manifest, digest check, installer) into one shared home.
+   manifest, digest check, installer) into one shared home: `packages/native-library` (#3513).
 2. `packages/native-worldgen` with the noise kernel, its build script, an entry in
-   `scripts/native/packages.mts` and a workflow on `native-library.yml`. A native `Noise` binds
-   through `node:ffi`, and TypeScript noise is the fallback wherever no build is installed.
+   `scripts/native/packages.mts` and a workflow on `native-library.yml`. Its stacks bind through
+   `@jsprismarine/native-library/ffi`, which covers `node:ffi` and `bun:ffi` from one signature
+   table. Moving `native-network` and `script-host` onto that binder follows.
 3. Worldgen uses native stacks for `NormalNoise` when the library loads. The parity families and
    the vectors run on both paths.
 4. Smeared and blended noise, the aquifer and the density program follow, each proven by the same

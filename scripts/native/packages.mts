@@ -15,6 +15,11 @@ import {
     LIBRARY as NETWORK_LIBRARY,
     PUBLISHED_PLATFORMS as NETWORK_PLATFORMS
 } from '../../packages/native-network/src/platform.ts';
+import { BUILD_SCRIPTS as WORLDGEN_BUILD_SCRIPTS } from '../../packages/native-worldgen/src/nativeHash.ts';
+import {
+    LIBRARY as WORLDGEN_LIBRARY,
+    PUBLISHED_PLATFORMS as WORLDGEN_PLATFORMS
+} from '../../packages/native-worldgen/src/platform.ts';
 import { BUILD_SCRIPTS as SCRIPT_HOST_BUILD_SCRIPTS } from '../../packages/script-host/src/nativeHash.ts';
 import {
     LIBRARY as SCRIPT_HOST_LIBRARY,
@@ -91,6 +96,24 @@ const PACKAGES = {
         buildScripts: SCRIPT_HOST_BUILD_SCRIPTS,
         sourceHash: () =>
             nativeSourceHash(join(repoRoot, 'packages/script-host'), SCRIPT_HOST_BUILD_SCRIPTS, namingAnswers())
+    },
+    'native-worldgen': {
+        name: '@jsprismarine/native-worldgen',
+        dir: 'packages/native-worldgen',
+        library: WORLDGEN_LIBRARY,
+        abiSymbol: 'jwg_abi_version',
+        platforms: WORLDGEN_PLATFORMS,
+        // The kernel is plain C with no threads or I/O, so one runner per instruction set covers it.
+        testPlatforms: ['linux-x64-gnu', 'linux-arm64-gnu'],
+        requireEnv: 'JSP_NATIVE_WORLDGEN_REQUIRE',
+        // GCC on Windows takes the same -ffp-contract=off as everywhere else.
+        windowsToolchain: 'mingw',
+        containerPackages: { alpine: 'build-base git', debian: '' },
+        loadScript:
+            "import('@jsprismarine/native-worldgen').then((m) => { const w = m.NativeWorldgen.load(); console.log('interface', m.ABI_VERSION); w.close(); }).catch((e) => { console.log(e.message); process.exit(3); })",
+        buildScripts: WORLDGEN_BUILD_SCRIPTS,
+        sourceHash: () =>
+            nativeSourceHash(join(repoRoot, 'packages/native-worldgen'), WORLDGEN_BUILD_SCRIPTS, namingAnswers())
     }
 } as const satisfies Record<string, NativePackage>;
 

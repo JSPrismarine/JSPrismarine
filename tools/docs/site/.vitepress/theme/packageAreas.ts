@@ -25,6 +25,7 @@ export const packageAreas = [
         description: 'Terrain, decoration, light, storage and the systems that tick a world.',
         packages: [
             'worldgen',
+            'native-worldgen',
             'chunkgen',
             'features',
             'structures',

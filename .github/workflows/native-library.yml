@@ -12,7 +12,8 @@ name: Native library
 # sources needs neither: every job that installs builds its own library meanwhile
 # (.github/common/native-library).
 #
-# Each package's own workflow (native-network.yml, script-host.yml) calls this one with its id.
+# Each package's own workflow (native-network.yml, script-host.yml, native-worldgen.yml) calls this
+# one with its id.
 on:
     workflow_call:
         inputs:

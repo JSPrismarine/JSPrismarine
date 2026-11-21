@@ -151,6 +151,11 @@
                 "import": "./dist/native-network.js",
                 "module": "./dist/native-network.js"
             },
+            "./native-worldgen": {
+                "types": "./dist/native-worldgen.d.ts",
+                "import": "./dist/native-worldgen.js",
+                "module": "./dist/native-worldgen.js"
+            },
             "./nbt": {
                 "types": "./dist/nbt.d.ts",
                 "import": "./dist/nbt.js",
@@ -381,6 +386,10 @@
         "./native-network": {
             "jsprismarine:dist": "./dist/native-network.js",
             "default": "./src/native-network.ts"
+        },
+        "./native-worldgen": {
+            "jsprismarine:dist": "./dist/native-worldgen.js",
+            "default": "./src/native-worldgen.ts"
         },
         "./nbt": {
             "jsprismarine:dist": "./dist/nbt.js",
