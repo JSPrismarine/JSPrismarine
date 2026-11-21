@@ -101,6 +101,7 @@ export class HostedGenerationPool implements GenerationTransport {
     private limit: number | undefined;
     /** The reusable inputs the host holds, kept in step with the host's own record. */
     private readonly held = new ReusableCache<true>(REUSABLE_CAPACITY);
+    private valuesSent = 0;
 
     /**
      * Why a host cannot be started here, or undefined when one can.
@@ -144,6 +145,14 @@ export class HostedGenerationPool implements GenerationTransport {
 
     public get inFlight(): number {
         return this.fallback?.inFlight ?? Math.min(this.outstanding.size, this.capacity());
+    }
+
+    /**
+     * How many reusable values went to a host with their value rather than by key alone, over the
+     * pool's life. Each is a value the host did not hold, such as one it never built.
+     */
+    public get reusableValuesSent(): number {
+        return this.valuesSent;
     }
 
     public get queued(): number {
@@ -264,6 +273,7 @@ export class HostedGenerationPool implements GenerationTransport {
 
         entry.sentTo = child;
         const encoded = encodeReusable(entry.task.input, this.held);
+        for (const slot of encoded?.slots ?? []) if (slot.sent) this.valuesSent++;
         const run = { type: 'run', id: entry.id, task: entry.task, priority: entry.priority } as const;
         this.post(
             encoded === undefined
@@ -396,6 +406,8 @@ export class HostedGenerationPool implements GenerationTransport {
                           workerCpuMs: event.result.workerStats.cpuUs / 1000
                       })
             });
+            // The host kept the result under this key before it posted it.
+            if (entry.task.keepResult !== undefined) this.held.put(entry.task.keepResult.key, true);
             entry.resolve(event.result);
             return;
         }

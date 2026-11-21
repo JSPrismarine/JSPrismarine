@@ -119,6 +119,31 @@ export class ReusableCache<Value> {
     }
 }
 
+/**
+ * Asks a generation host to keep a task's result as though a later task had sent it under a key.
+ *
+ * A terrain tile is built in the host, posted to the server, and needed again by the host's own
+ * feature and merge tasks. Without this, the server sends each tile back once, as large as it
+ * arrived. With it, the host keeps the tile it built and the server's record says so, so the first
+ * task that names the tile sends only the key.
+ */
+export interface KeepResult {
+    /** The key later tasks name the result by. */
+    readonly key: string;
+    /**
+     * Top-level fields of the result's payload the kept value leaves out, so it is the value the
+     * server would have sent under the key.
+     */
+    readonly without?: readonly string[];
+}
+
+/** The value a host keeps for a result: its payload without the fields `keep` names. */
+export const keptResultValue = (payload: unknown, keep: KeepResult): unknown => {
+    const without = keep.without;
+    if (without === undefined || without.length === 0 || !isPlainObject(payload)) return payload;
+    return Object.fromEntries(Object.entries(payload).filter(([field]) => !without.includes(field)));
+};
+
 /** How many reusable values a host keeps. A terrain tile is about 250 KB. */
 export const REUSABLE_CAPACITY = 384;
 

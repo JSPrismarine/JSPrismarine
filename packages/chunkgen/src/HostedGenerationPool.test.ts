@@ -116,6 +116,7 @@ describe('HostedGenerationPool', () => {
         // Sent with its value, then by its key alone.
         expect(bytesOf(await hosted.run(task(1)))[3]).toBe(5);
         expect(bytesOf(await hosted.run(task(2)))[3]).toBe(5);
+        expect(hosted.reusableValuesSent).toBe(1);
 
         const firstPid = hosted.hostPid!;
         process.kill(firstPid, 'SIGKILL');
@@ -123,11 +124,37 @@ describe('HostedGenerationPool', () => {
 
         // The replacement holds nothing, so the value goes again.
         expect(bytesOf(await hosted.run(task(3)))[3]).toBe(5);
+        expect(hosted.reusableValuesSent).toBe(2);
         expect(hosted.hostPid).not.toBe(firstPid);
         // The in-process pool takes the marker's value too.
         const local = track(new GenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
         expect(bytesOf(await local.run(task(4)))[3]).toBe(5);
     }, 60_000);
+
+    it('keeps a result the host built, so the first task that names it sends only the key', async () => {
+        const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));
+        await hosted.run({
+            status: 'terrain',
+            chunkX: 1,
+            chunkZ: 0,
+            dimension: 0,
+            input: 7,
+            keepResult: { key: 'built', without: ['threadId', 'built', 'blocks'] }
+        });
+
+        // The kept payload is `{ status: 'terrain' }`, which the worker reads as 0; 8 would mean
+        // the value went with the task.
+        const result = await hosted.run({
+            status: 'features',
+            chunkX: 2,
+            chunkZ: 0,
+            dimension: 0,
+            input: { value: reusableInput('built', 8) }
+        });
+
+        expect(hosted.reusableValuesSent).toBe(0);
+        expect(bytesOf(result)[3]).toBe(0);
+    });
 
     it('passes an ordinary input shaped like the reusable wire forms through untouched', async () => {
         const hosted = track(new HostedGenerationPool({ pipeline: FAKE_PIPELINE, workers: 1 }));

@@ -107,7 +107,7 @@ import { urgencyAround } from './urgencyAround';
 import type { BedrockSection, BedrockSectionsInput } from './bedrockSections';
 import { buildBedrockSections, isBedrockSections } from './bedrockSections';
 import { carveColumn } from './carveColumn';
-import { GenerationRegion, paletteOfWrites } from './GenerationRegion';
+import { GenerationRegion, paletteOfWrites, TRANSFER_ONLY_FIELDS } from './GenerationRegion';
 import { packFeaturePatches, unpackFeaturePatches } from './featurePatchWire';
 import type {
     GenerationRegionOptions,
@@ -2137,6 +2137,9 @@ export class DataDrivenGenerator implements Generator {
         const pool = stagePool ?? this.pool;
         if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions, blending);
 
+        // A generation host keeps the tile it builds under the key it will be named by, so the
+        // feature and merge tasks that read it send the key alone rather than the tile back.
+        const keepResult = { key: this.newTileKey(), without: TRANSFER_ONLY_FIELDS };
         let result;
         try {
             result = await pool.run(
@@ -2150,7 +2153,8 @@ export class DataDrivenGenerator implements Generator {
                         beard: beard.pieces,
                         junctions: beard.junctions,
                         ...(blending === undefined ? {} : { blending })
-                    } satisfies TerrainTaskInput
+                    } satisfies TerrainTaskInput,
+                    keepResult
                 },
                 // Asked again: the request may have been promoted while the plans were laid out.
                 this.dependentUrgency(pipeline, cx, cz, TERRAIN_READ_RADIUS)
@@ -2167,7 +2171,9 @@ export class DataDrivenGenerator implements Generator {
         // The worker's own payload, arriving across a thread boundary the compiler cannot
         // follow. Nothing but a package worker pipeline puts anything on the other end.
         const payload = result.payload as GenerationRegionPayload;
-        return this.adoptRegion(payload, pipeline);
+        const tile = this.adoptRegion(payload, pipeline);
+        this.tileKeys.set(tile, keepResult.key);
+        return tile;
     }
 
     /**
@@ -2243,10 +2249,15 @@ export class DataDrivenGenerator implements Generator {
     private tileKeyOf(tile: GenerationRegion): string {
         let key = this.tileKeys.get(tile);
         if (key === undefined) {
-            key = `terrain:${this.nextTileKey++}`;
+            key = this.newTileKey();
             this.tileKeys.set(tile, key);
         }
         return key;
+    }
+
+    /** A key no tile has been sent under. */
+    private newTileKey(): string {
+        return `terrain:${this.nextTileKey++}`;
     }
 
     /**

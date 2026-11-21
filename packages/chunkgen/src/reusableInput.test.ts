@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
     decodeReusable,
     encodeReusable,
+    keptResultValue,
     ReusableCache,
     ReusableMissError,
     reusableInput,
@@ -83,5 +84,12 @@ describe('reusable task inputs', () => {
         expect(unwrapReusable({ seed: '1', terrain: [reusableInput('a', tile(1))] })).toEqual(plain);
         expect(unwrapReusable(plain)).toBe(plain);
         expect(encodeReusable(plain, new ReusableCache(8))).toBeUndefined();
+    });
+
+    it('keeps a result without the fields the task leaves out, and the payload itself otherwise', () => {
+        const payload = { ...tile(3), biomeSections: new ArrayBuffer(8) };
+
+        expect(keptResultValue(payload, { key: 'k', without: ['biomeSections'] })).toEqual(tile(3));
+        expect(keptResultValue(payload, { key: 'k' })).toBe(payload);
     });
 });
