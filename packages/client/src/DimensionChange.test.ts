@@ -57,6 +57,7 @@ beforeAll(async () => {
         path.join(stateRoot, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            'java-enabled': false,
             // This fixture tests travel between dimensions, not spawn-area generation.
             'preload-radius': 0,
             worlds: {

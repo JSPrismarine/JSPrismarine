@@ -48,7 +48,7 @@ describe('a fleet against a real server', { tags: ['real-data', 'performance'] }
         // about a minute and a half and is not what this measures.
         writeFileSync(
             path.join(stateRoot, 'config.json'),
-            JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+            JSON.stringify({ 'online-mode': false, 'java-enabled': false, worlds: { world: { generator: 'Flat' } } })
         );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });

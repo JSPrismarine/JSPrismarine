@@ -94,7 +94,7 @@ describe('against a real server', () => {
         vi.stubEnv('JSP_DIR', stateRoot);
         writeFileSync(
             path.join(stateRoot, 'config.json'),
-            JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+            JSON.stringify({ 'online-mode': false, 'java-enabled': false, worlds: { world: { generator: 'Flat' } } })
         );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });

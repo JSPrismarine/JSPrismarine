@@ -99,6 +99,9 @@ const debugConfig = (levelName: string) =>
         public override getOnlineMode() {
             return false;
         }
+        public override getJavaEnabled() {
+            return false;
+        }
         public override getEnableTicking() {
             return false;
         }

@@ -44,6 +44,7 @@ describe('a bot the server teleports', () => {
             path.join(stateRoot, 'config.json'),
             JSON.stringify({
                 'online-mode': false,
+                'java-enabled': false,
                 'preload-radius': 0,
                 'view-distance': 2,
                 'enable-ticking': false,
