@@ -210,7 +210,11 @@ A registry can also be asked to hold only part of the set. `new CommandRegistry(
 a name away, and an excluded command is built but never registered, so nothing can parse it, no
 alias is registered for it, and the flattener never puts it in the packet. That is for a host that
 cannot answer every verb: a command whose body does nothing is worse than one the client was never
-offered. `getExcludedNames()` reports the difference.
+offered. `getExcludedNames()` reports the difference. `new CommandRegistry({ canUse })` gates each
+command by name for a source: the dispatcher asks it wherever it parses the command's root literal
+or an alias, for the command typed and for one reached through `execute ... run` or a function, and
+a refused command parses as unknown and is left out of the source's suggestions and usage. A host
+that gates on permission nodes checks the node of every command a line reaches this way.
 
 `/execute` is a real subcommand chain, not `execute <target> <command>`. It has Java's 14
 subcommands, each redirecting back to the `execute` node; 13 `if`/`unless` conditions; 8 `on`

@@ -14,7 +14,7 @@
  * `vanillaCommands.test.ts` asserts that it and the registered set add up to
  * what the package implements.
  */
-import type { CommandSource, ContentRegistryIds } from '@jsprismarine/commands';
+import type { CommandRegistryOptions, CommandSource, ContentRegistryIds } from '@jsprismarine/commands';
 import { CommandRegistry, registerVanillaCommands } from '@jsprismarine/commands';
 import type { Registry } from '@jsprismarine/content';
 import type { EntityType } from '@jsprismarine/entities';
@@ -102,10 +102,14 @@ export const contentRegistryIds = (content: ServerContent): ContentRegistryIds =
  * @returns {CommandRegistry<CommandSource>} The registry, with
  * {@link UNWIRED_COMMANDS} left out.
  */
-export const buildVanillaCommands = (content?: ContentRegistryIds): CommandRegistry<CommandSource> =>
+export const buildVanillaCommands = (
+    content?: ContentRegistryIds,
+    canUse?: CommandRegistryOptions<CommandSource>['canUse']
+): CommandRegistry<CommandSource> =>
     registerVanillaCommands(
         new CommandRegistry<CommandSource>({
             include: (name) => !Object.hasOwn(UNWIRED_COMMANDS, name),
-            ...(content === undefined ? {} : { content })
+            ...(content === undefined ? {} : { content }),
+            ...(canUse === undefined ? {} : { canUse })
         })
     );

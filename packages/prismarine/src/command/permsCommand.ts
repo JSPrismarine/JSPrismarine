@@ -99,9 +99,6 @@ const expiryOf = (raw: string, now: number): string => {
  */
 const qualified = (kind: SubjectKind, key: string): string => `${kind}:${key}`;
 
-/** Where the command was typed by nobody in particular: the console, or a function it runs. */
-const isConsole = (current: CommandSource): boolean => current.caller === undefined;
-
 /** Splits a qualified target into its kind and name, or undefined for a name without a kind. */
 const splitQualified = (raw: string): { kind: SubjectKind; name: string } | undefined => {
     const colon = raw.indexOf(':');

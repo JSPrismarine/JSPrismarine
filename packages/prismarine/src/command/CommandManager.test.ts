@@ -407,7 +407,11 @@ describe('command', () => {
                 rmSync(directory, { recursive: true, force: true });
             });
 
-            it('lets the default UUID owner run /op and persists the target UUID', async () => {
+            /**
+             * A server with a real permission manager, a connected owner who holds `*` and a
+             * connected `Target`, both resolvable as the entities a vanilla command names.
+             */
+            const integration = async () => {
                 const ownerUuid = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
                 const targetUuid = '00000000-0000-0000-0000-000000000007';
                 const logger = stub<Logger>({
@@ -461,13 +465,16 @@ describe('command', () => {
                     getServer: () => server,
                     sendMessage: () => {}
                 });
+                const connected = (): PlayerSession[] => [owner, target];
                 const world = stub<World>({
                     getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
                     getDimension: () => Dimensions.Overworld,
-                    getActors: () => [target.getActor()!],
+                    getActors: () => connected().flatMap((session) => session.getActor() ?? []),
                     getActor: (runtimeId: bigint) =>
-                        runtimeId === target.getRuntimeId() ? (target.getActor() ?? null) : null,
-                    viewerOf: (runtimeId: bigint) => (runtimeId === target.getRuntimeId() ? target : undefined)
+                        connected()
+                            .find((session) => session.getRuntimeId() === runtimeId)
+                            ?.getActor() ?? null,
+                    viewerOf: (runtimeId: bigint) => connected().find((session) => session.getRuntimeId() === runtimeId)
                 });
                 const server: Server = stub<Server>({
                     // Empty registries rather than no content: `enable` builds the vanilla
@@ -508,10 +515,9 @@ describe('command', () => {
                 // The owner holds `*` of their own, which counts as operator status.
                 const filfat = identityNamed('Filfat', ownerUuid);
                 await permissionManager.grantUser(filfat, '*');
-                const owner = sessionOnPrototype(
+                const owner: PlayerSession = sessionOnPrototype(
                     {
                         getName: () => 'Filfat',
-                        getRuntimeId: () => 1n,
                         hasPermission: (node: string) => permissionManager.has(filfat, node),
                         getCommandLevel: () => permissionManager.commandLevelOf(filfat),
                         isOp: () => permissionManager.isOp(filfat.subject),
@@ -522,10 +528,15 @@ describe('command', () => {
                         getServer: () => server,
                         sendMessage: async () => {}
                     },
-                    { uuid: UUID.fromString(ownerUuid) }
+                    { ...body, runtimeId: 1n, uuid: UUID.fromString(ownerUuid) }
                 );
                 const commandManager = new CommandManager(server);
                 await commandManager.enable();
+                return { commandManager, permissionManager, filfat, owner, sessionManager, logger };
+            };
+
+            it('lets the default UUID owner run /op and persists the target UUID', async () => {
+                const { commandManager, permissionManager, owner, sessionManager, logger } = await integration();
 
                 await expect(commandManager.dispatchCommand(owner, owner, '/op Target')).resolves.toBe(true);
 
@@ -539,6 +550,23 @@ describe('command', () => {
                 });
                 await reloadedManager.enable();
                 expect(reloadedManager.isOp({ kind: 'offline', name: 'Target' })).toBe(true);
+            });
+
+            it('checks a command nested in `/execute ... run` against the node of the player who typed it', async () => {
+                const { commandManager, permissionManager, filfat, owner } = await integration();
+                // `*` grants every command; a node of the owner's own takes `/op` back.
+                await permissionManager.grantUser(filfat, '-minecraft.command.op');
+
+                await expect(commandManager.dispatchCommand(owner, owner, '/execute run op Target')).resolves.toBe(
+                    false
+                );
+                expect(permissionManager.isOp({ kind: 'offline', name: 'Target' })).toBe(false);
+
+                await permissionManager.revokeUser(filfat, '-minecraft.command.op');
+                await expect(commandManager.dispatchCommand(owner, owner, '/execute run op Target')).resolves.toBe(
+                    true
+                );
+                expect(permissionManager.isOp({ kind: 'offline', name: 'Target' })).toBe(true);
             });
         });
     });
