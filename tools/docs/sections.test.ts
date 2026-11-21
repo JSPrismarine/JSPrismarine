@@ -98,5 +98,12 @@ describe('publishedPage', () => {
         expect(publishedPage('packages/bedrock-data/src/vendor/README.md')).toBeUndefined();
         expect(publishedPage('packages/entities/src/javaStats.ts')).toBeUndefined();
         expect(publishedPage('docs/brand/assets/mark.svg')).toBeUndefined();
+        expect(publishedPage('docs/research/benchmarks/2026-11-21/results.json')).toBeUndefined();
+        expect(publishedPage('docs/research/spikes/native-noise/noise.c')).toBeUndefined();
+    });
+
+    it('names the file an image in a published section is served as, and a folder its index', () => {
+        expect(publishedPage('docs/guide/console.png')).toBe('guide/console.png');
+        expect(publishedPage('docs/research/spikes/native-noise')).toBe('research/spikes/native-noise');
     });
 });

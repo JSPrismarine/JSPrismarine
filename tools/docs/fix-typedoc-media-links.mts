@@ -16,7 +16,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { linkRoute, publishedPage } from './sections.mts';
+import { IMAGE, linkRoute, publishedPage } from './sections.mts';
 
 const packageDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(packageDirectory, '..', '..');
@@ -81,9 +81,6 @@ function rewriteMarkdown(directory: string): void {
     }
 }
 
-/** An image a doc comment shows, which stays in `_media` since a page cannot show a link instead. */
-const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
-
 /** The repository's tracked files by file name, which is what TypeDoc names a copy after. */
 function trackedFilesByName() {
     const files = execFileSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' }).split('\0');
@@ -137,6 +134,7 @@ function replaceCopies(): number {
     const byName = trackedFilesByName();
     const links = new Map<string, string>();
     for (const entry of readdirSync(mediaDirectory, { withFileTypes: true })) {
+        // An image a doc comment shows stays in `_media`, since a page cannot show a link instead.
         if (!entry.isFile() || IMAGE.test(entry.name)) continue;
         const source = copySource(path.join(mediaDirectory, entry.name), byName);
         if (source !== undefined) links.set(entry.name, sourceLink(source));
