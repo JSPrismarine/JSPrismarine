@@ -12,6 +12,9 @@ import { testContent } from '../testing/entityServer';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import type GameRuleManager from '../world/GameRuleManager';
+import type { Level } from '../world/Level';
+import type PlayerSession from '../network/PlayerSession';
+import type { StoreActor } from '../entity/data/storeActors';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { Dimensions } from '../world/DimensionType';
@@ -40,16 +43,33 @@ const setUp = async () => {
         warn() {},
         error() {}
     });
+    /** The players standing in the world, so a command finds the one who typed it. */
+    const players: PlayerSession[] = [];
     const world: World = stub<World>({
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
-        getDimension: () => Dimensions.Overworld
+        getDimension: () => Dimensions.Overworld,
+        getActor: (runtimeId: bigint): StoreActor | null =>
+            players.some((session) => session.getRuntimeId() === runtimeId)
+                ? stub<StoreActor>({ getWorld: () => world, getRuntimeId: () => runtimeId })
+                : null,
+        viewerOf: (runtimeId: bigint) => players.find((session) => session.getRuntimeId() === runtimeId)
     });
     const server = stub<Server>({
         getLogger: () => logger,
         getContent: () => testContent(),
         getSessionManager: () => stub<SessionManager>({ getSessions: () => [] }),
         getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
-        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
+        getWorldManager: () =>
+            stub<WorldManager>({
+                getDefaultWorld: () => world,
+                getLevels: () => [
+                    stub<Level>({
+                        worlds: function* () {
+                            yield world;
+                        }
+                    })
+                ]
+            }),
         getAddons: () => stub<AddonManager>({ list, install })
     });
     const commands = new CommandManager(server);
@@ -67,6 +87,7 @@ const setUp = async () => {
                 told.push(message);
             }
         });
+        players.push(session);
         return { session, told };
     };
     return { commands, server, logged, listed, installs, player };

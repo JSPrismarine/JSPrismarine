@@ -68,7 +68,7 @@ export interface ContentRegistryIds {
 }
 
 /** How a registry decides what it will hold. */
-export interface CommandRegistryOptions {
+export interface CommandRegistryOptions<S = unknown> {
     /**
      * What the host's own registries hold. Omit it and every registry
      * argument validates against Mojang's published enum alone, which is
@@ -86,6 +86,14 @@ export interface CommandRegistryOptions {
      * types it, and nothing happens. Omit the option to hold everything.
      */
     readonly include?: (name: string) => boolean;
+    /**
+     * Whether a source may use a command, asked by name each time the dispatcher parses the
+     * command's root literal or one of its aliases, however the line reached it: typed, or
+     * nested in `execute ... run` or a function. A command the source may not use parses as
+     * unknown and is left out of its suggestions and usage. Omit the option to let every
+     * source use every command; the requirement a builder carries still applies.
+     */
+    readonly canUse?: (name: string, source: S) => boolean;
 }
 
 /**
@@ -103,12 +111,28 @@ export class CommandRegistry<S> {
     private readonly aliasOwners = new Map<string, string>();
     private readonly excluded = new Set<string>();
     private readonly include: (name: string) => boolean;
+    private readonly canUse: ((name: string, source: S) => boolean) | undefined;
 
     private readonly content: ContentRegistryIds;
 
-    public constructor(options: CommandRegistryOptions = {}) {
+    public constructor(options: CommandRegistryOptions<S> = {}) {
         this.include = options.include ?? (() => true);
+        this.canUse = options.canUse;
         this.content = options.content ?? {};
+    }
+
+    /**
+     * The builder with the registry's gate behind its own requirement, so the dispatcher asks
+     * {@link CommandRegistryOptions.canUse} wherever it reaches the literal.
+     */
+    private gated(name: string, builder: LiteralArgumentBuilder<S>): LiteralArgumentBuilder<S> {
+        const { canUse } = this;
+        if (canUse === undefined) return builder;
+        // A builder nobody called `requires` on has no requirement yet; the node it builds passes.
+        const own: ((source: S) => boolean) | undefined = builder.getRequirement();
+        // The builder's own requirement first: it is the cheaper check, and a command that refuses
+        // the source anyway, such as a console-only one, is never asked about through the gate.
+        return builder.requires((source) => (own === undefined || own(source)) && canUse(name, source));
     }
 
     /**
@@ -157,7 +181,7 @@ export class CommandRegistry<S> {
             requiresCheats: metadata.requiresCheats ?? false
         };
 
-        const node = this.dispatcher.register(builder);
+        const node = this.dispatcher.register(this.gated(name, builder));
         this.metadata.set(name, resolved);
 
         for (const alias of resolved.aliases) {
@@ -166,7 +190,7 @@ export class CommandRegistry<S> {
             }
             // A bare `/tp` has no further input for the redirect to consume, so
             // the alias carries the same executor as well as the redirect.
-            const aliasBuilder = literal<S>(alias).redirect(node);
+            const aliasBuilder = this.gated(name, literal<S>(alias).redirect(node));
             const command = node.getCommand();
             if (command !== null) aliasBuilder.executes(command);
             this.dispatcher.register(aliasBuilder);

@@ -32,8 +32,9 @@ describe('/perms', () => {
     let permissions: PermissionManager;
     let feedback: string[];
     let errors: string[];
-    /** Steve is online as an offline-mode player with entity id 7. */
+    /** Steve is online as an offline-mode player with entity id 7, Alex with entity id 8. */
     const steve = identityNamed('Steve', '00000000-0000-0000-0000-000000000007');
+    const alex = identityNamed('Alex', '00000000-0000-0000-0000-000000000008');
     const steveRef: EntityRef = {
         id: '7',
         type: 'minecraft:player',
@@ -43,6 +44,7 @@ describe('/perms', () => {
         rotation: { yaw: 0, pitch: 0 },
         dimension: 'minecraft:overworld'
     };
+    const alexRef: EntityRef = { ...steveRef, id: '8', name: 'Alex' };
     const xboxSteve: Subject = { kind: 'xbox', xuid: '2535400000000001' };
 
     beforeEach(async () => {
@@ -53,17 +55,24 @@ describe('/perms', () => {
         const logger = new Logger('error');
         feedback = [];
         errors = [];
-        const session = stub<PlayerSession>({
-            identity: steve,
-            getRuntimeId: () => 7n,
-            isOp: () => false,
-            hasPermission: (node) => permissions.has(steve, node)
-        });
-        const sessionManager = stub<SessionManager>({ getSessions: () => [session] });
+        const online = (identity: typeof steve, runtimeId: bigint) =>
+            stub<PlayerSession>({
+                identity,
+                getRuntimeId: () => runtimeId,
+                isOp: () => false,
+                hasPermission: (node) => permissions.has(identity, node)
+            });
+        const sessions = new Map([
+            [7n, online(steve, 7n)],
+            [8n, online(alex, 8n)]
+        ]);
+        const sessionManager = stub<SessionManager>({ getSessions: () => [...sessions.values()] });
         const world: World = stub<World>({
             getActor: (runtimeId: bigint): StoreActor | null =>
-                runtimeId === 7n ? stub<StoreActor>({ getWorld: () => world, getRuntimeId: () => 7n }) : null,
-            viewerOf: (runtimeId: bigint) => (runtimeId === 7n ? session : undefined)
+                sessions.has(runtimeId)
+                    ? stub<StoreActor>({ getWorld: () => world, getRuntimeId: () => runtimeId })
+                    : null,
+            viewerOf: (runtimeId: bigint) => sessions.get(runtimeId)
         });
         const server = stub<Server>({
             getLogger: () => logger,
@@ -95,11 +104,11 @@ describe('/perms', () => {
         rmSync(directory, { recursive: true, force: true });
     });
 
-    /** Runs one line as the console, or as the player entity 7 when `asPlayer` is set. */
+    /** Runs one line as the console, or as typed by Steve, the player entity 7, when `asPlayer` is set. */
     const run = async (line: string, asPlayer = false): Promise<void> => {
         const source = createCommandSource({
             host: testCommandHost({ entities: { select: () => [steveRef] } }),
-            ...(asPlayer ? { entity: steveRef } : {}),
+            ...(asPlayer ? { entity: steveRef, caller: steveRef } : {}),
             permissionLevel: asPlayer ? CommandPermissionLevel.ANY : CommandPermissionLevel.INTERNAL,
             onFeedback: (message) => void feedback.push(message),
             onError: (message) => void errors.push(message)
@@ -289,22 +298,20 @@ describe('/perms', () => {
                 '§eSteve§r (offline Steve)'
             ]);
         });
-    });
 
-    describe('targets', () => {
         it('takes the key in the qualified form, and lists each candidate by key when two stored users of one kind share a name', async () => {
-            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '111' }, name: 'Alex' }, 'a.b');
-            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '222' }, name: 'Alex' }, 'c.d');
+            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '111' }, name: 'Casey' }, 'a.b');
+            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '222' }, name: 'Casey' }, 'c.d');
 
-            await run('perms user Alex info');
-            await run('perms user xbox:Alex info');
+            await run('perms user Casey info');
+            await run('perms user xbox:Casey info');
             await run('perms user xbox:222 info');
 
             expect(errors).toEqual([
-                expect.stringContaining('Alex names more than one player; name one of xbox:111, xbox:222'),
-                expect.stringContaining('Alex names more than one player; name one of xbox:111, xbox:222')
+                expect.stringContaining('Casey names more than one player; name one of xbox:111, xbox:222'),
+                expect.stringContaining('Casey names more than one player; name one of xbox:111, xbox:222')
             ]);
-            expect(feedback.filter((line) => line.startsWith('§e'))).toEqual(['§eAlex§r (xbox 222)']);
+            expect(feedback.filter((line) => line.startsWith('§e'))).toEqual(['§eCasey§r (xbox 222)']);
             expect(feedback).toContain('  c.d');
         });
 
@@ -353,24 +360,38 @@ describe('/perms', () => {
         });
 
         it("gates on the player who typed the command, so `execute as` lends nobody another player's authority", async () => {
-            const alex = identityNamed('Alex', '00000000-0000-0000-0000-000000000008');
-            const alexRef: EntityRef = { ...steveRef, id: '8', name: 'Alex' };
             await permissions.grantUser(alex, 'jsprismarine.command.perms');
-            // Steve types the command and runs it as Alex, who may run every subcommand.
-            const source = createCommandSource({
+            // Steve types the command and runs it as Alex, who is online and may run every subcommand.
+            const typed = createCommandSource({
                 host: testCommandHost({ entities: { select: () => [steveRef] } }),
                 entity: steveRef,
+                caller: steveRef,
                 permissionLevel: CommandPermissionLevel.ANY,
                 onFeedback: (message) => void feedback.push(message),
                 onError: (message) => void errors.push(message)
-            }).withEntity(alexRef);
+            });
+            const asAlex = typed.withEntity(alexRef);
 
             await Promise.all(
-                collectAsyncCommands(() => registry.getDispatcher().execute('perms group create vip', source))
+                collectAsyncCommands(() => registry.getDispatcher().execute('perms group create vip', asAlex))
             );
-
             expect(permissions.groupOf('vip')).toBeUndefined();
             expect(errors).toEqual([expect.stringContaining('group.create')]);
+
+            // Typed by Alex, the same line runs.
+            const alexTyped = createCommandSource({
+                host: testCommandHost({ entities: { select: () => [alexRef] } }),
+                entity: alexRef,
+                caller: alexRef,
+                permissionLevel: CommandPermissionLevel.ANY,
+                onFeedback: (message) => void feedback.push(message),
+                onError: (message) => void errors.push(message)
+            });
+            await Promise.all(
+                collectAsyncCommands(() => registry.getDispatcher().execute('perms group create vip', alexTyped))
+            );
+            expect(permissions.groupOf('vip')).toBeDefined();
+            expect(errors).toHaveLength(1);
         });
 
         it('names a node for every subcommand the plan lists', () => {

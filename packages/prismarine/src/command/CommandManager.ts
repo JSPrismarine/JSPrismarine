@@ -4,6 +4,7 @@ import type {
     ArgumentWords,
     CommandHost,
     CommandRegistry,
+    CommandRegistryOptions,
     CommandSource,
     FlattenedCommand
 } from '@jsprismarine/commands';
@@ -28,7 +29,7 @@ import { markConsoleSource } from './consoleSource';
 import type { FunctionContent } from './function/load';
 import { FunctionRuntime } from './function/runtime';
 import { functionContentOf, loadServerFunctions } from './function/load';
-import { dimensionIdOf, entityRefOf } from './host/support';
+import { dimensionIdOf, entityRefOf, playerSessionOf } from './host/support';
 import type { ReferencedEntity } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
@@ -100,13 +101,17 @@ export const commandPermissionOf = (name: string): string =>
 /**
  * Builds the one registry this server dispatches: the vanilla set, this
  * server's own commands, and the custom commands behavior pack scripts registered.
+ *
+ * @param canUse - The gate the dispatcher asks for each command a line reaches; see
+ *   {@link CommandManager.mayUse}.
  */
 const buildCommands = (
     server: Server,
+    canUse: CommandRegistryOptions<CommandSource>['canUse'],
     content?: Parameters<typeof buildVanillaCommands>[0],
     scripts?: ScriptCommandSet
 ) => {
-    const registry = buildVanillaCommands(content);
+    const registry = buildVanillaCommands(content, canUse);
     registerJsprismarineCommands(registry, server);
     if (scripts !== undefined) registerScriptCommands(registry, scripts);
     return registry;
@@ -184,9 +189,27 @@ export class CommandManager implements Service {
 
     /** Keeps the pre-enable API available without building a throwaway tree at startup. */
     private vanillaRegistry(): CommandRegistry<CommandSource> {
-        this.vanilla ??= buildCommands(this.server);
+        this.vanilla ??= buildCommands(this.server, this.mayUse);
         return this.vanilla;
     }
+
+    /**
+     * Whether the player who typed a line may use a command it reaches, asked by the dispatcher
+     * for the command typed and for every command nested in it through `execute ... run` or a
+     * function. The typed command is also checked up front, with a message; this gate is what
+     * stops a nested one from running on the typed command's node alone, or above the player's
+     * level. The console, a script and a function the server runs type nothing and pass; so does
+     * a script's custom command, whose pack decides who runs it.
+     */
+    private readonly mayUse = (name: string, source: CommandSource): boolean => {
+        if (source.caller === undefined || this.isScriptCommand(name)) return true;
+        const level = this.vanillaRegistry().getMetadata(name)?.permissionLevel ?? CommandPermissionLevel.ANY;
+        if (level > source.permissionLevel) return false;
+        const session = playerSessionOf(this.server, source.caller);
+        return (
+            session !== undefined && this.server.getPermissionManager().can(session).execute(commandPermissionOf(name))
+        );
+    };
 
     /**
      * The mcfunction runtime this server's `/function` and `/schedule` run
@@ -331,7 +354,7 @@ export class CommandManager implements Service {
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
         this.contentIds = contentRegistryIds(this.server.getContent());
-        this.vanilla = buildCommands(this.server, this.contentIds, this.scriptCommands);
+        this.vanilla = buildCommands(this.server, this.mayUse, this.contentIds, this.scriptCommands);
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
 
@@ -356,7 +379,7 @@ export class CommandManager implements Service {
      */
     public setScriptCommands(commands: ScriptCommandSet | undefined): void {
         this.scriptCommands = commands;
-        this.vanilla = buildCommands(this.server, this.contentIds, commands);
+        this.vanilla = buildCommands(this.server, this.mayUse, this.contentIds, commands);
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
         for (const session of this.server.getSessionManager().getSessions()) {

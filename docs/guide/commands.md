@@ -22,7 +22,11 @@ holds, and grants every operator `*` through the `operator` group, which covers 
 a player run something else, add the node to their user record or to a group they hold; the
 [permissions section of the running guide](running.md#permissions) explains the file. A node
 ending in `.*` grants a whole scope, so `minecraft.command.*` grants every vanilla command, and a
-leading `-` takes a node away.
+leading `-` takes a node away. The node of a command is checked for the player who typed the
+line, and so is the node of every command the line reaches through `/execute ... run` or a
+function, so holding `minecraft.command.execute` does not stand in for the node of the command it
+runs. A command the server runs for a behavior pack script or a function tag has no typing player,
+and runs with the level a game director has.
 
 The **level** column is the command's permission level, which follows Java Edition. A player runs
 at level 0 unless a `level` meta in `permissions.json` raises it, an operator at 4 and the console

@@ -609,8 +609,9 @@ export interface CommandSource {
     /** The entity the command runs as, absent for the console. */
     readonly entity?: EntityRef;
     /**
-     * The entity that issued the command, absent for the console. `execute as` changes `entity`
-     * and keeps this, so a command that gates on who typed it reads this and not `entity`.
+     * The player who typed the command, absent for the console and for a command the server runs
+     * for a script or a function. `execute as` changes `entity` and keeps this, so a gate on who
+     * typed the command reads this and not `entity`.
      */
     readonly caller?: EntityRef;
     readonly position: Vector3;
@@ -645,7 +646,7 @@ export interface CommandSource {
 export interface CommandSourceInput {
     readonly host: CommandHost;
     readonly entity?: EntityRef;
-    /** The entity that issued the command, when it is not `entity`; see `CommandSource.caller`. */
+    /** The player who typed the command; see `CommandSource.caller`. Absent when nobody did. */
     readonly caller?: EntityRef;
     readonly position?: Vector3;
     readonly rotation?: Rotation;
@@ -780,7 +781,7 @@ export const createCommandSource = (input: CommandSourceInput): CommandSource =>
     new StackCommandSource({
         host: input.host,
         ...(input.entity === undefined ? {} : { entity: input.entity }),
-        ...((input.caller ?? input.entity) === undefined ? {} : { caller: input.caller ?? input.entity }),
+        ...(input.caller === undefined ? {} : { caller: input.caller }),
         position: input.position ?? input.entity?.position ?? ORIGIN,
         rotation: input.rotation ?? input.entity?.rotation ?? FORWARD,
         dimension: input.dimension ?? input.entity?.dimension ?? 'minecraft:overworld',
