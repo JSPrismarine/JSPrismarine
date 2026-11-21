@@ -13,6 +13,7 @@ import type Server from '../../Server';
 import { entityCommandHost } from './entities';
 import { setItemSlot } from './inventory';
 import { runLootCommand } from './loot';
+import { nbtDataVerbs } from './nbtData';
 import { RandomSequences } from './randomSequences';
 import { scoreboardCommandHost } from './scoreboard';
 import { serverSideCommandHost } from './server';
@@ -22,25 +23,23 @@ import { worldCommandHost } from './world';
 /**
  * The NBT, loot, predicate and function group.
  *
- * The function verbs run `@jsprismarine/mcfunction` over whatever the loaded
- * datapacks declared; `setSlot` writes a named inventory slot, which is all
- * `/replaceitem` needs. What still refuses is NBT by path, which nothing
- * reads or writes, item modifiers, which need the same, and the predicate
+ * The NBT verbs read and write the default level's command storage (see `./nbtData`). The
+ * function verbs run `@jsprismarine/mcfunction` over whatever the loaded datapacks declared;
+ * `setSlot` writes a named inventory slot, which is all `/replaceitem` needs. What still refuses
+ * is NBT for blocks and entities, item modifiers, copying items between slots, and the predicate
  * evaluator.
  */
 const dataCommandHost = (server: Server, sequences: RandomSequences): DataCommandHost => {
-    const refuse = () => unsupported('reading and writing NBT by path');
     const functions = () => server.getCommandManager().getFunctionRuntime();
+    // The default level's, as the scoreboard is; read per call, since the host is built before the
+    // worlds load.
+    const storage = () => server.getWorldManager().getDefaultLevel().getCommandStorage();
 
     return {
-        getData: refuse,
-        countData: refuse,
-        mergeData: refuse,
-        modifyData: refuse,
-        removeData: refuse,
-        applyItemModifier: refuse,
+        ...nbtDataVerbs(storage),
+        applyItemModifier: () => unsupported('item modifiers'),
         setSlot: (target, slot, item, count, mode) => setItemSlot(server, target, slot, item, count, mode),
-        copySlots: refuse,
+        copySlots: () => unsupported('copying items between slots'),
         runLoot: (loot, commandSource, destination) => runLootCommand(server, loot, commandSource, destination),
         testPredicate: () => unsupported('datapack predicate evaluator'),
         runFunction: (name, source, nbt) => functions().run(name, source, nbt),

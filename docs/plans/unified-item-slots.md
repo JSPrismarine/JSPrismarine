@@ -97,8 +97,8 @@ hotbar.
 8. **Typed NBT lives in `@jsprismarine/nbt`.** The tag model, SNBT and paths are in that package,
    where the binary codec already is.
 9. **Entity and block NBT by path stay out.** `/data get entity` needs each entity's whole NBT
-   form, which is its own project. It refuses with a sentence that reads correctly, and an issue
-   tracks it.
+   form, which is its own project. It refuses with a sentence that reads correctly, and
+   [#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575) tracks it.
 
 10. **The player inventory stays `HumanInventory`.** It is a subclass of
     `EntityInventory` over `PLAYER_LAYOUT`, which sits beside `mobLayout` in
@@ -128,7 +128,7 @@ Slice 2 is independent of 3 to 5. Slices 3, 4 and 5 touch the same files and lan
 | Slice | State |
 | ----- | ----- |
 | 1 | Landed |
-| 2 | Not started |
+| 2 | Landed |
 | 3 | Landed |
 | 4 | Landed |
 | 5 | Not started |
