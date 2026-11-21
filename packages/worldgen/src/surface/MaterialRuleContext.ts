@@ -1,27 +1,19 @@
 import type { BiomeClimateLookup } from '../biome/BiomeClimate';
 import { coldEnoughToSnow } from '../biome/BiomeClimate';
-import { compileOreVeinRule, ORE_VEIN_SEED } from '../chunk/oreVein';
 import type { OreVeinCellBound } from '../chunk/oreVein';
 import type { DensitySampler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import { SampleContext } from '../density/SampleContext';
-import { floor, map } from '../math';
+import { floor } from '../math';
 import type { Noise } from '../noise/GradientNoise';
 import type { PositionalRandomFactory } from '../random/RandomSource';
 import type { RandomState } from '../RandomState';
-import type { MaterialConditionNode, MaterialRuleNode } from './MaterialRule';
 import type { SurfaceSystem } from './SurfaceSystem';
 import type { WorldGenerationContext } from './VerticalAnchor';
 import { resolveAnchorY } from './VerticalAnchor';
 
 /** How far below the preliminary surface the surface pass still runs. */
 const HOW_FAR_BELOW_PRELIMINARY_SURFACE_LEVEL_TO_BUILD_SURFACE = 8;
-
-/** Returns the block a rule places at a position, or undefined to leave the position alone. */
-export type RuleEvaluator = (x: number, y: number, z: number) => string | undefined;
-
-/** Returns whether a condition holds at the context's current position. */
-export type ConditionEvaluator = () => boolean;
 
 /**
  * The biomes the blocks inside a box can resolve to: a box whose blocks look up their biome only
@@ -62,7 +54,7 @@ export interface MaterialRuleContextOptions {
 }
 
 /**
- * The position a compiled material rule is looking at, and everything it can ask about that
+ * The position a material rule program is looking at, and everything it can ask about that
  * position.
  *
  * The surface pass walks a column downward and updates the context in two steps: once per
@@ -237,194 +229,3 @@ export class MaterialRuleContext {
         return this.system.getBand(x, y, z);
     }
 }
-
-/**
- * The one answer a `biome` condition has wherever only these biomes occur: false when it names
- * none of them, true when it names all of them, and undefined when the answer varies.
- */
-const foldBiomes = (named: ReadonlySet<string>, occurring: ReadonlySet<string> | undefined): boolean | undefined => {
-    if (occurring === undefined) return undefined;
-    let any = false;
-    let all = true;
-    for (const biome of occurring) {
-        if (named.has(biome)) any = true;
-        else all = false;
-    }
-    return !any ? false : all ? true : undefined;
-};
-
-/** Caches a per-column answer against the context's column counter. */
-const lazyXZ = (context: MaterialRuleContext, compute: () => boolean): ConditionEvaluator => {
-    let lastUpdate = -1;
-    let result = false;
-    return () => {
-        if (lastUpdate !== context.updateCountXZ) {
-            lastUpdate = context.updateCountXZ;
-            result = compute();
-        }
-        return result;
-    };
-};
-
-/** Caches a per-block answer against the context's block counter. */
-const lazyY = (context: MaterialRuleContext, compute: () => boolean): ConditionEvaluator => {
-    let lastUpdate = -1;
-    let result = false;
-    return () => {
-        if (lastUpdate !== context.updateCountY) {
-            lastUpdate = context.updateCountY;
-            result = compute();
-        }
-        return result;
-    };
-};
-
-/** Caches a per-column noise sample the same way Java's lazy noise suppliers do. */
-const noiseSupplier = (context: MaterialRuleContext, id: string, is3d: boolean): (() => number) => {
-    let lastUpdate = -1;
-    let value = 0;
-    return () => {
-        const counter = is3d ? context.updateCountY : context.updateCountXZ;
-        if (lastUpdate !== counter) {
-            lastUpdate = counter;
-            value = context.sampleNoise(id, is3d);
-        }
-        return value;
-    };
-};
-
-/**
- * Compiles a material condition into a closure bound to one context.
- *
- * @throws Never at sample time; an unknown type is rejected while parsing.
- */
-export const compileMaterialCondition = (
-    node: MaterialConditionNode,
-    context: MaterialRuleContext
-): ConditionEvaluator => {
-    switch (node.type) {
-        case 'biome': {
-            const biomes = new Set(node.biomes);
-            const possible = foldBiomes(biomes, context.possibleBiomes);
-            if (possible !== undefined) return () => possible;
-            const local = context.localBiomes;
-            const inBox = local === undefined ? undefined : foldBiomes(biomes, local.biomes);
-            if (local === undefined || inBox === undefined) return lazyY(context, () => biomes.has(context.getBiome()));
-            // Inside the box the answer is known; the lookup is left for the blocks outside it.
-            return lazyY(context, () =>
-                context.blockX >= local.minX &&
-                context.blockX <= local.maxX &&
-                context.blockZ >= local.minZ &&
-                context.blockZ <= local.maxZ &&
-                context.blockY >= local.minY &&
-                context.blockY <= local.maxY
-                    ? inBox
-                    : biomes.has(context.getBiome())
-            );
-        }
-        case 'noise_threshold': {
-            const sample = noiseSupplier(context, node.noise, node.is3d);
-            return () => {
-                const value = sample();
-                return value >= node.minThreshold && value <= node.maxThreshold;
-            };
-        }
-        case 'vertical_gradient': {
-            const trueAtAndBelow = context.resolveAnchorY(node.trueAtAndBelow);
-            const falseAtAndAbove = context.resolveAnchorY(node.falseAtAndAbove);
-            const randomFactory = context.randomFactory(node.randomName);
-            return lazyY(context, () => {
-                const blockY = context.blockY;
-                if (blockY <= trueAtAndBelow) return true;
-                if (blockY >= falseAtAndAbove) return false;
-                const probability = map(blockY, trueAtAndBelow, falseAtAndAbove, 1, 0);
-                return randomFactory.at(context.blockX, blockY, context.blockZ).nextFloat() < probability;
-            });
-        }
-        case 'y_above': {
-            const anchor = node.anchor;
-            return lazyY(
-                context,
-                () =>
-                    context.blockY + (node.addStoneDepth ? context.stoneDepthAbove : 0) >=
-                    context.resolveAnchorY(anchor) + context.surfaceDepth * node.surfaceDepthMultiplier
-            );
-        }
-        case 'water':
-            return lazyY(
-                context,
-                () =>
-                    context.waterHeight === Number.NEGATIVE_INFINITY ||
-                    context.blockY + (node.addStoneDepth ? context.stoneDepthAbove : 0) >=
-                        context.waterHeight + node.offset + context.surfaceDepth * node.surfaceDepthMultiplier
-            );
-        case 'temperature':
-            return () => context.isColdEnoughToSnow();
-        case 'steep':
-            return lazyXZ(context, () => context.surfaceGradientX <= -4 || context.surfaceGradientZ >= 4);
-        case 'not': {
-            const target = compileMaterialCondition(node.invert, context);
-            return () => !target();
-        }
-        case 'hole':
-            return lazyXZ(context, () => context.surfaceDepth <= 0);
-        case 'above_preliminary_surface':
-            return () => context.blockY >= context.getMinSurfaceLevel();
-        case 'stone_depth': {
-            const ceiling = node.surfaceType === 'ceiling';
-            return lazyY(context, () => {
-                const stoneDepth = ceiling ? context.stoneDepthBelow : context.stoneDepthAbove;
-                const surfaceDepth = node.addSurfaceDepth ? context.surfaceDepth : 0;
-                const secondary =
-                    node.secondaryDepthRange === 0
-                        ? 0
-                        : Math.trunc(map(context.getSurfaceSecondary(), -1, 1, 0, node.secondaryDepthRange));
-                return stoneDepth <= 1 + node.offset + surfaceDepth + secondary;
-            });
-        }
-    }
-};
-
-/**
- * Compiles a material rule tree into a closure bound to one context.
- *
- * The tree is walked once here, so a whole chunk's surface pass is a chain of closures over
- * the context rather than a repeated switch over the node types.
- */
-export const compileMaterialRule = (node: MaterialRuleNode, context: MaterialRuleContext): RuleEvaluator => {
-    switch (node.type) {
-        case 'block': {
-            const state = node.resultState;
-            return () => state;
-        }
-        case 'bandlands':
-            return (x, y, z) => context.getBand(x, y, z);
-        case 'sequence': {
-            if (node.sequence.length === 1) {
-                return compileMaterialRule(node.sequence[0] as MaterialRuleNode, context);
-            }
-            const sequence = node.sequence.map((child) => compileMaterialRule(child, context));
-            return (x, y, z) => {
-                for (const rule of sequence) {
-                    const state = rule(x, y, z);
-                    if (state !== undefined) return state;
-                }
-                return undefined;
-            };
-        }
-        case 'condition': {
-            const ifTrue = compileMaterialCondition(node.ifTrue, context);
-            const thenRun = compileMaterialRule(node.thenRun, context);
-            return (x, y, z) => (ifTrue() ? thenRun(x, y, z) : undefined);
-        }
-        case 'ore_vein': {
-            const place = compileOreVeinRule(
-                node.rule,
-                (child) => context.densitySampler(child),
-                context.randomFactory(ORE_VEIN_SEED),
-                context.densityCellBound(node.rule.density)
-            );
-            return (x, y, z) => place(context.sampleContext, x, y, z);
-        }
-    }
-};
