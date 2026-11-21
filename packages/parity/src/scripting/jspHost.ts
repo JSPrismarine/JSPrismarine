@@ -10,7 +10,7 @@
  * dimensions and its real weather, flushing once per tick until every pack has ended.
  */
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { constants, tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 
 import { Logger } from '@jsprismarine/logger';
@@ -26,7 +26,8 @@ import Server from '@jsprismarine/prismarine';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { NO_LEVEL_ACCESS } from '@jsprismarine/prismarine/scripting/LevelScriptWorld';
 import { LevelScripts } from '@jsprismarine/prismarine/scripting/LevelScripts';
-import { ScriptHttpInputs } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
+import type { ScriptHttpTransport } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
+import { networkTransport, ScriptHttpInputs } from '@jsprismarine/prismarine/scripting/ScriptHttpInputs';
 import { fakeLevel } from '@jsprismarine/prismarine/testing/level';
 import { Dimensions } from '@jsprismarine/prismarine/world/DimensionType';
 
@@ -231,6 +232,22 @@ const watchdogOf = (properties: Readonly<Record<string, string>> = {}) => ({
 });
 
 /**
+ * Linux's numbers for the errors a scenario's requests meet. The goldens come from BDS on Linux,
+ * whose HTTP error carries the operating system's errno, as JSPrismarine's does, so a run on
+ * another system reports its own number for the same failure (#3384).
+ */
+const LINUX_ERRNO: Readonly<Record<string, number>> = { ECONNREFUSED: 111 };
+
+/** The host's network, with a failure's errno as Linux numbers it, to compare with the goldens. */
+const linuxErrnoTransport: ScriptHttpTransport = async (request, signal) => {
+    const outcome = await networkTransport(request, signal);
+    if (!('errorCode' in outcome)) return outcome;
+    const host: Readonly<Record<string, number | undefined>> = constants.errno;
+    const linux = Object.entries(LINUX_ERRNO).find(([name]) => host[name] === outcome.errorCode)?.[1];
+    return { errorCode: linux ?? outcome.errorCode };
+};
+
+/**
  * Runs a world scenario's packs in a test level through `LevelScripts`, one flush per tick, and
  * returns the lines they logged.
  * @throws Error when the script host cannot load the packs, or a pack never ends.
@@ -247,7 +264,7 @@ const runPacksInLevel = async (
     }
     const httpServer = base === undefined ? undefined : await startScenarioHttpServer(base);
     // The host's network, as a server sends the requests, with each result admitted between ticks.
-    const http = new ScriptHttpInputs();
+    const http = new ScriptHttpInputs(linuxErrnoTransport);
     try {
         return await runLoadedPacks(scenario, client, lines, level, http);
     } finally {
