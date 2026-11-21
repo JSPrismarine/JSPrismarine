@@ -257,12 +257,14 @@ export class AddonManager {
     public sync(options: { readonly reload?: boolean } = {}): Promise<readonly string[]> {
         return this.queue.run(async () => {
             const { requested, lock } = await readAddonFiles(this.options.directory);
-            const locks: Record<string, LockedAddon> = { ...lock.addons };
+            // A Map rather than a copy of the record: deleting a key from an object changes its
+            // shape, which leaves Bun's AOT compiler unable to type objects that share it.
+            const locks = new Map(Object.entries(lock.addons));
             const failed: string[] = [];
             const active = this.installed;
             let changed = false;
 
-            for (const key of Object.keys(locks)) {
+            for (const key of [...locks.keys()]) {
                 if (own(requested.addons, key) !== undefined) continue;
                 try {
                     await removeAddonFolder(path.join(this.addonsDirectory, key));
@@ -271,14 +273,14 @@ export class AddonManager {
                     this.options.log.error(`Could not remove ${key}: ${messageOf(error)}`);
                     continue;
                 }
-                delete locks[key];
+                locks.delete(key);
                 changed = true;
                 this.options.log.info(`Removed ${key}, which ${ADDONS_FILE} no longer names`);
             }
 
             for (const key of Object.keys(requested.addons).sort()) {
                 const request = requested.addons[key]!;
-                const locked = own(locks, key);
+                const locked = locks.get(key);
                 try {
                     if (locked !== undefined && allows(key, request, locked)) {
                         if (await this.isPresent(key, locked)) continue;
@@ -289,7 +291,7 @@ export class AddonManager {
                         const outgoing = await this.summaryOf(key);
                         const resolved = await this.resolve(key, request);
                         await this.place(key, resolved);
-                        locks[key] = resolved.locked;
+                        locks.set(key, resolved.locked);
                         this.report('Installed', key, resolved);
                         this.reportOutgoing(key, outgoing);
                     }
@@ -300,8 +302,9 @@ export class AddonManager {
                 }
             }
 
-            if (changed) await this.write(requested, { ...lock, addons: locks }, failed);
-            else this.installed = await this.presentKeys(locks, failed);
+            const addons = Object.fromEntries(locks);
+            if (changed) await this.write(requested, { ...lock, addons }, failed);
+            else this.installed = await this.presentKeys(addons, failed);
             // A folder that vanished and could not come back leaves the pack list, so the scripts
             // reload even when the folder holds nothing new.
             const listChanged = !sameKeys(active, this.installed);
