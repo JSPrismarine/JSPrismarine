@@ -31,15 +31,29 @@ export const NativeWorldgenErrors = defineErrors('native-worldgen', {
     /** A noise stack or density program was used after `destroy()` freed it. */
     StackDestroyed: 'The noise stack or density program was destroyed',
     /**
-     * The native library refused a density program: a record names a node, constant, link, stack
-     * or cache slot that does not exist, or memory ran out. A program the worldgen package
-     * encoded is never malformed, so this is a bug; report it.
+     * A cell program was handed a corner buffer or an output buffer shorter than one fill reads or
+     * writes; the C would read or write past its end. Size them from the program's `cornerCount`
+     * and `size`.
      */
+    CellBufferTooSmall:
+        'A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}',
     /**
      * The native library refused a climate search tree: a node names a child that does not exist,
      * or memory ran out. A tree the worldgen package flattened is never malformed, so this is a
      * bug; report it.
      */
     ClimateTreeNotCreated: 'The native worldgen library could not create a climate tree of {nodes} nodes',
-    ProgramNotCreated: 'The native worldgen library could not create a density program of {nodes} nodes'
+    /**
+     * The native library refused a density program: a record names a node, constant, link, stack
+     * or cache slot that does not exist, or memory ran out. A program the worldgen package
+     * encoded is never malformed, so this is a bug; report it.
+     */
+    ProgramNotCreated: 'The native worldgen library could not create a density program of {nodes} nodes',
+    /**
+     * The native library refused a cell program: a record names a node, constant or interpolated
+     * cell that does not exist, runs a TypeScript fallback, or the cell holds more than 4096
+     * values, or memory ran out. The worldgen package only hands over programs that fit, so this
+     * is a bug; report it.
+     */
+    CellProgramNotCreated: 'The native worldgen library could not create a cell program of {nodes} nodes'
 });

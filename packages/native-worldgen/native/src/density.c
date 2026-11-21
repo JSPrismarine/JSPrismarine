@@ -1,9 +1,7 @@
 /*
  * A density function tree as a flat program, evaluated one position at a time with the closures'
- * arithmetic in packages/worldgen/src/density/compile.ts. Every value is a double, and F() is
- * that code's f32(): it rounds to float exactly where the TypeScript does, so the bits match. The
- * build compiles this with -ffp-contract=off. The operations and their operands are PointOp in
- * packages/worldgen/src/density/densityProgram.ts.
+ * arithmetic in packages/worldgen/src/density/compile.ts, which js_math.h reproduces. The
+ * operations and their operands are PointOp in packages/worldgen/src/density/densityProgram.ts.
  */
 #include <math.h>
 #include <stdint.h>
@@ -11,8 +9,7 @@
 #include <string.h>
 
 #include "jsp_native_worldgen.h"
-
-#define F(v) ((double)(float)(v))
+#include "js_math.h"
 
 enum {
     OP_CONSTANT = 0,
@@ -60,29 +57,7 @@ typedef struct {
     Cache *caches;
 } Program;
 
-/* JavaScript's Math.min: NaN wins, and -0 is below +0. */
-static inline double js_min(double a, double b) {
-    if (a != a || b != b) return NAN;
-    if (a == 0 && b == 0) return signbit(a) ? a : b;
-    return a < b ? a : b;
-}
-
-/* JavaScript's Math.max: NaN wins, and +0 is above -0. */
-static inline double js_max(double a, double b) {
-    if (a != a || b != b) return NAN;
-    if (a == 0 && b == 0) return signbit(a) ? b : a;
-    return a > b ? a : b;
-}
-
-/* worldgen's clamp: value < min ? min : value > max ? max : value. */
-static inline double clampd(double value, double min, double max) {
-    return value < min ? min : value > max ? max : value;
-}
-
 static inline double lerp_f(double alpha, double from, double to) { return F(from + F(alpha * F(to - from))); }
-
-static inline double square_f(double v) { return F(v * v); }
-static inline double cube_f(double v) { return F(F(v * v) * v); }
 
 /* JavaScript's ToInt32 of an integral double, as `| 0` and `& mask` apply it. */
 static inline int32_t to_int32(double v) {
@@ -127,10 +102,7 @@ static double unary(int32_t kind, double v) {
         case 5: return v > 0 ? v : F(v * 0.25);
         case 6: return F(1 / v);
         case 7: return -v;
-        case 8: {
-            double c = clampd(v, -1, 1);
-            return F(F(c / 2) - F(cube_f(c) / 24));
-        }
+        case 8: return squeeze_f(v);
         default: /* sign, as Math.sign */
             if (v != v) return v;
             return v > 0 ? 1 : v < 0 ? -1 : v;

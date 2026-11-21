@@ -43,7 +43,9 @@ Each step is its own pull request, proven by the bit comparison against the clos
    - Bits: every router and aquifer tree of every vanilla setting matches its closures, except the nether's two legacy climate noises and the End's islands, which keep their closures.
    - Counts: an overworld chunk's terrain fill makes 0 noise calls from TypeScript, where it made 1,079. Sampling the climate at 1,536 positions makes 0, where it made 112.
    - The aquifer's own logic, its pressure and fluid picking, is still TypeScript.
-4. **The per-block cell program in C**, from step 1's records, once the work above it has moved.
+4. **Done: the per-block cell program in C**, from step 1's records. One call per cell fills each `interpolated` node from its eight corners in `fillCell`'s order and runs the records over them. The corners still come from the point programs through the context's corner cache. A program holding a fallback record, or a cell whose context sets a hook the records hold, stays on the TypeScript interpreter.
+   - Bits: every vanilla setting's `final_density` matches the TypeScript interpreter over a whole chunk, and so does a tree per operator.
+   - Counts: every cell the overworld walk fills, 262 per terrain tile, runs in C, where all of them ran the TypeScript interpreter.
 
 ## Risks
 

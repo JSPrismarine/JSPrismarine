@@ -10,6 +10,27 @@ category: Errors
 These are the errors `@jsprismarine/native-worldgen` throws. [The error reference](README.md) explains how to read an entry.
 
 <!-- fact:errors.page.native-worldgen -->
+## `NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL`
+
+`A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}`
+
+Thrown as `NativeWorldgenErrors.CellBufferTooSmall`, which extends `Error`.
+
+A cell program was handed a corner buffer or an output buffer shorter than one fill reads or
+writes; the C would read or write past its end. Size them from the program's `cornerCount`
+and `size`.
+
+## `NATIVE_WORLDGEN_CELL_PROGRAM_NOT_CREATED`
+
+`The native worldgen library could not create a cell program of {nodes} nodes`
+
+Thrown as `NativeWorldgenErrors.CellProgramNotCreated`, which extends `Error`.
+
+The native library refused a cell program: a record names a node, constant or interpolated
+cell that does not exist, runs a TypeScript fallback, or the cell holds more than 4096
+values, or memory ran out. The worldgen package only hands over programs that fit, so this
+is a bug; report it.
+
 ## `NATIVE_WORLDGEN_CLIMATE_TREE_NOT_CREATED`
 
 `The native worldgen library could not create a climate tree of {nodes} nodes`
@@ -53,6 +74,10 @@ in `packages/native-worldgen`.
 `The native worldgen library could not create a density program of {nodes} nodes`
 
 Thrown as `NativeWorldgenErrors.ProgramNotCreated`, which extends `Error`.
+
+The native library refused a density program: a record names a node, constant, link, stack
+or cache slot that does not exist, or memory ran out. A program the worldgen package
+encoded is never malformed, so this is a bug; report it.
 
 ## `NATIVE_WORLDGEN_STACK_DESTROYED`
 

@@ -116,6 +116,11 @@ export interface CompileEnvironment {
      * answers undefined when it has a node with no native operation.
      */
     pointProgram?(encode: () => PointProgram | undefined): ((x: number, y: number, z: number) => number) | undefined;
+    /**
+     * Returns a fill with the same bits as a {@link CellProgram} over its records, such as the
+     * native library's cell program, or undefined to keep the TypeScript interpreter.
+     */
+    cellProgram?(records: CellProgramRecords): CellFill | undefined;
 }
 
 /** Options for comparing the scalar interpolation path with reusable cell buffers. */
@@ -141,6 +146,24 @@ export interface InterpolatedCell {
     /** The cell height, in blocks. */
     readonly y: number;
     values(context: SampleContext, x0: number, y0: number, z0: number): Float64Array;
+    /**
+     * Writes the cell's eight corner values into `out` from `at`, in the order {@link values}
+     * interpolates them: x, then y, then z varying fastest first.
+     */
+    corners(context: SampleContext, x0: number, y0: number, z0: number, out: Float64Array, at: number): void;
+}
+
+/** Fills a whole cell from its interpolated cells' corners, such as the native cell program. */
+export type CellFill = (corners: Float64Array, out: Float64Array) => void;
+
+/** A {@link CellProgram}'s records, as a native interpreter reads them. */
+export interface CellProgramRecords {
+    readonly nodes: Int32Array;
+    readonly constants: Float64Array;
+    /** How many `interpolated` cells the records read. */
+    readonly cellCount: number;
+    readonly xz: number;
+    readonly y: number;
 }
 
 /** Large datapack interpolation cells stay on the scalar path to avoid large per-context buffers. */
@@ -381,7 +404,10 @@ export class DensityFunctionCompiler {
         if (program === undefined) {
             program = new CellProgram(node, cell, {
                 sampler: (input) => this.compile(input),
-                interpolatedCell: (input) => this.interpolatedCell(input)
+                interpolatedCell: (input) => this.interpolatedCell(input),
+                ...(this.environment.cellProgram === undefined
+                    ? {}
+                    : { nativeFill: (records: CellProgramRecords) => this.environment.cellProgram?.(records) })
             });
             byCell.set(key, program);
         }
@@ -888,13 +914,9 @@ export class DensityFunctionCompiler {
                     return sampleAt;
                 }
 
-                const fillCell = (
-                    context: SampleContext,
-                    cellX: number,
-                    cellY: number,
-                    cellZ: number,
-                    output: Float64Array
-                ): void => {
+                // The corners of one cell, from the context's corner cache; a cell's corners are shared
+                // with its neighbors, so each lattice point is computed once per chunk.
+                const loadCorners = (context: SampleContext, cellX: number, cellY: number, cellZ: number): void => {
                     const x0 = cellX * cellSizeXz;
                     const y0 = cellY * cellSizeY;
                     const z0 = cellZ * cellSizeXz;
@@ -917,6 +939,16 @@ export class DensityFunctionCompiler {
                         corners[base + 6] = cache.getOrCompute(context, input, cellX, cellY1, cellZ1, x0, y1, z1);
                         corners[base + 7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
                     }
+                };
+
+                const fillCell = (
+                    context: SampleContext,
+                    cellX: number,
+                    cellY: number,
+                    cellZ: number,
+                    output: Float64Array
+                ): void => {
+                    loadCorners(context, cellX, cellY, cellZ);
 
                     // Java's `InterpolatedFunction$Sampler.fillCell`, the order `doFill` builds terrain in:
                     // the four z edges first, then x, then y as a running sum of one step per block.
@@ -963,7 +995,25 @@ export class DensityFunctionCompiler {
                     context.markInterpolationBufferFilled(id, x0, y0, z0);
                     return output;
                 };
-                this.interpolatedCells.set(node, { xz: cellSizeXz, y: cellSizeY, values: cellValues });
+                const cellCorners = (
+                    context: SampleContext,
+                    x0: number,
+                    y0: number,
+                    z0: number,
+                    out: Float64Array,
+                    at: number
+                ): void => {
+                    loadCorners(context, x0 / cellSizeXz, y0 / cellSizeY, z0 / cellSizeXz);
+                    const base = id << 3;
+                    for (let corner = 0; corner < 8; corner++)
+                        out[at + corner] = context.interpolationCorners[base + corner]!;
+                };
+                this.interpolatedCells.set(node, {
+                    xz: cellSizeXz,
+                    y: cellSizeY,
+                    values: cellValues,
+                    corners: cellCorners
+                });
 
                 return (context, x, y, z) => {
                     if (!context.interpolationBuffersEnabled) return sampleAt(context, x, y, z);

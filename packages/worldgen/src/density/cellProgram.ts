@@ -1,6 +1,6 @@
 import { clamp, f32 } from '../math';
 import { cube, square, squeeze } from './arithmetic';
-import type { DensitySampler, InterpolatedCell, InterpolationCellSize } from './compile';
+import type { CellFill, CellProgramRecords, DensitySampler, InterpolatedCell, InterpolationCellSize } from './compile';
 import type { DensityFunctionNode } from './DensityFunction';
 import type { SampleContext } from './SampleContext';
 
@@ -10,6 +10,8 @@ export interface CellProgramSource {
     sampler(node: DensityFunctionNode): DensitySampler;
     /** The whole-cell values of an `interpolated` node, when the compiler buffers its cells. */
     interpolatedCell(node: DensityFunctionNode): InterpolatedCell | undefined;
+    /** A fill with the same bits over the program's records, such as the native library's. */
+    nativeFill?(records: CellProgramRecords): CellFill | undefined;
 }
 
 /**
@@ -105,6 +107,13 @@ export class CellProgram {
     private readonly samplers: DensitySampler[];
     private readonly cells: InterpolatedCell[];
     private fillNumber = 0;
+    /** The native fill, when the source has one and no record runs a closure. */
+    private readonly nativeFill: CellFill | undefined;
+    /** Which hook kinds the records hold, one bit per kind; a cell whose context sets one runs here. */
+    private readonly hookKinds: number;
+    /** The interpolated cells' corners for the native fill, eight per cell. */
+    private readonly corners: Float64Array;
+    private nativeFillCount = 0;
     private context!: SampleContext;
     private x0 = 0;
     private y0 = 0;
@@ -124,6 +133,24 @@ export class CellProgram {
         this.nodeCount = this.nodes.length / CELL_NODE_WORDS;
         this.buffers = new Float64Array(this.nodeCount * this.size);
         this.filledIn = new Int32Array(this.nodeCount).fill(-1);
+        this.hookKinds = builder.hookKinds;
+        this.corners = new Float64Array(this.cells.length * 8);
+        // A fallback record runs a TypeScript closure per position, which a native fill cannot.
+        this.nativeFill =
+            builder.samplers.length === builder.hookSamplers
+                ? source.nativeFill?.({
+                      nodes: this.nodes,
+                      constants: this.constants,
+                      cellCount: this.cells.length,
+                      xz: cell.xz,
+                      y: cell.y
+                  })
+                : undefined;
+    }
+
+    /** How many cells the native fill filled, of {@link fills}. */
+    public get nativeFills(): number {
+        return this.nativeFillCount;
     }
 
     /** How many cells the program has filled. */
@@ -145,12 +172,30 @@ export class CellProgram {
      */
     public fill(context: SampleContext, x0: number, y0: number, z0: number, out: Float64Array): void {
         this.fillNumber++;
+        if (this.nativeFill !== undefined && !this.hookSet(context)) {
+            for (let cell = 0; cell < this.cells.length; cell++) {
+                this.cells[cell]!.corners(context, x0, y0, z0, this.corners, cell * 8);
+            }
+            this.nativeFill(this.corners, out);
+            this.nativeFillCount++;
+            return;
+        }
         this.context = context;
         this.x0 = x0;
         this.y0 = y0;
         this.z0 = z0;
         this.run(0);
         out.set(this.buffers.subarray(0, this.size));
+    }
+
+    /** Whether the context sets a hook the records hold, which only the TypeScript runs. */
+    private hookSet(context: SampleContext): boolean {
+        const kinds = this.hookKinds;
+        return (
+            ((kinds & (1 << HOOK_KINDS.beardifier)) !== 0 && context.beardifier !== undefined) ||
+            ((kinds & (1 << HOOK_KINDS.blend_alpha)) !== 0 && context.blendAlpha !== undefined) ||
+            ((kinds & (1 << HOOK_KINDS.blend_offset)) !== 0 && context.blendOffset !== undefined)
+        );
     }
 
     /** Fills node `index`'s buffer for the current cell, once however often the tree reaches it. */
@@ -348,6 +393,10 @@ class ProgramBuilder {
     public readonly constantValues: number[] = [];
     public readonly samplers: DensitySampler[] = [];
     public readonly cells: InterpolatedCell[] = [];
+    /** One bit per hook kind the records hold. */
+    public hookKinds = 0;
+    /** How many of {@link samplers} are hooks' rather than fallbacks'. */
+    public hookSamplers = 0;
     private readonly indices = new Map<DensityFunctionNode, number>();
 
     public constructor(
@@ -396,6 +445,8 @@ class ProgramBuilder {
             case 'blend_alpha':
             case 'blend_offset': {
                 this.samplers.push(this.source.sampler(node));
+                this.hookKinds |= 1 << HOOK_KINDS[node.type];
+                this.hookSamplers++;
                 const neutral = node.type === 'blend_alpha' ? 1 : 0;
                 return [CellOp.hook, HOOK_KINDS[node.type], this.constant(neutral), this.samplers.length - 1];
             }

@@ -4,6 +4,7 @@ import registryVectors from '../../vectors/26.3/surface-registries.json' with { 
 import { ChunkSampler } from '../chunk/ChunkSampler';
 import { f32 } from '../math';
 import type { Noise } from '../noise/GradientNoise';
+import { nativeWorldgen } from '../noise/nativeNoise';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
@@ -232,3 +233,166 @@ describe('the cell program', () => {
         }
     });
 });
+
+describe.runIf(process.env.JSP_NATIVE_WORLDGEN_REQUIRE === '1' || nativeWorldgen() !== undefined)(
+    'the cell program in the native library',
+    () => {
+        /** Fills the same cells through two programs and reports every position whose bits differ. */
+        const compareFills = (
+            native: (context: SampleContext, x0: number, y0: number, z0: number, out: Float64Array) => void,
+            typescript: (context: SampleContext, x0: number, y0: number, z0: number, out: Float64Array) => void,
+            size: number,
+            origins: readonly (readonly [number, number, number])[]
+        ): string[] => {
+            const nativeContext = new SampleContext();
+            const typescriptContext = new SampleContext();
+            nativeContext.interpolationBuffersEnabled = true;
+            typescriptContext.interpolationBuffersEnabled = true;
+            const nativeValues = new Float64Array(size);
+            const typescriptValues = new Float64Array(size);
+            const mismatches: string[] = [];
+            for (const [x0, y0, z0] of origins) {
+                native(nativeContext, x0, y0, z0, nativeValues);
+                typescript(typescriptContext, x0, y0, z0, typescriptValues);
+                for (let index = 0; index < size; index++) {
+                    if (bitsOf(nativeValues[index] ?? Number.NaN) !== bitsOf(typescriptValues[index] ?? Number.NaN)) {
+                        mismatches.push(
+                            `${x0},${y0},${z0}[${index}]: ${nativeValues[index]} != ${typescriptValues[index]}`
+                        );
+                    }
+                }
+            }
+            return mismatches;
+        };
+
+        for (const settingsId of vanillaData.noiseSettingsIds) {
+            it(`fills every cell of a chunk of ${settingsId} in C with the TypeScript's bits`, () => {
+                const settings = vanillaData.settings(settingsId);
+                const native = new RandomState(vanillaData, 1234n, settings);
+                const typescript = new RandomState(vanillaData, 1234n, settings, { nativeNoise: false });
+                const node = settings.noiseRouter.finalDensity;
+                const cell = native.interpolationCellSizeOf(node);
+                if (cell === undefined) return;
+                const nativeProgram = native.cellProgram(node, cell);
+                const typescriptProgram = typescript.cellProgram(node, cell);
+                const origins = chunkCells(3, -5, settings.noiseSettings.minY, settings.noiseSettings.height, cell);
+
+                const mismatches = compareFills(
+                    (context, x0, y0, z0, out) => nativeProgram.fill(context, x0, y0, z0, out),
+                    (context, x0, y0, z0, out) => typescriptProgram.fill(context, x0, y0, z0, out),
+                    nativeProgram.size,
+                    origins
+                );
+
+                expect(mismatches.slice(0, 5)).toEqual([]);
+                expect(nativeProgram.nativeFills).toBe(origins.length);
+                expect(typescriptProgram.nativeFills).toBe(0);
+            });
+        }
+
+        describe('with each operator at the root over interpolated inputs, so the whole cell runs in C', () => {
+            const noise: Noise = {
+                get3: (x, y, z) => f32(Math.sin(x * 1.7 + y * 0.3) * Math.cos(z * 0.9) * 2 - 0.25),
+                get2: (x, z) => f32(Math.sin(x) * Math.cos(z))
+            };
+            const interpolated = (input: unknown) => ({
+                type: 'minecraft:interpolated',
+                input,
+                cell_size_xz: 4,
+                cell_size_y: 8
+            });
+            const leaf = interpolated({
+                type: 'minecraft:noise',
+                noise: 'minecraft:test',
+                xz_scale: 0.2,
+                y_scale: 0.15
+            });
+            const other = interpolated({
+                type: 'minecraft:noise',
+                noise: 'minecraft:test',
+                xz_scale: 0.05,
+                y_scale: 0.4
+            });
+            const nonPositive = { type: 'minecraft:clamp', input: leaf, min: -1, max: 0 };
+            const negated = { type: 'minecraft:negate', input: other };
+            const trees: Record<string, unknown> = {
+                'dynamic mul, whose zero left side answers +0': {
+                    type: 'minecraft:mul',
+                    left: nonPositive,
+                    right: negated
+                },
+                'mul by a constant zero, which keeps the sign': { type: 'minecraft:mul', left: 0, right: negated },
+                'add, sub and abs': {
+                    type: 'minecraft:sub',
+                    left: { type: 'minecraft:add', left: { type: 'minecraft:abs', input: leaf }, right: 0.5 },
+                    right: nonPositive
+                },
+                'min and max': {
+                    type: 'minecraft:max',
+                    left: { type: 'minecraft:min', left: leaf, right: negated },
+                    right: -0.3
+                },
+                'unary operators': {
+                    type: 'minecraft:square',
+                    input: {
+                        type: 'minecraft:squeeze',
+                        input: {
+                            type: 'minecraft:cube',
+                            input: {
+                                type: 'minecraft:half_negative',
+                                input: { type: 'minecraft:quarter_negative', input: leaf }
+                            }
+                        }
+                    }
+                },
+                'a range_choice with cells on both sides': {
+                    type: 'minecraft:range_choice',
+                    input: leaf,
+                    min_inclusive: -0.2,
+                    max_exclusive: 0.4,
+                    when_in_range: { type: 'minecraft:cube', input: other },
+                    when_out_of_range: { type: 'minecraft:cache', input: negated }
+                },
+                'a blend hook with no blender set, which takes its neutral constant': {
+                    type: 'minecraft:mul',
+                    left: { type: 'minecraft:blend_alpha' },
+                    right: leaf
+                }
+            };
+            const library = nativeWorldgen();
+
+            for (const [name, json] of Object.entries(trees)) {
+                it(name, () => {
+                    const tree = parseDensityFunction(json, (id) => {
+                        throw new RangeError(`unexpected reference ${id}`);
+                    });
+                    const environment = {
+                        noise: () => noise,
+                        random: () => new LegacyRandomSource(1n),
+                        endIslandRandom: () => new LegacyRandomSource(1n)
+                    };
+                    const cell = { xz: 4, y: 8 };
+                    const native = new DensityFunctionCompiler({
+                        ...environment,
+                        cellProgram: (records) => {
+                            const program = library?.createCellProgram(records);
+                            return program === undefined ? undefined : (corners, out) => program.fill(corners, out);
+                        }
+                    }).cellProgram(tree, cell);
+                    const typescript = new DensityFunctionCompiler(environment).cellProgram(tree, cell);
+                    const origins = chunkCells(0, 0, -64, 64, cell);
+
+                    const mismatches = compareFills(
+                        (context, x0, y0, z0, out) => native.fill(context, x0, y0, z0, out),
+                        (context, x0, y0, z0, out) => typescript.fill(context, x0, y0, z0, out),
+                        native.size,
+                        origins
+                    );
+
+                    expect(mismatches.slice(0, 5)).toEqual([]);
+                    expect(native.nativeFills).toBe(origins.length);
+                });
+            }
+        });
+    }
+);

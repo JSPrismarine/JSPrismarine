@@ -54,6 +54,17 @@ interface NativeSymbols {
         weirdness: number
     ): number;
     jwg_biome_jitter(seedHi: number, seedLo: number, x: number, y: number, z: number): number;
+    jwg_cell_create(
+        nodes: Int32Array,
+        nodeCount: number,
+        constants: Float64Array,
+        constantCount: number,
+        cellCount: number,
+        xz: number,
+        y: number
+    ): number;
+    jwg_cell_destroy(handle: number): void;
+    jwg_cell_fill(handle: number, corners: Float64Array, out: Float64Array): void;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -68,8 +79,27 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_climate_create: ['f64', ['buffer', 'buffer', 'buffer', 'buffer', 'buffer', 'i32', 'buffer', 'i32', 'i32']],
     jwg_climate_destroy: ['void', ['f64']],
     jwg_climate_find: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64']],
-    jwg_biome_jitter: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64']]
+    jwg_biome_jitter: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64']],
+    jwg_cell_create: ['f64', ['buffer', 'i32', 'buffer', 'i32', 'i32', 'i32', 'i32']],
+    jwg_cell_destroy: ['void', ['f64']],
+    jwg_cell_fill: ['void', ['f64', 'buffer', 'buffer']]
 };
+
+/** The 32-bit words of one cell program record, `JWG_CELL_WORDS` in the C. */
+export const CELL_WORDS = 6;
+
+/**
+ * A cell program, as `@jsprismarine/worldgen`'s `CellProgram` lays a density tree out: records of
+ * {@link CELL_WORDS} words, root first, the constants they name, how many `interpolated` cells
+ * they read, and the cell's size.
+ */
+export interface NativeCellSource {
+    readonly nodes: Int32Array;
+    readonly constants: Float64Array;
+    readonly cellCount: number;
+    readonly xz: number;
+    readonly y: number;
+}
 
 /**
  * A climate search tree, as `@jsprismarine/worldgen`'s climate index flattens it: per node, seven
@@ -134,11 +164,13 @@ export class NativeWorldgen {
     private readonly finalizer: FinalizationRegistry<number>;
     /** Frees a climate tree once it is collected. */
     private readonly climates: FinalizationRegistry<number>;
+    private readonly cells: FinalizationRegistry<number>;
 
     private constructor(bound: BoundNative<NativeSymbols>) {
         this.bound = bound;
         // A program's handle is registered negated, so one registry frees both kinds.
         this.climates = new FinalizationRegistry((handle) => bound.symbols.jwg_climate_destroy(handle));
+        this.cells = new FinalizationRegistry((handle) => bound.symbols.jwg_cell_destroy(handle));
         this.finalizer = new FinalizationRegistry((handle) =>
             handle < 0 ? bound.symbols.jwg_program_destroy(-handle) : bound.symbols.jwg_stack_destroy(handle)
         );
@@ -267,6 +299,35 @@ export class NativeWorldgen {
     }
 
     /**
+     * Registers a cell program, which fills a whole interpolation cell in C with the same bits as
+     * the TypeScript `CellProgram` it was laid out by.
+     * @param source - The program's records.
+     * @returns The program.
+     * @throws {NativeWorldgenErrors.CellProgramNotCreated} When a record names something out of
+     *   range or runs a TypeScript fallback, the cell holds more than 4096 values, or memory runs
+     *   out.
+     */
+    public createCellProgram(source: NativeCellSource): NativeCellProgram {
+        const symbols = this.bound.symbols;
+        const nodeCount = source.nodes.length / CELL_WORDS;
+        const handle = symbols.jwg_cell_create(
+            source.nodes,
+            nodeCount,
+            source.constants,
+            source.constants.length,
+            source.cellCount,
+            source.xz,
+            source.y
+        );
+        if (handle === 0) throw new NativeWorldgenErrors.CellProgramNotCreated({ nodes: nodeCount });
+        const program = new NativeCellProgram(symbols, handle, source.cellCount, source.xz * source.xz * source.y, () =>
+            this.cells.unregister(program)
+        );
+        this.cells.register(program, handle, program);
+        return program;
+    }
+
+    /**
      * The jitter bits of one biome lattice point, as Java's `BiomeManager` derives them.
      * @param seedHi - The zoom seed's high 32 bits, unsigned.
      * @param seedLo - The zoom seed's low 32 bits, unsigned.
@@ -388,6 +449,58 @@ export class NativeDensityProgram {
         if (this.handle === 0) return;
         this.forget();
         this.symbols.jwg_program_destroy(this.handle);
+        this.handle = 0;
+    }
+}
+
+/** A cell program in native memory, made by {@link NativeWorldgen.createCellProgram}. */
+export class NativeCellProgram {
+    private readonly symbols: NativeSymbols;
+    private readonly forget: () => void;
+    /** How many corner values a fill reads: eight per interpolated cell. */
+    public readonly cornerCount: number;
+    /** How many values a fill writes: one per block of the cell. */
+    public readonly size: number;
+    private handle: number;
+
+    /**
+     * Use {@link NativeWorldgen.createCellProgram}.
+     * @internal
+     */
+    public constructor(symbols: NativeSymbols, handle: number, cellCount: number, size: number, forget: () => void) {
+        this.symbols = symbols;
+        this.handle = handle;
+        this.cornerCount = cellCount * 8;
+        this.size = size;
+        this.forget = forget;
+    }
+
+    /**
+     * Fills `out` with the tree's value at every block of one cell, x-major, then z, then y. Hook
+     * records take their neutral constant, so call it only for a context with no hook set.
+     * @param corners - {@link cornerCount} values: each interpolated cell's eight corners in turn.
+     * @param out - At least {@link size} values.
+     * @throws {NativeWorldgenErrors.StackDestroyed} After {@link destroy}.
+     * @throws {NativeWorldgenErrors.CellBufferTooSmall} When a buffer is shorter than the fill.
+     */
+    public fill(corners: Float64Array, out: Float64Array): void {
+        if (this.handle === 0) throw new NativeWorldgenErrors.StackDestroyed();
+        if (corners.length < this.cornerCount || out.length < this.size) {
+            throw new NativeWorldgenErrors.CellBufferTooSmall({
+                corners: corners.length,
+                cornerCount: this.cornerCount,
+                out: out.length,
+                size: this.size
+            });
+        }
+        this.symbols.jwg_cell_fill(this.handle, corners, out);
+    }
+
+    /** Frees the program's native memory. Later calls throw. */
+    public destroy(): void {
+        if (this.handle === 0) return;
+        this.forget();
+        this.symbols.jwg_cell_destroy(this.handle);
         this.handle = 0;
     }
 }
