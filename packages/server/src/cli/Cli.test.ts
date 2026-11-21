@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { BUILT_IN_PROTOCOL_PROVIDERS, describeProtocolProviders } from '@jsprismarine/prismarine/protocolProviders';
 import { serverVersion } from '@jsprismarine/prismarine/version';
 import { parseServerArgs, serverCli } from './Cli';
 
@@ -51,7 +52,7 @@ describe('parseServerArgs', () => {
         expect(help).not.toContain('--role');
     });
 
-    it('prints only the version for --version and -v, then exits', () => {
+    it('prints the version, then every built-in edition, for --version and -v, then exits', () => {
         for (const flag of ['--version', '-v']) {
             const output: string[] = [];
             const log = vi.spyOn(console, 'log').mockImplementation((message) => void output.push(String(message)));
@@ -64,7 +65,9 @@ describe('parseServerArgs', () => {
                 exit.mockRestore();
             }
 
-            expect(output).toEqual([serverVersion()]);
+            const [version, ...editions] = output.join('\n').split('\n');
+            expect(version).toBe(serverVersion());
+            expect(editions).toEqual(describeProtocolProviders(BUILT_IN_PROTOCOL_PROVIDERS));
         }
     });
 
