@@ -2,25 +2,25 @@
  * JSPrismarine's own addons under `addons/`, run as a server runs them: each pack's real files in a
  * runtime over a memory world, with a server whose figures the test sets tick by tick.
  */
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
+import { addonDirectory, addonPackOnBds, readAddonPack } from '../testing/addonPack.test-utils';
 import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test-utils';
+import { ManualServer } from '../testing/manualServer.test-utils';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import { memoryWorldSystem } from './worldsystem/memoryWorldSystem';
-import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
 import type { ScriptPack } from './pack';
-import { readScriptConfig, readScriptPack } from './pack';
+import { readScriptConfig } from './pack';
 import type { ScriptCommandOutcome } from './world';
 import { WorldScripts } from './WorldScripts';
 
-const TPS_BAR = fileURLToPath(new URL('../../../../addons/tps-bar', import.meta.url));
-const PLACEHOLDERS = fileURLToPath(new URL('../../../../addons/standard-placeholders', import.meta.url));
+const TPS_BAR = addonDirectory('tps-bar');
+const PLACEHOLDERS = addonDirectory('standard-placeholders');
 
 /** What the standard placeholders addon's table module exports, checked, since the module is plain JavaScript. */
 interface PlaceholdersModule {
@@ -53,63 +53,12 @@ afterAll(() => {
     for (const directory of directories) rmSync(directory, { recursive: true, force: true });
 });
 
-/** Reads an addon's pack from its folder. */
-const readPack = (directory: string): ScriptPack => {
-    const pack = readScriptPack(directory);
-    if (pack === undefined) throw new Error(`${directory} has no script module`);
+/** An addon as Bedrock Dedicated Server runs it, in a folder removed after the file's tests. */
+const addonOnBds = (addon: string): ScriptPack => {
+    const { pack, directory } = addonPackOnBds(addon);
+    directories.push(directory);
     return pack;
 };
-
-/**
- * An addon as Bedrock Dedicated Server runs it: the same files, with each import of a
- * `@jsprismarine/` module naming one the runtime refuses with the message BDS gives.
- */
-const addonOnBds = (addon: string): ScriptPack => {
-    const directory = mkdtempSync(join(tmpdir(), 'jsp-addon-bds-'));
-    directories.push(directory);
-    cpSync(addon, directory, { recursive: true });
-    const main = join(directory, 'scripts', 'main.js');
-    const source = readFileSync(main, 'utf8');
-    expect(source).toContain("import('@jsprismarine/");
-    writeFileSync(main, source.replaceAll("import('@jsprismarine/", "import('@jsprismarine/not-on-bds-"));
-    return readPack(directory);
-};
-
-/** A server whose figures the test sets before each tick, and which keeps the bar each player sees. */
-class ManualServer implements JsprismarineServerMembers {
-    public current: ScriptPerformance = { tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 };
-    public readonly pings = new Map<string, number>();
-    /** Every bar call, as `show`, `update` or `hide` and the player. */
-    public readonly calls: string[] = [];
-    /** What each player's bar shows, while they have one. */
-    public readonly screens = new Map<string, ScriptBossBarState>();
-    public performance(): ScriptPerformance {
-        return this.current;
-    }
-    public ping(player: string): number | undefined {
-        return this.pings.get(player);
-    }
-    public showBossBar(player: string, _bar: number, state: ScriptBossBarState): void {
-        this.calls.push(`show ${player}`);
-        this.screens.set(player, state);
-    }
-    public updateBossBar(player: string, _bar: number, state: ScriptBossBarState): void {
-        this.calls.push(`update ${player}`);
-        this.screens.set(player, state);
-    }
-    public hideBossBar(player: string): void {
-        this.calls.push(`hide ${player}`);
-        this.screens.delete(player);
-    }
-    /** What each player's list entry shows, while a pack has set it. */
-    public readonly listNames = new Map<string, string>();
-    public setPlayerListName(player: string, name: string): void {
-        this.listNames.set(player, name);
-    }
-    public resetPlayerListName(player: string): void {
-        this.listNames.delete(player);
-    }
-}
 
 describe.skipIf(!scriptHostAvailable())('the TPS bar addon', () => {
     let library: ScriptHostLibrary;
@@ -122,7 +71,7 @@ describe.skipIf(!scriptHostAvailable())('the TPS bar addon', () => {
     });
 
     /** Starts the pack over `world`, on a server that gives the live members when `server` is set. */
-    const start = (world: MemoryWorld, server?: ManualServer, pack = readPack(TPS_BAR)) => {
+    const start = (world: MemoryWorld, server?: ManualServer, pack = readAddonPack(TPS_BAR)) => {
         const errors: string[] = [];
         const scripts = new WorldScripts({
             server: TEST_SERVER,
@@ -373,7 +322,7 @@ describe.skipIf(!scriptHostAvailable())('the standard placeholders addon', () =>
     }
 
     /** Starts the pack over `world`, on a server that gives the live members when `server` is set. */
-    const start = (world: MemoryWorld, server?: ManualServer, pack = readPack(PLACEHOLDERS)) => {
+    const start = (world: MemoryWorld, server?: ManualServer, pack = readAddonPack(PLACEHOLDERS)) => {
         const errors: string[] = [];
         const scripts = new WorldScripts({
             server: TEST_SERVER,

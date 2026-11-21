@@ -63,6 +63,7 @@ import { chunkCompletionReadiness } from './scenarios/chunk-completion-readiness
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import { subChunkRequestDelivery } from './scenarios/subchunk-request-delivery.mts';
 import { tpsBar } from './scenarios/tps-bar.mts';
+import { tabList } from './scenarios/tab-list.mts';
 
 export interface ScenarioSuite {
     name: string;
@@ -121,6 +122,7 @@ export const suites: ScenarioSuite[] = [
             scriptTeleport,
             scriptRotation,
             tpsBar,
+            tabList,
             miningDrops,
             spectatorPickup,
             itemDropPickup,

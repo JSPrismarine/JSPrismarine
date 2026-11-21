@@ -44,6 +44,18 @@ Provides the standard player, server and world placeholders, and /placeholders t
 addon install standard-placeholders
 ```
 
+### [Tab List](../../addons/tab-list/README.md)
+
+Renames the entries in the player list from templates: one per player, per group or for everyone.
+
+| Version | Runs on | License |
+| ------- | ------- | ------- |
+| `1.0.0` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+
+```text
+addon install tab-list
+```
+
 ### [TPS Bar](../../addons/tps-bar/README.md)
 
 Shows TPS, MSPT and ping on a boss bar.

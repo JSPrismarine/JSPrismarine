@@ -1,17 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test-utils';
 import type { ScriptPack } from './pack';
-import { readScriptConfig, readScriptPack } from './pack';
+import { readScriptConfig } from './pack';
 import type { CriticalException, WatchdogSettings } from './WorldScripts';
 import { WorldScripts } from './WorldScripts';
 import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
+import { writeInlinePack } from '../testing/inlinePack.test-utils';
+import { MemoryConfigStore } from '../testing/memoryConfigStore.test-utils';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import type {
     JsprismarineServerMembers,
@@ -45,27 +45,10 @@ afterAll(() => {
     for (const directory of directories) rmSync(directory, { recursive: true, force: true });
 });
 
-/** Writes a pack whose entry is `source`, declaring `@minecraft/server` at `version`. */
-const writePack = (
-    source: string,
-    version = '2.0.0',
-    name = 'probe',
-    moduleUuid = '13f251b3-41c9-4271-b2d1-d4abde28890b'
-): ScriptPack => {
-    const directory = mkdtempSync(join(tmpdir(), 'jsp-world-scripts-'));
+/** Writes a pack whose entry is `source`, declaring `@minecraft/server` at `version`, removed after the file's tests. */
+const writePack = (source: string, version?: string, name?: string, moduleUuid?: string): ScriptPack => {
+    const { pack, directory } = writeInlinePack(source, { version, name, moduleUuid });
     directories.push(directory);
-    mkdirSync(join(directory, 'scripts'));
-    writeFileSync(
-        join(directory, 'manifest.json'),
-        JSON.stringify({
-            header: { name, uuid: 'aac52733-889b-4c87-abcb-f064ea7735a2', version: [1, 0, 0] },
-            modules: [{ type: 'script', uuid: moduleUuid, entry: 'scripts/main.js' }],
-            dependencies: [{ module_name: '@minecraft/server', version }]
-        })
-    );
-    writeFileSync(join(directory, 'scripts', 'main.js'), source);
-    const pack = readScriptPack(directory);
-    if (pack === undefined) throw new Error('the pack has a script module');
     return pack;
 };
 
@@ -1238,30 +1221,6 @@ system.run(() => {
                 'not shorthand TypeError: parse takes a string as its shorthand'
             ]);
         });
-
-        /** A config store in memory: a value per pack directory, and a way to say the file changed. */
-        class MemoryConfigStore implements AddonConfigStore {
-            public readonly values = new Map<string, unknown>();
-            public readonly writes: string[] = [];
-            public readonly watching = new Map<string, () => void>();
-            public read(pack: ScriptPack): unknown {
-                return this.values.get(pack.directory);
-            }
-            public write(pack: ScriptPack, value: unknown): void {
-                this.writes.push(`${pack.name} ${JSON.stringify(value)}`);
-                this.values.set(pack.directory, value);
-                this.watching.get(pack.directory)?.();
-            }
-            public watch(pack: ScriptPack, changed: () => void): () => void {
-                this.watching.set(pack.directory, changed);
-                return () => this.watching.delete(pack.directory);
-            }
-            /** The file changed on disk to a value. */
-            public changedOnDisk(pack: ScriptPack, value: unknown): void {
-                this.values.set(pack.directory, value);
-                this.watching.get(pack.directory)?.();
-            }
-        }
 
         it('reads, writes and follows the config file through the store, one event per flush, until the scripts stop', () => {
             const store = new MemoryConfigStore();
