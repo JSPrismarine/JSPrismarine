@@ -95,7 +95,7 @@ function onKeydown(event: KeyboardEvent) {
                 <p>{{ audience.pitch }}</p>
             </div>
             <div class="audience-tabs__code">
-                <pre>{{ audience.code }}</pre>
+                <pre :class="{ 'is-copyable': audience.copyable }">{{ audience.code }}</pre>
                 <CopyButton v-if="audience.copyable" class="audience-tabs__copy" :text="audience.code" />
             </div>
             <div class="audience-tabs__links">
@@ -210,12 +210,16 @@ function onKeydown(event: KeyboardEvent) {
 
 .audience-tabs__code pre {
     /* Commands keep their lines, so a copied command reads the way it runs; wide ones scroll. */
-    padding-bottom: 32px;
     margin: 0;
     overflow-x: auto;
     font: 13px/1.7 var(--vp-font-family-mono);
     color: var(--jsp-cream);
     white-space: pre;
+}
+
+/* Room under a command for the copy button. */
+.audience-tabs__code pre.is-copyable {
+    padding-bottom: 32px;
 }
 
 .audience-tabs__copy {
