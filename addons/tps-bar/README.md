@@ -3,7 +3,7 @@
 A boss bar that shows how the server keeps up: its ticks per second (TPS), the milliseconds each
 tick's work takes (MSPT) and your ping.
 
-![The TPS bar at three loads](../../docs/plans/first-party-addons-tps-bar.png)
+![The TPS bar three times: green with an idle server, gold at 32 MSPT, and red at 65 MSPT and 15 TPS](media/bar.png)
 
 ## Using it
 
@@ -20,9 +20,9 @@ The bar redraws once a second. Each number is colored by its own thresholds:
 | MSPT   | below 25     | below 50   | 50 or more |
 <!-- /fact -->
 
-The bar takes the worse of the two colors, in green, yellow or red. It fills as MSPT approaches
-<!-- fact:addons.tps-bar.tickBudget -->50<!-- /fact -->, the milliseconds a tick has at 20 TPS, so
-a full bar means the server cannot keep up.
+The bar takes the worse of the two colors, in green, yellow or red. It fills as MSPT
+approaches <!-- fact:addons.tps-bar.tickBudget -->50<!-- /fact -->, the milliseconds a tick has
+at 20 TPS, so a full bar means the server cannot keep up.
 
 MSPT is the average over the last ten or so ticks rather than the last tick alone, so one slow
 tick does not turn the bar red for a whole second. Ping shows `?` until your connection has

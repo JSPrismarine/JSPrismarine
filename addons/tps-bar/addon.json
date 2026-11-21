@@ -1,5 +1,14 @@
 {
     "description": "Shows TPS, MSPT and ping on a boss bar.",
     "minServer": "0.23.0",
-    "license": "(MIT OR MPL-2.0)"
+    "license": "(MIT OR MPL-2.0)",
+    "title": "TPS Bar",
+    "tags": ["performance"],
+    "authors": ["JSPrismarine"],
+    "screenshots": [
+        {
+            "file": "media/bar.png",
+            "alt": "The TPS bar three times: green with an idle server, gold at 32 MSPT, and red at 65 MSPT and 15 TPS."
+        }
+    ]
 }
