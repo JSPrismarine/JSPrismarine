@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->70<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->71<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -165,6 +165,7 @@ does the same thing.
 | `/gametest`           | Interacts with gametest.                                                                                  | `minecraft.command.gametest`      | 2     | Operators   |
 | `/give`               | Gives an item to players.                                                                                 | `minecraft.command.give`          | 1     | Operators   |
 | `/help`, `/?`         | Shows paged command listings and command syntax.                                                          | `minecraft.command.help`          | 0     | Everyone    |
+| `/item`               | Changes items in a slot.                                                                                  | `minecraft.command.item`          | 1     | Operators   |
 | `/kick`               | Removes a player from the server.                                                                         | `minecraft.command.kick`          | 2     | Operators   |
 | `/kill`               | Kills entities.                                                                                           | `minecraft.command.kill`          | 1     | Operators   |
 | `/link`               | Links your Java Edition and Bedrock Edition accounts into one player.                                     | `jsprismarine.command.link`       | 0     | Everyone    |

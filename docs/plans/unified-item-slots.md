@@ -131,7 +131,7 @@ Slice 2 is independent of 3 to 5. Slices 3, 4 and 5 touch the same files and lan
 | 2 | Landed |
 | 3 | Landed |
 | 4 | Landed |
-| 5 | Not started |
+| 5 | Landed |
 | 6 | Not started |
 
 ## Slice 4: how mobs carry items
@@ -188,6 +188,51 @@ Recorded when slice 4 landed, on 2026-11-21.
   `equipment('body')` and `inventory` slot 1 are the same stack. The saddle has no equipment
   slot: it is `inventory` slot 0 and nothing else. A parser that writes `equipment('body')`
   writes the container slot whenever the alias is set.
+
+## Slice 5: how commands reach slots
+
+Recorded when slice 5 landed, on 2026-11-21.
+
+- **A Java name is a number, and the holder reads it.** `inventory/slotAddress.ts` keeps Java
+  26.3's `SlotRanges` table: each name stands for the numbers Java gives it (`hotbar.0` is 0,
+  `inventory.0` is 9, `enderchest.0` is 200, `armor.feet` is 100), and the holder answers a number
+  the way Java's `getSlot` does. So `container.0` is a player's hotbar slot 0 and a chest
+  minecart's first slot, and `/loot replace … <count>` walks on from the number, as Java's
+  `LootCommand` does. The parity suite reads the table off Java's class file. `villager.N` and
+  `horse.saddle`, which 26.3 renamed, read as `mob.inventory.N` and `saddle`.
+- **A mob's container means what its `container_type` says.** `horse` is a mount's, whose chest
+  slots are the container slots its `minecraft:equippable` does not claim, there only while it
+  has `minecraft:is_chested`. `inventory`, the default, is a villager's or a piglin's pocket,
+  `mob.inventory.N`. Any other type, such as `minecart_chest`, is a container `container.N` reaches.
+  Bedrock's `slot.inventory N` is a mob's whole container, and `slot.equippable N` the `N`th slot its
+  `minecraft:equippable` lists.
+- **A mount's armor goes where its screen shows it.** `armor.body` on a horse or a llama resolves to
+  the container slot of its first non-saddle equippable entry and sets the `body` alias there, so
+  the armor is one stack, as equipping it by hand leaves it.
+- **The command seam takes every target.** `SlotTarget` is a block or an entity, with no storage
+  form. `setSlot`, `copySlots` and `applyItemModifier` take every target a line names, and a
+  target without the slot is skipped; the line fails only when none had it. `/loot replace` rolls
+  once for all its targets. `setSlot` returns the slots it wrote and takes Java's `fill` and
+  `override` beside Bedrock's modes.
+- **Equipment slot names keep one home each.** The parser reads equipment names from
+  `entity/equipment.ts`, which now holds `BEDROCK_EQUIPMENT_SLOT_NAMES` beside `MOB_EQUIPMENT_SLOTS`,
+  rather than holding them itself: `equipment.ts` imports nothing from the inventory, so the
+  parser can import it without a cycle. `EntityRuntime`'s event names and `actorPort`'s armor index
+  read from there and from `mobEquipmentAddress`. A player's and a mob's filter domains share
+  `filterDomainStack` in `entity/data/filterView.ts`. `@jsprismarine/entities` holds its seven
+  component slot names once, as `ENTITY_EQUIPMENT_SLOT_NAMES`. Two tables stay: `@jsprismarine/items`'
+  `WEARABLE_SLOTS`, since that package depends on neither, and `@jsprismarine/commands`'
+  `ENTITY_EQUIPMENT_SLOTS`, which is the client's enum.
+- **Three gaps have issues.** Item modifiers on `/item`
+  ([#3607](https://github.com/JSPrismarine/JSPrismarine/issues/3607)), `horse.chest` and
+  `player.crafting.N` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)), and
+  `execute if items`, which reads its slots as an NBT path
+  ([#3609](https://github.com/JSPrismarine/JSPrismarine/issues/3609)).
+- **Read from the class files, not confirmed by a run.** That `/item replace` with one stack writes
+  only the first slot a wildcard covers (`ItemProvider.of`), that `override` empties the rest
+  (`orElseProvide(EMPTY)`), and that each target gets the stacks from the start. That `/item … from`
+  copies empty source slots, which `SlotCollection.itemCopies` suggests. That `slot.equippable N`
+  counts the equippable list in order; a llama declares its one carpet slot as `slot: 1`.
 
 ## Open questions
 
