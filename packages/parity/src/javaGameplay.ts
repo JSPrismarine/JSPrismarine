@@ -10,7 +10,7 @@ import { OPCODES, pinnedJavaClassFile } from './javaClassFile.ts';
 /**
  * The Java gameplay a player meets outside any one block, item or mob, as rows of the
  * `gameplay.mechanics` family: every game rule's effect, every mob effect, every enchantment's
- * effect, every damage type, and the player and world systems Java runs in code.
+ * effect, every damage type, every recipe, and the player and world systems Java runs in code.
  *
  * The first four come from Java's own registries, so a Java release that adds an effect or a
  * damage type adds its row. The systems have no registry, so {@link JAVA_MECHANICS} lists them
@@ -206,8 +206,10 @@ export const javaDatapackEntries = (registry: string): readonly string[] =>
         .sort();
 
 /** One gameplay row's identifier: the kind of Java gameplay, then its id, such as `mob_effect/minecraft:speed`. */
-export const gameplayId = (kind: 'game_rule' | 'mob_effect' | 'enchantment' | 'damage_type' | 'mechanic', id: string) =>
-    `${kind}/${id}`;
+export const gameplayId = (
+    kind: 'game_rule' | 'mob_effect' | 'enchantment' | 'damage_type' | 'recipe' | 'mechanic',
+    id: string
+) => `${kind}/${id}`;
 
 /** Every Java gameplay identifier the family accounts for, sorted within each kind. */
 export const javaGameplayUniverse = (): readonly string[] => [
@@ -215,6 +217,7 @@ export const javaGameplayUniverse = (): readonly string[] => [
     ...javaMobEffects().map((id) => gameplayId('mob_effect', id)),
     ...javaDatapackEntries('enchantment').map((id) => gameplayId('enchantment', id)),
     ...javaDatapackEntries('damage_type').map((id) => gameplayId('damage_type', id)),
+    ...javaDatapackEntries('recipe').map((id) => gameplayId('recipe', id)),
     ...JAVA_MECHANICS.map((mechanic) => gameplayId('mechanic', mechanic.id))
 ];
 
@@ -243,6 +246,13 @@ export const gameplayAspects = (identifier: string): readonly BehaviorAspect[] =
         case 'enchantment':
             return [
                 { id: 'effect', description: "what the enchantment's effect components do at each level, against Java" }
+            ];
+        case 'recipe':
+            return [
+                {
+                    id: 'crafts',
+                    description: "making it at its station: whether a player can, and whether it gives Java's result"
+                }
             ];
         case 'damage_type':
             return [

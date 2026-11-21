@@ -5,14 +5,17 @@ import { effectHealthChange } from '@jsprismarine/prismarine/entity/StatusEffect
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
+import { buildNetworkContentPayloads } from '@jsprismarine/prismarine/network/contentPayloads';
 import { GameRules } from '@jsprismarine/prismarine/world/GameRuleManager';
+import { STATION_BY_TYPE, recipeIngredients, recipeResult } from '@jsprismarine/recipes';
+import type { Ingredient, Recipe, RecipeInput, RecipeItemStack } from '@jsprismarine/recipes';
 import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { expect, it } from 'vitest';
 
 import type { BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
-import { gameplayAspects, gameplayId, javaGameplayUniverse } from './javaGameplay.ts';
+import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse } from './javaGameplay.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -218,6 +221,103 @@ const playerScenarios: readonly BehaviorScenario<GameplaySubject>[] = [
     }
 ];
 
+let advertised: ReadonlySet<string> | undefined;
+
+/** The ids of the recipes the server advertises to a joining client, which are the ones a client can make. */
+const advertisedRecipes = (): ReadonlySet<string> => {
+    if (advertised !== undefined) return advertised;
+    const { crafting } = buildNetworkContentPayloads(serverContent());
+    advertised = new Set(
+        [...crafting.shaped, ...crafting.shapeless, ...crafting.smithingTransform].map((recipe) => recipe.id)
+    );
+    return advertised;
+};
+
+/** One stack of an ingredient's first item, which any matcher must accept. */
+const stackOf = (ingredient: Ingredient | null | undefined): RecipeItemStack | null => {
+    const id = ingredient?.items[0];
+    return id === undefined ? null : { id, count: 1 };
+};
+
+/** The input a player gives a recipe's station: its own ingredients, laid out as the recipe asks. */
+const inputFor = (recipe: Recipe): RecipeInput | undefined => {
+    const ingredients = recipeIngredients(recipe);
+    switch (recipe.type) {
+        case 'minecraft:crafting_shaped':
+            return {
+                station: 'crafting',
+                grid: {
+                    width: recipe.pattern.width,
+                    height: recipe.pattern.height,
+                    slots: recipe.pattern.cells.map(stackOf)
+                }
+            };
+        case 'minecraft:crafting_shapeless':
+            return {
+                station: 'crafting',
+                grid: { width: 3, height: 3, slots: Array.from({ length: 9 }, (_, slot) => stackOf(ingredients[slot])) }
+            };
+        case 'minecraft:smelting':
+        case 'minecraft:blasting':
+        case 'minecraft:smoking':
+        case 'minecraft:campfire_cooking':
+        case 'minecraft:stonecutting':
+            return { station: STATION_BY_TYPE[recipe.type], item: stackOf(ingredients[0]) };
+        case 'minecraft:smithing_transform':
+            return {
+                station: 'smithing',
+                template: stackOf(ingredients[0]),
+                base: stackOf(ingredients[1]),
+                addition: stackOf(ingredients[2])
+            };
+        default:
+            return undefined;
+    }
+};
+
+/** The stations whose recipes a Bedrock client makes from the recipe list the server advertises. */
+const ADVERTISED_STATIONS: ReadonlySet<string> = new Set(['crafting', 'stonecutting', 'smithing']);
+
+const recipeScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'recipe-crafts',
+    java: "A player makes each recipe at its station from the recipe's own ingredients and gets its result.",
+    reference: 'Java 26.3 data/minecraft/recipe and RecipeManager.getRecipeFor',
+    subjects: () => javaDatapackEntries('recipe').map((id) => subject('recipe', id)),
+    idOf: (entry) => entry.id,
+    aspects: () => ['crafts'],
+    classify: () => ({
+        kind: 'defect',
+        reason: 'The server advertises no recipe of this kind to the client, so no player can make it.',
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3523'
+    }),
+    run: (entry) => {
+        const id = entry.id.slice('recipe/'.length);
+        const content = serverContent();
+        const recipe = content.recipes.get(id);
+        if (recipe === undefined) return 'the server loaded no such recipe';
+        if (ADVERTISED_STATIONS.has(recipe.station) && !advertisedRecipes().has(id)) {
+            return `the server does not advertise it to the client, so no player can make it (${recipe.type})`;
+        }
+        const input = inputFor(recipe);
+        // A recipe whose result depends on what goes in, such as a firework star or a dyed
+        // armor piece, has no input of its own to try; being advertised is all a row can check.
+        if (input === undefined) return undefined;
+        const wanted = recipeResult(recipe);
+        const matches = content.recipes.matchAll(input);
+        if (matches.length === 0) return 'its own ingredients match no recipe on the server';
+        // A stonecutter offers every recipe its input matches; every other station makes the first.
+        const made = recipe.station === 'stonecutting' ? matches : matches.slice(0, 1);
+        const right = made.some(
+            (match) =>
+                match.recipe.id === id ||
+                (match.result.id === wanted?.id && match.result.count === (wanted?.count ?? 1))
+        );
+        return right
+            ? undefined
+            : `its own ingredients make ${made.map((match) => `${match.result.count} ${match.result.id}`).join(' or ')}, Java ${wanted?.count ?? 1} ${wanted?.id ?? 'nothing'}`;
+    }
+};
+
 describeFamily(
     FAMILIES.gameplayMechanics,
     [REFERENCES.javaWorldgenData, REFERENCES.bedrockBehaviorPack, REFERENCES.javaServerJar],
@@ -228,7 +328,8 @@ describeFamily(
                 import.meta.filename,
                 scenarioGroup([gameRuleScenario]),
                 scenarioGroup([professionScenario]),
-                scenarioGroup(playerScenarios)
+                scenarioGroup(playerScenarios),
+                scenarioGroup([recipeScenario])
             );
 
             reportCoverage(
