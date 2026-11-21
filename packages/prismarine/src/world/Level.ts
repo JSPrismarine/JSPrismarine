@@ -95,6 +95,8 @@ export type WorldHandlersFactory = (
 
 /** How a {@link Level} is built. */
 export interface LevelOptions {
+    /** The level's UUID: the one its save holds, or a new one for a save that has none yet. */
+    readonly id: string;
     /** The folder name under `worlds/`, which is also the `worlds.<name>` key. */
     readonly name: string;
     /** The level folder, where the legacy `level.json` and the fallback player records live. */
@@ -166,6 +168,11 @@ interface BuiltWorld {
  * per server tick and ticks every loaded world; {@link Level.disable} saves and closes.
  */
 export class Level {
+    /**
+     * The level's UUID, kept in its save: what the level is, whatever it is named or wherever its
+     * folder moves ([ADR 0029](../../../../docs/adr/0029-worlds-are-levels-the-server-manages.md)).
+     */
+    public readonly id: string;
     /** The folder name under `worlds/`, which is also the `worlds.<name>` key. */
     public readonly name: string;
 
@@ -256,6 +263,7 @@ export class Level {
      *   type that `dimensionTypes` does not carry, or two stems bind one type.
      */
     public constructor(options: LevelOptions) {
+        this.id = options.id;
         this.name = options.name;
         this.path = options.path;
         this.server = options.server;
@@ -1196,6 +1204,7 @@ export class Level {
         const position = spawn ? { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } : undefined;
         return {
             record: {
+                levelId: this.id,
                 ...(position === undefined ? {} : { spawn: position }),
                 gameRules: Array.from(this.gameRuleManager.getGameRules()),
                 weather: this.weather.saved(),

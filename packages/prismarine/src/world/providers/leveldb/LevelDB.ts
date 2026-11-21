@@ -677,6 +677,7 @@ export default class LevelDB extends BaseProvider {
     /** The provider record's value for some world metadata, of which it keeps the fields below. */
     private levelRecordOf(data: WorldPersistenceData): Buffer {
         const metadata: WorldPersistenceData = {
+            ...(data.levelId === undefined ? {} : { levelId: data.levelId }),
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
             ...(data.gameRules === undefined ? {} : { gameRules: data.gameRules }),
             ...(data.weather === undefined ? {} : { weather: data.weather }),

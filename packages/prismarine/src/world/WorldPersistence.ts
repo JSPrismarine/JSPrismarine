@@ -13,6 +13,7 @@ import type { RaidRecord } from './raid/RaidManager';
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 import { isRecord } from '../utils/isRecord';
+import { isUuid } from '../utils/isUuid';
 import type { SavedScriptSettings } from './LevelScriptSettings';
 import { savedScriptSettingsOf } from './LevelScriptSettings';
 import type { TickingArea } from './TickingAreas';
@@ -97,6 +98,8 @@ export type SavedRaid = RaidRecord;
 
 /** World state a provider stores outside the chunk data. */
 export interface WorldPersistenceData {
+    /** The level's UUID, its identity whatever it is named; see `Level.id`. */
+    levelId?: string;
     spawn?: { x: number; y: number; z: number };
     gameRules?: Array<[string, [boolean | number, boolean]]>;
     weather?: SavedWeather;
@@ -128,6 +131,7 @@ export interface WorldPersistenceData {
 export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => {
     if (!isRecord(value)) return {};
 
+    const levelId = isUuid(value['levelId']) ? value['levelId'].toLowerCase() : undefined;
     const spawn = spawnOf(value['spawn']);
     const gameRules = gameRulesOf(value['gameRules']);
     const weather = savedWeatherOf(value['weather']);
@@ -140,6 +144,7 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const clockPaused = typeof value['clockPaused'] === 'boolean' ? value['clockPaused'] : undefined;
 
     return {
+        ...(levelId === undefined ? {} : { levelId }),
         ...(spawn === undefined ? {} : { spawn }),
         ...(gameRules === undefined ? {} : { gameRules }),
         ...(weather === undefined ? {} : { weather }),

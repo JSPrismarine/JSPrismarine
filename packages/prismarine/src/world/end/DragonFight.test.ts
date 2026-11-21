@@ -1,4 +1,5 @@
 import { testKernel } from '../../testing/kernel.test.helper';
+import { randomUUID } from 'node:crypto';
 import fs, { readFileSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
@@ -1161,6 +1162,7 @@ describe('fight persistence through a real level over LevelDB', () => {
 
     const makeLevel = (server: Server): Level =>
         new Level({
+            id: randomUUID(),
             name: 'fight',
             path: scratch,
             server,

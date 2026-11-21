@@ -359,6 +359,24 @@ describe('WorldManager', () => {
         await manager.disable();
     });
 
+    it('gives each level a UUID that its save keeps from one start to the next', async () => {
+        const first = buildManager('main', { main: entryOf(), other: entryOf() });
+        await first.manager.enable();
+        const ids = first.manager.getLevels().map((level) => level.id);
+        await first.manager.disable();
+
+        const second = buildManager('main', { main: entryOf(), other: entryOf() });
+        await second.manager.enable();
+
+        expect(new Set(ids).size).toBe(2);
+        expect(second.manager.getLevels().map((level) => level.id)).toEqual(ids);
+        const [main, other] = ids;
+        expect(second.manager.getLevelById(main ?? '')).toBe(second.manager.getDefaultLevel());
+        expect(second.manager.getLevelById((other ?? '').toUpperCase())).toBe(second.manager.getLevel('OTHER'));
+
+        await second.manager.disable();
+    });
+
     it('says each old key once and writes the entry back in the new spelling', async () => {
         const { manager, logged, setWorld } = buildManager('main', {
             main: { ...entryOf(), generator: 'Flat', layers: [{ block: 'minecraft:stone', size: 3 }] }
