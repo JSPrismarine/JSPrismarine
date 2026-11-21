@@ -1,6 +1,49 @@
 {
     "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
-    "build": "",
-    "baseUrl": "",
-    "platforms": {}
+    "build": "05fb2db02a347356",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-worldgen-build-05fb2db02a347356",
+    "platforms": {
+        "darwin-arm64": {
+            "shared": {
+                "file": "darwin-arm64-libjsp_native_worldgen.dylib",
+                "bytes": 33680,
+                "sha256": "62770a2b16297fdccbc4d75b765d87fab95c7bfe6e0ac0154e30a87780fb1823"
+            }
+        },
+        "linux-arm64-gnu": {
+            "shared": {
+                "file": "linux-arm64-gnu-libjsp_native_worldgen.so",
+                "bytes": 67336,
+                "sha256": "76d642cac9506c2229edbd95c126ce3d60ae5ac8582ffab91e99e47faa3ef015"
+            }
+        },
+        "linux-arm64-musl": {
+            "shared": {
+                "file": "linux-arm64-musl-libjsp_native_worldgen.so",
+                "bytes": 67168,
+                "sha256": "dd5b3f59c34f88effe8ac9d7af28cbf67c2f0cec423c85f2deeb23c66ab5be06"
+            }
+        },
+        "linux-x64-gnu": {
+            "shared": {
+                "file": "linux-x64-gnu-libjsp_native_worldgen.so",
+                "bytes": 14152,
+                "sha256": "5f2ab533ee5ffb2a432c11cd29b51d16f9eddbb9b79048856d022cba7136f800"
+            }
+        },
+        "linux-x64-musl": {
+            "shared": {
+                "file": "linux-x64-musl-libjsp_native_worldgen.so",
+                "bytes": 18096,
+                "sha256": "fb774e9d7e78c47129350556b8090e85b39c81328b7e134d4af8f6a959ebb5b7"
+            }
+        },
+        "win32-x64": {
+            "shared": {
+                "file": "win32-x64-libjsp_native_worldgen.dll",
+                "bytes": 14336,
+                "sha256": "c3d8e9b12daffef443bc763e05e736f31598331c7ea3e79e5970aea663b40317"
+            }
+        }
+    }
 }
