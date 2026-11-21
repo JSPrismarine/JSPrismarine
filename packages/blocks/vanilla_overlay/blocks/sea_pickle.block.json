@@ -27,6 +27,36 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('cluster_count') == 0) && (query.block_state('dead_bit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 6,
+                    "minecraft:light_dampening": 1
+                }
+            },
+            {
+                "condition": "(query.block_state('cluster_count') == 1) && (query.block_state('dead_bit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 9,
+                    "minecraft:light_dampening": 1
+                }
+            },
+            {
+                "condition": "(query.block_state('cluster_count') == 2) && (query.block_state('dead_bit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 12,
+                    "minecraft:light_dampening": 1
+                }
+            },
+            {
+                "condition": "(query.block_state('cluster_count') == 3) && (query.block_state('dead_bit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 15,
+                    "minecraft:light_dampening": 1
+                }
+            }
+        ]
     }
 }

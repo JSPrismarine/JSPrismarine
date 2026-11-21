@@ -137,6 +137,24 @@ describe('the committed overlay pack', () => {
         expect(table.friction).toHaveLength(resolved.states.length);
     });
 
+    it('lights each state at its Java level where the level depends on the state', () => {
+        const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
+        const resolved = resolveBlocks(definitions.blocks.values());
+        const table = flattenBlockStates(resolved);
+        const light = (identifier: string, states: Record<string, string | number | boolean>) =>
+            table.lightEmission[resolved.types.get(identifier)!.state(states).runtimeId];
+
+        // Java's candle gives 3 per candle when lit; Bedrock counts the candles from 0.
+        expect(light('minecraft:candle', { candles: 2, lit: true })).toBe(9);
+        expect(light('minecraft:candle', { candles: 2, lit: false })).toBe(0);
+        expect(light('minecraft:campfire', { extinguished: true })).toBe(0);
+        expect(light('minecraft:campfire', { extinguished: false })).toBe(15);
+        expect(light('minecraft:respawn_anchor', { respawn_anchor_charge: 2 })).toBe(7);
+        // A live pickle cluster glows and a dead one does not.
+        expect(light('minecraft:sea_pickle', { cluster_count: 3, dead_bit: false })).toBe(15);
+        expect(light('minecraft:sea_pickle', { cluster_count: 3, dead_bit: true })).toBe(0);
+    });
+
     it('does not make water or lava solid in the flattened collision table', () => {
         const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
         const resolved = resolveBlocks(definitions.blocks.values());

@@ -30,7 +30,9 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // and when water and lava stopped taking random ticks, which cleared their flag, and
         // when the catalog moved to 1.26.60, which added three blocks and gave fire, redstone
         // wire and chorus plants their connection states, and when the climbing family took a
-        // random tick to grow twisting and weeping vines, which sets its blocks' flag.
-        expect(digest).toBe('8edcbbed54205d4d1ca8d994c5cfbf7b591444f429202ca894353c0af25a7f20');
+        // random tick to grow twisting and weeping vines, which sets its blocks' flag, and when
+        // the overlay gave the states whose Java light differs from their block's their own
+        // light permutation.
+        expect(digest).toBe('bdd0c69ced5770da16f1c35db1ec8e7bf7e81ba0fdb61ec6b78dae3b90e32f8f');
     });
 });

@@ -26,6 +26,44 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('ominous') == 1) && (query.block_state('trial_spawner_state') == 0)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('ominous') == 1) && (query.block_state('trial_spawner_state') == 1)",
+                "components": {
+                    "minecraft:light_emission": 4
+                }
+            },
+            {
+                "condition": "(query.block_state('ominous') == 1) && (query.block_state('trial_spawner_state') == 5)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('ominous') == 0) && (query.block_state('trial_spawner_state') == 0)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('ominous') == 0) && (query.block_state('trial_spawner_state') == 1)",
+                "components": {
+                    "minecraft:light_emission": 4
+                }
+            },
+            {
+                "condition": "(query.block_state('ominous') == 0) && (query.block_state('trial_spawner_state') == 5)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            }
+        ]
     }
 }

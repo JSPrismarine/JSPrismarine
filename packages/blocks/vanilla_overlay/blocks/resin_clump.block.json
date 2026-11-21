@@ -27,6 +27,14 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('multi_face_direction_bits') == 0)",
+                "components": {
+                    "minecraft:light_dampening": 1
+                }
+            }
+        ]
     }
 }

@@ -30,6 +30,14 @@
                 "push_reaction": "popped",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('lit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            }
+        ]
     }
 }

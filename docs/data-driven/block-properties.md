@@ -35,7 +35,8 @@ small dumper in this repository reads the properties out of it:
 The engine reads the table through `bedrockBlockPropertiesOf(name, states?)` from
 `@jsprismarine/mapping`. Without `states` it answers the block's base row; with them it folds in
 any per-state override, so a lit candle reports its light and a fully grown crop stops random
-ticking.
+ticking. The `jsprismarine_vanilla` overlay writes the light overrides as block permutations, so
+the light engine, which reads the flattened block table, lights each state at its Java level.
 
 ## What reads it
 

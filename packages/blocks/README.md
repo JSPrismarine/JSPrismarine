@@ -295,6 +295,12 @@ the committed files to a fresh run so the two cannot drift. The overlay preserve
 tag table comes from the pinned Bedrock samples and is regenerated with
 `pnpm --filter @jsprismarine/blocks run generate:block-tags`.
 
+A block whose Java light depends on its state, such as a lit candle, an extinguished campfire, a
+charged respawn anchor or a live sea pickle, gets a permutation for each such state that sets its
+own `minecraft:light_emission` and `minecraft:light_dampening`. The values are the per-state
+overrides `bedrockBlockStateOverridesOf` reads from the same property table, and the flattened
+`lightEmission` and `lightFilter` columns resolve them per state.
+
 `minecraft:redstone_conductivity` is written for the 28 vanilla blocks whose Java registration
 overrides the full-cube conductor default. The boolean values live in
 `src/tables/vanillaRedstoneConductivity.json`; the content adapter passes the resolved component

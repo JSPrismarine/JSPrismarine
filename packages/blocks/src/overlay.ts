@@ -31,7 +31,28 @@ export interface BlockPropertySource {
     readonly bedrockOnly: ReadonlySet<string>;
     /** The Java-sourced row for one block, or undefined for a Bedrock-only one. */
     propertiesOf(identifier: string): BedrockBlockProperties | undefined;
+    /**
+     * The block's per-state overrides of its row, keyed by `name=value` pairs joined by commas,
+     * or undefined when every state shares the row.
+     */
+    stateOverridesOf(identifier: string): Readonly<Record<string, Partial<BedrockBlockProperties>>> | undefined;
 }
+
+/**
+ * A property table state key, `name=value` pairs joined by commas, as the Molang condition a
+ * permutation tests it with. A whole number compares as a number, which is how the palette holds
+ * an integer or a boolean state, and anything else as a string.
+ */
+const stateKeyCondition = (stateKey: string): string =>
+    stateKey
+        .split(',')
+        .map((pair) => {
+            const separator = pair.indexOf('=');
+            const name = pair.slice(0, separator);
+            const value = pair.slice(separator + 1);
+            return `(query.block_state('${name}') == ${/^-?\d+$/.test(value) ? value : `'${value}'`})`;
+        })
+        .join(' && ');
 
 /** The pack identifier the overlay declares, which is also its folder name. */
 export const OVERLAY_PACK_NAME = 'jsprismarine_vanilla';
@@ -344,6 +365,19 @@ export const generateVanillaOverlay = (
                 collisionPermutationBlockCount += 1;
                 collisionPermutationCount += permutations.length;
             }
+        }
+
+        // Java's light depends on the state for a lit candle, a charged respawn anchor or a live
+        // sea pickle, so each state whose light differs from the row's gets a permutation. The
+        // light engine reads the flattened table, which resolves them per state.
+        for (const [stateKey, override] of Object.entries(properties.stateOverridesOf(identifier) ?? {})) {
+            const light: Record<string, unknown> = {};
+            if (override.lightEmission !== undefined && override.lightEmission !== row.lightEmission)
+                light['minecraft:light_emission'] = override.lightEmission;
+            if (override.lightDampening !== undefined && override.lightDampening !== row.lightDampening)
+                light['minecraft:light_dampening'] = override.lightDampening;
+            if (Object.keys(light).length > 0)
+                permutations.push({ condition: stateKeyCondition(stateKey), components: light });
         }
 
         components['jsprismarine:behavior'] = behavior;

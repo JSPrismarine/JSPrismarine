@@ -29,6 +29,20 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('lit') == 0) && (query.block_state('powered_bit') == 1)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('lit') == 0) && (query.block_state('powered_bit') == 0)",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            }
+        ]
     }
 }

@@ -93,6 +93,17 @@ const matches = (stateKey: string, states: Readonly<Record<string, StateValue>>)
     });
 
 /**
+ * The per-state overrides of a Bedrock block's Java-sourced properties, keyed by the state values
+ * they hold for as `name=value` pairs joined by commas, such as `candles=1,lit=1`. Booleans read as
+ * `0` and `1`, as the palette holds them.
+ * @param {string} name - The namespaced Bedrock block identifier.
+ * @returns The overrides, or `undefined` for a block whose every state shares its base row.
+ */
+export const bedrockBlockStateOverridesOf = (
+    name: string
+): Readonly<Record<string, Partial<BedrockBlockProperties>>> | undefined => table.blocks[name]?.stateOverrides;
+
+/**
  * The Java-sourced properties of a Bedrock block state, or `undefined` for a block with no Java
  * source (see {@link BEDROCK_ONLY_BLOCKS}).
  *
