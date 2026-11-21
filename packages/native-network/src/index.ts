@@ -23,3 +23,6 @@ export { bundledManifest, parseManifest, readManifest } from './manifest';
 export type { ManifestFile, ManifestPlatform, NativeManifest } from './manifest';
 export { PACKAGE_NAME, approvalAdvice, verifyLibrary } from './library';
 export { operatingSystemOf } from './platform';
+export type { NativeSymbols } from './ffi';
+export type { LocateOptions } from './library';
+export type { NativePointer } from './ffi';

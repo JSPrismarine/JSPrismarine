@@ -19,7 +19,7 @@ const Status = { Thrown: -1, Terminated: -2, OutOfMemory: -3, Invalid: -4 } as c
 const Op = { Call: 0, LoadModule: 1, Grow: 2, DebugPaused: 3, DebugPoll: 4 } as const;
 
 /** The `jsh_stat` counters, by the field of {@link EngineStats} each fills. */
-const Stat = {
+export const Stat = {
     steps: 0,
     callbackSteps: 1,
     tickSteps: 2,

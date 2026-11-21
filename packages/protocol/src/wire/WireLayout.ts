@@ -25,7 +25,7 @@ import type { WireType } from './fieldTypes';
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 /** One resolved field: its payload key and its wire type. */
-interface ResolvedField {
+export interface ResolvedField {
     readonly key: string;
     readonly of: WireType<unknown>;
 }

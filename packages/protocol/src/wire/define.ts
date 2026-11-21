@@ -59,7 +59,7 @@ export const isGated = <T>(spec: FieldSpec<T>): spec is GatedField<T> => 'gate' 
 export const isVersioned = <T>(spec: FieldSpec<T>): spec is VersionedField<T> => 'variants' in spec;
 
 /** The value type one field spec carries. */
-type ValueOf<S> = S extends FieldSpec<infer T> ? T : never;
+export type ValueOf<S> = S extends FieldSpec<infer T> ? T : never;
 
 /** The payload shape a definition's field list implies. */
 export type PayloadOf<D> = D extends PacketDefinition<infer F> ? { -readonly [K in keyof F]: ValueOf<F[K]> } : never;

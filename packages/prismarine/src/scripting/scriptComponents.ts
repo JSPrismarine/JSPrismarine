@@ -45,14 +45,14 @@ const SCRIPT_DIRECTIONS: Readonly<Record<BlockFace, ScriptDirection>> = {
 };
 
 /** When a block with `minecraft:tick` ticks: its interval, in ticks, and whether it keeps ticking. */
-interface TickInterval {
+export interface TickInterval {
     readonly min: number;
     readonly max: number;
     readonly looping: boolean;
 }
 
 /** What a type that names custom components carries: the components, and its tick when it has one. */
-interface ScriptComponentType {
+export interface ScriptComponentType {
     readonly uses: readonly ScriptComponentUse[];
     readonly tick?: TickInterval;
 }

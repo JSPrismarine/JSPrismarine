@@ -26,7 +26,7 @@ import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 export const HANGING_COMPONENT = 'jsprismarine:hanging';
 
 /** The four ways a hanging entity can face, Java's horizontal `Direction`s in 2D-data order. */
-const FACINGS = ['south', 'west', 'north', 'east'] as const;
+export const FACINGS = ['south', 'west', 'north', 'east'] as const;
 
 /** One of {@link FACINGS}. */
 export type HangingFacing = (typeof FACINGS)[number];

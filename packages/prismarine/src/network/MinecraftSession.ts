@@ -866,7 +866,7 @@ export const broadcastSharedBatches = (
 };
 
 /** Options for a session to frame packets as one batch. */
-interface PacketBatchSendOptions extends PacketBatchOptions {
+export interface PacketBatchSendOptions extends PacketBatchOptions {
     /** Whether RakNet should send the framed bytes in their own datagram. */
     direct?: boolean;
 }

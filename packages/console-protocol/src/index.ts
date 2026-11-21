@@ -25,3 +25,4 @@ export {
 } from './messages';
 export { subprocessLink } from './subprocessLink';
 export type { IpcChild } from './subprocessLink';
+export type { Envelope } from './messages';

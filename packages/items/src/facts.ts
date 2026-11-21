@@ -33,7 +33,7 @@ export const burnTimeOf = (type: ItemType, context: ProviderContext = DEFAULT_PR
 };
 
 /** The columns {@link flattenItemFacts} fills, one typed array each. */
-const itemFactColumns = (context: ProviderContext) =>
+export const itemFactColumns = (context: ProviderContext) =>
     ({
         maxStackSize: { kind: 'u8', read: (type: ItemType) => type.params(maxStackSize), default: 1 },
         maxDamage: { kind: 'u16', read: (type: ItemType) => type.params(maxDamage), default: 0 },

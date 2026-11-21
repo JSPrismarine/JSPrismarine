@@ -81,3 +81,7 @@ export {
     SpawnBiome
 };
 export type { BehaviorPack, BlockProperty, Experiment, ResourcePack, StackPack };
+export type { BlockSchemaCatalog } from './BlockSchemaCatalog';
+export type { BlockSchema } from './BlockSchemaCatalog';
+export type { BlockSchemaProperty } from './BlockSchemaCatalog';
+export type { BlockSchemaPropertyType } from './BlockSchemaCatalog';

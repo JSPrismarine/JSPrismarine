@@ -42,3 +42,5 @@ export * from './Session';
 export * from './SocketBuffers';
 export * from './protocol/Protocol';
 export * from './utils/ServerName';
+export type { SequenceRange } from './protocol/AcknowledgePacket';
+export type { DatagramSendMode } from './ServerSocket';

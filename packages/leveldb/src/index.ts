@@ -7,3 +7,5 @@ export type { BatchOperation } from './format/WriteBatch';
 export type { DatabaseOptions, WriteOptions } from './DatabaseOptions';
 export type { DatabaseStats, KeyRange } from './Database';
 export type { BlockCacheStats } from './format/BlockCache';
+export { ValueType } from './format/InternalKey';
+export type { CorruptionReport } from './DatabaseOptions';

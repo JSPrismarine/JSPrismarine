@@ -19,3 +19,4 @@ export * from './params';
 export * from './register';
 export * from './support';
 export * from './world';
+export type { PlaceableBlock } from './goals/work';

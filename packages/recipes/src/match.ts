@@ -25,7 +25,7 @@ import {
 import type { Recipe, RecipeStation } from './types';
 
 /** The stations whose input is one item slot. */
-type SingleItemStation = Extract<
+export type SingleItemStation = Extract<
     RecipeStation,
     'smelting' | 'blasting' | 'smoking' | 'campfire_cooking' | 'stonecutting'
 >;

@@ -7,3 +7,4 @@ export * from './parse';
 export * from './registry';
 export * from './runner';
 export * from './tags';
+export type { CompiledLine } from './compile';

@@ -136,6 +136,31 @@
                 "import": "./dist/host/jsprismarineMembers.js",
                 "module": "./dist/host/jsprismarineMembers.js"
             },
+            "./generated/scriptApi": {
+                "types": "./dist/generated/scriptApi.d.ts",
+                "import": "./dist/generated/scriptApi.js",
+                "module": "./dist/generated/scriptApi.js"
+            },
+            "./ffi": {
+                "types": "./dist/ffi.d.ts",
+                "import": "./dist/ffi.js",
+                "module": "./dist/ffi.js"
+            },
+            "./host/entities/world": {
+                "types": "./dist/host/entities/world.d.ts",
+                "import": "./dist/host/entities/world.js",
+                "module": "./dist/host/entities/world.js"
+            },
+            "./host/placeholders": {
+                "types": "./dist/host/placeholders.d.ts",
+                "import": "./dist/host/placeholders.js",
+                "module": "./dist/host/placeholders.js"
+            },
+            "./manifest": {
+                "types": "./dist/manifest.d.ts",
+                "import": "./dist/manifest.js",
+                "module": "./dist/manifest.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -257,6 +282,22 @@
         "./host/entities/world": {
             "jsprismarine:dist": "./dist/host/entities/world.js",
             "default": "./src/host/entities/world.ts"
+        },
+        "./generated/scriptApi": {
+            "jsprismarine:dist": "./dist/generated/scriptApi.js",
+            "default": "./src/generated/scriptApi.ts"
+        },
+        "./ffi": {
+            "jsprismarine:dist": "./dist/ffi.js",
+            "default": "./src/ffi.ts"
+        },
+        "./host/placeholders": {
+            "jsprismarine:dist": "./dist/host/placeholders.js",
+            "default": "./src/host/placeholders.ts"
+        },
+        "./manifest": {
+            "jsprismarine:dist": "./dist/manifest.js",
+            "default": "./src/manifest.ts"
         },
         "./package.json": "./package.json"
     },

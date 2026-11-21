@@ -12,3 +12,4 @@ export * from './schema';
 export * from './state';
 export * from './traits';
 export * from './types';
+export { COLUMNS } from './flatten';

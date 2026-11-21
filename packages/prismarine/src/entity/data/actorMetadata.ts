@@ -28,13 +28,13 @@ import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Me
 import type { DataEntity } from './DataEntity';
 
 /** One actor flag and the value the component state projects onto it. */
-interface ActorFlagProjection {
+export interface ActorFlagProjection {
     readonly flag: number;
     readonly value: boolean;
 }
 
 /** One actor property and its wire type. */
-type ActorPropertyProjection =
+export type ActorPropertyProjection =
     | { readonly kind: 'byte'; readonly id: number; readonly value: number }
     | { readonly kind: 'float'; readonly id: number; readonly value: number }
     | { readonly kind: 'int'; readonly id: number; readonly value: number }

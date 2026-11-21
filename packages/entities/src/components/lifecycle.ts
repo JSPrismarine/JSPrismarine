@@ -181,7 +181,7 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
 };
 
 /** One entity or item configured in `minecraft:spawn_entity.entities`. */
-interface SpawnEntityEntry {
+export interface SpawnEntityEntry {
     readonly request: EntitySpawnRequest;
     readonly minWait: number;
     readonly maxWait: number;

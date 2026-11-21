@@ -280,7 +280,7 @@ export class GenerationCanceledError extends ChunkgenErrors.GenerationCanceled {
 }
 
 /** The subset of piscina this uses, so the pool can be built over a double in a test. */
-interface TaskRunner {
+export interface TaskRunner {
     run(task: GenerationTask): Promise<GenerationResult>;
     destroy(): Promise<void>;
     readonly threads: readonly unknown[];

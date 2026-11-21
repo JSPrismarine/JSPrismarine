@@ -34,7 +34,7 @@ export const UNBREAKABLE_HARDNESS = -1;
  * top level, so it comes from the overlay's own component or from a behavior
  * that implements `onRandomTick`.
  */
-const COLUMNS = {
+export const COLUMNS = {
     solid: {
         kind: 'u8',
         read: (state: BlockState) => (state.content.flags.solid ? 1 : 0)
