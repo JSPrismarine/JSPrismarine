@@ -2,6 +2,7 @@
 import { withBase } from 'vitepress';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 
+import CopyButton from '../components/CopyButton.vue';
 import type { MegaMenu } from '../types.ts';
 import { type SearchEngine, loadSearch } from './search.ts';
 import { normalizeRoute, useSiteMenu } from './state.ts';
@@ -44,18 +45,21 @@ const preview = computed(() => {
 
 <template>
     <div class="site-panel__inner">
-        <a
-            v-if="section.featured"
-            class="site-panel__featured"
-            :href="withBase(section.featured.link)"
-            @pointerenter="previewed = section.featured.link"
-            @focus="previewed = section.featured.link"
-        >
-            <span class="site-panel__featured-title">{{ section.featured.text }}</span>
-            <span class="site-panel__featured-text">{{ section.featured.description }}</span>
-            <code v-if="section.featured.command" class="site-panel__command">{{ section.featured.command }}</code>
-            <span class="site-panel__open" aria-hidden="true">Open</span>
-        </a>
+        <div v-if="section.featured" class="site-panel__featured">
+            <a
+                class="site-panel__featured-link"
+                :href="withBase(section.featured.link)"
+                @pointerenter="previewed = section.featured.link"
+                @focus="previewed = section.featured.link"
+            >
+                <span class="site-panel__featured-title">{{ section.featured.text }}</span>
+                <span class="site-panel__featured-text">{{ section.featured.description }}</span>
+            </a>
+            <div v-if="section.featured.command" class="site-panel__command">
+                <code>{{ section.featured.command }}</code>
+                <CopyButton class="site-panel__copy" :text="section.featured.command" />
+            </div>
+        </div>
 
         <div class="site-panel__groups">
             <section v-for="group in section.sections" :key="group.text" class="site-panel__group">

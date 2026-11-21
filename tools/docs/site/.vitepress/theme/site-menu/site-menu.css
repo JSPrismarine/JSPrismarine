@@ -254,18 +254,22 @@
 
 @media (min-width: 1100px) {
     .site-panel__inner {
-        grid-template-columns: 260px minmax(0, 1fr) 300px;
+        /* The featured card fits the longest featured command on one line; the preview gives up the
+           width, so the link columns keep theirs. */
+        grid-template-columns: 280px minmax(0, 1fr) 280px;
     }
 }
 
+/* A link card: a soft fill, a hairline and the arrow after its title. The title's link covers the
+   card, so the whole card opens the page, and the command sits above that link so it can be copied. */
 .site-panel__featured {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    display: grid;
     align-self: start;
-    gap: 6px;
+    gap: 14px;
     padding: 16px;
-    text-decoration: none;
     background: var(--site-menu-raised);
+    border: 1px solid var(--site-menu-line);
     border-radius: var(--jsp-radius-control);
     transition: background-color 0.15s;
 }
@@ -274,25 +278,28 @@
     background: color-mix(in srgb, var(--jsp-forest) 85%, var(--jsp-accent));
 }
 
-/* The featured tile ends on an action, so its lower half reads as the button it is. */
-.site-panel__open {
-    align-self: start;
-    display: inline-flex;
-    align-items: center;
-    min-height: 34px;
-    padding: 0 14px;
-    margin-top: 14px;
-    font: 700 var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--jsp-on-accent);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    background: var(--jsp-accent);
-    border-radius: 99px;
+.site-panel__featured-link {
+    display: grid;
+    gap: 6px;
+    text-decoration: none;
 }
 
-.site-panel__open::after {
-    margin-left: 8px;
-    content: '→';
+.site-panel__featured-link::before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    border-radius: inherit;
+}
+
+.site-panel__featured-link:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.site-panel__featured:has(.site-panel__featured-link:focus-visible) {
+    outline: 3px solid var(--jsp-signal);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--jsp-ink);
 }
 
 .site-panel__featured-title {
@@ -303,28 +310,52 @@
     color: var(--jsp-cream);
 }
 
+.site-panel__featured-title::after {
+    margin-left: 8px;
+    color: var(--jsp-accent);
+    content: '→' / '';
+}
+
 .site-panel__featured-text {
     font-size: 13px;
     line-height: 1.45;
     color: var(--jsp-mint);
 }
 
+/* A terminal line. Copy follows a short command on its line and drops under its end when the
+   command needs the full width. The prompt keeps its own column, so a command that still wraps lines
+   up under itself. */
 .site-panel__command {
-    justify-self: start;
-    max-width: 100%;
-    padding: 3px 10px;
-    margin-top: 8px;
-    font: var(--jsp-label-size) var(--vp-font-family-mono);
-    color: var(--jsp-cream);
-    overflow-wrap: anywhere;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    align-items: center;
+    padding: 6px 6px 6px 12px;
     background: var(--jsp-ink);
-    border-radius: 99px;
+    border-radius: 8px;
 }
 
-.site-panel__command::before {
-    margin-right: 6px;
+.site-panel__command code {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    font: 13px/20px var(--vp-font-family-mono);
+    color: var(--jsp-term-text);
+    overflow-wrap: anywhere;
+    background: none;
+}
+
+.site-panel__command code::before {
     color: var(--jsp-signal);
     content: '$';
+}
+
+.site-panel__copy {
+    margin-left: auto;
 }
 
 .site-panel__groups {
@@ -362,9 +393,15 @@
     background: var(--site-menu-raised);
 }
 
+/* The current page is a raised row with an accent edge that follows its corners, the same mark as
+   the selected search result; a stripe down one side would meet the corners square. */
 .site-panel__link.is-current {
     background: var(--site-menu-raised);
-    box-shadow: inset 3px 0 0 var(--jsp-accent);
+    box-shadow: inset 0 0 0 1px var(--jsp-accent);
+}
+
+.site-panel__link.is-current .site-panel__link-text {
+    color: var(--jsp-mint);
 }
 
 .site-panel__link-title {
@@ -379,10 +416,6 @@
     font-size: 13px;
     line-height: 18px;
     color: var(--site-menu-muted);
-}
-
-.site-panel__link.is-current .site-panel__link-text {
-    color: var(--jsp-mint);
 }
 
 .site-panel__preview,
@@ -434,12 +467,11 @@
 .site-search__outline {
     display: grid;
     gap: 2px;
-    padding: 0 0 0 10px;
+    padding: 0;
     margin: 0;
     font: var(--jsp-label-size)/1.5 var(--vp-font-family-mono);
     color: var(--site-menu-muted);
     list-style: none;
-    border-left: 2px solid var(--site-menu-line);
 }
 
 .site-search__foot {
@@ -585,9 +617,10 @@
     min-height: 44px;
 }
 
+/* An edge that follows the row's corners, where a stripe down one side would meet them square. */
 .site-search__option[aria-selected='true'] {
     background: var(--site-menu-raised);
-    box-shadow: inset 3px 0 0 var(--jsp-accent);
+    box-shadow: inset 0 0 0 1px var(--jsp-accent);
 }
 
 .site-search__kind {
