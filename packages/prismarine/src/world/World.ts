@@ -85,6 +85,7 @@ import { RaidManager } from './raid/RaidManager';
 import type { DragonFightState } from './WorldPersistence';
 import { isMidDimensionChange } from './portal/DimensionTravel';
 import type { PortalBlockRef } from './portal/DimensionTravel';
+import { PortalChunks } from './portal/PortalChunks';
 import { PortalIndex } from './portal/PortalIndex';
 import type { ChunkAdmission, ChunkAdmissionScheduler } from './ChunkAdmissions';
 import { chunkAdmissionWorld } from './ChunkAdmissions';
@@ -732,6 +733,9 @@ export class World implements Service {
      * the prototype has one too.
      */
     private portalIndex: PortalIndex | undefined;
+
+    /** The loaded chunks that may hold a portal block, built on first use as {@link portalIndex} is. */
+    private portalChunks: PortalChunks | undefined;
 
     /**
      * The chunk tickets systems inside the tick hold, built on first use as {@link portalIndex}
@@ -2108,6 +2112,7 @@ export class World implements Service {
             this.loadedChunksRevision++;
             this.getPlayerChunkRefCounts().chunkLoaded(chunk);
             this.getPortalIndex().chunkLoaded(chunk);
+            this.getPortalChunks().chunkLoaded(chunk);
             this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x, z);
             // The only thing that changes what `getLoadedChunk` should answer.
             this.lastChunkIndex = -1;
@@ -3211,6 +3216,7 @@ export class World implements Service {
         this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x >> 4, z >> 4);
         const state = chunk.getBlock(x, y, z);
         this.getPortalIndex().blockChanged({ x, y, z }, previous.name, state.name);
+        this.getPortalChunks().blockChanged(x, z, state.name);
         const next: SystemBlock = { name: state.name, states: state.properties };
         this.systems.onBlockChanged(
             { x, y, z },
@@ -3357,6 +3363,11 @@ export class World implements Service {
     /** The lit nether portal blocks of this world, kept in step with its block writes and chunk loads. */
     public getPortalIndex(): PortalIndex {
         return (this.portalIndex ??= new PortalIndex());
+    }
+
+    /** The loaded chunks of this world that may hold a portal block of any kind. */
+    public getPortalChunks(): PortalChunks {
+        return (this.portalChunks ??= new PortalChunks());
     }
 
     /**
@@ -4377,6 +4388,7 @@ export class World implements Service {
         this.loadedChunksRevision++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
         this.portalIndex?.chunkUnloaded(chunk);
+        this.portalChunks?.chunkUnloaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), chunk.getX(), chunk.getZ());
         this.lastChunkIndex = -1;
         this.lastChunk = null;
@@ -4422,6 +4434,8 @@ export class World implements Service {
         const maxZ = Math.floor(at.getZ() + half);
         const minY = Math.floor(feet + BODY_SHRINK);
         const maxY = Math.floor(Math.max(feet + height - BODY_SHRINK, feet + BODY_SHRINK));
+        // A body whose chunks hold no portal block stands in none, so its cells are not read.
+        if (!this.getPortalChunks().mayHoldAny(minX >> 4, maxX >> 4, minZ >> 4, maxZ >> 4)) return undefined;
 
         for (let y = minY; y <= maxY; y += 1) {
             for (let x = minX; x <= maxX; x += 1) {

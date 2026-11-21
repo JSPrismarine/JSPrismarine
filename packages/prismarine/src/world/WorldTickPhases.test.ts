@@ -579,7 +579,7 @@ describe('world', () => {
 
 describe('world portal contacts', () => {
     /** A standing player, 0.6 wide and 1.8 tall, whose feet are at `feet`. */
-    const standingAt = (feet: Vector3, onCooldown = false): StoreActor => {
+    const standingAt = (feet: Vector3, onCooldown = false, runtimeId = 1n): StoreActor => {
         // A settled client: no world change is waiting on its loading screen.
         const session = stub<PlayerSession>({ pendingDimensionChange: () => undefined });
         const position = new Position(
@@ -591,7 +591,7 @@ describe('world portal contacts', () => {
         // An entity of the player's type, which is what the portal pass reads of a player.
         return actorOf({
             getType: () => 'minecraft:player',
-            getRuntimeId: () => 1n,
+            getRuntimeId: () => runtimeId,
             getPosition: () => position,
             getWorld: () => position.getWorld(),
             getFeetY: () => feet.getY(),
@@ -600,6 +600,13 @@ describe('world portal contacts', () => {
             update: async () => {}
         });
     };
+
+    /**
+     * Tells a world a portal block was written at `at`, as its block write path does, since the
+     * stand-in reads its blocks from `blockAt` rather than from a chunk it loaded.
+     */
+    const portalWritten = (world: World, at: Vector3): void =>
+        world.getPortalChunks().blockChanged(at.getX(), at.getZ(), 'minecraft:portal');
 
     /** A world whose only non-air block is a portal at `portal`. */
     const portalOnlyAt =
@@ -617,6 +624,7 @@ describe('world portal contacts', () => {
             blockAt: portalOnlyAt(new Vector3(10, 65, 10)),
             travel: stub<DimensionTravel>({ touch })
         });
+        portalWritten(world, new Vector3(10, 65, 10));
 
         await world.update(1);
 
@@ -643,6 +651,8 @@ describe('world portal contacts', () => {
                     : { name: 'minecraft:air', states: {} },
             travel: stub<DimensionTravel>({ touch })
         });
+        portalWritten(world, new Vector3(10, 66, 10));
+        portalWritten(world, new Vector3(11, 64, 10));
 
         await world.update(1);
 
@@ -657,9 +667,34 @@ describe('world portal contacts', () => {
             blockAt: portalOnlyAt(new Vector3(10, 64, 10)),
             travel: stub<DimensionTravel>({ touch })
         });
+        portalWritten(world, new Vector3(10, 64, 10));
 
         await world.update(1);
 
         expect(touch).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads no block of a body whose chunks hold no portal block', async () => {
+        const touch = vi.fn<DimensionTravel['touch']>();
+        let reads = 0;
+        const bodies = Array.from({ length: 10 }, (_, index) =>
+            standingAt(new Vector3(10.5 + index * 3, 64, 10.5), false, BigInt(index + 1))
+        );
+        const { world } = worldTicking({
+            entities: bodies,
+            blockAt: (x, y, z) => {
+                reads += 1;
+                return portalOnlyAt(new Vector3(10, 64, 40))(x, y, z);
+            },
+            travel: stub<DimensionTravel>({ touch })
+        });
+        // A portal in another chunk than any of the bodies stand in.
+        portalWritten(world, new Vector3(10, 64, 40));
+
+        await world.update(1);
+
+        // Before the chunk check, each body's two cells were read: twenty-one reads with the memo's.
+        expect(reads).toBe(0);
+        expect(touch).not.toHaveBeenCalled();
     });
 });
