@@ -20,6 +20,8 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { TEST_OVERWORLD_STEM, fakeLevel } from '../testing/level';
 import BaseProvider from './providers/BaseProvider';
 import type { ChunkSaveContext } from './providers/ChunkSaveContext';
+import type { DataEntity } from '../entity/data/DataEntity';
+import type { StoreActor } from '../entity/data/storeActors';
 
 const PLAYER_COUNT = 16;
 const CHUNK_COUNT = 32;
@@ -454,6 +456,70 @@ describe('world player chunk counts', () => {
 
         world.chunkTickets().release('fight');
         await world['unloadDistantChunks']();
+        expect(world.getLoadedChunk(20, 0)).toBeNull();
+    });
+
+    it('keeps a chunk an entity entered after its save, and saves the entity with it next pass', async () => {
+        const admissions = new ChunkAdmissions();
+        admissions.activate();
+        const index = Chunk.packXZ(20, 0);
+        const written: number[][] = [];
+        let saved!: () => void;
+        const world = worldWith([[20, 0]], true, async (chunk, context) => {
+            written.push((context?.entitiesByChunk.get(index) ?? []).map((actor) => Number(actor.getRuntimeId())));
+            chunk.markSaved();
+            saved();
+        });
+        const inChunk: DataEntity[] = [];
+        let actors: StoreActor[] = [];
+        const removed: number[] = [];
+        Object.assign(world, {
+            completionQueue: { admissions },
+            actors: () => actors.values(),
+            dataEntities: () => ({
+                persist: () => {},
+                unload: () => false,
+                runtime: {
+                    index: stubOf(EntityIndex, { storeInChunk: () => inChunk, itemsInChunk: () => [] }),
+                    store: new EntityStore(),
+                    remove: (id: number) => void removed.push(id)
+                }
+            })
+        });
+        world['players'].set(1, playerAt(world, 0, 0));
+        world.getLoadedChunk(20, 0)?.markChanged();
+
+        const pass = async (tick: number) => {
+            const writing = new Promise<void>((resolve) => {
+                saved = resolve;
+            });
+            const unloading = world['unloadDistantChunks']();
+            await writing;
+            await new Promise<void>((resolve) => setImmediate(resolve));
+            return { unloading, admit: () => admissions.admit(tick) };
+        };
+
+        // The cow walks in after the save wrote the chunk empty, before the input step takes it out.
+        const first = await pass(1);
+        inChunk.push(stub<DataEntity>({ id: 7, identifier: 'minecraft:cow' }));
+        first.admit();
+        await first.unloading;
+        expect(world.getLoadedChunk(20, 0)).not.toBeNull();
+        expect(removed).toEqual([]);
+
+        actors = [
+            stub<StoreActor>({
+                getType: () => 'minecraft:cow',
+                getRuntimeId: () => 7n,
+                getPosition: () => new Position(20 * 16 + 8, 64, 8, world),
+                shouldPersist: () => true
+            })
+        ];
+        const second = await pass(2);
+        second.admit();
+        await second.unloading;
+        expect(written).toEqual([[], [7]]);
+        expect(removed).toEqual([7]);
         expect(world.getLoadedChunk(20, 0)).toBeNull();
     });
 
