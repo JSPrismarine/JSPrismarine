@@ -88,6 +88,16 @@ const anyState = (row: JavaBlockPropertyRow, field: string, test: (value: number
         return typeof value === 'number' && test(value);
     });
 
+/** Blocks that hold water, one of each shape, for the waterlogged light row. */
+const WATERLOGGED_LIGHT_SAMPLES = [
+    'minecraft:oak_fence',
+    'minecraft:oak_stairs',
+    'minecraft:oak_slab',
+    'minecraft:oak_sign',
+    'minecraft:lantern',
+    'minecraft:brain_coral_fan'
+];
+
 /** Blocks a player cannot target, whose mining and blasting the server never decides: air and the fluids. */
 const untargetable = (javaId: string): boolean =>
     javaBlockIsA(javaId, 'AirBlock') || javaBlockIsA(javaId, 'LiquidBlock');
@@ -353,6 +363,70 @@ export const blockPropertyScenarios: readonly BehaviorScenario<BlockStateSubject
             const server = content.blocks.table.lightEmission[runtimeId];
             const java = numberOf(subject.java, 'lightEmission');
             return server === java ? undefined : `the light engine emits ${String(server)}, Java ${java}`;
+        }
+    },
+    {
+        name: 'light-dampening',
+        java: 'A block takes its Java light dampening off light passing through it, in each state.',
+        reference: "Java's getLightDampening for a block state and LightEngine",
+        aspects: () => ['light'],
+        classify: (subject) =>
+            subject.stateKey.includes('extended=true')
+                ? {
+                      kind: 'deferred',
+                      reason: "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+                      reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3553'
+                  }
+                : undefined,
+        // The states whose dampening Java sets by the block's own state, such as a full snow layer.
+        // A waterlogged state dampens by its water, which a Bedrock world keeps in the liquid
+        // layer rather than the block's state, so the waterlogged-light row covers those.
+        subjects: () =>
+            Object.entries(javaBlockRows()).flatMap(([javaId, row]) =>
+                Object.entries(row.stateOverrides ?? {})
+                    .filter(([key, override]) => 'lightDampening' in override && !key.includes('waterlogged=true'))
+                    .flatMap(([key]) => stateSubject(javaId, row, key) ?? [])
+            ),
+        idOf: titleOf,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const runtimeId = content.blocks.types.get(subject.bedrock)?.state(subject.states).runtimeId;
+            if (runtimeId === undefined) return `the server has no state for ${subject.bedrock}`;
+            // The light engine's block view reads this column of the flattened table.
+            const server = content.blocks.table.lightFilter[runtimeId];
+            const java = numberOf(subject.java, 'lightDampening');
+            return server === java ? undefined : `the light engine dampens light by ${String(server)}, Java ${java}`;
+        }
+    },
+    {
+        name: 'waterlogged-light-dampening',
+        java: 'A waterlogged block dampens light by its water, as the dry block does not.',
+        reference: "Java's getLightDampening for a waterlogged state and LightEngine",
+        aspects: () => ['light'],
+        classify: () => ({
+            kind: 'deferred',
+            reason: 'A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.',
+            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3553'
+        }),
+        // A few blocks of each kind that holds water stand for the thousands of waterlogged states.
+        subjects: () =>
+            WATERLOGGED_LIGHT_SAMPLES.flatMap((javaId) => {
+                const row = javaBlockRows()[javaId];
+                const key = Object.entries(row?.stateOverrides ?? {}).find(
+                    ([candidate, override]) => candidate.includes('waterlogged=true') && 'lightDampening' in override
+                )?.[0];
+                return row === undefined || key === undefined ? [] : (stateSubject(javaId, row, key) ?? []);
+            }),
+        idOf: titleOf,
+        covers: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const runtimeId = content.blocks.types.get(subject.bedrock)?.state(subject.states).runtimeId;
+            if (runtimeId === undefined) return `the server has no state for ${subject.bedrock}`;
+            const server = content.blocks.table.lightFilter[runtimeId];
+            const java = numberOf(subject.java, 'lightDampening');
+            return server === java ? undefined : `the light engine dampens light by ${String(server)}, Java ${java}`;
         }
     },
     {

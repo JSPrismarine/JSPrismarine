@@ -32,7 +32,8 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // wire and chorus plants their connection states, and when the climbing family took a
         // random tick to grow twisting and weeping vines, which sets its blocks' flag, and when
         // the overlay gave each per-state light level a permutation and every family took
-        // `onPlace` for a pillar block's axis, which adds permutations and sets that flag.
-        expect(digest).toBe('6c40f22987902d5990056524f52282f42504b4e8c50d08f1f139650ce7f700c0');
+        // `onPlace` for a pillar block's axis, which adds permutations and sets that flag, and
+        // when the overlay gave each per-state light dampening a permutation too.
+        expect(digest).toBe('bdd0c69ced5770da16f1c35db1ec8e7bf7e81ba0fdb61ec6b78dae3b90e32f8f');
     });
 });

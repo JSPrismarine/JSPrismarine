@@ -151,6 +151,20 @@ describe('the committed overlay pack', () => {
         expect(light('minecraft:campfire', { extinguished: true })).toBe(0);
     });
 
+    it('dampens light by each state as Java does: a full snow layer stops it, a thin one does not', () => {
+        const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
+        const resolved = resolveBlocks(definitions.blocks.values());
+        const table = flattenBlockStates(resolved);
+        const dampening = (identifier: string, states: Record<string, string | number | boolean>) =>
+            table.lightFilter[resolved.types.get(identifier)!.state(states).runtimeId];
+
+        // Bedrock counts snow layers from 0, so a height of 7 is Java's eight layers.
+        expect(dampening('minecraft:snow_layer', { height: 7, covered_bit: false })).toBe(15);
+        expect(dampening('minecraft:snow_layer', { height: 3, covered_bit: false })).toBe(0);
+        expect(dampening('minecraft:sea_pickle', { cluster_count: 0, dead_bit: false })).toBe(1);
+        expect(dampening('minecraft:sea_pickle', { cluster_count: 0, dead_bit: true })).toBe(0);
+    });
+
     it('does not make water or lava solid in the flattened collision table', () => {
         const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
         const resolved = resolveBlocks(definitions.blocks.values());
