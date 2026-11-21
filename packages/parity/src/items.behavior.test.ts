@@ -544,6 +544,25 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
         }
     },
     {
+        name: 'fresh-durability',
+        aspects: () => ['minecraft:max_damage', 'minecraft:damage'],
+        java: 'A fresh stack of a damageable item holds its max_damage and starts with its damage worn off, which is none.',
+        reference: 'Java DataComponents.MAX_DAMAGE and DAMAGE, and ItemStack.getMaxDamage',
+        subjects: () => withComponent('minecraft:max_damage'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const stack = new Item({ name: subject.bedrock, content: serverContent() });
+            const max = subject.components['minecraft:max_damage'];
+            const damage = Number(subject.components['minecraft:damage'] ?? 0);
+            if (stack.getMaxDurability() !== max) {
+                return `it holds ${stack.getMaxDurability()} durability, Java ${String(max)}`;
+            }
+            return stack.durability === Number(max) - damage
+                ? undefined
+                : `a fresh stack starts at ${stack.durability} durability, Java ${Number(max) - damage}`;
+        }
+    },
+    {
         name: 'mining-damages-tool',
         aspects: () => ['minecraft:max_damage'],
         java: 'Breaking a block with hardness above zero costs a tool the durability its `damage_per_block` names.',
