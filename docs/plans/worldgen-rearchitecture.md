@@ -205,12 +205,31 @@ a heap-sampling test and bounded; output bits unchanged.
 Counts: registry parses per process 1; bytes copied per features task 0; tiles per requested chunk
 and per preloaded chunk as targets the policy sets.
 
-### Phase 6, conditional: the C kernel
+### Phase 6: the C kernel
 
-Decided after phases 1 and 2, on two inputs: the CI benchmark workflow's CPU per generated chunk
-against Pumpkin's on the same runner (indicative), and the counts. If the Perlin kernel's
-single-precision arithmetic in TypeScript is what remains between us and Pumpkin, the fill of a
-density program moves behind a C ABI:
+Started 2026-11-21. Phases 0, 1, 3 and parts of 4 and 5 landed (#3474, #3477, #3483, #3486, #3490,
+#3493), and the cost that remains is mostly work Java does too, led by noise. The
+[native noise spike](../research/spikes/native-noise/README.md) settled two questions:
+
+- A C noise stack reproduced worldgen's bit for bit: 0 mismatches in 1.2 million samples of six
+  vanilla noises.
+- `node:ffi` keeps its fast path only for all-`f64` signatures: about 7 ns a call, against about
+  190 ns with one `int32` argument.
+
+So the first native slices replace noise leaves through all-`f64` per-sample calls, before any
+volume runtime exists. The order:
+
+1. Take the native loader code that `native-network` and `script-host` each copy (platform key,
+   manifest, digest check, installer) into one shared home.
+2. `packages/native-worldgen` with the noise kernel, its build script, an entry in
+   `scripts/native/packages.mts` and a workflow on `native-library.yml`. A native `Noise` binds
+   through `node:ffi`, and TypeScript noise is the fallback wherever no build is installed.
+3. Worldgen uses native stacks for `NormalNoise` when the library loads. The parity families and
+   the vectors run on both paths.
+4. Smeared and blended noise, the aquifer and the density program follow, each proven by the same
+   bit comparison.
+
+The design below stays the target for the density program:
 
 - One C library, `packages/native-worldgen`, built per platform like `packages/native-network`,
   with `-ffp-contract=off` and a bit-pattern test per expression against the phase 0 vectors.
