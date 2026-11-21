@@ -638,51 +638,129 @@ the migration succeeds.
 
 ### Permissions
 
-`permissions.json` holds `groups` and `users`. A group has a `weight`, `parents`, `nodes` and
-`meta`; a user has `groups` (memberships), `nodes` and `meta` of their own. The built-in groups,
-<!-- fact:permissions.builtInGroups -->`default` and `operator`<!-- /fact -->, are always present: every player holds the first and every
-operator the second, which a fresh file gives <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->. A node is
-`scope.name`, `scope.*` for a whole scope, the scope itself included, or `*` for everything, and a
-leading `-` takes it away. A node or a membership may carry an `expires` instant in ISO 8601 with a
-time zone. From that instant the server skips it and sends every connected player their command
-list and abilities again, and the next write that touches the same record drops it from the file. The <!-- fact:permissions.levelMeta -->`level`<!-- /fact --> meta, from
-<!-- fact:permissions.levelRange -->0 to 4<!-- /fact -->, sets a player's command level; an operator runs at
-<!-- fact:permissions.operatorLevel -->4<!-- /fact --> whatever their groups say. Users are filed under one section per platform,
-<!-- fact:permissions.kinds -->`xbox`, `java` and `offline`<!-- /fact -->: `xbox` by XUID, `java` by UUID and `offline` by name, the same keys as
-`ops.json`.
+`permissions.json` holds two sections, `groups` and `users`. Every player holds the `default`
+group, and every operator holds `operator` as well, so a fresh file is enough to run a server: it
+lets every player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, and gives
+operators <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->, which is every node. A file with a rank looks like this:
 
-A check walks the player's own nodes, then one tier per group they hold directly, from the
-heaviest down, groups of equal weight in name order. A group's tier is its own nodes followed by
-its parents' depth first, so an inherited node decides with the weight of the group that inherits
-it. The first tier that names the query decides it; in one tier a specific node beats a wildcard
-and a negation beats a grant of the same specificity, whatever the groups in the tier are called,
-so a group that grants a node and inherits a parent that denies it is denied. A denial in a lighter
-group never overrides a grant in a heavier one, and name order only orders separate tiers of equal
-weight. `prefix`, `suffix` and any other meta resolve in the same order. A group
-cannot be its own ancestor: `/perms group <group> parent add` refuses the parent that would close
-the cycle, and the server drops such a parent from a hand-edited file with a log line.
+<!-- fact:permissions.example -->
+```jsonc
+{
+    "schemaVersion": 2,
+    "groups": {
+        "default": { "weight": 0, "parents": [], "nodes": [{ "node": "minecraft.command.help" }], "meta": {} },
+        "vip": {
+            "weight": 10,
+            "parents": ["default"],
+            "nodes": [{ "node": "minecraft.command.me" }, { "node": "-minecraft.command.kick" }],
+            "meta": { "prefix": "§6[VIP]§r " }
+        },
+        "staff": {
+            "weight": 50,
+            "parents": ["vip"],
+            "nodes": [{ "node": "minecraft.command.*" }],
+            "meta": { "prefix": "§c[Staff]§r ", "level": "1" }
+        },
+        "operator": { "weight": 100, "parents": [], "nodes": [{ "node": "*" }], "meta": {} }
+    },
+    "users": {
+        "xbox": {
+            "2535428842768200": {
+                "name": "Steve",
+                "groups": [{ "group": "staff" }, { "group": "vip", "expires": "2027-01-01T00:00:00.000Z" }],
+                "nodes": [{ "node": "minecraft.command.kick" }],
+                "meta": {}
+            }
+        },
+        "java": {},
+        "offline": { "Alex": { "name": "Alex", "groups": [], "nodes": [], "meta": { "suffix": " ✦" } } }
+    }
+}
+```
+<!-- /fact -->
 
-`/perms` edits the file from the console or from a player who holds its nodes; the
-[command reference](commands.md#permissions) lists its subcommands. The server reads the file
-again on `/reload`, on `/perms reload` and when it changes on disk. A file written before
-`schemaVersion` existed migrates at the next start: `defaultPermissions` becomes the `default`
-group's nodes, `defaultOperatorPermissions` the `operator` group's, and each `players` entry waits
-under `pending` with its UUID as `legacyUuid` until a login with that UUID claims it. The old file
-stays beside the new one as <!-- fact:permissions.backupFile -->`permissions.json.bak`<!-- /fact -->.
+**Groups.** A group has a `weight`, `parents`, `nodes` and `meta`. A heavier group decides
+before a lighter one, and a group's parents are read after its own nodes, depth first, with the
+group's own weight. The built-in groups, <!-- fact:permissions.builtInGroups -->`default` and `operator`<!-- /fact -->, are always
+present and cannot be deleted; a fresh file writes `default` at weight <!-- fact:permissions.defaultWeight -->0<!-- /fact --> and `operator` at weight
+<!-- fact:permissions.operatorWeight -->100<!-- /fact -->, a file without one reads as if it had a fresh file's, and you may change their nodes,
+weights and meta like any other group's. A group cannot be its own ancestor: `/perms group <group>
+parent add` refuses the parent that would close the cycle, and the server drops such a parent
+from a hand-edited file with a log line.
 
-An entry in `ops.json` or `banned-players.json` names a player by `kind` and
-`id`: `xbox` with the XUID of an account the server verified against Xbox Live,
-`offline` with the name a player typed on a server with `online-mode` off, or
-`java` with a Mojang profile UUID once a Java transport exists. An offline
-`Steve` is never the Xbox account named `Steve`. An operator entry written
-before this, keyed by a login `uuid`, waits in the file until a login with that
-UUID claims it, which rewrites the entry with its `kind` and `id`; the server
-logs each waiting entry at startup. A ban matches a login by its `name`, and by
-its `kind` and `id` as well once it has them, so a ban written before this keeps
-matching the name it was written for; the first login it turns away adds the
-account's `kind` and `id` to the entry, and the name match stays. `/ban` on a
-player who is online writes their name and account; on a name nobody online
-holds, it writes the name alone. `/pardon` lifts every ban on a name.
+**Users.** A user has `groups`, the memberships they hold directly, and `nodes` and `meta` of
+their own, which decide before any group's. Users are filed under one section per platform,
+<!-- fact:permissions.kinds -->`xbox`, `java` and `offline`<!-- /fact -->: `xbox` by the XUID of an account the server verified against Xbox Live,
+`offline` by the name a player typed on a server with `online-mode` off, and `java` by a Mojang
+profile UUID once a Java transport exists. These are the keys `ops.json` and `banned-players.json` use too, and a save from
+Bedrock Dedicated Server names the same XUIDs. An offline `Steve` is never the Xbox account named
+`Steve`. The `name` on a user is the name last seen and is only there for reading the file.
+
+**Nodes.** A node is `scope.name` for one command or feature, `scope.*` for a whole scope, or `*`
+for everything; a leading `-` takes the node away instead. A bare `scope.name` also covers
+`scope.name.*`, and `scope.*` covers `scope` itself as well as everything under it. The [command reference](commands.md) lists each command's node. A check walks the
+player's own nodes, then one tier per group they hold directly, from the heaviest down, groups of
+equal weight in name order. A group's tier is its own nodes followed by its parents' depth first,
+so an inherited node decides with the weight of the group that inherits it. The first tier that
+names the query decides it. Within a tier a specific node beats a wildcard, a longer scope beats a
+shorter one, and a negation beats a grant of the same specificity, whatever the groups in the tier
+are called, so a group that grants a node and inherits a parent that denies it is denied. A denial
+in a lighter group never overrides a grant in a heavier one, and name order only orders separate
+tiers of equal weight, so a grant and a denial at equal weight resolve by the groups' names. An
+operator holds every node through `operator`, less what a node of their own or a heavier group
+takes away. In the example, a player in `vip` alone is refused `/kick` by `vip`'s
+`-minecraft.command.kick`. Steve may kick because his own node decides before any group. Without
+it, `staff` would refuse him too: its tier holds its own `minecraft.command.*` and, inherited from
+`vip`, `-minecraft.command.kick`, and the specific negation beats the wildcard within the tier,
+whatever `staff` weighs.
+
+**Meta.** `meta` is a map of strings that packs and the server read: `prefix` and `suffix` for a
+chat format or a tab list, <!-- fact:permissions.levelMeta -->`level`<!-- /fact --> for the command level, and anything else a pack
+names. Meta resolves in the same order as nodes, first value wins. `level` is read as a whole
+number from <!-- fact:permissions.levelRange -->0 to 4<!-- /fact -->, Java's command levels, and sets the level a player runs
+commands at; an operator runs at <!-- fact:permissions.operatorLevel -->4<!-- /fact --> whatever their groups say. A player at level 1 sees and runs the commands that need cheats without
+being an operator.
+
+**Expiry.** A node or a membership may carry `expires`, an ISO 8601 instant with a time zone such
+as `2027-01-01T00:00:00Z`. From that instant the server skips the entry and sends every connected
+player their command list and abilities again, and the next write that touches the same record
+drops the entry from the file; an entry whose `expires` is not such an instant grants nothing. In
+the example, Steve's `vip` membership ends at the start of 2027.
+
+**Editing.** `/perms` edits the file from the console or from a player who holds its nodes; the
+[command reference](commands.md#permissions) lists its subcommands, and a behavior pack reads
+and writes the same data through
+[`permissions` in `@jsprismarine/server`](jsprismarine-module.md#read-and-change-permissions).
+You may also edit the file by hand: the server reads it again on `/reload`, on `/perms reload`,
+when it changes on disk and before a write that finds it changed, and its own writes change one
+record at a time so your comments stay. A write goes to a temporary file that replaces
+`permissions.json` only once it is complete, and changes what the server holds only after that, so
+a write that fails leaves both as they were. A write that succeeds sends every player it reaches
+their command list and abilities again.
+
+**Migration.** A file written before `schemaVersion` existed, with `defaultPermissions`,
+`defaultOperatorPermissions` and `players`, migrates at the next start: the first list becomes the
+`default` group's nodes, the second the `operator` group's, and each `players` entry waits under
+`pending` with its UUID as `legacyUuid` until a login with that UUID claims it, which files the
+user under their platform and drops the UUID. An old file without a valid `defaultPermissions`
+list gives `default` nothing, as the old server read it; one without valid operator defaults gives
+`operator` `*`. The old file stays beside the new one as
+<!-- fact:permissions.backupFile -->`permissions.json.bak`<!-- /fact -->, a backup already there is kept, and the server logs each
+waiting entry at startup so you see who has not returned. A file whose `schemaVersion` is anything
+but <!-- fact:permissions.schemaVersion -->2<!-- /fact --> stops the server with an error and is left as it is, since a newer server
+wrote it; one that appears while the server runs refuses every write and is reported the same way.
+
+### Operators and bans
+
+An entry in `ops.json` or `banned-players.json` names a player by `kind` and `id`, the same
+platforms and keys as `users` above. An operator entry written before this, keyed by a login
+`uuid`, waits in the file until a login with that UUID claims it, which rewrites the entry with
+its `kind` and `id`; the server logs each waiting entry at startup. A ban matches a login by its
+`name`, and by its `kind` and `id` as well once it has them, so a ban written before this keeps
+matching the name it was written for; the first login it turns away adds the account's `kind` and
+`id` to the entry, and the name match stays. `/ban` on a player who is online writes their name
+and account; on a name nobody online holds, it writes the name alone. `/pardon` lifts every ban on
+a name.
 
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that

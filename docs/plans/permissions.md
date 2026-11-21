@@ -251,9 +251,10 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
        has landed. Built on the registry branch of that slice, so the namespace is registered;
        an unset `prefix` or `suffix` renders as empty text rather than the token, since a tab
        list template reads better that way.
-6. [ ] [#3371](https://github.com/JSPrismarine/JSPrismarine/issues/3371) **Docs.** The permissions section of [Running](../guide/running.md), the
+6. [x] [#3371](https://github.com/JSPrismarine/JSPrismarine/issues/3371) **Docs.** The permissions section of [Running](../guide/running.md), the
        [command reference](../guide/commands.md) and
-       [the module page](../guide/jsprismarine-module.md), with their facts regenerated.
+       [the module page](../guide/jsprismarine-module.md), with their facts regenerated. The
+       schema of `permissions.json` is generated from `JsonConfigTypes`, so it followed slice 3.
 
 Slice 3 needs 2. Slice 4 needs 3. Slice 5 needs 3 and the placeholders registry. Slice 6 follows
 each of them.

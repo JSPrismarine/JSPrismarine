@@ -37,11 +37,14 @@ import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/a
 import { SUBJECT_KINDS } from '../../packages/prismarine/src/identity/Subject.ts';
 import {
     BUILT_IN_GROUPS,
+    DEFAULT_GROUP,
     EVERY_NODE,
     LEVEL_META,
     OPERATOR_GROUP
 } from '../../packages/prismarine/src/permission/model.ts';
 import {
+    builtInGroup,
+    DEFAULT_PLAYER_PERMISSIONS,
     PERMISSIONS_BACKUP_NAME,
     PERMISSIONS_SCHEMA_VERSION
 } from '../../packages/prismarine/src/permission/PermissionsFile.ts';
@@ -270,9 +273,99 @@ function bedrockCommandCountsTable() {
 /** An operator's permission level; a command above it is the console's alone. */
 const CONSOLE_ONLY_ABOVE = CommandPermissionLevel.OWNER;
 
+/** The one-line JSON of a value, spaced as Prettier prints an object or a list that fits on a line. */
+const inlineJson = (value: unknown): string => {
+    if (Array.isArray(value)) return value.length === 0 ? '[]' : `[${value.map(inlineJson).join(', ')}]`;
+    if (typeof value === 'object' && value !== null) {
+        const entries = Object.entries(value);
+        if (entries.length === 0) return '{}';
+        return `{ ${entries.map(([key, entry]) => `${JSON.stringify(key)}: ${inlineJson(entry)}`).join(', ')} }`;
+    }
+    return JSON.stringify(value);
+};
+
+/** Whether a JSON value is an object with keys, rather than a list or a scalar. */
+const isJsonObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** The width Prettier wraps at, so a generated block reads as Prettier would leave it. */
+const PRINT_WIDTH = 120;
+
+/**
+ * The lines of a JSON object as Prettier prints it: an entry on one line when it fits, otherwise
+ * its own entries one per line, each inline. Deep enough for the file the guide shows.
+ */
+const prettyJsonLines = (value: Record<string, unknown>, indent = ''): string[] => {
+    const inner = `${indent}    `;
+    const entries = Object.entries(value);
+    const lines = entries.flatMap(([key, entry], index) => {
+        const comma = index === entries.length - 1 ? '' : ',';
+        const inline = `${inner}${JSON.stringify(key)}: ${inlineJson(entry)}${comma}`;
+        if (inline.length <= PRINT_WIDTH || !isJsonObject(entry)) return [inline];
+        const nested = prettyJsonLines(entry, inner);
+        return [`${inner}${JSON.stringify(key)}: {`, ...nested.slice(1, -1), `${inner}}${comma}`];
+    });
+    return [`${indent}{`, ...lines, `${indent}}`];
+};
+
+/**
+ * The `permissions.json` the running guide shows: the layout, the built-in groups and the first
+ * default node as the code writes them, with a `vip` and a `staff` rank and two users for the
+ * prose around it to point at.
+ */
+function permissionsExample(): string {
+    const defaults = builtInGroup(DEFAULT_GROUP);
+    const operator = builtInGroup(OPERATOR_GROUP);
+    const file = {
+        schemaVersion: PERMISSIONS_SCHEMA_VERSION,
+        groups: {
+            [DEFAULT_GROUP]: {
+                weight: defaults.weight,
+                parents: [],
+                nodes: [{ node: DEFAULT_PLAYER_PERMISSIONS[0] }],
+                meta: {}
+            },
+            vip: {
+                weight: 10,
+                parents: [DEFAULT_GROUP],
+                nodes: [{ node: 'minecraft.command.me' }, { node: '-minecraft.command.kick' }],
+                meta: { prefix: '§6[VIP]§r ' }
+            },
+            staff: {
+                weight: 50,
+                parents: ['vip'],
+                nodes: [{ node: 'minecraft.command.*' }],
+                meta: { prefix: '§c[Staff]§r ', [LEVEL_META]: '1' }
+            },
+            [OPERATOR_GROUP]: {
+                weight: operator.weight,
+                parents: [],
+                nodes: operator.nodes.map(({ node }) => ({ node })),
+                meta: {}
+            }
+        },
+        users: {
+            xbox: {
+                '2535428842768200': {
+                    name: 'Steve',
+                    groups: [{ group: 'staff' }, { group: 'vip', expires: '2027-01-01T00:00:00.000Z' }],
+                    nodes: [{ node: 'minecraft.command.kick' }],
+                    meta: {}
+                }
+            },
+            java: {},
+            offline: { Alex: { name: 'Alex', groups: [], nodes: [], meta: { suffix: ' ✦' } } }
+        }
+    };
+    return prettyJsonLines(file).join('\n');
+}
+
 /** The permission files: the platforms users are filed under, the built-in groups, and the migration's names. */
 function permissionFacts() {
     return {
+        'permissions.defaultWeight': String(builtInGroup(DEFAULT_GROUP).weight),
+        'permissions.operatorWeight': String(builtInGroup(OPERATOR_GROUP).weight),
+        'permissions.example': permissionsExample(),
         'permissions.kinds': list(SUBJECT_KINDS.map((kind) => inlineCode(kind))),
         'permissions.builtInGroups': list(BUILT_IN_GROUPS.map((group) => inlineCode(group))),
         'permissions.operatorGroup': inlineCode(OPERATOR_GROUP),
