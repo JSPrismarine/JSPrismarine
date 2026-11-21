@@ -231,6 +231,23 @@ export const implementBlockMembers = (implementations: ScriptApiImplementations,
                 return world.waterlogged?.(key.dimension, key) ?? false;
             }
         })
+        // Only water flows on BDS: `LiquidType` has no other member.
+        .implement(SERVER, 'Block', 'liquidCanFlowFromDirection', (call) => {
+            const { permutation } = read(call);
+            // A `Direction` is its name, such as `Up`; the catalog names the side `up`.
+            const face = String(call.args[1]).toLowerCase();
+            // The table names every state the Script API reports, the legacy ones too, such as a
+            // slab's `top_slot_bit`, and a bit state as a boolean; a permutation here holds only the
+            // states a server keeps, and a bit state as 0 or 1.
+            const stopping = info(permutation.typeId)?.liquidFlowStops?.find((each) =>
+                Object.entries(each.states).every(([name, value]) => {
+                    if (!(name in permutation.states)) return true;
+                    const held = permutation.states[name];
+                    return held === value || (typeof value === 'boolean' && held === (value ? 1 : 0));
+                })
+            );
+            return !(stopping?.stops ?? []).some((each) => each === face);
+        })
         .implement(SERVER, 'Block', 'setWaterlogged', (call) => {
             const { key, permutation } = read(call);
             const waterlogged = call.args[0] === true;
