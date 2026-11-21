@@ -29,7 +29,7 @@ import type { WorldActions } from '@jsprismarine/block-behaviors';
 
 import type HumanInventory from './HumanInventory';
 import type { ItemContainer } from './ItemContainer';
-import { itemDropOf, restoredItem, storedItem, storedItemDrop } from './persistence';
+import { dropOfItem, restoredItem, storedItemDrop } from './persistence';
 import type { Item } from '../item/Item';
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
@@ -70,14 +70,6 @@ const itemOf = (held: RecordItem | undefined, content: ServerContent): Item | nu
     if (!content.items.registry.has(held.identifier)) return null;
 
     return restoredItem(storedItemDrop(held), content);
-};
-
-/** One stack as the record carries one, or undefined for an empty slot. */
-const recordItemOf = (item: Item | null): RecordItem | undefined => {
-    if (item === null) return undefined;
-
-    const stored = storedItem(item);
-    return stored === null ? undefined : itemDropOf(stored);
 };
 
 /** The ender chest, which travels with the player rather than with the block they opened. */
@@ -147,7 +139,7 @@ const blockEntityBacking = (
             halves.forEach((position, half) => {
                 const data = world.getBlockData(position);
                 const items = Array.from({ length: per }, (_unused, slot) =>
-                    recordItemOf(slots[half * per + slot] ?? null)
+                    dropOfItem(slots[half * per + slot] ?? null)
                 );
                 world.setBlockData(position, { ...data, items, capacity: per });
             });
@@ -223,7 +215,7 @@ export const restorePlacedContents = (
     const per = slotsOf(identifier);
     if (per === 0) return;
 
-    const items = Array.from({ length: per }, (_unused, slot) => recordItemOf(contents[slot] ?? null));
+    const items = Array.from({ length: per }, (_unused, slot) => dropOfItem(contents[slot] ?? null));
     world.setBlockData(at, { ...world.getBlockData(at), items, capacity: per });
 };
 

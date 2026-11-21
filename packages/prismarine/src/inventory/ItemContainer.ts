@@ -1,6 +1,8 @@
 import type { SlotObserver, SlotValue } from './slotLog';
 import { slotValueOf } from './slotLog';
 import type { Item } from '../item/Item';
+import { sameDrop } from '../entity/equipment';
+import { dropOfItem } from './persistence';
 
 /** The name an empty stack goes by on the wire, which a slot never holds. */
 const AIR = 'minecraft:air';
@@ -8,9 +10,23 @@ const AIR = 'minecraft:air';
 /** Whether a stack is nothing at all: air, or a count of zero or less. */
 const isNothing = (item: Item): boolean => item.getName() === AIR || item.getAmount() <= 0;
 
-/** Whether two stacks would sit in one slot: the same item with the same aux value. */
-const stacksWith = (held: Item, incoming: Item): boolean =>
-    held.getName() === incoming.getName() && held.meta === incoming.meta;
+/**
+ * Whether two stacks would sit in one slot: the same item with the same data, whatever their
+ * counts and stack network ids, which is Java's `ItemStack.isSameItemSameComponents`. A named or
+ * enchanted stack does not take in a plain one.
+ */
+const stacksWith = (held: Item, incoming: Item): boolean => {
+    if (held.getName() !== incoming.getName() || held.meta !== incoming.meta) return false;
+    const left = dropOfItem(held);
+    const right = dropOfItem(incoming);
+    return left !== undefined && right !== undefined && sameDrop({ ...left, count: 0 }, { ...right, count: 0 });
+};
+
+/**
+ * A number of slots as a whole count: a fraction rounds down, and a negative or non-finite
+ * number is no slots at all.
+ */
+export const slotCountOf = (size: number): number => (Number.isFinite(size) ? Math.max(0, Math.floor(size)) : 0);
 
 /**
  * A fixed row of item slots, each holding an `Item` or nothing.
@@ -41,7 +57,7 @@ export class ItemContainer {
      * @param items - What the first slots hold. Anything past `size` is left out.
      */
     public constructor(size: number, items: readonly (Item | null)[] = []) {
-        this.slots = Array.from({ length: Math.max(0, size) }, (_unused, slot) => {
+        this.slots = Array.from({ length: slotCountOf(size) }, (_unused, slot) => {
             const item = items[slot] ?? null;
             return item === null || isNothing(item) ? null : item;
         });
@@ -127,11 +143,35 @@ export class ItemContainer {
             if (this.slots[slot] !== null) continue;
 
             const moved = Math.min(max, remaining);
-            this.set(slot, moved === item.getAmount() ? item : item.withCount(moved));
+            if (moved === item.getAmount()) this.set(slot, item);
+            else {
+                // A part split off is a new stack, which must not share the whole one's network id.
+                const part = item.withCount(moved);
+                part.stackNetworkId = 0;
+                this.set(slot, part);
+            }
             remaining -= moved;
         }
 
         return remaining;
+    }
+
+    /**
+     * How many of a stack {@link ItemContainer.add} would take, without taking any: the room left
+     * on matching stacks and a whole stack's worth in each empty slot.
+     * @param item - The stack to fit. Its count is not read.
+     * @returns How many items fit, zero for air.
+     */
+    public room(item: Item): number {
+        if (item.getName() === AIR) return 0;
+
+        const max = Math.max(1, item.getMaxAmount());
+        let room = 0;
+        for (const held of this.slots) {
+            if (held === null) room += max;
+            else if (stacksWith(held, item)) room += Math.max(0, max - held.getAmount());
+        }
+        return room;
     }
 
     /** Every slot in order, empty ones as null, so a slot's index is its position. A copy of the row. */
@@ -154,11 +194,11 @@ export class ItemContainer {
      *
      * Shrinking empties the slots that go, reported as writes, before they are removed. Growing
      * adds empty slots, which reports nothing.
-     * @param size - The new number of slots.
+     * @param size - The new number of slots, read through {@link slotCountOf}.
      * @returns The stacks that were in the slots that went, in slot order.
      */
     public resize(size: number): Item[] {
-        const target = Math.max(0, size);
+        const target = slotCountOf(size);
         const dropped: Item[] = [];
 
         for (let slot = target; slot < this.slots.length; slot++) {

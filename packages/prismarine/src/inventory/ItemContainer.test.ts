@@ -78,7 +78,7 @@ describe('ItemContainer', () => {
             named.durability = 7;
             container.set(0, named);
 
-            container.add(stack('minecraft:stone', 3));
+            container.add(named.withCount(3));
 
             const grown = container.get(0);
             expect(grown).not.toBe(named);
@@ -88,6 +88,35 @@ describe('ItemContainer', () => {
             expect(grown?.getDurability()).toBe(7);
             // A write replaces the stack, so the one that was there is as it was.
             expect(named.getAmount()).toBe(1);
+        });
+
+        it('gives the parts of a split stack no network id, and a whole stack keeps its own', () => {
+            const container = new ItemContainer(3);
+            const big = stack('minecraft:stone', 100);
+            big.stackNetworkId = 9;
+            container.add(big);
+            expect(container.items().map((item) => item?.stackNetworkId)).toEqual([0, 0, undefined]);
+
+            const whole = stack('minecraft:dirt', 5);
+            whole.stackNetworkId = 11;
+            container.add(whole);
+            expect(container.get(2)?.stackNetworkId).toBe(11);
+        });
+
+        it('keeps stacks with different data in separate slots', () => {
+            const container = new ItemContainer(3);
+            const named = new Item({ name: 'minecraft:stone', count: 1, customName: 'Keepsake' });
+            container.set(0, named);
+
+            expect(container.room(stack('minecraft:stone'))).toBe(64 * 2);
+            container.add(stack('minecraft:stone', 3));
+            container.add(new Item({ name: 'minecraft:stone', count: 2, customName: 'Other' }));
+
+            expect(container.items().map((item) => [item?.getCustomName(), item?.getAmount()])).toEqual([
+                ['Keepsake', 1],
+                [undefined, 3],
+                ['Other', 2]
+            ]);
         });
 
         it('splits a stack larger than a slot holds into copies of it', () => {
@@ -126,6 +155,15 @@ describe('ItemContainer', () => {
         });
     });
 
+    it('says how much of a stack would fit, without putting any in', () => {
+        const container = new ItemContainer(3, [stack('minecraft:dirt', 60), stack('minecraft:stone', 64)]);
+
+        expect(container.room(stack('minecraft:dirt'))).toBe(4 + 64);
+        expect(container.room(stack('minecraft:stone'))).toBe(64);
+        expect(container.room(stack('minecraft:air'))).toBe(0);
+        expect(container.items().map((item) => item?.getAmount() ?? 0)).toEqual([60, 64, 0]);
+    });
+
     it('empties every slot on a clear', () => {
         const container = new ItemContainer(3, [stack('minecraft:dirt'), null, stack('minecraft:stone')]);
 
@@ -145,6 +183,18 @@ describe('ItemContainer', () => {
             expect(container.size).toBe(2);
             expect(container.items()).toEqual([dirt, null]);
             expect(container.get(2)).toBeNull();
+        });
+
+        it('rounds a fractional size down and still hands back what went', () => {
+            const dirt = stack('minecraft:dirt');
+            const stone = stack('minecraft:stone');
+            const sand = stack('minecraft:sand');
+            const container = new ItemContainer(3, [dirt, stone, sand]);
+
+            expect(container.resize(1.5)).toEqual([stone, sand]);
+            expect(container.items()).toEqual([dirt]);
+            expect(container.resize(Number.NaN)).toEqual([dirt]);
+            expect(container.size).toBe(0);
         });
 
         it('grows with empty slots', () => {
