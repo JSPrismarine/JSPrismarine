@@ -178,6 +178,37 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         CHUNK_TIMEOUT
     );
 
+    it('gives each seed its own chunk while the same position waits for completion under both', async () => {
+        const otherSeed = SEED + 1n;
+        const expected = await terrainOnly.generateChunk(6, -3, otherSeed);
+        const completionQueue = new ChunkCompletionQueue();
+        completionQueue.activate();
+        const queued = new DataDrivenGenerator({ registries, decorate: false, carve: false, completionQueue });
+        const requested = [SEED, otherSeed].map((seed) =>
+            queued.generateChunk(6, -3, seed, undefined, { urgency: 'idle' }).then(
+                (chunk) => ({ chunk }),
+                (error: unknown) => ({ error })
+            )
+        );
+
+        try {
+            for (let turn = 0; completionQueue.pending < requested.length && turn < 2000; turn++) {
+                await new Promise<void>((resolve) => setImmediate(resolve));
+            }
+            // Both completions wait at once; before, the second seed shared the first's.
+            expect(completionQueue.pending).toBe(requested.length);
+            completionQueue.drain(Number.POSITIVE_INFINITY);
+            const [first, second] = await Promise.all(requested);
+            if (first === undefined || 'error' in first) throw first?.error;
+            if (second === undefined || 'error' in second) throw second?.error;
+            expect(second.chunk).not.toBe(first.chunk);
+            expect(second.chunk.networkSerialize().equals(expected.networkSerialize())).toBe(true);
+        } finally {
+            completionQueue.deactivate();
+            queued.stopGenerating();
+        }
+    });
+
     it('starts the next chunk while a finished one waits for its tick slice', async () => {
         const completionQueue = new ChunkCompletionQueue();
         completionQueue.activate();

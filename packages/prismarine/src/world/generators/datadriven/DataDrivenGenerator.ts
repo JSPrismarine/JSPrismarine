@@ -588,6 +588,11 @@ interface SeededPipeline {
     readonly retained: Map<string, readonly [number, number]>;
     /** Each chunk's biome palette, which its eight neighbors read while they decorate. */
     readonly chunkBiomes: Map<string, ReadonlySet<string>>;
+    /**
+     * The chunks waiting for their completion, by position, until each is recorded. Per
+     * pipeline, because the same position under another seed or settings is another chunk.
+     */
+    readonly completions: Map<string, Promise<Chunk>>;
     /** How many chunks of this world are built at once, and what a shutdown refuses. */
     readonly queue: GenerationQueue;
 }
@@ -922,8 +927,6 @@ export class DataDrivenGenerator implements Generator {
      * dimensions sharing this generator both have a chunk (0, 0). Entries live for one request.
      */
     private readonly urgencies = new Map<string, GenerationPriority>();
-    /** The chunks translated or waiting to be, keyed like {@link urgencies}, until each is recorded. */
-    private readonly completions = new Map<string, Promise<Chunk>>();
 
     /** Whether a worker has ever answered, which is what tells a startup failure from a bug. */
     private poolAnswered = false;
@@ -1474,8 +1477,8 @@ export class DataDrivenGenerator implements Generator {
                 if (promoted !== undefined) return { chunk: promoted };
                 // A request that arrives while the chunk waits for its slice shares that completion
                 // rather than translating the chunk a second time.
-                const completionKey = this.urgencyKey(pipeline, cx, cz);
-                const completing = this.completions.get(completionKey);
+                const completionKey = this.chunkKey(cx, cz);
+                const completing = pipeline.completions.get(completionKey);
                 if (completing !== undefined) return { chunk: completing };
 
                 // `full` leaves the merge inputs, which a worker merges and translates in one
@@ -1507,8 +1510,8 @@ export class DataDrivenGenerator implements Generator {
                         staged.recordChunk(built);
                         return built;
                     })
-                    .finally(() => this.completions.delete(completionKey));
-                this.completions.set(completionKey, recorded);
+                    .finally(() => pipeline.completions.delete(completionKey));
+                pipeline.completions.set(completionKey, recorded);
                 // Wrapped, so the slot is released now rather than when the completion settles.
                 return { chunk: recorded };
             },
@@ -3539,6 +3542,7 @@ export class DataDrivenGenerator implements Generator {
             }),
             retained: new Map(),
             chunkBiomes: new Map(),
+            completions: new Map(),
             queue: new GenerationQueue(
                 this.options.concurrency ??
                     (this.stagePool === undefined ? undefined : this.options.stages?.workers) ??
