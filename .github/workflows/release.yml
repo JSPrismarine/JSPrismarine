@@ -185,11 +185,16 @@ jobs:
                   pnpm --filter @jsprismarine/prismarine run build
                   pnpm run release:unstable
 
+            # The unstable release's snapshot versioning consumes the changeset files, and
+            # changesets/action looks for changesets in the working tree before it resets its branch,
+            # so the tree goes back to this run's commit first or the action finds none.
+            - name: ⏪ Restore the release commit's files
+              if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
+              run: git reset --hard "$GITHUB_SHA"
+
             # Last, since it leaves the checkout on the release branch with the next versions written:
             # the steps above read the release commit's packages, and GitHub Packages publishes them
-            # from this tree. The action resets the branch to this run's commit before versioning, so
-            # the unstable release's snapshot versions do not reach it. A failed release step above
-            # still leaves the pull request to refresh.
+            # from this tree. A failed release step above still leaves the pull request to refresh.
             - name: 🤝 Create or Update Release Pull Request
               if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
               uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
