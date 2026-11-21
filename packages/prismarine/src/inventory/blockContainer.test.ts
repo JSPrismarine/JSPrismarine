@@ -199,7 +199,7 @@ const buildScene = async (name: string) => {
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ nodesOf: () => [] }),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');

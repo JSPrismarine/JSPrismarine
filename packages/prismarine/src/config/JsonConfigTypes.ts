@@ -325,25 +325,64 @@ export const CONFIG_KEY_ORDER = [
 type EveryKeyOrdered = [Exclude<keyof ConfigFile, (typeof CONFIG_KEY_ORDER)[number]>] extends [never] ? true : never;
 true satisfies EveryKeyOrdered;
 
-/** One player entry in `permissions.json`. */
-export interface PlayerPermissions {
+/** One node a group or a user holds. */
+export interface PermissionNodeJson {
+    /** `scope.name`, `scope.*` for a whole scope, `*` for everything; a leading `-` negates. */
+    node: string;
+    /** When the node stops applying, as ISO 8601. Absent for never. @format date-time */
+    expires?: string;
+}
+
+/** A user's membership in a group. */
+export interface PermissionMembershipJson {
+    /** The group's name, a key of `groups`. */
+    group: string;
+    /** When the membership ends, as ISO 8601. Absent for never. @format date-time */
+    expires?: string;
+}
+
+/** A group: what every member holds. */
+export interface PermissionGroupJson {
+    /** A heavier group decides before a lighter one. `default` is 0 and `operator` is 100 on a fresh file. */
+    weight: number;
+    /** Groups this one inherits, visited depth first after its own nodes. */
+    parents: string[];
+    nodes: PermissionNodeJson[];
+    /** `prefix`, `suffix`, `level` (0 to 4, the command level) or anything else a pack reads. */
+    meta: Record<string, string>;
+}
+
+/** A user: one subject's own memberships, nodes and meta. */
+export interface PermissionUserJson {
+    /** The player's name when last seen, for reading the file. The key decides who it is. */
     name: string;
-    /** The player's UUID, used to grant permissions independently of their name. */
-    uuid: string;
-    permissions: string[];
+    /** The groups the user holds directly. Everyone holds `default`, and an operator `operator`. */
+    groups: PermissionMembershipJson[];
+    /** The user's own nodes, which decide before any group's. */
+    nodes: PermissionNodeJson[];
+    /** The user's own meta, which decides before any group's. */
+    meta: Record<string, string>;
+}
+
+/** A user migrated from a file that keyed players by login UUID, waiting for a login with that UUID. */
+export interface PendingPermissionUserJson extends PermissionUserJson {
+    /** The login UUID the entry was keyed by. The login that carries it files the user under its subject. */
+    legacyUuid: string;
 }
 
 /**
- * Permissions granted by default, to operators, and to named players.
+ * Groups and users, with users filed under one section per platform.
  * @title JSPrismarine permissions
  */
 export interface PermissionsFile {
-    /** Permissions every player has. */
-    defaultPermissions?: string[];
-    /** Permissions every operator has in addition to the default permissions. */
-    defaultOperatorPermissions?: string[];
-    /** Permissions granted to individual players. */
-    players?: PlayerPermissions[];
+    /** The layout of this file. The server migrates a file without it. @asType integer */
+    schemaVersion: 2;
+    /** Every group by name. `default` and `operator` are always present. */
+    groups: Record<string, PermissionGroupJson>;
+    /** Users by platform: `xbox` by XUID, `java` by Mojang profile UUID, `offline` by name. */
+    users: Partial<Record<SubjectKind, Record<string, PermissionUserJson>>>;
+    /** Users still keyed by a login UUID, until the login with it claims each. */
+    pending?: PendingPermissionUserJson[];
 }
 
 /**

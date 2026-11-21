@@ -74,7 +74,7 @@ const testServer = (world: () => World | undefined = () => undefined): Server =>
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ nodesOf: () => [] }),
         getContent: () => entities.content(),
         getEntityRuntime: (dimension) => entities.entityRuntime(dimension),
         getStorePlayers: () => entities.players,

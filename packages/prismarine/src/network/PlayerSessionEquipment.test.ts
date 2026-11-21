@@ -121,7 +121,14 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
         air: 300,
         breathing: true
     },
-    identity: { uuid: UUID.fromRandom(), name: 'Shown', platformChatId: '', device, op },
+    identity: {
+        uuid: UUID.fromRandom(),
+        name: 'Shown',
+        platformChatId: '',
+        device,
+        op,
+        commandLevel: op ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY
+    },
     equipment: {}
 });
 

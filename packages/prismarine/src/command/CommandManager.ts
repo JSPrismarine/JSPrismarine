@@ -45,7 +45,10 @@ import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './va
  */
 export interface PlayerCommandSender extends CommandExecutor, ReferencedEntity {
     isOp(): boolean;
-    getPermissions(): string[];
+    /** Whether the sender holds a node after resolution. */
+    hasPermission(node: string): boolean;
+    /** The level the sender runs commands at: the `level` meta, or 4 for an operator. */
+    getCommandLevel(): CommandPermissionLevel;
 }
 
 /**
@@ -650,7 +653,7 @@ export class CommandManager implements Service {
     private vanillaSource(sender: CommandExecutor, target: CommandExecutor): CommandSource {
         const entity = isPlayerSender(target) ? entityRefOf(target) : undefined;
         const player = isPlayerSender(sender) ? sender : undefined;
-        const operator = player === undefined || player.isOp() || player.getPermissions().includes('*');
+        const operator = player === undefined || player.isOp() || player.hasPermission('*');
         const world = player?.getWorld() ?? this.server.getWorldManager().getDefaultWorld();
 
         const commandSource = createCommandSource({
@@ -660,7 +663,7 @@ export class CommandManager implements Service {
                 player !== undefined
                     ? operator
                         ? CommandPermissionLevel.OWNER
-                        : CommandPermissionLevel.ANY
+                        : player.getCommandLevel()
                     : CommandPermissionLevel.INTERNAL,
             // `sendCommandFeedback` is Java's switch for exactly this: the
             // success message, never the failure.

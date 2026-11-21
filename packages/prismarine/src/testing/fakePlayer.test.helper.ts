@@ -5,7 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
-import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { vi } from 'vitest';
 
 import type Server from '../Server';
@@ -124,7 +124,13 @@ export const fakePlayer = ({
         getRespawnRequests: () => respawnRequests,
         getDimensionTravel: () => travel,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ permissionsOf: () => [], isOp }),
+        getPermissionManager: () =>
+            stub<PermissionManager>({
+                nodesOf: () => [],
+                has: () => false,
+                isOp,
+                commandLevelOf: () => CommandPermissionLevel.ANY
+            }),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.

@@ -116,8 +116,7 @@ export async function loadServerCommands(): Promise<ServerCommandData[]> {
     const { registerJsprismarineCommands } =
         await import('../../packages/prismarine/src/command/jsprismarineCommands.ts');
     const { commandPermissionOf } = await import('../../packages/prismarine/src/command/CommandManager.ts');
-    const { DEFAULT_PLAYER_PERMISSIONS } =
-        await import('../../packages/prismarine/src/permission/PermissionManager.ts');
+    const { DEFAULT_PLAYER_PERMISSIONS } = await import('../../packages/prismarine/src/permission/PermissionsFile.ts');
 
     const registry = buildVanillaCommands();
     // Registering only builds the tree; the server is read when a command runs, which never happens here.

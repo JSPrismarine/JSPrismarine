@@ -17,7 +17,7 @@ const fakeSession = (permissions: string[]) => {
     const resent: Array<Gametype | undefined> = [];
     const session = stub<PlayerSession>({
         isOp: () => false,
-        getPermissions: () => permissions,
+        hasPermission: (node) => permissions.includes(node),
         setGamemode: async (mode?: Gametype) => void applied.push(mode ?? Gametype.SURVIVAL),
         sendGamemode: async (gamemode) => void resent.push(gamemode)
     });

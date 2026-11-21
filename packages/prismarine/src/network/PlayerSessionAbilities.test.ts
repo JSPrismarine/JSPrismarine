@@ -61,6 +61,7 @@ const playerIn = ({
         gamemode,
         getRuntimeId: () => 7n,
         isOp: () => op,
+        getCommandLevel: () => (op ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY),
         isFlying: () => flying,
         metadata: stub<Metadata>({ canFly })
     });
