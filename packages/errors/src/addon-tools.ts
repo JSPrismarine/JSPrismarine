@@ -25,10 +25,17 @@ export const AddonToolsErrors = defineErrors('addon-tools', {
     MissingAddonFile: { message: 'addon {addon} has no {file}', base: InvalidAddonError },
     /**
      * An addon's `addon.json` is not the object the build expects: a `description`, a `minServer`
-     * version such as `0.23.0`, and a `license`, each a non-empty string, and no other keys. The
-     * addon's version lives in its `manifest.json` header, not here.
+     * version such as `0.23.0`, and a `license`, each a non-empty string, plus the optional listing
+     * keys `title`, `tags`, `authors`, `screenshots`, `deprecated` and `replacedBy`, and no other
+     * keys. Tags come from a fixed list, and each screenshot is a file under `media/` with alt text.
+     * The addon's version lives in its `manifest.json` header, not here.
      */
     InvalidAddonJson: { message: "addon {addon}'s addon.json is invalid: {problem}", base: InvalidAddonError },
+    /**
+     * An addon's `pack_icon.png` is the icon Bedrock and the marketplace show, so it has to be a
+     * square PNG image. Save it as a PNG of equal width and height, such as 256 by 256 pixels.
+     */
+    InvalidAddonIcon: { message: "addon {addon}'s pack_icon.png is invalid: {problem}", base: InvalidAddonError },
     /** An addon's `manifest.json` is not a valid behavior pack manifest. Fix what the message names. */
     InvalidAddonManifest: { message: "addon {addon}'s manifest.json is invalid: {problem}", base: InvalidAddonError },
     /**
@@ -64,6 +71,16 @@ export const AddonToolsErrors = defineErrors('addon-tools', {
      */
     PublishedVersionChanged: {
         message: '{name} {version} is already published with other contents; raise the version in its manifest header',
+        base: InvalidAddonError
+    },
+    /**
+     * An addon's version is already in the published index with other listing files: its README,
+     * icon or screenshots changed. A version's page is as fixed as its pack, so raise the version in
+     * the addon's `manifest.json` header to publish the new files.
+     */
+    PublishedListingChanged: {
+        message:
+            '{name} {version} is already published with other listing files; raise the version in its manifest header',
         base: InvalidAddonError
     },
     /** An addon index is not the object its schema describes. Fix what the message names. */
