@@ -678,6 +678,7 @@ export default class LevelDB extends BaseProvider {
     private levelRecordOf(data: WorldPersistenceData): Buffer {
         const metadata: WorldPersistenceData = {
             ...(data.levelId === undefined ? {} : { levelId: data.levelId }),
+            ...(data.dimensionNumbers === undefined ? {} : { dimensionNumbers: data.dimensionNumbers }),
             ...(data.spawn === undefined ? {} : { spawn: data.spawn }),
             ...(data.gameRules === undefined ? {} : { gameRules: data.gameRules }),
             ...(data.weather === undefined ? {} : { weather: data.weather }),

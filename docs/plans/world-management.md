@@ -61,7 +61,7 @@ Out of scope for now:
 2. [x] **Level identity.** A level's UUID goes into its save on first load, and existing saves get
        one then. `Level` exposes it, and `WorldManager` keys its map by it, with names a lookup on
        the side and one rule for matching them. No behavior changes.
-3. [ ] **Dimension identity.** A table in each save of dimension UUID to Bedrock number, used for
+3. [x] **Dimension identity.** A table in each save of dimension UUID to Bedrock number, used for
        every custom dimension: config, datapack and script. An existing save takes the numbers its
        dimensions have now, so no chunk moves. The script-dimension id table in #3630 becomes part
        of it.

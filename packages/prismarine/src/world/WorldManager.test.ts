@@ -26,7 +26,7 @@ import { stub } from '../testing/stub.test.helper';
 import { testKernel } from '../testing/kernel.test.helper';
 import { withCwd } from '../utils/cwd';
 import Chunk from './chunk/Chunk';
-import { Dimensions } from './DimensionType';
+import { Dimensions, FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
 import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { TerrainCacheSettings } from './GeneratorFactories';
@@ -321,6 +321,33 @@ describe('WorldManager', () => {
             await manager.disable();
         }
     );
+
+    it.skipIf(!JAVA_DATA)('keeps a custom dimension’s number when the config drops the one before it', async () => {
+        const datapack = writeDatapack({
+            'data/test/dimension_type/sky.json': SKY_DIMENSION_TYPE,
+            'data/test/dimension_type/deep.json': SKY_DIMENSION_TYPE
+        });
+        const both = entryOf({
+            'test:sky': { type: 'test:sky', generator: { type: TEST_KIND } },
+            'test:deep': { type: 'test:deep', generator: { type: TEST_KIND } }
+        });
+        const first = buildManager('main', { main: both }, contentWithDatapack(datapack));
+        await first.manager.enable();
+        const deep = first.manager.getDefaultLevel().getDimensionTypes().get('test:deep')?.bedrockId;
+        await first.manager.disable();
+
+        const second = buildManager(
+            'main',
+            { main: entryOf({ 'test:deep': { type: 'test:deep', generator: { type: TEST_KIND } } }) },
+            contentWithDatapack(datapack)
+        );
+        await second.manager.enable();
+
+        expect(deep).toBe(FIRST_CUSTOM_DIMENSION_ID + 1);
+        expect(second.manager.getDefaultLevel().getDimensionTypes().get('test:deep')?.bedrockId).toBe(deep);
+
+        await second.manager.disable();
+    });
 
     it.skipIf(!JAVA_DATA)('reads a dimension type and a noise setting a stacked datapack adds', async () => {
         const datapack = writeDatapack({
