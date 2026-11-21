@@ -970,16 +970,6 @@
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:cave_vines": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:cave_vines_plant": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:cocoa": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
@@ -990,102 +980,12 @@
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:dead_brain_coral": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_brain_coral_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_brain_coral_wall_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_bubble_coral": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_bubble_coral_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_bubble_coral_wall_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_fire_coral": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_fire_coral_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_fire_coral_wall_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_horn_coral": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_horn_coral_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_horn_coral_wall_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_tube_coral": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_tube_coral_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:dead_tube_coral_wall_fan": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:frogspawn": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:glow_lichen": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:grindstone": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:hanging_roots": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:ladder": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
@@ -1105,17 +1005,7 @@
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:resin_clump": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:sculk_vein": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:spore_blossom": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
@@ -1126,21 +1016,6 @@
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
         "pops-without-support:minecraft:tripwire_hook": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:vine": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:weeping_vines": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:weeping_vines_plant": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"

@@ -921,13 +921,29 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         subjects: () =>
             Object.keys(blocksTable.blocks)
                 .filter((javaId) => javaBlockBehaviors(javaId).some(({ kind }) => kind.aspect === 'support'))
-                .flatMap((javaId) => subjectOf(javaId) ?? []),
+                .flatMap((javaId): readonly BlockSubject[] => {
+                    // A multiface block's default state has no face, which no world holds, so it
+                    // is tried hanging under a block, as one placed on a ceiling is.
+                    if (!javaBlockIsA(javaId, 'MultifaceBlock')) {
+                        const subject = subjectOf(javaId);
+                        return subject === undefined ? [] : [subject];
+                    }
+                    const mapped = javaBlockStateToBedrock(javaId, { up: 'true' });
+                    return mapped.kind === 'mapped'
+                        ? [{ javaId, bedrock: mapped.bedrock.name, states: mapped.bedrock.states }]
+                        : [];
+                }),
         idOf: (subject) => subject.javaId,
         run: (subject) => {
             const harness = bind(subject);
             harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
-            harness.neighborChanged(ORIGIN, 'down');
-            harness.tick(ORIGIN);
+            // A neighbor change from each face, since a block checks the face it hangs on when
+            // that neighbor changes: below for a candle, above for a vine, behind for a ladder.
+            for (const face of ['down', 'up', 'north', 'south', 'west', 'east'] as const) {
+                if (harness.dimension.identifierAt(ORIGIN) !== subject.bedrock) break;
+                harness.neighborChanged(ORIGIN, face);
+            }
+            if (harness.dimension.identifierAt(ORIGIN) === subject.bedrock) harness.tick(ORIGIN);
             // The world's own block physics pops what a liquid would wash away once nothing holds
             // it up, beside what the block's family does.
             const stays = harness.dimension.identifierAt(ORIGIN) === subject.bedrock && !needsSupport(subject.bedrock);
