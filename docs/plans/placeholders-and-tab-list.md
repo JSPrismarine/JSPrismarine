@@ -288,8 +288,14 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
        the in-game clock and `uptime` counts from `worldLoad`, so a `/reload` starts it over.
 4. [x] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
-5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
-       the script-event API, the README, its tests and the client-e2e scenario.
+5. [x] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
+       the script-event API, the README, its tests and the client-e2e scenario. A custom command
+       takes one flat parameter list, so `/tablist` is one command with an action enum and two
+       optional strings, and a template with spaces goes in quotes. A player's kept template is a
+       dynamic property holding the template as JSON. The cinnabar client exposes no roster, so
+       the `tab-list` scenario asserts the roster commits the client logs for the Remove and the
+       Add, and the rendered text through `/tablist show`, with the standard placeholders addon
+       installed beside the tab list.
 6. [x] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
        condition grammar and the next-change tick. The renderer gives text, so the rawtext kinds
        render on the server: `translate` as its key, since the server has no language table,

@@ -1,0 +1,5 @@
+{
+    "description": "Renames the entries in the player list from templates: one per player, per group or for everyone.",
+    "minServer": "0.23.0",
+    "license": "(MIT OR MPL-2.0)"
+}

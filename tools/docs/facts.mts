@@ -1141,6 +1141,36 @@ async function standardPlaceholdersFacts() {
     return { 'addons.standard-placeholders.keys': `\n${table(['Token', 'What it renders'], rows)}\n` };
 }
 
+/** The tab list's default interval and script event ids, read from the module that decides them. */
+async function tabListFacts() {
+    const templates: object = await import(
+        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'tab-list', 'scripts', 'templates.js')).href
+    );
+    const interval: unknown = Reflect.get(templates, 'DEFAULT_INTERVAL');
+    const events: unknown = Reflect.get(templates, 'EVENTS');
+    if (typeof interval !== 'number' || typeof events !== 'object' || events === null)
+        throw new Error('the tab list module exports no DEFAULT_INTERVAL number or EVENTS object');
+    const ids: Readonly<Record<string, unknown>> = Object.fromEntries(Object.entries(events));
+    const id = (kind: string): string => {
+        const value = ids[kind];
+        if (typeof value !== 'string') throw new Error(`the tab list module names no ${kind} event`);
+        return inlineCode(value);
+    };
+    return {
+        'addons.tab-list.interval': String(interval),
+        'addons.tab-list.events': `\n${table(
+            ['Event', 'Message'],
+            [
+                [id('setGlobal'), inlineCode('{ "template": ... }')],
+                [id('setGroup'), inlineCode('{ "group": "vip", "template": ... }')],
+                [id('clearGroup'), inlineCode('{ "group": "vip" }')],
+                [id('setPlayer'), inlineCode('{ "player": "<name>", "template": ..., "persist": false }')],
+                [id('clearPlayer'), inlineCode('{ "player": "<name>" }')]
+            ]
+        )}\n`
+    };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -1251,6 +1281,7 @@ export async function loadFacts(): Promise<Facts> {
             ...(await addonFacts()),
             ...(await tpsBarFacts()),
             ...(await standardPlaceholdersFacts()),
+            ...(await tabListFacts()),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
