@@ -12,6 +12,7 @@ import server from '../../packages/server/package.json' with { type: 'json' };
 
 const DIR_ADDONS = 'addons';
 const DIR_PACKAGES = 'packages';
+const DIR_TOOLS = 'tools';
 const TARGET_TSCONFIG = 'tsconfig.build.json';
 
 /**
@@ -98,6 +99,39 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 type: 'updateTsConfig'
             },
             () => 'Run `pnpm install` to link the new package into the workspace'
+        ]
+    });
+
+    plop.setGenerator('Tool', {
+        description: 'Create a private workspace under tools/ that runs from source and is never published',
+        prompts: [
+            {
+                type: 'input',
+                name: 'name',
+                message: `What's the name of the tool?`,
+                filter: (input: string) => input.toLowerCase(),
+                validate: (input: string) =>
+                    /^[\da-z][\da-z-]{2,}$/.test(input) ||
+                    'A tool name is at least three lowercase letters, numbers, and dashes, and starts with a letter or number.'
+            },
+            {
+                type: 'input',
+                name: 'description',
+                message: 'What does it do, in one line?'
+            }
+        ],
+        actions: [
+            {
+                type: 'addMany',
+                destination: `{{ turbo.paths.root }}/${DIR_TOOLS}/{{ dashCase name }}`,
+                base: 'template/tool',
+                templateFiles: 'template/tool/**/*',
+                data: {
+                    version: pkg.version
+                },
+                abortOnFail: true
+            },
+            () => 'Run `pnpm install` to link the new tool into the workspace'
         ]
     });
 
