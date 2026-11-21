@@ -79,3 +79,22 @@ describe('world portal index', () => {
         expect(world.getPortalIndex().size).toBe(2);
     });
 });
+
+describe('world block write version', () => {
+    it('moves when a chunk leaves memory, since a block read there now answers nothing', async () => {
+        const world = worldWith([portalChunk(0, 0), portalChunk(100, 0)]);
+        world['players'].set(
+            1,
+            stub<PlayerSession>({
+                getViewDistance: () => 4,
+                getViewPosition: () => new Position(8, 64, 8, world)
+            })
+        );
+        const before = world.getBlockWriteVersion();
+
+        await world['unloadDistantChunks']();
+
+        expect(world.getLoadedChunk(100, 0)).toBeNull();
+        expect(world.getBlockWriteVersion()).not.toBe(before);
+    });
+});
