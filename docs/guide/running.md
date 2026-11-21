@@ -635,6 +635,18 @@ entry it means to and leaves your comments in place. These files may hold
 an older world's `level.json` once into its provider and removes the file after
 the migration succeeds.
 
+An entry in `ops.json` or `banned-players.json` names a player by `kind` and
+`id`: `xbox` with the XUID of an account the server verified against Xbox Live,
+`offline` with the name a player typed on a server with `online-mode` off, or
+`java` with a Mojang profile UUID once a Java transport exists. An offline
+`Steve` is never the Xbox account named `Steve`. An operator entry written
+before this, keyed by a login `uuid`, waits in the file until a login with that
+UUID claims it, which rewrites the entry with its `kind` and `id`; the server
+logs each waiting entry at startup. A ban with a name alone bans every player
+of that name until one logs in and the entry takes their `kind` and `id`.
+`/ban` on a player who is online names their account; on a name nobody online
+holds, it writes the name alone.
+
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that
 wrote the file, served from UNPKG, so a standalone server or binary does not

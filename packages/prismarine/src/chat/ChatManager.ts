@@ -3,6 +3,7 @@ import type { Chat } from './Chat';
 import type { CommandExecutor } from '../command/CommandExecutor';
 import ChatEvent from '../events/chat/ChatEvent';
 import type { ServerEventBus } from '../events/ServerEvents';
+import type { Subject } from '../identity/Subject';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
 
@@ -44,7 +45,7 @@ export interface ChatSessions {
 /** What a recipient built by {@link chatRecipientOf} reads of the server. */
 export interface ChatRecipientServer {
     getSessionManager(): ChatSessions;
-    getPermissionManager(): { isOp(uuid: string): boolean };
+    getPermissionManager(): { isOp(subject: Subject): boolean };
 }
 
 /**
@@ -66,7 +67,7 @@ export const chatRecipientOf = (
 ): ChatRecipient => ({
     key: playerKeyOf(identity),
     getName: () => identity.name,
-    isOp: () => server.getPermissionManager().isOp(identity.uuid),
+    isOp: () => server.getPermissionManager().isOp(identity.subject),
     receive: async (delivery) => server.getSessionManager().sessionOf(runtimeId)?.sendMessage(delivery)
 });
 

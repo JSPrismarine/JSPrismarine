@@ -729,7 +729,8 @@ describe('a store player', () => {
                 {
                     uuid: UUID.fromRandom(),
                     name: 'Steve',
-                    xuid: ''
+                    xuid: '',
+                    subject: { kind: 'offline', name: 'Steve' }
                 }
             )!;
 

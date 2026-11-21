@@ -115,7 +115,8 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
                     xuid: verified.xuid,
                     displayName: verified.displayName,
                     identity: verified.identity ?? identityFromXUID(verified.xuid),
-                    identityPublicKey: verified.identityPublicKey
+                    identityPublicKey: verified.identityPublicKey,
+                    verified: true
                 };
             } catch (error: unknown) {
                 if (!(error instanceof LoginRefused)) throw error;
@@ -213,7 +214,12 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             return;
         }
 
-        const reason = login.bans.isBanned({ name: identity.displayName });
+        // An operator entry or a ban written before subjects existed is keyed by what this login
+        // carries; claimed here, it is this account's from now on.
+        const account = accountOf(identity);
+        login.permissions.claimLegacy(account);
+        await login.bans.claimLegacy(account);
+        const reason = login.bans.isBanned(account);
         if (reason !== false) {
             await connection.disconnect(
                 `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
@@ -228,7 +234,7 @@ export default class LoginHandler implements ConnectionHandler<LoginPacket> {
             settle = resolve;
         });
         try {
-            for (const replaced of sessions.claimIdentity(connection, accountOf(identity), joined)) {
+            for (const replaced of sessions.claimIdentity(connection, account, joined)) {
                 await replaced.joined;
                 const replacedSession = replaced.connection.getPlayerSession();
                 // A removal is an input: the replaced client's earlier inputs are applied first.

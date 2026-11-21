@@ -14,8 +14,10 @@
  *
  * {@link playerKeyOf} picks the one the server keys per-player services and the saved record by.
  * {@link sameAccount} is the wider test a login uses to find the sessions it replaces, so that no
- * two live players share any of the three.
+ * two live players share any of the three. The {@link Subject} beside them is what permissions,
+ * operator entries and bans are filed by: the verified XUID, or the name on an offline-mode server.
  */
+import type { Subject } from './identity/Subject';
 
 /** The three names a login gives a player. */
 export interface PlayerIdentity {
@@ -25,6 +27,8 @@ export interface PlayerIdentity {
     readonly xuid: string;
     /** The protocol identity, as a UUID string. */
     readonly uuid: string;
+    /** Who the player is to the permission files: see {@link Subject}. */
+    readonly subject: Subject;
 }
 
 /**

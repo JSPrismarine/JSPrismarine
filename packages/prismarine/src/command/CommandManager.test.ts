@@ -14,6 +14,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { PermissionManager } from '../permission/PermissionManager';
 import type SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
@@ -493,13 +494,13 @@ describe('command', () => {
                         })
                 });
                 await permissionManager.enable();
-                const grants = await permissionManager.getPermissions({ uuid: ownerUuid });
+                const grants = await permissionManager.getPermissions(identityNamed('Filfat', ownerUuid));
                 const owner = sessionOnPrototype(
                     {
                         getName: () => 'Filfat',
                         getRuntimeId: () => 1n,
                         getPermissions: () => grants,
-                        isOp: () => permissionManager.isOp(ownerUuid),
+                        isOp: () => permissionManager.isOp({ kind: 'offline', name: 'Filfat' }),
                         getType: () => 'minecraft:player',
                         getFeetY: () => 64,
                         getPosition: () => new Position(0, 64, 0, world),
@@ -514,8 +515,8 @@ describe('command', () => {
 
                 await expect(commandManager.dispatchCommand(owner, owner, '/op Target')).resolves.toBe(true);
 
-                expect(permissionManager.isOp(targetUuid)).toBe(true);
-                expect(permissionManager.isOp('Target')).toBe(false);
+                expect(permissionManager.isOp({ kind: 'offline', name: 'Target' })).toBe(true);
+                expect(permissionManager.isOp({ kind: 'xbox', xuid: 'Target' })).toBe(false);
 
                 const reloadedManager = new PermissionManager({
                     getLogger: () => logger,
@@ -523,7 +524,7 @@ describe('command', () => {
                     getKernel: () => testKernel()
                 });
                 await reloadedManager.enable();
-                expect(reloadedManager.isOp(targetUuid)).toBe(true);
+                expect(reloadedManager.isOp({ kind: 'offline', name: 'Target' })).toBe(true);
             });
         });
     });

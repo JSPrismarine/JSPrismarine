@@ -30,8 +30,8 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
         // The entity id is drawn here, and the store player enters a store only at
         // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
         // filed below, so a login rejected before then leaves nothing behind.
-        const uuid = UUID.fromString(identity.identity);
-        const player = new StorePlayer(entityIds.next(), { uuid, name: identity.displayName, xuid: identity.xuid });
+        const account = accountOf(identity);
+        const player = new StorePlayer(entityIds.next(), { ...account, uuid: UUID.fromString(account.uuid) });
         player.skin = identity.skin;
         player.device = identity.device;
         if (identity.languageCode !== undefined && identity.languageCode !== '') player.locale = identity.languageCode;
@@ -54,7 +54,7 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
             server,
             connection,
             player,
-            identity: accountOf(identity),
+            identity: account,
             world
         });
         try {
@@ -110,6 +110,9 @@ export class ConnectionContexts {
             },
             get bans() {
                 return server.getBanManager();
+            },
+            get permissions() {
+                return server.getPermissionManager();
             },
             players: this.players,
             async removeAsInput(replaced, remove) {

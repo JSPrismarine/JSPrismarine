@@ -8,6 +8,7 @@ import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import { Chat, ChatType } from './Chat';
 import { ChatManager, chatRecipientOf } from './ChatManager';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import type { ChatDelivery, ChatRecipient, ChatRecipientServer, PlayerChatIntent } from './ChatManager';
 
 /** A recipient keyed by its name, as a player with no XUID is, that records each line it is sent. */
@@ -273,7 +274,7 @@ describe('chatRecipientOf', () => {
         const sessions = new Map([[id, { sendMessage: async (line: ChatDelivery) => void lines.push(line) }]]);
         const server: ChatRecipientServer = {
             getSessionManager: () => ({ sessionOf: (wanted) => sessions.get(wanted) ?? null }),
-            getPermissionManager: () => ({ isOp: (uuid) => uuid === 'op-uuid' })
+            getPermissionManager: () => ({ isOp: (subject) => subject.kind === 'xbox' && subject.xuid === '123' })
         };
         return { server, lines, leave: () => sessions.delete(id) };
     };
@@ -281,13 +282,13 @@ describe('chatRecipientOf', () => {
     it('keys the recipient by XUID and reads the name and operator list from the identity', () => {
         const { server } = registry(7n);
         const steve = chatRecipientOf(
-            { runtimeId: 7n, identity: { name: 'Steve', xuid: '123', uuid: 'op-uuid' } },
+            {
+                runtimeId: 7n,
+                identity: { name: 'Steve', xuid: '123', uuid: 'op-uuid', subject: { kind: 'xbox', xuid: '123' } }
+            },
             server
         );
-        const alex = chatRecipientOf(
-            { runtimeId: 8n, identity: { name: 'Alex', xuid: '', uuid: 'alex-uuid' } },
-            server
-        );
+        const alex = chatRecipientOf({ runtimeId: 8n, identity: identityNamed('Alex', 'alex-uuid') }, server);
 
         expect([steve.key, steve.getName(), steve.isOp()]).toEqual(['123', 'Steve', true]);
         expect([alex.key, alex.isOp()]).toEqual(['Alex', false]);
@@ -296,7 +297,7 @@ describe('chatRecipientOf', () => {
     it('sends each line to the session the registry files under the entity id', async () => {
         const { server, lines, leave } = registry(7n);
         const chat = new ChatManager(new KernelEventBus<ServerEvents>());
-        const steve = chatRecipientOf({ runtimeId: 7n, identity: { name: 'Steve', xuid: '', uuid: 'u' } }, server);
+        const steve = chatRecipientOf({ runtimeId: 7n, identity: identityNamed('Steve', 'u') }, server);
         chat.join(steve);
 
         await chat.send(say('hello'));

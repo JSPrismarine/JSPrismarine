@@ -30,6 +30,7 @@ import { meleeAttack } from '../entity/Combat';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
+import type { Subject } from '../identity/Subject';
 import ClientConnection from '../network/ClientConnection';
 import { latestCodec } from '../network/codec/CodecRegistry';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
@@ -259,13 +260,19 @@ export const levelSimulatedPlayers = (server: Server, level: Level): ScriptSimul
             const connection = new ClientConnection(nowhere(connectionId), server.getLogger());
             connection.codec = latestCodec;
             connection.phase = 'play';
-            const player = new StorePlayer(entityIds.next(), { uuid: uuidOf(name, spawned++), name, xuid: '' });
+            const subject: Subject = { kind: 'offline', name };
+            const player = new StorePlayer(entityIds.next(), {
+                uuid: uuidOf(name, spawned++),
+                name,
+                xuid: '',
+                subject
+            });
             server.getSessionManager().add(connectionId, connection);
             const session = createConnectedPlayer({
                 server,
                 connection,
                 player,
-                identity: { name, xuid: '', uuid: player.getUUID().toString() },
+                identity: { name, xuid: '', uuid: player.getUUID().toString(), subject },
                 world
             });
             session.joinSimulated(location, gameMode.toLowerCase());

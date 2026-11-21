@@ -211,8 +211,11 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3367](https://github.com/JSPrismarine/JSPrismarine/issues/3367) **Subject identity.** The identity module and `Subject`, `PlayerIdentity.subject`, and
+2. [x] [#3367](https://github.com/JSPrismarine/JSPrismarine/issues/3367) **Subject identity.** The identity module and `Subject`, `PlayerIdentity.subject`, and
        `ops.json` and `banned-players.json` keyed by it with the legacy UUID claimed at login.
+       Landed as `kind` and `id` on each list entry; a legacy entry keeps its `uuid` (or, for a
+       ban, its name alone) in place until a login claims it, so neither file is rewritten at
+       startup and neither needs a `.bak`.
 3. [ ] [#3368](https://github.com/JSPrismarine/JSPrismarine/issues/3368) **The model and the file.** Groups, users, nodes, meta and expiry; resolution; the new
        `permissions.json` with its migration; reload on `/reload` and on change; `can()` and the
        command level reading the new data.

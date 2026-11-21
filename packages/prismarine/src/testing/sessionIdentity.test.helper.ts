@@ -12,7 +12,8 @@ import type { PlayerIdentity } from '../playerIdentity';
 export const identityNamed = (name: string, uuid = '00000000-0000-0000-0000-000000000000'): PlayerIdentity => ({
     name,
     xuid: '',
-    uuid
+    uuid,
+    subject: { kind: 'offline', name }
 });
 
 /** The identity a session double holds when a test only needs the name a log line carries. */

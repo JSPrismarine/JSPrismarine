@@ -83,12 +83,22 @@ describe('SessionManager', () => {
     });
 
     describe('claimIdentity', () => {
-        const steve: PlayerIdentity = { name: 'Steve', xuid: '2535400000000001', uuid: 'a' };
+        const steve: PlayerIdentity = {
+            name: 'Steve',
+            xuid: '2535400000000001',
+            uuid: 'a',
+            subject: { kind: 'xbox', xuid: '2535400000000001' }
+        };
 
         it('replaces a joined player of the same account by the identity its session holds', () => {
             const manager = new SessionManager();
             const joined = joinedAs({ ...steve, uuid: 'b' });
-            const stranger = joinedAs({ name: 'Alex', xuid: '2535400000000002', uuid: 'c' });
+            const stranger = joinedAs({
+                name: 'Alex',
+                xuid: '2535400000000002',
+                uuid: 'c',
+                subject: { kind: 'xbox', xuid: '2535400000000002' }
+            });
             const login = stub<ClientConnection>({ getPlayerSession: () => null });
             manager.add(1, joined);
             manager.add(2, stranger);
@@ -112,18 +122,18 @@ describe('SessionManager', () => {
             manager.claimIdentity(first, steve, firstJoin);
 
             // The second login shares only the name, the third only the XUID.
-            expect(manager.claimIdentity(second, { ...steve, xuid: '', uuid: 'b' }, Promise.resolve())).toEqual([
+            expect(manager.claimIdentity(second, identityNamed(steve.name, 'b'), Promise.resolve())).toEqual([
                 { connection: first, joined: firstJoin }
             ]);
-            expect(
-                manager.claimIdentity(third, { name: 'Other', xuid: steve.xuid, uuid: 'c' }, Promise.resolve())
-            ).toEqual([{ connection: first, joined: firstJoin }]);
+            expect(manager.claimIdentity(third, { ...steve, name: 'Other', uuid: 'c' }, Promise.resolve())).toEqual([
+                { connection: first, joined: firstJoin }
+            ]);
 
             manager.remove(1);
             manager.add(1, first);
-            expect(
-                manager.claimIdentity(third, { name: 'Other', xuid: steve.xuid, uuid: 'c' }, Promise.resolve())
-            ).toEqual([{ connection: first, joined: null }]);
+            expect(manager.claimIdentity(third, { ...steve, name: 'Other', uuid: 'c' }, Promise.resolve())).toEqual([
+                { connection: first, joined: null }
+            ]);
         });
 
         it('replaces a player whose saved record key another login would share', () => {
@@ -135,7 +145,7 @@ describe('SessionManager', () => {
 
             // An offline login named after Steve's XUID, with none of its own, files its record
             // under Steve's key.
-            expect(manager.claimIdentity(login, { name: steve.xuid, xuid: '', uuid: 'b' }, Promise.resolve())).toEqual([
+            expect(manager.claimIdentity(login, identityNamed(steve.xuid, 'b'), Promise.resolve())).toEqual([
                 { connection: joined, joined: null }
             ]);
         });

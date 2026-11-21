@@ -348,7 +348,7 @@ export class StorePlayerActor extends StoreActor implements ShownPlayer {
 
     /** Whether the permission service lists the player as an operator. */
     public isOp(): boolean {
-        return this.getServer().getPermissionManager().isOp(this.getUUID().toString());
+        return this.getServer().getPermissionManager().isOp(this.player.getSubject());
     }
 
     /** @inheritdoc */

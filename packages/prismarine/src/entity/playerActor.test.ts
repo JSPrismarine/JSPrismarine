@@ -22,6 +22,7 @@ import type { StorePlayerActor } from './data/storePlayers';
 import { entityIds } from './entityIds';
 import { EYE_HEIGHT } from './playerEyes';
 import { StorePlayer } from './storePlayer';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { DamageSource } from './DamageSource';
 import { deathMessage } from './DeathMessages';
 import { testKernel } from '../testing/kernel.test.helper';
@@ -53,12 +54,13 @@ const emptyWorld = (): World => {
 
 /** A store player as a login builds one, and the session that speaks for it, in `world`. */
 const joining = (world: World, name: string): { player: StorePlayer; session: PlayerSession } => {
-    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    const identity = identityNamed(name, UUID.fromRandom().toString());
+    const player = new StorePlayer(entityIds.next(), { ...identity, uuid: UUID.fromString(identity.uuid) });
     player.standAt({ x: 0.5, y: 65.62 - EYE_HEIGHT, z: 0.5 });
     world.getServer().getStorePlayers().add(player);
     const session = sessionFor(world.getServer(), stub<ClientConnection>(), player, {
         runtimeId: player.getRuntimeId(),
-        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        identity,
         world
     });
     return { player, session };

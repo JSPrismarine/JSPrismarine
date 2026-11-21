@@ -14,12 +14,14 @@
 import type { LaneHandler } from '@jsprismarine/protocol/handler/PacketHandler';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
 import type BanManager from '../../ban/BanManager';
+import type { PermissionManager } from '../../permission/PermissionManager';
 import type { Config } from '../../config/Config';
 import type SessionManager from '../../SessionManager';
 import type ClientConnection from '../ClientConnection';
 import type { parseLoginIdentity } from '../LoginIdentity';
 import type PlayerSession from '../PlayerSession';
 import type { PlayerIdentity } from '../../playerIdentity';
+import { loginSubject } from '../../identity/Subject';
 import type { SessionPhase } from '../SessionPhase';
 import type { HandlerLog } from './HandlerContext';
 import type { ProtocolPolicy } from '../codec/ProtocolPolicy';
@@ -38,7 +40,8 @@ export type LoginIdentity = ReturnType<typeof parseLoginIdentity>;
 export const accountOf = (identity: LoginIdentity): PlayerIdentity => ({
     name: identity.displayName,
     xuid: identity.xuid,
-    uuid: UUID.fromString(identity.identity).toString()
+    uuid: UUID.fromString(identity.identity).toString(),
+    subject: loginSubject({ verified: identity.verified, xuid: identity.xuid, name: identity.displayName })
 });
 
 /** The server settings a handler before the session may read. */
@@ -68,7 +71,9 @@ export interface LoginServices {
     /** The live connections and the accounts their logins hold. */
     readonly sessions: Pick<SessionManager, 'getSessions' | 'reserveIdentity' | 'holdsIdentity' | 'claimIdentity'>;
     /** The ban list. */
-    readonly bans: Pick<BanManager, 'isBanned'>;
+    readonly bans: Pick<BanManager, 'isBanned' | 'claimLegacy'>;
+    /** The operator list, which a login may claim an entry of. */
+    readonly permissions: Pick<PermissionManager, 'claimLegacy'>;
     /** Where a login's player is built. */
     readonly players: JoinPreparation;
     /**

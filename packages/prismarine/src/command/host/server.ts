@@ -125,7 +125,7 @@ export const serverSideCommandHost = (
     const operator = (ref: EntityRef, op: boolean): boolean => {
         const identity = playerSessionOf(server, ref)?.identity;
         if (identity === undefined) return false;
-        if (server.getPermissionManager().isOp(identity.uuid) === op) return false;
+        if (server.getPermissionManager().isOp(identity.subject) === op) return false;
 
         return carryOut(server.getPermissionManager().setOp(identity.name, op), true);
     };

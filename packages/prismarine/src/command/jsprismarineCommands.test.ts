@@ -72,7 +72,10 @@ describe("this server's own commands", () => {
         await run('ban testPlayer testReason');
 
         expect(kick).toHaveBeenCalledWith('You have been banned from the server due to: \n\ntestReason!');
-        expect(setBanned).toHaveBeenCalledWith('testPlayer', 'testReason');
+        expect(setBanned).toHaveBeenCalledWith(
+            { name: 'testPlayer', subject: { kind: 'offline', name: 'testPlayer' } },
+            'testReason'
+        );
         expect(feedback).toEqual(['Banned testPlayer due to: testReason!']);
     });
 
@@ -80,14 +83,18 @@ describe("this server's own commands", () => {
         await run('ban testPlayer');
 
         expect(kick).toHaveBeenCalledWith('You have been banned!');
-        expect(setBanned).toHaveBeenCalledWith('testPlayer');
+        expect(setBanned).toHaveBeenCalledWith({
+            name: 'testPlayer',
+            subject: { kind: 'offline', name: 'testPlayer' }
+        });
     });
 
     it('bans a name nobody online holds, without kicking anyone', async () => {
         await run('ban someoneElse');
 
         expect(kick).not.toHaveBeenCalled();
-        expect(setBanned).toHaveBeenCalledWith('someoneElse');
+        // Nobody online says which platform the name is on, so the ban names the name alone.
+        expect(setBanned).toHaveBeenCalledWith({ name: 'someoneElse' });
     });
 
     it('pardons a name', async () => {

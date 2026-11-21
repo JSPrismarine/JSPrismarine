@@ -76,7 +76,7 @@ export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDe
      * The default changes in memory at once, and the config file is written off the tick.
      */
     public handle(packet: SetDefaultGameTypePacket, { session, log, config, services, step }: InputContext): undefined {
-        if (!services.permissions.isOp(session.identity.uuid)) {
+        if (!services.permissions.isOp(session.identity.subject)) {
             log.warn(`Player ${session.identity.name} tried to change default gamemode without proper permissions.`);
             step.output(sendDefault(config, session));
             return;
