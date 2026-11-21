@@ -3,6 +3,7 @@ import { withBase } from 'vitepress';
 import { computed, ref } from 'vue';
 
 import type { ReleaseSummary } from '../../../releases.data.mts';
+import { plural } from '../plural';
 import { releaseAnchor } from '../releases';
 import RouteLine, { type RouteStop } from './RouteLine.vue';
 
@@ -62,7 +63,6 @@ const notesUrl = computed(() => {
         ? withBase(`/releases#${releaseAnchor(release.value.version)}`)
         : props.changelogUrl;
 });
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 </script>
 
 <template>
