@@ -124,6 +124,16 @@ export class RandomState {
     }
 
     /**
+     * A tree's fastest sampler with {@link sampler}'s bits: it runs in the native library when the
+     * library loads, the tree has a native program and the context sets no structure or blending
+     * hook, and on the closure otherwise. Per-block callers outside the cell walk, such as the
+     * aquifer, the surface pass and the climate sampler, take this one.
+     */
+    public densitySampler(node: DensityFunctionNode): DensitySampler {
+        return this.compiler.densitySampler(node);
+    }
+
+    /**
      * A tree's evaluator in the native library, with the same bits as {@link sampler}'s closure but
      * no structure or blending hooks; undefined when the library does not load here or the tree has
      * a node it has no operation for.

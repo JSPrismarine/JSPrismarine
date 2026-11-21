@@ -227,6 +227,7 @@ export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
     private readonly bounds = new Map<DensityFunctionNode, DensityBoundSampler>();
     private readonly interpolatedCells = new Map<DensityFunctionNode, InterpolatedCell>();
+    private readonly densitySamplers = new Map<DensityFunctionNode, DensitySampler>();
     private readonly cellPrograms = new Map<DensityFunctionNode, Map<string, CellProgram>>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
@@ -759,7 +760,7 @@ export class DensityFunctionCompiler {
 
             case 'interpolated': {
                 const id = this.cacheId(node);
-                const input = this.cornerSampler(node.input, this.compile(node.input));
+                const input = this.withNativeProgram(node.input, this.compile(node.input));
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
                 this.cellSizeXz = gcd(this.cellSizeXz, cellSizeXz);
@@ -1029,11 +1030,20 @@ export class DensityFunctionCompiler {
     }
 
     /**
-     * The sampler an `interpolated` node reads its cell corners through: the tree's point program
-     * when the environment runs one, else its closure. A context with a structure or blending hook
-     * set takes the closure, since those hooks live in TypeScript.
+     * A tree's fastest sampler with its closures' bits: its point program in the environment when
+     * one runs, else its closure. A context with a structure or blending hook set takes the
+     * closure, since those hooks live in TypeScript. Built once per tree.
      */
-    private cornerSampler(node: DensityFunctionNode, closure: DensitySampler): DensitySampler {
+    public densitySampler(node: DensityFunctionNode): DensitySampler {
+        const existing = this.densitySamplers.get(node);
+        if (existing !== undefined) return existing;
+        const created = this.withNativeProgram(node, this.compile(node));
+        this.densitySamplers.set(node, created);
+        return created;
+    }
+
+    /** A closure that hands each sample to the tree's point program, where one runs and no hook is set. */
+    private withNativeProgram(node: DensityFunctionNode, closure: DensitySampler): DensitySampler {
         const evaluate = this.nativeSampler(node);
         if (evaluate === undefined) return closure;
         return (context, x, y, z) =>
@@ -1387,7 +1397,7 @@ export class DensityFunctionCompiler {
 
             case 'interpolated': {
                 const id = this.cacheId(node);
-                const input = this.cornerSampler(node.input, this.compile(node.input));
+                const input = this.withNativeProgram(node.input, this.compile(node.input));
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
                 return (context, box, out) => {

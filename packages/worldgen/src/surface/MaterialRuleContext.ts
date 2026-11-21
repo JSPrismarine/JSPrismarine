@@ -126,7 +126,7 @@ export class MaterialRuleContext {
         this.sampleContext = options.sampleContext ?? new SampleContext();
         this.possibleBiomes = options.possibleBiomes;
         this.localBiomes = options.localBiomes;
-        this.preliminarySurface = options.randomState.sampler(options.system.preliminarySurface);
+        this.preliminarySurface = options.randomState.densitySampler(options.system.preliminarySurface);
     }
 
     /** Moves the context to a new column and recomputes its surface depth. */
@@ -215,7 +215,7 @@ export class MaterialRuleContext {
 
     /** Compiles a density function against this world's seed. */
     public densitySampler(node: DensityFunctionNode): DensitySampler {
-        return this.randomState.sampler(node);
+        return this.randomState.densitySampler(node);
     }
 
     /**

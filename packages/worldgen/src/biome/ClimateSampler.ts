@@ -30,7 +30,7 @@ export const createClimateSampler = (randomState: RandomState, context = new Sam
     const humidity = createColumnSampler(randomState, router.vegetation, context);
     const continentalness = createColumnSampler(randomState, router.continents, context);
     const erosion = createColumnSampler(randomState, router.erosion, context);
-    const depth = randomState.sampler(router.depth);
+    const depth = randomState.densitySampler(router.depth);
     const weirdness = createColumnSampler(randomState, router.ridges, context);
     return {
         sample: (quartX, quartY, quartZ) => {
@@ -60,7 +60,7 @@ const createColumnSampler = (
     node: Parameters<RandomState['sampler']>[0],
     context: SampleContext
 ): ((x: number, y: number, z: number) => number) => {
-    const sampler = randomState.sampler(node);
+    const sampler = randomState.densitySampler(node);
     if (!randomState.isYIndependent(node)) return (x, y, z) => sampler(context, x, y, z);
 
     const keyX = new Float64Array(CLIMATE_COLUMN_CACHE_SLOTS);
