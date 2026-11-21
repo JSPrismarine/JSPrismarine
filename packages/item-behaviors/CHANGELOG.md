@@ -1,5 +1,17 @@
 # @jsprismarine/item-behaviors
 
+## 0.23.0
+
+### Minor Changes
+
+- [#3270](https://github.com/JSPrismarine/JSPrismarine/pull/3270) [`5d2fb0e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d2fb0eb3730e59260a09e60c130e57e5fdb099c) Thanks [@filiphsps](https://github.com/filiphsps)! - Replace the `"./*"` pattern in each export map with an entry for each module another package or the docs import, as ADR 0010 asks. A deep import of any other module no longer resolves. Import it from the package root, or ask for the module to be exported.
+
+### Patch Changes
+
+- Updated dependencies [[`b41035b`](https://github.com/JSPrismarine/JSPrismarine/commit/b41035be9b61570008b3405aa169418b19081915), [`5d2fb0e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d2fb0eb3730e59260a09e60c130e57e5fdb099c), [`357c93f`](https://github.com/JSPrismarine/JSPrismarine/commit/357c93f46d12599b79670adc65a401d7c4397a45), [`9b2a5ef`](https://github.com/JSPrismarine/JSPrismarine/commit/9b2a5ef7f5a5167e1913a71799272042b01cf449), [`aa1f193`](https://github.com/JSPrismarine/JSPrismarine/commit/aa1f1937e483ac4faa17bec8065e05c0a05806eb)]:
+  - @jsprismarine/content@0.23.0
+  - @jsprismarine/items@0.23.0
+
 ## 0.22.0
 
 ### Patch Changes

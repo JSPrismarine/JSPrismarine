@@ -1,7 +1,0 @@
----
-'@jsprismarine/script-host': minor
----
-
-Implement the third batch of `@minecraft/server` members the add-on corpus uses most. `system.runJob` advances a generator from the next tick, a step for every job and then each job to its end within a step budget, and `clearJob` stops one. `Player.onScreenDisplay` shows titles, subtitles and the action bar, `Player.playSound` and `Dimension.playSound` play sounds and return a `SoundInstance`, `Dimension.spawnParticle` takes a `MolangVariableMap`, and `Entity.addEffect`, `getEffect`, `getEffects` and `removeEffect` manage status effects, with each `Effect`'s display name. `Entity.isSneaking` can be set. A block's `minecraft:inventory` component holds a container a script reads and writes as an entity's, and an item stack's `minecraft:durability` component reads and writes its damage. `world.beforeEvents.itemUse` and `playerBreakBlock` can cancel a player's use and break, and their after-events report what went on. An entity event subscriber's `EntityEventOptions` pick the entities and types it hears. Values and errors follow the pinned Bedrock Dedicated Server, as the `system-jobs`, `entity-event-options`, `entity-effects`, `block-inventory` and `player-feedback` parity scenarios recorded.
-
-`ScriptWorld` gains optional `setSneaking`, `showTitle`, `playSound`, `spawnParticle`, effect, block container and guard members, `ScriptItem` an optional `damage`, `ScriptItemType` an optional `maxDurability`, `ScriptWorldEvent` the `playerBreakBlock` and `itemUse` events, and `ScriptCall` `setStateOf`.

@@ -1,5 +1,16 @@
 # @jsprismarine/enchantments
 
+## 0.23.0
+
+### Minor Changes
+
+- [#3270](https://github.com/JSPrismarine/JSPrismarine/pull/3270) [`5d2fb0e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d2fb0eb3730e59260a09e60c130e57e5fdb099c) Thanks [@filiphsps](https://github.com/filiphsps)! - Replace the `"./*"` pattern in each export map with an entry for each module another package or the docs import, as ADR 0010 asks. A deep import of any other module no longer resolves. Import it from the package root, or ask for the module to be exported.
+
+### Patch Changes
+
+- Updated dependencies [[`b41035b`](https://github.com/JSPrismarine/JSPrismarine/commit/b41035be9b61570008b3405aa169418b19081915), [`5d2fb0e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d2fb0eb3730e59260a09e60c130e57e5fdb099c), [`d1ad4e7`](https://github.com/JSPrismarine/JSPrismarine/commit/d1ad4e793e464ea4dc828c2c5467f6a4f4450802)]:
+  - @jsprismarine/predicates@0.23.0
+
 ## 0.22.0
 
 ### Patch Changes
