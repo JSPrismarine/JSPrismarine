@@ -74,6 +74,7 @@ jobs:
               with:
                   native-network: false
                   script-host: false
+                  native-worldgen: false
 
             - name: 🏎️ Setup Node
               if: ${{ inputs.tools != 'workspace' }}

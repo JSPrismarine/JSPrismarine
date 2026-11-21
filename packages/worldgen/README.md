@@ -201,6 +201,20 @@ injection point rather than a stub:
   default to the values Java uses outside a blending region, so terrain is correct without them.
   `Blender.install` fills the first three; [The world blender](#the-world-blender) covers it.
 
+## Noise in the native library
+
+Every `worldgen/noise` entry is an octave stack of Perlin noise. When
+[`@jsprismarine/native-worldgen`](../native-worldgen/README.md)'s library loads on the thread, a
+`RandomState` mirrors each stack into it and samples it there. The bits are the same: the C does
+each `f32()` as one float operation and is built without fused multiply-adds. A chunk's terrain fill
+then runs none of their Perlin octaves in TypeScript.
+
+Without a build for the machine, or under a runtime without an FFI, every noise stays in
+TypeScript. `new RandomState(data, seed, settings, { nativeNoise: false })` keeps it there on
+purpose, which the `worldgen.terrain` parity family does to hold both paths to Java's vectors. The
+two nether noises Java still builds through the pre-1.18 octave chain, and the smeared, blended and
+simplex noises, stay in TypeScript for now.
+
 ## The world blender
 
 Java keeps the terrain of a chunk an older generator made, and bends the terrain of each new chunk

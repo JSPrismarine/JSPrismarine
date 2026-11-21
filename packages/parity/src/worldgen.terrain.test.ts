@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { ChunkSampler, RandomState, WorldgenData } from '@jsprismarine/worldgen';
+import type { RandomStateOptions } from '@jsprismarine/worldgen';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
@@ -61,7 +62,7 @@ interface TerrainParityCase {
 }
 
 const compareTerrain = (
-    generatedFunctions: boolean
+    options: RandomStateOptions
 ): {
     gaps: string[];
     columns: number;
@@ -72,7 +73,7 @@ const compareTerrain = (
     const vectors = loadJavaColumns();
     const data = vanillaWorldgenData();
     const settings = data.settings(vectors.settings);
-    const state = new RandomState(data, BigInt(vectors.seed), settings, { generatedFunctions });
+    const state = new RandomState(data, BigInt(vectors.seed), settings, options);
     const sampler = new ChunkSampler(state, { chunkX: vectors.chunkX, chunkZ: vectors.chunkZ });
 
     const gaps: string[] = [];
@@ -140,8 +141,13 @@ const SECTION_FLOATS = 16 * 16 * 16;
  * the layout the oracle hashes: y, then z, then x. This is the path a caller outside the terrain
  * fill takes, and Java's `sampleValue`.
  */
-const sampleChunkDensity = (data: WorldgenData, seed: bigint, chunk: JavaDensityVolumeChunk): Float32Array => {
-    const state = new RandomState(data, seed, data.settings(chunk.settings));
+const sampleChunkDensity = (
+    data: WorldgenData,
+    seed: bigint,
+    chunk: JavaDensityVolumeChunk,
+    options: RandomStateOptions
+): Float32Array => {
+    const state = new RandomState(data, seed, data.settings(chunk.settings), options);
     const sample = state.sampler(state.settings.noiseRouter.finalDensity);
     const context = state.createContext();
     const values = new Float32Array(16 * chunk.height * 16);
@@ -165,8 +171,13 @@ const sampleChunkDensity = (data: WorldgenData, seed: bigint, chunk: JavaDensity
  * interpolation buffers on, so each `interpolated` node fills whole cells. This is the path Java's
  * `doFill` takes through `sampleVolume`.
  */
-const fillChunkDensity = (data: WorldgenData, seed: bigint, chunk: JavaDensityVolumeChunk): Float32Array => {
-    const state = new RandomState(data, seed, data.settings(chunk.settings));
+const fillChunkDensity = (
+    data: WorldgenData,
+    seed: bigint,
+    chunk: JavaDensityVolumeChunk,
+    options: RandomStateOptions
+): Float32Array => {
+    const state = new RandomState(data, seed, data.settings(chunk.settings), options);
     const node = state.settings.noiseRouter.finalDensity;
     const sample = state.sampler(node);
     const cell = state.interpolationCellSizeOf(node) ?? { xz: 1, y: 1 };
@@ -219,7 +230,9 @@ const differingSections = (actual: readonly string[], expected: readonly string[
  * `doFill` builds terrain from. A section that differs from `sampleValue`, Java's per-block path,
  * is a regression of what the generator already matches, reported separately.
  */
-const compareDensityVolumes = (): {
+const compareDensityVolumes = (
+    options: RandomStateOptions
+): {
     gaps: string[];
     chunks: number;
     sections: number;
@@ -236,8 +249,8 @@ const compareDensityVolumes = (): {
 
     for (const chunk of vectors.chunks) {
         const at = `${chunk.settings}:${chunk.chunkX},${chunk.chunkZ}`;
-        const perBlock = sectionHashes(sampleChunkDensity(data, seed, chunk));
-        const filled = sectionHashes(fillChunkDensity(data, seed, chunk));
+        const perBlock = sectionHashes(sampleChunkDensity(data, seed, chunk, options));
+        const filled = sectionHashes(fillChunkDensity(data, seed, chunk, options));
         sections += filled.length;
         const caseGaps: string[] = [];
         const caseDetails: string[] = [];
@@ -274,13 +287,25 @@ describeFamily(
     FAMILIES.worldgenTerrain,
     [REFERENCES.worldgenRegistries, REFERENCES.worldgenColumns, REFERENCES.worldgenDensityVolumes],
     () => {
-        const closure = compareTerrain(false);
-        const generated = compareTerrain(true);
-        const density = compareDensityVolumes();
-        const closureVerdict = checkAllowList(FAMILIES.worldgenTerrain, [...closure.gaps, ...density.gaps]);
-        const generatedVerdict = checkAllowList(FAMILIES.worldgenTerrain, [...generated.gaps, ...density.gaps]);
-        const unexpected = new Set([...closureVerdict.unexpected, ...generatedVerdict.unexpected]);
+        // Noise runs in @jsprismarine/native-worldgen wherever its library loads, and in TypeScript
+        // otherwise. The TypeScript run holds the fallback to Java too, so both paths stay exact.
+        const closure = compareTerrain({ generatedFunctions: false });
+        const generated = compareTerrain({ generatedFunctions: true });
+        const typescriptNoise = compareTerrain({ generatedFunctions: false, nativeNoise: false });
+        const density = compareDensityVolumes({});
+        const typescriptDensity = compareDensityVolumes({ nativeNoise: false });
+        const densityGaps = [...new Set([...density.gaps, ...typescriptDensity.gaps])];
+        const closureVerdict = checkAllowList(FAMILIES.worldgenTerrain, [...closure.gaps, ...densityGaps]);
+        const generatedVerdict = checkAllowList(FAMILIES.worldgenTerrain, [...generated.gaps, ...densityGaps]);
+        const typescriptVerdict = checkAllowList(FAMILIES.worldgenTerrain, [...typescriptNoise.gaps, ...densityGaps]);
+        const unexpected = new Set([
+            ...closureVerdict.unexpected,
+            ...generatedVerdict.unexpected,
+            ...typescriptVerdict.unexpected
+        ]);
         const generatedCases = new Map(generated.cases.map((entry) => [entry.id, entry]));
+        const typescriptCases = new Map(typescriptNoise.cases.map((entry) => [entry.id, entry]));
+        const typescriptDensityGaps = new Map(typescriptDensity.cases.map((entry) => [entry.id, entry.gaps]));
 
         reportParityCases(
             FAMILIES.worldgenTerrain,
@@ -288,12 +313,16 @@ describeFamily(
             closure.cases
                 .map(({ id, title, context, gaps: caseGaps, details }): ParityTrackerRecord => {
                     const generatedCase = generatedCases.get(id);
-                    if (!generatedCase) throw new Error(`Generated parity omitted terrain column ${id}`);
-                    const allGaps = [...new Set([...caseGaps, ...generatedCase.gaps])];
-                    const allDetails = [...details, ...generatedCase.details];
-                    const disagrees =
-                        caseGaps.join('\0') !== generatedCase.gaps.join('\0') ||
-                        details.join('\0') !== generatedCase.details.join('\0');
+                    const typescriptCase = typescriptCases.get(id);
+                    if (!generatedCase || !typescriptCase)
+                        throw new Error(`A parity path omitted terrain column ${id}`);
+                    const allGaps = [...new Set([...caseGaps, ...generatedCase.gaps, ...typescriptCase.gaps])];
+                    const allDetails = [...new Set([...details, ...generatedCase.details, ...typescriptCase.details])];
+                    const disagrees = [generatedCase, typescriptCase].some(
+                        (other) =>
+                            caseGaps.join('\0') !== other.gaps.join('\0') ||
+                            details.join('\0') !== other.details.join('\0')
+                    );
                     return {
                         id,
                         title,
@@ -303,17 +332,23 @@ describeFamily(
                     };
                 })
                 .concat(
-                    density.cases.map(({ id, title, context, gaps: caseGaps, details }): ParityTrackerRecord => ({
-                        id,
-                        title,
-                        context,
-                        status: caseGaps.some((gap) => unexpected.has(gap))
-                            ? 'failed'
-                            : caseGaps.length > 0
-                              ? 'deferred'
-                              : 'passed',
-                        ...(details.length === 0 ? {} : { details: details.join('; ') })
-                    }))
+                    density.cases.map(({ id, title, context, gaps: caseGaps, details }): ParityTrackerRecord => {
+                        const typescriptGaps = typescriptDensityGaps.get(id) ?? [];
+                        const allGaps = [...new Set([...caseGaps, ...typescriptGaps])];
+                        return {
+                            id,
+                            title,
+                            context,
+                            status:
+                                allGaps.some((gap) => unexpected.has(gap)) ||
+                                caseGaps.join('\0') !== typescriptGaps.join('\0')
+                                    ? 'failed'
+                                    : allGaps.length > 0
+                                      ? 'deferred'
+                                      : 'passed',
+                            ...(details.length === 0 ? {} : { details: details.join('; ') })
+                        };
+                    })
                 )
         );
 
@@ -321,6 +356,13 @@ describeFamily(
             expect(closureVerdict.unexpected, closure.detail.join('\n')).toEqual([]);
             expect(generatedVerdict.unexpected, generated.detail.join('\n')).toEqual([]);
             expect(generated.gaps).toEqual(closure.gaps);
+        });
+
+        it('generates the same terrain with noise in the native library and in TypeScript', () => {
+            expect(typescriptVerdict.unexpected, typescriptNoise.detail.join('\n')).toEqual([]);
+            expect(typescriptNoise.gaps).toEqual(closure.gaps);
+            expect(typescriptDensity.gaps).toEqual(density.gaps);
+            expect(typescriptDensity.valueRegressions).toEqual([]);
         });
 
         it("keeps final_density on Java's per-block path in every section of every captured chunk", () => {
@@ -334,6 +376,7 @@ describeFamily(
         it('carries no stale allow-list entry', () => {
             expect(closureVerdict.stale).toEqual([]);
             expect(generatedVerdict.stale).toEqual([]);
+            expect(typescriptVerdict.stale).toEqual([]);
         });
 
         it('covers each whole reference column, floor to sky', () => {
