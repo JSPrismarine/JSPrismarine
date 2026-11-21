@@ -849,10 +849,37 @@ export const pressurePlateFamily = defineFamily(
     }
 );
 
-/** The ten rail shapes, and the power a powered rail carries. */
+/** How long a detector rail waits before it checks again whether a minecart is still on it, Java's 20. */
+const DETECTOR_RAIL_CHECK_TICKS = 20;
+
+/**
+ * Whether an entity is one of Java's `AbstractMinecart`s, which are what a detector rail detects:
+ * the minecart and its chest, hopper, TNT and command block kinds.
+ */
+const isMinecart = (identifier: string): boolean => bareName(identifier).endsWith('minecart');
+
+/**
+ * Java's `DetectorRailBlock.checkPressed`: powers the rail while a minecart is on it and releases
+ * it once none is, telling the neighbors and the block below, which the rail powers strongly. A
+ * powered rail checks again every second.
+ */
+const checkDetectorRail = (world: WorldActions, block: HookBlock): void => {
+    const powered = stateBoolean(block, 'rail_data_bit');
+    const pressed = world.entitiesAt(block.position).some((entity) => isMinecart(entity.identifier));
+    if (pressed !== powered) {
+        setStates(world, block, { rail_data_bit: pressed });
+        world.notifyNeighbors(block.position);
+        world.notifyNeighbors(offset(block.position, 'down'));
+    }
+    if (pressed) world.scheduleTick(block.position, DETECTOR_RAIL_CHECK_TICKS);
+};
+
+const isDetectorRail = (identifier: string): boolean => bareName(identifier) === 'detector_rail';
+
+/** The ten rail shapes, the power a powered rail carries, and the minecart a detector rail detects. */
 export const railFamily = defineFamily(
     'jsprismarine:rail',
-    'Pops without a block below, and sets rail_data_bit on the powered rails from the signal reaching them.',
+    'Pops without a block below, sets rail_data_bit on the powered rails from the signal reaching them, and on a detector rail while a minecart is on it.',
     {
         onPlace: (event, world) => {
             if (!isSolidSupport(world, offset(event.block.position, 'down'))) popWithoutSupport(world, event.block);
@@ -860,8 +887,18 @@ export const railFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             popWithoutSupport(world, event.block);
         },
+        // `DetectorRailBlock.entityInside`: a minecart moving onto an unpowered detector rail.
+        onStepOn: (event, world) => {
+            if (!isDetectorRail(event.block.identifier) || stateBoolean(event.block, 'rail_data_bit')) return;
+            if (isMinecart(event.entity.identifier)) checkDetectorRail(world, event.block);
+        },
+        onTick: (event, world) => {
+            if (isDetectorRail(event.block.identifier) && stateBoolean(event.block, 'rail_data_bit'))
+                checkDetectorRail(world, event.block);
+        },
         onRedstoneUpdate: (event, world) => {
-            if (!hasState(event.block, 'rail_data_bit')) return;
+            // A detector rail's bit is its own output, which redstone reaching it does not set.
+            if (!hasState(event.block, 'rail_data_bit') || isDetectorRail(event.block.identifier)) return;
             const powered = event.power > 0;
             if (powered !== stateBoolean(event.block, 'rail_data_bit')) {
                 setStates(world, event.block, { rail_data_bit: powered });

@@ -31,6 +31,32 @@ describe('a lever powering the block it hangs on', () => {
     });
 });
 
+describe('a detector rail with a minecart on it', () => {
+    const stone = { x: 0, y: 0, z: 0 };
+    const rail = { x: 0, y: 1, z: 0 };
+    const beside = { x: 1, y: 1, z: 0 };
+    const besideStone = { x: 1, y: 0, z: 0 };
+
+    const world = (powered: boolean) => {
+        const arranged = createTestWorld();
+        arranged.place(stone, block('minecraft:stone'));
+        arranged.place(rail, block('minecraft:detector_rail', { rail_data_bit: powered, rail_direction: 0 }));
+        return arranged;
+    };
+
+    it('powers the blocks around it, and the block it rests on strongly, as DetectorRailBlock does', () => {
+        expect(hasNeighborSignal(world(true), beside)).toBe(true);
+        expect(directSignalTo(world(true), stone)).toBe(15);
+        // The stone, strongly powered, passes it on to what sits beside it.
+        expect(hasNeighborSignal(world(true), besideStone)).toBe(true);
+    });
+
+    it('gives nothing while no minecart is on it', () => {
+        expect(hasNeighborSignal(world(false), beside)).toBe(false);
+        expect(directSignalTo(world(false), stone)).toBe(0);
+    });
+});
+
 describe('a button powering the block it is mounted on', () => {
     const stone = { x: 0, y: 1, z: 2 };
     const button = { x: 0, y: 1, z: 1 };

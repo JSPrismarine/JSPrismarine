@@ -197,6 +197,11 @@ portal, a frame and a fire are.
 `@jsprismarine/blocks` sends to it, which matches `vanilla_overlay/report.json`. `registry.test.ts`
 fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot go stale.
 
+The entity runtime runs `onStepOn` on each block a body's box moves into, as Java's
+`Entity.checkInsideBlocks` calls `entityInside`, so pressure plates, detector rails and portals
+learn what is in them. A full block an entity stands on top of, such as magma, is not in its box
+and is not told.
+
 Every family also places: a block with a `pillar_axis` state lies along the axis of the face it was
 placed against before its family's own `onPlace` runs, as Java's `RotatedPillarBlock` does, so
 basalt, deepslate, bone blocks, chains and froglights turn like logs whatever family they are in.
@@ -238,8 +243,8 @@ basalt, deepslate, bone blocks, chains and froglights turn like logs whatever fa
 | `portal` | 6 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Lights a nether portal when fire appears inside a frame, collapses it when a frame block goes, fills a complete end portal ring, rolls the zombified piglin spawn, counts an entity down to a trip, and ages fire out. The end gateway is claimed here for a later teleport and has no hook yet. Travel is the server's. |
 | `chemistry` | 5 | none | No hooks. The chemistry workbenches open Education Edition screens a vanilla server does not implement. |
 | `ice` | 4 | onBreak, onRandomTick | Melts to water on a random tick above light 12, frosted ice ages through its four stages first, and a silk touch tool takes the block itself instead of leaving water. |
-| `liquid` | 4 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle. |
-| `rail` | 4 | onPlace, onBreak, onNeighborChanged, onRedstoneUpdate | Pops without a block below, and sets rail_data_bit on the powered rails from the signal reaching them. |
+| `liquid` | 4 | onPlace, onNeighborChanged, onRandomTick, onTick, onPlayerInteract, onStepOn | Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, shows the flame of what stands in lava, and gives a source block up to a bucket or a bottle. |
+| `rail` | 4 | onPlace, onBreak, onNeighborChanged, onTick, onStepOn, onRedstoneUpdate | Pops without a block below, sets rail_data_bit on the powered rails from the signal reaching them, and on a detector rail while a minecart is on it. |
 | `sculk` | 4 | onBreak, onTick, onStepOn | Runs the shrieker warning, cycles the sensor through its three phases, and gives experience for breaking sculk. The catalyst needs a mob death, which no block hook reports. |
 | `torch` | 2 | onBreak, onNeighborChanged | Reads torch_facing_direction to find the face it stands on and pops when that face stops holding it. |
 | `dripleaf` | 3 | onNeighborChanged, onTick, onStepOn | Tilts a big dripleaf a stage per scheduled tick while an entity stands on it, then drops it and resets. |

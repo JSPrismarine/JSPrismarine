@@ -473,4 +473,35 @@ describe('railFamily', () => {
 
         expect(harness.dimension.identifierAt(origin)).toBe(AIR);
     });
+    it('powers a detector rail while a minecart is on it, as DetectorRailBlock does', () => {
+        const harness = bindFamily(railFamily, 'minecraft:detector_rail');
+        harness.dimension.set(origin, 'minecraft:detector_rail', { rail_data_bit: false, rail_direction: 0 });
+        const cart = harness.dimension.addEntity('minecraft:minecart', origin);
+
+        harness.stepOn(origin, { identifier: 'minecraft:minecart', position: origin });
+
+        expect(harness.dimension.stateAt(origin, 'rail_data_bit')).toBe(true);
+        // The rail and the block it powers strongly below both hear of it, and it checks again in 20.
+        expect(harness.dimension.notified).toContainEqual(origin);
+        expect(harness.dimension.notified).toContainEqual({ ...origin, y: origin.y - 1 });
+        expect(harness.dimension.scheduled).toContainEqual({ position: origin, delay: 20 });
+
+        harness.tick(origin);
+        expect(harness.dimension.stateAt(origin, 'rail_data_bit')).toBe(true);
+
+        harness.dimension.removeEntity(cart);
+        harness.tick(origin);
+        expect(harness.dimension.stateAt(origin, 'rail_data_bit')).toBe(false);
+    });
+
+    it('leaves a detector rail off for anything but a minecart, and for the power reaching it', () => {
+        const harness = bindFamily(railFamily, 'minecraft:detector_rail');
+        harness.dimension.set(origin, 'minecraft:detector_rail', { rail_data_bit: false, rail_direction: 0 });
+        harness.dimension.addEntity('minecraft:player', origin);
+
+        harness.stepOn(origin);
+        harness.redstone(origin, 15);
+
+        expect(harness.dimension.stateAt(origin, 'rail_data_bit')).toBe(false);
+    });
 });
