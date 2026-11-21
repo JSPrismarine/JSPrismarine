@@ -155,13 +155,21 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-docs-api-packages-
 
+            # The suite's complete inputs and the commit they came from come back with the tracker.
+            # When the packages changed, the build runs only the parity files the changes since that
+            # commit reach and overlays them on those inputs, the way the test workflow's dashboard
+            # does, so an older entry is restored when no entry has this hash.
             - name: Cache the parity tracker
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: |
                       packages/parity/dist/tracker.json
                       packages/parity/dist/tracker.inputs
+                      packages/parity/dist/inputs
+                      packages/parity/dist/inputs.commit
                   key: ${{ runner.os }}-docs-parity-tracker-${{ steps.docs_inputs.outputs.tracker }}
+                  restore-keys: |
+                      ${{ runner.os }}-docs-parity-tracker-
 
             - name: 📖 Build docs
               env:

@@ -1,6 +1,6 @@
 /**
  * Stages VitePress inputs that live outside this package: handwritten guides, a page per addon from
- * its README, and a parity tracker snapshot from the full suite. Each staged page gets the current
+ * its README, and a parity tracker snapshot from the parity suite. Each staged page gets the current
  * docs facts in place of its marked values (see `facts.mts`), so the site never quotes a value the
  * code has moved past. The suite reads the generated bedrock-data, which `pnpm run docs:generate`
  * writes first, and is skipped when its inputs are unchanged (see `build-cache.mts`).
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { codeAnchor } from '../../packages/errors/src/JSPrismarineError.ts';
 import { addonJsonLd, buildMarket, cachedDownloader, MARKET_MEDIA_DIRECTORY } from './addonMarket.mts';
 import { addonReadme, loadAddons } from './addons.mts';
-import { runStep } from './build-cache.mts';
+import { committedInputs, isKnownCommit, runStep } from './build-cache.mts';
 import { loadErrors } from './code-data.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { loadListingsLock } from './listings.mts';
@@ -42,14 +42,25 @@ const trackerDir = path.join(publicDir, 'parity-tracker');
 /** Cloudflare Pages rejects files over 25 MiB; each case chunk stays well under it. */
 const trackerChunkBytes = 8 * 1024 * 1024;
 
-// The suite runs only when something it reads changed since the tracker was last built.
-runStep('tracker', () =>
-    execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard'], {
+// The suite runs only when something it reads changed since the tracker was last built, and then
+// only the files the changes since that build reach, when the inputs it kept came from a commit.
+const parityDist = path.join(repoRoot, 'packages', 'parity', 'dist');
+const trackerCommitFile = path.join(parityDist, 'inputs.commit');
+runStep('tracker', () => {
+    const since =
+        existsSync(path.join(parityDist, 'inputs', 'report.json')) && existsSync(trackerCommitFile)
+            ? readFileSync(trackerCommitFile, 'utf8').trim()
+            : undefined;
+    const changed = since !== undefined && isKnownCommit(since) ? ['--', `--changed=${since}`] : [];
+    rmSync(trackerCommitFile, { force: true });
+    execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard', ...changed], {
         cwd: repoRoot,
         env: { ...process.env, GITHUB_STEP_SUMMARY: '' },
         stdio: ['ignore', 'ignore', 'inherit']
-    })
-);
+    });
+    const commit = committedInputs('tracker');
+    if (commit !== undefined) writeFileSync(trackerCommitFile, commit);
+});
 mkdirSync(publicDir, { recursive: true });
 // This generated JSON uses the schema produced by the parity dashboard.
 const tracker = JSON.parse(
