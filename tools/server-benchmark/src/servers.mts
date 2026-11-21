@@ -184,6 +184,8 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
             ...(request.port === DEFAULT_PORT ? {} : { 'server-port': request.port, 'server-portv6': request.port }),
             'online-mode': false,
             'enable-server-public-ip-lookup': false,
+            // The benchmark drives Bedrock clients, and Bedrock Dedicated Server has no Java listener.
+            'java-enabled': false,
             stats: { bstats: { enabled: false } },
             gamemode: 'creative',
             'view-distance': request.viewDistance,
