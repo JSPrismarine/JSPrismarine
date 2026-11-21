@@ -3,8 +3,8 @@ import type { RandomSource } from '@jsprismarine/predicates';
 import type { EconomyTradeTableSettings } from './component';
 import { parseEconomyTradeTable } from './component';
 import type { TradeEnchanting, TradeFunctionApplier, TradeStack } from './functions';
-import type { OfferGenerationOptions, TradeContext, TradeOffer } from './offers';
-import { generateOffers, unlockedTierCount } from './offers';
+import type { OfferGenerationOptions, OfferSource, TradeContext, TradeOffer } from './offers';
+import { tableOfferSource, unlockedTiers } from './offers';
 import type { TradeTable } from './tables';
 import { isRecord } from './isRecord';
 
@@ -91,9 +91,18 @@ export interface MerchantSnapshot {
     readonly offers: readonly OfferSnapshot[];
 }
 
-/** How to build a {@link Merchant}. */
-export interface MerchantOptions {
-    readonly table: TradeTable;
+/**
+ * How to build a {@link Merchant}: the offers come from a Bedrock trade `table`, or from any other
+ * {@link OfferSource}, such as Java's trade sets.
+ */
+export type MerchantOptions = MerchantSettings &
+    (
+        | { readonly table: TradeTable; readonly source?: undefined }
+        | { readonly source: OfferSource; readonly table?: undefined }
+    );
+
+/** What a {@link Merchant} reads besides where its offers come from. */
+export interface MerchantSettings {
     readonly random: RandomSource;
     /** The `minecraft:economy_trade_table` body, which carries the discount parameters. */
     readonly settings?: EconomyTradeTableSettings;
@@ -225,35 +234,38 @@ const DEFAULT_REWARD_EXP = { min: 3, max: 6 };
  * the new tier's offers rather than redrawing the old ones.
  */
 export class Merchant {
-    private readonly table: TradeTable;
+    private readonly source: OfferSource;
     private readonly random: RandomSource;
     private readonly settings: EconomyTradeTableSettings;
     private readonly rewardExp: { readonly min: number; readonly max: number };
-    private readonly generation: OfferGenerationOptions;
+    private readonly context: TradeContext | undefined;
     private readonly states: OfferState[] = [];
     private experiencePoints: number;
     private generatedTiers = 0;
     private curedDiscount: number | undefined;
 
     public constructor(options: MerchantOptions) {
-        this.table = options.table;
         this.random = options.random;
         this.settings = options.settings ?? parseEconomyTradeTable({});
         this.rewardExp = options.playerRewardExp ?? DEFAULT_REWARD_EXP;
         this.experiencePoints = options.experience ?? 0;
+        this.context = options.context;
 
-        const generation: { -readonly [Key in keyof OfferGenerationOptions]: OfferGenerationOptions[Key] } = {
-            table: options.table,
-            random: options.random
-        };
-        if (options.context !== undefined) generation.context = options.context;
-        if (options.enchanting !== undefined) generation.enchanting = options.enchanting;
-        if (options.functions !== undefined) generation.functions = options.functions;
-        if (options.report !== undefined) generation.report = options.report;
-        this.generation = generation;
+        if (options.source !== undefined) this.source = options.source;
+        else {
+            const generation: { -readonly [Key in keyof OfferGenerationOptions]: OfferGenerationOptions[Key] } = {
+                table: options.table,
+                random: options.random
+            };
+            if (options.context !== undefined) generation.context = options.context;
+            if (options.enchanting !== undefined) generation.enchanting = options.enchanting;
+            if (options.functions !== undefined) generation.functions = options.functions;
+            if (options.report !== undefined) generation.report = options.report;
+            this.source = tableOfferSource(generation);
+        }
 
         if (options.snapshot !== undefined) this.restoreFrom(options.snapshot);
-        this.generateUpTo(unlockedTierCount(this.table, this.experiencePoints));
+        this.generateUpTo(this.level);
     }
 
     /** Takes the trader's state back from a save, leaving only tiers the save lacks to be generated. */
@@ -306,12 +318,12 @@ export class Merchant {
 
     /** The experience each tier needs, in tier order, which the trade screen draws as its progress bar. */
     public tierRequirements(): readonly number[] {
-        return this.table.tiers.map((tier) => tier.totalExpRequired);
+        return this.source.tierRequirements;
     }
 
     /** The trader's level, which is how many tiers its experience has unlocked. */
     public get level(): number {
-        return unlockedTierCount(this.table, this.experiencePoints);
+        return unlockedTiers(this.source.tierRequirements, this.experiencePoints);
     }
 
     /**
@@ -326,7 +338,7 @@ export class Merchant {
             uses: state.uses,
             demand: state.demand,
             available: state.uses < state.offer.maxUses,
-            wants: this.priceOf(state, context ?? this.generation.context)
+            wants: this.priceOf(state, context ?? this.context)
         }));
     }
 
@@ -349,12 +361,12 @@ export class Merchant {
         if (state.uses >= state.offer.maxUses)
             return { traded: false, refusal: 'outOfStock', traderExperience: 0, playerExperience: 0, leveledUp: false };
 
-        const wants = this.priceOf(state, context ?? this.generation.context);
+        const wants = this.priceOf(state, context ?? this.context);
         state.uses += 1;
 
         const before = this.level;
         this.experiencePoints += state.offer.traderExp;
-        const after = unlockedTierCount(this.table, this.experiencePoints);
+        const after = this.level;
         if (after > before) this.generateUpTo(after);
 
         return {
@@ -383,16 +395,8 @@ export class Merchant {
     /** Generates the offers of every tier up to `tiers` that has none yet. */
     private generateUpTo(tiers: number): void {
         if (tiers <= this.generatedTiers) return;
-        const experienceForTier = this.table.tiers[tiers - 1]?.totalExpRequired ?? 0;
-        const generated = generateOffers({
-            ...this.generation,
-            traderExp: Math.max(this.experiencePoints, experienceForTier)
-        });
-
-        for (const offer of generated) {
-            if (offer.tier < this.generatedTiers) continue;
+        for (const offer of this.source.draw(this.generatedTiers, tiers, this.experiencePoints))
             this.states.push({ offer, uses: 0, demand: 0 });
-        }
         this.generatedTiers = tiers;
     }
 

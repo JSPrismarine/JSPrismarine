@@ -14,7 +14,7 @@
  * restock each change the `Merchant` in place, so each is logged as the
  * trader's {@link MERCHANT_FIELD} before and after it.
  */
-import type { EntityInstance } from '@jsprismarine/entities';
+import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { Merchant, merchantSnapshotIn, parseEconomyTradeTable, parseTradeTableComponent } from '@jsprismarine/trading';
 import type { MerchantSnapshot } from '@jsprismarine/trading';
 import type { RandomSource } from '@jsprismarine/predicates';
@@ -24,6 +24,7 @@ import type { TradeSource } from '../../network/PlayerSession';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { plainOf } from '../../world/changelog/PlainData';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
+import { javaOfferSourceFor } from './javaTrading';
 
 /**
  * The entity field a trader's offers are logged under: its {@link MerchantSnapshot} in the form a
@@ -90,6 +91,8 @@ export const LEGACY_TRADE_TABLE = 'minecraft:trade_table';
 export interface MerchantOptions {
     readonly content: ServerContent;
     readonly random: RandomSource;
+    /** Where the trader stands, which Java's trade context reads as its `origin`. */
+    readonly position: EntityPosition;
     /** The trader's experience when it comes back from a save rather than being created. */
     readonly experience?: number;
     /** What a save kept of this trader's offers and progression; they come back instead of being drawn. */
@@ -122,6 +125,10 @@ export const professionOf = (entity: EntityInstance): string | undefined => {
 /**
  * Builds the merchant one entity trades through.
  *
+ * The offers come from Java's trade sets for the profession the entity's table names, as Java's
+ * `Villager.updateTrades` and `WanderingTrader.updateTrades` draw them, when the content holds
+ * them; the table itself is the fallback. The discounts still come from the Bedrock component.
+ *
  * @returns The merchant, or undefined when the entity carries neither trade
  *   component or names a table the pack stack has no file for. Nothing is
  *   invented: a villager whose table is missing simply does not trade, rather
@@ -136,17 +143,32 @@ export const merchantFor = (entity: EntityInstance, options: MerchantOptions): M
     const path = settings?.table ?? (legacy === undefined ? undefined : parseTradeTableComponent(legacy).table);
     if (path === undefined) return undefined;
 
-    const table = options.content.tradeTables.get(path);
-    if (table === undefined) return undefined;
-
-    return new Merchant({
-        table,
+    const shared = {
         random: options.random,
         ...(settings === undefined ? {} : { settings }),
         ...(options.experience === undefined ? {} : { experience: options.experience }),
         ...(options.snapshot === undefined ? {} : { snapshot: options.snapshot }),
         ...(options.report === undefined ? {} : { report: options.report })
-    });
+    };
+
+    const profession = professionOf(entity);
+    const mark = entity.componentParams('minecraft:mark_variant');
+    const markVariant = typeof mark === 'number' ? mark : undefined;
+    const source =
+        profession === undefined
+            ? undefined
+            : javaOfferSourceFor(profession, {
+                  content: options.content,
+                  random: options.random,
+                  position: options.position,
+                  markVariant,
+                  ...(options.report === undefined ? {} : { report: options.report })
+              });
+    if (source !== undefined) return new Merchant({ source, ...shared });
+
+    const table = options.content.tradeTables.get(path);
+    if (table === undefined) return undefined;
+    return new Merchant({ table, ...shared });
 };
 
 /**

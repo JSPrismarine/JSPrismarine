@@ -1176,6 +1176,92 @@ const tradedItem = (item: string, functions: readonly string[]): string => {
     return bare;
 };
 
+/** One offer as the server's merchant shows it, through the runtime this suite drives. */
+type LiveOffer = ReturnType<NonNullable<ReturnType<EntityRuntime['merchant']>>['offers']>[number];
+
+/** The terms of one Java `villager_trade` entry, with its codec's defaults, as an offer states them. */
+interface JavaTradeTerms {
+    readonly gives: string;
+    readonly wants: string;
+    /** The emeralds it asks, or undefined for a trade whose modifier adds a cost to them. */
+    readonly price: number | undefined;
+    readonly maxUses: number;
+    readonly xp: number;
+    readonly discount: number;
+}
+
+/** The terms of every Java villager trade one `trade_set` can draw. */
+const javaTradeTerms = (tradeSet: string): readonly JavaTradeTerms[] => {
+    const root = join(unpackVanillaDatapack(), 'data', 'minecraft');
+    const read = (path: string): unknown => JSON.parse(readFileSync(join(root, path), 'utf-8'));
+    const resolve = (reference: string): readonly string[] => {
+        if (!reference.startsWith('#')) return [reference];
+        const values = field(
+            read(`tags/villager_trade/${reference.slice(1).replace('minecraft:', '')}.json`),
+            'values'
+        );
+        return (Array.isArray(values) ? values : []).flatMap((value: unknown) =>
+            typeof value === 'string' ? resolve(value) : []
+        );
+    };
+    // Parsed JSON boundary; the fields read are checked one by one.
+    const trades = field(read(`trade_set/${tradeSet}.json`), 'trades');
+    return (typeof trades === 'string' ? resolve(trades) : []).flatMap((trade) => {
+        const entry = read(`villager_trade/${trade.replace('minecraft:', '')}.json`);
+        const gives = field(field(entry, 'gives'), 'id');
+        const wants = field(field(entry, 'wants'), 'id');
+        if (typeof gives !== 'string' || typeof wants !== 'string') return [];
+        const count = field(field(entry, 'wants'), 'count') ?? 1;
+        const number = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback);
+        return [
+            {
+                gives,
+                wants,
+                price: field(entry, 'given_item_modifier') === undefined ? number(count, 1) : undefined,
+                maxUses: number(field(entry, 'max_uses'), 4),
+                xp: number(field(entry, 'xp'), 1),
+                discount: number(field(entry, 'reputation_discount'), 0)
+            }
+        ];
+    });
+};
+
+/**
+ * How a trader's first offers differ from the terms of Java's trades in `sets`: an offer no Java
+ * trade there gives, or one whose uses, experience, price multiplier or price is not Java's.
+ */
+const offerTermDifferences = (
+    label: string,
+    offers: readonly LiveOffer[],
+    sets: readonly string[]
+): readonly string[] => {
+    const terms = sets.flatMap(javaTradeTerms);
+    return offers.flatMap(({ offer }) => {
+        const gives = offer.gives[0]?.item ?? 'nothing';
+        const wants = offer.wants[0];
+        const java = terms.filter((term) => term.gives === gives && term.wants === wants?.item);
+        if (java.length === 0)
+            return [`${label} offers ${gives} for ${wants?.item ?? 'nothing'}, which no Java trade does`];
+        const matches = java.some(
+            (term) =>
+                term.maxUses === offer.maxUses &&
+                term.xp === offer.traderExp &&
+                Math.abs(term.discount - (offer.priceMultipliers[0] ?? 0)) < 1e-6 &&
+                (term.price === undefined || term.price === wants?.count)
+        );
+        return matches
+            ? []
+            : [
+                  `${label} offers ${gives} for ${wants?.count ?? 0} ${wants?.item ?? ''} with ${offer.maxUses} uses, ${offer.traderExp} experience and a ${offer.priceMultipliers[0] ?? 0} multiplier, where Java's is ${java
+                      .map(
+                          (term) =>
+                              `${term.price ?? 'priced by its modifier'} with ${term.maxUses} uses, ${term.xp} experience and ${term.discount}`
+                      )
+                      .join(' or ')}`
+              ];
+    });
+};
+
 /** The items one tier of a Bedrock economy trade table gives, from the table the server parsed. */
 const bedrockTradeGives = (file: string, tier: number): ReadonlySet<string> => {
     const table = serverContent().tradeTables.get(`trading/economy_trades/${file}_trades.json`);
@@ -1970,6 +2056,52 @@ export const lifecycleScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                             bedrockTradeGives(file, level - 1),
                             javaTradeGives(`${profession}/level_${level}`)
                         );
+            }
+            return differences.length === 0 ? undefined : differences.join('; ');
+        }
+    },
+    {
+        name: 'trade-offer-terms',
+        java: "A new villager of each profession, and a new wandering trader, offers Java's trades on Java's terms: uses, experience, price multiplier and price.",
+        reference:
+            "Java data/minecraft/trade_set and villager_trade, VillagerTrade's codec defaults (max_uses 4, xp 1, reputation_discount 0) and VillagerTrade.getOffer; issue #3265",
+        subjects: () => entitiesDeclaring('minecraft:economy_trade_table'),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:economy_trade_table'],
+        run: (subject) => {
+            const { runtime } = realStack();
+            const offersOf = (group: string | undefined): readonly LiveOffer[] => {
+                const trader = spawnLive(subject.bedrock, freshSpot());
+                try {
+                    activate(trader.instance, group);
+                    return runtime.merchant(trader)?.offers() ?? [];
+                } finally {
+                    runtime.remove(trader.id, 'parity probe');
+                }
+            };
+            if (subject.javaId === 'minecraft:wandering_trader') {
+                const differences = offerTermDifferences(
+                    'the wandering trader',
+                    offersOf(undefined),
+                    ['buying', 'uncommon', 'common'].map((set) => `wandering_trader/${set}`)
+                );
+                return differences.length === 0 ? undefined : differences.join('; ');
+            }
+            const type = serverContent().entities.registry.get(subject.bedrock);
+            const differences: string[] = [];
+            for (const [profession, file] of Object.entries(TRADE_FILES)) {
+                const group = [...(type?.entity.componentGroups ?? [])].find(([, components]) =>
+                    String(field(components.get('minecraft:economy_trade_table'), 'table')).endsWith(
+                        `/${file}_trades.json`
+                    )
+                )?.[0];
+                if (group === undefined) {
+                    differences.push(`no component group gives a villager the ${profession} trades`);
+                    continue;
+                }
+                differences.push(
+                    ...offerTermDifferences(`a new ${profession}`, offersOf(group), [`${profession}/level_1`])
+                );
             }
             return differences.length === 0 ? undefined : differences.join('; ');
         }

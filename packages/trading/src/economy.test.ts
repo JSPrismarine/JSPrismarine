@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { parseEconomyTradeTable } from './component';
 import { Merchant, merchantSnapshotIn } from './economy';
+import type { MerchantSettings } from './economy';
 import type { TradeTable } from './tables';
 import { parseTradeTable } from './tables';
 
@@ -48,7 +49,7 @@ const FARMER = tableOf({
     ]
 });
 
-const merchantOf = (overrides: Partial<ConstructorParameters<typeof Merchant>[0]> = {}) =>
+const merchantOf = (overrides: Partial<MerchantSettings> = {}) =>
     new Merchant({ table: FARMER, random: seededRandom(17), ...overrides });
 
 describe('stock and uses', () => {

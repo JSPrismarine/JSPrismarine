@@ -353,6 +353,50 @@ describe('rolling through the registry', () => {
     });
 });
 
+describe('grammar outside a table', () => {
+    it("runs a modifier and a condition in a context over the registry's seams", () => {
+        const registry = new LootRegistry(stackOf({}), {
+            enchantments: () => ({ maxLevel: () => 3 })
+        });
+        const modifier = registry.itemModifier(
+            {
+                type: 'minecraft:enchant_randomly',
+                options: 'minecraft:mending',
+                include_additional_cost_component: true
+            },
+            'trade/modifier'
+        );
+        const predicate = registry.predicate(
+            {
+                type: 'minecraft:entity_properties',
+                entity: 'this',
+                predicate: { 'minecraft:predicates': { 'minecraft:villager/variant': 'minecraft:taiga' } }
+            },
+            'trade/predicate'
+        );
+        const context = registry.context(undefined, {
+            random: scriptedRandom([0, 0, 0]),
+            parameterSet: 'villager_trade',
+            parameters: {
+                ...ORIGIN,
+                additional_cost_component_allowed: true,
+                this_entity: {
+                    type: 'minecraft:villager',
+                    components: new Map([['minecraft:villager/variant', 'minecraft:taiga']])
+                }
+            }
+        });
+
+        const given = modifier({ id: 'minecraft:book', count: 1, components: new Map() }, context);
+
+        expect(predicate(context)).toBe(true);
+        expect(given?.id).toBe('minecraft:enchanted_book');
+        // Level 1, so EnchantRandomlyFunction's 2 + nextInt(15) + 3 at a draw of 0.
+        expect(given?.components.get('minecraft:additional_trade_cost')).toBe(5);
+        expect(registry.diagnostics.entries).toEqual([]);
+    });
+});
+
 describe('random sequence determinism', () => {
     const stack = stackOf({
         'minecraft:chests/igloo': {

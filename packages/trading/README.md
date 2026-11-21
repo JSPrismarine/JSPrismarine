@@ -71,6 +71,29 @@ from the `trades` array to make available".
 Every draw goes through the injected `RandomSource`, so one seed gives one trader the same offers
 every time.
 
+## Java's trade sets
+
+`@jsprismarine/trading/javaTrades` draws offers from Java's `villager_trade` and `trade_set`
+registries instead of a Bedrock table, and `javaOfferSource` hands them to a `Merchant` through
+`MerchantOptions.source`.
+
+- A villager has Java's five levels at 0, 10, 70, 150 and 250 experience
+  (`VillagerData.NEXT_LEVEL_XP_THRESHOLDS`), and each level draws the set
+  `minecraft:<profession>/level_<n>`. A wandering trader has one tier, which draws `buying`,
+  `uncommon` and `common` in that order.
+- A set draws its `amount` the way `AbstractVillager.addOffersFromTradeSet` does. It takes a random
+  trade out of the pool and keeps the offer it makes, until it has enough or the pool is empty.
+  With `allow_duplicates`, a trade stays in the pool and only one that made no offer leaves it.
+- `javaTradeOffer` is `VillagerTrade.getOffer`. A failed `merchant_predicate`, a `given_item_modifier`
+  that discards the stack, or a price under one makes no offer. The `minecraft:additional_trade_cost`
+  an enchanting modifier writes comes off the stack and onto the first want. It is doubled when the
+  stack stores an enchantment `double_trade_price_enchantments` names, and the want is held to the
+  item's stack size. A trade the JSON leaves without them gets the codec's 4 uses, 1 experience and
+  no discount.
+
+The trade's Java grammar belongs to the host. A `JavaTradeSession` compiles and runs the predicate
+and the modifier, resolves the holder sets, and says which Bedrock stack a Java stack is offered as.
+
 ## The trade item functions
 
 | Function | What it does here |
@@ -105,8 +128,8 @@ gossip system and the mapping from `trader_exp` to a villager level are written 
 So `Merchant` uses Java Edition's model, which is the only published one, and names the three places
 where it had to choose.
 
-- **Levels come from the table.** A trader's level is how many tiers its experience has unlocked, so
-  no separate experience-to-level mapping is needed. A level up appends the new tier's offers and
+- **Levels come from the offer source.** A trader's level is how many tiers its experience has
+  unlocked, so no separate experience-to-level mapping is needed. A level up appends the new tier's offers and
   leaves the earlier ones, with their uses, alone.
 - **Demand moves at restock, not inside a stock cycle.** `resupply` runs Java's
   `demand = demand + uses - (maxUses - uses)`, clamped at zero, and then clears the uses. A trade

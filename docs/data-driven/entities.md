@@ -581,6 +581,18 @@ written down in the package README. A trader's level is how many tiers its exper
 Demand moves at restock rather than inside a stock cycle. The discount fields are flat deltas on
 the first want rather than percentages.
 
+A villager and a wandering trader trade from Java's `trade_set` and `villager_trade` registries
+when the content holds the sets for the profession their Bedrock table names, and from the table
+otherwise. The offers, prices, uses, experience and price multipliers are Java's. The Java loot
+registry runs each trade's `merchant_predicate` and `given_item_modifier`, with the trader's
+`minecraft:mark_variant` read as its biome type. An explorer map trade makes no offer, because
+`exploration_map` has no structure locator to point the map at
+([#3530](https://github.com/JSPrismarine/JSPrismarine/issues/3530)), and the modifier's filter then
+discards it as Java's does when no structure is in range. A trade stack reaches the client with its
+aux value and enchantments only, so dyed armor, suspicious stew and tipped arrows arrive without
+what their modifier wrote ([#3531](https://github.com/JSPrismarine/JSPrismarine/issues/3531)). The
+discounts still come from the Bedrock `minecraft:economy_trade_table` component.
+
 On a default build only 18 of the 27 tables load, because BDS ships eleven of them as an
 undocumented binary format the pack loader cannot read and reports as `definition.mcb`. Copying the
 JSON versions from bedrock-samples into a world pack fills the gap.
