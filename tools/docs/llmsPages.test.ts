@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { type ChangelogRelease, SHOWN_RELEASES } from './changelog.mts';
-import { addonMarkdown, marketMarkdown, packagesMarkdown, releasesMarkdown } from './llmsPages.mts';
+import type { TrackerCase } from '../../packages/parity/src/dashboard/tracker.ts';
+import type { TrackerSummary, TrackerSummaryFamily } from '../../packages/parity/src/dashboard/trackerSummary.ts';
+import { METRICS } from '../server-benchmark/src/summary.mts';
+import {
+    addonMarkdown,
+    benchmarksMarkdown,
+    marketMarkdown,
+    packagesMarkdown,
+    parityMarkdown,
+    releasesMarkdown
+} from './llmsPages.mts';
 import { loadProject } from './project.mts';
 import { pageTitle } from './sections.mts';
+import { readBenchmarkPage } from './site/benchmarks.data.mts';
 import { installCommand, type MarketAddon, type MarketAddonPage } from './site/.vitepress/theme/addonMarket.ts';
 import { packageAreas } from './site/.vitepress/theme/packageAreas.ts';
 
@@ -157,5 +168,89 @@ describe('marketMarkdown', () => {
         );
         expect(sections[2]).toMatch(/^Community addons\n\nListed, not reviewed/);
         expect(sections[2]).toContain('[acme/addons/warps](/addons/acme/addons/warps)');
+    });
+});
+
+describe('parityMarkdown', () => {
+    const family = (id: string, counts: Partial<TrackerSummaryFamily> = {}): TrackerSummaryFamily => ({
+        id,
+        group: 'Gameplay',
+        checks: 10,
+        passed: 8,
+        failed: 2,
+        notMeasured: 0,
+        intentional: 0,
+        deferred: 0,
+        defects: 0,
+        caseCount: 10,
+        openGaps: [],
+        ...counts
+    });
+    const gap: TrackerCase = {
+        id: 'data:gameplay.food/apple',
+        family: 'gameplay.food',
+        title: 'apple',
+        context: '',
+        kind: 'check',
+        status: 'failed',
+        sourceFile: 'packages/parity/src/food.test.ts',
+        details: 'Restores\n  the wrong amount.'
+    };
+    const summary: TrackerSummary = {
+        generatedAt: '2026-11-21T12:00:00.000Z',
+        sourceCommit: '0123456789abcdef',
+        checks: 1010,
+        passed: 1008,
+        failed: 2,
+        notMeasured: 0,
+        intentional: 3,
+        deferred: 0,
+        defects: 0,
+        caseCount: 1013,
+        families: [
+            family('gameplay.food', { openGaps: [gap] }),
+            family('tags.blocks', { group: 'Data', checks: 1000, passed: 1000, failed: 0, intentional: 3 })
+        ]
+    };
+    const markdown = parityMarkdown(summary, { description: 'How much matches.' });
+
+    it('gives the behavior score apart from the data tables, as the tracker does', () => {
+        expect(markdown).toContain(
+            '- Behavior: 80% of the comparisons of what the server does in play pass (8 of 10).'
+        );
+        expect(markdown).toContain('- Every comparison: 99.8% (1008 of 1010), data tables included.');
+    });
+
+    it('lists every family with its counts, and the open gaps of the families that have them', () => {
+        expect(markdown).toContain('| `gameplay.food` | Gameplay | 80% (8 of 10) | 2 | 0 | 0 | 0 | 0 |');
+        expect(markdown).toContain('| `tags.blocks` | Data | 100% (1000 of 1000) | 0 | 0 | 0 | 0 | 3 |');
+        expect(markdown).toContain('### `gameplay.food`\n\n- `apple` (failed): Restores the wrong amount.');
+        expect(markdown).not.toContain('### `tags.blocks`');
+    });
+});
+
+describe('benchmarksMarkdown', () => {
+    const page = readBenchmarkPage();
+    if (page === null) throw new Error('The repository holds no benchmark results to build the copy from.');
+    const markdown = benchmarksMarkdown(page, {
+        description: 'Three servers.',
+        repositoryUrl: 'https://example.test/repo'
+    });
+
+    it('gives every figure for every server in every scenario, marking wall clock figures indicative', () => {
+        for (const scenario of page.results.scenarios) {
+            const section = markdown.slice(markdown.indexOf(`## \`${scenario.id}\``)).split('\n## ')[0] ?? '';
+            const servers = page.summary.cells.filter((cell) => cell.scenario === scenario.id).length;
+            for (const { id, kind } of METRICS) {
+                const row = section.split('\n').find((line) => line.startsWith(`| \`${id}\` |`));
+                expect(row?.split(' | ')).toHaveLength(3 + servers);
+                expect(row?.includes('indicative')).toBe(kind === 'wall');
+            }
+        }
+    });
+
+    it('says whether the run was quiet and links its raw data', () => {
+        expect(markdown).toContain(`so the run is ${page.summary.quiet ? 'quiet' : 'indicative'}`);
+        expect(markdown).toContain(`(https://example.test/repo/blob/master/${page.file})`);
     });
 });

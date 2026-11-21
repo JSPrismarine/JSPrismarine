@@ -10,9 +10,17 @@ import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
 import { changelogUrl, loadChangelog, releaseDates } from '../../changelog.mts';
 import { markdownHeaders, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
-import { ADDON_COPIES_FILE, packagesMarkdown, releasesMarkdown } from '../../llmsPages.mts';
+import {
+    ADDON_COPIES_FILE,
+    benchmarksMarkdown,
+    packagesMarkdown,
+    parityMarkdown,
+    releasesMarkdown
+} from '../../llmsPages.mts';
+import { readBenchmarkPage } from '../benchmarks.data.mts';
+import { readParityPage } from '../parity.data.mts';
 import { loadProject } from '../../project.mts';
-import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
+import { isStagedPage, pageSource, pageSummary, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
@@ -126,6 +134,10 @@ export default defineConfig({
             `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes, linked from ${linking} pages.`
         );
         const project = loadProject();
+        // A component page's copy opens with the description its front matter gives the page.
+        const description = (page: string) => pageSummary(readFileSync(path.join(siteConfig.srcDir, page), 'utf8'));
+        const parity = readParityPage();
+        const benchmarks = readBenchmarkPage();
         const site = {
             srcDir: siteConfig.srcDir,
             outDir: siteConfig.outDir,
@@ -138,6 +150,22 @@ export default defineConfig({
                     'releases.md',
                     releasesMarkdown(loadChangelog(), { dateOf: releaseDates(), changelogUrl: changelogUrl() })
                 ],
+                ...(parity
+                    ? ([
+                          ['parity.md', parityMarkdown(parity.summary, { description: description('parity.md') })]
+                      ] as const)
+                    : []),
+                ...(benchmarks
+                    ? ([
+                          [
+                              'benchmarks.md',
+                              benchmarksMarkdown(benchmarks, {
+                                  description: description('benchmarks.md'),
+                                  repositoryUrl: project.repositoryUrl
+                              })
+                          ]
+                      ] as const)
+                    : []),
                 // The staging step writes the addon pages' copies, since it builds the marketplace.
                 ...Object.entries(
                     // Written by assemble.mts as page file to Markdown; parsed JSON is an untyped boundary.
