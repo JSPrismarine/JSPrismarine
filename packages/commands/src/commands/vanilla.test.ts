@@ -1277,6 +1277,32 @@ describe('/execute as a real subcommand chain', () => {
         expect(seen).toEqual(['minecraft:the_nether']);
     });
 
+    it('lets the host place `in` and `if dimension` in the world the source is in', () => {
+        const seen: string[] = [];
+        const world = {
+            // A host that names its second level in the dimension keeps it through `in`.
+            dimensionIn: (current: string, named: string) => `${named}@${current.split('@')[1] ?? ''}`,
+            setBlock: (dimension: string) => {
+                seen.push(dimension);
+                return true;
+            }
+        };
+        const entity: EntityRef = {
+            id: '1',
+            type: 'minecraft:pig',
+            name: 'Pig',
+            isPlayer: false,
+            position: { x: 0, y: 64, z: 0 },
+            rotation: { yaw: 0, pitch: 0 },
+            dimension: 'minecraft:overworld@other'
+        };
+
+        run('execute in nether run setblock 0 0 0 minecraft:stone', { world }, { entity });
+        run('execute if dimension overworld run setblock 0 0 0 minecraft:stone', { world }, { entity });
+
+        expect(seen).toEqual(['minecraft:the_nether@other', 'minecraft:overworld@other']);
+    });
+
     it('takes a namespaced dimension id in `in` as it is', () => {
         const seen: string[] = [];
         for (const dimension of ['minecraft:the_nether', 'mypack:skylands']) {

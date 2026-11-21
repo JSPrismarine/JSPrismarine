@@ -6,15 +6,35 @@ import { EYE_HEIGHT } from '../../entity/playerEyes';
 import { stub } from '../../testing/stub.test.helper';
 import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { Dimensions } from '../../world/DimensionType';
+import type { DimensionType } from '../../world/DimensionType';
 import type { Level } from '../../world/Level';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
-import { dimensionIdOf, entityRefOf, javaDimensionIdOf, loadedDimensions, worldOf } from './support';
+import {
+    dimensionIdOf,
+    dimensionInLevelOf,
+    entityRefOf,
+    javaDimensionIdOf,
+    loadedDimensions,
+    splitCommandDimension,
+    worldOf
+} from './support';
+
+/**
+ * A world of a dimension in a level, which the server answers as its default level or not. A
+ * command reads which level a world is in off the world itself.
+ */
+const worldIn = (dimension: DimensionType, { named = 'world', isDefault = true } = {}) => {
+    const level = stub<Level>({ name: named });
+    const defaultLevel = isDefault ? level : stub<Level>({ name: 'world' });
+    const server = stub<Server>({ getWorldManager: () => stub<WorldManager>({ getDefaultLevel: () => defaultLevel }) });
+    return stub<World>({ getDimension: () => dimension, getLevel: () => level, getServer: () => server });
+};
 
 describe('command entity references', () => {
     it('uses a player’s feet as the command position', () => {
-        const world = stub<World>({ getDimension: () => Dimensions.Overworld });
+        const world = worldIn(Dimensions.Overworld);
         const player = sessionOnPrototype({
             getRuntimeId: () => 1n,
             getType: () => 'minecraft:player',
@@ -65,7 +85,37 @@ describe('command entity references', () => {
     });
 
     it('reports the Java id of a world as its dimension', () => {
-        const nether = stub<World>({ getDimension: () => Dimensions.Nether });
-        expect(dimensionIdOf(nether)).toBe('minecraft:the_nether');
+        expect(dimensionIdOf(worldIn(Dimensions.Nether))).toBe('minecraft:the_nether');
+    });
+
+    it('names a level other than the default in the dimension, and keeps it through `execute in` (#3024)', () => {
+        const other = worldIn(Dimensions.Overworld, { named: 'e2e_other', isDefault: false });
+
+        expect(dimensionIdOf(other)).toBe('minecraft:overworld@e2e_other');
+        expect(splitCommandDimension('minecraft:overworld@e2e_other')).toEqual({
+            dimension: 'minecraft:overworld',
+            level: 'e2e_other'
+        });
+        expect(javaDimensionIdOf('minecraft:nether@e2e_other')).toBe('minecraft:the_nether@e2e_other');
+        expect(dimensionInLevelOf('minecraft:overworld@e2e_other', 'minecraft:the_nether')).toBe(
+            'minecraft:the_nether@e2e_other'
+        );
+        expect(dimensionInLevelOf('minecraft:overworld', 'minecraft:the_nether')).toBe('minecraft:the_nether');
+    });
+
+    it("starts the named level's world for a dimension that carries a level", () => {
+        const levelWorld = stub<World>({ getDimension: () => Dimensions.Overworld });
+        const started: [string, string | undefined][] = [];
+        const worldManager = stub<WorldManager>({
+            startWorld: (dimension, level) => {
+                started.push([dimension, level]);
+                return levelWorld;
+            },
+            getDefaultWorld: () => stub<World>({})
+        });
+        const server = stub<Server>({ getWorldManager: () => worldManager });
+
+        expect(worldOf(server, 'minecraft:overworld@e2e_other')).toBe(levelWorld);
+        expect(started).toEqual([['minecraft:overworld', 'e2e_other']]);
     });
 });

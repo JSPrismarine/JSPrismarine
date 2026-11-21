@@ -156,7 +156,13 @@ export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
                 arg('dimension', dimensionArgument())
                     .suggests(dimensionSuggestions)
                     .redirect(root, {
-                        apply: (context) => source(context).withDimension(toDimensionId(value(context, 'dimension')))
+                        apply: (context) => {
+                            const current = source(context);
+                            const named = toDimensionId(value(context, 'dimension'));
+                            return current.withDimension(
+                                current.host.world.dimensionIn?.(current.dimension, named) ?? named
+                            );
+                        }
                     })
             )
             .build()
@@ -493,10 +499,11 @@ const buildConditions = (
 
     node.then(
         lit('dimension').then(
-            attach(
-                arg('dimension', dimensionArgument()).suggests(dimensionSuggestions),
-                (context) => source(context).dimension === toDimensionId(value(context, 'dimension'))
-            )
+            attach(arg('dimension', dimensionArgument()).suggests(dimensionSuggestions), (context) => {
+                const current = source(context);
+                const named = toDimensionId(value(context, 'dimension'));
+                return current.dimension === (current.host.world.dimensionIn?.(current.dimension, named) ?? named);
+            })
         )
     );
 

@@ -7,9 +7,7 @@
  * default level's players.
  *
  * The mobs come from the second level's natural spawning, which the suite leaves on there: the
- * runner turns `spawn_mobs` off in the default level only. Neither `/summon` nor a spawn egg can
- * place one: the command host and the content item actions both find a world by its dimension
- * alone, which is the default level's.
+ * runner turns `spawn_mobs` off in the default level only, so the count is the level's own.
  */
 import assert from 'node:assert/strict';
 

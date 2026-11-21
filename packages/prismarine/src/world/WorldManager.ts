@@ -521,7 +521,8 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * The default level's world of a dimension, starting its build when nobody has entered it.
+     * A level's world of a dimension, the default level's unless another is named, starting its
+     * build when nobody has entered it.
      *
      * For a caller that cannot wait, such as a command writing blocks. The world answered may
      * still be enabling, in which case it has no chunks loaded and a block read finds nothing,
@@ -530,13 +531,15 @@ export default class WorldManager implements Service {
      * Overworld instead.
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
-     * @returns The world, or undefined when no stem of the default level has that dimension.
+     * @param levelName - The level's folder name, or undefined for the default level.
+     * @returns The world, or undefined when no stem of that level has that dimension, or no
+     *   level has that name.
      */
-    public startWorld(dimension: string): World | undefined {
-        const ready = this.getWorldByDimension(dimension);
+    public startWorld(dimension: string, levelName?: string): World | undefined {
+        const ready = this.getWorldByDimension(dimension, levelName);
         if (ready !== undefined) return ready;
 
-        const level = this.defaultLevel;
+        const level = this.levelOf(levelName);
         if (level === undefined) return undefined;
         const stemId = this.stemIdOf(level, dimension);
         if (stemId === undefined) return undefined;
@@ -548,15 +551,20 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * The default level's stem of a dimension, without building its world.
+     * A level's stem of a dimension, the default level's unless another is named, without
+     * building its world.
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
+     * @param levelName - The level's folder name, or undefined for the default level.
      * @returns The level and the stem's id, or undefined when no stem of the default level has
      *   that dimension, or no default level is loaded yet.
      */
-    public stemFor(dimension: string): { readonly level: Level; readonly stemId: string } | undefined {
+    public stemFor(
+        dimension: string,
+        levelName?: string
+    ): { readonly level: Level; readonly stemId: string } | undefined {
         // Unset until `enable` loads it, and a command can run before that.
-        const level = this.defaultLevel;
+        const level = this.levelOf(levelName);
         if (level === undefined) return undefined;
         const stemId = this.stemIdOf(level, dimension);
         return stemId === undefined ? undefined : { level, stemId };

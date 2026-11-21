@@ -474,7 +474,15 @@ describe('command', () => {
                         connected()
                             .find((session) => session.getRuntimeId() === runtimeId)
                             ?.getActor() ?? null,
-                    viewerOf: (runtimeId: bigint) => connected().find((session) => session.getRuntimeId() === runtimeId)
+                    viewerOf: (runtimeId: bigint) =>
+                        connected().find((session) => session.getRuntimeId() === runtimeId),
+                    getLevel: () => level,
+                    getServer: () => server
+                });
+                const level: Level = stub<Level>({
+                    worlds: function* () {
+                        yield world;
+                    }
                 });
                 const server: Server = stub<Server>({
                     // Empty registries rather than no content: `enable` builds the vanilla
@@ -502,13 +510,8 @@ describe('command', () => {
                     getWorldManager: () =>
                         stub<WorldManager>({
                             getDefaultWorld: () => world,
-                            getLevels: () => [
-                                stub<Level>({
-                                    worlds: function* () {
-                                        yield world;
-                                    }
-                                })
-                            ]
+                            getDefaultLevel: () => level,
+                            getLevels: () => [level]
                         })
                 });
                 await permissionManager.enable();

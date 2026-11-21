@@ -74,27 +74,70 @@ export const carryOut = <T>(work: Promise<unknown>, answer: T): T => {
     return answer;
 };
 
-/** The command layer's id for the dimension a world is: the Java `dimension_type` id. */
-export const dimensionIdOf = (world: World): string => world.getDimension().id;
+/**
+ * What separates a dimension from the level it belongs to in the dimension a command carries.
+ * The `@jsprismarine/commands` seam names a place by one dimension string, so a level other than
+ * the default rides along in it, as `minecraft:overworld@other`; the default level's dimensions
+ * keep their plain ids, which is what a command typed or printed for them reads.
+ */
+const LEVEL_MARK = '@';
+
+/** A dimension a command carries, split into the dimension and the level, undefined for the default. */
+export const splitCommandDimension = (dimension: string): { readonly dimension: string; readonly level?: string } => {
+    const at = dimension.lastIndexOf(LEVEL_MARK);
+    return at <= 0 ? { dimension } : { dimension: dimension.slice(0, at), level: dimension.slice(at + 1) };
+};
+
+/** A dimension and its level as a command carries them; see {@link LEVEL_MARK}. */
+const commandDimension = (dimension: string, level: string | undefined): string =>
+    level === undefined ? dimension : `${dimension}${LEVEL_MARK}${level}`;
+
+/**
+ * The dimension a command carries for a world: its Java `dimension_type` id, with the level's
+ * name after {@link LEVEL_MARK} for a level other than the default, so a command run at an
+ * entity there acts on its level (#3024).
+ */
+export const dimensionIdOf = (world: World): string => {
+    const level = world.getLevel();
+    const isDefault = level === world.getServer().getWorldManager().getDefaultLevel();
+    return commandDimension(world.getDimension().id, isDefault ? undefined : level.name);
+};
 
 /**
  * The Java `dimension_type` id a command's dimension argument names: the Bedrock spelling of
- * a vanilla one is translated, and anything else is taken as it is.
+ * a vanilla one is translated, and anything else is taken as it is. A level the dimension
+ * carries stays with it.
  */
-export const javaDimensionIdOf = (dimension: string): string => dimensionByName(dimension)?.id ?? dimension;
+export const javaDimensionIdOf = (dimension: string): string => {
+    const split = splitCommandDimension(dimension);
+    return commandDimension(dimensionByName(split.dimension)?.id ?? split.dimension, split.level);
+};
 
 /**
- * The world a dimension id names, started if the default level has the stem but nobody has
- * entered it yet.
- *
- * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
- * @returns The default level's world of that dimension, which may still be enabling and then
- *   has no chunks loaded, or the default world when no stem names the dimension.
+ * The dimension `execute in` moves a source to: the one named, in the level the source is in.
+ * @param current - The source's dimension, which may carry a level.
+ * @param named - The dimension the command names.
  */
-export const worldOf = (server: Server, dimension: string): World =>
+export const dimensionInLevelOf = (current: string, named: string): string =>
+    commandDimension(splitCommandDimension(named).dimension, splitCommandDimension(current).level);
+
+/**
+ * The world a dimension a command carries names, started if its level has the stem but nobody
+ * has entered it yet.
+ *
+ * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one,
+ *   naming its level after `@` when it is not the default one.
+ * @returns That level's world of the dimension, which may still be enabling and then has no
+ *   chunks loaded, or the default world when no stem names the dimension.
+ */
+export const worldOf = (server: Server, dimension: string): World => {
+    const split = splitCommandDimension(dimension);
     // A dimension the level has but nobody has entered is started, not swapped for the default
     // world: `execute in minecraft:the_nether run fill` used to write into the Overworld.
-    server.getWorldManager().startWorld(dimension) ?? server.getWorldManager().getDefaultWorld();
+    return (
+        server.getWorldManager().startWorld(split.dimension, split.level) ?? server.getWorldManager().getDefaultWorld()
+    );
+};
 
 /**
  * Every dimension a command may name: the dimension type of each stem of the default level,

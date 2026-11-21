@@ -137,7 +137,9 @@ const buildFixture = (): Fixture => {
     const nether: World = stub<World>({
         getDimension: () => Dimensions.Nether,
         getActors: () => [],
-        getActor: () => null
+        getActor: () => null,
+        getLevel: () => level,
+        getServer: () => server
     });
 
     // Annotated, because `world` and `server` name each other: without a declared type
@@ -189,7 +191,8 @@ const buildFixture = (): Fixture => {
         dataEntities: () => inertEntityRuntime(),
         // Late-bound: an entity class reads the server off the world it is
         // built in, and the server double is built from this one.
-        getServer: () => server
+        getServer: () => server,
+        getLevel: () => level
     });
     let ticks = 0;
     // Apart from the game clock, as a world keeps them, so a host that moves the wrong one shows.

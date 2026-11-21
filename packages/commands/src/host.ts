@@ -240,6 +240,12 @@ export interface WorldCommandHost {
     /** The dimensions `/execute in` and `/teleport` accept. */
     dimensions(): readonly string[];
     /**
+     * The dimension `/execute in` moves a source to, from the source's dimension and the one the
+     * command names. A host whose dimensions belong to more than one world, and carry which in
+     * the dimension string, keeps the source's there. Absent, it is the dimension named.
+     */
+    dimensionIn?(current: string, named: string): string;
+    /**
      * The ticking areas `/tickingarea` adds, lists and removes. A host without them leaves the
      * command out.
      */

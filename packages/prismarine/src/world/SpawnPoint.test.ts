@@ -154,7 +154,8 @@ const buildScene = async (name: string) => {
                 getLevels: () => (level === undefined ? [] : [level]),
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
-                getDefaultWorld: () => world!
+                getDefaultWorld: () => world!,
+                getDefaultLevel: () => world!.getLevel()
             }),
         broadcastPacket: async () => {},
         getConfig: () =>

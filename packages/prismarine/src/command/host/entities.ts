@@ -35,6 +35,7 @@ import {
     dimensionIdOf,
     entityRefOf,
     javaDimensionIdOf,
+    splitCommandDimension,
     refuse,
     resolveEntity,
     resolvePlayer,
@@ -339,7 +340,8 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
             // it yet, and the player arrives at the requested position in one move
             // rather than at the world's spawn and then at the position.
             if (target !== undefined && dimensionIdOf(target.player.getWorld()) !== javaDimensionIdOf(dimension)) {
-                const stem = server.getWorldManager().stemFor(dimension);
+                const named = splitCommandDimension(dimension);
+                const stem = server.getWorldManager().stemFor(named.dimension, named.level);
                 if (stem === undefined) refuse(`This level has no ${dimension} dimension`);
                 const landed = server.getDimensionTravel().moveTo(
                     target.session,

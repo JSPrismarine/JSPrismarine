@@ -32,6 +32,7 @@ import type { World } from '../../world/World';
 import {
     blockPositionOf,
     carryOut,
+    dimensionInLevelOf,
     loadedDimensions,
     playersOf,
     resolveTarget,
@@ -480,6 +481,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         dimensions: () => loadedDimensions(server),
+        dimensionIn: dimensionInLevelOf,
 
         tickingAreas: tickingAreaCommandHost(server)
     };
