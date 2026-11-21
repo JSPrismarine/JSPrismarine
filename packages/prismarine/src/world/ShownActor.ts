@@ -14,6 +14,7 @@ import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/struc
 
 import type { TrackableEntity } from '../network/EntityTracker';
 import type PlayerSession from '../network/PlayerSession';
+import type { ShownEquipment } from '../network/presenter/SessionPresenter';
 import type { ViewableEquipment } from '../entity/predicateView';
 import type { StatusEffect } from '../entity/StatusEffect';
 
@@ -58,6 +59,8 @@ export interface ShownEntityFacts {
     readonly headYaw: number;
     /** The player's profile, for a player. */
     readonly player?: { readonly uuid: string; readonly name: string };
+    /** What it holds and wears; an entity with none shows none. */
+    readonly equipment?: ShownEquipment;
 }
 
 /** One entity as tracking reads it: where it is, how far it is followed, and how a client is shown it. */

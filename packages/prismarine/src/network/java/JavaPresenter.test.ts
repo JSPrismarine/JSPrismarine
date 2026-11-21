@@ -230,6 +230,40 @@ describe('JavaPresenter', () => {
         expect(sent[3]?.value).toMatchObject({ x: 3, y: 64, onGround: true });
     });
 
+    it("shows an entity's equipment with its spawn, the filled slots only, and every slot on a change", async () => {
+        const { sent, java } = presenter();
+        const zombie: ShownEntity = {
+            getRuntimeId: () => 12n,
+            getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }),
+            getTrackingRange: () => 8,
+            spawnTo: async () => {},
+            describe: () => ({
+                type: 'minecraft:zombie',
+                feet: { x: 0, y: 64, z: 0 },
+                yaw: 0,
+                pitch: 0,
+                headYaw: 0,
+                equipment: { head: { name: 'minecraft:iron_helmet', count: 1 } }
+            })
+        };
+
+        await java.showEntity(zombie);
+        await java.showEquipment(12n, { mainhand: { name: 'minecraft:stone', count: 1 } });
+
+        const equipment = sent.filter(({ name }) => name === 'Set Equipment').map(({ value }) => value);
+        expect(equipment[0]).toEqual({
+            entityId: 12,
+            equipment: [{ slot: 5, item: { item: ITEMS.idOf('minecraft:iron_helmet'), count: 1 } }]
+        });
+        expect(equipment[1]).toEqual({
+            entityId: 12,
+            equipment: [
+                { slot: 0, item: { item: ITEMS.idOf('minecraft:stone'), count: 1 } },
+                ...[1, 5, 4, 3, 2, 6].map((slot) => ({ slot, item: null }))
+            ]
+        });
+    });
+
     it('shows a mob under the Java type its Bedrock one comes from, and nothing for what it has no facts of', async () => {
         const { sent, java } = presenter();
         const mob = (describe: () => ShownEntityFacts | undefined): ShownEntity => ({

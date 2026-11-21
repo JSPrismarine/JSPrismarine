@@ -272,6 +272,18 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             content: () => server.getContent(),
             compressionLevel: () => server.getConfig().getPacketCompressionLevel(),
             sendToTracked: (runtimeId, packetsForCodec) => this.sendToTrackedEntity(runtimeId, packetsForCodec),
+            presentToTracked: (runtimeId, present) =>
+                allSent(
+                    this.world
+                        .getViewers()
+                        .filter(
+                            (session) =>
+                                session.presenter.edition !== 'bedrock' &&
+                                session.runtimeId !== runtimeId &&
+                                session.tracks(runtimeId)
+                        )
+                        .map((session) => present(session.presenter))
+                ),
             queueMove: (packet) => this.queueMove(packet)
         });
     }
@@ -1032,6 +1044,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
             // By id, not by object: `tracks` answers yes for a client's own entity, and a player
             // in the entity store is shown through an actor, not the object its session holds.
             if (session.runtimeId === runtimeId || !session.tracks(runtimeId)) continue;
+            // A client of another edition is shown the change through its presenter instead.
+            if (session.presenter.edition !== 'bedrock') continue;
 
             const connection = session.getConnection();
             const group = playersByCodec.get(connection.codec);

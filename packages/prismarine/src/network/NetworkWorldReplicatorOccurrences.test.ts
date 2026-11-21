@@ -31,6 +31,7 @@ import { viewOf } from './decoder/DecodeView';
 import LevelSoundEventDecoder from './decoder/LevelSoundEventDecoder';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import type PlayerSession from './PlayerSession';
+import type { SessionPresenter } from './presenter/SessionPresenter';
 
 /**
  * The occurrences of a sealed tick, sent after it: who receives each, and how many times it is
@@ -69,6 +70,7 @@ const viewer = (
     const frames: Buffer[] = [];
     const motions: Vector3[] = [];
     const session = stub<PlayerSession>({
+        presenter: stub<SessionPresenter>({ edition: 'bedrock' }),
         sendMotion: async (motion: Vector3) => void motions.push(motion),
         runtimeId,
         isConnected: () => true,
@@ -418,6 +420,7 @@ describe('network', () => {
                         sealOccurrences(replicator, { kind: 'occurrence', occurrence: 'relayed-sound', data: sound })
                 });
                 const session = stub<PlayerSession>({
+                    presenter: stub<SessionPresenter>({ edition: 'bedrock' }),
                     runtimeId: 7n,
                     identity: identityNamed('tester'),
                     getPlayer: () => stubPlayerPort({ getPosition: () => new Position(0, 64, 0, world) }),

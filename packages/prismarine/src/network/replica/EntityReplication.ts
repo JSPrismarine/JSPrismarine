@@ -54,6 +54,8 @@ import type PlayerSession from '../PlayerSession';
 import type { EntityRef, HeldEntity, MembershipChange, PlayerIdOf, ShownKind } from './EntityReplica';
 import type { EntityReplica } from './EntityReplica';
 import { equipmentPackets, firstSightPackets } from './firstSight';
+import type { SessionPresenter } from '../presenter/SessionPresenter';
+import { shownEquipmentOf } from '../presenter/shownInventory';
 import type { FirstSight, SightIdentity } from './firstSight';
 import { allSent } from '../allSent';
 
@@ -111,7 +113,12 @@ export interface EntityReplicationPorts {
     content(): ServerContent;
     /** The configured compression level for shared batches. */
     compressionLevel(): number;
-    /** Sends packets built for each codec to every client that tracks an entity, but its own. */
+    /**
+     * Shows a change through the presenter of every client of another edition that tracks an
+     * entity, but its own; {@link sendToTracked} reaches the Bedrock ones.
+     */
+    presentToTracked(runtimeId: bigint, present: (presenter: SessionPresenter) => Promise<void>): Promise<void>;
+    /** Sends packets built for each codec to every Bedrock client that tracks an entity, but its own. */
     sendToTracked(
         runtimeId: bigint,
         packetsForCodec: (codec: ProtocolCodec) => readonly NetworkPacket<unknown>[]
@@ -327,6 +334,9 @@ export class EntityReplication {
                 sends.push(
                     this.ports.sendToTracked(entity, (codec) =>
                         equipmentPackets(entity, worn, codec.context, offhandEmptied)
+                    ),
+                    this.ports.presentToTracked(entity, (presenter) =>
+                        presenter.showEquipment(entity, shownEquipmentOf(worn))
                     )
                 );
             }
@@ -521,9 +531,16 @@ export class EntityReplication {
             describe: () => {
                 if (view === undefined) return undefined;
                 const identity = kind === 'player' ? this.ports.identityOf(entity) : undefined;
+                const known = shown ?? this.shown.get(entity);
+                const equipment =
+                    kind === 'item'
+                        ? {}
+                        : (known?.equipment ??
+                          this.equipmentOf(held, view, kind === 'player' ? this.replica.player(held) : undefined));
                 return {
                     type: held.shownIdentifier,
                     feet: { x: view.pose.x, y: view.pose.y, z: view.pose.z },
+                    equipment: shownEquipmentOf(equipment),
                     yaw: view.pose.yaw,
                     pitch: view.pose.pitch,
                     headYaw: view.pose.yaw,

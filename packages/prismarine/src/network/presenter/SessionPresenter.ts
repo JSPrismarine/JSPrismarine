@@ -94,6 +94,11 @@ export interface ShownStack {
     readonly count: number;
 }
 
+/** What an entity holds and wears, by slot; a slot left out is empty. */
+export type ShownEquipment = Partial<
+    Record<'mainhand' | 'offhand' | 'head' | 'chest' | 'legs' | 'feet' | 'body', ShownStack>
+>;
+
 /** The containers of a player's own inventory that a client shows. */
 export type ShownContainer = 'inventory' | 'armor' | 'offhand';
 
@@ -233,6 +238,15 @@ export interface SessionPresenter {
      * @param stack - What it holds, or null.
      */
     showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void>;
+
+    /**
+     * Shows what an entity the client sees holds and wears now, for a client the replicator's
+     * Bedrock packets do not reach.
+     *
+     * @param runtimeId - The entity.
+     * @param equipment - Everything it holds and wears; every other slot is empty.
+     */
+    showEquipment(runtimeId: bigint, equipment: ShownEquipment): Promise<void>;
 
     /**
      * Shows the player its own health, food and saturation, for a client the session's Bedrock

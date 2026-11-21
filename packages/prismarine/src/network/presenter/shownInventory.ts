@@ -2,7 +2,8 @@
 import type HumanInventory from '../../inventory/HumanInventory';
 import type Inventory from '../../inventory/Inventory';
 import type { Item } from '../../item/Item';
-import type { ShownInventory, ShownStack } from './SessionPresenter';
+import type { ViewableEquipment } from '../../entity/predicateView';
+import type { ShownEquipment, ShownInventory, ShownStack } from './SessionPresenter';
 
 /**
  * A stack as plain data, or null for an empty slot.
@@ -30,3 +31,16 @@ export const shownInventoryOf = (inventory: HumanInventory): ShownInventory => (
     offhand: slotsOf(inventory.getOffhand())[0] ?? null,
     handSlot: inventory.getHandSlotIndex()
 });
+
+/**
+ * What an entity holds and wears, as plain stacks; an empty slot is left out.
+ * @param equipment - The entity's equipment, as replication reads it.
+ */
+export const shownEquipmentOf = (equipment: ViewableEquipment): ShownEquipment => {
+    const shown: Record<string, ShownStack> = {};
+    for (const [slot, item] of Object.entries(equipment)) {
+        const stack = item === undefined ? null : shownStackOf(item);
+        if (stack !== null) shown[slot] = stack;
+    }
+    return shown;
+};

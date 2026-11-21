@@ -25,7 +25,9 @@ import {
     PlayerInfoRemove,
     RemoveEntities,
     RotateHead,
+    JavaEquipmentSlot,
     SectionBlocksUpdate,
+    SetEquipment,
     SetHeldSlot,
     SynchronizePlayerPosition,
     SystemChat,
@@ -42,6 +44,7 @@ import type {
     ShownContainer,
     ShownDeath,
     ShownEntityMove,
+    ShownEquipment,
     ShownInventory,
     ShownMessage,
     ShownMove,
@@ -77,6 +80,17 @@ export const javaWindowSlotOf = (container: ShownContainer, slot: number): numbe
     if (container === 'offhand') return 45;
     return slot < 9 ? 36 + slot : slot;
 };
+
+/** Each equipment slot and the Java slot that shows it. */
+const JAVA_EQUIPMENT_SLOTS: readonly (readonly [keyof ShownEquipment, JavaEquipmentSlot])[] = [
+    ['mainhand', JavaEquipmentSlot.MainHand],
+    ['offhand', JavaEquipmentSlot.OffHand],
+    ['head', JavaEquipmentSlot.Head],
+    ['chest', JavaEquipmentSlot.Chest],
+    ['legs', JavaEquipmentSlot.Legs],
+    ['feet', JavaEquipmentSlot.Feet],
+    ['body', JavaEquipmentSlot.Body]
+];
 
 /** Sends one Java packet to the session's client. */
 export type JavaSend = <T>(definition: JavaPacketDefinition<T>, value: T) => void;
@@ -256,6 +270,19 @@ export class JavaPresenter implements SessionPresenter {
             data: 0
         });
         this.send(RotateHead, { entityId: Number(runtimeId), headYaw: facts.headYaw });
+        // Only what it has: a client shows an entity it was just told of with empty hands.
+        const equipment = this.javaEquipmentOf(facts.equipment ?? {}).filter(({ item }) => item !== null);
+        if (equipment.length > 0) this.send(SetEquipment, { entityId: Number(runtimeId), equipment });
+    }
+
+    /** Every slot, so one emptied since the last send is cleared, in Java's slots and items. */
+    private javaEquipmentOf(equipment: ShownEquipment) {
+        return JAVA_EQUIPMENT_SLOTS.map(([name, slot]) => ({ slot, item: this.javaStackOf(equipment[name] ?? null) }));
+    }
+
+    /** Sends `Set Equipment` with every slot, the empty ones included. */
+    public async showEquipment(runtimeId: bigint, equipment: ShownEquipment): Promise<void> {
+        this.send(SetEquipment, { entityId: Number(runtimeId), equipment: this.javaEquipmentOf(equipment) });
     }
 
     /** Sends `Remove Entities`, and takes a player off the tab list too. */

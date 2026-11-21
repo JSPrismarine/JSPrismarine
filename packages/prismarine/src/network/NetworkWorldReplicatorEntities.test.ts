@@ -34,7 +34,7 @@ import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
-import type { SessionPresenter } from './presenter/SessionPresenter';
+import type { SessionPresenter, ShownEquipment } from './presenter/SessionPresenter';
 
 /**
  * Who is shown what, as entities come and go.
@@ -480,6 +480,26 @@ describe('network', () => {
                     'MobArmorEquipmentPacket',
                     'MobEquipmentPacket'
                 ]);
+            });
+
+            it("shows a Java tracker a mob's new equipment through its presenter, and no Bedrock packets", async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                const shown: ShownEquipment[] = [];
+                Object.assign(watching.player, {
+                    presenter: stub<SessionPresenter>({
+                        edition: 'java',
+                        showEquipment: async (_runtimeId, equipment) => void shown.push(equipment)
+                    })
+                });
+                watching.spy.frames.length = 0;
+
+                await tick(() => entity!.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } }));
+
+                expect(shown).toStrictEqual([{ mainhand: { name: 'minecraft:stick', count: 1 } }]);
+                expect(watching.spy.frames).toHaveLength(0);
             });
 
             it('sends the maximum health a group raised, not the one the entity spawned with (#2995)', async () => {
