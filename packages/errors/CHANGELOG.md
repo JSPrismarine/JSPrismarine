@@ -1,5 +1,11 @@
 # @jsprismarine/color-parser
 
+## 0.23.2
+
+### Patch Changes
+
+- [#3483](https://github.com/JSPrismarine/JSPrismarine/pull/3483) [`5f48cd1`](https://github.com/JSPrismarine/JSPrismarine/commit/5f48cd10e4ca5b53ef19ebd214b70b1de18acca9) Thanks [@filiphsps](https://github.com/filiphsps)! - Pack a generated chunk's biome sections from the cells its terrain pass already sampled. When generation runs on the server thread (one core, or `chunk-workers: 0`), the terrain tile carries its biome cells but no packed sections, and translation resolved every cell from the biome source again, searching the climate tree wherever the memo had evicted it. Over a 3 by 3 block of decorated chunks, climate searches for the chunks' own cells fall from 21,211 to 15,476, against 13,824 cells. The packed biomes are the same.
+
 ## 0.23.1
 
 ### Patch Changes

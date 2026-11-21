@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/server-benchmark",
-    "version": "0.23.1",
+    "version": "0.23.2",
     "private": true,
     "license": "(MIT OR MPL-2.0)",
     "description": "Runs JSPrismarine, Pumpkin and Bedrock Dedicated Server under one bot workload and records what each costs",
