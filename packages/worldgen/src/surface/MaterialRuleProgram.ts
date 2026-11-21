@@ -142,6 +142,19 @@ const FOLD_FALSE = 0;
 const FOLD_TRUE = 1;
 const FOLD_VARIES = 2;
 
+/**
+ * {@link foldBiomes} over a block's candidate cells, as a fold byte. It runs once per condition
+ * per parent cell, so it loops by index, which JavaScriptCore runs faster than `for...of`, and stops
+ * at the first disagreement.
+ */
+const foldCandidates = (named: ReadonlySet<string>, candidates: readonly string[]): number => {
+    const first = named.has(candidates[0]!);
+    for (let index = 1; index < candidates.length; index++) {
+        if (named.has(candidates[index]!) !== first) return FOLD_VARIES;
+    }
+    return first ? FOLD_TRUE : FOLD_FALSE;
+};
+
 const foldByte = (fold: boolean | undefined): number =>
     fold === undefined ? FOLD_VARIES : fold ? FOLD_TRUE : FOLD_FALSE;
 
@@ -306,7 +319,7 @@ export class MaterialRuleInterpreter {
                 if (candidates !== undefined) {
                     if (this.foldedAt[index] !== context.candidateCount) {
                         this.foldedAt[index] = context.candidateCount;
-                        this.candidateFolds[index] = foldByte(foldBiomes(node.named, candidates));
+                        this.candidateFolds[index] = foldCandidates(node.named, candidates);
                     }
                     const fold = this.candidateFolds[index];
                     if (fold !== FOLD_VARIES) return fold === FOLD_TRUE;
