@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
+import { SpawnPositionType } from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import { describe, expect, it } from 'vitest';
 
 import { fakePlayer } from '../testing/fakePlayer.test.helper';

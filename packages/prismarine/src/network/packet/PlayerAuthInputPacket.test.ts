@@ -12,7 +12,7 @@ import {
     PlayerActionType,
     PlayerAuthInputData
 } from '@jsprismarine/protocol';
-import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
+import PlayerAuthInputPacket from '@jsprismarine/protocol/bedrock/packet/PlayerAuthInputPacket';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';

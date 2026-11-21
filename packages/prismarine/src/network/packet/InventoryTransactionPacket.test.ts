@@ -5,7 +5,7 @@ import { assert, describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import {
     InventorySourceType,
     HandSlot,

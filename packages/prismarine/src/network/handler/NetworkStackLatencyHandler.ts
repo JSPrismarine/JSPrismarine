@@ -1,4 +1,4 @@
-import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
+import NetworkStackLatencyPacket from '@jsprismarine/protocol/bedrock/packet/NetworkStackLatencyPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

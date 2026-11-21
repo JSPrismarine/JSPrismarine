@@ -2,7 +2,7 @@ import { navigationProfile } from '@jsprismarine/entity-goals';
 import { isRecord } from '@jsprismarine/entities';
 import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { ActorMetadataProjection } from './actorMetadata';

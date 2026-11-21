@@ -1,4 +1,4 @@
-import type SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
+import type SettingsCommandPacket from '@jsprismarine/protocol/bedrock/packet/SettingsCommandPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

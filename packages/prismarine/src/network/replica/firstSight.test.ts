@@ -1,8 +1,8 @@
 import type { ProtocolContext } from '@jsprismarine/protocol';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
-import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
-import Vec3 from '@jsprismarine/protocol/structure/Vec3';
+import AddPaintingPacket from '@jsprismarine/protocol/bedrock/packet/AddPaintingPacket';
+import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
 import { describe, expect, it } from 'vitest';
 
 import type { EntityView } from '../../entity/data/actorView';

@@ -3,7 +3,7 @@ import { BlockPalette, BlockStateModel, vanillaBlockPalette } from '@jsprismarin
 import { Logger } from '@jsprismarine/logger';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { blockRuntimeId } from '@jsprismarine/protocol';
-import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/protocol/payload';
+import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
 import { describe, expect, it, vi } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';

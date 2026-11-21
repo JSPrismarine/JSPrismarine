@@ -5,10 +5,10 @@
 import PrimitiveShapeData, {
     PrimitiveShapeExtraDataType,
     PrimitiveShapeType
-} from '@jsprismarine/protocol/structure/PrimitiveShapeData';
-import type { PrimitiveShapeExtraData } from '@jsprismarine/protocol/structure/PrimitiveShapeData';
-import Vec2 from '@jsprismarine/protocol/structure/Vec2';
-import Vec3 from '@jsprismarine/protocol/structure/Vec3';
+} from '@jsprismarine/protocol/bedrock/structure/PrimitiveShapeData';
+import type { PrimitiveShapeExtraData } from '@jsprismarine/protocol/bedrock/structure/PrimitiveShapeData';
+import Vec2 from '@jsprismarine/protocol/bedrock/structure/Vec2';
+import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
 import type {
     ScriptDebugShape,
     ScriptDebugShapeChange,

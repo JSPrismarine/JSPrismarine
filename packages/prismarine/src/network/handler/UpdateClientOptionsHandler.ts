@@ -1,5 +1,5 @@
-import type UpdateClientOptionsPacket from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
-import { GraphicsMode } from '@jsprismarine/protocol/packet/UpdateClientOptionsPacket';
+import type UpdateClientOptionsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateClientOptionsPacket';
+import { GraphicsMode } from '@jsprismarine/protocol/bedrock/packet/UpdateClientOptionsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

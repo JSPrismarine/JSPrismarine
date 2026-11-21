@@ -1,4 +1,4 @@
-import type ActorPickRequestPacket from '@jsprismarine/protocol/packet/ActorPickRequestPacket';
+import type ActorPickRequestPacket from '@jsprismarine/protocol/bedrock/packet/ActorPickRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

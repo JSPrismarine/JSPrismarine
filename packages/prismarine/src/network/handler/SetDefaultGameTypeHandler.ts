@@ -2,7 +2,7 @@ import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type PlayerSession from '../PlayerSession';
-import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
+import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import type { HandlerConfig, HandlerServices, InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

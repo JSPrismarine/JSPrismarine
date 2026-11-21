@@ -8,7 +8,7 @@
  * an `AddItemActor` from the change log (`network/replica/firstSight.ts`).
  */
 import type { Vector3 } from '@jsprismarine/math';
-import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type { StoredItemStack } from '../../inventory/persistence';

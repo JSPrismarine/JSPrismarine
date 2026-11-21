@@ -1,5 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type Server from '../Server';
 import { entityIds } from '../entity/entityIds';

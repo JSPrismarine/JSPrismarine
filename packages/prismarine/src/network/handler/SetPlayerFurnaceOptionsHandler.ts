@@ -1,9 +1,9 @@
-import type SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
+import type SetPlayerFurnaceOptionsPacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerFurnaceOptionsPacket';
 import {
     FurnaceLayout,
     FurnaceLeftTabIndex,
     FurnaceType
-} from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
+} from '@jsprismarine/protocol/bedrock/packet/SetPlayerFurnaceOptionsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

@@ -3,7 +3,7 @@
  * ticker's figures, a player's round trip time from their transport, and boss bars on a player's
  * own screen.
  */
-import { BossBarColor } from '@jsprismarine/protocol/packet/BossEventPacket';
+import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import type { JsprismarineServerMembers, ScriptBossBarState } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
 

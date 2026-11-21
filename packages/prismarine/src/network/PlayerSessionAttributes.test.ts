@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
-import type UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
+import type UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 

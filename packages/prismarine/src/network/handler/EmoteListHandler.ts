@@ -1,4 +1,4 @@
-import type EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
+import type EmoteListPacket from '@jsprismarine/protocol/bedrock/packet/EmoteListPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

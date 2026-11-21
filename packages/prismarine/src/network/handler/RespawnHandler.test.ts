@@ -11,7 +11,7 @@ import type { World } from '../../world/World';
 import type { Arrival } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
-import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
+import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
 
 /**

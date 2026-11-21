@@ -1,10 +1,10 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
-import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
-import { HeightMapDataType } from '@jsprismarine/protocol/structure/SubChunkHeightmapData';
-import SubChunkPos from '@jsprismarine/protocol/structure/SubChunkPos';
-import SubChunkPosOffset from '@jsprismarine/protocol/structure/SubChunkPosOffset';
+import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/bedrock/packet/SubChunkPacket';
+import { HeightMapDataType } from '@jsprismarine/protocol/bedrock/structure/SubChunkHeightmapData';
+import SubChunkPos from '@jsprismarine/protocol/bedrock/structure/SubChunkPos';
+import SubChunkPosOffset from '@jsprismarine/protocol/bedrock/structure/SubChunkPosOffset';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';

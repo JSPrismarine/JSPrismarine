@@ -4,7 +4,7 @@ import type { SessionPlayer } from './sessionPlayers';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 import { TextPacketType } from '@jsprismarine/protocol';

@@ -2,7 +2,7 @@
  * Checks that every protocol packet class takes its wire body from a declarative layout, or is a
  * recorded exception.
  *
- * A packet class in `packages/protocol/src/packet` is a layout packet when it calls `layoutAt`.
+ * A packet class in `packages/protocol/src/bedrock/packet` is a layout packet when it calls `layoutAt`.
  * One that writes its own body must appear in `scripts/wire-layout-exceptions.json` with the
  * reason the layout vocabulary cannot express it (`docs/adr/0003-declarative-wire-layouts.md`
  * lists the reasons). A new hand-written packet fails this check until someone adds it with
@@ -32,7 +32,7 @@ const isBaseline = (value: unknown): value is Record<string, Reason> =>
     Object.entries(value).every(([file, reason]) => file.endsWith('.ts') && isReason(reason));
 
 const files = (
-    await glob('packages/protocol/src/packet/*Packet.ts', {
+    await glob('packages/protocol/src/bedrock/packet/*Packet.ts', {
         cwd: repoRoot,
         ignore: ['**/*.test.*', '**/*.d.ts']
     })
@@ -82,7 +82,7 @@ if (fresh.length > 0 || stale.length > 0) {
     for (const file of fresh) {
         console.error(`${file} writes its own body but is not a recorded exception; define a layout for it`);
         console.error(
-            '  in packages/protocol/src/wire/definitions, or run `node scripts/check-wire-layouts.mts --update --reason <reason>`.'
+            '  in packages/protocol/src/bedrock/wire/definitions, or run `node scripts/check-wire-layouts.mts --update --reason <reason>`.'
         );
     }
     for (const file of stale) {

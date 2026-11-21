@@ -541,55 +541,16 @@
     "packages/protocol/benchmarks/compression.bench.ts": {
         "landmines-testing/no-test-doubles": 2
     },
-    "packages/protocol/src/packet/ChangeDimensionPacket.layout.test.ts": {
+    "packages/protocol/src/bedrock/packet/CommandRequestPacket.layout.test.ts": {
         "landmines-structure/colocated-tests": 1
     },
-    "packages/protocol/src/packet/ClientToServerHandshakePacket.layout.test.ts": {
+    "packages/protocol/src/bedrock/packet/PhotoTransferPacket.layout.test.ts": {
         "landmines-structure/colocated-tests": 1
     },
-    "packages/protocol/src/packet/CommandOutputPacket.layout.test.ts": {
+    "packages/protocol/src/bedrock/packet/SetActorLinkPacket.layout.test.ts": {
         "landmines-structure/colocated-tests": 1
     },
-    "packages/protocol/src/packet/CommandRequestPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/EmoteListPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/InventoryContentPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/InventorySlotPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/PhotoTransferPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/PlayerActionPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/ResourcePackClientResponsePacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/ServerboundMatchmakingCancelPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/ServerboundStonecutterSetRecipePacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/SetActorLinkPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/SetPlayerGameTypePacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/StopSoundPacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/packet/UpdatePlayerGameTypePacket.layout.test.ts": {
-        "landmines-structure/colocated-tests": 1
-    },
-    "packages/protocol/src/payload/blockProperties.vanilla.test.ts": {
+    "packages/protocol/src/bedrock/payload/blockProperties.vanilla.test.ts": {
         "landmines-testing/no-flake-masking": 1
     },
     "packages/protocol/src/testing/evidence.test.helper.ts": {

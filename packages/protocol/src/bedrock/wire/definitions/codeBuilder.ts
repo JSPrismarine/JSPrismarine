@@ -1,0 +1,20 @@
+/**
+ * `CodeBuilderPacket`: Where the Code Builder websocket server lives, and whether to open the app
+ * now.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/code-builder-packet/}
+ */
+import { definePacket } from '../../../wire/define';
+import * as t from '../../../wire/fieldTypes';
+
+import type { PayloadOf } from '../../../wire/define';
+
+/** The `CodeBuilderPacket` field list. */
+export const codeBuilderPacket = definePacket('CodeBuilderPacket', {
+    /** URL of the Code Builder websocket server. */
+    url: t.string,
+    /** Should open code builder: true to bring the Code Builder app up straight away. */
+    shouldOpenCodeBuilder: t.bool
+});
+
+/** Where the Code Builder websocket server lives, and whether to open the app now. */
+export type CodeBuilderPayload = PayloadOf<typeof codeBuilderPacket>;

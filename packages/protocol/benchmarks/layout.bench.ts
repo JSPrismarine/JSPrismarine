@@ -6,7 +6,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { performance } from 'node:perf_hooks';
 
-import { wireDefinitions } from '../src/wire/definitions';
+import { wireDefinitions } from '../src/bedrock/wire/definitions';
 import { isGated, isVersioned } from '../src/wire/define';
 import * as t from '../src/wire/fieldTypes';
 import type { WireLayout } from '../src/wire/WireLayout';

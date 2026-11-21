@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 
 import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { InetAddress } from '@jsprismarine/raknet';
 import type {
     ScriptGameMode,

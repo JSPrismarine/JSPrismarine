@@ -10,7 +10,9 @@
  * spawn is floored here rather than sent as the wrong block.
  */
 import type { Vector3 } from '@jsprismarine/math';
-import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
 import { Dimensions, dimensionByName } from '../world/DimensionType';

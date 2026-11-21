@@ -1,0 +1,28 @@
+/**
+ * The biome definitions available to the client for rendering and world generation. The
+ * server-supplied definition payload is carried as bytes to the end of the packet.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/biome-definition-list-packet/}
+ */
+import { definePacket } from '../../../wire/define';
+import * as t from '../../../wire/fieldTypes';
+
+/**
+ * Both payload fields - `Map of Biome names to data` and `String list` - carried opaque to the
+ * end of the packet. This server defines no custom biomes and replays a captured vanilla
+ * payload verbatim; modeling the map field by field would only create ways to disagree with
+ * the client about a blob that is identical for every server of this version.
+ */
+const biomeDefinitionsTail = t.custom<Buffer>(
+    'BiomeDefinitionsTail',
+    (s, v) => s.write(v),
+    (s) => s.readRemaining()
+);
+
+/**
+ * The `BiomeDefinitionListPacket` field list: every biome the client can render. A client
+ * that reaches the world-generation screen with an empty list disconnects.
+ */
+export const biomeDefinitionListPacket = definePacket('BiomeDefinitionListPacket', {
+    /** The biome map and its string list as the network carries them; see {@link biomeDefinitionsTail}. */
+    definitions: biomeDefinitionsTail
+});

@@ -7,7 +7,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import type PlayerSession from '../PlayerSession';
-import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
+import ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePacksReadyForValidationPacket';
 import ResourcePacksReadyForValidationHandler from './ResourcePacksReadyForValidationHandler';
 
 const fakeSession = () => {

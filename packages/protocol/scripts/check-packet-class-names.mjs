@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
-const packetSource = path.join(packageRoot, 'src/packet');
+const packetSource = path.join(packageRoot, 'src/bedrock/packet');
 const packetNames = readdirSync(packetSource).filter((filename) => {
     if (!filename.endsWith('.ts') || filename.endsWith('.test.ts')) return false;
     return readFileSync(path.join(packetSource, filename), 'utf8').includes('extends NetworkPacket<');
@@ -12,8 +12,8 @@ const packetNames = readdirSync(packetSource).filter((filename) => {
 
 for (const filename of packetNames) {
     const name = filename.slice(0, -3);
-    const source = await import(new URL(`../src/packet/${filename}`, import.meta.url));
-    const dist = await import(new URL(`../dist/packet/${name}.js`, import.meta.url));
+    const source = await import(new URL(`../src/bedrock/packet/${filename}`, import.meta.url));
+    const dist = await import(new URL(`../dist/bedrock/packet/${name}.js`, import.meta.url));
     assert.equal(dist.default.name, source.default.name, `${filename} class name`);
 }
 

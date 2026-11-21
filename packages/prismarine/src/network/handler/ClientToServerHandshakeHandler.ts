@@ -1,4 +1,4 @@
-import type ClientToServerHandshakePacket from '@jsprismarine/protocol/packet/ClientToServerHandshakePacket';
+import type ClientToServerHandshakePacket from '@jsprismarine/protocol/bedrock/packet/ClientToServerHandshakePacket';
 import type { ConnectionContext, ConnectionHandler } from './ConnectionContext';
 
 /**

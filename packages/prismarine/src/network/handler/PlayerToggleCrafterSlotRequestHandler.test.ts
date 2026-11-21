@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
-import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
+import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/bedrock/packet/PlayerToggleCrafterSlotRequestPacket';
 import PlayerToggleCrafterSlotRequestHandler from './PlayerToggleCrafterSlotRequestHandler';
 
 const toggle = (slotIndex: number, posZ = 3) =>

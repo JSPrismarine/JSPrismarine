@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from './NetworkBinaryStream';
 import NetworkPacket from './NetworkPacket';
-import { BatchCodec } from './BatchCodec';
+import { BatchCodec } from './bedrock/BatchCodec';
 
 class PayloadPacket extends NetworkPacket<number> {
     public constructor(value: number) {

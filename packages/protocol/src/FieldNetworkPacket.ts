@@ -1,6 +1,6 @@
 import NetworkPacket from './NetworkPacket';
 import type NetworkBinaryStream from './NetworkBinaryStream';
-import type { ProtocolContext } from './ProtocolContext';
+import type { ProtocolContext } from './bedrock/ProtocolContext';
 import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 /**

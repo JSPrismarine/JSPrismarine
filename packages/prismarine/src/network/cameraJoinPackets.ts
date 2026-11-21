@@ -13,10 +13,10 @@ import { aim_assist_presets as aim2225, camera_presets as camera2225 } from '@js
 import { aim_assist_presets as aim2259, camera_presets as camera2259 } from '@jsprismarine/bedrock-data/v2259';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import CameraAimAssistPresetsPacket from '@jsprismarine/protocol/packet/CameraAimAssistPresetsPacket';
-import type { CameraAimAssistPresets } from '@jsprismarine/protocol/packet/CameraAimAssistPresetsPacket';
-import CameraPresetsPacket from '@jsprismarine/protocol/packet/CameraPresetsPacket';
-import type { CameraPresetsPayload } from '@jsprismarine/protocol/packet/CameraPresetsPacket';
+import CameraAimAssistPresetsPacket from '@jsprismarine/protocol/bedrock/packet/CameraAimAssistPresetsPacket';
+import type { CameraAimAssistPresets } from '@jsprismarine/protocol/bedrock/packet/CameraAimAssistPresetsPacket';
+import CameraPresetsPacket from '@jsprismarine/protocol/bedrock/packet/CameraPresetsPacket';
+import type { CameraPresetsPayload } from '@jsprismarine/protocol/bedrock/packet/CameraPresetsPacket';
 
 /** Each captured version's payloads, by protocol version. */
 const CAPTURED: ReadonlyMap<number, { readonly cameraPresets: Buffer; readonly aimAssistPresets: Buffer }> = new Map([

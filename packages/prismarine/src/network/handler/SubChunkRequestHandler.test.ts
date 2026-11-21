@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
+import SubChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/SubChunkRequestPacket';
 import SubChunkRequestHandler from './SubChunkRequestHandler';
 
 describe('SubChunkRequestHandler', () => {

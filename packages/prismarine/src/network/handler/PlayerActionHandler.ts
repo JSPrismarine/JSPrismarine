@@ -4,7 +4,7 @@ import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 import { blockFromContent } from '../../block/Block';
 import BlockPosition from '../../world/BlockPosition';
 import { PlayerActionType } from '@jsprismarine/protocol';
-import type PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
+import type PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import { blockMiningOf, minimumBreakTicks, playerMiningOf } from '../../world/BlockMining';
 import type { BlockMining } from '../../world/BlockMining';

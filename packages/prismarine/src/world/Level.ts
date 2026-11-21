@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto';
 import { Vector3 } from '@jsprismarine/math';
 import { Generator as GeneratorType } from '@jsprismarine/minecraft';
 import type { DimensionDefinitionFields } from '@jsprismarine/protocol';
-import UUID from '@jsprismarine/protocol/structure/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/structure/UUID';
 import type { DimensionTypeDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 

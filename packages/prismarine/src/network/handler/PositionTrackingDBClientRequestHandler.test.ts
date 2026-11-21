@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
+import PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/bedrock/packet/PositionTrackingDBClientRequestPacket';
 import PositionTrackingDBClientRequestHandler from './PositionTrackingDBClientRequestHandler';
 
 describe('PositionTrackingDBClientRequestHandler', () => {

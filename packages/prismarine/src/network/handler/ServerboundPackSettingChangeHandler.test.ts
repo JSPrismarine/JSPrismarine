@@ -4,9 +4,9 @@ import type { Logger } from '@jsprismarine/logger';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type PlayerSession from '../PlayerSession';
-import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';
+import ServerboundPackSettingChangePacket from '@jsprismarine/protocol/bedrock/packet/ServerboundPackSettingChangePacket';
 import ServerboundPackSettingChangeHandler from './ServerboundPackSettingChangeHandler';
 
 describe('ServerboundPackSettingChangeHandler', () => {

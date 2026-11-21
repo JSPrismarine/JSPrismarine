@@ -1,5 +1,5 @@
-import type AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
-import { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
+import type AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
+import { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import PlayerSwingEvent from '../../events/player/PlayerSwingEvent';

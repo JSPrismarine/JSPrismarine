@@ -227,18 +227,18 @@
         "noBarrelFile": 1,
         "noReExportAll": 112
     },
-    "packages/protocol/src/packet/PlayerListPacket.ts": {
+    "packages/protocol/src/bedrock/packet/PlayerListPacket.ts": {
         "noBarrelFile": 1
     },
-    "packages/protocol/src/packet/index.ts": {
+    "packages/protocol/src/bedrock/packet/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 159
     },
-    "packages/protocol/src/payload/index.ts": {
+    "packages/protocol/src/bedrock/payload/index.ts": {
         "noBarrelFile": 1,
         "noReExportAll": 6
     },
-    "packages/protocol/src/payload/palette.ts": {
+    "packages/protocol/src/bedrock/payload/palette.ts": {
         "noBarrelFile": 1
     },
     "packages/raknet/src/index.ts": {

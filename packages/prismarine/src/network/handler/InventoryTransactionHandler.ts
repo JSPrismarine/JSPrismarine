@@ -10,7 +10,7 @@ import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
 import { consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractingPlayer, InteractionResult, InteractionRotation } from '../../item/interaction';
-import type InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import type InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import type {
     ReleaseItemData,
     ServerInventoryTransaction,

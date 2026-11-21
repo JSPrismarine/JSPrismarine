@@ -1,4 +1,4 @@
-import type ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/packet/ResourcePacksReadyForValidationPacket';
+import type ResourcePacksReadyForValidationPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePacksReadyForValidationPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

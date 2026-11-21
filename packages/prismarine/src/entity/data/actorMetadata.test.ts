@@ -4,7 +4,7 @@ import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { Vector3 } from '@jsprismarine/math';
 
 import type { StoreActor } from './storeActors';
-import { Metadata, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { Metadata, MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import { stub } from '../../testing/stub.test.helper';
 import { actorMetadataProjection, applyActorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
 import { referenceActorMetadataProjection } from './actorMetadata.reference.test.helper';

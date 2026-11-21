@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { PositionMode } from '@jsprismarine/protocol';
-import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import { describe, expect, it, vi } from 'vitest';
 
 import { sessionContext } from '../../testing/handlerContext.test.helper';

@@ -7,7 +7,7 @@ import {
     readUseItemData as readWireUseItemData,
     writeInventoryAction,
     writeUseItemData as writeWireUseItemData
-} from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+} from '@jsprismarine/protocol/bedrock/wire/structures/InventoryTransaction';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type {
@@ -17,7 +17,7 @@ import type {
     TransactionPayload as WireTransactionPayload,
     UseItemData as WireUseItemData,
     UseItemOnEntityData as WireUseItemOnEntityData
-} from '@jsprismarine/protocol/wire/structures/InventoryTransaction';
+} from '@jsprismarine/protocol/bedrock/wire/structures/InventoryTransaction';
 
 /**
  * One action in the server's inventory model, with both stacks resolved to game `Item`s.

@@ -1,4 +1,4 @@
-import type LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
+import type LecternUpdatePacket from '@jsprismarine/protocol/bedrock/packet/LecternUpdatePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';

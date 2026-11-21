@@ -1,9 +1,9 @@
 /** Measures request-mode chunk delivery CPU and compressed bytes for a first join and a walk back. */
-import ClientCacheMissResponsePacket from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/packet/SubChunkPacket';
-import SubChunkPos from '@jsprismarine/protocol/structure/SubChunkPos';
-import SubChunkPosOffset from '@jsprismarine/protocol/structure/SubChunkPosOffset';
+import ClientCacheMissResponsePacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheMissResponsePacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
+import SubChunkPacket, { SubChunkRequestResult } from '@jsprismarine/protocol/bedrock/packet/SubChunkPacket';
+import SubChunkPos from '@jsprismarine/protocol/bedrock/structure/SubChunkPos';
+import SubChunkPosOffset from '@jsprismarine/protocol/bedrock/structure/SubChunkPosOffset';
 import { performance } from 'node:perf_hooks';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';

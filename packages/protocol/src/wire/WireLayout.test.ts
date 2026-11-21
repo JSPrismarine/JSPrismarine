@@ -3,14 +3,14 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { definePacket, gated, isGated, versioned } from './define';
 import type { FieldSpec } from './define';
-import { AnimateHand, animatePacket } from './definitions/animate';
+import { AnimateHand, animatePacket } from '../bedrock/wire/definitions/animate';
 import * as t from './fieldTypes';
 import type { WireType } from './fieldTypes';
 import { layoutAt } from './WireLayout';
-import { since, until } from './wireGates';
-import { wireDefinitions } from './definitions';
+import { since, until } from '../bedrock/wire/wireGates';
+import { wireDefinitions } from '../bedrock/wire/definitions';
 
-import type { AnimatePayload } from './definitions/animate';
+import type { AnimatePayload } from '../bedrock/wire/definitions/animate';
 
 const PROTOCOL_2193 = 2193;
 const PROTOCOL_2225 = 2225;

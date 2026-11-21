@@ -3,7 +3,7 @@ import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { meleeEnchantmentBonus } from '../enchantment/melee';
 import { GameRules } from '../world/GameRuleManager';
 import type { StoreActor } from './data/storeActors';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { PLAYER_IDENTIFIER } from './playerOverlay';

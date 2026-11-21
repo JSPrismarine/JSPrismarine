@@ -7,10 +7,12 @@ import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing'
 import type Server from '../Server';
 import type PlayerSession from '../network/PlayerSession';
 import type { World } from '../world/World';
-import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { Item } from '../item/Item';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import PlayerEnchantOptionsPacket, { EnchantType } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
+import PlayerEnchantOptionsPacket, {
+    EnchantType
+} from '@jsprismarine/protocol/bedrock/packet/PlayerEnchantOptionsPacket';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { experienceIn } from '../testing/storePlayer.test.helper';

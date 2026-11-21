@@ -13,7 +13,7 @@ import type { RakNetSession } from '@jsprismarine/raknet';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec, CompressionCodec } from '@jsprismarine/protocol';
 import type { Frame } from '@jsprismarine/raknet';
-import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
+import AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 
 import Codec2225 from '../src/network/codec/Codec2225';
 import MinecraftSession from '../src/network/MinecraftSession';

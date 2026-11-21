@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { BatchCodec } from '@jsprismarine/protocol';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
-import { BATCH_PACKET_ID } from '@jsprismarine/protocol/BatchCodec';
+import AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
+import { BATCH_PACKET_ID } from '@jsprismarine/protocol/bedrock/BatchCodec';
 import Codec2193 from './codec/Codec2193';
 import {
     encodePacketBatch,

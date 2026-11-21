@@ -43,7 +43,7 @@ import type PlayerSession from '../network/PlayerSession';
 import type { RespawnDestination } from '../network/PlayerSession';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type { ChunkScheduler } from './ChunkScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './DimensionType';

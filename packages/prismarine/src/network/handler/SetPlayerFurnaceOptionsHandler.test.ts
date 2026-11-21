@@ -11,8 +11,8 @@ import SetPlayerFurnaceOptionsPacket, {
     FurnaceLayout,
     FurnaceLeftTabIndex,
     FurnaceType
-} from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
-import type { SetPlayerFurnaceOptions } from '@jsprismarine/protocol/packet/SetPlayerFurnaceOptionsPacket';
+} from '@jsprismarine/protocol/bedrock/packet/SetPlayerFurnaceOptionsPacket';
+import type { SetPlayerFurnaceOptions } from '@jsprismarine/protocol/bedrock/packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerFurnaceOptionsHandler from './SetPlayerFurnaceOptionsHandler';
 
 const fakeSession = () => {

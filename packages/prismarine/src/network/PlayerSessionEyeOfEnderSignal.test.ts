@@ -1,9 +1,9 @@
-import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
+import AddActorPacket from '@jsprismarine/protocol/bedrock/packet/AddActorPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
+import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
 import { describe, expect, it } from 'vitest';
 
-import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import type Server from '../Server';
 import type { DataEntity } from '../entity/data/DataEntity';
 import { entityFixture } from '../entity/data/testing';

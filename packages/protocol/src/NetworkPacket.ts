@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import NetworkBinaryStream from './NetworkBinaryStream';
-import type { ProtocolContext } from './ProtocolContext';
-import { netIdFor, protocolVersion } from './wire/versions/v2193';
+import type { ProtocolContext } from './bedrock/ProtocolContext';
+import { netIdFor, protocolVersion } from './bedrock/wire/versions/v2193';
 import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
 const PACKET_ID_MASK = 0x3ff;

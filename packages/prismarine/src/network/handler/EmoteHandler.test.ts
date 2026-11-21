@@ -7,7 +7,7 @@ import type { World } from '../../world/World';
 import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteHandler from './EmoteHandler';
 import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';

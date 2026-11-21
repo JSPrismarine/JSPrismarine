@@ -1,6 +1,6 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type ModalFormResponsePacket from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
-import { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
+import type ModalFormResponsePacket from '@jsprismarine/protocol/bedrock/packet/ModalFormResponsePacket';
+import { ModalFormCancelReason } from '@jsprismarine/protocol/bedrock/packet/ModalFormResponsePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import { stub } from '../src/testing/stub.test.helper';
 import { Position } from '../src/world/Position';
 import type { World } from '../src/world/World';

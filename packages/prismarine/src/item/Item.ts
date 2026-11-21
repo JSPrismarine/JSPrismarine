@@ -15,9 +15,9 @@ import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protoco
 import {
     readItemStackDescriptor,
     writeItemStackDescriptor
-} from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
+} from '@jsprismarine/protocol/bedrock/wire/structures/ItemStackDescriptor';
 
-import type { ItemStackDescriptorData } from '@jsprismarine/protocol/wire/structures/ItemStackDescriptor';
+import type { ItemStackDescriptorData } from '@jsprismarine/protocol/bedrock/wire/structures/ItemStackDescriptor';
 
 import { bedrockBlockToJava } from '@jsprismarine/mapping';
 

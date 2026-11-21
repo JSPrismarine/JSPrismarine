@@ -16,9 +16,9 @@
  * The game mode is `abilities.gamemode`, which the store player reads and writes.
  */
 import { Gametype } from '@jsprismarine/minecraft';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 
 import { isGametype } from '../isGametype';
 import type { ExperienceHolder } from './Experience';

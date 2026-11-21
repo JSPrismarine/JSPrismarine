@@ -16,7 +16,7 @@ import type SessionManager from '../SessionManager';
 import { stub } from '../testing/stub.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
 import { Dimensions } from '../world/DimensionType';

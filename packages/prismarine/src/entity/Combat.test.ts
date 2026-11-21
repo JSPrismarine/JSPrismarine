@@ -9,7 +9,7 @@ import { StoreActor } from './data/storeActors';
 import { PLAYER_IDENTIFIER } from './playerOverlay';
 import { Item } from '../item/Item';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 /**
  * Melee attacks.

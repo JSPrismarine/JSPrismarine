@@ -1,4 +1,4 @@
-import type MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
+import type MapCreateLockedCopyPacket from '@jsprismarine/protocol/bedrock/packet/MapCreateLockedCopyPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

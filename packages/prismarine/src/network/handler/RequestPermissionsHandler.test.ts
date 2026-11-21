@@ -9,7 +9,7 @@ import { sameSubject } from '../../identity/Subject';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
-import RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
+import RequestPermissionsPacket from '@jsprismarine/protocol/bedrock/packet/RequestPermissionsPacket';
 import RequestPermissionsHandler from './RequestPermissionsHandler';
 
 /**

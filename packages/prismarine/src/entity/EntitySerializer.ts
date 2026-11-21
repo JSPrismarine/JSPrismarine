@@ -8,7 +8,7 @@ import { ItemActor } from './data/itemActor';
 import { StoreActor } from './data/storeActors';
 import type { ItemStart } from './data/droppedItems';
 import { DEFAULT_FUSE_TICKS } from './fuse';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import { portalCooldownOf } from './PortalContact';
 import type { StatusEffect } from './StatusEffect';
 import { bedrockMobEffectIdentifier, bedrockMobEffectId } from './StatusEffect';

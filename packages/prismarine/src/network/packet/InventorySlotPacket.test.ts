@@ -1,12 +1,12 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import { netIdFor } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import { ContainerUiId } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
-import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
 

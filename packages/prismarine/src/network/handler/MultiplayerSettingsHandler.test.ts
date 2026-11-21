@@ -7,7 +7,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
 import MultiplayerSettingsPacket, {
     MultiplayerSettingsPacketType
-} from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
+} from '@jsprismarine/protocol/bedrock/packet/MultiplayerSettingsPacket';
 import MultiplayerSettingsHandler from './MultiplayerSettingsHandler';
 
 describe('MultiplayerSettingsHandler', () => {

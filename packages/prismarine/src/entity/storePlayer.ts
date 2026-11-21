@@ -20,10 +20,10 @@
  * Every live player is one: the session holds its store player from the login on.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
-import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
 

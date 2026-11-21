@@ -8,7 +8,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type { StorePlayerActor } from '../../entity/data/storePlayers';
 import type PlayerSession from '../PlayerSession';
-import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import ActorEventHandler from './ActorEventHandler';
 
 const setup = () => {

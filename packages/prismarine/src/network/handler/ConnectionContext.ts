@@ -12,7 +12,7 @@
  * player enters its world as an input, when `SetLocalPlayerAsInitialized` adds it.
  */
 import type { LaneHandler } from '@jsprismarine/protocol/handler/PacketHandler';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type BanManager from '../../ban/BanManager';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type { Config } from '../../config/Config';

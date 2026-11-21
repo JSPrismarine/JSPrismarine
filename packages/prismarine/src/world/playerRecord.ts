@@ -13,8 +13,8 @@
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import { storedAdvancements } from '../advancement/progress';
 import type { WorldPlayerData } from '../config/JsonConfigTypes';

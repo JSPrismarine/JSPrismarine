@@ -1,4 +1,4 @@
-import type PurchaseReceiptPacket from '@jsprismarine/protocol/packet/PurchaseReceiptPacket';
+import type PurchaseReceiptPacket from '@jsprismarine/protocol/bedrock/packet/PurchaseReceiptPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

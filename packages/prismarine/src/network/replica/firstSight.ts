@@ -12,22 +12,22 @@ import { Vector3 } from '@jsprismarine/math';
 import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import type { ProtocolContext } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import AddActorPacket from '@jsprismarine/protocol/packet/AddActorPacket';
-import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
-import AddPaintingPacket from '@jsprismarine/protocol/packet/AddPaintingPacket';
-import Vec3 from '@jsprismarine/protocol/structure/Vec3';
-import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
-import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
-import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/packet/MobEffectPacket';
-import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
+import AddActorPacket from '@jsprismarine/protocol/bedrock/packet/AddActorPacket';
+import AddItemActorPacket from '@jsprismarine/protocol/bedrock/packet/AddItemActorPacket';
+import AddPaintingPacket from '@jsprismarine/protocol/bedrock/packet/AddPaintingPacket';
+import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
+import AddPlayerPacket from '@jsprismarine/protocol/bedrock/packet/AddPlayerPacket';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobArmorEquipmentPacket';
+import MobEffectPacket, { MobEffectEvent } from '@jsprismarine/protocol/bedrock/packet/MobEffectPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
     AbilityLayerFlag,
     AbilityLayerType
-} from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+} from '@jsprismarine/protocol/bedrock/packet/UpdateAbilitiesPacket';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
+import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import { healthAttributesOf } from '../../entity/data/actorView';
 import type { PaintingSight } from '../../entity/data/hangingEntities';

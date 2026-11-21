@@ -1,4 +1,4 @@
-import type ScriptMessagePacket from '@jsprismarine/protocol/packet/ScriptMessagePacket';
+import type ScriptMessagePacket from '@jsprismarine/protocol/bedrock/packet/ScriptMessagePacket';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 import PlayerScriptMessageEvent from '../../events/player/PlayerScriptMessageEvent';

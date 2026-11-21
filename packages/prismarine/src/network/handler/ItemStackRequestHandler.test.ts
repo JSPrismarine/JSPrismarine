@@ -27,10 +27,10 @@ import type { OpenBlockContainer } from '../PlayerSession';
 import type { World } from '../../world/World';
 import { joinContentPayloads } from '../contentPayloads';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, {
     ItemStackResponseResult
-} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+} from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType, newestRelease } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';

@@ -1,4 +1,4 @@
-import type ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
+import type ServerboundDiagnosticsPacket from '@jsprismarine/protocol/bedrock/packet/ServerboundDiagnosticsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

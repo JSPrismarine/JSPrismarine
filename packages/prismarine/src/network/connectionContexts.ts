@@ -6,7 +6,7 @@
  * It sits outside `network/handler/`, which is meant to import no `Server` at all once every
  * handler has moved to a context.
  */
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';

@@ -11,7 +11,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { AIR_STATE } from '@jsprismarine/entities/components/hazards';
 import { FLOOR_Y } from '@jsprismarine/prismarine/entity/data/testing';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { loadJavaEntityAttributes } from '../goldens.ts';

@@ -11,7 +11,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 
 import type Server from '../src/Server';
 import type { Config } from '../src/config/Config';

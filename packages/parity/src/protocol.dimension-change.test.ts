@@ -12,14 +12,14 @@ import { Position } from '@jsprismarine/prismarine/world/Position';
 import type { ShownEntity } from '@jsprismarine/prismarine/world/ShownActor';
 import type { World } from '@jsprismarine/prismarine/world/World';
 import type { NetworkPacket, ProtocolCodec } from '@jsprismarine/protocol';
-import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import type { DimensionDefinitionFields } from '@jsprismarine/protocol/wire/structures/DimensionDefinition';
+import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
+import type { DimensionDefinitionFields } from '@jsprismarine/protocol/bedrock/wire/structures/DimensionDefinition';
 import {
     readDimensionDefinition,
     writeDimensionDefinition
-} from '@jsprismarine/protocol/wire/structures/DimensionDefinition';
-import UUID from '@jsprismarine/protocol/structure/UUID';
+} from '@jsprismarine/protocol/bedrock/wire/structures/DimensionDefinition';
+import UUID from '@jsprismarine/protocol/bedrock/structure/UUID';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';

@@ -10,8 +10,8 @@ import {
     PlayerActionType,
     PlayerAuthInputData
 } from '@jsprismarine/protocol';
-import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import PlayerAuthInputPacket from '@jsprismarine/protocol/bedrock/packet/PlayerAuthInputPacket';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';

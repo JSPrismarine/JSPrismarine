@@ -17,7 +17,7 @@ import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
-import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
@@ -26,11 +26,16 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
-import AnimateEntityPacket from '@jsprismarine/protocol/packet/AnimateEntityPacket';
-import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
-import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
-import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
+import AnimateEntityPacket from '@jsprismarine/protocol/bedrock/packet/AnimateEntityPacket';
+import CameraShakePacket, {
+    CameraShakeAction,
+    CameraShakeType
+} from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
+import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
+import UnlockedRecipesPacket, {
+    UnlockedRecipesType
+} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
+import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type PlayerSession from '../../network/PlayerSession';
 import { stub, stubOf } from '../../testing/stub.test.helper';
@@ -58,7 +63,7 @@ import { collectAsyncCommands } from '../deferred';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
 import { entityRefOf } from './support';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 /** One block position's contents, keyed as `x,y,z`. */
 type BlockTable = Map<string, { name: string; states: Record<string, string | number | boolean> }>;

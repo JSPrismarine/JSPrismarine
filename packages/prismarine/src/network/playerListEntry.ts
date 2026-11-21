@@ -1,4 +1,4 @@
-import { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
+import { PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
 
 import type { ShownPlayer } from '../world/ShownPlayer';
 

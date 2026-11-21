@@ -6,7 +6,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type { OccurrenceKinds } from '../../world/changelog/ChangeEntry';
 import type { World } from '../../world/World';
-import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 import type PlayerSession from '../PlayerSession';
 import AnimateHandler from './AnimateHandler';
 

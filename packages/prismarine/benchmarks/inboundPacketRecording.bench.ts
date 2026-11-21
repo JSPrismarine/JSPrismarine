@@ -8,7 +8,7 @@ import { performance } from 'node:perf_hooks';
 
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import { BatchCodec, TextPacketType } from '@jsprismarine/protocol';
 import type { Logger } from '@jsprismarine/logger';
 import { InetAddress } from '@jsprismarine/raknet';

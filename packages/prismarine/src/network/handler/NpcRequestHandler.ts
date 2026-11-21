@@ -1,5 +1,5 @@
-import type NpcRequestPacket from '@jsprismarine/protocol/packet/NpcRequestPacket';
-import { NpcRequestType } from '@jsprismarine/protocol/packet/NpcRequestPacket';
+import type NpcRequestPacket from '@jsprismarine/protocol/bedrock/packet/NpcRequestPacket';
+import { NpcRequestType } from '@jsprismarine/protocol/bedrock/packet/NpcRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

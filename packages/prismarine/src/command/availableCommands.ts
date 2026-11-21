@@ -10,14 +10,14 @@
  */
 import type { BedrockParameterTypeName, FlattenedCommand, FlattenedParameter } from '@jsprismarine/commands';
 
-import { CommandChainedSubcommand } from '@jsprismarine/protocol/wire/structures/CommandChainedSubcommand';
-import CommandData from '@jsprismarine/protocol/wire/structures/CommandData';
-import { CommandEnum } from '@jsprismarine/protocol/wire/structures/CommandEnum';
-import type { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
+import { CommandChainedSubcommand } from '@jsprismarine/protocol/bedrock/wire/structures/CommandChainedSubcommand';
+import CommandData from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
+import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
+import type { CommandParameterType } from '@jsprismarine/protocol/bedrock/wire/structures/CommandParameter';
 import CommandParameter, {
     CommandParameterFlags,
     CommandParameterType as ParameterType
-} from '@jsprismarine/protocol/wire/structures/CommandParameter';
+} from '@jsprismarine/protocol/bedrock/wire/structures/CommandParameter';
 
 /**
  * The type word each of the package's basic parameter types is written as.

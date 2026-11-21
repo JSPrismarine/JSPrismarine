@@ -6,7 +6,7 @@ import { canExecute } from '../../permission/PermissionManager';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import SetPlayerGameTypeHandler from './SetPlayerGameTypeHandler';
 

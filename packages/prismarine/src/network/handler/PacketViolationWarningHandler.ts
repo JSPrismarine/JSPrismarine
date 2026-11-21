@@ -2,8 +2,8 @@ import { latestCodec } from '../codec/CodecRegistry';
 import {
     PacketViolationSeverity,
     PacketViolationType
-} from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
-import type PacketViolationWarningPacket from '@jsprismarine/protocol/packet/PacketViolationWarningPacket';
+} from '@jsprismarine/protocol/bedrock/packet/PacketViolationWarningPacket';
+import type PacketViolationWarningPacket from '@jsprismarine/protocol/bedrock/packet/PacketViolationWarningPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

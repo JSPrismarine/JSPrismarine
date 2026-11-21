@@ -2,7 +2,7 @@ import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jspris
 import { describe, expect, it } from 'vitest';
 
 import type { ShownPlayer } from '../world/ShownPlayer';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import { stub } from '../testing/stub.test.helper';
 import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type ClientConnection from './ClientConnection';
@@ -10,9 +10,9 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayerFlag,
     AbilityLayerType
-} from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
-import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
-import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
+} from '@jsprismarine/protocol/bedrock/packet/UpdateAbilitiesPacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import PlayerSession from './PlayerSession';

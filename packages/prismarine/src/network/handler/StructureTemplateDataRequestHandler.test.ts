@@ -3,9 +3,9 @@ import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
-} from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import { defaultStructureSettings } from '@jsprismarine/protocol/structure/StructureSettings';
+} from '@jsprismarine/protocol/bedrock/packet/StructureTemplateDataRequestPacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import { defaultStructureSettings } from '@jsprismarine/protocol/bedrock/structure/StructureSettings';
 import StructureTemplateDataRequestHandler from './StructureTemplateDataRequestHandler';
 
 const packetAt = (structurePosition: BlockPosition) =>

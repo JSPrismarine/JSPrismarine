@@ -17,7 +17,7 @@
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
 import type { WireType } from './fieldTypes';
-import type { WireGate } from './wireGates';
+import type { WireGate } from '../bedrock/wire/wireGates';
 
 /** A field whose presence a {@link WireGate} decides per protocol version. */
 export interface GatedField<T> {

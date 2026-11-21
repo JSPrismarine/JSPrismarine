@@ -23,8 +23,11 @@ import type { AdvancementPlayer } from '../advancement/triggers';
 import type { AnnouncingWorld } from '../advancement/raise';
 import { spendExperienceLevels } from '../entity/Experience';
 import type { Item } from '../item/Item';
-import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
-import type { EnchantmentInstance, ItemEnchantOption } from '@jsprismarine/protocol/packet/PlayerEnchantOptionsPacket';
+import PlayerEnchantOptionsPacket from '@jsprismarine/protocol/bedrock/packet/PlayerEnchantOptionsPacket';
+import type {
+    EnchantmentInstance,
+    ItemEnchantOption
+} from '@jsprismarine/protocol/bedrock/packet/PlayerEnchantOptionsPacket';
 import { bedrockEnchantType } from './bedrockIds';
 import { bookshelfPowerAround } from './bookshelves';
 import type { BlockPosition, BookshelfWorld } from './bookshelves';

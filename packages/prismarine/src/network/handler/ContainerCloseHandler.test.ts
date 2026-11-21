@@ -15,7 +15,7 @@ import type { World } from '../../world/World';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
+import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import ContainerCloseHandler from './ContainerCloseHandler';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 

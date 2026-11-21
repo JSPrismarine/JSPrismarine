@@ -6,7 +6,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import NetworkStackLatencyPacket from '@jsprismarine/protocol/packet/NetworkStackLatencyPacket';
+import NetworkStackLatencyPacket from '@jsprismarine/protocol/bedrock/packet/NetworkStackLatencyPacket';
 import type PlayerSession from '../PlayerSession';
 import NetworkStackLatencyHandler from './NetworkStackLatencyHandler';
 

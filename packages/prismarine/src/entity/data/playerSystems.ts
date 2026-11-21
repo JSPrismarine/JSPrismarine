@@ -17,7 +17,7 @@
 import type { BedrockCollisionBox } from '@jsprismarine/blocks/geometry';
 import { AIR_STATE } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import type { EntityPosition } from '@jsprismarine/entities';
 

@@ -17,7 +17,7 @@ import type { LevelStem } from '@jsprismarine/worldgen';
 import type { Block } from '../block/Block';
 import type Server from '../Server';
 import type { Service } from '../utils/Service';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { randomOf } from '../utils/Random';
 import type { Random } from '../utils/Random';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';

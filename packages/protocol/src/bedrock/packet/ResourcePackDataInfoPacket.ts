@@ -1,0 +1,88 @@
+import FieldNetworkPacket from '../../FieldNetworkPacket';
+import { layoutAt } from '../../wire/WireLayout';
+import { resourcePackDataInfoPacket } from '../wire/definitions/resourcePacks';
+
+/**
+ * The docs' `PackType`: what kind of pack is about to be sent, as the `Pack Type` byte numbers
+ * it.
+ *
+ * The packet docs give the field as a bare uint8. The names and numbers are Mojang's `PackType`
+ * enum in the datagen snapshot behind `@jsprismarine/minecraft`
+ * (`packages/minecraft/datagen/snapshot/0e00fe80f4f3-enums.html`); gophertunnel uses the same numbers.
+ */
+export enum PackType {
+    Invalid = 0,
+    Addon = 1,
+    Cached = 2,
+    CopyProtected = 3,
+    Behavior = 4,
+    PersonaPiece = 5,
+    Resources = 6,
+    Skins = 7,
+    WorldTemplate = 8
+}
+
+/**
+ * Announces the size and shape of a resource pack the server is about to send in chunks.
+ *
+ * The client answers with one `ResourcePackChunkRequestPacket` per chunk, and the server
+ * replies to each with a `ResourcePackChunkDataPacket`.
+ *
+ * The wire layout lives in `@jsprismarine/protocol`'s `resourcePackDataInfoPacket`
+ * definition: `Resource Name` as a string, `Chunk Size` and `Number of Chunks` as uint32 LE,
+ * `File Size` as a uint64 LE, `File Hash` as a varuint32 byte length followed by that many
+ * bytes, `Is Premium Pack` as a byte, then `Pack Type` as a byte.
+ *
+ * Nothing sends this yet. The server announces no downloadable packs, so no client ever asks
+ * for a chunk.
+ *
+ * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/resource-pack-data-info-packet/
+ */
+export default class ResourcePackDataInfoPacket extends FieldNetworkPacket {
+    /** The pack id and version joined by an underscore, as `ResourcePacksInfoPacket` gave them. */
+    public resourceName = '';
+
+    /** The largest chunk in bytes. The client divides the file size by this to count chunks. */
+    public chunkSize = 0;
+
+    /** How many chunks the pack is split into. */
+    public numberOfChunks = 0;
+
+    /** The size of the whole zip in bytes. */
+    public fileSize = 0n;
+
+    /** A SHA256 digest of the zip, as raw bytes rather than text. */
+    public fileHash: Buffer = Buffer.alloc(0);
+
+    /** True when the player needs an entitlement to use the pack. */
+    public isPremiumPack = false;
+
+    /** What kind of pack the transfer contains. */
+    public packType: PackType = PackType.Resources;
+
+    /** Reads the pack name, its size, its hash and its type. */
+    public decodePayload(): void {
+        const read = layoutAt(resourcePackDataInfoPacket, this.codecProtocol).decode(this);
+        this.resourceName = read.resourceName;
+        this.chunkSize = read.chunkSize;
+        this.numberOfChunks = read.numberOfChunks;
+        this.fileSize = read.fileSize;
+        this.fileHash = read.fileHash;
+        this.isPremiumPack = read.isPremiumPack;
+        this.packType = read.packType;
+    }
+
+    /** Writes the pack name, its size, its hash and its type. */
+    public encodePayload(): void {
+        layoutAt(resourcePackDataInfoPacket, this.codecProtocol).encode(this, {
+            resourceName: this.resourceName,
+            chunkSize: this.chunkSize,
+            numberOfChunks: this.numberOfChunks,
+            fileSize: this.fileSize,
+            fileHash: this.fileHash,
+            isPremiumPack: this.isPremiumPack,
+            packType: this.packType
+        });
+    }
+}

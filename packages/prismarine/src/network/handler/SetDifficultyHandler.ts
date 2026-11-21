@@ -1,5 +1,5 @@
 import { Difficulty } from '@jsprismarine/minecraft';
-import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

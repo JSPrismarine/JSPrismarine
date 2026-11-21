@@ -3,7 +3,7 @@ import type { ExperienceHolder } from '@jsprismarine/prismarine/entity/Experienc
 import { PlayerComponents } from '@jsprismarine/prismarine/entity/playerComponents';
 import { addExhaustion, hungerOutcome } from '@jsprismarine/prismarine/entity/playerHunger';
 import type { SurvivalPlayer } from '@jsprismarine/prismarine/entity/survivalPlayer';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import { javaMethodOf, pushedNumbers } from './javaEntityCode.ts';

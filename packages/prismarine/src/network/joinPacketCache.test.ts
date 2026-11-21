@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { BatchCodec } from '@jsprismarine/protocol';
-import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
+import AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import type { ServerContent } from '../content/ServerContent';
 import type MinecraftSession from './MinecraftSession';

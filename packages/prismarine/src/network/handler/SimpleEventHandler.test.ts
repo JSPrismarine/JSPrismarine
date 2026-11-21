@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SimpleEventPacket, { SimpleEventSubtype } from '@jsprismarine/protocol/packet/SimpleEventPacket';
+import SimpleEventPacket, { SimpleEventSubtype } from '@jsprismarine/protocol/bedrock/packet/SimpleEventPacket';
 import SimpleEventHandler from './SimpleEventHandler';
 
 describe('SimpleEventHandler', () => {

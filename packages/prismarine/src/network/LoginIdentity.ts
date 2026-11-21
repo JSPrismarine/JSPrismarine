@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 
 import { decodeJwt } from 'jose';
 
-import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
+import type { Login } from '@jsprismarine/protocol/bedrock/packet/LoginPacket';
 import Device from '../utils/Device';
-import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 
 /** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */

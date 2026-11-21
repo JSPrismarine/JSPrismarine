@@ -1,4 +1,4 @@
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { describe, expect, it } from 'vitest';
 
 import { storeWorld } from '../../testing/storeWorld.test.helper';

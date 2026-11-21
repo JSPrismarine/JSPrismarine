@@ -1,5 +1,5 @@
-import type PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
-import { PositionTrackingDBClientRequestAction } from '@jsprismarine/protocol/packet/PositionTrackingDBClientRequestPacket';
+import type PositionTrackingDBClientRequestPacket from '@jsprismarine/protocol/bedrock/packet/PositionTrackingDBClientRequestPacket';
+import { PositionTrackingDBClientRequestAction } from '@jsprismarine/protocol/bedrock/packet/PositionTrackingDBClientRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

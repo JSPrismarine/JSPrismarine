@@ -6,7 +6,7 @@ import { BatchCodec } from '@jsprismarine/protocol';
 import { stub } from '../testing/stub.test.helper';
 import MinecraftSession from './MinecraftSession';
 import type { TransportConnection } from './transport/Transport';
-import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 beforeEach(() => {

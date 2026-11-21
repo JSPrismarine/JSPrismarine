@@ -20,15 +20,15 @@ import { Item } from '../../item/Item';
 import { itemDataForProtocol } from '../codec/itemData';
 import type { ProtocolItemData } from '@jsprismarine/protocol';
 import { craftingRecipeCount, joinContentPayloads } from '../contentPayloads';
-import type ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import type ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import type {
     ItemStackResponse,
     ItemStackResponseContainerInfo,
     ItemStackResponseSlotInfo
-} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+} from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import ItemStackResponsePacket, {
     ItemStackResponseResult
-} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+} from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ContainerUiId, ItemStackRequestActionType } from '@jsprismarine/protocol';
 import type { OpenBlockContainer } from '../PlayerSession';

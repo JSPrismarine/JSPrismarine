@@ -1,5 +1,5 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
-import type ResourcePackChunkRequestPacket from '@jsprismarine/protocol/packet/ResourcePackChunkRequestPacket';
+import type ResourcePackChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackChunkRequestPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

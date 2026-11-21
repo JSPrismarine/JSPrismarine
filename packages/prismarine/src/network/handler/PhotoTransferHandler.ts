@@ -1,4 +1,4 @@
-import type PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
+import type PhotoTransferPacket from '@jsprismarine/protocol/bedrock/packet/PhotoTransferPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

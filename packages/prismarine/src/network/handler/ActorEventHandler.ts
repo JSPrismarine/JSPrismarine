@@ -1,5 +1,5 @@
-import type ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
-import { ActorEvent } from '@jsprismarine/protocol/packet/ActorEventPacket';
+import type ActorEventPacket from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
+import { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import type { ShownActor } from '../../world/ShownActor';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';

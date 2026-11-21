@@ -22,7 +22,7 @@ escape hatch: a packet whose body resists flat description (`ItemStackRequest`, 
 keeps its hand-written reader and writer as one named wire type, referenced from the field list,
 instead of keeping a hand-written packet class.
 
-**Version gates in one file** (`packages/protocol/src/wire/wireGates.ts`). A gate is a named
+**Version gates in one file** (`packages/protocol/src/bedrock/wire/wireGates.ts`). A gate is a named
 predicate over a protocol number — `since(2225)`, `between(a, b)` — and every version fork in the
 wire format lives in this file, so one grep answers "where does the protocol branch". Gates appear
 only in field lists; no encoder tests a version.

@@ -4,7 +4,7 @@
  * `InputInfo`, `Player.isJumping`, `isGliding` and `isEmoting` read it through the level's entity
  * systems.
  */
-import { PlayerAuthInputData } from '@jsprismarine/protocol/wire/structures/PlayerAuthInput';
+import { PlayerAuthInputData } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerAuthInput';
 
 /** A player's input as the scripts read it. */
 export interface PlayerInputSnapshot {

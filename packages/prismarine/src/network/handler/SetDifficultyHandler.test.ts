@@ -8,7 +8,7 @@ import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
 import SetDifficultyHandler from './SetDifficultyHandler';
 
 const fakeSession = (configured: Difficulty) => {

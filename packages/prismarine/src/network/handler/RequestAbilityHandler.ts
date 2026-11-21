@@ -1,7 +1,7 @@
 import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import type PlayerSession from '../PlayerSession';
-import type RequestAbilityPacket from '@jsprismarine/protocol/packet/RequestAbilityPacket';
-import { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
+import type RequestAbilityPacket from '@jsprismarine/protocol/bedrock/packet/RequestAbilityPacket';
+import { RequestAbilityValueType } from '@jsprismarine/protocol/bedrock/packet/RequestAbilityPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

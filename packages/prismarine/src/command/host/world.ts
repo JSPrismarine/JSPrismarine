@@ -22,11 +22,13 @@ import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 
 import type Server from '../../Server';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
-import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
-import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
-import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
-import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
-import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
+import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/bedrock/packet/SpawnParticleEffectPacket';
+import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import type { World } from '../../world/World';
 import {
     blockPositionOf,

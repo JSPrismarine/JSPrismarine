@@ -1,6 +1,6 @@
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { test } from 'vitest';
-import { BatchCodec } from '../src/BatchCodec';
+import { BatchCodec } from '../src/bedrock/BatchCodec';
 
 /** Deterministic bytes that resemble compact movement packets. */
 const movement = Buffer.from([

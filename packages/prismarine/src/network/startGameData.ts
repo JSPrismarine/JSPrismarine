@@ -6,11 +6,11 @@ import {
     EditorLevelMigrationVersion,
     EMPTY_COMPOUND,
     GameRuleType
-} from '@jsprismarine/protocol/packet/StartGamePacket';
-import { writeNetworkNbt } from '@jsprismarine/protocol/payload';
+} from '@jsprismarine/protocol/bedrock/packet/StartGamePacket';
+import { writeNetworkNbt } from '@jsprismarine/protocol/bedrock/payload';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 
-import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/packet/StartGamePacket';
+import type { BlockProperty, GameRule, StartGame } from '@jsprismarine/protocol/bedrock/packet/StartGamePacket';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
 import type { Config } from '../config/Config';
 import { eyePositionAt } from '../entity/playerEyes';

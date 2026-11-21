@@ -216,7 +216,7 @@ for, gets nothing.
   `CommandHost` is assignable without this package depending on it yet. Replace the type with the
   real import when you take the dependency.
 - `network/contentPayloads.ts` adapts `ServerContent.blocks.palette`, `ServerContent.items.registry`
-  and `ServerContent.recipes` to the payload builders in `@jsprismarine/protocol/payload` for
+  and `ServerContent.recipes` to the payload builders in `@jsprismarine/protocol/bedrock/payload` for
   `StartGamePacket`, `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket`.
 
 ## What a running server still refuses

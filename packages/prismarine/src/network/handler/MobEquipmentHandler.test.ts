@@ -1,6 +1,6 @@
 import { WindowIds } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 

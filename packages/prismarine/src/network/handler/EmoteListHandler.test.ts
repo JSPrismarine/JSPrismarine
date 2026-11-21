@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
-import EmoteListPacket from '@jsprismarine/protocol/packet/EmoteListPacket';
+import EmoteListPacket from '@jsprismarine/protocol/bedrock/packet/EmoteListPacket';
 import type PlayerSession from '../PlayerSession';
 import EmoteListHandler from './EmoteListHandler';
 

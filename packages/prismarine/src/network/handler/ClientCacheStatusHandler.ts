@@ -1,4 +1,4 @@
-import type ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
+import type ClientCacheStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheStatusPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

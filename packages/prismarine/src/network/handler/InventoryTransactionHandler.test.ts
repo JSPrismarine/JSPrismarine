@@ -1,7 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
@@ -35,7 +35,7 @@ import type {
     UseItemOnEntityData
 } from '../InventoryTransactionAdapter';
 import { InventoryAction, inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
-import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
+import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import {
     HandSlot,
     InventorySourceType,

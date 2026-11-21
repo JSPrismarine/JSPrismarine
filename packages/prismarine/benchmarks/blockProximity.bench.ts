@@ -13,10 +13,10 @@ import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec, type ProtocolCodec } from '@jsprismarine/protocol';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/packet/UpdateBlockPacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/packet/UpdateSubChunkBlocksPacket';
-import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/structure/UpdateSubChunkNetworkBlockInfo';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateSubChunkBlocksPacket';
+import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/bedrock/structure/UpdateSubChunkNetworkBlockInfo';
 
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import type Server from '../src/Server';

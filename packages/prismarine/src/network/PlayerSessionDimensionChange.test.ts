@@ -9,23 +9,25 @@ import {
     PlayerAuthInputData,
     PositionMode
 } from '@jsprismarine/protocol';
-import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
-import InventoryContentPacket from '@jsprismarine/protocol/packet/InventoryContentPacket';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
-import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
-import PlayerActionPacket from '@jsprismarine/protocol/packet/PlayerActionPacket';
-import PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
+import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
+import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
+import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
+import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
+import PlayerAuthInputPacket from '@jsprismarine/protocol/bedrock/packet/PlayerAuthInputPacket';
 import { PlayStatusPacket } from '@jsprismarine/protocol';
-import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
-import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
-import SetSpawnPositionPacket, { SpawnPositionType } from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
-import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
+import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
+import SetSpawnPositionPacket, {
+    SpawnPositionType
+} from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
+import ShowCreditsPacket, { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
-} from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
-import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
-import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
+} from '@jsprismarine/protocol/bedrock/packet/ServerboundLoadingScreenPacket';
+import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import { describe, expect, it } from 'vitest';
 
 import type { ShownEntity } from '../world/ShownActor';

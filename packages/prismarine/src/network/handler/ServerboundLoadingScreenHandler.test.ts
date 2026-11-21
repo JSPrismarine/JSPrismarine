@@ -8,7 +8,7 @@ import type PlayerSession from '../PlayerSession';
 import type { Arrival } from '../PlayerSession';
 import ServerboundLoadingScreenPacket, {
     ServerboundLoadingScreenPacketType
-} from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
+} from '@jsprismarine/protocol/bedrock/packet/ServerboundLoadingScreenPacket';
 import ServerboundLoadingScreenHandler from './ServerboundLoadingScreenHandler';
 
 const fakeSession = ({ open = [], pending }: { open?: number[]; pending?: number } = {}) => {

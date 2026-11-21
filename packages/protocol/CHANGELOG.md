@@ -247,7 +247,7 @@
   endian state serialization that decide a block's runtime id, which `@jsprismarine/prismarine` had
   one copy of and the protocol package another; it reproduces all 1065 `network_id` values the
   captured creative catalog carries. The packet index exports every member type a `StartGame` payload
-  is built from, so a consumer no longer deep imports `@jsprismarine/protocol/packet/StartGamePacket`
+  is built from, so a consumer no longer deep imports `@jsprismarine/protocol/bedrock/packet/StartGamePacket`
   to name a `BlockProperty` or a `GameRule`. Moving public API in is a feature, which the versioning
   policy maps to `minor` below `1.0.0`.
   

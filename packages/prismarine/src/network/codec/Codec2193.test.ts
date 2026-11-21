@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { CommandRequestPacket, Packets, SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
-import SetCommandsEnabledPacket from '@jsprismarine/protocol/packet/SetCommandsEnabledPacket';
-import SetDifficultyPacket from '@jsprismarine/protocol/packet/SetDifficultyPacket';
-import ChangeDimensionPacket from '@jsprismarine/protocol/packet/ChangeDimensionPacket';
-import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
-import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/packet/NetworkChunkPublisherUpdatePacket';
-import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/packet/UpdateAdventureSettingsPacket';
-import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
-import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/packet/UpdatePlayerGameTypePacket';
-import RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
-import SetSpawnPositionPacket from '@jsprismarine/protocol/packet/SetSpawnPositionPacket';
+import SetCommandsEnabledPacket from '@jsprismarine/protocol/bedrock/packet/SetCommandsEnabledPacket';
+import SetDifficultyPacket from '@jsprismarine/protocol/bedrock/packet/SetDifficultyPacket';
+import ChangeDimensionPacket from '@jsprismarine/protocol/bedrock/packet/ChangeDimensionPacket';
+import PlayerHotbarPacket from '@jsprismarine/protocol/bedrock/packet/PlayerHotbarPacket';
+import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
+import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
+import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
+import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
+import SetSpawnPositionPacket from '@jsprismarine/protocol/bedrock/packet/SetSpawnPositionPacket';
 import Codec2193 from './Codec2193';
 import { codecForProtocol, latestCodec, supportedMinecraftVersions } from './CodecRegistry';
 

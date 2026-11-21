@@ -1,4 +1,4 @@
-import type ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
+import type ServerSettingsRequestPacket from '@jsprismarine/protocol/bedrock/packet/ServerSettingsRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

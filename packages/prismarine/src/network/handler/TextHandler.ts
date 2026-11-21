@@ -1,6 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import { TextPacketType } from '@jsprismarine/protocol';
-import type TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import type TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

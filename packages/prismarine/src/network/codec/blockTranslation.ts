@@ -24,8 +24,8 @@ import { blockSchemas as blockSchemas2193 } from '@jsprismarine/minecraft/genera
 import { blockSchemas as blockSchemas2225 } from '@jsprismarine/minecraft/generated/v2225/block-schemas';
 import { blockRuntimeId } from '@jsprismarine/protocol';
 import type { BlockStateValue } from '@jsprismarine/protocol';
-import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/wire/versions/v2193';
-import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/wire/versions/v2225';
+import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
+import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/bedrock/wire/versions/v2225';
 import type { BlockSchema, BlockSchemaCatalog } from '@jsprismarine/minecraft/BlockSchemaCatalog';
 
 /** What an older session is sent for a block its release does not have. */

@@ -5,8 +5,10 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import Vec3 from '@jsprismarine/protocol/structure/Vec3';
-import PlayerLocationPacket, { PlayerLocationPacketType } from '@jsprismarine/protocol/packet/PlayerLocationPacket';
+import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
+import PlayerLocationPacket, {
+    PlayerLocationPacketType
+} from '@jsprismarine/protocol/bedrock/packet/PlayerLocationPacket';
 import PlayerLocationHandler from './PlayerLocationHandler';
 
 const fakeSession = () => {
