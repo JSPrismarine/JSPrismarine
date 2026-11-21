@@ -1,7 +1,7 @@
 # Faster GitHub workflows
 
 Started 2026-11-20 on `perf/optimize-ci-workflows`. Phases 0 to 7 are done, phase 10 is part
-done, and phases 8 and 9 are planned. [What we know](#what-we-know) records what was measured on
+done, and phase 8 is planned. [What we know](#what-we-know) records what was measured on
 2026-11-20, [Decisions](#decisions) what the maintainer settled that day, and
 [Open questions](#open-questions) what is still open.
 
@@ -178,6 +178,11 @@ Settled on 2026-11-20:
 - Cinnabar has no mode that skips drawing, so phase 8 adds one as a patch the harness applies, and
   offers it upstream.
 - The merge queue uses the settings in [phase 7](#phase-7-run-the-full-suite-once-in-a-merge-queue).
+
+Settled on 2026-11-21:
+
+- No self-hosted runners. Every job stays on GitHub-hosted runners, so the plan dropped its phase 9,
+  which would have added one; the phases keep their numbers.
 
 Earlier decisions:
 
@@ -446,14 +451,6 @@ plugin list.
 Done when an e2e scenario that takes no screenshot runs no camera render graph, counted by a
 counter the patch adds to the client's `state` reply, and the suites per runner rise from 2.
 
-### Phase 9: more runner capacity, if it is free
-
-Paid runners are ruled out. A self-hosted runner on hardware the project already has would keep
-the pnpm store, the 1.1 GB of real data and the cinnabar build on disk, and one with a GPU would
-draw the client without lavapipe. The repository is public, so such a runner must take only
-same-repository pull requests and the merge queue, never forks, and each job needs a fresh VM.
-Revisit this after phase 7, when the count of jobs per push shows whether runner waits still matter.
-
 ### Phase 10: run only the tests a change reaches (part done)
 
 Added on 2026-11-20. Every run should test only what its changes can reach.
@@ -476,4 +473,3 @@ scenarios, and a master push runs only the Vitest suites its commits reach.
 - Does Renovate's grouping in phase 2 hide which update broke a build often enough to matter? If so,
   group only development dependencies.
 - Will cinnabar take the phase 8 change upstream, and under what name?
-- Is there hardware the project could run a self-hosted runner on?
