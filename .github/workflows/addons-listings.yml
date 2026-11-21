@@ -1,0 +1,70 @@
+name: Addon listings
+
+# Refreshes addons/listings.lock.json once a day: the marketplace's snapshot of each listed addon's
+# newest version, its listing files and every published version, read from each repository's
+# addons release. When the snapshot changed, it opens a pull request, set to merge once its checks
+# pass, so each change lands in the history without anyone approving it. Listing a new addon still
+# takes a reviewed pull request to addons/listings.json; the refresh only moves addons already
+# listed. Pull requests start no job here: the lint job's `lint:docs-facts` checks that the lock
+# matches addons/listings.json.
+on:
+    schedule:
+        - cron: '41 5 * * *'
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+env:
+    HUSKY: 0
+
+jobs:
+    refresh:
+        name: 🔄 Refresh the listings snapshot
+        if: ${{ github.repository == 'JSPrismarine/JSPrismarine' }}
+        runs-on: ubuntu-latest
+        steps:
+            # The machine user's token, so the pull request runs the required checks.
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  # master, so a manual run on another branch cannot carry that branch's commits.
+                  ref: master
+                  token: ${{ secrets.MACHINE_USER }}
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+              with:
+                  native-network: false
+                  script-host: false
+
+            # GITHUB_TOKEN raises the API's rate limit for the archived and release-date reads.
+            - name: 🔄 Refresh the snapshot
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: pnpm run addons:listings
+
+            - name: 📝 Open the pull request
+              env:
+                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
+              run: |
+                  git add addons/listings.lock.json
+                  if git diff --cached --quiet; then
+                      echo 'The snapshot has not changed'
+                      exit 0
+                  fi
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  message='chore(addons): refresh the listings snapshot'
+                  git commit -m "$message"
+                  # One branch, replaced on each change, so at most one refresh waits at a time.
+                  branch=addons/listings-refresh
+                  git push --force origin "HEAD:refs/heads/$branch"
+                  if [ "$(gh pr view "$branch" --json state --jq .state 2>/dev/null)" != OPEN ]; then
+                      gh pr create --base master --head "$branch" --title "$message" \
+                          --body "Refreshes addons/listings.lock.json from the indexes of the listed repositories and of JSPrismarine's own addons. The Addon listings workflow opened it, and it merges once its checks pass."
+                  fi
+                  gh pr merge "$branch" --auto --rebase
