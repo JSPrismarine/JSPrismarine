@@ -99,7 +99,8 @@ const buildChunk = (settingsId: string, biomeSourceName: string) => {
 const runPass = (
     built: ReturnType<typeof buildChunk>,
     rule: ReturnType<MaterialRuleData['parseRule']>,
-    withOwnCells = false
+    withOwnCells = false,
+    withCandidateCells = false
 ) => {
     const chunk = new BlockArraySurfaceChunk({
         chunkX: columnVectors.chunkX,
@@ -120,7 +121,8 @@ const runPass = (
         },
         biomeClimate,
         sampleContext: new SampleContext(),
-        ...(withOwnCells ? { localBiomes: ownCellsBox(built, resolver) } : {})
+        ...(withOwnCells ? { localBiomes: ownCellsBox(built, resolver) } : {}),
+        ...(withCandidateCells ? { biomeCellAt: (x: number, y: number, z: number) => biomes.cellBiome(x, y, z) } : {})
     });
     return { chunk, pass, lookups };
 };
@@ -257,11 +259,28 @@ describe('the surface pass over whole columns', () => {
             let chunk: BlockArraySurfaceChunk;
             let lookups: number;
             let withOwnCells: ReturnType<typeof runPass>;
+            let withCandidateCells: ReturnType<typeof runPass>;
             beforeAll(() => {
                 const built = buildChunk(dimension.settings, dimension.biomeSource);
                 ({ chunk, lookups } = runPass(built, materialRuleData.rule(dimension.materialRule)));
                 withOwnCells = runPass(built, materialRuleData.rule(dimension.materialRule), true);
+                withCandidateCells = runPass(built, materialRuleData.rule(dimension.materialRule), true, true);
             }, 120_000);
+
+            it("places the same blocks when a block's eight candidate cells answer its biome conditions", () => {
+                for (const column of dimension.columns.entries) {
+                    expect(runsOf(withCandidateCells.chunk, column.x, column.z)).toEqual(column.runs);
+                }
+                // A block still looks its biome up where its candidate cells disagree, and each
+                // column looks up its surface biome once, so the count falls to a quarter or less
+                // wherever the rules ask per block.
+                const columns = 16 * 16;
+                if (withOwnCells.lookups > columns) {
+                    expect(withCandidateCells.lookups).toBeLessThan(withOwnCells.lookups / 4);
+                } else {
+                    expect(withCandidateCells.lookups).toBe(withOwnCells.lookups);
+                }
+            });
 
             it("places the same blocks when its own cells answer the inner blocks' biome conditions", () => {
                 for (const column of dimension.columns.entries) {

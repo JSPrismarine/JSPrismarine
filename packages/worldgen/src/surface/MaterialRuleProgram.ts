@@ -122,7 +122,7 @@ export const compileMaterialRuleProgram = (rule: MaterialRuleNode): MaterialRule
  * The one answer a `biome` condition has wherever only these biomes occur: false when it names
  * none of them, true when it names all of them, and undefined when the answer varies.
  */
-const foldBiomes = (named: ReadonlySet<string>, occurring: ReadonlySet<string> | undefined): boolean | undefined => {
+const foldBiomes = (named: ReadonlySet<string>, occurring: Iterable<string> | undefined): boolean | undefined => {
     if (occurring === undefined) return undefined;
     let any = false;
     let all = true;
@@ -183,6 +183,10 @@ export class MaterialRuleInterpreter {
     /** Per condition: the counter value its cached answer was computed at, or -1. */
     private readonly cachedAt: Float64Array;
     private readonly cachedAnswers: Uint8Array;
+    /** Per condition: the context's candidate count its candidate fold was made at, or -1. */
+    private readonly foldedAt: Float64Array;
+    /** Per condition: a `biome` condition's answer over the current candidate cells, as a fold byte. */
+    private readonly candidateFolds: Uint8Array;
 
     public constructor(
         program: MaterialRuleProgram,
@@ -206,6 +210,8 @@ export class MaterialRuleInterpreter {
         );
         this.cachedAt = new Float64Array(program.conditions.length).fill(-1);
         this.cachedAnswers = new Uint8Array(program.conditions.length);
+        this.foldedAt = new Float64Array(program.conditions.length).fill(-1);
+        this.candidateFolds = new Uint8Array(program.conditions.length);
     }
 
     /** The block the rule places at the context's position, or undefined to leave it alone. */
@@ -243,7 +249,7 @@ export class MaterialRuleInterpreter {
         const counter = this.cacheKinds[index] === PER_COLUMN ? context.updateCountXZ : context.updateCountY;
         if (this.cachedAt[index] !== counter) {
             this.cachedAt[index] = counter;
-            this.cachedAnswers[index] = this.evaluate(this.conditions[index]!) ? 1 : 0;
+            this.cachedAnswers[index] = this.evaluate(index) ? 1 : 0;
         }
         return this.cachedAnswers[index] === 1;
     }
@@ -275,8 +281,9 @@ export class MaterialRuleInterpreter {
         }
     }
 
-    private evaluate(node: BoundCondition): boolean {
+    private evaluate(index: number): boolean {
         const context = this.context;
+        const node = this.conditions[index]!;
         switch (node.type) {
             case 'biome': {
                 if (node.possible !== FOLD_VARIES) return node.possible === FOLD_TRUE;
@@ -293,6 +300,16 @@ export class MaterialRuleInterpreter {
                     context.blockY <= local.maxY
                 ) {
                     return node.inBox === FOLD_TRUE;
+                }
+                // Where all eight cells the lookup can pick agree, so does the block.
+                const candidates = context.getCandidateBiomes();
+                if (candidates !== undefined) {
+                    if (this.foldedAt[index] !== context.candidateCount) {
+                        this.foldedAt[index] = context.candidateCount;
+                        this.candidateFolds[index] = foldByte(foldBiomes(node.named, candidates));
+                    }
+                    const fold = this.candidateFolds[index];
+                    if (fold !== FOLD_VARIES) return fold === FOLD_TRUE;
                 }
                 return node.named.has(context.getBiome());
             }

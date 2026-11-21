@@ -1,5 +1,6 @@
 import type { BiomeClimateLookup } from '../biome/BiomeClimate';
 import { coldEnoughToSnow } from '../biome/BiomeClimate';
+import { BiomeManager } from '../biome/BiomeManager';
 import type { OreVeinCellBound } from '../chunk/oreVein';
 import type { DensitySampler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
@@ -38,6 +39,12 @@ export interface MaterialRuleContextOptions {
     readonly randomState: RandomState;
     /** The biome at a block position, which a `biome` condition reads per column. */
     readonly biomeAt: (x: number, y: number, z: number) => string;
+    /**
+     * The unjittered biome of one cell of the resolver `biomeAt` reads through a
+     * {@link BiomeManager}. A `biome` condition then answers for every block whose eight candidate
+     * cells agree, without the block's own lookup.
+     */
+    readonly biomeCellAt?: (quartX: number, quartY: number, quartZ: number) => string;
     /** The climate of a biome, which a `temperature` condition reads. */
     readonly biomeClimate: BiomeClimateLookup;
     /** The dimension extent a vertical anchor resolves against. */
@@ -86,6 +93,8 @@ export class MaterialRuleContext {
     public updateCountXZ = 0;
     /** Counts {@link updateXZ} and {@link updateY} calls, which the per-block caches use. */
     public updateCountY = 0;
+    /** Counts the times {@link getCandidateBiomes} moved to another parent cell. */
+    public candidateCount = 0;
 
     /** Every biome the chunk can hold, or undefined when the caller did not narrow it. */
     public readonly possibleBiomes: ReadonlySet<string> | undefined;
@@ -99,6 +108,11 @@ export class MaterialRuleContext {
     private readonly system: SurfaceSystem;
     private readonly randomState: RandomState;
     private readonly biomeAt: (x: number, y: number, z: number) => string;
+    private readonly biomeCellAt: ((quartX: number, quartY: number, quartZ: number) => string) | undefined;
+    private readonly candidateBiomes: string[] = [];
+    private candidateParentX = 0;
+    private candidateParentY = 0;
+    private candidateParentZ = 0;
     private readonly biomeClimateLookup: BiomeClimateLookup;
     private readonly noises2d = new Map<string, Noise>();
     private readonly noises3d = new Map<string, Noise>();
@@ -113,6 +127,7 @@ export class MaterialRuleContext {
         this.system = options.system;
         this.randomState = options.randomState;
         this.biomeAt = options.biomeAt;
+        this.biomeCellAt = options.biomeCellAt;
         this.biomeClimateLookup = options.biomeClimate;
         this.generationContext = options.generationContext;
         this.sampleContext = options.sampleContext ?? new SampleContext();
@@ -151,6 +166,38 @@ export class MaterialRuleContext {
     public getBiome(): string {
         this.biome ??= this.biomeAt(this.blockX, this.blockY, this.blockZ);
         return this.biome;
+    }
+
+    /**
+     * The biomes of the eight cells the current block's lookup picks among, or undefined when the
+     * context has no `biomeCellAt`. They change only when the block moves into another parent
+     * cell, which {@link candidateCount} counts, and a column walk crosses one every four blocks.
+     */
+    public getCandidateBiomes(): readonly string[] | undefined {
+        const cellAt = this.biomeCellAt;
+        if (cellAt === undefined) return undefined;
+        const parentX = BiomeManager.parentCell(this.blockX);
+        const parentY = BiomeManager.parentCell(this.blockY);
+        const parentZ = BiomeManager.parentCell(this.blockZ);
+        if (
+            this.candidateCount === 0 ||
+            parentX !== this.candidateParentX ||
+            parentY !== this.candidateParentY ||
+            parentZ !== this.candidateParentZ
+        ) {
+            this.candidateParentX = parentX;
+            this.candidateParentY = parentY;
+            this.candidateParentZ = parentZ;
+            this.candidateCount++;
+            for (let corner = 0; corner < 8; corner++) {
+                this.candidateBiomes[corner] = cellAt(
+                    (corner & 4) === 0 ? parentX : parentX + 1,
+                    (corner & 2) === 0 ? parentY : parentY + 1,
+                    (corner & 1) === 0 ? parentZ : parentZ + 1
+                );
+            }
+        }
+        return this.candidateBiomes;
     }
 
     /** The secondary surface noise of the current column, sampled once per column. */
