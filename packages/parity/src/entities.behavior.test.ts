@@ -12,6 +12,7 @@ import { finishingScenarios } from './entityScenarios/finishing.ts';
 import { physicsScenarios } from './entityScenarios/physics.ts';
 import { damageScenarios } from './entityScenarios/damage.ts';
 import { sensesScenarios } from './entityScenarios/senses.ts';
+import { entitySlotScenarios, slotScenarios } from './entityScenarios/slots.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
 import { lifecycleScenarios } from './entityScenarios/lifecycle.ts';
 import { lootScenarios } from './entityScenarios/loot.ts';
@@ -54,7 +55,9 @@ const ENTITY_THEMES: readonly EntityTheme[] = [
     theme('stats', statsScenarios),
     theme('lifecycle', lifecycleScenarios),
     theme('loot', lootScenarios),
-    theme('finishing', finishingScenarios)
+    theme('finishing', finishingScenarios),
+    theme('slotNames', slotScenarios),
+    theme('entitySlots', entitySlotScenarios)
 ];
 
 /**
