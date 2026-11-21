@@ -16,11 +16,12 @@ env:
   GIT_CONFIG_KEY_0: init.defaultBranch
   GIT_CONFIG_VALUE_0: master
 
+# A pull request is analyzed when it changes a file the analysis reads. Master is analyzed by the
+# daily run instead of on every push: a burst of merges started a 13-minute analysis per commit, and
+# the code that lands on master is what the pull requests' analyses already covered. A pull
+# request's alerts are compared with master's newest analysis, which the daily run keeps a day old
+# at most.
 on:
-  push:
-    branches: [ "master" ]
-  # A pull request is analyzed when it changes a file the analysis reads. The push to master and
-  # the weekly run still analyze everything.
   pull_request:
     branches: [ "master" ]
     paths:
@@ -34,7 +35,7 @@ on:
       - '**/*.jsx'
       - '.github/workflows/codeql.yml'
   schedule:
-    - cron: '18 15 * * 4'
+    - cron: '18 15 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
