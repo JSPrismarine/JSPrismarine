@@ -15,5 +15,5 @@
         }
     },
     "include": ["src/**/*", "src/**/*.json"],
-    "exclude": ["src/**/*.test.*"]
+    "exclude": ["src/**/*.test.*", "src/__fixtures__/**"]
 }
