@@ -31,6 +31,32 @@ export type PlayerContainer = (typeof PLAYER_CONTAINERS)[number];
 export const playerContainerNamed = (name: string): PlayerContainer | undefined =>
     PLAYER_CONTAINERS.find((container) => container === name);
 
+/**
+ * The containers an entity carries, as an `inventory-slot` entry names them.
+ *
+ * One list for every entity. A player has `inventory`, `armor`, `offhand`, `ender_chest`,
+ * `cursor` and `crafting`; a mob has `mainhand`, `offhand`, `armor`, `body` and `inventory`. The
+ * crafting grid is a `CraftingInput` and every other name is an `ItemContainer` of an
+ * `EntityInventory`.
+ */
+export const ENTITY_CONTAINERS = [
+    'inventory',
+    'armor',
+    'body',
+    'offhand',
+    'mainhand',
+    'ender_chest',
+    'cursor',
+    'crafting'
+] as const;
+
+/** One of the containers an entity carries. */
+export type EntityContainer = (typeof ENTITY_CONTAINERS)[number];
+
+/** The container a logged entry names, or undefined for a name no entity container has. */
+export const entityContainerNamed = (name: string): EntityContainer | undefined =>
+    ENTITY_CONTAINERS.find((container) => container === name);
+
 const plainSlot = (stored: ReturnType<typeof storedItem>): SlotValue => {
     if (stored === null) return null;
     const plain = plainOf(stored);

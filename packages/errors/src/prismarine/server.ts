@@ -125,6 +125,11 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
      * report it with the stack trace.
      */
     InvalidLoggedSlot: { message: 'A logged slot cannot hold {value}', base: TypeError },
+    /**
+     * Code asked an entity's inventory for a container its layout does not have. This is a bug in
+     * the server; report it with the stack trace.
+     */
+    UnknownInventoryContainer: { message: 'This inventory has no {container} container', base: TypeError },
     /** The ban list file is not a JSON list. Fix it, or delete it to start with no bans. */
     BanListNotList: '{fileName} must hold a list of banned players',
     /** `allowlist.json` is not a JSON list. Fix it, or delete it to start with an empty allow list. */
