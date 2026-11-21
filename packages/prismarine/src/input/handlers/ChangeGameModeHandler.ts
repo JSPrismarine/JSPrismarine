@@ -8,7 +8,7 @@ import type { IntentHandler } from '../IntentHandler';
 /** The sender as this handler sees it: what the permission check reads, and the change. */
 interface GamemodePlayer {
     isOp(): boolean;
-    getPermissions(): string[];
+    hasPermission(node: string): boolean;
     setGamemode(mode: Gametype): Promise<void>;
 }
 

@@ -50,6 +50,8 @@ export interface SightIdentity {
     readonly device: Device | null;
     /** Whether the permission service lists the player as an operator. */
     readonly op: boolean;
+    /** The command level the player runs at. */
+    readonly commandLevel: CommandPermissionLevel;
 }
 
 /** What a client is shown when an entity first comes into its view. */
@@ -94,7 +96,16 @@ export interface AbilityTarget {
     readonly canFly: boolean;
     readonly flying: boolean;
     readonly op: boolean;
+    readonly commandLevel: CommandPermissionLevel;
 }
+
+/**
+ * The command permission a client is told of a player. A player who runs commands at level 1 or
+ * above, an operator or a subject with a `level` meta, is shown at `GameDirectors`, as Bedrock
+ * Dedicated Server shows its operators.
+ */
+const commandPermissionOf = (level: CommandPermissionLevel): CommandPermissionLevel =>
+    level >= CommandPermissionLevel.GAME_DIRECTORS ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
 
 /**
  * The packets that show one client an entity, in the order a client is sent them.
@@ -205,7 +216,7 @@ const playerSight = (sight: Extract<FirstSight, { kind: 'player' }>, context: Pr
             abilities: {
                 targetPlayerRawId: runtimeId,
                 playerPermission: identity.op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER,
-                commandPermission: identity.op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY,
+                commandPermission: commandPermissionOf(identity.commandLevel),
                 layers: []
             },
             links: [],
@@ -220,7 +231,8 @@ const playerSight = (sight: Extract<FirstSight, { kind: 'player' }>, context: Pr
             gamemode: player.gamemode,
             canFly: sight.metadata.canFly,
             flying: player.flying,
-            op: identity.op
+            op: identity.op,
+            commandLevel: identity.commandLevel
         }),
         // `AddPlayerPacket` carries the held item and nothing else, so armor has to follow the
         // player into view as a packet of its own.
@@ -389,7 +401,7 @@ export const abilitiesPacket = (target: AbilityTarget): UpdateAbilitiesPacket =>
     mainLayer.walkSpeed = 0.1;
 
     const packet = new UpdateAbilitiesPacket();
-    packet.commandPermission = target.op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
+    packet.commandPermission = commandPermissionOf(target.commandLevel);
     packet.playerPermission = target.op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER;
     packet.targetActorUniqueId = target.runtimeId;
     packet.abilityLayers = [mainLayer];

@@ -7,7 +7,7 @@
  * abilities, the armor and the player list entry are built from this. Slice 7 of the entity and tick
  * re-architecture replaces these reads with replication from the change log.
  */
-import type { Gametype } from '@jsprismarine/minecraft';
+import type { CommandPermissionLevel, Gametype } from '@jsprismarine/minecraft';
 import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 
@@ -36,5 +36,7 @@ export interface ShownPlayer extends ShownActor {
     readonly gamemode: Gametype;
     /** Whether the player is an operator, which sets the permissions other clients see. */
     isOp(): boolean;
+    /** The command level the player runs at, which sets the command permission other clients see. */
+    getCommandLevel(): CommandPermissionLevel;
     isFlying(): boolean;
 }

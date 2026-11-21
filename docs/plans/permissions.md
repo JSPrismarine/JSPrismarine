@@ -238,9 +238,11 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
        Landed as `kind` and `id` on each list entry; a legacy entry keeps its `uuid` (or, for a
        ban, its name alone) in place until a login claims it, so neither file is rewritten at
        startup and neither needs a `.bak`.
-3. [ ] [#3368](https://github.com/JSPrismarine/JSPrismarine/issues/3368) **The model and the file.** Groups, users, nodes, meta and expiry; resolution; the new
+3. [x] [#3368](https://github.com/JSPrismarine/JSPrismarine/issues/3368) **The model and the file.** Groups, users, nodes, meta and expiry; resolution; the new
        `permissions.json` with its migration; reload on `/reload` and on change; `can()` and the
-       command level reading the new data.
+       command level reading the new data. The fresh file no longer grants a hard-coded owner
+       UUID `*`; a server owner uses `/op` from the console, and a migrated owner entry waits
+       under `pending` like any other.
 4. [ ] [#3369](https://github.com/JSPrismarine/JSPrismarine/issues/3369) **The `/perms` command.** Every subcommand with its node, target resolution and the
        qualified form.
 5. [ ] [#3370](https://github.com/JSPrismarine/JSPrismarine/issues/3370) **The script module.** `permissions` in `@jsprismarine/server` and `script-types`, the

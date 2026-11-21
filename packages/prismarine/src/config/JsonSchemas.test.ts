@@ -94,11 +94,31 @@ describe('JSON schemas', () => {
             file: 'permissions.schema.json',
             valid: {
                 $schema: `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/permissions.schema.json`,
-                defaultPermissions: ['minecraft.command.help'],
-                defaultOperatorPermissions: ['*'],
-                players: [{ name: 'alice', uuid: 'fbf8646c-652c-38c4-96ff-a29d86cb5943', permissions: ['*'] }]
+                schemaVersion: 2,
+                groups: {
+                    default: { weight: 0, parents: [], nodes: [{ node: 'minecraft.command.help' }], meta: {} },
+                    vip: {
+                        weight: 10,
+                        parents: ['default'],
+                        nodes: [{ node: 'minecraft.command.*', expires: '2030-01-01T00:00:00.000Z' }],
+                        meta: { prefix: '[VIP] ' }
+                    }
+                },
+                users: {
+                    xbox: { '2535400000000001': { name: 'alice', groups: [{ group: 'vip' }], nodes: [], meta: {} } },
+                    offline: {}
+                },
+                pending: [
+                    {
+                        name: 'bob',
+                        legacyUuid: 'fbf8646c-652c-38c4-96ff-a29d86cb5943',
+                        groups: [],
+                        nodes: [{ node: '*' }],
+                        meta: {}
+                    }
+                ]
             },
-            invalid: { players: [{ name: 'alice' }] }
+            invalid: { schemaVersion: 2, groups: { vip: { weight: 'heavy' } }, users: {} }
         },
         {
             file: 'ops.schema.json',

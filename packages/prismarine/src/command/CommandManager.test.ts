@@ -505,13 +505,16 @@ describe('command', () => {
                         })
                 });
                 await permissionManager.enable();
-                const grants = await permissionManager.getPermissions(identityNamed('Filfat', ownerUuid));
+                // The owner holds `*` of their own, which counts as operator status.
+                const filfat = identityNamed('Filfat', ownerUuid);
+                await permissionManager.grantUser(filfat, '*');
                 const owner = sessionOnPrototype(
                     {
                         getName: () => 'Filfat',
                         getRuntimeId: () => 1n,
-                        getPermissions: () => grants,
-                        isOp: () => permissionManager.isOp({ kind: 'offline', name: 'Filfat' }),
+                        hasPermission: (node: string) => permissionManager.has(filfat, node),
+                        getCommandLevel: () => permissionManager.commandLevelOf(filfat),
+                        isOp: () => permissionManager.isOp(filfat.subject),
                         getType: () => 'minecraft:player',
                         getFeetY: () => 64,
                         getPosition: () => new Position(0, 64, 0, world),

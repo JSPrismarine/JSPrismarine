@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import type { Logger } from '@jsprismarine/logger';
+import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type { SessionPlayer } from '../sessionPlayers';
@@ -441,7 +442,8 @@ describe('AvailableCommandsPacket', () => {
         });
 
         const session = Object.assign(sessionFor(server, connection, player, { identity: identityNamed('Steve') }), {
-            isOp: () => false
+            isOp: () => false,
+            getCommandLevel: () => CommandPermissionLevel.ANY
         });
         sessions.push(session);
 

@@ -125,7 +125,7 @@ const testServer = (): Server => {
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ nodesOf: () => [] }),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime(),
         getChunkCompletionQueue: () => new ChunkCompletionQueue(),

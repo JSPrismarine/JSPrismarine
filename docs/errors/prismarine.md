@@ -2427,6 +2427,31 @@ Thrown as `PrismarineServerErrors.InvalidLoggedSlot`, which extends `TypeError`.
 An inventory change holds a value that is not an item stack. This is a bug in the server;
 report it with the stack trace.
 
+### `PRISMARINE_INVALID_PERMISSION_EXPIRY`
+
+`Expiry "{expires}" is not an ISO 8601 instant in the future`
+
+Thrown as `PrismarineServerErrors.InvalidPermissionExpiry`, which extends `RangeError`.
+
+An expiry is not an ISO 8601 instant in the future, such as `2030-01-01T00:00:00Z`.
+
+### `PRISMARINE_INVALID_PERMISSION_GROUP_NAME`
+
+`Permission group name "{group}" is empty or has whitespace`
+
+Thrown as `PrismarineServerErrors.InvalidPermissionGroupName`, which extends `RangeError`.
+
+A group's name is empty or has whitespace.
+
+### `PRISMARINE_INVALID_PERMISSION_NODE`
+
+`Permission node "{node}" is not spelled as scope.name, scope.* or *`
+
+Thrown as `PrismarineServerErrors.InvalidPermissionNode`, which extends `RangeError`.
+
+A permission node is not spelled as `scope.name`, `scope.*` or `*`, with at most one leading
+`-`. Dots separate non-empty segments, and `*` can only be the last one.
+
 ### `PRISMARINE_INVALID_PERMISSIONS_ENTRY`
 
 `Invalid {permissionFileName} file.`
@@ -2539,6 +2564,38 @@ Thrown as `PrismarineServerErrors.OpsNotList`, which extends `Error`.
 
 `ops.json` is not a JSON list. Fix it, or delete it to start with no operators.
 
+### `PRISMARINE_PERMISSION_GROUP_BUILT_IN`
+
+`The permission group "{group}" is built in and cannot be deleted`
+
+Thrown as `PrismarineServerErrors.PermissionGroupBuiltIn`, which extends `Error`.
+
+`default` and `operator` cannot be deleted: every subject holds the first and every operator the second.
+
+### `PRISMARINE_PERMISSION_GROUP_EXISTS`
+
+`A permission group named "{group}" already exists`
+
+Thrown as `PrismarineServerErrors.PermissionGroupExists`, which extends `Error`.
+
+A command or a script asked to create a permission group that already exists.
+
+### `PRISMARINE_PERMISSION_GROUP_NOT_FOUND`
+
+`No permission group named "{group}"`
+
+Thrown as `PrismarineServerErrors.PermissionGroupNotFound`, which extends `Error`.
+
+A command or a script named a permission group `permissions.json` does not have.
+
+### `PRISMARINE_PERMISSION_GROUP_OWN_PARENT`
+
+`A permission group cannot be its own parent: {group}`
+
+Thrown as `PrismarineServerErrors.PermissionGroupOwnParent`, which extends `Error`.
+
+A group's parent must be another group; a group cannot inherit itself.
+
 ### `PRISMARINE_PERMISSIONS_NOT_OBJECT`
 
 `{permissionFileName} must hold an object`
@@ -2547,6 +2604,15 @@ Thrown as `PrismarineServerErrors.PermissionsNotObject`, which extends `Error`.
 
 `permissions.json` is not a JSON object. Fix it, or delete it to have the server write a
 fresh one.
+
+### `PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED`
+
+`{permissionFileName} has schemaVersion {schemaVersion}, and this server reads up to {supported}`
+
+Thrown as `PrismarineServerErrors.PermissionsSchemaUnsupported`, which extends `Error`.
+
+`permissions.json` names a `schemaVersion` this server does not read, so it was written by
+a newer server. Update the server, or restore the file an older one wrote.
 
 ### `PRISMARINE_PLAYER_NOT_FOUND`
 

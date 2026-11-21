@@ -17,14 +17,17 @@ commands the server registers, so it lists exactly what a server of this version
 A player needs two things to run a command, and the table shows both.
 
 The **permission** column is the node in `permissions.json`. A fresh `permissions.json` lets every
-player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, and grants every operator `*`, which covers
-every node. To let a player run something else, add its node to their entry in `players`, or to
-`defaultPermissions` to give it to everyone. A node ending in `.*` grants a whole scope, so
-`minecraft.command.*` grants every vanilla command.
+player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, through the `default` group every player
+holds, and grants every operator `*` through the `operator` group, which covers every node. To let
+a player run something else, add the node to their user record or to a group they hold; the
+[permissions section of the running guide](running.md#permissions) explains the file. A node
+ending in `.*` grants a whole scope, so `minecraft.command.*` grants every vanilla command, and a
+leading `-` takes a node away.
 
-The **level** column is the command's permission level, which follows Java Edition. Everyone else
-runs at level 0, an operator at 4 and the console at 5, so a command at level 1 or above needs an
-operator even when a permission node allows it. A command at level 5 runs on the console only: no
+The **level** column is the command's permission level, which follows Java Edition. A player runs
+at level 0 unless a `level` meta in `permissions.json` raises it, an operator at 4 and the console
+at 5, so a command at level 1 or above needs an operator or a `level` even when a permission node
+allows it. A command at level 5 runs on the console only: no
 player sees it, and an operator who types it is told it needs a higher level. The **granted to**
 column puts the two together for a fresh server: who can run the command before you change
 anything.

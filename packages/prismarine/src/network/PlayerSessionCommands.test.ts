@@ -23,6 +23,12 @@ import { testContent } from '../testing/entityServer';
 /** What a fresh `permissions.json` grants everyone. */
 const DEFAULT_PERMISSIONS = ['minecraft.command.help', 'minecraft.command.list', 'minecraft.command.me'];
 
+/** The node check a flat list of grants makes: the node itself, a parent scope's `*`, or `*`. */
+const holds = (grants: readonly string[], node: string): boolean =>
+    grants.some(
+        (grant) => grant === node || grant === '*' || (grant.endsWith('.*') && node.startsWith(grant.slice(0, -1)))
+    );
+
 /**
  * The `AvailableCommandsPacket` the default command set produces for one player, through the
  * real command manager and the real permission rules over a fixed set of grants.
@@ -39,11 +45,7 @@ const commandsSentTo = async ({
         // No pack stack, so the command layer offers the commands a server without one has.
         getContent: () => testContent(),
         getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
-        getPermissionManager: () =>
-            stub<PermissionManager>({
-                can: canExecute,
-                getDefaultPermissions: () => DEFAULT_PERMISSIONS
-            }),
+        getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
         getCommandManager: () => commandManager,
         // Read once by the session's constructor.
         getConfig: () =>
@@ -65,7 +67,8 @@ const commandsSentTo = async ({
 
     const session = Object.assign(sessionFor(server, connection, player, { identity: identityNamed('Steve') }), {
         isOp: () => op,
-        getPermissions: () => permissions
+        hasPermission: (node: string) => holds(permissions, node),
+        getCommandLevel: () => (op ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY)
     });
     sessions.push(session);
 
@@ -185,7 +188,11 @@ describe('PlayerSession', () => {
             });
             const session = Object.assign(
                 sessionFor(server, connection, player, { identity: identityNamed('Steve') }),
-                { isOp: () => false, getPermissions: () => permissions }
+                {
+                    isOp: () => false,
+                    hasPermission: (node: string) => holds(permissions, node),
+                    getCommandLevel: () => CommandPermissionLevel.ANY
+                }
             );
             sessions.push(session);
 
