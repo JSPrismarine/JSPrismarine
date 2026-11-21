@@ -102,7 +102,14 @@ held writes grow past `HELD_WRITE_LIMIT`, the level commits them early in a pass
 still one batch, and a shutdown commits them with its pass.
 
 `WorldManager` loads every entry under `worlds`, not only `level-name`; `level-name` is the one
-players join. For each entry it reads the config in either spelling, reads the stems the save was
+players join. Then it loads the levels created while the server ran that `levels.json`, beside
+`config.json`, records as attached. The server owns that file: it records each such level's UUID,
+name, folder under `worlds/` and the entry it was created with, and whether it is attached. A
+level in `worlds` stays attached while the config names it; to detach one, remove it from the
+config and restart. A level from `levels.json` detaches while the server runs and keeps its
+files, and attaching it again opens the same save. Two attached levels never share a name,
+while detached ones may, and are told apart by UUID
+([ADR 0029](../adr/0029-worlds-are-levels-the-server-manages.md)). For each entry it reads the config in either spelling, reads the stems the save was
 generated with, resolves the stems from the preset, the entry's `dimensions` and the saved ones in
 that order of rising priority, and resolves the dimension types the stems name. A type the vanilla
 three do not cover is read from the datapack registries, which is the first point at which a

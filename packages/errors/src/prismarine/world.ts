@@ -287,6 +287,29 @@ export const PrismarineWorldErrors = defineErrors('prismarine/world', {
     /** No attached level has that name or UUID. `/world list` shows the attached levels. */
     LevelNotAttached: 'No attached level is named {name}',
     /**
+     * A level the config's `worlds` declares is attached for as long as the config names it. To
+     * detach it, remove its entry from `config.json` and restart the server.
+     */
+    ConfigLevelCannotDetach:
+        'Level {name} is declared in config.json; remove it from `worlds` and restart the server to detach it',
+    /**
+     * A level's name is 1 to 64 letters, digits, underscores and hyphens, since it also names the
+     * level's folder under `worlds/`. Choose a name of those characters.
+     */
+    InvalidNewLevelName: '{name} is not a level name: use 1 to 64 letters, digits, underscores and hyphens',
+    /**
+     * Two attached levels cannot share a name, and a new level cannot take the name of one the
+     * config declares. Choose another name, or detach the level that has it.
+     */
+    LevelNameTaken: 'A level named {name} is attached or declared in config.json already',
+    /** No detached level in `levels.json` has that name or UUID. `/world list` shows them. */
+    LevelNotRegistered: 'No detached level is named {name}',
+    /**
+     * More than one detached level has that name, which detached levels may share. Name the one
+     * to attach by its UUID, which `/world list` shows.
+     */
+    AmbiguousLevelName: 'More than one detached level is named {name}: {ids}',
+    /**
      * The world loaded without an overworld, which every world needs. Check its dimensions in
      * `config.json`.
      */
