@@ -31,17 +31,8 @@ export const PlayDisconnect = defineJavaPacket('Disconnect (play)', PACKETS.play
     reason: textComponent
 });
 
-/** `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings. */
-export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbound.login, {
-    entityId: int,
-    hardcore: bool,
-    dimensions: list(identifier),
-    maxPlayers: varInt,
-    viewDistance: varInt,
-    simulationDistance: varInt,
-    reducedDebugInfo: bool,
-    showDeathScreen: bool,
-    doLimitedCrafting: bool,
+/** Vanilla's `CommonPlayerSpawnInfo`: the world a player spawns into, which a login and a respawn both carry. */
+const SPAWN_INFO = {
     /** The dimension type's network id: its index in the `minecraft:dimension_type` registry. */
     dimensionType: varInt,
     dimension: identifier,
@@ -53,7 +44,21 @@ export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbou
     isFlat: bool,
     deathLocation: optional(record({ dimension: identifier, position: long })),
     portalCooldown: varInt,
-    seaLevel: varInt,
+    seaLevel: varInt
+};
+
+/** `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings. */
+export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbound.login, {
+    entityId: int,
+    hardcore: bool,
+    dimensions: list(identifier),
+    maxPlayers: varInt,
+    viewDistance: varInt,
+    simulationDistance: varInt,
+    reducedDebugInfo: bool,
+    showDeathScreen: bool,
+    doLimitedCrafting: bool,
+    ...SPAWN_INFO,
     onlineMode: bool,
     enforcesSecureChat: bool
 });
@@ -478,4 +483,39 @@ export const UseItemOn = defineJavaPacket('Use Item On', PACKETS.play.serverboun
     inside: bool,
     worldBorderHit: bool,
     sequence: varInt
+});
+
+/** `Set Health` (clientbound): the player's own health, food level and saturation. */
+export const SetHealth = defineJavaPacket('Set Health', PACKETS.play.clientbound.set_health, {
+    health: float,
+    food: varInt,
+    saturation: float
+});
+
+/** `Combat Death` (clientbound): a player died, which opens its client's death screen with the message. */
+export const PlayerCombatKill = defineJavaPacket('Combat Death', PACKETS.play.clientbound.player_combat_kill, {
+    playerId: varInt,
+    message: textComponent
+});
+
+/** `Client Command` (serverbound) actions, by vanilla's `ServerboundClientCommandPacket.Action` order. */
+export enum ClientCommandAction {
+    PerformRespawn = 0,
+    RequestStats = 1,
+    RequestGameRuleValues = 2
+}
+
+/** `Client Command` (serverbound): the death screen's respawn button, and requests for statistics. */
+export const ClientCommand = defineJavaPacket('Client Command', PACKETS.play.serverbound.client_command, {
+    action: varInt
+});
+
+/**
+ * `Respawn` (clientbound): the player is spawned again into a world, which a death's respawn and a
+ * change of dimension send. `dataToKeep` keeps the attributes (1) and the entity data (2) the
+ * client had; a respawn after death keeps neither.
+ */
+export const Respawn = defineJavaPacket('Respawn', PACKETS.play.clientbound.respawn, {
+    ...SPAWN_INFO,
+    dataToKeep: uint8
 });

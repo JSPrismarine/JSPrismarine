@@ -4,6 +4,8 @@ import type { JavaPacketDefinition } from './JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
 import {
     BlockChangedAck,
+    ClientCommand,
+    ClientCommandAction,
     BlockUpdate,
     ChunkBatchFinished,
     ContainerSetContent,
@@ -11,9 +13,12 @@ import {
     GameEvent,
     PlayerAction,
     PlayerActionStatus,
+    PlayerCombatKill,
     PlayLogin,
+    Respawn,
     SectionBlocksUpdate,
     SetCreativeModeSlot,
+    SetHealth,
     UseItemOn,
     SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
@@ -189,5 +194,59 @@ describe('Use Item On', () => {
             worldBorderHit: false,
             sequence: 9
         });
+    });
+});
+
+describe('health and respawn packets', () => {
+    const roundTrip = <T>(definition: JavaPacketDefinition<T>, value: T): T =>
+        decodeJavaPacket(definition, readJavaPacketId(encodeJavaPacket(definition, value)).body);
+
+    it('writes health and saturation as floats around a VarInt food level', () => {
+        const body = encodeJavaPacket(SetHealth, { health: 20, food: 18, saturation: 5 }).subarray(
+            idOf(SetHealth).length
+        );
+
+        expect([...body]).toEqual([0x41, 0xa0, 0, 0, 18, 0x40, 0xa0, 0, 0]);
+    });
+
+    it('carries a death message and the respawn button, and reads them back', () => {
+        const death = { playerId: 7, message: { translate: 'death.attack.generic', with: ['Steve'] } };
+
+        expect(roundTrip(PlayerCombatKill, death)).toEqual(death);
+        expect(roundTrip(ClientCommand, { action: ClientCommandAction.PerformRespawn })).toEqual({ action: 0 });
+    });
+
+    it("writes a respawn as the login's spawn fields, then what the client keeps", () => {
+        const spawn = {
+            dimensionType: 0,
+            dimension: 'minecraft:overworld',
+            hashedSeed: 0n,
+            gameMode: 0,
+            previousGameMode: null,
+            isDebug: false,
+            isFlat: false,
+            deathLocation: null,
+            portalCooldown: 0,
+            seaLevel: 63
+        };
+        const respawn = encodeJavaPacket(Respawn, { ...spawn, dataToKeep: 3 }).subarray(idOf(Respawn).length);
+        const login = encodeJavaPacket(PlayLogin, {
+            entityId: 1,
+            hardcore: false,
+            dimensions: [],
+            maxPlayers: 20,
+            viewDistance: 10,
+            simulationDistance: 10,
+            reducedDebugInfo: false,
+            showDeathScreen: true,
+            doLimitedCrafting: false,
+            ...spawn,
+            onlineMode: false,
+            enforcesSecureChat: false
+        });
+
+        // The login's spawn fields start after its first nine fields (12 bytes here) and run to its last two.
+        expect(respawn.subarray(0, -1)).toEqual(login.subarray(idOf(PlayLogin).length + 12, -2));
+        expect(respawn.at(-1)).toBe(3);
     });
 });
