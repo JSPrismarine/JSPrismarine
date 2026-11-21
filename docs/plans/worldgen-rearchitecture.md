@@ -231,7 +231,8 @@ volume runtime exists. The order:
    octave samples on the native path, against 39,256 without it. Blended noise's smeared stacks
    followed: an overworld chunk now runs 0 TypeScript octaves of either kind, against 78,256, and
    every vanilla noise setting runs 0.
-4. The aquifer and the density program follow, each proven by the same bit comparison.
+4. The density program and then the aquifer follow, each proven by the same bit comparison.
+   [The density program in C](native-density-program.md) is the design and its order of landing.
 
 The design below stays the target for the density program:
 
