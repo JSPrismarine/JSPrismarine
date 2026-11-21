@@ -95,7 +95,10 @@ same arguments and run the same code.
 
 `buildAvailableCommands(registry, options)` returns the packet's eight fields as values plus the
 flattener's report. Pass `source` to filter by `CommandNode.canUse` the way Java does, so a player
-is only told about the commands they may run.
+is only told about the commands they may run. As a Bedrock Dedicated Server does, it lists every
+command name and alias in the `CommandName` enum and names each alias enum after its command, such
+as `teleportCommandAliases`. A client offers a namespaced command, such as `jsp:tpsbar`, only when
+`CommandName` lists it.
 
 Bedrock's tree is a flat overload list per command with no redirects, so Java's graph becomes a
 cartesian expansion. Six shapes do not survive it unchanged, and each produces a note instead of a
