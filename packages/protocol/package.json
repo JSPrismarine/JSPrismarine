@@ -951,6 +951,11 @@
                 "import": "./dist/java/versions/26.3/packets.js",
                 "module": "./dist/java/versions/26.3/packets.js"
             },
+            "./java/packet/configuration": {
+                "types": "./dist/java/packet/configuration.d.ts",
+                "import": "./dist/java/packet/configuration.js",
+                "module": "./dist/java/packet/configuration.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1774,6 +1779,10 @@
         "./java/versions/26.3/packets": {
             "jsprismarine:dist": "./dist/java/versions/26.3/packets.js",
             "default": "./src/java/versions/26.3/packets.ts"
+        },
+        "./java/packet/configuration": {
+            "jsprismarine:dist": "./dist/java/packet/configuration.js",
+            "default": "./src/java/packet/configuration.ts"
         },
         "./package.json": "./package.json"
     },

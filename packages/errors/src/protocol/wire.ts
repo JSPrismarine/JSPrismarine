@@ -397,5 +397,10 @@ export const ProtocolWireErrors = defineErrors('protocol', {
      * layout this server does not read. The connection is dropped; a client of another release,
      * or a modified one, is the usual cause.
      */
-    JavaPacketHasTrailingBytes: '{name} has {unread} unread bytes after its fields'
+    JavaPacketHasTrailingBytes: '{name} has {unread} unread bytes after its fields',
+    /**
+     * A Java Edition client sent a text component that is not plain text, which the server does
+     * not read yet. The connection is dropped.
+     */
+    JavaTextComponentNotString: 'A text component with NBT tag {tag} is not plain text'
 });

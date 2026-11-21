@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { ClientIntent, Intention } from './handshake';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
-import { LoginDisconnect } from './login';
+import {
+    EncryptionRequest,
+    EncryptionResponse,
+    LoginAcknowledged,
+    LoginDisconnect,
+    LoginStart,
+    LoginSuccess,
+    SetCompression
+} from './login';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from './status';
 import { PACKETS } from '../versions/26.3/packets';
 
@@ -27,7 +35,35 @@ describe('Java packets', () => {
         [StatusResponse.name, StatusResponse, { json: '{"version":{"name":"26.3","protocol":777}}' }],
         [PingRequest.name, PingRequest, { timestamp: 1_700_000_000_000n }],
         [PongResponse.name, PongResponse, { timestamp: -1n }],
-        [LoginDisconnect.name, LoginDisconnect, { reason: '{"text":"Bye"}' }]
+        [LoginDisconnect.name, LoginDisconnect, { reason: '{"text":"Bye"}' }],
+        [LoginStart.name, LoginStart, { name: 'Steve', profileId: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0' }],
+        [
+            EncryptionRequest.name,
+            EncryptionRequest,
+            {
+                serverId: '',
+                publicKey: Buffer.from([1, 2, 3]),
+                verifyToken: Buffer.from([4, 5, 6, 7]),
+                shouldAuthenticate: true
+            }
+        ],
+        [
+            EncryptionResponse.name,
+            EncryptionResponse,
+            { sharedSecret: Buffer.alloc(128, 1), verifyToken: Buffer.alloc(128, 2) }
+        ],
+        [SetCompression.name, SetCompression, { threshold: 256 }],
+        [
+            LoginSuccess.name,
+            LoginSuccess,
+            {
+                uuid: '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0',
+                username: 'Steve',
+                properties: [{ name: 'textures', value: 'e30=', signature: null }],
+                sessionId: '83b77f6c-6c4b-4976-b32e-1c63c8d95583'
+            }
+        ],
+        [LoginAcknowledged.name, LoginAcknowledged, {}]
     ] as const)('round-trips %s', (_name, definition, value) => {
         const { id, body } = readJavaPacketId(encodeJavaPacket<object>(definition, value));
 

@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { javaString, long, unsignedShort, varInt } from './javaTypes';
+import { javaString, long, textComponent, unsignedShort, uuid, varInt } from './javaTypes';
 
 const bytesOf = <T>(type: { write(stream: BinaryStream, value: T): void }, value: T): number[] => {
     const stream = new BinaryStream();
@@ -38,6 +38,20 @@ describe('Java wire types', () => {
 
         expect(() => javaString(10).read(new BinaryStream(stream.getBuffer()))).toThrow(
             'A string of 11 characters is longer than the 10 its field allows'
+        );
+    });
+
+    it('writes a UUID as sixteen bytes, most significant first', () => {
+        const id = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
+
+        expect(bytesOf(uuid, id)).toEqual([...Buffer.from('0f1e2d3c4b5a69788796a5b4c3d2e1f0', 'hex')]);
+        expect(uuid.read(new BinaryStream(Buffer.from(bytesOf(uuid, id))))).toBe(id);
+    });
+
+    it('writes plain text as an unnamed NBT String tag', () => {
+        expect(bytesOf(textComponent, 'Hi')).toEqual([0x08, 0x00, 0x02, 0x48, 0x69]);
+        expect(() => textComponent.read(new BinaryStream(Buffer.from([0x0a, 0x00])))).toThrow(
+            'A text component with NBT tag 10 is not plain text'
         );
     });
 });

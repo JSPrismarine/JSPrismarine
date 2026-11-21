@@ -772,6 +772,15 @@ A Java Edition client sent a string longer than its field allows, so the packet 
 malformed. The connection is dropped; a modified client, or one that writes the protocol
 differently than this server reads it, is the usual cause.
 
+### `PROTOCOL_JAVA_TEXT_COMPONENT_NOT_STRING`
+
+`A text component with NBT tag {tag} is not plain text`
+
+Thrown as `ProtocolWireErrors.JavaTextComponentNotString`, which extends `Error`.
+
+A Java Edition client sent a text component that is not plain text, which the server does
+not read yet. The connection is dropped.
+
 ### `PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA`
 
 `The payload carries no Data in the {layout} layout of this protocol version`

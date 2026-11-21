@@ -10,6 +10,9 @@ import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 import type { WireType } from '../../wire/fieldTypes';
 import { custom, string } from '../../wire/fieldTypes';
 
+/** NBT's String tag id. */
+const NBT_STRING = 8;
+
 /** `VarInt`: a signed 32-bit integer, seven bits a byte, least significant group first. */
 export const varInt: WireType<number> = custom<number>(
     'VarInt',
@@ -48,3 +51,40 @@ export const javaString = (max: number): WireType<string> =>
             return value;
         }
     );
+
+/**
+ * A UUID's 32 hexadecimal digits in the 8-4-4-4-12 groups Java writes it in.
+ * @param hex - The digits, without hyphens.
+ * @returns The hyphenated UUID.
+ */
+export const hyphenatedUuid = (hex: string): string =>
+    `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+
+/** `UUID`: sixteen bytes, most significant first, as the hyphenated lowercase string. */
+export const uuid: WireType<string> = custom<string>(
+    'UUID',
+    (s, v) => s.write(Buffer.from(v.replaceAll('-', ''), 'hex')),
+    (s) => hyphenatedUuid(s.read(16).toString('hex'))
+);
+
+/**
+ * `Text Component` as network NBT, for plain text: a String tag with no name, its length an
+ * unsigned short of modified UTF-8 bytes. The configuration and play phases carry text this way;
+ * the login phase still carries JSON.
+ *
+ * Only the plain string form is read and written; a compound component is not.
+ */
+export const textComponent: WireType<string> = custom<string>(
+    'Text Component',
+    (s, v) => {
+        const bytes = Buffer.from(v, 'utf8');
+        s.writeByte(NBT_STRING);
+        s.writeUnsignedShort(bytes.byteLength);
+        s.write(bytes);
+    },
+    (s) => {
+        const tag = s.readByte();
+        if (tag !== NBT_STRING) throw new ProtocolWireErrors.JavaTextComponentNotString({ tag });
+        return s.read(s.readUnsignedShort()).toString('utf8');
+    }
+);
