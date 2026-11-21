@@ -1773,7 +1773,7 @@
         },
         "bds-record:dimension-volumes": {
             "kind": "defect",
-            "reason": "getBlocks with closest breaks distance ties in the volume's x, y, z order, so of two blocks the same distance away it returns 2 20 1 where BDS returns 2 21 0 (issue #3317). Every fill, find, biome and clone matches BDS.",
+            "reason": "getBlocks with closest picks among blocks at one distance as BDS does, walking the volume x, then z, then y into a max-heap of the size asked for, for every captured case but three: from (5.5, 31.5, 5.5) the nearest 10 and 19 of a 3x3x3 cube, and from (7, 31, 5) the nearest 2, each pick a different block of a tied ring (issue #3317).",
             "reference": "issue #3317"
         }
     },
