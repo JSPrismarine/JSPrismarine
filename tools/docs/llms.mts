@@ -41,8 +41,16 @@ export interface MarkdownPageOptions {
     markdownPages: ReadonlySet<string>;
 }
 
-/** The pages that get a Markdown copy: those staged from the repository, whose source is Markdown written to be read. */
-export const markdownPages = (pages: readonly string[]) => new Set(pages.filter(isStagedPage));
+/**
+ * The pages that get a Markdown copy: those staged from the repository, whose source is Markdown
+ * written to be read, and the pages the build writes a copy of from data, such as Packages.
+ */
+export const markdownPages = ({ pages, generated }: Pick<MarkdownSite, 'pages' | 'generated'>) =>
+    new Set(pages.filter((page) => isStagedPage(page) || generated?.has(page)));
+
+/** The Markdown a page's copy is made from: the copy the build wrote from data, or else the page's own source. */
+const copySource = ({ srcDir, generated }: Pick<MarkdownSite, 'srcDir' | 'generated'>, page: string) =>
+    generated?.get(page) ?? readFileSync(path.join(srcDir, page), 'utf8');
 
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
@@ -105,13 +113,19 @@ export interface MarkdownSite {
     outDir: string;
     pages: readonly string[];
     siteUrl: string;
+    /**
+     * The Markdown of pages the site writes with Vue components, by page file, written from the data
+     * the component renders (see `llmsPages.mts`). Its links are site-absolute, like a staged page's.
+     */
+    generated?: ReadonlyMap<string, string>;
 }
 
-/** Writes each staged page's Markdown copy beside its HTML in the built site, and returns how many it wrote. */
-export function writeMarkdownPages({ srcDir, outDir, pages, siteUrl }: MarkdownSite) {
-    const published = markdownPages(pages);
+/** Writes each page's Markdown copy beside its HTML in the built site, and returns how many it wrote. */
+export function writeMarkdownPages(site: MarkdownSite) {
+    const { outDir, siteUrl } = site;
+    const published = markdownPages(site);
     for (const page of published) {
-        const markdown = pageMarkdown(readFileSync(path.join(srcDir, page), 'utf8'), {
+        const markdown = pageMarkdown(copySource(site, page), {
             page,
             siteUrl,
             markdownPages: published
@@ -180,10 +194,7 @@ export function llmsText(index: LlmsIndex, options: Omit<MarkdownPageOptions, 'p
 }
 
 /** The pages and data `/llms.txt` is built from, as `buildEnd` has them. */
-export interface IndexSource {
-    srcDir: string;
-    pages: readonly string[];
-    siteUrl: string;
+export interface IndexSource extends Omit<MarkdownSite, 'outDir'> {
     summary: string;
     project: ProjectData;
     sections: readonly DocSection[];
@@ -213,7 +224,7 @@ function datedLabel(markdown: string, updatedAt: number | undefined) {
 export function llmsIndex(source: IndexSource): LlmsIndex {
     const pages = new Set(source.pages);
     const listed = new Set<string>();
-    const markdown = (page: string) => readFileSync(path.join(source.srcDir, page), 'utf8');
+    const markdown = (page: string) => copySource(source, page);
     const pageOf = (link: string) => routeFiles(pageRoute(link)).find((file) => pages.has(file));
 
     /**
@@ -290,18 +301,16 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
  * `/llms.txt` lists them, each under a block giving its URL. A page linked twice, such as once per
  * heading, is written once.
  */
-export function llmsFullText(
-    index: LlmsIndex,
-    { srcDir, siteUrl, pages }: Pick<IndexSource, 'srcDir' | 'siteUrl' | 'pages'>
-) {
-    const published = markdownPages(pages);
+export function llmsFullText(index: LlmsIndex, site: Omit<MarkdownSite, 'outDir'>) {
+    const { siteUrl } = site;
+    const published = markdownPages(site);
     const written = new Set<string>();
     const blocks: string[] = [];
     for (const { links } of index.sections.filter(({ fullText }) => fullText)) {
         for (const { page } of links) {
             if (page === undefined || !published.has(page) || written.has(page)) continue;
             written.add(page);
-            const copy = pageMarkdown(readFileSync(path.join(srcDir, page), 'utf8'), {
+            const copy = pageMarkdown(copySource(site, page), {
                 page,
                 siteUrl,
                 markdownPages: published
@@ -325,7 +334,7 @@ export function writeLlmsFiles(source: IndexSource & { outDir: string }) {
     const index = llmsIndex(source);
     writeFileSync(
         path.join(source.outDir, 'llms.txt'),
-        llmsText(index, { siteUrl: source.siteUrl, markdownPages: markdownPages(source.pages) })
+        llmsText(index, { siteUrl: source.siteUrl, markdownPages: markdownPages(source) })
     );
     const full = llmsFullText(index, source);
     const bytes = Buffer.byteLength(full);
