@@ -113,8 +113,8 @@ export type ConsoleModule = Pick<typeof import('@jsprismarine/console'), 'startC
 
 /** Options for {@link loadTuiFrontend}. */
 export interface TuiFrontendOptions {
-    /** Shown in the title bar. */
-    serverName: string;
+    /** Shown in the title bar after the product name, when there is one to tell servers apart. */
+    serverName?: string;
     /** Shown in the title bar. */
     version: string;
     /** Where the console reads and writes command history. */

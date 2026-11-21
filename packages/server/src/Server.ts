@@ -369,8 +369,7 @@ const main = async (): Promise<void> => {
     const tui =
         decision.mode === 'tui'
             ? await loadTuiFrontend({
-                  // The config file lives in the child, so the title bar shows the product name.
-                  serverName: 'JSPrismarine',
+                  // The config file lives in the child, so the title bar names only the product.
                   version: `v${serverVersion()}`,
                   historyFile: dataPath('.console_history')
               })
