@@ -7,6 +7,10 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { PropertyDefinition, PropertyType, PropertyValues } from '@jsprismarine/entities';
 
+import PlayerUpdateEntityOverridesPacket, {
+    EntityOverrideUpdateType
+} from '@jsprismarine/protocol/bedrock/packet/PlayerUpdateEntityOverridesPacket';
+import type { EntityOverrideUpdate } from '@jsprismarine/protocol/bedrock/packet/PlayerUpdateEntityOverridesPacket';
 import SyncActorPropertyPacket from '@jsprismarine/protocol/bedrock/packet/SyncActorPropertyPacket';
 import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
@@ -69,12 +73,8 @@ export const syncedPropertiesOf = (
     properties: Pick<PropertyValues, 'names' | 'definition' | 'get'>
 ): SyncedProperties => {
     const synced = new SyncedProperties();
-    let index = 0;
 
-    for (const name of properties.names()) {
-        const definition = properties.definition(name);
-        if (definition === undefined || !definition.clientSync) continue;
-
+    for (const { name, definition, index } of syncedDefinitionsOf(properties)) {
         const value = properties.get(name);
         switch (definition.type) {
             case 'int':
@@ -92,11 +92,82 @@ export const syncedPropertiesOf = (
                 break;
             }
         }
-
-        index += 1;
     }
 
     return synced;
+};
+
+/**
+ * An entity's client-synced properties with the index each travels under, in the order its
+ * synced definition packet declares them. Every packet that names a property by index reads it here.
+ */
+const syncedDefinitionsOf = (
+    properties: Pick<PropertyValues, 'names' | 'definition'>
+): { readonly name: string; readonly definition: PropertyDefinition; readonly index: number }[] =>
+    properties
+        .names()
+        .flatMap((name) => {
+            const definition = properties.definition(name);
+            return definition === undefined || !definition.clientSync ? [] : [{ name, definition }];
+        })
+        .map((each, index) => ({ ...each, index }));
+
+/** What a player's client overrides of one entity's properties: one property's value, its removal, or all of them. */
+export type PropertyOverride =
+    | { readonly action: 'set'; readonly name: string; readonly value: number | boolean | string }
+    | { readonly action: 'remove'; readonly name: string }
+    | { readonly action: 'clear' };
+
+/**
+ * The packet that changes a client's override of an entity's properties, as BDS 1.26.60.6 sends
+ * it for `Player.setPropertyOverrideForEntity` and its siblings: a bool or an enum travels as an
+ * int override, and a clear names the property at index 0.
+ *
+ * @param target - The entity's unique id.
+ * @param properties - The entity's property store, which gives each synced property its index.
+ * @returns Undefined when the property is not one the client is synced, or the value does not fit it.
+ */
+export const propertyOverridePacket = (
+    target: bigint,
+    properties: Pick<PropertyValues, 'names' | 'definition'>,
+    override: PropertyOverride
+): PlayerUpdateEntityOverridesPacket | undefined => {
+    if (override.action === 'clear') {
+        return new PlayerUpdateEntityOverridesPacket({
+            targetId: target,
+            propertyIndex: 0,
+            update: { type: EntityOverrideUpdateType.ClearOverrides }
+        });
+    }
+    const found = syncedDefinitionsOf(properties).find((each) => each.name === override.name);
+    if (found === undefined) return undefined;
+    const update: EntityOverrideUpdate | undefined =
+        override.action === 'remove'
+            ? { type: EntityOverrideUpdateType.RemoveOverride }
+            : updateOf(found.definition, override.value);
+    return update === undefined
+        ? undefined
+        : new PlayerUpdateEntityOverridesPacket({ targetId: target, propertyIndex: found.index, update });
+};
+
+const updateOf = (
+    definition: PropertyDefinition,
+    value: number | boolean | string
+): EntityOverrideUpdate | undefined => {
+    switch (definition.type) {
+        case 'float':
+            return typeof value === 'number' ? { type: EntityOverrideUpdateType.SetFloatOverride, value } : undefined;
+        case 'int':
+            return typeof value === 'number' ? { type: EntityOverrideUpdateType.SetIntOverride, value } : undefined;
+        case 'bool':
+            return typeof value === 'boolean'
+                ? { type: EntityOverrideUpdateType.SetIntOverride, value: value ? 1 : 0 }
+                : undefined;
+        case 'enum': {
+            const at = definition.values?.indexOf(String(value)) ?? -1;
+            return at < 0 ? undefined : { type: EntityOverrideUpdateType.SetIntOverride, value: at };
+        }
+    }
 };
 
 /** Whether two wire snapshots contain the same property indexes and values. */

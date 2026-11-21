@@ -121,7 +121,25 @@ export type ScriptCameraInstruction =
       }
     | { readonly kind: 'fov'; readonly fov: number; readonly ease?: { readonly time: number; readonly type: string } }
     | { readonly kind: 'attach'; readonly entity?: string }
-    | { readonly kind: 'detach' };
+    | { readonly kind: 'detach' }
+    | {
+          /** A camera path `Camera.playAnimation` plays. */
+          readonly kind: 'spline';
+          readonly type: 'catmullRom' | 'linear';
+          readonly controlPoints: readonly ScriptVector3[];
+          readonly totalTime: number;
+          /** How far along the path the camera is at each time, `alpha` from 0 to 1. */
+          readonly progressKeyFrames: readonly ScriptSplineKeyFrame<number>[];
+          readonly rotationKeyFrames: readonly ScriptSplineKeyFrame<ScriptVector3>[];
+      };
+
+/** One key frame of a camera spline: a value the camera reaches at a time, eased there as `EasingType` names. */
+export interface ScriptSplineKeyFrame<Value> {
+    readonly value: Value;
+    readonly time: number;
+    /** An `EasingType` name, such as `InOutSine`; absent for linear. */
+    readonly easing?: string;
+}
 
 /** What a script sends a player's client. */
 export type ScriptClientMessage =
@@ -159,9 +177,13 @@ export type ScriptClientMessage =
     | {
           readonly kind: 'propertyOverride';
           readonly entity: string;
+          /** Empty when every override of the entity is cleared. */
           readonly property: string;
+          /** Absent when the property's override is removed. */
           readonly value?: number | boolean | string;
-      };
+      }
+    /** A message to the client's data-driven UI, as `Player.postClientMessage` posts it. */
+    | { readonly kind: 'scriptMessage'; readonly id: string; readonly value: string };
 
 /** One aim assist category: the priorities a player's aim assist gives what it targets. */
 export interface ScriptAimAssistCategory {

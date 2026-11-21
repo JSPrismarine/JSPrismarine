@@ -20,10 +20,17 @@ import { ScriptHandle } from '../../values';
 import type { PackHost } from '../minecraftServer';
 import { COMMON, entityKeyOf, invalidEntity, itemOf, plainError, SERVER, TAG } from '../serverObjects';
 import type { ScriptVector3 } from '../world';
+import { musicFadeOf } from '../worldsystem/serverWorld';
 import { aimAssistPresetExists } from './aimAssist';
 import { ENTITY_AREA_TAG } from './components';
 import { entityArgument, optionsOf } from './entityMembers';
-import type { ScriptCameraInstruction, ScriptClientMessage, ScriptEntitySystems, ScriptExperience } from './world';
+import type {
+    ScriptCameraInstruction,
+    ScriptClientMessage,
+    ScriptEntitySystems,
+    ScriptExperience,
+    ScriptSplineKeyFrame
+} from './world';
 
 /** Points one more level costs at a level: Bedrock's curve, which BDS's `addExperience` follows. */
 export const pointsForNextLevel = (level: number): number => {
@@ -371,6 +378,7 @@ export const implementPlayerMembers = (implementations: ScriptApiImplementations
         });
 
     implementCamera(implementations, host, { stateOf, send, present });
+    implementSplines(implementations);
 
     implementations
         .implement(SERVER, 'Player', 'getItemCooldown', (call) => {
@@ -443,7 +451,7 @@ export const implementPlayerMembers = (implementations: ScriptApiImplementations
             action,
             track: String(call.args[0]),
             volume: typeof options.volume === 'number' ? options.volume : 1,
-            fade: typeof options.fade === 'number' ? options.fade : 0,
+            fade: musicFadeOf(call, 1),
             loop: options.loop === true
         });
         return undefined;
@@ -464,8 +472,11 @@ export const implementPlayerMembers = (implementations: ScriptApiImplementations
             return undefined;
         })
         .implement(SERVER, 'Player', 'postClientMessage', (call) => {
-            present(call, 'call', 'postClientMessage');
-            // Only a client's data-driven UI reads these messages, which the server does not send yet (issue #3308).
+            send(present(call, 'call', 'postClientMessage'), {
+                kind: 'scriptMessage',
+                id: String(call.args[0]),
+                value: String(call.args[1])
+            });
             return undefined;
         })
         .implement(SERVER, 'Player', 'eatItem', (call) => {
@@ -552,6 +563,53 @@ export const implementPlayerMembers = (implementations: ScriptApiImplementations
 };
 
 /** The camera's members, which send the player's client camera instructions. */
+/** The fewest control points BDS plays each spline type with. */
+const SPLINE_POINTS = { linear: 2, catmullRom: 3 } as const;
+
+/** A `LinearSpline` or `CatmullRomSpline` as its state holds it. */
+interface SplineState {
+    readonly type: keyof typeof SPLINE_POINTS;
+    readonly points: readonly ScriptVector3[];
+}
+
+const isVector = (value: unknown): value is ScriptVector3 =>
+    isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number' && typeof value.z === 'number';
+
+/** A spline's state, read back; a value that is not a spline reads as a linear one with no points. */
+const splineOf = (state: string): SplineState => {
+    // The spline's own members wrote the state with JSON.stringify.
+    const parsed: unknown = state === '' ? undefined : JSON.parse(state);
+    if (!isRecord(parsed)) return { type: 'linear', points: [] };
+    return {
+        type: parsed.type === 'catmullRom' ? 'catmullRom' : 'linear',
+        points: Array.isArray(parsed.points) ? parsed.points.filter(isVector) : []
+    };
+};
+
+/** `LinearSpline` and `CatmullRomSpline`: a list of control points `Camera.playAnimation` reads. */
+const implementSplines = (implementations: ScriptApiImplementations): void => {
+    for (const [owner, type] of [
+        ['LinearSpline', 'linear'],
+        ['CatmullRomSpline', 'catmullRom']
+    ] as const) {
+        implementations
+            .implement(SERVER, owner, 'constructor', () => JSON.stringify({ type, points: [] }))
+            .implement(SERVER, owner, 'controlPoints', {
+                // A spline keeps the points a camera animation reads, though BDS reads back none.
+                get: () => '[]',
+                set: (call) => {
+                    const json = call.stringify(call.args[0]);
+                    // The engine wrote the string with JSON.stringify.
+                    const parsed: unknown = json === undefined ? [] : JSON.parse(json);
+                    const points = Array.isArray(parsed)
+                        ? parsed.filter(isVector).map(({ x, y, z }) => ({ x, y, z }))
+                        : [];
+                    call.setState(JSON.stringify({ type, points }));
+                }
+            });
+    }
+};
+
 const implementCamera = (
     implementations: ScriptApiImplementations,
     host: PackHost,
@@ -568,9 +626,7 @@ const implementCamera = (
     const { world } = host;
     const camera = (id: string, instruction: ScriptCameraInstruction) => send(id, { kind: 'camera', instruction });
     const vector = (value: unknown): ScriptVector3 | undefined =>
-        isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number' && typeof value.z === 'number'
-            ? { x: value.x, y: value.y, z: value.z }
-            : undefined;
+        isVector(value) ? { x: value.x, y: value.y, z: value.z } : undefined;
     const ease = (value: unknown) =>
         isRecord(value)
             ? {
@@ -578,6 +634,24 @@ const implementCamera = (
                   type: typeof value.easeType === 'string' ? value.easeType : 'Linear'
               }
             : undefined;
+    /** A `progressKeyFrames` or `rotationKeyFrames` list, keeping the frames whose value reads. */
+    const keyFrames = <Value>(
+        frames: unknown,
+        key: string,
+        read: (value: unknown) => Value | undefined
+    ): ScriptSplineKeyFrame<Value>[] =>
+        (Array.isArray(frames) ? frames : []).flatMap((frame) => {
+            if (!isRecord(frame)) return [];
+            const value = read(frame[key]);
+            if (value === undefined) return [];
+            return [
+                {
+                    value,
+                    time: typeof frame.timeSeconds === 'number' ? frame.timeSeconds : 0,
+                    ...(typeof frame.easingFunc === 'string' ? { easing: frame.easingFunc } : {})
+                }
+            ];
+        });
     const presetArgument = (call: ScriptCall): string => {
         const preset = String(call.args[0]);
         if (!CAMERA_PRESETS.has(preset)) throw plainError('Invalid camera preset.');
@@ -690,8 +764,33 @@ const implementCamera = (
             return undefined;
         })
         .implement(SERVER, 'Camera', 'playAnimation', (call) => {
-            present(call, 'call', 'playAnimation');
-            // The server sends no camera spline yet (issue #3308); the call has no effect.
+            const id = present(call, 'call', 'playAnimation');
+            const spline = call.args[0];
+            const { type, points } = splineOf(spline instanceof ScriptHandle ? call.stateOf(spline) : '');
+            const options = optionsOf(call, 1);
+            const animation = isRecord(options.animation) ? options.animation : {};
+            const progressKeyFrames = keyFrames(animation.progressKeyFrames, 'alpha', (value) =>
+                typeof value === 'number' ? value : undefined
+            );
+            const rotationKeyFrames = keyFrames(animation.rotationKeyFrames, 'rotation', vector);
+            // BDS checks the rotation key frames, then the progress ones, then the control points.
+            if ((rotationKeyFrames[0]?.time ?? 0) !== 0)
+                throw plainError('First rotation key frame must be at time 0.0');
+            if ((progressKeyFrames[0]?.time ?? 0) !== 0)
+                throw plainError('First progress key frame must be at time 0.0');
+            if (points.length < SPLINE_POINTS[type]) {
+                throw plainError(
+                    `${type === 'linear' ? 'Linear' : 'CatmullRom'} needs at least ${SPLINE_POINTS[type]} control points`
+                );
+            }
+            camera(id, {
+                kind: 'spline',
+                type,
+                controlPoints: points,
+                totalTime: typeof options.totalTimeSeconds === 'number' ? options.totalTimeSeconds : 0,
+                progressKeyFrames,
+                rotationKeyFrames
+            });
             return undefined;
         })
         .implement(SERVER, 'Camera', 'addShake', (call) => {

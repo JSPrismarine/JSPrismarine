@@ -74,6 +74,24 @@ const namespaceError = (id: string): ScriptApiError | undefined => {
 };
 
 /** Reads a number option of an options argument the binding checked is an object. */
+/**
+ * The `fade` of a `MusicOptions` argument, 0 when it has none. BDS refuses a negative fade, for
+ * `World`'s music and `Player`'s alike.
+ * @throws {ScriptApiError} `PropertyOutOfBoundsError` for a fade below 0.
+ */
+export const musicFadeOf = (call: ScriptCall, index: number): number => {
+    const fade = numberOption(call, index, 'fade') ?? 0;
+    if (fade < 0) {
+        throw new ScriptApiError(
+            COMMON,
+            'PropertyOutOfBoundsError',
+            `Unsupported or out of bounds value set on Property: fade, Value: ${fade}, Property min: 0`,
+            { value: fade, minValue: 0 }
+        );
+    }
+    return fade;
+};
+
 const numberOption = (call: ScriptCall, index: number, key: string): number | undefined => {
     const options = call.args[index];
     if (!(options instanceof ScriptHandle)) return undefined;
@@ -199,15 +217,7 @@ export const implementWorldSettings = (implementations: ScriptApiImplementations
         ['queueMusic', true]
     ] as const) {
         implementations.implement(SERVER, 'World', member, (call) => {
-            const fade = numberOption(call, 1, 'fade') ?? 0;
-            if (fade < 0) {
-                throw new ScriptApiError(
-                    COMMON,
-                    'PropertyOutOfBoundsError',
-                    `Unsupported or out of bounds value set on Property: fade, Value: ${fade}, Property min: 0`,
-                    { value: fade, minValue: 0 }
-                );
-            }
+            const fade = musicFadeOf(call, 1);
             system().playMusic({
                 track: String(call.args[0]),
                 volume: numberOption(call, 1, 'volume') ?? 1,
