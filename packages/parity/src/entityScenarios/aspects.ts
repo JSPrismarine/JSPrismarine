@@ -4,6 +4,7 @@ import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import type { BehaviorAspect } from '../behaviorScenarios.ts';
 import { javaEntityClass, javaGoalsOf } from '../javaGoals.ts';
 import { serverContent } from '../serverStack.ts';
+import { javaBrainActivities } from './javaEntityCode.ts';
 
 /**
  * Components an entity declares that carry no server-decided behavior to compare with Java: the
@@ -30,8 +31,8 @@ export const PRESENTATION_COMPONENTS: ReadonlySet<string> = new Set([
  * The behaviors one Java entity has that full parity has to compare with Java: every component
  * its server definition declares, in its base components and its component groups, but the
  * presentation ones and the `minecraft:is_*` state markers, which only record a state another
- * component's behavior sets, and every goal the entity's Java class registers. An engine entity
- * with none of either has one aspect, its engine behavior.
+ * component's behavior sets, every goal the entity's Java class registers and every activity its
+ * Java brain registers. An engine entity with none of these has one aspect, its engine behavior.
  */
 export const entityAspects = (javaId: string): readonly BehaviorAspect[] => {
     const mapping = javaEntityTypeToBedrock(javaId);
@@ -49,7 +50,11 @@ export const entityAspects = (javaId: string): readonly BehaviorAspect[] => {
     const goals = entityClass === undefined ? [] : [...new Set(javaGoalsOf(entityClass).map((goal) => goal.goal))];
     const all = [
         ...aspects,
-        ...goals.map((goal) => ({ id: `java-goal:${goal}`, description: `what Java's ${goal} does for this mob` }))
+        ...goals.map((goal) => ({ id: `java-goal:${goal}`, description: `what Java's ${goal} does for this mob` })),
+        ...javaBrainActivities(javaId).map((activity) => ({
+            id: `java-activity:${activity}`,
+            description: `what this mob does in its brain's ${activity} activity`
+        }))
     ];
     return all.length > 0 ? all : [{ id: 'engine', description: "this engine entity's behavior, against Java" }];
 };

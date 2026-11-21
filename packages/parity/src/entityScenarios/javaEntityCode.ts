@@ -1,5 +1,6 @@
 import type { JavaClass, JavaMethod, JavaOperation } from '../javaClassFile.ts';
 import { javaOperations, pinnedJavaClass, pinnedJavaClassFile, pinnedJavaClassNames } from '../javaClassFile.ts';
+import { javaEntityClass } from '../javaGoals.ts';
 
 /**
  * Readers for the Java rules the entity scenarios compare against, taken from the pinned server
@@ -234,4 +235,30 @@ export const numberBeforeWrite = (
             : javaOperations(method).findLastIndex(writes);
     const before = index < 0 ? undefined : javaOperations(method)[index - 1];
     return before?.kind === 'number' ? before.value : undefined;
+};
+
+const ACTIVITY_FIELD = 'net/minecraft/world/entity/schedule/Activity.';
+
+/**
+ * The activities a Java brain mob's brain registers, by Java's lower-case names, such as `fight`
+ * and `lay_spawn`: the `Activity` fields its class and its `<Mob>Ai` class read. A villager's
+ * work, rest, meet and raid activities are built in `VillagerGoalPackages`, which it reads too.
+ * A mob without a brain reads none.
+ */
+export const javaBrainActivities = (javaId: string): readonly string[] => {
+    const entityClass = javaEntityClass(javaId);
+    if (entityClass === undefined) return [];
+    const classes = [entityClass, `${entityClass}Ai`];
+    if (javaId === 'minecraft:villager') classes.push(entityClass.replace(/\/[A-Za-z]+$/, '/VillagerGoalPackages'));
+    const found = new Set<string>();
+    for (const name of classes) {
+        for (const method of pinnedJavaClassFile(name)?.methods ?? []) {
+            for (const instruction of method.instructions) {
+                const member = instruction.member;
+                if (member?.startsWith(ACTIVITY_FIELD) === true)
+                    found.add(member.slice(ACTIVITY_FIELD.length).toLowerCase());
+            }
+        }
+    }
+    return [...found].sort();
 };

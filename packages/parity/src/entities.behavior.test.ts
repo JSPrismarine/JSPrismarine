@@ -3,6 +3,7 @@ import { expect, it } from 'vitest';
 import { measureScenarioScope, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import type { BehaviorScenario, ScenarioGroup } from './behaviorScenarios.ts';
 import { entityAspects } from './entityScenarios/aspects.ts';
+import { brainScenarios } from './entityScenarios/brains.ts';
 import { coreScenarios } from './entityScenarios/core.ts';
 import { interactionScenarios } from './entityScenarios/interaction.ts';
 import { mobGoalScenarios } from './entityScenarios/mobGoals.ts';
@@ -49,6 +50,7 @@ const ENTITY_THEMES: readonly EntityTheme[] = [
     theme('damage', damageScenarios),
     theme('senses', sensesScenarios),
     theme('goals', goalScenarios),
+    theme('brains', brainScenarios),
     theme('stats', statsScenarios),
     theme('lifecycle', lifecycleScenarios),
     theme('loot', lootScenarios),
