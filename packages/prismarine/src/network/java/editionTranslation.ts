@@ -11,10 +11,12 @@ import {
     bedrockBiomeToJava,
     bedrockBlockStateToJava,
     javaBlockStateToBedrock,
+    javaEntityTypeToBedrock,
     javaIdentifierToBedrock
 } from '@jsprismarine/mapping';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 
@@ -105,6 +107,36 @@ export const javaBiomeTranslation = (): EditionTranslation<number, number> => {
             if (mapped?.kind !== 'mapped' && mapped?.kind !== 'passthrough') return bedrockPlains();
             const bedrock = bedrockBiomeToJava(mapped.bedrock);
             return bedrock.kind === 'unknown' ? bedrockPlains() : bedrock.bedrock.id;
+        }
+    });
+};
+
+/**
+ * Entity types: a Bedrock identifier and a Java entity type's network id, or undefined for a type
+ * no Java entity shows as. The inverse comes from the forward mapping: each Java type's Bedrock
+ * identifier, read over the whole registry once; a Bedrock type the mapping never names is looked
+ * for under its own name.
+ * @returns The translation, cached.
+ */
+export const javaEntityTranslation = (): EditionTranslation<string, number | undefined> => {
+    let byBedrock: Map<string, number> | undefined;
+    const inverse = (): Map<string, number> => {
+        if (byBedrock !== undefined) return byBedrock;
+        byBedrock = new Map();
+        for (let id = 0; id < ENTITY_TYPES.size; id++) {
+            const name = ENTITY_TYPES.nameOf(id)!;
+            const mapped = javaEntityTypeToBedrock(name);
+            const bedrock = mapped.kind === 'mapped' || mapped.kind === 'passthrough' ? mapped.bedrock : undefined;
+            if (bedrock !== undefined && !byBedrock.has(bedrock)) byBedrock.set(bedrock, id);
+        }
+        return byBedrock;
+    };
+    return cachedTranslation({
+        toJava: (bedrock) => inverse().get(bedrock) ?? ENTITY_TYPES.idOf(bedrock),
+        toBedrock: (javaId) => {
+            const name = javaId === undefined ? undefined : ENTITY_TYPES.nameOf(javaId);
+            const mapped = name === undefined ? undefined : javaEntityTypeToBedrock(name);
+            return mapped?.kind === 'mapped' || mapped?.kind === 'passthrough' ? mapped.bedrock : '';
         }
     });
 };

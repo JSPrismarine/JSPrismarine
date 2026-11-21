@@ -542,9 +542,11 @@ the world around them, up to 8 chunks out or the view distance if that is less, 
 and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
 chunks they come into view of follow. Their chat reaches every player and the console, and other
 players' chat, the server's messages and command output reach them; their commands run as any
-player's do. Bedrock players see them, with a plain default skin. A Java player does not yet see
-other players or mobs, cannot change blocks or use an inventory, and has no health or hunger bar
-the server keeps current.
+player's do. Bedrock players see them, with a plain default skin, and they see the players and mobs
+around them, which come and go from their tab list and screen as Bedrock players' do, and move as
+the server moves them. They see each entity's type, place and facing, but not yet its equipment,
+animations or other state. A Java player cannot yet change blocks or use an inventory, and has no
+health or hunger bar the server keeps current.
 [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks that work.
 
 When another program holds `java-port`, the server does not start, and its error names the port.

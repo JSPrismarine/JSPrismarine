@@ -34,6 +34,7 @@ import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
+import type { SessionPresenter } from './presenter/SessionPresenter';
 
 /**
  * Who is shown what, as entities come and go.
@@ -73,6 +74,8 @@ const fakeSession = (
         tracked,
         session: stub<PlayerSession>({
             runtimeId,
+            // A Bedrock client, whose moves go in the shared batches.
+            presenter: stub<SessionPresenter>({ edition: 'bedrock' }),
             getConnection: () =>
                 stub<ClientConnection>({
                     codec,

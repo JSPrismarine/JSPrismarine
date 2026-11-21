@@ -61,6 +61,7 @@ import type { BlockTranslation } from './codec/blockTranslation';
 import { CRACK_PARTICLES } from '../entity/playerMining';
 import { allSent } from './allSent';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
+import type { ShownEntityMove } from './presenter/SessionPresenter';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -190,6 +191,16 @@ const updateBlockPacket = (
     packet.layer = layer === 1 ? UpdateBlockLayerType.Liquid : UpdateBlockLayerType.Normal;
     return packet;
 };
+
+/** A Bedrock move as the plain data another edition's presenter reads. */
+const shownMoveOf = (packet: MoveActorAbsolutePacket): ShownEntityMove => ({
+    runtimeId: packet.runtimeEntityId,
+    position: { x: packet.position.getX(), y: packet.position.getY(), z: packet.position.getZ() },
+    yaw: packet.yaw,
+    pitch: packet.pitch,
+    headYaw: packet.headYaw,
+    onGround: (packet.flags & MoveActorAbsolutePacket.FLAG_ON_GROUND) !== 0
+});
 
 /**
  * Turns what happened in one world into packets, and decides who gets them.
@@ -1010,6 +1021,17 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         this.pendingMoves.clear();
         const sessionsByCodec = new Map<ProtocolCodec, PlayerSession[]>();
         for (const session of this.world.getViewers()) {
+            // A client of another edition is handed the moves it sees as plain data, and its
+            // presenter encodes them; the shared batches below are Bedrock's.
+            if (session.presenter.edition !== 'bedrock') {
+                const visible = pendingMoves.filter(
+                    ([, packet]) =>
+                        packet.runtimeEntityId !== session.runtimeId && session.tracks(packet.runtimeEntityId)
+                );
+                if (visible.length > 0)
+                    this.released([session.presenter.moveEntities(visible.map(([, packet]) => shownMoveOf(packet)))]);
+                continue;
+            }
             const codec = session.getConnection().codec;
             const sessions = sessionsByCodec.get(codec);
             if (sessions === undefined) sessionsByCodec.set(codec, [session]);

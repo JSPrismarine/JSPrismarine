@@ -22,10 +22,10 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Done, [#3418](https://github.com/JSPrismarine/JSPrismarine/pull/3418). |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | Interaction, session settings and block interfaces done ([#3421](https://github.com/JSPrismarine/JSPrismarine/pull/3421), [#3429](https://github.com/JSPrismarine/JSPrismarine/pull/3429), [#3431](https://github.com/JSPrismarine/JSPrismarine/pull/3431)). Movement and inventory wait for their slices. |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
-| 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
+| 6 | Replicator encoders keyed by edition and codec, Bedrock only | Started in 9d: movement hands other-edition viewers plain moves their presenter encodes. Spawns go through the presenter's `showEntity`. The rest of replication, metadata and equipment among it, follows with PR 10. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
-| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, in review. |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, done ([#3489](https://github.com/JSPrismarine/JSPrismarine/pull/3489)). 9d, other players and mobs shown to Java players, in review. |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
@@ -227,6 +227,13 @@ one shared encoding per key per tick, so a block change seen by five Bedrock 222
 Java 777 sessions is encoded twice. PR 6 introduces the encoder seam with Bedrock only, and the
 replica tests assert encode counts per key, as [Measuring performance](../../AGENTS.md#measuring-performance)
 asks. Two replicators, one per edition, would compute the audience twice and were not chosen.
+
+PR 9d started the seam where the milestone needed it. A session's presenter names its edition.
+The replicator's movement flush keeps its shared, once-per-codec batches for Bedrock viewers and
+hands any other viewer the moves it tracks as plain data, which its presenter encodes. An entity
+coming into a session's view goes through the presenter's `showEntity`: the Bedrock presenter
+queues the entity's own first-sight batch, and the Java presenter reads the entity's plain facts,
+which `EntityReplication` offers through `describe()`, to send a player's profile and the spawn.
 
 PR 6 comes after PR 9 rather than before PR 7. The first milestone's sends all go to the joining
 player's own session, through its presenter, and the replicator's first Java consumer is PR 10's

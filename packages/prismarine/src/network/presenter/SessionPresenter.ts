@@ -17,6 +17,8 @@ import type { Gametype } from '@jsprismarine/minecraft';
 
 import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
+import type PlayerSession from '../PlayerSession';
+import type { ShownEntity } from '../../world/ShownActor';
 
 /**
  * How a message is shown.
@@ -64,8 +66,26 @@ export interface ShownMessage {
     readonly xuid: string;
 }
 
+/** One entity's move this tick, as plain data. */
+export interface ShownEntityMove {
+    readonly runtimeId: bigint;
+    /** Where Bedrock positions it: a player's eyes, any other entity's feet. */
+    readonly position: { readonly x: number; readonly y: number; readonly z: number };
+    readonly yaw: number;
+    readonly pitch: number;
+    readonly headYaw: number;
+    readonly onGround: boolean;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
+    /**
+     * The edition the client speaks. Bedrock clients share the world's encoded batches, which the
+     * replicator builds once per codec; a client of another edition is handed the same changes as
+     * plain data instead.
+     */
+    readonly edition: 'bedrock' | 'java';
+
     /**
      * Tells the client the world's time of day.
      *
@@ -123,6 +143,28 @@ export interface SessionPresenter {
      *   edition that echoes it puts in the answer.
      */
     containerClosed(window: number, clientContainerType: number): Promise<void>;
+
+    /**
+     * Shows the client an entity that came into its view.
+     *
+     * @param entity - The entity, with the Bedrock spawn it builds itself and its plain facts.
+     * @param session - The session the client is on, which a Bedrock spawn is queued through.
+     */
+    showEntity(entity: ShownEntity, session: PlayerSession): Promise<void>;
+
+    /**
+     * Takes an entity out of the client's view.
+     *
+     * @param runtimeId - The entity.
+     */
+    hideEntity(runtimeId: bigint): Promise<void>;
+
+    /**
+     * Moves entities the client sees, for a client the shared Bedrock batches do not reach.
+     *
+     * @param moves - This tick's moves of entities the client tracks.
+     */
+    moveEntities(moves: readonly ShownEntityMove[]): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.

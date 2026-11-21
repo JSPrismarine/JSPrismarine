@@ -1,10 +1,17 @@
 import { BEDROCK_ONLY_BLOCKS } from '@jsprismarine/mapping';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
+import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { EditionTranslation } from './editionTranslation';
-import { cachedTranslation, JAVA_BIOMES, javaBiomeTranslation, javaBlockTranslation } from './editionTranslation';
+import {
+    cachedTranslation,
+    JAVA_BIOMES,
+    javaBiomeTranslation,
+    javaBlockTranslation,
+    javaEntityTranslation
+} from './editionTranslation';
 
 describe('javaBlockTranslation', () => {
     const blocks = javaBlockTranslation();
@@ -46,6 +53,19 @@ describe('javaBiomeTranslation', () => {
         expect(JAVA_BIOMES[biomes.toJava(biomes.toBedrock(JAVA_BIOMES.indexOf('minecraft:desert')))]).toBe(
             'minecraft:desert'
         );
+    });
+});
+
+describe('javaEntityTranslation', () => {
+    it('turns a Bedrock entity type into the Java type it comes from, and back', () => {
+        const entities = javaEntityTranslation();
+
+        for (const type of ['minecraft:cow', 'minecraft:player', 'minecraft:zombie']) {
+            const java = entities.toJava(type);
+            expect(ENTITY_TYPES.nameOf(java!)).toBe(type);
+            expect(entities.toBedrock(java)).toBe(type);
+        }
+        expect(entities.toJava('minecraft:agent')).toBeUndefined();
     });
 });
 

@@ -518,6 +518,20 @@ export class EntityReplication {
             getRuntimeId: () => entity,
             getPosition: () => position,
             getTrackingRange: () => range,
+            describe: () => {
+                if (view === undefined) return undefined;
+                const identity = kind === 'player' ? this.ports.identityOf(entity) : undefined;
+                return {
+                    type: held.shownIdentifier,
+                    feet: { x: view.pose.x, y: view.pose.y, z: view.pose.z },
+                    yaw: view.pose.yaw,
+                    pitch: view.pose.pitch,
+                    headYaw: view.pose.yaw,
+                    ...(identity === undefined
+                        ? {}
+                        : { player: { uuid: identity.uuid.toString(), name: identity.name } })
+                };
+            },
             // Builds and queues the batch before it returns, so a batch that cannot be built
             // throws here and the entity is not marked as shown.
             spawnTo: (session) => {

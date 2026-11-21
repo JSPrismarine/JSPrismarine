@@ -2,6 +2,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
@@ -9,6 +10,8 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 
 import type ClientConnection from '../ClientConnection';
+import type PlayerSession from '../PlayerSession';
+import type { ShownEntity } from '../../world/ShownActor';
 import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
 import { abilitiesPacket } from '../replica/firstSight';
@@ -42,6 +45,7 @@ export type PresenterConnection = Pick<ClientConnection, 'sendDataPacket'>;
 
 /** The outbound contract in Bedrock packets, over one client's connection. */
 export class BedrockPresenter implements SessionPresenter {
+    public readonly edition = 'bedrock';
     private readonly connection: PresenterConnection;
 
     /**
@@ -101,6 +105,21 @@ export class BedrockPresenter implements SessionPresenter {
     public async sendAbilities(target: AbilityTarget): Promise<void> {
         await this.connection.sendDataPacket(abilitiesPacket(target));
     }
+
+    /** Queues the entity's own first-sight batch, which it builds once a flush for each codec. */
+    public showEntity(entity: ShownEntity, session: PlayerSession): Promise<void> {
+        return entity.spawnTo(session);
+    }
+
+    /** Sends `RemoveActor`; the server gives an entity one id for its runtime and unique ids. */
+    public async hideEntity(runtimeId: bigint): Promise<void> {
+        const packet = new RemoveActorPacket();
+        packet.uniqueEntityId = runtimeId;
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /** Sends nothing: a Bedrock client's moves go in the replicator's shared batches. */
+    public async moveEntities(): Promise<void> {}
 
     /** Sends one `PlayerList` Add with every entry. */
     public async sendPlayerList(players: readonly ListedPlayer[]): Promise<void> {

@@ -126,7 +126,6 @@ import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
 import { playerListAddOf, playerListRemoveOf } from './presenter/bedrockPlayerList';
 import { listedPlayerOf, setPlayerListName } from './playerListEntry';
-import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPacket';
@@ -1151,7 +1150,7 @@ export default class PlayerSession {
             });
 
             for (const entity of change.spawn) {
-                const sent = entity.spawnTo(this);
+                const sent = this.presenter.showEntity(entity, this);
                 sends.push(this.trackedOnceSent(entity.getRuntimeId(), sent));
             }
 
@@ -1177,7 +1176,7 @@ export default class PlayerSession {
         if (entity.getRuntimeId() === this.runtimeId) return allSent([]);
         if (!this.entityTracker.shouldSpawn(entity, this.own().getPosition(), this.viewDistance)) return allSent([]);
 
-        return this.trackedOnceSent(entity.getRuntimeId(), entity.spawnTo(this));
+        return this.trackedOnceSent(entity.getRuntimeId(), this.presenter.showEntity(entity, this));
     }
 
     /**
@@ -3274,10 +3273,8 @@ export default class PlayerSession {
      * entity, players included: `RemoveActorPacket` names only the id.
      * @param {bigint} runtimeId - The entity's runtime id.
      */
-    public async sendRemoveActorById(runtimeId: bigint): Promise<void> {
-        const packet = new RemoveActorPacket();
-        packet.uniqueEntityId = runtimeId; // We use runtime as unique
-        await this.send(packet);
+    public sendRemoveActorById(runtimeId: bigint): Promise<void> {
+        return this.presenter.hideEntity(runtimeId);
     }
 
     /**

@@ -170,7 +170,7 @@ of every addon, sorted by name and then by version, oldest first:
             "name": "tps-bar",
             "version": "1.0.0",
             "description": "Shows TPS, MSPT and ping on a boss bar.",
-            "minServer": "0.22.0",
+            "minServer": "0.23.1",
             "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.0.mcpack",
             "sha256": "<the pack's SHA-256>"
         },
@@ -178,7 +178,7 @@ of every addon, sorted by name and then by version, oldest first:
             "name": "tps-bar",
             "version": "1.1.0",
             "description": "Shows TPS, MSPT and ping on a boss bar.",
-            "minServer": "0.22.0",
+            "minServer": "0.23.1",
             "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.1.0.mcpack",
             "sha256": "<the pack's SHA-256>"
         }

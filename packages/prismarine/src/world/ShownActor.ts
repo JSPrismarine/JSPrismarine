@@ -45,6 +45,21 @@ export interface ShownActor {
     isOnGround(): boolean;
 }
 
+/**
+ * One entity as plain facts, for a client whose edition `spawnTo` does not speak: what it is, where
+ * its feet are, where it faces, and a player's profile.
+ */
+export interface ShownEntityFacts {
+    /** The entity type clients are shown, as Bedrock names it. */
+    readonly type: string;
+    readonly feet: { readonly x: number; readonly y: number; readonly z: number };
+    readonly yaw: number;
+    readonly pitch: number;
+    readonly headYaw: number;
+    /** The player's profile, for a player. */
+    readonly player?: { readonly uuid: string; readonly name: string };
+}
+
 /** One entity as tracking reads it: where it is, how far it is followed, and how a client is shown it. */
 export interface ShownEntity extends TrackableEntity {
     /**
@@ -53,4 +68,6 @@ export interface ShownEntity extends TrackableEntity {
      * once the transport has framed them.
      */
     spawnTo(session: PlayerSession): Promise<void>;
+    /** The entity as plain facts, or undefined when it cannot be shown yet. */
+    describe?(): ShownEntityFacts | undefined;
 }

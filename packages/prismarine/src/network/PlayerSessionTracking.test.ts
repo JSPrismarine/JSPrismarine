@@ -6,6 +6,7 @@ import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
 import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
@@ -36,6 +37,7 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false, spawnRejects =
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
+        presenter: new BedrockPresenter(connection),
         ...sessionPlayerFields(player, 1n),
         entityTracker: new EntityTracker({ hysteresis: 2, enabled: true }),
         viewDistance,
