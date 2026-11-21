@@ -105,7 +105,9 @@ export const navigationViewOf = (
     let cachedBlockCount = 0;
     const cacheLimit = Math.max(0, Math.floor(maxCachedBlocks));
     const chunkLimit = Math.min(MAX_CACHED_CHUNKS, cacheLimit);
-    const persistsAcrossTicks = blocks.blockChunkIdentityAt !== undefined && blocks.blockChunkRevisionAt !== undefined;
+    const persistsAcrossTicks =
+        blocks.blockChunkAt !== undefined ||
+        (blocks.blockChunkIdentityAt !== undefined && blocks.blockChunkRevisionAt !== undefined);
     let lastChunkX: number | undefined;
     let lastChunkZ: number | undefined;
     let lastChunk: CachedChunkBlocks | undefined;
@@ -207,11 +209,18 @@ export const navigationViewOf = (
         const localX = position.x - chunkX * 16;
         const localZ = position.z - chunkZ * 16;
         const cell = position.y * 256 + localZ * 16 + localX;
-        const identity = persistsAcrossTicks ? blocks.blockChunkIdentityAt!(position) : TICK_SCOPED_CHUNK;
-        if (identity === undefined) return readCell(position);
-
-        const revision = persistsAcrossTicks ? blocks.blockChunkRevisionAt!(position) : 0;
-        if (revision === undefined) return readCell(position);
+        let identity: object | undefined = TICK_SCOPED_CHUNK;
+        let revision: number | undefined = 0;
+        if (blocks.blockChunkAt !== undefined) {
+            // One lookup for both, which a read pays on every call, hit or miss.
+            const loaded = blocks.blockChunkAt(position);
+            identity = loaded;
+            revision = loaded?.getBlockRevision();
+        } else if (persistsAcrossTicks) {
+            identity = blocks.blockChunkIdentityAt!(position);
+            revision = blocks.blockChunkRevisionAt!(position);
+        }
+        if (identity === undefined || revision === undefined) return readCell(position);
 
         let chunk = chunkAt(chunkX, chunkZ, identity, revision);
         const cached = chunk?.cells.get(cell);

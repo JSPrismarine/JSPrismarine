@@ -51,6 +51,7 @@ import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 export type WorldBlockGroup = Pick<
     ContentBlockAccess,
     | 'blockRevision'
+    | 'blockChunkAt'
     | 'blockChunkIdentityAt'
     | 'blockChunkRevisionAt'
     | 'runtimeIdAt'
@@ -251,6 +252,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
 
     const blocks: WorldBlockGroup = {
         blockRevision: () => live().getBlockWriteVersion(),
+        blockChunkAt: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) ?? undefined,
         blockChunkIdentityAt: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) ?? undefined,
         blockChunkRevisionAt: (at) =>
             live()

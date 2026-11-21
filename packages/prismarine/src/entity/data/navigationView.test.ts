@@ -1,7 +1,11 @@
+import { constantRandom } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import Chunk from '../../world/chunk/Chunk';
+import { worldContentGroups } from '../../world/contentAdapter';
+import { Dimensions } from '../../world/DimensionType';
+import { World } from '../../world/World';
 import type { ContentBlock, ContentBlockAccess } from '../../content/world/adapter';
 
 import { navigationViewOf } from './navigationView';
@@ -9,7 +13,10 @@ import { entityFixture } from './testing';
 
 const contentBlocks = (
     get: ContentBlockAccess['get'],
-    chunkAccess: Pick<ContentBlockAccess, 'blockChunkIdentityAt' | 'blockChunkRevisionAt' | 'runtimeIdAt'> = {}
+    chunkAccess: Pick<
+        ContentBlockAccess,
+        'blockChunkAt' | 'blockChunkIdentityAt' | 'blockChunkRevisionAt' | 'runtimeIdAt'
+    > = {}
 ) =>
     ({
         get,
@@ -27,6 +34,47 @@ const contentBlocks = (
     }) satisfies ContentBlockAccess;
 
 describe('navigationViewOf', () => {
+    it('resolves the world once for each cached read over the world adapter', () => {
+        const { content } = entityFixture();
+        const chunk = new Chunk(0, 0);
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+        for (let x = 0; x < 10; x += 1) chunk.setBlockRuntimeId(x, 64, 0, stone);
+        // Built on the real prototype, so the chunk lookup is the world's own.
+        const world: World = Object.assign(Object.create(World.prototype), {
+            chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+            dimension: Dimensions.Overworld
+        });
+        let resolutions = 0;
+        const groups = worldContentGroups({
+            dimension: 'minecraft:overworld',
+            world: () => {
+                resolutions += 1;
+                return world;
+            },
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => content
+        });
+        const { blockChunkAt, blockChunkIdentityAt, blockChunkRevisionAt, runtimeIdAt } = groups.blocks;
+        const blocks = contentBlocks(
+            () => {
+                throw new Error('runtime-id navigation must not construct a content block');
+            },
+            { blockChunkAt, blockChunkIdentityAt, blockChunkRevisionAt, runtimeIdAt }
+        );
+        const { view } = navigationViewOf(blocks, () => content);
+        const cells = Array.from({ length: 10 }, (_, x) => ({ x, y: 64, z: 0 }));
+        for (const cell of cells) expect(view.isSolid(cell)).toBe(true);
+
+        resolutions = 0;
+        for (const cell of cells) expect(view.isSolid(cell)).toBe(true);
+
+        // A hit asks which chunk holds the cell and what its revision is: one lookup together,
+        // where the chunk and its revision used to take one each, twenty for these ten reads.
+        expect(resolutions).toBe(cells.length);
+    });
+
     it('caches missing cells until the world invalidates block reads', () => {
         let block: ContentBlock | undefined;
         let reads = 0;
