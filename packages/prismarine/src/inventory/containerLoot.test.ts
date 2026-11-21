@@ -178,12 +178,14 @@ describe.skipIf(!java)('a generated container filling on its first open', { tags
 const SIMPLE_DUNGEON_ITEMS = [
     'minecraft:beetroot_seeds',
     'minecraft:bone',
-    'minecraft:book',
     'minecraft:bread',
     'minecraft:bucket',
     'minecraft:coal',
     'minecraft:copper_horse_armor',
     'minecraft:diamond_horse_armor',
+    // The table's book entry runs enchant_randomly, which turns a book into an enchanted book as
+    // Java's ItemStack.enchant does, so a plain book never comes out.
+    'minecraft:enchanted_book',
     'minecraft:enchanted_golden_apple',
     'minecraft:gold_ingot',
     'minecraft:golden_apple',
