@@ -22,10 +22,12 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import type Server from '../Server';
 import { Dimensions } from '../world/DimensionType';
+import type { SavedDimensionNumbers } from '../world/DimensionNumbers';
 import type { DimensionType } from '../world/DimensionType';
 import GameRuleManager from '../world/GameRuleManager';
 import type { Generator } from '../world/Generator';
 import { GeneratorFactories } from '../world/GeneratorFactories';
+import { voidGeneratorFactory } from '../world/generators/factories/void';
 import { Level } from '../world/Level';
 import { LevelClock } from '../world/LevelClock';
 import { LevelSave } from '../world/LevelSave';
@@ -191,6 +193,8 @@ export interface TestLevelOptions {
     readonly server: Server;
     readonly provider: BaseProvider;
     readonly seed?: bigint;
+    /** The custom dimension numbers the save keeps, as the world manager reads them before it opens the level. */
+    readonly dimensionNumbers?: SavedDimensionNumbers;
     /** What the Overworld stem builds to. */
     readonly generator: Generator;
     /** What a Nether stem builds to. Left out, the level has no Nether. */
@@ -226,6 +230,7 @@ export const testLevel = (options: TestLevelOptions): Level => {
         server: options.server,
         provider: options.provider,
         seed: options.seed ?? 1234n,
+        ...(options.dimensionNumbers === undefined ? {} : { dimensionNumbers: options.dimensionNumbers }),
         stems: new Map([
             [OVERWORLD_STEM_ID, TEST_OVERWORLD_STEM],
             ...(nether === undefined ? [] : ([[Dimensions.Nether.id, netherStem]] as const))
@@ -243,7 +248,9 @@ export const testLevel = (options: TestLevelOptions): Level => {
                 kind: TEST_GENERATOR_KIND,
                 build: ({ dimension }) =>
                     nether !== undefined && dimension.id === Dimensions.Nether.id ? nether : options.generator
-            }
+            },
+            // The void dimensions scripts register.
+            voidGeneratorFactory
         ]),
         worldgen: () => {
             throw new PrismarineServerErrors.TestLevelReadsJavaRegistries();

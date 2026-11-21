@@ -166,6 +166,8 @@ export interface ScriptWorldSources {
      * {@link ScriptWorld.registerCustomDimension}. Left out, the level takes no new dimension.
      */
     registerCustomDimension?(typeId: string): 'registered' | 'new-after-reload';
+    /** Ends a run's registrations; see {@link ScriptWorld.settleCustomDimensions}. */
+    settleCustomDimensions?(registered: readonly string[]): void;
     /** The players in the level, in the order they joined. */
     players(): readonly ScriptWorldPlayer[];
     /** The level's weather. */
@@ -401,6 +403,11 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Adds a void dimension a script registered in `startup`. */
     public registerCustomDimension(typeId: string): 'registered' | 'new-after-reload' {
         return this.sources.registerCustomDimension?.(typeId) ?? 'registered';
+    }
+
+    /** Ends a run's registrations of custom dimensions. */
+    public settleCustomDimensions(registered: readonly string[]): void {
+        this.sources.settleCustomDimensions?.(registered);
     }
 
     /** The entity ids of the level's players. */

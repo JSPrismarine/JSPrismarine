@@ -6,6 +6,7 @@ import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 
+import { customDimensionData } from '../network/customDimensionData';
 import type Server from '../Server';
 import type { Level } from '../world/Level';
 import { primitiveShapes } from '../scripting/debugShapes';
@@ -132,6 +133,7 @@ export const startLevelScripts = async (
             dimensions: () =>
                 [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),
             registerCustomDimension: (typeId) => level.registerScriptDimension(typeId),
+            settleCustomDimensions: (registered) => settleScriptDimensions(server, level, registered),
             players: () =>
                 server
                     .getSessionManager()
@@ -218,9 +220,31 @@ export const startLevelScripts = async (
     // pack's first line stops it.
     if (options.autoAttach) await scripts.debugger.autoAttach();
     scripts.start(overworld);
-    // A reload, or scripts started again from a new pack list, add no dimension, as on BDS.
-    level.sealScriptDimensions();
     return scripts;
+};
+
+/**
+ * Ends one run's registrations of custom dimensions, the first run's or a reload's. The players
+ * already in the level hear of the dimensions the run added, since a client learns a level's
+ * custom dimensions as it joins, and the console says which dimensions the run dropped, or kept
+ * because players are in them.
+ */
+const settleScriptDimensions = (server: Server, level: Level, registered: readonly string[]): void => {
+    const { added, removed, kept } = level.settleScriptDimensions(registered);
+    const logger = server.getLogger();
+    for (const typeId of removed)
+        logger.info(`Removed the ${typeId} dimension of level ${level.name}: no script registered it.`);
+    for (const typeId of kept) {
+        logger.warn(
+            `No script registered the ${typeId} dimension of level ${level.name}, but players are in it, so it stays until a reload while it is empty.`
+        );
+    }
+    if (added.length === 0) return;
+    const packet = customDimensionData(level);
+    if (packet === undefined) return;
+    for (const session of server.getSessionManager().getSessions()) {
+        if (session.getWorld().getLevel() === level) session.released(session.send(packet));
+    }
 };
 
 /**

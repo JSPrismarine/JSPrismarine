@@ -15,11 +15,11 @@ import { savedWeatherOf } from './Weather';
 import { isRecord } from '../utils/isRecord';
 import { isUuid } from '../utils/isUuid';
 import type { SavedDimensionNumber, SavedDimensionNumbers } from './DimensionNumbers';
-import { FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
 import type { SavedScriptSettings } from './LevelScriptSettings';
 import { savedScriptSettingsOf } from './LevelScriptSettings';
 import type { TickingArea } from './TickingAreas';
 import { savedTickingAreasOf } from './TickingAreas';
+import { FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** A non-player entity snapshot used by providers without actor storage. */

@@ -1113,11 +1113,17 @@ export interface ScriptWorld {
     dimensions(): readonly string[];
     /**
      * Adds a void dimension a script registered in `startup`, which {@link ScriptWorld.dimensions}
-     * lists from then on. A dimension the world already has is registered again. Once the world's
-     * first scripts have started, a dimension it lacks is `new-after-reload`, as on BDS.
-     * Left out, the world takes every registration and adds no dimension.
+     * lists from then on. A dimension the world already has is registered again. A world that
+     * cannot add a dimension once its first scripts have started answers `new-after-reload`, as
+     * BDS does. Left out, the world takes every registration and adds no dimension.
      */
     registerCustomDimension?(typeId: string): 'registered' | 'new-after-reload';
+    /**
+     * Called after each run's `startup`, the first and every reload's, with every dimension that
+     * run registered. The world may drop a dimension an earlier run registered that this one did
+     * not.
+     */
+    settleCustomDimensions?(registered: readonly string[]): void;
     /** The ids of the players in the world, in the order they joined. */
     players(): readonly string[];
     /**

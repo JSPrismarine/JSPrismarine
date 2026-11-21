@@ -606,7 +606,9 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3290](https://github.com/JSPrismarine/JSPrismarine/issues/3290)) have no behavior.
       `registerCustomDimension` adds a void dimension with the Overworld's bounds that the save
       leaves out, since the scripts register it again each start, as the `custom-dimensions`
-      scenario recorded. A registration BDS logs as deleted after a reload is not logged. Sky light under an overhang differs from BDS
+      scenario recorded. Unlike BDS, a reload adds a new dimension and drops one it no longer
+      registers ([ADR 0030](../adr/0030-a-reload-adds-and-drops-script-dimensions.md)). A
+      registration BDS logs as deleted after a reload is not logged. Sky light under an overhang differs from BDS
       ([#3311](https://github.com/JSPrismarine/JSPrismarine/issues/3311)), `/gamerule dofiretick`
       does not parse ([#3310](https://github.com/JSPrismarine/JSPrismarine/issues/3310)), and the
       `dimension-volumes` row waits on `BlockVolume`.

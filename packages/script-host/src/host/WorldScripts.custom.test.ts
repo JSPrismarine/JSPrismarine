@@ -85,6 +85,25 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts custom content', () => {
         return { scripts, world, log };
     };
 
+    it('reports the dimensions each run registered, the first and every reload, once its startup is over', () => {
+        const { scripts, world } = start(
+            `import { system } from '@minecraft/server';
+            const name = system.currentTick === 0 ? 'jsp:first' : 'jsp:reloaded';
+            system.beforeEvents.startup.subscribe(({ dimensionRegistry }) => {
+                dimensionRegistry.registerCustomDimension(name);
+                dimensionRegistry.registerCustomDimension('jsp:both');
+            });`,
+            '2.11.0'
+        );
+        scripts.flush();
+        scripts.reload();
+
+        expect(world.settledDimensions).toEqual([
+            ['jsp:first', 'jsp:both'],
+            ['jsp:reloaded', 'jsp:both']
+        ]);
+    });
+
     const COMMANDS = `import { CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, system, world } from '@minecraft/server';
         const describe = (value) => value === undefined ? 'undefined'
             : Array.isArray(value) ? value.map(describe)
