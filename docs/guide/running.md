@@ -435,7 +435,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                                                                                                                                                             |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                                                                                                                                                                  |
 | `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                                                                                                                                                                |
-| `java-enabled`                        | Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.                                                                                                                                                                                                                        |
+| `java-enabled`                        | Whether Java Edition clients can join on java-port.                                                                                                                                                                                                                                                                                                 |
 | `java-port`                           | The TCP port Java Edition clients connect to. They look for 25565.                                                                                                                                                                                                                                                                                  |
 | `account-linking`                     | Whether a player can link their Java Edition and Xbox accounts with /link, so both play as one player with one record. Off, each account is its own player and links already made are kept but ignored.                                                                                                                                             |
 | `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.                                   |
@@ -545,12 +545,12 @@ again, so keep the file with your worlds when you move or rebuild the server.
 
 ### Java Edition
 
-With `java-enabled` set to `true`, the server also listens for Java Edition clients on TCP
+With `java-enabled` on, as it is by default, the server also listens for Java Edition clients on TCP
 `java-port`, <!-- fact:server.javaPort -->25565<!-- /fact --> by default. A Java client's server
 list then shows the server with its MOTD, the Java release it speaks and the count of players of
 both editions, the same count a Bedrock client sees.
 
-A Java Edition player can join and see the world, but not yet play in it. With `online-mode` on,
+A Java Edition player can join and play. With `online-mode` on,
 the server asks Mojang's session server whether the player owns their account, as a vanilla server
 does, and refuses one it cannot verify; with it off, a player is known by the UUID their name gives,
 and the connection is not encrypted, as on a vanilla server. The server configures the client as
@@ -564,9 +564,10 @@ chunks they come into view of follow. Their chat reaches every player and the co
 players' chat, the server's messages and command output reach them; their commands run as any
 player's do. Bedrock players see them, with a plain default skin, and they see the players and mobs
 around them, which come and go from their tab list and screen as Bedrock players' do, and move as
-the server moves them. They see each entity's type, place and facing, but not yet its equipment,
-animations or other state. A Java player cannot yet change blocks or use an inventory, and has no
-health or hunger bar the server keeps current.
+the server moves them, with their equipment and whether they crouch, sprint, swim, glide, sleep or
+burn. A Java player can break and place blocks, set their inventory in creative mode, and has a
+health bar the server keeps current, a death screen and a respawn. They cannot yet move items in a
+survival inventory, see their experience or status effects, or go to the Nether or the End.
 [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks that work.
 
 When another program holds `java-port`, the server does not start, and its error names the port.
