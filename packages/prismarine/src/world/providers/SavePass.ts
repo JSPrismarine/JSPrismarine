@@ -1,17 +1,20 @@
 import type { WorldPlayerData } from '../../config/JsonConfigTypes';
 import type Chunk from '../chunk/Chunk';
 import type { DynamicProperties } from '../dynamicProperties';
+import type { SavedCommandStorage } from '../CommandStorage';
 import type { SavedScoreboard } from '../Scoreboard';
 import type { WorldPersistenceData } from '../WorldPersistence';
 import type { ChunkSaveContext } from './ChunkSaveContext';
 
 /**
- * The level-wide records Bedrock keeps in its own form: the world's script dynamic properties and
- * the scoreboard.
+ * The level-wide records a save keeps apart from `level.dat` and the world data record: the
+ * world's script dynamic properties and the scoreboard, in Bedrock's form, and the command
+ * storage, which Bedrock has no record for.
  */
 export interface LevelRecords {
     readonly dynamicProperties: DynamicProperties;
     readonly scoreboard: SavedScoreboard;
+    readonly commandStorage: SavedCommandStorage;
 }
 
 /** What one save pass wrote, in keys and bytes; see {@link ProviderSavePass.stats}. */

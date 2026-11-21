@@ -61,6 +61,7 @@ import { LevelDynamicProperties } from './dynamicProperties';
 import { LevelScriptSettings } from './LevelScriptSettings';
 import type { TickingArea } from './TickingAreas';
 import { TickingAreas } from './TickingAreas';
+import { CommandStorage } from './CommandStorage';
 import { Scoreboard } from './Scoreboard';
 import GameRuleChangedEvent from '../events/other/GameRuleChangedEvent';
 import { ADVANCE_TIME, gameRuleValue } from '../content/world/gameRules';
@@ -219,6 +220,9 @@ export class Level {
 
     /** The one scoreboard, which `/scoreboard` and the scripts share. */
     private readonly scoreboard = new Scoreboard();
+
+    /** The NBT compounds `/data … storage` reads and writes. */
+    private readonly commandStorage = new CommandStorage();
 
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
@@ -812,6 +816,11 @@ export class Level {
         return this.scoreboard;
     }
 
+    /** The level's command storage, which its save writes under `jsprismarine:command_storage`. */
+    public getCommandStorage(): CommandStorage {
+        return this.commandStorage;
+    }
+
     /** The level's weather: one cycle for the whole save, rendered where there is a sky. */
     public getWeather(): WorldWeather {
         return this.weather;
@@ -1021,6 +1030,7 @@ export class Level {
         if (records !== null) {
             this.dynamicProperties.restore(records.dynamicProperties);
             this.scoreboard.restore(records.scoreboard);
+            this.commandStorage.restore(records.commandStorage);
         }
 
         // The clocks are written to `level.dat` alone, so they are read back from there; without
@@ -1212,7 +1222,8 @@ export class Level {
             },
             records: {
                 dynamicProperties: this.dynamicProperties.all(),
-                scoreboard: this.scoreboard.saved((live) => this.savedActorId(live))
+                scoreboard: this.scoreboard.saved((live) => this.savedActorId(live)),
+                commandStorage: this.commandStorage.saved()
             }
         };
     }

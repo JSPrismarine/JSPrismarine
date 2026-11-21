@@ -520,5 +520,15 @@ export const PrismarineWorldErrors = defineErrors('prismarine/world', {
     UnknownScoreboardParticipant: {
         message: 'No scoreboard participant has the id {participant}',
         base: RangeError
+    },
+    /**
+     * A command named a command storage by an id that is not a resource location, such as one with
+     * an uppercase letter or a space. Write the id as `namespace:path`, with the namespace in
+     * lowercase letters, digits, `_`, `.` and `-`, and the path in those and `/`. Without a
+     * namespace the id is in `minecraft`.
+     */
+    InvalidStorageId: {
+        message: 'Invalid storage id {id}: expected a resource location such as mypack:state',
+        base: RangeError
     }
 });

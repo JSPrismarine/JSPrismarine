@@ -7,6 +7,8 @@ import type { WriteBatch } from '@jsprismarine/leveldb';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound } from '@jsprismarine/nbt';
+import { formatSnbt, parseSnbtCompound } from '@jsprismarine/nbt/snbt';
+import { EMPTY_COMPOUND, tagsEqual } from '@jsprismarine/nbt/tag';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Block } from '../../../block/Block';
@@ -19,6 +21,7 @@ import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import { Dimensions } from '../../DimensionType';
 import type { World } from '../../World';
 import { createChunkSaveContext } from '../ChunkSaveContext';
+import { CommandStorage } from '../../CommandStorage';
 import { Scoreboard } from '../../Scoreboard';
 import LevelDB from './LevelDB';
 
@@ -498,7 +501,7 @@ describe('a LevelDB provider holding writes for the next pass', () => {
         const dynamicProperties = new Map([['pack', new Map([['jsp:n', 1.5]])]]);
 
         const pass = leveldb.beginSavePass();
-        pass.putLevelRecords({ dynamicProperties, scoreboard: board.saved() });
+        pass.putLevelRecords({ dynamicProperties, scoreboard: board.saved(), commandStorage: new Map() });
         await pass.commit({ sync: true });
         await leveldb.disable();
 
@@ -518,7 +521,87 @@ describe('a LevelDB provider holding writes for the next pass', () => {
 
         // Emptied, both records go.
         const empty = reopened.beginSavePass();
-        empty.putLevelRecords({ dynamicProperties: new Map(), scoreboard: new Scoreboard().saved() });
+        empty.putLevelRecords({
+            dynamicProperties: new Map(),
+            scoreboard: new Scoreboard().saved(),
+            commandStorage: new Map()
+        });
+        await empty.commit({ sync: true });
+        expect(reopened.readLevelRecords()).toBeNull();
+        await reopened.disable();
+    });
+
+    it('saves a storage whose SNBT is longer than one string holds, and an infinite double', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const storage = new CommandStorage();
+        // 30,000 zeros format to about 90,000 bytes, past the 65,535 a TAG_String holds.
+        const big = parseSnbtCompound(
+            `{zeros: [I; ${Array.from({ length: 30_000 }, () => '0').join(', ')}], name: "é𝄞"}`
+        );
+        const infinite = parseSnbtCompound('{up: 1e999, down: -1e999f}');
+        storage.set('mypack:big', big);
+        storage.set('mypack:infinite', infinite);
+
+        const pass = leveldb.beginSavePass();
+        pass.putLevelRecords({
+            dynamicProperties: new Map(),
+            scoreboard: new Scoreboard().saved(),
+            commandStorage: storage.saved()
+        });
+        await pass.commit({ sync: true });
+        await leveldb.disable();
+
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const restored = new CommandStorage();
+        restored.restore(reopened.readLevelRecords()?.commandStorage ?? new Map());
+        expect(tagsEqual(restored.get('mypack:big'), big)).toBe(true);
+        expect(formatSnbt(restored.get('mypack:infinite'))).toBe('{down: -Infinityf, up: Infinityd}');
+        await reopened.disable();
+    });
+
+    it('commits the command storage under its own key with every tag type, and reads it back', async () => {
+        const worldPath = scratch();
+        const leveldb = provider(worldPath);
+        await leveldb.enable();
+        const storage = new CommandStorage();
+        const state = parseSnbtCompound(
+            '{count: 3b, big: 9000000000L, ratio: 0.5f, name: "Steve", items: [{id: "minecraft:stone"}], ids: [I; 1, 2]}'
+        );
+        storage.set('mypack:state', state);
+        storage.set('bare', parseSnbtCompound('{ok: 1b}'));
+
+        const pass = leveldb.beginSavePass();
+        pass.putLevelRecords({
+            dynamicProperties: new Map(),
+            scoreboard: new Scoreboard().saved(),
+            commandStorage: storage.saved()
+        });
+        await pass.commit({ sync: true });
+        await leveldb.disable();
+
+        const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true, createIfMissing: false });
+        expect(database.has(Buffer.from('jsprismarine:command_storage'))).toBe(true);
+        await database.close();
+
+        const reopened = provider(worldPath);
+        await reopened.enable();
+        const restored = new CommandStorage();
+        restored.restore(reopened.readLevelRecords()?.commandStorage ?? new Map());
+        expect(tagsEqual(restored.get('mypack:state'), state)).toBe(true);
+        expect(formatSnbt(restored.get('minecraft:bare'))).toBe('{ok: 1b}');
+
+        // Emptied, the key goes.
+        restored.set('mypack:state', EMPTY_COMPOUND);
+        restored.set('bare', EMPTY_COMPOUND);
+        const empty = reopened.beginSavePass();
+        empty.putLevelRecords({
+            dynamicProperties: new Map(),
+            scoreboard: new Scoreboard().saved(),
+            commandStorage: restored.saved()
+        });
         await empty.commit({ sync: true });
         expect(reopened.readLevelRecords()).toBeNull();
         await reopened.disable();
