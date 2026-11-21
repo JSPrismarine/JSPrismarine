@@ -589,7 +589,7 @@ export default class Chunk {
 
     /**
      * Counts one more tick a player spent near this chunk, Java's `incrementInhabitedTime`. Every
-     * {@link INHABITED_SAVE_TICKS} ticks it marks the chunk changed, so a chunk nothing else changes
+     * `INHABITED_SAVE_TICKS` ticks it marks the chunk changed, so a chunk nothing else changes
      * still saves its count before it unloads, losing at most that many ticks.
      */
     public incrementInhabitedTime(): void {

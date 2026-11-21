@@ -4,7 +4,7 @@
  *
  * Everything this package produces is Java-shaped. Turning a state into the Bedrock palette entry
  * the server stores is `@jsprismarine/mapping`'s job, reached through the
- * {@link import('./FeatureWorld').FeatureWorld} adapter rather than from inside a feature.
+ * {@link FeatureWorld} adapter rather than from inside a feature.
  */
 export interface BlockState {
     /** The namespaced block identifier, for example `minecraft:oak_log`. */

@@ -49,7 +49,7 @@ export interface LoadOptions {
     cache?: PrefixCacheOptions;
     /**
      * The Java release the datapacks are read for. Its data pack format gates each datapack's
-     * `pack.mcmeta` range and overlays. Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
+     * `pack.mcmeta` range and overlays. Defaults to `DEFAULT_JAVA_DATA_TARGET`.
      */
     java?: JavaDataTarget;
 }

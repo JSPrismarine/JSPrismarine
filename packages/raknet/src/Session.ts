@@ -233,7 +233,7 @@ export default class Session {
     }
 
     /**
-     * @param timestamp - a reading of {@link monotonicNow}, defaulting to one taken here.
+     * @param timestamp - a reading of `monotonicNow`, defaulting to one taken here.
      *
      * Every deadline this compares against is on that clock, so a caller passing
      * `Date.now()` is not merely imprecise: epoch milliseconds beside process-relative ones

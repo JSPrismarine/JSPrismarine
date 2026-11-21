@@ -1,6 +1,7 @@
 import type NetworkBinaryStream from './NetworkBinaryStream';
 
-interface Constructor<T> {
+/** Any class whose instances are a `T`. */
+export interface Constructor<T> {
     new (...args: any[]): T;
 }
 

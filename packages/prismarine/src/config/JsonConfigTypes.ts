@@ -550,7 +550,7 @@ export interface WorldPlayerData {
      *
      * Nothing modeled one before this: every respawn answered with the world spawn, which is
      * also why `/spawnpoint` was left out of the command registry. See
-     * {@link import('../world/RespawnPoint').resolveRespawn} for when a stored point stops
+     * `resolveRespawn` for when a stored point stops
      * being used.
      */
     spawn?: StoredSpawnPoint;
@@ -587,7 +587,7 @@ export interface WorldPlayerData {
      *
      * Written so a tool or a later migration can tell two copies of a record apart. Absent on a
      * record written before this field existed. Which world a returning player lands in is
-     * `dimension`'s job: see {@link import('../world/PlayerRecords').lastPlayerRecord}.
+     * `dimension`'s job: see `lastPlayerRecord`.
      */
     savedAt?: number;
 }

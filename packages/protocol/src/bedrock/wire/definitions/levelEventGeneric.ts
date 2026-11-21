@@ -28,6 +28,6 @@ const headlessCompound = t.custom<Buffer>(
 export const levelEventGenericPacket = definePacket('LevelEventGenericPacket', {
     /** `Event Id`: which event this is, and so what the data holds. */
     eventId: t.varint32,
-    /** `Event data`: the docs type it `unknown`; see {@link headlessCompound}. */
+    /** `Event data`: the docs type it `unknown`; see `headlessCompound`. */
     serializedEventData: headlessCompound
 });

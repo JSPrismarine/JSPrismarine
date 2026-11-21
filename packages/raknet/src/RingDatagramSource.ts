@@ -32,7 +32,7 @@ export interface WorkerSharedPort extends DatagramRings {
 export type AttachRings = (wakePort: number) => number | Promise<number>;
 
 /**
- * Allocates the shared memory of a pair of rings in the layout {@link SharedByteRing} has.
+ * Allocates the shared memory of a pair of rings in the layout `SharedByteRing` has.
  * @param capacity - Each ring's capacity, a power of two.
  * @returns The memory.
  */

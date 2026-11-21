@@ -114,7 +114,7 @@ export class DebuggerSocket {
      * the extension closes its own, which it does on seeing the end. Destroying the socket at once
      * would close it with the extension's last frames unread, and the reset that sends can make the
      * extension discard what arrived just before it, such as the line saying why the handshake
-     * was refused. A peer that keeps its own side open is cut off after {@link CLOSE_GRACE_MS}.
+     * was refused. A peer that keeps its own side open is cut off after `CLOSE_GRACE_MS`.
      */
     public close(): void {
         if (this.closedValue || this.closing) return;

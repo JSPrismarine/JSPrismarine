@@ -69,7 +69,7 @@ export interface DebugSessionOptions {
      */
     readonly runCommand?: (command: string, dimension: string) => void;
     /**
-     * The lines a running script runs between polls, {@link DebuggerOptions.pollLines}. The
+     * The lines a running script runs between polls, `DebuggerOptions.pollLines`. The
      * profiler samples the stack at each poll.
      */
     readonly pollLines?: number;

@@ -22,6 +22,6 @@ const networkNbtTail = t.custom<Buffer>(
  * wants before `StartGamePacket` or it disconnects with `MissingStructureData`.
  */
 export const jigsawStructureDataPacket = definePacket('JigsawStructureDataPacket', {
-    /** `Structure Data`: the rules as network NBT; see {@link networkNbtTail}. */
+    /** `Structure Data`: the rules as network NBT; see `networkNbtTail`. */
     structureData: networkNbtTail
 });

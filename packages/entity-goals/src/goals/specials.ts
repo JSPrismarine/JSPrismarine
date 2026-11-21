@@ -306,7 +306,7 @@ export const squidOutOfWater = goal<GoalBody>({
  *
  * Each landing is one hop: the goal jumps and sends the slime
  * {@link SLIME_HOP_REACH} blocks along the heading
- * {@link import('./slimeHeading').slimeHeadingOf} holds. Jumping alone leaves
+ * {@link slimeHeadingOf} holds. Jumping alone leaves
  * the slime where it stands, which is what it used to do, and a host whose
  * actuator has no vertical impulse made that a slime that never moved at all.
  */

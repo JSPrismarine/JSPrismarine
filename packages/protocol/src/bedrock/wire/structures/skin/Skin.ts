@@ -14,13 +14,15 @@ interface Image {
     Image: string;
 }
 
-interface AnimatedImageData extends Image {
+/** One skin animation in the login JWT: its frames and how the client plays them. */
+export interface AnimatedImageData extends Image {
     Frames: number;
     Type: number;
     AnimationExpression: number;
 }
 
-interface PersonaPiece {
+/** One persona piece in the login JWT: a part of a character creator skin. */
+export interface PersonaPiece {
     IsDefault: boolean;
     PackId: string;
     PieceId: string;
@@ -28,12 +30,14 @@ interface PersonaPiece {
     ProductId: string;
 }
 
-interface PieceTintColor {
+/** The tint colors in the login JWT for one persona piece type. */
+export interface PieceTintColor {
     Colors: string[];
     PieceType: string;
 }
 
-interface JWT {
+/** The skin claims of a client's login JWT, as {@link Skin.fromJWT} reads them. */
+export interface JWT {
     SkinId: string;
     CapeId: string;
     SkinResourcePatch: string;
@@ -380,7 +384,7 @@ export default class Skin {
      * A piece's type and pack id went out as strings; the type is a uint32 and the pack id a
      * 16-byte UUID. A tint's colors went out as a counted list of strings; they are exactly
      * four colors of four bytes each, with no count, under the piece type's lower-case member
-     * name (`facialhair`, not the client data's `facial_hair`; see {@link PIECE_TYPE_NAMES_2193}).
+     * name (`facialhair`, not the client data's `facial_hair`; see `PIECE_TYPE_NAMES_2193`).
      */
     public networkSerialize(stream: BinaryStream, layout: SkinWireLayout = SKIN_WIRE_2193): void {
         NetworkUtil.writeString(stream, this.getId());

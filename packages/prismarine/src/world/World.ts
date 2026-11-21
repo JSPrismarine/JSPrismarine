@@ -1619,7 +1619,7 @@ export class World implements Service {
      * make that asynchronous and quietly generate terrain as a mob walked towards it.
      * The last answer is remembered, because the callers ask in runs: the light engine scans a
      * column of 384 blocks, and a path finder reads a few hundred around one position, each
-     * through this. The cache is one entry and is dropped whenever {@link chunks} gains or loses
+     * through this. The cache is one entry and is dropped whenever `chunks` gains or loses
      * one, so the only way to make it lie is to change the map without going through the load or
      * unload path.
      * @param {number} cx - Chunk x.
@@ -2415,7 +2415,7 @@ export class World implements Service {
     }
 
     /**
-     * One tick of mining, as {@link mineTick} decides it: the particles off the face being mined,
+     * One tick of mining, as `mineTick` decides it: the particles off the face being mined,
      * then the crack progress, or the stop once the block is no longer the one being mined. A
      * block whose chunk is not loaded sends nothing, and the mining waits for it.
      * @param {BlockMining} mining - What is being mined.
@@ -2843,7 +2843,7 @@ export class World implements Service {
      * Logs that the block entity at a position is now these tags, field by field
      * (`blockentity/blockEntityLog.ts`).
      *
-     * What makes this world a {@link import('../blockentity/blockEntityWrite').BlockEntityWorld},
+     * What makes this world a `BlockEntityWorld`,
      * so that every block entity write goes through one place and reaches the clients holding
      * the chunk, which replication sends from the log. Called by `writeBlockEntity` and by
      * nothing else: it records rather than writes, and calling it without having written the
@@ -3092,7 +3092,7 @@ export class World implements Service {
     /**
      * The same write, naming the block by its state rather than by its runtime id.
      *
-     * What the engine systems write through - see {@link import('./EngineWorld')}. They
+     * What the engine systems write through - see `import('./EngineWorld')`. They
      * carry a Bedrock identifier and a state record and know nothing of runtime ids, and a
      * state this server's palette does not hold is declined rather than guessed at.
      * @param {boolean} notifyNeighbors - Whether to run the engine updates the change causes.
@@ -3232,7 +3232,7 @@ export class World implements Service {
     }
 
     /**
-     * Whether a position is in this world. A {@link Position} carries the world it belongs to,
+     * Whether a position is in this world. A `Position` carries the world it belongs to,
      * and one from another world names a place this world's players are not in, so its
      * occurrence is refused and said so. Guards against the class of bug where block placement
      * fanned out across every world on the server.
@@ -3775,7 +3775,7 @@ export class World implements Service {
      * Puts what a block yielded on the ground, each stack popping out of the block.
      *
      * Where a Bedrock Dedicated Server 1.26.52 puts a block's drop: at a random spot inside the
-     * block, pushed a little sideways and upward; see {@link popOut}. The push is what brings
+     * block, pushed a little sideways and upward; see `popOut`. The push is what brings
      * stacks from neighboring blocks within the half block they merge at, and merging is what
      * keeps a burst of breaks under {@link World.ITEM_ENTITY_LIMIT}.
      * @param {ContentPosition} block - the block they came out of.
@@ -3823,7 +3823,7 @@ export class World implements Service {
      * neighbors are loaded and none has a fluid tick or a block update queued, which is the gravel
      * and the plants the water disturbed still finding their feet. A neighbor that is not loaded yet may
      * still pour into it, so an edge chunk keeps settling until the chunks around it have loaded
-     * and settled too. Checked every {@link SETTLED_CHECK_INTERVAL} ticks rather than every tick.
+     * and settled too. Checked every `SETTLED_CHECK_INTERVAL` ticks rather than every tick.
      * The world tick calls it after the scheduled tick lists.
      * @param {number} tick - The tick being run.
      */
@@ -3896,7 +3896,7 @@ export class World implements Service {
 
     /**
      * Starts a chunk's settling. The chunk loader calls it for a chunk a provider generated
-     * rather than read; see {@link settling}.
+     * rather than read; see `settling`.
      * @param {number} chunkX - The chunk's x, in chunks.
      * @param {number} chunkZ - The chunk's z, in chunks.
      */
@@ -3906,7 +3906,7 @@ export class World implements Service {
     }
 
     /**
-     * Whether a freshly generated chunk is still settling; see {@link settling}.
+     * Whether a freshly generated chunk is still settling; see `settling`.
      * @param {number} chunkX - The chunk's x, in chunks.
      * @param {number} chunkZ - The chunk's z, in chunks.
      */
@@ -4678,7 +4678,7 @@ export class World implements Service {
         };
     }
 
-    /** The chunks still settling, as packed positions in ascending order; see {@link settling}. */
+    /** The chunks still settling, as packed positions in ascending order; see `settling`. */
     public settlingChunks(): number[] {
         return [...(this.settling?.keys() ?? [])].sort((left, right) => left - right);
     }

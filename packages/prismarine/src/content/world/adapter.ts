@@ -297,7 +297,7 @@ export interface ContentLevelFacts {
      *
      * Named by any spelling `@jsprismarine/commands`' gamerule registry knows: the 1.21.11 id
      * `minecraft:mob_griefing`, the pre-1.21.11 `mobGriefing`, or Bedrock's `mobgriefing`.
-     * {@link import('./gameRules')} names the rules the content path reads, and resolves each
+     * `import('./gameRules')` names the rules the content path reads, and resolves each
      * through that registry rather than spelling it a second time.
      *
      * @returns The value, or undefined when this world carries no rule of that name. A world
@@ -408,7 +408,7 @@ export interface ContentGenerationAccess {
  * The six required groups are the facts and effects more than one package
  * asks for. The five optional groups each serve exactly one package and are
  * left out until their owning subsystem supplies them; see
- * {@link import('./notWired').CONTENT_AREAS} for who owns which.
+ * `CONTENT_AREAS` for who owns which.
  */
 export interface ServerWorldAdapter {
     readonly level: ContentLevelFacts;
@@ -428,7 +428,7 @@ export interface ServerWorldAdapter {
     readonly generation?: ContentGenerationAccess;
     /**
      * Owned by the command subsystem; see
-     * {@link import('../../command/host').serverCommandHost}.
+     * `serverCommandHost`.
      *
      * The real interface rather than a structural stand-in: this package takes
      * the dependency now that the command layer is wired. Nothing projects the

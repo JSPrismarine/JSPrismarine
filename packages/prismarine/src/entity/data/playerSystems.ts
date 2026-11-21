@@ -430,7 +430,7 @@ export class PlayerSystems {
         return this.players.get(entity)?.parts?.restoreSlot(container, slot, value, this.ports.content()) ?? false;
     }
 
-    /** Breath, read at the block the player's eyes are in, which a store player's feet are {@link EYE_HEIGHT} below. */
+    /** Breath, read at the block the player's eyes are in, which a store player's feet are `EYE_HEIGHT` below. */
     private tickBreath(entity: DataEntity, survival: SurvivalPlayer): void {
         const { x, y, z } = entity.position;
         const head = this.ports.blockAt(blockPositionOf({ x, y: y + EYE_HEIGHT, z }));

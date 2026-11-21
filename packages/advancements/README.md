@@ -5,7 +5,7 @@ tree, routes game events to the criteria listening for them, keeps per-player pr
 rewards through hooks a host supplies.
 
 Conditions are not reimplemented here. Every entity, item, block, location, damage and fluid check
-inside a criterion is a loot condition compiled by [`@jsprismarine/predicates`](../predicates),
+inside a criterion is a loot condition compiled by [`@jsprismarine/predicates`](../predicates/README.md),
 which also owns 26.3's inline-or-id-or-list-or-tag composition rule. This package adds the 58
 trigger types that the predicate package explicitly leaves out.
 
@@ -43,7 +43,7 @@ const progress = new PlayerAdvancements();
 const completed = engine.raise('placed_block', { player, origin, blockState, tool }, progress);
 ```
 
-`definitions.advancements` is what [`@jsprismarine/packs`](../packs) produces for a pack stack: the
+`definitions.advancements` is what [`@jsprismarine/packs`](../packs/README.md) produces for a pack stack: the
 1866 vanilla advancement files plus whatever the loaded datapacks add. `resolver` is the same
 `ReferenceResolver` the predicate package takes, and it is what lets a `#tag` inside a criterion or
 in `rewards.loot` expand.
@@ -207,7 +207,7 @@ new AdvancementEngine({
 });
 ```
 
-`runFunction` is the seam [`@jsprismarine/mcfunction`](../mcfunction) fills; nothing in this package
+`runFunction` is the seam [`@jsprismarine/mcfunction`](../mcfunction/README.md) fills; nothing in this package
 depends on it. Rewards fire once, when the advancement completes, from either `raise` or `award`.
 Vanilla uses `recipes` on 1739 files and `experience` on 23, and uses neither `loot` nor `function`.
 

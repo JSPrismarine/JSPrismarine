@@ -14,7 +14,7 @@ export type PackFormat = readonly [number, number];
 /**
  * The data pack format of the default target: 121.0, from the 26.3 `version.json`.
  *
- * @deprecated Pass a {@link import('./javaDataTarget').JavaDataTarget} to `load` and read its
+ * @deprecated Pass a {@link JavaDataTarget} to `load` and read its
  *   `format`; this is the format of `DEFAULT_JAVA_DATA_TARGET` and will be removed.
  */
 export const DATA_PACK_FORMAT: PackFormat = [121, 0];

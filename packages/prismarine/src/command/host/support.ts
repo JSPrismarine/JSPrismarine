@@ -65,7 +65,7 @@ export const refuse: (message: string) => never = (message) => {
  * Starts work a host verb decided on and hands the promise to the dispatch.
  *
  * @param work - The delivery. Rejections reach the sender; see
- *   {@link deferCommandWork}.
+ *   `deferCommandWork`.
  * @param answer - What the verb reports, decided before the work started.
  * @returns `answer`, unchanged, so a verb reads as one expression.
  */

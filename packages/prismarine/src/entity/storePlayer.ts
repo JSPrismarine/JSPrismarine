@@ -293,7 +293,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         return this.identity.subject;
     }
 
-    /** The eye, {@link EYE_HEIGHT} above the feet, which is what a player reports. */
+    /** The eye, `EYE_HEIGHT` above the feet, which is what a player reports. */
     public getPosition(): Vector3 {
         const { x, y, z } = this.attached?.position ?? this.held.position;
         return new Vector3(x, y + EYE_HEIGHT, z);

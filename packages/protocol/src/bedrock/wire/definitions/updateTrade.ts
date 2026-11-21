@@ -42,7 +42,7 @@ export const updateTradePacket = definePacket('UpdateTradePacket', {
     useNewTradeScreen: t.bool,
     /** `Using Economy Trade`: whether the offers use economy trade values. */
     usingEconomyTrade: t.bool,
-    /** `Data`: the network NBT compound containing the offers; see {@link offersTail}. */
+    /** `Data`: the network NBT compound containing the offers; see `offersTail`. */
     data: offersTail
 });
 

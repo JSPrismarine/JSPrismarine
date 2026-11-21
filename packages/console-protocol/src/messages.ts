@@ -10,7 +10,8 @@ import { isLogLevel } from '@jsprismarine/logger/levels';
  */
 export const PROTOCOL_VERSION = 1;
 
-interface Envelope<T extends string> {
+/** The fields every console message starts with: its `type` and the protocol version it speaks. */
+export interface Envelope<T extends string> {
     type: T;
     v: typeof PROTOCOL_VERSION;
 }

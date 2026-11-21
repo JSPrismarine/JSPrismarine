@@ -25,7 +25,7 @@ const markClosed = (signal: Int32Array): void => {
     Atomics.notify(signal, Signal.delivered);
 };
 
-/** A connection to the extension that a bridge can join to, such as a {@link DebuggerSocket}. */
+/** A connection to the extension that a bridge can join to, such as a `DebuggerSocket`. */
 export interface DebuggerConnection {
     onMessage(listener: (message: unknown) => void): void;
     onClose(listener: () => void): void;

@@ -13,7 +13,7 @@ import { FeaturesErrors } from '@jsprismarine/errors/features';
  *
  * Ores use these to decide what they may cut through, which is why `ore_diamond` can place
  * deepslate diamond below y 8 and ordinary diamond above it from one feature. Unlike a
- * {@link import('../providers/blockPredicate').BlockPredicate} it never reads the world: it is
+ * {@link BlockPredicate} it never reads the world: it is
  * handed the state it is judging, and two of the ten types draw from the random stream.
  */
 export type RuleTest = (blocks: BlockOracle, state: BlockState, position: BlockPos, random: RandomSource) => boolean;

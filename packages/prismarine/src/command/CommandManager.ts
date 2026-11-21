@@ -93,7 +93,7 @@ const MAX_FUNCTION_PARSE_CACHE_ENTRIES = 8192;
  * named nodes. A vanilla command's node is `minecraft.command.<name>`, so a
  * `permissions.json` that granted `minecraft.command.me` still grants it, and
  * this server's own commands keep the nodes in
- * {@link JSPRISMARINE_COMMAND_PERMISSIONS}.
+ * `JSPRISMARINE_COMMAND_PERMISSIONS`.
  */
 export const commandPermissionOf = (name: string): string =>
     JSPRISMARINE_COMMAND_PERMISSIONS[name] ?? `minecraft.command.${name}`;

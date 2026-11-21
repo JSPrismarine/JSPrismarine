@@ -117,7 +117,7 @@ export class EngineDebugger {
     private readonly host: DebuggerHost;
     private attached = true;
 
-    /** Use {@link ScriptEngine.attachDebugger}. */
+    /** Use `ScriptEngine.attachDebugger`. */
     public constructor(host: DebuggerHost) {
         this.host = host;
     }

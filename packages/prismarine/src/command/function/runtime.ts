@@ -57,7 +57,7 @@ export interface FunctionRunOutcome extends FunctionOutcome {
 
 /** How to build a {@link FunctionRuntime}. */
 export interface FunctionRuntimeOptions {
-    /** The functions and tags the pack stack holds; see {@link loadServerFunctions}. */
+    /** The functions and tags the pack stack holds; see `loadServerFunctions`. */
     readonly loaded: ServerFunctions;
     /**
      * Runs one command line against a source, which is the server's vanilla

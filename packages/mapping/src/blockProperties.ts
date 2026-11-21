@@ -37,7 +37,8 @@ interface BlockRow {
     stateOverrides?: Record<string, Partial<BedrockBlockProperties>>;
 }
 
-interface Conflict {
+/** One Bedrock block property its Java sources disagreed on, with the value kept and the one dropped. */
+export interface Conflict {
     bedrock: string;
     field: string;
     kept: number | string | boolean;
@@ -79,7 +80,7 @@ export const BLOCK_PROPERTY_VERSIONS = {
 } as const;
 
 /** A Bedrock state value as the engine holds it; booleans travel as 0 and 1 in the palette. */
-type StateValue = string | number | boolean;
+export type StateValue = string | number | boolean;
 
 const matches = (stateKey: string, states: Readonly<Record<string, StateValue>>): boolean =>
     stateKey.split(',').every((pair) => {

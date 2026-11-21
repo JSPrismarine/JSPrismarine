@@ -259,7 +259,7 @@ const offsetOf = (block: PaletteBlock, states: Readonly<Record<string, BlockStat
  * alphabetical Java block order, at the value Java's default state gives each property Bedrock
  * dropped. A waterlogged slab comes back dry, because Bedrock holds the water in a layer of its
  * own and nothing in the state can say otherwise. That is the information
- * {@link import('./lossList').DROPPED_BLOCK_PROPERTIES} records as lost.
+ * {@link DROPPED_BLOCK_PROPERTIES} records as lost.
  *
  * @param {string} bedrockId - The namespaced Bedrock block identifier.
  * @param {Readonly<Record<string, BlockStateValue>>} [states] - The state values as the palette

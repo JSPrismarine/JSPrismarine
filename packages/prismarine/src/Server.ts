@@ -146,7 +146,7 @@ export default class Server {
 
     /**
      * The module kernel the managers run on, built once in the constructor.
-     * {@link Server.enable} starts it between the config and the console, and
+     * `Server.enable` starts it between the config and the console, and
      * {@link Server.disable} stops it, so every manager starts in dependency
      * order and stops in reverse. A kernel restarts cleanly, so the same
      * instance, and the managers its modules hold, carries through
@@ -657,9 +657,9 @@ export default class Server {
 
     /**
      * Reloads the server.
-     * @returns {Promise<void>} A promise that resolves when the server is reloaded.
-     * @remarks This method is equivalent to calling {@link Server#disable} and {@link Server#enable}.
-     * @remarks This method and functionality is unsupported and should ideally be completely avoided.
+     * @remarks This method is equivalent to calling `Server#disable` and `Server#enable`. It is
+     * unsupported and should ideally be completely avoided.
+     * @returns A promise that resolves when the server is reloaded.
      */
     public async reload(): Promise<void> {
         await this.disable();
@@ -705,7 +705,7 @@ export default class Server {
     /**
      * Registers something to undo the moment a shutdown begins.
      *
-     * For what the callers give up and why, see {@link ShutdownLifecycle.releaseOnShutdown}.
+     * For what the callers give up and why, see `ShutdownLifecycle.releaseOnShutdown`.
      * A release runs once, synchronously, before the shutdown awaits anything - which is the
      * whole point, as the teardown below may not get another turn of the event loop for
      * seconds.
@@ -718,7 +718,7 @@ export default class Server {
     /**
      * Kills the server asynchronously.
      *
-     * Asking twice forces the exit rather than returning - see {@link ShutdownLifecycle.forceExit}.
+     * Asking twice forces the exit rather than returning - see `ShutdownLifecycle.forceExit`.
      * With `stayAlive`, asking twice returns the outcome of the shutdown already running.
      * @param {object} [options] - The options.
      * @param {boolean} [options.crash] - If the server should crash.
@@ -1074,7 +1074,7 @@ export default class Server {
      * Every content registry built from the pack stack.
      *
      * @returns {ServerContent} The content.
-     * @throws When read before {@link Server.enable} has built it.
+     * @throws When read before `Server.enable` has built it.
      */
     public getContent(): ServerContent {
         if (!this.content) throw new PrismarineServerErrors.ContentReadTooEarly();
@@ -1113,7 +1113,7 @@ export default class Server {
      * The world the content acts through, for the interaction path.
      *
      * @returns {ServerWorldHandle} The handle.
-     * @throws When read before {@link Server.enable} has built it.
+     * @throws When read before `Server.enable` has built it.
      */
     public getContentWorld(): ServerWorldHandle {
         if (!this.contentWorld) throw new PrismarineServerErrors.ContentWorldReadTooEarly();

@@ -94,7 +94,7 @@ export interface BlockOracle {
  * This is the package's only outward seam. Features never see a chunk, a section, a palette or a
  * Bedrock identifier: they read and write Java block states through these seven members, so the
  * server's storage, its Java-to-Bedrock mapping and its chunk lifetime stay on the other side.
- * {@link import('./TestFeatureWorld').TestFeatureWorld} is the in-memory adapter the tests use.
+ * {@link TestFeatureWorld} is the in-memory adapter the tests use.
  *
  * Writes are expected to succeed or be dropped silently, as Java's `WorldGenLevel.setBlock` does
  * outside the region being generated; a feature treats {@link setBlock} as advisory and reads back

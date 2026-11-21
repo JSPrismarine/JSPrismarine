@@ -116,7 +116,8 @@ export interface StructurePiecePlan {
     readonly data: unknown;
 }
 
-interface StructurePieceTransferCodec<T extends StructurePiece> {
+/** How one structure piece class crosses a worker boundary: its type id, prototype, encoder and decoder. */
+export interface StructurePieceTransferCodec<T extends StructurePiece> {
     readonly type: string;
     readonly prototype: object;
     readonly encode: (piece: T) => unknown;

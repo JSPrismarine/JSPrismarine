@@ -1,6 +1,7 @@
 import type SkinImage from './SkinImage';
 
-interface SkinCapeData {
+/** The cape identifier and image a {@link SkinCape} holds. */
+export interface SkinCapeData {
     id: string;
     image: SkinImage;
 }

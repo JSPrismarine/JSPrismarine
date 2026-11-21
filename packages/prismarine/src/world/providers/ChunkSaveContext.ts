@@ -17,7 +17,7 @@ export interface ChunkSaveContext {
     /** The persistent entity with the lowest runtime id for each existing actor id. */
     readonly firstEntityByActorId: ReadonlyMap<bigint, StoreActor>;
     /**
-     * The block and fluid ticks still scheduled in each chunk, by {@link Chunk.packXZ} index, and
+     * The block and fluid ticks still scheduled in each chunk, by `Chunk.packXZ` index, and
      * the world tick they are due against. Absent when the caller does not track them, which leaves
      * what a chunk was saved with alone; present, a chunk missing from the map has none.
      */

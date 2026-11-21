@@ -21,7 +21,7 @@ prototype currently stops at runtime TypeScript syntax that needs code generatio
 `enum` declarations and parameter properties. The November 2026 source audit counted about 230
 enums and 80 parameter properties; [Node's TypeScript support](https://nodejs.org/api/typescript.html#typescript-features)
 does not transform them. On Node 26.12.1, the native benchmark currently reaches
-[`NoiseStack.ts:24`](../worldgen/src/noise/NoiseStack.ts:24) and fails on its `layers` parameter
+`NoiseStack` in `@jsprismarine/worldgen` and fails on its `layers` parameter
 property before the import completes. Keep using
 `pnpm --filter @jsprismarine/server run dev` with `tsx` until the source graph is erasable or those
 files have a separate transform step.

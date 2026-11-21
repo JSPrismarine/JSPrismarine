@@ -181,7 +181,7 @@ const URGENT_CHUNK_DISTANCE = 2;
  *
  * The position is the feet position in `world`, as a portal's exit, the End platform, a spawn
  * block and `/tp` all produce it. A player's own position is their eyes (see
- * {@link import('../entity/playerEyes').EYE_HEIGHT}), so `changeWorld` raises the arrival once, and
+ * `EYE_HEIGHT`), so `changeWorld` raises the arrival once, and
  * `ChangeDimensionPacket` and the `MovePlayer` teleport at the end of the change both carry
  * those eyes.
  */
@@ -294,7 +294,7 @@ export interface TradeSource {
      */
     offers(context?: TradeContext): readonly LiveOffer[];
     /**
-     * Runs one trade; see {@link Merchant.trade}. The trade has to log the trader's `merchant`
+     * Runs one trade; see `Merchant.trade`. The trade has to log the trader's `merchant`
      * field: that entry is what sends an open screen its new offers, and nothing else redraws it.
      */
     trade(index: number, context?: TradeContext): TradeResult;
@@ -849,7 +849,7 @@ export default class PlayerSession {
         if (failure !== undefined) throw failure.error;
     }
 
-    /** The queue the scheduler drains - see {@link ChunkRecipient}. */
+    /** The queue the scheduler drains - see `ChunkRecipient`. */
     public get sender(): ChunkSender {
         return this.chunkSender;
     }
@@ -1069,7 +1069,7 @@ export default class PlayerSession {
      * it here rather than inside each is what stops `needNewChunks` rebuilding a heap of a few
      * hundred candidates twenty times a second for a player who has not moved, and it is what
      * makes a moving player see entities appear within a tick rather than on the next interval.
-     * @param {number} _tick - The current server tick.
+     * @param tick - The current server tick.
      */
     public update(tick: number): void {
         const pending = this.pendingChange;
@@ -2003,7 +2003,7 @@ export default class PlayerSession {
      * Sets properties on the open block container's screen, which is how a progress bar moves.
      *
      * A property whose value has not changed since the last send is skipped; see
-     * {@link PlayerSession.containerData}. Nothing is sent when the screen was opened from a
+     * `PlayerSession.containerData`. Nothing is sent when the screen was opened from a
      * different block, so a station ticking across the world cannot write over the screen the
      * player is actually looking at.
      *
@@ -2795,7 +2795,7 @@ export default class PlayerSession {
 
     /**
      * Files the change {@link PlayerSession.changeWorld} held while the player was dead, for the
-     * next input step. Called by {@link PlayerSession.respawn} once the client is told its player
+     * next input step. Called by the respawn once the client is told its player
      * is alive. A change still pending, the respawn's own included, files the held one when it
      * closes instead.
      */
@@ -2901,7 +2901,7 @@ export default class PlayerSession {
      * e2e run in two. The client reports the screen open only after its switch has begun, so a
      * column sent from then on lands in the new dimension. Sending the lost ones again is not a
      * remedy: in sub chunk request mode a second `LevelChunk` resets the column the client holds,
-     * and a player standing on it falls through. {@link ARRIVAL_HOLD_TICKS} bounds the wait for a
+     * and a player standing on it falls through. `ARRIVAL_HOLD_TICKS` bounds the wait for a
      * client that never reports the screen.
      * @param loadingScreenId - The id the client's `StartLoadingScreen` carried.
      * @returns Whether this released the pending change's columns. Any other id changes nothing.
@@ -3149,7 +3149,7 @@ export default class PlayerSession {
      * stops sending inputs while it waits for chunks never recovers from that.
      *
      * The hold ends on a `HandledTeleport` input at the target, which tells two teleports sent
-     * in a row apart, or after {@link TELEPORT_ACK_TIMEOUT_TICKS}, so a client that never sets the
+     * in a row apart, or after `TELEPORT_ACK_TIMEOUT_TICKS`, so a client that never sets the
      * flag is not frozen in place.
      * @param position - Where the input says the player is.
      * @param handledTeleport - Whether the input carries `HandledTeleport`.
@@ -4060,7 +4060,7 @@ export default class PlayerSession {
      * the client has to acknowledge, and the positions it reports until then are dropped
      * ({@link PlayerSession.holdsMovementForTeleport}).
      * @param options - The options to set the position.
-     * @param options.position - The new eye position. A {@link Position} in another world, given
+     * @param options.position - The new eye position. A `Position` in another world, given
      *   while the player is in no store, is the world it enters next.
      * @param options.type - The position mode.
      * @param options.pitch - The new pitch.

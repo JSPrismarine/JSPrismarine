@@ -42,9 +42,11 @@ export interface ErrorEntry {
     readonly base?: ErrorBase;
 }
 
-type MessageOf<Entry> = Entry extends string ? Entry : Entry extends ErrorEntry ? Entry['message'] : never;
+/** The message template of a catalog entry, written as a bare string or as an {@link ErrorEntry}. */
+export type MessageOf<Entry> = Entry extends string ? Entry : Entry extends ErrorEntry ? Entry['message'] : never;
 
-type BaseOf<Entry> = Entry extends { readonly base: infer Base extends ErrorBase } ? Base : ErrorConstructor;
+/** The class a catalog entry extends: its `base`, or `Error` when it names none. */
+export type BaseOf<Entry> = Entry extends { readonly base: infer Base extends ErrorBase } ? Base : ErrorConstructor;
 
 /** The placeholder names in a message template, such as `'file' | 'reason'` for `'{file}: {reason}'`. */
 export type Placeholders<Message extends string> = Message extends `${string}{${infer Name}}${infer Rest}`
@@ -59,13 +61,14 @@ export type ErrorArgs<Message extends string> = [Placeholders<Message>] extends 
     ? [options?: ErrorOptions]
     : [params: ErrorParams<Message>, options?: ErrorOptions];
 
-/** What every catalog error adds to the class it extends. */
+/**
+ * What every catalog error adds to the class it extends: the `code`, `docs` and `params` that
+ * {@link JSPrismarineError} documents. The members carry no comments of their own, because a
+ * catalog error's type is both, and two comments on one member leave the reference to pick one.
+ */
 export interface CatalogedError<Message extends string = string> {
-    /** The catalog code, such as `LEVELDB_DATABASE_LOCKED`. */
     readonly code: string;
-    /** The address of this error's entry in the error reference. */
     readonly docs: string;
-    /** The placeholder values the message was built from. */
     readonly params: ErrorParams<Message>;
 }
 

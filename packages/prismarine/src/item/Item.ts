@@ -304,7 +304,7 @@ export class Item {
      * The Bedrock runtime id for this item under the canonical numbering, the newest release's.
      *
      * What everything off the wire means by an item's number. A stack going to a client is
-     * numbered by {@link Item.wireId} against that session's own table instead, because the
+     * numbered by `Item.wireId` against that session's own table instead, because the
      * two disagree for 82 items from 1.26.60 on.
      */
     public getRuntimeId(): number {
@@ -800,7 +800,7 @@ export class Item {
      * What the client is told about this stack beyond its id, count and aux value.
      *
      * The enchantments, the name, the lore and the durability spent, in the shape
-     * {@link itemUserDataTag} lays out. Null for a stack with none of them and no durability,
+     * `itemUserDataTag` lays out. Null for a stack with none of them and no durability,
      * which is most of them and every slot of an untouched inventory.
      */
     public userDataTag(): NBTTagCompound | null {

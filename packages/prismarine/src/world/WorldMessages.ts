@@ -81,7 +81,7 @@ export class WorldMessages {
      * those messages file for the next step, which never comes there: a message about a player
      * who changed world files itself again for the world they are in now, and would be dropped.
      *
-     * Messages still filing themselves after {@link DRAIN_PASSES} passes are reported and left.
+     * Messages still filing themselves after `DRAIN_PASSES` passes are reported and left.
      *
      * @returns How many messages were applied.
      */

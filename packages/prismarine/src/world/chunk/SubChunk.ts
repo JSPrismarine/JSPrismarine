@@ -119,13 +119,13 @@ export default class SubChunk implements ReadonlySubChunk {
     }
 
     /**
-     * Sets a block by runtime Id in the given storage layer.
+     * Gets the runtime Id of a block in the given storage layer.
      *
      * @param bx - block x
      * @param by - block y
      * @param bz - block z
-     * @param runtimeId - block runtime Id
      * @param layer - block storage layer
+     * @returns The block's runtime Id, or air's when the layer is empty.
      */
     public getBlockRuntimeId(bx: number, by: number, bz: number, layer = 0): number {
         return this.storages[layer]?.getRuntimeId(bx, by, bz) ?? BlockRuntimeIds.getByName('minecraft:air');
