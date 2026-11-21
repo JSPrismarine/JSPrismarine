@@ -32,6 +32,8 @@ const stick = stub<Item>({
     getAmount: () => 1,
     getCustomName: () => undefined,
     getLore: () => [],
+    getCanDestroyBlocks: () => [],
+    getCanPlaceOnBlocks: () => [],
     getMaxDurability: () => 0,
     getDurability: () => 0
 });
