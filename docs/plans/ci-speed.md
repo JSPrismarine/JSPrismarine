@@ -384,6 +384,12 @@ gh api -X POST repos/JSPrismarine/JSPrismarine/rulesets --input ruleset.json   #
 gh api -X PATCH repos/JSPrismarine/JSPrismarine/branches/master/protection/required_status_checks -F strict=false
 ```
 
+The required checks and the up-to-date requirement live in master's branch protection, not in a
+ruleset: the one ruleset, "Historical Branches", locks an old branch. Should they move to a
+ruleset, the second command becomes a `PUT` of that ruleset by id with
+`strict_required_status_checks_policy: false` on its `required_status_checks` rule, keeping the
+check list.
+
 If the merge queue has to wait, master can run `--changed` against the last master commit whose run
 passed, with a full run each night. The baseline is a fixed commit, so it is the same on every runner.
 

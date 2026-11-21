@@ -86,10 +86,10 @@ In CI, `.github/workflows/ci.yml` builds a matrix of every declared transport of
 released BDS protocol in `packages/bedrock-data/sources.json`, listed by `src/pin-matrix.mts`, and runs the full
 suite with the compatibility default (`zlib`) on `ubuntu-latest` for each one, with the client
 rendering through Mesa's software Vulkan driver on a virtual X display. The job runs as many suites
-at once as the runner's cores and memory allow. A second matrix runs the full suite with `snappy`
-and `none` across every supported protocol, covering retail-client negotiation without duplicating
-the `zlib` jobs. A pull request plays only the newest protocol over RakNet; a push to `master` and a
-manual run play every pin, and a push skips a pin the merged pull request passed in every shard.
+at once as the runner's cores and memory allow. Nothing in CI plays the suite with `snappy` or
+`none`; a change to compression negotiation is checked by hand with `--compression-algorithm`. A
+pull request plays only the newest protocol over RakNet; a push to `master` and a manual run play
+every pin, and a push skips a pin the merged pull request passed in every shard.
 Each pin is played in four shards on runners of their own, or in one when a pull request runs only
 some scenarios. `--shard <index>/<total>` picks the suites one shard plays: whole suites, the
 heaviest first, each to the shard with the least so far (`src/shard.mts`). A suite weighs the
