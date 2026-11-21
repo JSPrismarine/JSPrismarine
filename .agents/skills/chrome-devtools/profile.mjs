@@ -337,6 +337,7 @@ const scenarioConfig = (options, port) => {
         'server-portv6': port,
         'online-mode': false,
         'enable-nethernet': false,
+        'java-enabled': false,
         'enable-lan-visibility': false,
         'enable-server-public-ip-lookup': false,
         'level-name': 'world',
