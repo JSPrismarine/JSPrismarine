@@ -223,7 +223,8 @@ and ore veins, and the climate sampler read their trees the same way through
 The biome climate search runs there too: a climate index registers its flattened tree with the
 library on its first lookup and finds the same box, ties and Java's prior-result seed included.
 `{ native: false }` on `ClimateParameterList` or `SharedClimateParameterList` keeps the TypeScript
-search.
+search. `BiomeManager` derives each biome lattice point's jitter there with the same bits, and
+`new BiomeManager(resolver, zoomSeed, { native: false })` keeps the TypeScript generator steps.
 
 Without a build for the machine, or under a runtime without an FFI, every noise stays in
 TypeScript. `new RandomState(data, seed, settings, { nativeNoise: false })` keeps it there on

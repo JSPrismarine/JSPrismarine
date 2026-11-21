@@ -53,6 +53,7 @@ interface NativeSymbols {
         depth: number,
         weirdness: number
     ): number;
+    jwg_biome_jitter(seedHi: number, seedLo: number, x: number, y: number, z: number): number;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -66,7 +67,8 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_program_eval: ['f64', ['f64', 'f64', 'f64', 'f64']],
     jwg_climate_create: ['f64', ['buffer', 'buffer', 'buffer', 'buffer', 'buffer', 'i32', 'buffer', 'i32', 'i32']],
     jwg_climate_destroy: ['void', ['f64']],
-    jwg_climate_find: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64']]
+    jwg_climate_find: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64']],
+    jwg_biome_jitter: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64']]
 };
 
 /**
@@ -262,6 +264,17 @@ export class NativeWorldgen {
         const search = new NativeClimateSearch(symbols, handle, () => this.climates.unregister(search));
         this.climates.register(search, handle, search);
         return search;
+    }
+
+    /**
+     * The jitter bits of one biome lattice point, as Java's `BiomeManager` derives them.
+     * @param seedHi - The zoom seed's high 32 bits, unsigned.
+     * @param seedLo - The zoom seed's low 32 bits, unsigned.
+     * @returns Bits 24 to 33 of the x, y and z offsets' generator steps, packed as
+     *   `x | y << 10 | z << 20`.
+     */
+    public biomeJitter(seedHi: number, seedLo: number, x: number, y: number, z: number): number {
+        return this.bound.symbols.jwg_biome_jitter(seedHi, seedLo, x, y, z);
     }
 
     /** Unloads the library. Destroy its stacks first. */

@@ -33,6 +33,9 @@ worldgen package's closures.
 `native.createClimate(tree)` registers a biome climate search tree as the worldgen package flattens
 it, and `find(candidate, ...target)` returns the nearest leaf.
 
+`native.biomeJitter(seedHi, seedLo, x, y, z)` returns the jitter bits Java's `BiomeManager` draws
+for one biome lattice point, packed into one number.
+
 `NativeWorldgen.load()` throws a `NativeLibraryError` when there is no build for the machine.
 The library is optional: a caller keeps its TypeScript noise wherever `load()` throws.
 

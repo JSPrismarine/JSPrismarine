@@ -544,99 +544,106 @@ describe('the biome manager', () => {
         }
     });
 
-    it('matches the BigInt jitter oracle at randomized signed block positions', () => {
-        const zoomSeed = BiomeManager.obfuscateSeed(123456789012345n);
-        const resolver: BiomeResolver = (quartX, quartY, quartZ) => `${quartX},${quartY},${quartZ}`;
-        const manager = new BiomeManager(resolver, zoomSeed);
-        const multiplier = 6364136223846793005n;
-        const increment = 1442695040888963407n;
-        const lcgNext = (seed: bigint, value: bigint): bigint =>
-            BigInt.asIntN(64, seed * BigInt.asIntN(64, seed * multiplier + increment) + value);
-        const fiddle = (value: bigint): number => {
-            const shifted = value >> 24n;
-            const modulus = ((shifted % 1024n) + 1024n) % 1024n;
-            return (Number(modulus) / 1024 - 0.5) * 0.9;
-        };
-        const offsetsAt = (cellX: number, cellY: number, cellZ: number): readonly [number, number, number] => {
-            const x = BigInt(cellX);
-            const y = BigInt(cellY);
-            const z = BigInt(cellZ);
-            let value = lcgNext(zoomSeed, x);
-            value = lcgNext(value, y);
-            value = lcgNext(value, z);
-            value = lcgNext(value, x);
-            value = lcgNext(value, y);
-            value = lcgNext(value, z);
-            const xOffset = fiddle(value);
-            value = lcgNext(value, zoomSeed);
-            const yOffset = fiddle(value);
-            value = lcgNext(value, zoomSeed);
-            return [xOffset, yOffset, fiddle(value)];
-        };
-        const expectedAt = (x: number, y: number, z: number): string => {
-            const absX = x - 2;
-            const absY = y - 2;
-            const absZ = z - 2;
-            const parentX = absX >> 2;
-            const parentY = absY >> 2;
-            const parentZ = absZ >> 2;
-            const fractX = (absX & 3) / 4;
-            const fractY = (absY & 3) / 4;
-            const fractZ = (absZ & 3) / 4;
-            let bestCorner = 0;
-            let bestDistance = Number.POSITIVE_INFINITY;
-            for (let corner = 0; corner < 8; corner++) {
-                const xEven = (corner & 4) === 0;
-                const yEven = (corner & 2) === 0;
-                const zEven = (corner & 1) === 0;
-                const [jitterX, jitterY, jitterZ] = offsetsAt(
-                    xEven ? parentX : parentX + 1,
-                    yEven ? parentY : parentY + 1,
-                    zEven ? parentZ : parentZ + 1
-                );
-                const dz = (zEven ? fractZ : fractZ - 1) + jitterZ;
-                const dy = (yEven ? fractY : fractY - 1) + jitterY;
-                const dx = (xEven ? fractX : fractX - 1) + jitterX;
-                const distance = dz * dz + dy * dy + dx * dx;
-                if (bestDistance > distance) {
-                    bestCorner = corner;
-                    bestDistance = distance;
-                }
-            }
-            return (
-                `${(bestCorner & 4) === 0 ? parentX : parentX + 1},` +
-                `${(bestCorner & 2) === 0 ? parentY : parentY + 1},` +
-                `${(bestCorner & 1) === 0 ? parentZ : parentZ + 1}`
-            );
-        };
-
-        let state = 0x12345678;
-        const next = (bound: number): number => {
-            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-            return state % bound;
-        };
-        const positions = Array.from(
-            { length: 1024 },
-            () => [next(60_000_001) - 30_000_000, next(4096) - 2048, next(60_000_001) - 30_000_000] as const
-        );
-        // Exercise both sides of parent-cell boundaries in negative and positive coordinates.
-        for (let parentX = -3; parentX <= 3; parentX++) {
-            for (let parentY = -2; parentY <= 2; parentY++) {
-                for (let parentZ = -3; parentZ <= 3; parentZ++) {
-                    const boundaryX = parentX * 4 + 2;
-                    const boundaryY = parentY * 4 + 2;
-                    const boundaryZ = parentZ * 4 + 2;
-                    positions.push(
-                        [boundaryX - 1, boundaryY - 1, boundaryZ - 1],
-                        [boundaryX, boundaryY, boundaryZ],
-                        [boundaryX + 1, boundaryY + 1, boundaryZ + 1]
+    // The native library derives the jitter where it loads; without it both rows take the TypeScript steps.
+    it.each([
+        ['the native library where it loads', {}],
+        ['the TypeScript generator steps', { native: false }]
+    ] as const)(
+        'matches the BigInt jitter oracle at randomized signed block positions, through %s',
+        (_name, options) => {
+            const zoomSeed = BiomeManager.obfuscateSeed(123456789012345n);
+            const resolver: BiomeResolver = (quartX, quartY, quartZ) => `${quartX},${quartY},${quartZ}`;
+            const manager = new BiomeManager(resolver, zoomSeed, options);
+            const multiplier = 6364136223846793005n;
+            const increment = 1442695040888963407n;
+            const lcgNext = (seed: bigint, value: bigint): bigint =>
+                BigInt.asIntN(64, seed * BigInt.asIntN(64, seed * multiplier + increment) + value);
+            const fiddle = (value: bigint): number => {
+                const shifted = value >> 24n;
+                const modulus = ((shifted % 1024n) + 1024n) % 1024n;
+                return (Number(modulus) / 1024 - 0.5) * 0.9;
+            };
+            const offsetsAt = (cellX: number, cellY: number, cellZ: number): readonly [number, number, number] => {
+                const x = BigInt(cellX);
+                const y = BigInt(cellY);
+                const z = BigInt(cellZ);
+                let value = lcgNext(zoomSeed, x);
+                value = lcgNext(value, y);
+                value = lcgNext(value, z);
+                value = lcgNext(value, x);
+                value = lcgNext(value, y);
+                value = lcgNext(value, z);
+                const xOffset = fiddle(value);
+                value = lcgNext(value, zoomSeed);
+                const yOffset = fiddle(value);
+                value = lcgNext(value, zoomSeed);
+                return [xOffset, yOffset, fiddle(value)];
+            };
+            const expectedAt = (x: number, y: number, z: number): string => {
+                const absX = x - 2;
+                const absY = y - 2;
+                const absZ = z - 2;
+                const parentX = absX >> 2;
+                const parentY = absY >> 2;
+                const parentZ = absZ >> 2;
+                const fractX = (absX & 3) / 4;
+                const fractY = (absY & 3) / 4;
+                const fractZ = (absZ & 3) / 4;
+                let bestCorner = 0;
+                let bestDistance = Number.POSITIVE_INFINITY;
+                for (let corner = 0; corner < 8; corner++) {
+                    const xEven = (corner & 4) === 0;
+                    const yEven = (corner & 2) === 0;
+                    const zEven = (corner & 1) === 0;
+                    const [jitterX, jitterY, jitterZ] = offsetsAt(
+                        xEven ? parentX : parentX + 1,
+                        yEven ? parentY : parentY + 1,
+                        zEven ? parentZ : parentZ + 1
                     );
+                    const dz = (zEven ? fractZ : fractZ - 1) + jitterZ;
+                    const dy = (yEven ? fractY : fractY - 1) + jitterY;
+                    const dx = (xEven ? fractX : fractX - 1) + jitterX;
+                    const distance = dz * dz + dy * dy + dx * dx;
+                    if (bestDistance > distance) {
+                        bestCorner = corner;
+                        bestDistance = distance;
+                    }
+                }
+                return (
+                    `${(bestCorner & 4) === 0 ? parentX : parentX + 1},` +
+                    `${(bestCorner & 2) === 0 ? parentY : parentY + 1},` +
+                    `${(bestCorner & 1) === 0 ? parentZ : parentZ + 1}`
+                );
+            };
+
+            let state = 0x12345678;
+            const next = (bound: number): number => {
+                state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                return state % bound;
+            };
+            const positions = Array.from(
+                { length: 1024 },
+                () => [next(60_000_001) - 30_000_000, next(4096) - 2048, next(60_000_001) - 30_000_000] as const
+            );
+            // Exercise both sides of parent-cell boundaries in negative and positive coordinates.
+            for (let parentX = -3; parentX <= 3; parentX++) {
+                for (let parentY = -2; parentY <= 2; parentY++) {
+                    for (let parentZ = -3; parentZ <= 3; parentZ++) {
+                        const boundaryX = parentX * 4 + 2;
+                        const boundaryY = parentY * 4 + 2;
+                        const boundaryZ = parentZ * 4 + 2;
+                        positions.push(
+                            [boundaryX - 1, boundaryY - 1, boundaryZ - 1],
+                            [boundaryX, boundaryY, boundaryZ],
+                            [boundaryX + 1, boundaryY + 1, boundaryZ + 1]
+                        );
+                    }
                 }
             }
+            positions.push([-1, -64, -1], [0, 0, 0], [29_999_999, 319, -30_000_000]);
+            for (const [x, y, z] of positions) expect(manager.getBiome(x, y, z)).toBe(expectedAt(x, y, z));
         }
-        positions.push([-1, -64, -1], [0, 0, 0], [29_999_999, 319, -30_000_000]);
-        for (const [x, y, z] of positions) expect(manager.getBiome(x, y, z)).toBe(expectedAt(x, y, z));
-    });
+    );
 });
 
 describe.runIf(process.env.JSP_NATIVE_WORLDGEN_REQUIRE === '1' || nativeWorldgen() !== undefined)(
