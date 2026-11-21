@@ -114,6 +114,40 @@ describe('the debugger transport', () => {
         server.close();
     });
 
+    it('delivers its last message before closing, while the peer is still sending', async () => {
+        // A real extension sends its protocol answer and its configuration together. A host that
+        // refuses the answer and closes with the configuration still unread used to reset the
+        // connection, and the peer could lose the error line sent just before the close.
+        const server = createServer();
+        const peer = new Promise<{ received: unknown[]; errors: Error[]; closed: Promise<void> }>((resolve) => {
+            server.on('connection', (socket) => {
+                const decoder = new FrameDecoder();
+                const received: unknown[] = [];
+                const errors: Error[] = [];
+                socket.on('data', (chunk: Buffer) => received.push(...decoder.push(chunk)));
+                socket.on('error', (error) => errors.push(error));
+                const closed = new Promise<void>((done) => socket.once('close', () => done()));
+                const padding = 'x'.repeat(8 * 1024);
+                for (let index = 0; index < 256; index++) socket.write(encodeFrame({ type: 'other', index, padding }));
+                resolve({ received, errors, closed });
+            });
+        });
+        await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+        const address = server.address();
+        if (address === null || typeof address === 'string') throw new Error('no address');
+
+        const socket = await connectToDebugger({ host: '127.0.0.1', port: address.port });
+        const { received, errors, closed } = await peer;
+        const line = { type: 'event', event: { type: 'PrintEvent', message: 'refused', logLevel: 3 } };
+        socket.send(line);
+        socket.close();
+        await closed;
+
+        expect(errors).toEqual([]);
+        expect(received).toEqual([line]);
+        server.close();
+    });
+
     it('closes a connection whose frame header states a body over the limit', async () => {
         const listener = await listenForDebugger({ port: 0 });
         const peer = createConnection({ host: '127.0.0.1', port: listener.address.port });
