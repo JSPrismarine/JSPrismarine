@@ -24,7 +24,12 @@ export const FAILED = 0;
 /** The command result a success with nothing to count reports. */
 export const SUCCESS = 1;
 
-const refuse: (message: string) => never = (message) => {
+/**
+ * Fails the command with a message, which the dispatcher reports as a failure, so
+ * `execute store success` stores 0 for it. Returning 0 instead counts as a success.
+ * @throws {CommandSyntaxException} Always.
+ */
+export const refuse: (message: string) => never = (message) => {
     throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException().create(message);
 };
 

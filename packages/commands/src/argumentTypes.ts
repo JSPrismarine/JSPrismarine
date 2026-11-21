@@ -473,9 +473,41 @@ const readGreedy = (reader: StringReader): string => {
     return text;
 };
 
+/**
+ * Reads an NBT path as written, up to the first space outside a quoted key
+ * and outside a `{…}` or `[…]` pattern.
+ *
+ * {@link readToken} stops at any space and drops the quotes of a token that
+ * starts with one, which breaks `a."b c"`, `"a b".c` and
+ * `Items[{id: "minecraft:stone"}]`. The text keeps its quotes, since the host
+ * parses it as a path.
+ */
+const readNbtPath = (reader: StringReader): string => {
+    const start = reader.getCursor();
+    let quote: string | undefined;
+    let depth = 0;
+    while (reader.canRead()) {
+        const character = reader.peek();
+        if (quote !== undefined) {
+            if (character === '\\') reader.skip();
+            else if (character === quote) quote = undefined;
+        } else if (character === '"' || character === "'") {
+            quote = character;
+        } else if (character === '{' || character === '[') {
+            depth += 1;
+        } else if (character === '}' || character === ']') {
+            depth -= 1;
+        } else if (character === ' ' && depth <= 0) {
+            break;
+        }
+        if (reader.canRead()) reader.skip();
+    }
+    return reader.getString().slice(start, reader.getCursor());
+};
+
 /** `minecraft:nbt_path`, the second most used parser in Java's tree. Bedrock has no NBT type. */
 export const nbtPathArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no nbt_path parameter type', readToken);
+    unrepresentable('Bedrock has no nbt_path parameter type', readNbtPath);
 
 /** `minecraft:nbt_tag`, a single SNBT value. */
 export const nbtTagArgument = (): BedrockDescribedType<string> =>

@@ -89,6 +89,77 @@ export const EXECUTE_CONDITIONS: readonly string[] = [
 /** The five things `execute store` writes into. */
 export const EXECUTE_STORE_TARGETS: readonly string[] = ['block', 'bossbar', 'entity', 'score', 'storage'];
 
+/** The six NBT types `execute store … <type> <scale>` writes. */
+export const STORE_TYPES = ['byte', 'short', 'int', 'long', 'float', 'double'] as const;
+
+/** One of {@link STORE_TYPES}. */
+export type StoreType = (typeof STORE_TYPES)[number];
+
+const INT_MIN = -(2 ** 31);
+const INT_MAX = 2 ** 31 - 1;
+const LONG_MIN = -(2n ** 63n);
+const LONG_MAX = 2n ** 63n - 1n;
+
+/** Java's `(int)` cast of a double: toward zero, saturated, and NaN to 0. */
+const javaInt = (value: number): number =>
+    Number.isNaN(value) ? 0 : Math.trunc(Math.min(Math.max(value, INT_MIN), INT_MAX));
+
+/** Java's `(long)` cast of a double: toward zero, saturated, and NaN to 0. */
+const javaLong = (value: number): bigint => {
+    if (Number.isNaN(value)) return 0n;
+    if (value >= 2 ** 63) return LONG_MAX;
+    if (value <= -(2 ** 63)) return LONG_MIN;
+    return BigInt(Math.trunc(value));
+};
+
+/**
+ * A decimal with a digit after the point when it is whole, so `5` reads `5.0`. An infinity, which
+ * a float cast of a large value gives, is `1e999` or `-1e999`: SNBT reads those as infinite numbers,
+ * where it would read `Infinity` as a string.
+ */
+const decimal = (value: number): string => {
+    if (value === Number.POSITIVE_INFINITY) return '1e999';
+    if (value === Number.NEGATIVE_INFINITY) return '-1e999';
+    return Number.isInteger(value) && Math.abs(value) < 1e21 ? value.toFixed(1) : String(value);
+};
+
+/**
+ * The SNBT of the tag `execute store … <type> <scale>` writes for a value,
+ * already multiplied by the scale.
+ *
+ * Java casts the double to the type: `int` and `long` truncate toward zero and
+ * saturate, `byte` and `short` cast through `int` and then wrap, and `float`
+ * rounds to single precision.
+ */
+const storedTag = (type: StoreType, value: number): string => {
+    switch (type) {
+        case 'byte':
+            return `${(javaInt(value) << 24) >> 24}b`;
+        case 'short':
+            return `${(javaInt(value) << 16) >> 16}s`;
+        case 'int':
+            return `${javaInt(value)}`;
+        case 'long':
+            return `${javaLong(value)}L`;
+        case 'float':
+            return `${decimal(Math.fround(value))}f`;
+        case 'double':
+            return `${decimal(value)}d`;
+    }
+};
+
+/**
+ * The storage `execute store … bossbar` writes into, since this server has no
+ * custom boss bars for it to set: `jsprismarine:bossbar/<namespace>/<path>`.
+ * The boss bar's id becomes part of a resource location's path, so the
+ * storage id is a valid one whenever the boss bar's id is.
+ */
+const bossBarStorage = (id: string): string => {
+    const colon = id.indexOf(':');
+    const namespaced = colon === -1 ? `minecraft/${id}` : `${id.slice(0, colon)}/${id.slice(colon + 1)}`;
+    return `jsprismarine:bossbar/${namespaced}`;
+};
+
 /** The 14 subcommands of `/execute`. */
 export const EXECUTE_SUBCOMMANDS: readonly string[] = [
     'align',
@@ -654,30 +725,26 @@ const buildStore = (root: ReturnType<CommandRegistry<CommandSource>['register']>
             )
         );
 
-        kind.then(
-            lit('bossbar').then(
-                arg('id', stringArgument()).then(
-                    arg('field', enumArgument('BossBarField', ['value', 'max'] as const)).redirect(root, {
-                        apply: (context) => {
-                            const current = source(context);
-                            const target = {
-                                kind: 'bossbar' as const,
-                                id: value<string>(context, 'id'),
-                                field: value<'value' | 'max'>(context, 'field')
-                            };
-                            return current.withStore((outcome) => {
-                                current.host.data.modifyData(
-                                    { kind: 'storage', id: `bossbar/${target.id}` },
-                                    target.field,
-                                    'set',
-                                    String(pick(outcome))
-                                );
+        // `value` and `max` are literals, as in Java's tree, so the Java routes merged in later
+        // land on these nodes and keep the redirect that installs the store.
+        const bossBarId = arg('id', stringArgument());
+        for (const field of ['value', 'max'] as const) {
+            bossBarId.then(
+                lit(field).redirect(root, {
+                    apply: (context) => {
+                        const current = source(context);
+                        const id = bossBarStorage(value<string>(context, 'id'));
+                        return current.withStore((outcome) => {
+                            current.host.data.modifyData({ kind: 'storage', id }, field, 'set', {
+                                kind: 'value',
+                                snbt: String(pick(outcome))
                             });
-                        }
-                    })
-                )
-            )
-        );
+                        });
+                    }
+                })
+            );
+        }
+        kind.then(lit('bossbar').then(bossBarId));
 
         for (const where of ['block', 'entity', 'storage'] as const) {
             const holder = lit(where);
@@ -691,23 +758,19 @@ const buildStore = (root: ReturnType<CommandRegistry<CommandSource>['register']>
             holder.then(
                 targetArgument.then(
                     arg('path', nbtPathArgument()).then(
-                        arg(
-                            'type',
-                            enumArgument('StoreType', ['byte', 'short', 'int', 'long', 'float', 'double'] as const)
-                        ).then(
+                        arg('type', enumArgument('StoreType', STORE_TYPES)).then(
                             arg('scale', floatArgument()).redirect(root, {
                                 apply: (context) => {
                                     const current = source(context);
                                     const target = dataTargetOf(context, where);
                                     const path = value<string>(context, 'path');
+                                    const type = value<StoreType>(context, 'type');
                                     const scale = value<number>(context, 'scale');
                                     return current.withStore((outcome) => {
-                                        current.host.data.modifyData(
-                                            target,
-                                            path,
-                                            'set',
-                                            String(pick(outcome) * scale)
-                                        );
+                                        current.host.data.modifyData(target, path, 'set', {
+                                            kind: 'value',
+                                            snbt: storedTag(type, pick(outcome) * scale)
+                                        });
                                     });
                                 }
                             })

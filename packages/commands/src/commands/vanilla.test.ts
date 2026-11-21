@@ -99,7 +99,9 @@ describe('the command set', () => {
         // The packet then listed every command name and alias in `CommandName` and named each
         // alias enum `<command>CommandAliases`, as a Bedrock Dedicated Server sends them.
         // The packet then left out `/gamerule`'s camelCase names, which a Bedrock client refuses.
-        expect(digest).toBe('50951a4f549ab426a6e5df32f87c03511cb3297c');
+        // `/data modify … from`, `/function … with` and the `value` and `max` literals of
+        // `execute store … bossbar` then joined the tree.
+        expect(digest).toBe('e590372f5aa5326af067f65d6f02ebb9874c5e35');
     });
 });
 
@@ -887,32 +889,207 @@ describe('/locate', () => {
 });
 
 describe('the data-driven commands', () => {
-    it('/data get reads the path and prints what it found', () => {
+    it('/data get reads the path, prints the tag as Java does and returns the result the host reports', () => {
         const feedback: string[] = [];
+        const asked: unknown[] = [];
         const { results } = run(
             'data get storage mypack:state counter',
-            { data: { getData: () => '7' } },
+            {
+                data: {
+                    getData: (target, path, scale) => {
+                        asked.push({ target, path, scale });
+                        return { snbt: '7.5d', result: 7 };
+                    }
+                }
+            },
             { feedback }
         );
 
-        expect(feedback).toEqual(['7']);
+        expect(asked).toEqual([{ target: { kind: 'storage', id: 'mypack:state' }, path: 'counter', scale: undefined }]);
+        expect(feedback).toEqual(['Storage mypack:state has the following contents: 7.5d']);
         expect(results).toEqual([7]);
+    });
+
+    it('/data get with a scale passes the scale and prints the scaled number', () => {
+        const feedback: string[] = [];
+        const { results } = run(
+            'data get storage mypack:state counter 0.5',
+            { data: { getData: (_target, _path, scale) => ({ snbt: '7', result: Math.floor(7 * (scale ?? 1)) }) } },
+            { feedback }
+        );
+
+        expect(feedback).toEqual(['counter in storage mypack:state after scale factor of 0.50 is 3']);
+        expect(results).toEqual([3]);
+    });
+
+    it('/data get with no path prints the whole compound and returns what the host reports', () => {
+        const feedback: string[] = [];
+        const { results } = run(
+            'data get storage mypack:state',
+            { data: { getData: () => ({ snbt: '{a: 1}', result: 1 }) } },
+            { feedback }
+        );
+
+        expect(feedback).toEqual(['Storage mypack:state has the following contents: {a: 1}']);
+        expect(results).toEqual([1]);
+    });
+
+    it('/data get fails with Java’s message when the path matches nothing', () => {
+        expect(() => run('data get storage mypack:state missing')).toThrow('Found no elements matching missing');
+    });
+
+    it('/data fails, so `store success` stores 0, when nothing matched or changed, and succeeds on a zero value', () => {
+        const stored: number[] = [];
+        const host = (data: TestCommandHostOverrides['data']): TestCommandHostOverrides => ({
+            entities: { select: () => [testEntity({ name: 'flag' })] },
+            scoreboard: {
+                setScore: (_holder, _objective, value) => {
+                    stored.push(value);
+                    return value;
+                }
+            },
+            data
+        });
+        const store = (line: string, data: TestCommandHostOverrides['data']) => {
+            try {
+                run(`execute store success score flag obj run ${line}`, host(data));
+            } catch {
+                // The failure is what `store success` records.
+            }
+        };
+
+        store('data get storage mypack:state missing', { getData: () => undefined });
+        store('data get storage mypack:state n', { getData: () => ({ snbt: '0', result: 0 }) });
+        store('data modify storage mypack:state n set value 1', { modifyData: () => 0 });
+        store('data merge storage mypack:state {n: 1}', { mergeData: () => false });
+        store('data remove storage mypack:state n', { removeData: () => 0 });
+        store('data remove storage mypack:state n', { removeData: () => 1 });
+
+        expect(stored).toEqual([0, 1, 0, 0, 0, 1]);
     });
 
     it('/data modify set passes the operation and the value', () => {
         const seen: unknown[] = [];
-        run('data modify storage mypack:state counter set value 3', {
+        const feedback: string[] = [];
+        const { results } = run(
+            'data modify storage mypack:state counter set value 3',
+            {
+                data: {
+                    modifyData: (target, path, operation, from) => {
+                        seen.push({ target, path, operation, from });
+                        return 1;
+                    }
+                }
+            },
+            { feedback }
+        );
+
+        expect(seen).toEqual([
+            {
+                target: { kind: 'storage', id: 'mypack:state' },
+                path: 'counter',
+                operation: 'set',
+                from: { kind: 'value', snbt: '3' }
+            }
+        ]);
+        expect(feedback).toEqual(['Modified storage mypack:state']);
+        expect(results).toEqual([1]);
+    });
+
+    it('/data modify reads its value from another target with `from`, with or without a path', () => {
+        const seen: unknown[] = [];
+        const record = {
             data: {
-                modifyData: (target, path, operation, value) => {
-                    seen.push({ target, path, operation, value });
-                    return true;
+                modifyData: (
+                    _target: unknown,
+                    _path: string,
+                    operation: string,
+                    from: unknown,
+                    index?: number
+                ): number => {
+                    seen.push({ operation, from, index });
+                    return 1;
+                }
+            }
+        };
+        run('data modify storage a:b list append from storage c:d items[0]', record);
+        run('data modify storage a:b list insert 2 from storage c:d', record);
+        run('data modify storage a:b "a b" set from storage c:d x."y z"', record);
+
+        expect(seen).toEqual([
+            { operation: 'append', from: { kind: 'from', target: { kind: 'storage', id: 'c:d' }, path: 'items[0]' } },
+            { operation: 'insert', from: { kind: 'from', target: { kind: 'storage', id: 'c:d' } }, index: 2 },
+            { operation: 'set', from: { kind: 'from', target: { kind: 'storage', id: 'c:d' }, path: 'x."y z"' } }
+        ]);
+    });
+
+    it('/data modify fails with Java’s message when nothing changed', () => {
+        expect(() => run('data modify storage a:b x set value 1')).toThrow(
+            'Nothing changed. The specified properties already have these values'
+        );
+    });
+
+    it('/data remove returns how many tags it removed', () => {
+        const { results } = run('data remove storage a:b list[]', { data: { removeData: () => 3 } });
+
+        expect(results).toEqual([3]);
+    });
+
+    it('/function … with storage passes the compound the path names as the arguments', () => {
+        const calls: unknown[] = [];
+        const record = {
+            data: {
+                getData: (_target: unknown, path?: string) => ({
+                    snbt: path === 'scalar' ? '3' : '{x: 1}',
+                    result: 1
+                }),
+                runFunction: (name: string, _source: unknown, nbt?: string, stored?: boolean) => {
+                    calls.push({ name, nbt, stored });
+                    return { result: 1, matched: false };
+                }
+            }
+        };
+        run('function mypack:macro with storage mypack:args', record);
+        run('function mypack:macro with storage mypack:args nested', record);
+        expect(() => run('function mypack:macro with storage mypack:args scalar', record)).toThrow(
+            'Invalid argument type: 3, expected a compound'
+        );
+
+        // Printed from storage, so the runtime reads it back losslessly.
+        expect(calls).toEqual([
+            { name: 'mypack:macro', nbt: '{x: 1}', stored: true },
+            { name: 'mypack:macro', nbt: '{x: 1}', stored: true }
+        ]);
+    });
+
+    it('/function … with fails, so `store success` stores 0, when the source is missing or not a compound', () => {
+        const stored: number[] = [];
+        const ran: string[] = [];
+        const host = (snbt: string | undefined) => ({
+            entities: { select: () => [testEntity({ name: 'flag' })] },
+            scoreboard: {
+                setScore: (_holder: unknown, _objective: string, value: number) => {
+                    stored.push(value);
+                    return value;
+                }
+            },
+            data: {
+                getData: () => (snbt === undefined ? undefined : { snbt, result: 1 }),
+                runFunction: (name: string) => {
+                    ran.push(name);
+                    return { result: 0, matched: false };
                 }
             }
         });
+        const line = 'execute store success score flag obj run function demo:macro with storage demo:args';
 
-        expect(seen).toEqual([
-            { target: { kind: 'storage', id: 'mypack:state' }, path: 'counter', operation: 'set', value: '3' }
-        ]);
+        expect(() => run(line, host(undefined))).toThrow('Found no elements matching');
+        expect(() => run(line, host('"text"'))).toThrow('Invalid argument type: "text", expected a compound');
+        // A function that runs and returns 0 still succeeded.
+        run(line, host('{x: 1}'));
+
+        expect(ran).toEqual(['demo:macro']);
+        expect(stored).toEqual([0, 0, 1]);
     });
 
     it('/item modify applies a standalone item modifier', () => {
@@ -1430,6 +1607,79 @@ describe('/execute as a real subcommand chain', () => {
         });
 
         expect(stored).toEqual([1]);
+    });
+
+    it('writes a typed tag with `store result storage`, scaled and cast as Java casts it', () => {
+        const written: unknown[] = [];
+        const addressed = new Set<string>();
+        const store = (type: string, scale: string, value: number) =>
+            run(`execute store result storage a:b out ${type} ${scale} run fill 0 0 0 1 1 1 minecraft:stone`, {
+                world: { fill: () => value },
+                data: {
+                    modifyData: (target, path, operation, from) => {
+                        written.push(from.kind === 'value' ? from.snbt : from);
+                        addressed.add(JSON.stringify({ target, path, operation }));
+                        return 1;
+                    }
+                }
+            });
+        store('byte', '1', 5);
+        store('byte', '1', 200);
+        store('short', '1', 40000);
+        store('int', '2.5', 3);
+        store('int', '-0.5', 3);
+        store('long', '1', 5);
+        store('float', '1', 5);
+        store('double', '0.5', 3);
+
+        expect(written).toEqual(['5b', '-56b', '-25536s', '7', '-1', '5L', '5.0f', '1.5d']);
+        expect([...addressed]).toEqual([
+            JSON.stringify({ target: { kind: 'storage', id: 'a:b' }, path: 'out', operation: 'set' })
+        ]);
+    });
+
+    it('saturates `store … int` as Java’s cast does, and writes an overflowing float as an infinity', () => {
+        const written: unknown[] = [];
+        const store = (type: string, scale: string, value: number) =>
+            run(`execute store result storage a:b out ${type} ${scale} run fill 0 0 0 1 1 1 minecraft:stone`, {
+                world: { fill: () => value },
+                data: {
+                    modifyData: (_target, _path, _operation, from) => {
+                        written.push(from.kind === 'value' ? from.snbt : from);
+                        return 1;
+                    }
+                }
+            });
+        const huge = `1${'0'.repeat(39)}`;
+        store('int', '1000000000', 1000);
+        store('int', '-1000000000', 1000);
+        store('byte', '1000000000', 1000);
+        store('long', `1${'0'.repeat(30)}`, 1);
+        store('float', huge, 1);
+        store('float', `-${huge}`, 1);
+
+        expect(written).toEqual(['2147483647', '-2147483648', '-1b', '9223372036854775807L', '1e999f', '-1e999f']);
+    });
+
+    it('keeps `store … bossbar` in a storage whose id is a valid resource location', () => {
+        const written: unknown[] = [];
+        run('execute store result bossbar mypack:health max run fill 0 0 0 1 1 1 minecraft:stone', {
+            world: { fill: () => 8 },
+            data: {
+                modifyData: (target, path, _operation, from) => {
+                    written.push({ target, path, from });
+                    return 1;
+                }
+            }
+        });
+
+        expect(written).toEqual([
+            {
+                target: { kind: 'storage', id: 'jsprismarine:bossbar/mypack/health' },
+                path: 'max',
+                from: { kind: 'value', snbt: '8' }
+            }
+        ]);
     });
 
     it('chains several subcommands in one line', () => {
