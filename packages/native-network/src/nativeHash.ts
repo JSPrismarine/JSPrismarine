@@ -5,18 +5,17 @@ import { join, resolve } from 'node:path';
 // so it imports only Node.js modules.
 
 /**
- * Every file outside `native/` that `build:native` reads, relative to the package: the build
- * script and each module it imports, including the shared helpers it loads from
- * `@jsprismarine/native-library` by path. A change to any of them can change the built library,
- * so the source hash covers them.
+ * Every file outside `native/` whose text can change what `build:native` builds, relative to the
+ * package: the build script, and the library's name and the platforms it builds for. The source
+ * hash covers them, and every change it sees publishes new builds.
+ *
+ * The build also imports this file and `@jsprismarine/native-library`'s `nativeHash.ts` and
+ * `platform.ts`, which are left out on purpose. This file computes the hash and picks the CMake
+ * build directory, `nativeHash.ts` computes the hash, and the hash covers what the shared naming
+ * helpers in `platform.ts` answer rather than their text, so an edit to them that leaves the
+ * builds alone opens no manifest pull request.
  */
-export const BUILD_SCRIPTS = [
-    'scripts/build-native.mts',
-    'src/nativeHash.ts',
-    'src/platform.ts',
-    '../native-library/src/nativeHash.ts',
-    '../native-library/src/platform.ts'
-];
+export const BUILD_SCRIPTS = ['scripts/build-native.mts', 'src/platform.ts'];
 
 /** The options that pick a native build's CMake build directory. */
 export interface NativeBuildDirOptions {

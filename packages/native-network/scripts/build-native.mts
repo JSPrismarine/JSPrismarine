@@ -30,7 +30,7 @@ import { parseArgs } from 'node:util';
 
 // By path, not by package name: this script runs where no dependencies are installed.
 import { nativeSourceHash } from '../../native-library/src/nativeHash.ts';
-import { platformKey, sharedLibraryFile, staticLibraryFile } from '../../native-library/src/platform.ts';
+import { namingAnswers, platformKey, sharedLibraryFile, staticLibraryFile } from '../../native-library/src/platform.ts';
 import { BUILD_SCRIPTS, nativeBuildDir } from '../src/nativeHash.ts';
 import { LIBRARY } from '../src/platform.ts';
 
@@ -263,7 +263,7 @@ const describe = (file: string) => ({
 });
 const report = {
     platform: key,
-    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS),
+    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS, namingAnswers()),
     tls,
     buildType,
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),

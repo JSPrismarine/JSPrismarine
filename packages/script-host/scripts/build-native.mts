@@ -25,7 +25,12 @@ import { parseArgs } from 'node:util';
 import { absentGlobals, splitAbsentPath } from '../src/absentGlobals.ts';
 // By path, not by package name: this script runs where no dependencies are installed.
 import { nativeSourceHash } from '../../native-library/src/nativeHash.ts';
-import { installedLibraryFile, platformKey, sharedLibraryFile } from '../../native-library/src/platform.ts';
+import {
+    installedLibraryFile,
+    namingAnswers,
+    platformKey,
+    sharedLibraryFile
+} from '../../native-library/src/platform.ts';
 import { BUILD_SCRIPTS } from '../src/nativeHash.ts';
 import { LIBRARY, PUBLISHED_PLATFORMS, isPublishedPlatform } from '../src/platform.ts';
 
@@ -230,7 +235,7 @@ else if (!values.debug && process.platform !== 'win32') run('strip', ['--strip-u
 
 const report = {
     platform: key,
-    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS),
+    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS, namingAnswers()),
     buildType: values.debug ? 'Debug' : 'Release',
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),
     shared: { file: sharedLibraryFile(LIBRARY), bytes: statSync(shared).size, sha256: sha256(shared) }

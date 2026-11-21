@@ -9,6 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { nativeSourceHash } from '../../packages/native-library/src/nativeHash.ts';
+import { namingAnswers } from '../../packages/native-library/src/platform.ts';
 import { BUILD_SCRIPTS as NETWORK_BUILD_SCRIPTS } from '../../packages/native-network/src/nativeHash.ts';
 import {
     LIBRARY as NETWORK_LIBRARY,
@@ -70,7 +71,8 @@ const PACKAGES = {
         loadScript:
             "import('@jsprismarine/native-network').then(async (m) => { const n = await m.NativeNetwork.load(); console.log('loaded queue', n.queue); n.close(); }).catch((e) => { console.log(e.message); process.exit(3); })",
         buildScripts: NETWORK_BUILD_SCRIPTS,
-        sourceHash: () => nativeSourceHash(join(repoRoot, 'packages/native-network'), NETWORK_BUILD_SCRIPTS)
+        sourceHash: () =>
+            nativeSourceHash(join(repoRoot, 'packages/native-network'), NETWORK_BUILD_SCRIPTS, namingAnswers())
     },
     'script-host': {
         name: '@jsprismarine/script-host',
@@ -87,7 +89,8 @@ const PACKAGES = {
         loadScript:
             "import('@jsprismarine/script-host').then((m) => { const e = m.ScriptHostLibrary.load().createEngine(); console.log('1 + 2 =', e.evaluate('1 + 2')); e.destroy(); }).catch((e) => { console.log(e.message); process.exit(3); })",
         buildScripts: SCRIPT_HOST_BUILD_SCRIPTS,
-        sourceHash: () => nativeSourceHash(join(repoRoot, 'packages/script-host'), SCRIPT_HOST_BUILD_SCRIPTS)
+        sourceHash: () =>
+            nativeSourceHash(join(repoRoot, 'packages/script-host'), SCRIPT_HOST_BUILD_SCRIPTS, namingAnswers())
     }
 } as const satisfies Record<string, NativePackage>;
 

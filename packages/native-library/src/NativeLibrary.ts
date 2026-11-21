@@ -7,7 +7,7 @@ import { isRecord } from './isRecord';
 import { parseManifest, sha256 } from './manifest';
 import type { NativeManifest } from './manifest';
 import { hasNativeSources, nativeSourceHash } from './nativeHash';
-import { installedLibraryFile, platformKey, sharedLibraryFile, staticLibraryFile } from './platform';
+import { installedLibraryFile, namingAnswers, platformKey, sharedLibraryFile, staticLibraryFile } from './platform';
 
 /** What a package that ships a native library tells {@link NativeLibrary} about it. */
 export interface NativeLibraryOptions {
@@ -201,7 +201,7 @@ export class NativeLibrary {
      * @returns The first 16 hex digits of the SHA-256 over the build's inputs.
      */
     public sourceHash(packageDir: string = this.packageDir): string {
-        return nativeSourceHash(packageDir, this.buildScripts);
+        return nativeSourceHash(packageDir, this.buildScripts, namingAnswers());
     }
 
     /**

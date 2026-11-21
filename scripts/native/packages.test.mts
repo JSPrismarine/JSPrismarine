@@ -31,6 +31,16 @@ const importGraph = (entry: string): { files: Set<string>; packages: Set<string>
     return { files, packages };
 };
 
+/**
+ * Modules every build imports that the source hash leaves out on purpose: two only compute the
+ * hash, and the hash covers what `platform.ts`'s naming helpers answer rather than its text.
+ */
+const UNHASHED = new Set([
+    'src/nativeHash.ts',
+    '../native-library/src/nativeHash.ts',
+    '../native-library/src/platform.ts'
+]);
+
 describe.each(Object.entries(NATIVE_PACKAGES))('the %s native build', (_id, pkg) => {
     const packageDir = join(repoRoot, pkg.dir);
     const graph = importGraph(join(packageDir, 'scripts', 'build-native.mts'));
@@ -39,8 +49,10 @@ describe.each(Object.entries(NATIVE_PACKAGES))('the %s native build', (_id, pkg)
         expect([...graph.packages]).toEqual([]);
     });
 
-    it('hashes every file it reads outside native/', () => {
-        const read = [...graph.files].map((file) => relative(packageDir, file).split(sep).join('/'));
+    it('hashes every file it reads outside native/, but the hash and naming modules', () => {
+        const read = [...graph.files]
+            .map((file) => relative(packageDir, file).split(sep).join('/'))
+            .filter((file) => !UNHASHED.has(file));
         expect(pkg.buildScripts).toEqual(expect.arrayContaining(read));
     });
 });

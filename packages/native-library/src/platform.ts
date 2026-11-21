@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 /** The C library a Linux build is linked against. */
 export type LinuxLibc = 'gnu' | 'musl';
@@ -94,3 +94,28 @@ export const staticLibraryFile = (library: string, platform: NodeJS.Platform = p
  */
 export const installedLibraryFile = (packageDir: string, platform: string, library: string): string =>
     join(packageDir, 'prebuilds', platform, sharedLibraryFile(library, operatingSystemOf(platform)));
+
+/**
+ * What the naming helpers above answer for each machine a release builds on, for
+ * `nativeSourceHash`. A build script calls them to name its output and, on macOS, to set the
+ * library's install name, so these answers are what this module contributes to a build. The hash
+ * covers the answers rather than this file's text, so a refactor, or a change for a platform no
+ * release builds on, publishes no new builds.
+ * @returns One line per operating system, processor and C library.
+ */
+export const namingAnswers = (): string => {
+    const answers: string[] = [];
+    for (const platform of ['darwin', 'linux', 'win32'] as const) {
+        for (const arch of ['arm64', 'x64']) {
+            for (const libc of ['gnu', 'musl'] as const) {
+                const key = platformKey(platform, arch, libc);
+                // Forward slashes, so a Windows checkout hashes the same.
+                const installed = installedLibraryFile('', key, 'lib').split(sep).join('/');
+                answers.push(
+                    [key, sharedLibraryFile('lib', platform), staticLibraryFile('lib', platform), installed].join(' ')
+                );
+            }
+        }
+    }
+    return answers.join('\n');
+};
