@@ -150,3 +150,34 @@ describe('the entity runtime', () => {
         expect(projectile.position.y - start.y).toBeCloseTo(moved, 6);
     });
 });
+
+describe("Java's hurting projectiles", () => {
+    it.each([
+        // `AbstractHurtingProjectile.getInertia` and `accelerationPower`.
+        ['minecraft:fireball', Math.fround(0.95), 0.1],
+        ['minecraft:small_fireball', Math.fround(0.95), 0.1],
+        ['minecraft:dragon_fireball', Math.fround(0.95), 0.1],
+        ['minecraft:wither_skull', Math.fround(0.95), 0.1],
+        // `WitherSkull.getInertia` for a dangerous skull.
+        ['minecraft:wither_skull_dangerous', Math.fround(0.73), 0.1],
+        // `AbstractWindCharge`: no acceleration, nothing lost.
+        ['minecraft:wind_charge_projectile', 1, 0],
+        ['minecraft:breeze_wind_charge_projectile', 1, 0]
+    ])('speeds %s up along its heading, then keeps %d of it, before the move', (identifier, inertia, acceleration) => {
+        const flight = projectileFlight(identifier, BEDROCK_COMPONENT);
+        const { moved, kept } = tickOf(flight, { x: 0.3, y: 0, z: 0.4 });
+
+        // `applyInertia`: (v + normalize(v) * accelerationPower) * inertia, with no gravity.
+        expect(moved.x).toBeCloseTo((0.3 + 0.6 * acceleration) * inertia, 12);
+        expect(moved.z).toBeCloseTo((0.4 + 0.8 * acceleration) * inertia, 12);
+        expect(moved.y).toBe(0);
+        expect(kept).toEqual(moved);
+    });
+
+    it('keeps 0.8 in water, and leaves a projectile at rest at rest', () => {
+        const fireball = projectileFlight('minecraft:fireball', BEDROCK_COMPONENT);
+
+        expect(velocityBeforeMove(fireball, FORWARD, true).x).toBeCloseTo(1.1 * Math.fround(0.8), 12);
+        expect(velocityBeforeMove(fireball, AT_REST, false)).toEqual(AT_REST);
+    });
+});

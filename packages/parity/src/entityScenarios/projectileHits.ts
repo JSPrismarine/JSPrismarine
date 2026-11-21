@@ -1,14 +1,22 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 import { EntityRuntime } from '@jsprismarine/prismarine/entity/data/EntityRuntime';
 import { FLOOR_Y, TestEntityWorld } from '@jsprismarine/prismarine/entity/data/testing';
+import { inSandbox } from './sandbox.ts';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import type { JavaOperation } from '../javaClassFile.ts';
 import { javaOperations, pinnedJavaClass } from '../javaClassFile.ts';
 import { serverContent } from '../serverStack.ts';
-import { javaEntityClassName, javaMethodOf, numberBeforeWrite, numberNear } from './javaEntityCode.ts';
+import {
+    javaClassChain,
+    javaEntityClassName,
+    javaMethodOf,
+    numberBeforeWrite,
+    numberNear,
+    pushedNumbers
+} from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
-import { entitiesDeclaring } from './subjects.ts';
+import { entitiesDeclaring, mappedEntity } from './subjects.ts';
 
 /**
  * What a projectile does when it hits: the damage, knockback, effects and fire it deals an entity,
@@ -713,8 +721,71 @@ const javaEggChickens = (draw: number): number =>
 /** The draws the egg probe makes, on either side of Java's one in eight and one in thirty-two. */
 const EGG_DRAWS: readonly number[] = [0.03, 0.032, 0.124, 0.126, 0.5];
 
+/** Java's projectiles that `AbstractHurtingProjectile.applyInertia` flies, by Java type. */
+const HURTING_PROJECTILES = [
+    'minecraft:fireball',
+    'minecraft:small_fireball',
+    'minecraft:dragon_fireball',
+    'minecraft:wither_skull',
+    'minecraft:wind_charge',
+    'minecraft:breeze_wind_charge'
+] as const;
+
+/**
+ * A hurting projectile's `getInertia` and `accelerationPower`, read from the jar. A wither skull
+ * answers 0.73 only when it is dangerous, so a plain one takes its parent's inertia.
+ */
+const javaHurtingFlight = (javaId: string): { readonly inertia: number; readonly acceleration: number } => {
+    const chain = javaClassChain(javaEntityClassName(javaId));
+    const declared = javaMethodOf(javaEntityClassName(javaId), 'getInertia');
+    const parent = chain.find((entry) => entry.name.endsWith('/AbstractHurtingProjectile'))?.name;
+    const inertiaOf =
+        declared?.owner === 'WitherSkull' && parent !== undefined ? javaMethodOf(parent, 'getInertia') : declared;
+    const inertia = inertiaOf === undefined ? undefined : pushedNumbers(inertiaOf.method)[0];
+    let acceleration: number | undefined;
+    for (const entry of chain) {
+        const simple = entry.name.slice(entry.name.lastIndexOf('/') + 1);
+        for (const method of entry.methods.filter((candidate) => candidate.name === '<init>')) {
+            acceleration ??= numberBeforeWrite(method, `${simple}.accelerationPower`);
+        }
+        if (acceleration !== undefined) break;
+    }
+    if (inertia === undefined || acceleration === undefined)
+        throw new Error(`the jar gives ${javaId} no inertia or acceleration`);
+    return { inertia, acceleration };
+};
+
 /** The scenarios for what a projectile does when it hits. */
 export const projectileHitScenarios: readonly BehaviorScenario<EntitySubject>[] = [
+    {
+        name: 'hurting-projectile-flight',
+        java: 'A fireball, wither skull or wind charge speeds up along its heading by accelerationPower and keeps getInertia of its speed each tick, before it moves, with no gravity.',
+        reference:
+            'Java AbstractHurtingProjectile.applyInertia, getInertia (0.95) and accelerationPower (0.1), WitherSkull.getInertia and AbstractWindCharge (0 and 1), read from the pinned jar; issue #3163',
+        subjects: () => HURTING_PROJECTILES.flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:projectile'],
+        run: (subject) => {
+            const java = javaHurtingFlight(subject.javaId);
+            const launched = { x: 0.3, y: 0, z: 0.4 };
+            const speed = Math.hypot(launched.x, launched.y, launched.z);
+            const expected = {
+                x: (launched.x + (launched.x / speed) * java.acceleration) * java.inertia,
+                y: 0,
+                z: (launched.z + (launched.z / speed) * java.acceleration) * java.inertia
+            };
+            const server = inSandbox(subject.bedrock, 'air', ({ entity, tick }) => {
+                entity.body.velocity = launched;
+                tick(1);
+                return entity.body.velocity;
+            });
+            if (typeof server === 'string') return server;
+            const off = Math.max(...(['x', 'y', 'z'] as const).map((axis) => Math.abs(server[axis] - expected[axis])));
+            return off < 1e-6
+                ? undefined
+                : `after a tick it flies at (${server.x.toFixed(4)}, ${server.y.toFixed(4)}, ${server.z.toFixed(4)}), where Java's flies at (${expected.x.toFixed(4)}, 0, ${expected.z.toFixed(4)})`;
+        }
+    },
     {
         name: 'projectile-hits-entity',
         java: "A projectile that hits a mob deals Java's blow, push, effect and fire for its class, leaves its cloud or experience, takes its thrower along, and is discarded or stays as Java's is.",
