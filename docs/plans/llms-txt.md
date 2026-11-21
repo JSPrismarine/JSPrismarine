@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 and the first part of phase 4 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -168,16 +168,19 @@ two changes:
   target is a page that has one, and keep the anchor. A link to a heading on the same page stays as
   written.
 
-A page built from a Vue component gets a Markdown body written from the data the component renders:
+A page built from a Vue component gets a Markdown body written from the data the component renders,
+by a function in `tools/docs/llmsPages.mts` that `buildEnd` passes to the writers as `generated`:
 
-- Packages: each package's name, description, version, npm link and README link, from
-  `loadProject()`.
+- Packages: each package by its area, with its version, description, API reference and npm page, from
+  `loadProject()` and `packageAreas`.
 - Addon pages and the marketplace: the addon's README text and its install command, from
   `buildMarket`'s output.
-- Releases: the release list from `releases.data.mts`.
+- Releases: the newest releases' changes by level, from the changelog that `changelog.mts` parses
+  for the Releases page too.
 - Parity and Benchmarks: their headline numbers and a link to the page. The tracker's case data and
   the benchmark history are too large and too detailed to be useful as text.
-- The landing page and Contributors get no Markdown page, and `/llms.txt` does not link them.
+- The landing page, Contributors and the Brand kit get no Markdown page. `/llms.txt` lists the
+  last two under `Optional` at their HTML pages.
 
 ### Where the code goes
 
@@ -227,7 +230,11 @@ the built site.
    sections, the `_headers` entry and the tests for them.
 2. Done: `/llms.txt` from the sections, overview groups and packages, and the footer link.
 3. Done: `/llms-full.txt` with its byte budget.
-4. Markdown bodies for the component pages: Packages, addons, Releases, Parity and Benchmarks.
+4. Markdown bodies for the component pages, in three pull requests:
+   1. Done: Packages and Releases.
+   2. The addon pages and the marketplace. The build keeps a README only as HTML, so `buildMarket`
+      has to keep its Markdown too.
+   3. Parity and Benchmarks.
 5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
 6. The `<link rel="alternate">` head entry.
 
