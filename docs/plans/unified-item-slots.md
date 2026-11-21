@@ -132,7 +132,7 @@ Slice 2 is independent of 3 to 5. Slices 3, 4 and 5 touch the same files and lan
 | 3 | Landed |
 | 4 | Landed |
 | 5 | Landed |
-| 6 | Not started |
+| 6 | Landed |
 
 ## Slice 4: how mobs carry items
 
