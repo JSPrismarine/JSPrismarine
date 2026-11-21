@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +31,7 @@ import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
 import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
 import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
+import net.minecraft.world.level.levelgen.densityfunction.ScopedDensityBuffer;
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 import net.minecraft.world.level.levelgen.synth.BlendedNoise;
 import net.minecraft.world.level.levelgen.synth.Noise;
@@ -70,6 +73,7 @@ public final class DumpWorldgenVectors {
         write(out.resolve("density.json"), dumpDensity());
         write(out.resolve("spawn.json"), dumpSpawn());
         write(out.resolve("chunk.json"), dumpChunk());
+        write(out.resolve("density-volume.json"), dumpDensityVolumes());
     }
 
     private static void write(final Path file, final String json) throws IOException {
@@ -442,6 +446,116 @@ public final class DumpWorldgenVectors {
             field("chunkX", Integer.toString(CHUNK_X)), field("chunkZ", Integer.toString(CHUNK_Z)),
             field("minY", Integer.toString(minY)), field("height", Integer.toString(height)),
             field("columns", array(columns)));
+    }
+
+    // ------------------------------------------------------------ density volumes
+
+    /** Two chunks per settings: the chunk the column vectors use, and one on the other side of both axes. */
+    private static final int[][] VOLUME_CHUNKS = { { CHUNK_X, CHUNK_Z }, { -7, 13 } };
+    /** The column whose raw bits are written out, so a mismatch can be found without a hash. */
+    private static final int VOLUME_COLUMN = 7;
+
+    /**
+     * Dumps `final_density` over whole chunks, the way `NoiseBasedChunkGenerator.doFill` reads it:
+     * one `sampleVolume` call over the chunk's `DensityVolume`, then one buffer read per block.
+     *
+     * A chunk is 98,304 floats per settings, too many to check in, so each 16-block section is
+     * hashed instead: SHA-256 over the floats' raw bits, little-endian, visited y, then z, then x
+     * within the section. The same hashes are written for Java's per-block `sampleValue` path on a
+     * second, fresh `NoiseChunk`, which says whether Java's own two paths agree, and one column's
+     * raw bits from the volume path are written in full.
+     */
+    private static String dumpDensityVolumes() throws NoSuchAlgorithmException {
+        HolderLookup.Provider provider = VanillaRegistries.createWorldLookup();
+        HolderLookup.RegistryLookup<NoiseGeneratorSettings> settingsLookup = provider.lookupOrThrow(Registries.NOISE_SETTINGS);
+        List<String> chunks = new ArrayList<>();
+
+        for (ResourceKey<NoiseGeneratorSettings> key : allSettings()) {
+            NoiseGeneratorSettings settings = settingsLookup.getOrThrow(key).value();
+            RandomState state = RandomState.create(provider.lookupOrThrow(Registries.NOISE), 1234L, settings);
+            Aquifer.FluidStatus lavaStatus = new Aquifer.FluidStatus(-54, Blocks.LAVA.defaultBlockState());
+            Aquifer.FluidStatus seaStatus = new Aquifer.FluidStatus(settings.seaLevel(), settings.defaultFluid());
+            Aquifer.FluidPicker fluidPicker = (x, y, z) -> y < Math.min(-54, settings.seaLevel()) ? lavaStatus : seaStatus;
+            int minY = settings.noiseSettings().minY();
+            int height = settings.noiseSettings().height();
+
+            for (int[] chunk : VOLUME_CHUNKS) {
+                DensityVolume volume = new DensityVolume(16, height, 16, chunk[0] * 16, minY, chunk[1] * 16);
+                float[] fromVolume = new float[16 * height * 16];
+                try (NoiseChunk noiseChunk = new NoiseChunk(state, null, settings, fluidPicker, Blender.empty(), volume)) {
+                    DensitySampler.Bound finalDensity = noiseChunk.cachingSamplers().get(settings.noiseRouter().finalDensity());
+                    try (ScopedDensityBuffer buffer = finalDensity.sampleVolume(noiseChunk.volume())) {
+                        for (int y = 0; y < height; y++) {
+                            for (int z = 0; z < 16; z++) {
+                                for (int x = 0; x < 16; x++) {
+                                    fromVolume[(y * 16 + z) * 16 + x] = buffer.get(volume.indexUnchecked(x, y, z));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                float[] fromValues = new float[16 * height * 16];
+                try (NoiseChunk noiseChunk = new NoiseChunk(state, null, settings, fluidPicker, Blender.empty(), volume)) {
+                    DensitySampler.Bound finalDensity = noiseChunk.cachingSamplers().get(settings.noiseRouter().finalDensity());
+                    // Top down, as the column vectors and the server's chunk sampler walk.
+                    for (int z = 0; z < 16; z++) {
+                        for (int x = 0; x < 16; x++) {
+                            for (int y = height - 1; y >= 0; y--) {
+                                fromValues[(y * 16 + z) * 16 + x] =
+                                    finalDensity.sampleValue(volume.blockX(x), volume.blockY(y), volume.blockZ(z));
+                            }
+                        }
+                    }
+                }
+
+                int[] column = new int[height];
+                for (int y = 0; y < height; y++) {
+                    column[y] = Float.floatToRawIntBits(fromVolume[(y * 16 + VOLUME_COLUMN) * 16 + VOLUME_COLUMN]);
+                }
+
+                chunks.add(
+                    obj(
+                        field("settings", quote(key.identifier().toString())),
+                        field("chunkX", Integer.toString(chunk[0])),
+                        field("chunkZ", Integer.toString(chunk[1])),
+                        field("minY", Integer.toString(minY)),
+                        field("height", Integer.toString(height)),
+                        field("sampleVolume", sectionHashes(fromVolume, height)),
+                        field("sampleValue", sectionHashes(fromValues, height)),
+                        field("column", obj(
+                            field("x", Integer.toString(VOLUME_COLUMN)),
+                            field("z", Integer.toString(VOLUME_COLUMN)),
+                            field("bits", ints(column))
+                        ))
+                    )
+                );
+            }
+        }
+
+        return obj(field("seed", quote("1234")), field("function", quote("final_density")), field("chunks", array(chunks)));
+    }
+
+    /** SHA-256 of each 16-block section's raw float bits, little-endian, in the order the array holds them. */
+    private static String sectionHashes(final float[] values, final int height) throws NoSuchAlgorithmException {
+        List<String> hashes = new ArrayList<>();
+        int perSection = 16 * 16 * 16;
+        for (int start = 0; start < 16 * height * 16; start += perSection) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = new byte[4];
+            for (int index = start; index < start + perSection; index++) {
+                int bits = Float.floatToRawIntBits(values[index]);
+                bytes[0] = (byte) bits;
+                bytes[1] = (byte) (bits >>> 8);
+                bytes[2] = (byte) (bits >>> 16);
+                bytes[3] = (byte) (bits >>> 24);
+                digest.update(bytes);
+            }
+            StringBuilder hex = new StringBuilder();
+            for (byte part : digest.digest()) hex.append(String.format(Locale.ROOT, "%02x", part));
+            hashes.add(quote(hex.toString()));
+        }
+        return array(hashes);
     }
 
     // ------------------------------------------------------------ json output

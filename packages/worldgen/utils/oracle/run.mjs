@@ -63,7 +63,7 @@ execFileSync(
 const vectorsDir = path.join(packageRoot, 'vectors', javaVersion);
 fs.mkdirSync(vectorsDir, { recursive: true });
 const written = [];
-for (const name of ['random.json', 'noise.json', 'density.json', 'spawn.json', 'chunk.json']) {
+for (const name of ['random.json', 'noise.json', 'density.json', 'spawn.json', 'chunk.json', 'density-volume.json']) {
     const parsed = JSON.parse(fs.readFileSync(path.join(outputDir, name), 'utf8'));
     const target = path.join(vectorsDir, name);
     fs.writeFileSync(target, `${JSON.stringify(parsed, null, 4)}\n`);
