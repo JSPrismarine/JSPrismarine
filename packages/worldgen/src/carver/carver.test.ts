@@ -182,9 +182,10 @@ describe('the carver start memory', () => {
         const output = CarvingMask.forChunk(context);
         carveChunk({ seed: SEED, chunkX: 0, chunkZ: 0, carversAt: () => listed, context, output, starts });
 
-        // A source chunk that starts a carver near the first target, whose plans the next target reads.
+        // A source chunk that starts a carver in both targets' sweeps, x -7 to 8, so the second
+        // target reads the plans the first one recorded.
         let source: [number, number] | undefined;
-        for (let x = -8; x <= 8 && source === undefined; x++) {
+        for (let x = -7; x <= 8 && source === undefined; x++) {
             for (let z = -8; z <= 8 && source === undefined; z++) {
                 if (starts.at(x, z).started.length > 0) source = [x, z];
             }
@@ -195,6 +196,51 @@ describe('the carver start memory', () => {
 
         expect(plans.length).toBe(starts.at(source[0], source[1]).started.length);
         expect(starts.plansAt(source[0], source[1], context)).toBe(plans);
+    });
+
+    it('records plans afresh for a different extent instead of reusing them', () => {
+        const listed = [carverNamed('minecraft:cave')];
+        const starts = createCarverStarts(SEED, () => listed);
+        let source: [number, number] | undefined;
+        for (let x = -8; x <= 8 && source === undefined; x++) {
+            for (let z = -8; z <= 8 && source === undefined; z++) {
+                if (starts.at(x, z).started.length > 0) source = [x, z];
+            }
+        }
+        if (source === undefined) throw new Error('no source chunk around the origin starts a cave');
+        const shifted = { ...context, minGenY: context.minGenY + 64 };
+        const plans = starts.plansAt(source[0], source[1], context);
+
+        expect(starts.plansAt(source[0], source[1], shifted)).not.toBe(plans);
+    });
+
+    it('carves the same blocks through a start memory that keeps no plans', () => {
+        const listed = [carverNamed('minecraft:cave'), carverNamed('minecraft:canyon')];
+        const full = createCarverStarts(SEED, () => listed);
+        const startsOnly = { at: (x: number, z: number) => full.at(x, z) };
+        const withPlans = CarvingMask.forChunk(context);
+        carveChunk({
+            seed: SEED,
+            chunkX: 0,
+            chunkZ: 0,
+            carversAt: () => listed,
+            context,
+            output: withPlans,
+            starts: full
+        });
+        const withoutPlans = CarvingMask.forChunk(context);
+        carveChunk({
+            seed: SEED,
+            chunkX: 0,
+            chunkZ: 0,
+            carversAt: () => listed,
+            context,
+            output: withoutPlans,
+            starts: startsOnly
+        });
+
+        expect(withoutPlans.carvedCount).toBe(withPlans.carvedCount);
+        expect(withoutPlans.carvedCount).toBeGreaterThan(0);
     });
 });
 

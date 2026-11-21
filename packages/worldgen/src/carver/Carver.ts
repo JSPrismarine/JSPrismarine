@@ -233,24 +233,82 @@ const EVENT_REACHING_CARVE = 1;
 const EVENT_TUNNEL = 2;
 
 /**
- * Where a source chunk's carvers open blocks, as a list of ellipsoids in the order Java carves
- * them, independent of the chunk being carved.
+ * Where a source chunk's carvers open blocks, independent of the chunk being carved.
  *
  * A carver's walk draws from randoms seeded by its source chunk alone, so it is the same for
  * every chunk within eight of it. Only two steps read the target: `canReach`, which ends a tunnel
- * once it can no longer reach the target, and the ellipsoid, which clips to it. The plan records
- * the whole walk, and {@link replayCarvePlan} applies those two steps for one target, so a source
- * chunk's tunnels are walked once instead of once per chunk they could reach.
+ * once it can no longer reach the target, and the ellipsoid, which clips to it. A plan records the
+ * whole walk once, and {@link replay} applies those two steps for one target.
  */
-export class CarvePlan {
-    /** {@link EVENT_WORDS} numbers per event. */
-    public readonly events: Float64Array;
-    /** The skip checks the events name, one per cave or canyon. */
-    public readonly skips: readonly SkipChecker[];
+export interface CarvePlan {
+    /**
+     * Carves one target chunk: every room, and each tunnel's ellipsoids until the tunnel can no
+     * longer reach the chunk, which also drops the branches it would have split into.
+     */
+    replay(chunkX: number, chunkZ: number, output: CarverOutput): void;
+    /** The bytes the plan holds, which a cache of plans budgets by. */
+    readonly byteLength: number;
+}
 
-    public constructor(events: Float64Array, skips: readonly SkipChecker[]) {
-        this.events = events;
-        this.skips = skips;
+/**
+ * A {@link CarvePlan} as a flat list of events, {@link EVENT_WORDS} numbers each, in the order Java
+ * carves them. Only {@link CarvePlanRecorder} builds one, so the events always nest and jump
+ * forward.
+ */
+class RecordedCarvePlan implements CarvePlan {
+    public constructor(
+        private readonly events: Float64Array,
+        /** The skip checks the events name, one per cave or canyon. */
+        private readonly skips: readonly SkipChecker[]
+    ) {}
+
+    public get byteLength(): number {
+        return this.events.byteLength;
+    }
+
+    public replay(chunkX: number, chunkZ: number, output: CarverOutput): void {
+        this.replayEvents(0, this.events.length / EVENT_WORDS, chunkX, chunkZ, output);
+    }
+
+    private replayEvents(from: number, to: number, chunkX: number, chunkZ: number, output: CarverOutput): void {
+        const events = this.events;
+        for (let event = from; event < to;) {
+            const at = event * EVENT_WORDS;
+            const kind = events[at]!;
+            if (kind === EVENT_TUNNEL) {
+                const after = events[at + 1]!;
+                this.replayEvents(event + 1, after, chunkX, chunkZ, output);
+                event = after;
+                continue;
+            }
+            // Where the walk found the tunnel could no longer reach the target, it stopped.
+            if (
+                kind === EVENT_REACHING_CARVE &&
+                !canReach(
+                    chunkX,
+                    chunkZ,
+                    events[at + 2]!,
+                    events[at + 4]!,
+                    events[at + 8]!,
+                    events[at + 9]!,
+                    events[at + 10]!
+                )
+            ) {
+                return;
+            }
+            carveEllipsoid(
+                chunkX,
+                chunkZ,
+                events[at + 2]!,
+                events[at + 3]!,
+                events[at + 4]!,
+                events[at + 5]!,
+                events[at + 6]!,
+                output,
+                this.skips[events[at + 7]!]!
+            );
+            event++;
+        }
     }
 }
 
@@ -311,57 +369,9 @@ class CarvePlanRecorder {
     }
 
     public finish(): CarvePlan {
-        return new CarvePlan(Float64Array.from(this.words), this.skips);
+        return new RecordedCarvePlan(Float64Array.from(this.words), this.skips);
     }
 }
-
-/**
- * Carves one target chunk from a plan: every room, and each tunnel's ellipsoids until the tunnel
- * can no longer reach the chunk, which also drops the branches it would have split into.
- */
-export const replayCarvePlan = (plan: CarvePlan, chunkX: number, chunkZ: number, output: CarverOutput): void => {
-    const events = plan.events;
-    const replay = (from: number, to: number, inTunnel: boolean): void => {
-        for (let event = from; event < to;) {
-            const at = event * EVENT_WORDS;
-            const kind = events[at]!;
-            if (kind === EVENT_TUNNEL) {
-                const after = events[at + 1]!;
-                replay(event + 1, after, true);
-                event = after;
-                continue;
-            }
-            if (
-                inTunnel &&
-                kind === EVENT_REACHING_CARVE &&
-                !canReach(
-                    chunkX,
-                    chunkZ,
-                    events[at + 2]!,
-                    events[at + 4]!,
-                    events[at + 8]!,
-                    events[at + 9]!,
-                    events[at + 10]!
-                )
-            ) {
-                return;
-            }
-            carveEllipsoid(
-                chunkX,
-                chunkZ,
-                events[at + 2]!,
-                events[at + 3]!,
-                events[at + 4]!,
-                events[at + 5]!,
-                events[at + 6]!,
-                output,
-                plan.skips[events[at + 7]!]!
-            );
-            event++;
-        }
-    };
-    replay(0, events.length / EVENT_WORDS, false);
-};
 
 /** Records the ellipsoids of one started carver of a source chunk. */
 const recordCarver = (
@@ -376,6 +386,22 @@ const recordCarver = (
     else recordCanyon(config, context, random, sourceChunkX, sourceChunkZ, plan);
     return plan.finish();
 };
+
+/** Records the plans of a source chunk's started carvers, in their start order. */
+const recordPlans = (
+    seed: bigint,
+    source: SourceChunkCarvers,
+    context: WorldGenerationContext,
+    sourceChunkX: number,
+    sourceChunkZ: number
+): CarvePlan[] =>
+    source.started.map((index) => {
+        const config = source.carvers[index] as CarverConfig;
+        // The carver draws on from where its start draw left the random.
+        const random = largeFeatureRandom(asLong(seed + BigInt(index)), sourceChunkX, sourceChunkZ);
+        isStartChunk(config, random);
+        return recordCarver(config, context, random, sourceChunkX, sourceChunkZ);
+    });
 
 const createTunnel = (
     config: CaveCarverConfig,
@@ -643,8 +669,9 @@ export interface CarveChunkOptions {
     /** Where the openings are recorded. */
     readonly output: CarverOutput;
     /**
-     * Which carvers start in each source chunk, kept across calls for the same seed and
-     * `carversAt`. Without it the sweep decides all 289 source chunks afresh.
+     * Which carvers start in each source chunk and the plans of their walks, kept across calls for
+     * the same seed and `carversAt`. Without it the sweep decides and walks all 289 source chunks
+     * afresh.
      */
     readonly starts?: CarverStarts;
 }
@@ -661,13 +688,27 @@ export interface CarverStarts {
     at(sourceChunkX: number, sourceChunkZ: number): SourceChunkCarvers;
     /**
      * The plans of a source chunk's started carvers, in {@link SourceChunkCarvers.started}'s
-     * order, recorded on first use and kept for the chunks around it.
+     * order, recorded on first use and kept for the chunks around it. Optional: without it,
+     * {@link carveChunk} records them from {@link at} on each call.
      */
+    plansAt?(sourceChunkX: number, sourceChunkZ: number, context: WorldGenerationContext): readonly CarvePlan[];
+}
+
+/** A {@link CarverStarts} that keeps the plans too, as {@link createCarverStarts} makes it. */
+export interface CarverPlanStarts extends CarverStarts {
     plansAt(sourceChunkX: number, sourceChunkZ: number, context: WorldGenerationContext): readonly CarvePlan[];
 }
 
 /** Source chunks whose plans a {@link CarverStarts} keeps, direct-mapped on the low five bits of x and z. */
 const CARVE_PLAN_SLOTS = 32 * 32;
+
+/**
+ * The most plan bytes one {@link CarverStarts} keeps. A vanilla plan holds about 23 KB, and a
+ * quarter of source chunks start a carver, so the table stays near 6 MB; a data pack's carver with
+ * a large count or probability records bigger plans, which replay as usual but are not kept once
+ * the budget is spent.
+ */
+const CARVE_PLAN_BUDGET_BYTES = 16 * 1024 * 1024;
 
 /** Source chunks a {@link CarverStarts} holds, direct-mapped on the low six bits of x and z. */
 const CARVER_START_SLOTS = 64 * 64;
@@ -680,31 +721,53 @@ const CARVER_START_SLOTS = 64 * 64;
  * random per carver. A colliding chunk evicts the slot, and the stored coordinates are compared
  * before an answer is reused, so an eviction costs a recomputation and never an answer.
  */
-export const createCarverStarts = (seed: bigint, carversAt: CarveChunkOptions['carversAt']): CarverStarts => {
+export const createCarverStarts = (seed: bigint, carversAt: CarveChunkOptions['carversAt']): CarverPlanStarts => {
     const keyX = new Int32Array(CARVER_START_SLOTS);
     const keyZ = new Int32Array(CARVER_START_SLOTS);
     const entries = new Array<SourceChunkCarvers | undefined>(CARVER_START_SLOTS);
     const planKeyX = new Int32Array(CARVE_PLAN_SLOTS);
     const planKeyZ = new Int32Array(CARVE_PLAN_SLOTS);
+    // A plan's geometry depends on the extent its height providers resolved against.
+    const planMinY = new Int32Array(CARVE_PLAN_SLOTS);
+    const planDepth = new Int32Array(CARVE_PLAN_SLOTS);
+    const planBytes = new Float64Array(CARVE_PLAN_SLOTS);
     const plans = new Array<readonly CarvePlan[] | undefined>(CARVE_PLAN_SLOTS);
-    const starts: CarverStarts = {
+    let retainedBytes = 0;
+    const starts: CarverPlanStarts = {
         plansAt: (sourceChunkX, sourceChunkZ, context) => {
             const slot = (sourceChunkX & 31) | ((sourceChunkZ & 31) << 5);
             const cached = plans[slot];
-            if (cached !== undefined && planKeyX[slot] === sourceChunkX && planKeyZ[slot] === sourceChunkZ)
+            if (
+                cached !== undefined &&
+                planKeyX[slot] === sourceChunkX &&
+                planKeyZ[slot] === sourceChunkZ &&
+                planMinY[slot] === context.minGenY &&
+                planDepth[slot] === context.genDepth
+            ) {
                 return cached;
+            }
 
-            const { carvers, started } = starts.at(sourceChunkX, sourceChunkZ);
-            const recorded = started.map((index) => {
-                const config = carvers[index] as CarverConfig;
-                // The carver draws on from where its start draw left the random.
-                const random = largeFeatureRandom(asLong(seed + BigInt(index)), sourceChunkX, sourceChunkZ);
-                isStartChunk(config, random);
-                return recordCarver(config, context, random, sourceChunkX, sourceChunkZ);
-            });
-            planKeyX[slot] = sourceChunkX;
-            planKeyZ[slot] = sourceChunkZ;
-            plans[slot] = recorded;
+            const recorded = recordPlans(
+                seed,
+                starts.at(sourceChunkX, sourceChunkZ),
+                context,
+                sourceChunkX,
+                sourceChunkZ
+            );
+            const bytes = recorded.reduce((sum, plan) => sum + plan.byteLength, 0);
+            // The slot's old plans leave either way; the new ones stay only within the budget.
+            retainedBytes -= planBytes[slot]!;
+            plans[slot] = undefined;
+            planBytes[slot] = 0;
+            if (retainedBytes + bytes <= CARVE_PLAN_BUDGET_BYTES) {
+                planKeyX[slot] = sourceChunkX;
+                planKeyZ[slot] = sourceChunkZ;
+                planMinY[slot] = context.minGenY;
+                planDepth[slot] = context.genDepth;
+                planBytes[slot] = bytes;
+                plans[slot] = recorded;
+                retainedBytes += bytes;
+            }
             return recorded;
         },
         at: (sourceChunkX, sourceChunkZ) => {
@@ -766,9 +829,18 @@ export const carveChunk = (options: CarveChunkOptions): void => {
     const starts = options.starts ?? createCarverStarts(options.seed, options.carversAt);
     for (let dx = -8; dx <= 8; dx++) {
         for (let dz = -8; dz <= 8; dz++) {
-            for (const plan of starts.plansAt(options.chunkX + dx, options.chunkZ + dz, options.context)) {
-                replayCarvePlan(plan, options.chunkX, options.chunkZ, options.output);
-            }
+            const sourceChunkX = options.chunkX + dx;
+            const sourceChunkZ = options.chunkZ + dz;
+            const plans =
+                starts.plansAt?.(sourceChunkX, sourceChunkZ, options.context) ??
+                recordPlans(
+                    options.seed,
+                    starts.at(sourceChunkX, sourceChunkZ),
+                    options.context,
+                    sourceChunkX,
+                    sourceChunkZ
+                );
+            for (const plan of plans) plan.replay(options.chunkX, options.chunkZ, options.output);
         }
     }
 };

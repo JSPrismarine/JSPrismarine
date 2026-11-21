@@ -52,7 +52,7 @@ import type {
     BiomeSourceDefinition,
     CarverConfig,
     CellFluids,
-    CarverStarts,
+    CarverPlanStarts,
     DensityFunctionNode,
     LocalBiomes,
     MaterialRuleNode,
@@ -575,7 +575,7 @@ interface SeededPipeline {
     readonly level: ReturnType<typeof createNoiseStructureLevel>;
     readonly carversOf: (biome: string) => readonly CarverConfig[];
     /** Which carvers start in each source chunk, which every chunk within eight sweeps again. */
-    readonly carverStarts: CarverStarts;
+    readonly carverStarts: CarverPlanStarts;
     readonly climateOf: (biome: string) => BiomeClimate;
     readonly oracle: BlockOracle;
     readonly translator: JavaStateTranslator;
