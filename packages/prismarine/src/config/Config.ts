@@ -112,8 +112,7 @@ const COMMENTS = {
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'enable-nethernet':
         'Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.',
-    'java-enabled':
-        'Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.',
+    'java-enabled': 'Whether Java Edition clients can join on java-port.',
     'java-port': 'The TCP port Java Edition clients connect to. They look for 25565.',
     'account-linking':
         'Whether a player can link their Java Edition and Xbox accounts with /link, so both play as one player with one record. Off, each account is its own player and links already made are kept but ignored.',
@@ -280,7 +279,7 @@ const DEFAULTS = {
     'enable-raknet': true,
     'use-raknet-worker': true,
     'enable-nethernet': true,
-    'java-enabled': false,
+    'java-enabled': true,
     'java-port': 25565,
     'account-linking': true,
     'server-udp-ports': '',
