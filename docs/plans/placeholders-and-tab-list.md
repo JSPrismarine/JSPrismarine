@@ -19,9 +19,10 @@ player, per permission group, or for everyone. Other packs assign templates over
 
 What done looks like:
 
-- `placeholders` in `@jsprismarine/server` registers a namespace with a resolver and a list of
-  keys, resolves a text for a player, and lists what is registered. A namespace belongs to the pack
-  that registered it and goes when the pack's scripts stop, as boss bars do.
+- `@jsprismarine/placeholders`, a second JSPrismarine module beside `@jsprismarine/server`,
+  registers a namespace with a resolver and a list of keys, resolves a text for a player, and lists
+  what is registered. A namespace belongs to the pack that registered it and goes when the pack's
+  scripts stop, as boss bars do.
 - `playerList.setDisplayName(player, name)` and `playerList.reset(player)` change what every
   client shows for a player in its player list, and nothing else.
 - `addon install placeholders` gives a server the `player`, `server` and `world` namespaces and
@@ -270,8 +271,15 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
-       and `script-types`, the fact tables on the module page, and the parity row.
+2. [x] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
+       and `script-types`, the fact tables on the module page, and the parity row. In review the
+       registry moved to a module of its own, `@jsprismarine/placeholders`, whose exports are the
+       registry's members at top level, since `@jsprismarine/server` holds what reads or changes
+       the running server and a feature with a type vocabulary of its own gets its own module. The registry is
+       `ScriptPlaceholders` in the script host, which knows nothing of the engine: the runtime
+       wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
+       lets the server register under an owner of its own. A token's key must be in the provider's
+       `keys`, so the list is what the registry answers. A player who left renders as no player.
 3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
        tests.
 4. [x] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact

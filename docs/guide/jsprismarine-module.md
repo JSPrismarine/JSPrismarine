@@ -178,19 +178,103 @@ name again.
 
 Later JSPrismarine versions add members. To use one that an older server may lack, check for it
 before you call it, the same way you check for the module:
+## The placeholders module
+
+JSPrismarine has a second module, `@jsprismarine/placeholders`, loaded the same way as
+`@jsprismarine/server`: left out of the manifest, with one `import()` inside `try`, so the pack
+still runs on BDS, where the import rejects.
 
 ```js
-const jsp = await loadJsprismarine();
-if (jsp !== undefined && 'someNewMember' in jsp) {
-    // JSPrismarine new enough to have it
-}
+/** The placeholder registry, or undefined on a server without it. */
+const loadPlaceholders = async () => {
+    try {
+        return await import('@jsprismarine/placeholders');
+    } catch {
+        return undefined;
+    }
+};
 ```
+
+The split follows one rule. `@jsprismarine/server` holds the members that read or change the
+running server and its players: its version, how fast it ticks, a player's ping, a boss bar on a
+player's screen. A feature with a type vocabulary of its own, one that would stand as a library by
+itself, gets its own `@jsprismarine/<name>` module, and the placeholders are the first. An import
+of any other `@jsprismarine/` name rejects with the message BDS gives for an unknown module.
+
+A placeholder is a token such as `{player:ping}` in a text. The module is the registry every pack
+shares: one pack registers a namespace with the keys it answers, and any pack renders a text
+through `resolve`, so a sidebar, a chat format or a tab list shows the same values without talking
+to the pack that computes them.
+
+<!-- fact:scripting.placeholdersModule.table -->
+| Member                          | Type     | What it is                                                                                                                                                                                                                                  |
+| ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `register(namespace, provider)` | function | Registers a namespace. Throws a `TypeError` for a namespace or key that is not lowercase letters, digits and underscores starting with a letter, or for a provider with no keys, and an `Error` for a namespace that is registered already. |
+| `resolve(text, player)`         | function | Replaces each `{namespace:key}` in the text with its value, for the player when one is given. A token nobody provides, or whose provider gives `undefined` or throws, stays as written, and so does any other text between braces.          |
+| `namespaces()`                  | function | Every registered namespace with its keys, oldest first, as a new frozen list each call.                                                                                                                                                     |
+<!-- /fact -->
+
+Its types, which `@jsprismarine/script-types` declares too. `Player` is `@jsprismarine/server`'s:
+
+<!-- fact:scripting.placeholdersModule.types -->
+| Type                                       | Kind                | What it is                                                                                                                                                                                                                                                                         |
+| ------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PlaceholderProvider`                      | interface           | What a pack registers for a namespace: the keys it answers, and the function that answers them.                                                                                                                                                                                    |
+| `PlaceholderProvider.keys`                 | `readonly string[]` | The keys the provider answers, each lowercase letters, digits and underscores starting with a letter. A token with another key stays as written.                                                                                                                                   |
+| `PlaceholderProvider.resolve(key, player)` | function            | The value of one key, for the player when the text is rendered for one. A number renders through `String()`. `undefined` leaves the token as written, and so does a throw, which the content log reports once per namespace. It runs inside the budget of the script that renders. |
+| `PlaceholderRegistration`                  | interface           | A namespace a pack registered.                                                                                                                                                                                                                                                     |
+| `PlaceholderRegistration.unregister()`     | function            | Takes the namespace out of the registry, so its tokens stay as written. A pack's namespaces go on their own when its scripts stop.                                                                                                                                                 |
+| `PlaceholderNamespace`                     | interface           | One registered namespace.                                                                                                                                                                                                                                                          |
+| `PlaceholderNamespace.namespace`           | string              | Its name, the part of a token before the colon.                                                                                                                                                                                                                                    |
+| `PlaceholderNamespace.keys`                | `readonly string[]` | The keys its provider answers.                                                                                                                                                                                                                                                     |
+<!-- /fact -->
+
+```js
+import { world } from '@minecraft/server';
+
+world.afterEvents.worldLoad.subscribe(async () => {
+    const [jsp, placeholders] = await Promise.all([loadJsprismarine(), loadPlaceholders()]);
+    if (jsp === undefined || placeholders === undefined) return;
+    placeholders.register('demo', {
+        keys: ['name', 'ping', 'slots'],
+        resolve(key, player) {
+            if (key === 'slots') return jsp.jsprismarine.maxPlayers;
+            if (player === undefined) return undefined;
+            return key === 'name' ? player.name : jsp.getPing(player);
+        }
+    });
+});
+
+// Each player who spawns in, the ones online at `worldLoad` included, gets the rendered line.
+world.afterEvents.playerSpawn.subscribe(async ({ player, initialSpawn }) => {
+    const placeholders = await loadPlaceholders();
+    if (!initialSpawn || placeholders === undefined) return;
+    player.sendMessage(placeholders.resolve('{demo:name}, your ping is {demo:ping}ms', player));
+});
+```
+
+A namespace and a key match <!-- fact:scripting.placeholderName -->`[a-z][a-z0-9_]*`<!-- /fact -->: lowercase
+letters, digits and underscores, starting with a letter. Any other text between braces is not a
+token and stays as written, so there is no escape syntax. A
+token nobody provides stays as written too, so a missing addon shows in the text rather than
+disappearing from it. The same goes for a key whose resolver gives `undefined`, such as `name`
+above when the text is rendered for no player, and for one whose resolver throws: the content log
+reports the first throw of each namespace, and the token stays. The watchdog's errors are the
+exception: a resolver that runs out of the budget ends the render, as it would end any callback.
+
+A resolver runs inside the budget of the script that renders, so read a value rather than compute
+one. A number renders through `String()`. `register` throws a `TypeError` for a malformed name or
+a provider without keys, and an `Error` for a namespace that is registered already; `namespaces()`
+lists the names in use with their keys. A namespace belongs to the pack that registered it:
+`unregister` on the returned registration ends it, and every namespace of a pack goes when its
+scripts stop, as on `/reload`.
 
 ## Types for TypeScript
 
-`@jsprismarine/script-types` holds the declarations. The npm name `@jsprismarine/server` belongs to
-the server package, so the declarations package has its own name and declares the module inside.
-Add it to `types` in your `tsconfig.json`, and `import('@jsprismarine/server')` is typed:
+`@jsprismarine/script-types` holds the declarations of both modules. The npm name
+`@jsprismarine/server` belongs to the server package, so the declarations package has its own name
+and declares the modules inside. Add it to `types` in your `tsconfig.json`, and
+`import('@jsprismarine/server')` and `import('@jsprismarine/placeholders')` are typed:
 
 ```json
 {

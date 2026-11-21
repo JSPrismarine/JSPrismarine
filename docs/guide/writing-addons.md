@@ -125,8 +125,9 @@ world.afterEvents.worldLoad.subscribe(async () => {
 ```
 
 Leave the module out of `manifest.json`: BDS refuses a pack that declares a module it doesn't
-know. [The JSPrismarine script module](jsprismarine-module.md) explains each part of the pattern
-and lists every member with its types.
+know. Placeholders live in a second module, `@jsprismarine/placeholders`, loaded the same way; an
+addon that provides or renders them imports both. [The JSPrismarine script module](jsprismarine-module.md)
+explains each part of the pattern and lists every member of both modules with its types.
 
 Two checks keep an addon working on servers of different ages. `minServer` is the floor: a server
 older than it never installs the addon. Checking for a member with `in`, as above, covers the

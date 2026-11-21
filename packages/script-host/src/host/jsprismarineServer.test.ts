@@ -1,15 +1,18 @@
 import { runInNewContext } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
-import type { JSPRISMARINE_HOST_FUNCTIONS } from './jsprismarineServer';
+import type { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS } from './jsprismarineServer';
 import {
+    JSPRISMARINE_PLACEHOLDER_TYPES,
+    JSPRISMARINE_PLACEHOLDERS,
     JSPRISMARINE_SERVER,
     JSPRISMARINE_TYPES,
     jsprismarineServerSource,
-    jsprismarineServerTypings
+    jsprismarineServerTypings,
+    placeholdersModuleSource
 } from './jsprismarineServer';
 
-const info = { version: '1.2.3', minecraftVersion: '1.26.50', protocolVersion: 2193 };
+const info = { version: '1.2.3', minecraftVersion: '1.26.50', protocolVersion: 2193, maxPlayers: 20 };
 
 /** A host whose functions record each call and answer from fixed values. */
 const recordingHost = () => {
@@ -34,7 +37,13 @@ const recordingHost = () => {
         setListName: record('setListName', () => undefined),
         resetListName: record('resetListName', () => undefined)
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
-    return { host, calls };
+    const placeholdersHost = {
+        register: record('register', () => 3),
+        unregister: record('unregister', () => undefined),
+        resolve: record('resolve', (text) => String(text).toUpperCase()),
+        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }]))
+    } satisfies Record<(typeof JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS)[number], unknown>;
+    return { host, placeholdersHost, calls };
 };
 
 /** The module's namespace as the source makes it, in a fresh realm. */
@@ -42,6 +51,13 @@ const namespaceOf = (host?: object): Record<string, unknown> => {
     // The source is one function expression of JSON values, getters and Object.freeze, which any engine evaluates.
     const make: unknown = runInNewContext(jsprismarineServerSource(info));
     if (typeof make !== 'function') throw new TypeError('The module source is not a function');
+    return make(host);
+};
+
+/** The `@jsprismarine/placeholders` namespace as the source makes it, in a fresh realm. */
+const placeholdersOf = (host: object): Record<string, unknown> => {
+    const make: unknown = runInNewContext(placeholdersModuleSource());
+    if (typeof make !== 'function') throw new TypeError('The placeholders module source is not a function');
     return make(host);
 };
 
@@ -133,6 +149,41 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('makes @jsprismarine/placeholders with every member it defines, forwarding each call to its host', () => {
+        const { placeholdersHost, calls } = recordingHost();
+        const placeholders = placeholdersOf(placeholdersHost);
+        const player = { id: '-4294967295' };
+        const provider = { keys: ['name'], resolve: () => 'Steve' };
+
+        expect(Object.keys(placeholders).sort()).toEqual(Object.keys(JSPRISMARINE_PLACEHOLDERS).sort());
+        expect(Object.isFrozen(placeholders)).toBe(true);
+        const { register, resolve, namespaces } = placeholders;
+        if (typeof register !== 'function' || typeof resolve !== 'function' || typeof namespaces !== 'function') {
+            throw new TypeError('placeholders has no functions');
+        }
+        const registration: unknown = register('demo', provider);
+        expect(Object.isFrozen(registration)).toBe(true);
+        expect(resolve('{demo:name}', player)).toBe('{DEMO:NAME}');
+        const unregister = at(registration, 'unregister');
+        if (typeof unregister !== 'function') throw new TypeError('A registration has no unregister');
+        unregister();
+
+        const listed: unknown = namespaces();
+        expect(listed).toEqual([{ namespace: 'player', keys: ['name', 'ping'] }]);
+        expect(Object.isFrozen(listed)).toBe(true);
+        expect(Object.isFrozen(at(listed, '0'))).toBe(true);
+        expect(Object.isFrozen(at(at(listed, '0'), 'keys'))).toBe(true);
+        expect(namespaces()).not.toBe(listed);
+
+        expect(calls).toEqual([
+            ['register', 'demo', provider],
+            ['resolve', '{demo:name}', player],
+            ['unregister', 3],
+            ['namespaces'],
+            ['namespaces']
+        ]);
+    });
+
     it('declares every member, property and type it defines, under the module name, with its summary', () => {
         const typings = jsprismarineServerTypings();
 
@@ -155,5 +206,29 @@ describe('@jsprismarine/server', () => {
         }
         expect(typings).toContain('        readonly color?: BossBarColor;');
         expect(typings).toContain('        hide(): void;');
+        expect(typings).toContain('        readonly maxPlayers: number;');
+        expect(typings).toContain("declare module '@jsprismarine/placeholders' {");
+        expect(typings).toContain("    import type { Player } from '@jsprismarine/server';");
+        for (const [name, member] of Object.entries(JSPRISMARINE_PLACEHOLDERS)) {
+            expect(typings).toContain(
+                `    /** ${member.summary} */\n    export function ${name}(${member.parameters}): ${member.returns};`
+            );
+        }
+        for (const [name, type] of Object.entries(JSPRISMARINE_PLACEHOLDER_TYPES)) {
+            expect(typings).toContain(`    /** ${type.summary} */\n    export interface ${name} {`);
+        }
+        expect(typings).toContain(
+            '        resolve(key: string, player?: MinecraftPlayer): string | number | undefined;'
+        );
+        expect(typings).toContain("    import type { Player as MinecraftPlayer } from '@minecraft/server';");
+        expect(typings).toContain('    export type TemplateNode =\n        | { readonly text: string }');
+        expect(typings).toContain('        readonly nextChangeTick?: number;');
+        expect(typings).toContain('    export const config: {\n');
+        expect(typings).toContain('        readonly value: unknown;');
+        expect(typings).toContain('        readonly afterEvents: AddonConfigEvents;');
+        expect(typings).toContain('        write(value: unknown): void;');
+        expect(typings).toContain(
+            '        subscribe(callback: (event: AddonConfigChangeEvent) => void): (event: AddonConfigChangeEvent) => void;'
+        );
     });
 });

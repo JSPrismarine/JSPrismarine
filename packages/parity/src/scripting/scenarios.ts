@@ -251,6 +251,7 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         version: 'string',
                         minecraftVersion: 'string',
                         protocolVersion: 'number',
+                        maxPlayers: 'number',
                         frozen: true,
                         performance: {
                             averageTickMs: 'number',
@@ -261,13 +262,14 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         getPing: 'function',
                         bossBars: { show: 'function' },
                         playerList: { reset: 'function', setDisplayName: 'function' },
+                        placeholders: { namespaces: 'function', register: 'function', resolve: 'function' },
                         allFrozen: true
                     }
                 },
                 because:
                     'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars and playerList ' +
-                    'included, ' +
-                    'and takes the fallback only where the import rejects',
+                    'included, and @jsprismarine/placeholders beside it, and takes the fallback only where the import ' +
+                    'rejects',
                 reference: 'docs/guide/jsprismarine-module.md'
             },
             'import ./static.js': {

@@ -273,6 +273,7 @@ const runLoadedPacks = async (
             http
         },
         members: SCENARIO_MEMBERS,
+        maxPlayers: 10,
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),
         experiments: scenario.experiments ?? [],

@@ -142,6 +142,7 @@ export const startLevelScripts = async (
             worldEvents: levelWorldEvents(server, level)
         },
         members: scriptServerMembers(server),
+        maxPlayers: server.getConfig().getMaxPlayers(),
         seed: server.getWorldManager().getDefaultWorld().getSeed(),
         watchdog: server.getConfig().getScriptWatchdog(),
         experiments: level.getExperiments(),
