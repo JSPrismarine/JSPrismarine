@@ -22,6 +22,7 @@ import { loadProject } from './project.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
     addonReadmePath,
+    IMAGE,
     isUnpublished,
     linkRoute,
     pageSummary,
@@ -118,9 +119,6 @@ const blobUrl = `${manifest.repository.url.replace(/^git\+/, '').replace(/\.git$
 const docsRoot = path.join(repoRoot, 'docs');
 const sectionDirs = sections.map(({ dir }) => path.join(docsRoot, dir));
 const addons = await loadAddons();
-
-/** The image files a docs page may show. */
-const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 /** Where the site serves images from outside `docs/`, such as an addon's screenshot, by their repository path. */
 const repoImageDir = path.join(publicDir, 'repo');

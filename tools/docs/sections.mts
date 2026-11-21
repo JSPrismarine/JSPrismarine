@@ -88,6 +88,9 @@ export const rootPages = [
     { source: 'CODE_OF_CONDUCT.md', page: 'code-of-conduct.md' }
 ] satisfies RootPage[];
 
+/** The image files a docs page may show, which the site serves beside the page or from `/repo/`. */
+export const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
+
 /** A staged file's page under `site/`: a folder's `README.md` becomes its `index.md`. */
 export const toSitePage = (source: string) => source.replace(/(^|[\\/])README\.md$/, '$1index.md');
 
@@ -106,6 +109,9 @@ export function publishedPage(repoPath: string) {
     const docsPath = /^docs\/(.+)$/.exec(repoPath)?.[1];
     const section = docsPath && sections.find(({ dir }) => docsPath.startsWith(`${dir}/`));
     if (!docsPath || !section || isUnpublished(section, docsPath.slice(section.dir.length + 1))) return undefined;
+    // Staging copies a section's pages and images, so another file in it, such as a benchmark's
+    // `results.json`, opens on GitHub. A path without an extension is a folder, which has an index.
+    if (path.posix.extname(docsPath) !== '' && !docsPath.endsWith('.md') && !IMAGE.test(docsPath)) return undefined;
     return toSitePage(docsPath);
 }
 
