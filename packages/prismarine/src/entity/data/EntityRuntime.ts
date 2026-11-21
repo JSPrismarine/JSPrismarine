@@ -30,7 +30,6 @@ import type {
     EntityAngerBroadcast,
     EntityBlockBreakEvent,
     EntityEffects,
-    EntityEquipmentSlot,
     EntityPosition,
     EntitySensorCandidate,
     EntitySensorQuery,
@@ -138,7 +137,13 @@ import { EntityIndex } from './entityIndex';
 import { detonate } from './explosion';
 import type { ContentBlastResult } from './explosion';
 import { updateControlFlags } from './riderControl';
-import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, slotForItem } from '../equipment';
+import {
+    BEDROCK_EQUIPMENT_SLOT_NAMES,
+    MOB_EQUIPMENT_SLOTS,
+    mobEquipmentSlotOf,
+    rollMobEquipment,
+    slotForItem
+} from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
 import { enchantFromProvider, enchantmentProviderSourceOf } from '../enchantmentProvider';
 import { EntityFactsLookup, javaLootIdOf, PLAYER_BOX } from './facts';
@@ -455,16 +460,6 @@ const bedrockSoundOf = (sound: string): string => sound.replace(/^minecraft:/, '
 /** The types whose vibrations no listener hears, Java's `Entity.dampensVibrations` overrides. */
 const DAMPENS_VIBRATIONS: ReadonlySet<string> = new Set(['minecraft:warden']);
 
-/** The component spellings for the equipment slots the runtime stores. */
-const COMPONENT_EQUIPMENT_SLOTS = {
-    mainhand: 'slot.weapon.mainhand',
-    offhand: 'slot.weapon.offhand',
-    head: 'slot.armor.head',
-    chest: 'slot.armor.chest',
-    legs: 'slot.armor.legs',
-    feet: 'slot.armor.feet',
-    body: 'slot.armor.body'
-} satisfies Record<MobEquipmentSlot, EntityEquipmentSlot>;
 const PLAYER_WIDTH = PLAYER_BOX.width;
 const PLAYER_HEIGHT = PLAYER_BOX.height;
 const TICKS_PER_SECOND = 20;
@@ -6378,7 +6373,12 @@ export class EntityRuntime implements EntityScene {
     /** Routes default equipment changes to the active slot-specific component. */
     private watchEquipment(entity: DataEntity): void {
         entity.body.onEquipmentChanged = (slot, equipped) =>
-            entity.instance.dispatch('onEquipmentChanged', entity.instance, COMPONENT_EQUIPMENT_SLOTS[slot], equipped);
+            entity.instance.dispatch(
+                'onEquipmentChanged',
+                entity.instance,
+                BEDROCK_EQUIPMENT_SLOT_NAMES[slot],
+                equipped
+            );
     }
 
     /**

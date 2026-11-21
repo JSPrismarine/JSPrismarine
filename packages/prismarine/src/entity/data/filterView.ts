@@ -33,11 +33,15 @@ import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
+import type { EntityInventory } from '../../inventory/EntityInventory';
 
 /** The armor containers a Bedrock entity filter can name. */
 const ARMOR_SLOTS = ['head', 'chest', 'legs', 'feet', 'body'] as const satisfies readonly MobEquipmentSlot[];
 
-/** The equipment slots one filter domain names, in the order its indexed view reads them. */
+/**
+ * The equipment slots one filter domain names, in the order its indexed view reads them, before
+ * the ones an inventory lacks are left out.
+ */
 const equipmentSlotsFor = (slot: EquipmentSlot): readonly MobEquipmentSlot[] | undefined => {
     switch (slot) {
         case 'hand':
@@ -57,9 +61,49 @@ const equipmentSlotsFor = (slot: EquipmentSlot): readonly MobEquipmentSlot[] | u
         case 'feet':
             return ['feet'];
         case 'inventory':
-        case 'any':
             return undefined;
+        case 'any':
+            return MOB_EQUIPMENT_SLOTS;
     }
+};
+
+/**
+ * The equipment slots a filter domain reads on one inventory: the ones it names that the
+ * inventory has, so a player's `torso` is its chestplate alone and a mob's is its body armor
+ * and its chestplate.
+ */
+const equipmentOf = (inventory: EntityInventory, slot: EquipmentSlot): readonly MobEquipmentSlot[] =>
+    (equipmentSlotsFor(slot) ?? []).filter((equipment) => inventory.equipmentAddress(equipment) !== undefined);
+
+/**
+ * The stack at one indexed slot of a filter domain, on a player or a mob: the domain's
+ * equipment slots first, and for `inventory` and `any` the `inventory` container after them.
+ *
+ * @returns The stack, or null when the slot is empty or outside the domain.
+ */
+export const filterDomainStack = (inventory: EntityInventory, slot: EquipmentSlot, index: number): Item | null => {
+    const equipment = equipmentOf(inventory, slot);
+    const named = equipment[index];
+    if (named !== undefined) return inventory.equipment(named);
+    if (slot !== 'inventory' && slot !== 'any') return null;
+    return inventory.containerNamed('inventory')?.get(index - equipment.length) ?? null;
+};
+
+/** How many slots one filter domain exposes on a player or a mob. */
+export const filterDomainCapacity = (inventory: EntityInventory, slot: EquipmentSlot): number => {
+    const equipment = equipmentOf(inventory, slot).length;
+    if (slot !== 'inventory' && slot !== 'any') return equipment;
+    return equipment + (inventory.containerNamed('inventory')?.size ?? 0);
+};
+
+/** How full one equipment or inventory domain is. */
+export const filterDomainFill = (inventory: EntityInventory, slot: EquipmentSlot): SlotFill => {
+    const capacity = filterDomainCapacity(inventory, slot);
+    let filled = 0;
+    for (let index = 0; index < capacity; index += 1) {
+        if (filterDomainStack(inventory, slot, index) !== null) filled += 1;
+    }
+    return { filled, capacity };
 };
 
 /** What an entity filter reads from one equipment or inventory slot that holds a stack. */
@@ -74,37 +118,6 @@ export const filterItemOf = (item: Item | null | undefined): FilterItemView | un
               hasComponent: (name) => item.hasComponent(name),
               damaged: () => item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
           };
-
-/** The stack at one indexed filter slot, or null when it is empty or out of range. */
-const stackAt = (body: MobBody, slot: EquipmentSlot, index: number): Item | null => {
-    const { inventory } = body;
-    if (slot === 'inventory') return inventory.container('inventory').get(index);
-    if (slot === 'any') {
-        const equipment = MOB_EQUIPMENT_SLOTS[index];
-        return equipment === undefined
-            ? inventory.container('inventory').get(index - MOB_EQUIPMENT_SLOTS.length)
-            : inventory.equipment(equipment);
-    }
-    const equipment = equipmentSlotsFor(slot)?.[index];
-    return equipment === undefined ? null : inventory.equipment(equipment);
-};
-
-/** How many slots one filter domain exposes. */
-const capacityOf = (body: MobBody, slot: EquipmentSlot): number => {
-    if (slot === 'inventory') return body.containerCapacity;
-    if (slot === 'any') return MOB_EQUIPMENT_SLOTS.length + body.containerCapacity;
-    return equipmentSlotsFor(slot)?.length ?? 0;
-};
-
-/** How full one equipment or inventory domain is. */
-const slotFillOf = (body: MobBody, slot: EquipmentSlot): SlotFill => {
-    const capacity = capacityOf(body, slot);
-    let filled = 0;
-    for (let index = 0; index < capacity; index += 1) {
-        if (stackAt(body, slot, index) !== null) filled += 1;
-    }
-    return { filled, capacity };
-};
 
 /** The whole filter context for one entity: its own facts and the world's. */
 export const entityFilterContextOf = (body: MobBody, scene: EntityScene): FilterContext => ({
@@ -155,8 +168,8 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
         }
         return undefined;
     },
-    equipment: (slot, index) => filterItemOf(stackAt(body, slot, index)),
-    slotFill: (slot) => slotFillOf(body, slot),
+    equipment: (slot, index) => filterItemOf(filterDomainStack(body.inventory, slot, index)),
+    slotFill: (slot) => filterDomainFill(body.inventory, slot),
     carries: (matches) =>
         [
             ...MOB_EQUIPMENT_SLOTS.map((slot) => body.inventory.equipment(slot)),

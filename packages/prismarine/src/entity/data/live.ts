@@ -98,7 +98,7 @@ import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import type { DroppedItems, ItemStart } from './droppedItems';
 import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
-import { filterItemOf } from './filterView';
+import { filterDomainCapacity, filterDomainFill, filterDomainStack, filterItemOf } from './filterView';
 import { ItemActor } from './itemActor';
 import { storedItemActorOf } from '../EntitySerializer';
 import type { StoredActor } from '../EntitySerializer';
@@ -123,52 +123,8 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     if (cached !== undefined) return cached;
 
     const inventory = player.getInventory();
-    const main = inventory.container('inventory');
-    const armor = inventory.container('armor');
-    const armorSlots = new Map<EquipmentSlot, number>([
-        ['head', 0],
-        ['torso', 1],
-        ['leg', 2],
-        ['feet', 3]
-    ]);
-    const equipment = (slot: EquipmentSlot, index: number): FilterItemView | undefined => {
-        if (slot === 'any') {
-            if (index === 0) return filterItemOf(inventory.equipment('mainhand'));
-            if (index === 1) return filterItemOf(inventory.equipment('offhand'));
-            if (index >= 2 && index < 2 + armor.size) return filterItemOf(armor.get(index - 2));
-            return filterItemOf(main.get(index - 2 - armor.size));
-        }
-        if (slot === 'main_hand') return index === 0 ? filterItemOf(inventory.equipment('mainhand')) : undefined;
-        if (slot === 'hand') {
-            if (index === 0) return filterItemOf(inventory.equipment('mainhand'));
-            return index === 1 ? filterItemOf(inventory.equipment('offhand')) : undefined;
-        }
-        if (slot === 'off_hand') return index === 0 ? filterItemOf(inventory.equipment('offhand')) : undefined;
-        if (slot === 'inventory') return filterItemOf(main.get(index));
-        if (slot === 'armor') return filterItemOf(armor.get(index));
-        const armorIndex = armorSlots.get(slot);
-        return armorIndex === undefined ? undefined : index === 0 ? filterItemOf(armor.get(armorIndex)) : undefined;
-    };
-    const capacity = (slot: EquipmentSlot): number => {
-        switch (slot) {
-            case 'any':
-                return 2 + armor.size + main.size;
-            case 'armor':
-                return armor.size;
-            case 'feet':
-            case 'head':
-            case 'leg':
-            case 'main_hand':
-            case 'off_hand':
-                return 1;
-            case 'hand':
-                return 2;
-            case 'inventory':
-                return main.size;
-            case 'torso':
-                return 1;
-        }
-    };
+    const equipment = (slot: EquipmentSlot, index: number): FilterItemView | undefined =>
+        filterItemOf(filterDomainStack(inventory, slot, index));
     const view: FilterEntityView = {
         id: () => Number(player.getRuntimeId()),
         names: (name) =>
@@ -185,16 +141,9 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
             return undefined;
         },
         equipment,
-        slotFill: (slot) => {
-            const slots = capacity(slot);
-            let filled = 0;
-            for (let index = 0; index < slots; index += 1) {
-                if (equipment(slot, index) !== undefined) filled += 1;
-            }
-            return { filled, capacity: slots };
-        },
+        slotFill: (slot) => filterDomainFill(inventory, slot),
         carries: (matches) => {
-            const slots = capacity('any');
+            const slots = filterDomainCapacity(inventory, 'any');
             for (let index = 0; index < slots; index += 1) {
                 const item = equipment('any', index);
                 if (item !== undefined && matches(item)) return true;

@@ -43,6 +43,7 @@
  * component is a weapon, which is why a bow and the fox's emerald both land in the main hand.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
+import type { EntityEquipmentSlot } from '@jsprismarine/entities';
 
 import type { ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
@@ -76,12 +77,26 @@ export type MobEquipmentSlot = (typeof MOB_EQUIPMENT_SLOTS)[number];
 /** What a mob has in each slot, with a slot it has nothing in left out. */
 export type MobEquipmentSet = Readonly<Partial<Record<MobEquipmentSlot, ContentItemDrop>>>;
 
+/**
+ * Bedrock's fully qualified name for each equipment slot, which components such as
+ * `minecraft:on_equipment_changed` and `minecraft:burns_in_daylight` use, and which
+ * `/replaceitem` names the slot's group by.
+ */
+export const BEDROCK_EQUIPMENT_SLOT_NAMES = {
+    mainhand: 'slot.weapon.mainhand',
+    offhand: 'slot.weapon.offhand',
+    head: 'slot.armor.head',
+    chest: 'slot.armor.chest',
+    legs: 'slot.armor.legs',
+    feet: 'slot.armor.feet',
+    body: 'slot.armor.body'
+} as const satisfies Record<MobEquipmentSlot, EntityEquipmentSlot>;
+
 /** The item component spellings and Bedrock's fully qualified slot names. */
 const SLOTS = new Map<string, MobEquipmentSlot>();
 for (const slot of MOB_EQUIPMENT_SLOTS) {
     SLOTS.set(slot, slot);
-    const group = slot === 'mainhand' || slot === 'offhand' ? 'weapon' : 'armor';
-    SLOTS.set(`slot.${group}.${slot}`, slot);
+    SLOTS.set(BEDROCK_EQUIPMENT_SLOT_NAMES[slot], slot);
 }
 
 /**
