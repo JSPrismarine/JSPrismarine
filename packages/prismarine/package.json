@@ -730,6 +730,11 @@
                 "import": "./dist/entity/StatusEffect.js",
                 "module": "./dist/entity/StatusEffect.js"
             },
+            "./entity/StatusEffectTick": {
+                "types": "./dist/entity/StatusEffectTick.d.ts",
+                "import": "./dist/entity/StatusEffectTick.js",
+                "module": "./dist/entity/StatusEffectTick.js"
+            },
             "./entity/data/EntityRuntime": {
                 "types": "./dist/entity/data/EntityRuntime.d.ts",
                 "import": "./dist/entity/data/EntityRuntime.js",
@@ -2364,6 +2369,10 @@
         "./entity/StatusEffect": {
             "jsprismarine:dist": "./dist/entity/StatusEffect.js",
             "default": "./src/entity/StatusEffect.ts"
+        },
+        "./entity/StatusEffectTick": {
+            "jsprismarine:dist": "./dist/entity/StatusEffectTick.js",
+            "default": "./src/entity/StatusEffectTick.ts"
         },
         "./keyedPlayer": {
             "jsprismarine:dist": "./dist/keyedPlayer.js",
