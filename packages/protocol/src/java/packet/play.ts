@@ -455,3 +455,27 @@ export const SetCreativeModeSlot = defineJavaPacket(
     PACKETS.play.serverbound.set_creative_mode_slot,
     { slot: short, item: untrustedItemStack }
 );
+
+/** The hands a player uses items with, by vanilla's `InteractionHand` ids. */
+export enum JavaHand {
+    Main = 0,
+    Off = 1
+}
+
+/**
+ * `Use Item On` (serverbound): the player used the item in a hand on a block's face. The cursor is
+ * where on the block, each coordinate from 0 to 1; `inside` says the eyes were inside the block,
+ * and `worldBorderHit` that the click landed on the world border. `sequence` is what the server's
+ * `Acknowledge Block Change` answers.
+ */
+export const UseItemOn = defineJavaPacket('Use Item On', PACKETS.play.serverbound.use_item_on, {
+    hand: varInt,
+    position: blockPosition,
+    face: varInt,
+    cursorX: float,
+    cursorY: float,
+    cursorZ: float,
+    inside: bool,
+    worldBorderHit: bool,
+    sequence: varInt
+});

@@ -14,6 +14,7 @@ import {
     PlayLogin,
     SectionBlocksUpdate,
     SetCreativeModeSlot,
+    UseItemOn,
     SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
@@ -159,5 +160,34 @@ describe('inventory packets', () => {
         expect(() => decodeJavaPacket(ContainerSetSlot, frameOf(ContainerSetSlot, body))).toThrow(
             'An item stack carries 1 data components'
         );
+    });
+});
+
+describe('Use Item On', () => {
+    it('reads the hand, the block, the face as a VarInt, the cursor, both flags and the sequence', () => {
+        const body = Buffer.concat([
+            Buffer.from([0x00]),
+            Buffer.alloc(8),
+            Buffer.from([0x01]),
+            Buffer.alloc(12),
+            Buffer.from([0x00, 0x00, 0x09])
+        ]);
+        body.writeBigInt64BE((1n << 38n) | (BigInt.asUintN(26, -2n) << 12n) | BigInt.asUintN(12, -61n), 1);
+        body.writeFloatBE(0.5, 10);
+        body.writeFloatBE(1, 14);
+        body.writeFloatBE(0.25, 18);
+        const frame = Buffer.concat([idOf(UseItemOn), body]);
+
+        expect(decodeJavaPacket(UseItemOn, readJavaPacketId(frame).body)).toEqual({
+            hand: 0,
+            position: { x: 1, y: -61, z: -2 },
+            face: 1,
+            cursorX: 0.5,
+            cursorY: 1,
+            cursorZ: 0.25,
+            inside: false,
+            worldBorderHit: false,
+            sequence: 9
+        });
     });
 });
