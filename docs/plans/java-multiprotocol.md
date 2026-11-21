@@ -28,6 +28,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
+| 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
 
 Issues for the slices after PR 9 are opened when PR 1 merges and linked from this table.
 
@@ -314,7 +315,38 @@ rewritten in PR 9.
 Who a player is across editions is decided in [the permissions plan](https://github.com/JSPrismarine/JSPrismarine/pull/3377), which adds `docs/plans/permissions.md`: a `Subject`
 is `xbox` by XUID, `java` by Mojang UUID or `offline` by name, and nothing from an `offline` entry
 applies to an `xbox` or `java` subject of the same name. The Java login in PR 8 is the first producer
-of the `java` kind. This plan adds no identity design of its own.
+of the `java` kind.
+
+### Linked accounts
+
+A player who owns both editions can link their Java account and their Xbox account, so either login
+is the same person: one saved record, one set of permissions and one live session. The permissions
+plan leaves room for this as a `links` section that points one subject at another, so no key
+changes when a link is made or undone.
+
+- **Setting.** `account-linking`, on by default, turns the commands and the lookup on. Off, the
+  commands are not registered, links on disk are kept but ignored, and each account is its own
+  player, as it is today. A server that wants editions kept apart turns it off.
+- **Linking.** `/link` on one edition answers with a short code that expires after a few minutes.
+  `/link <code>` on the other edition, by the same person, makes the link, so both accounts consent
+  and nobody can claim another's. Only verified subjects link: `xbox` and `java` subjects of an
+  online-mode server, never an `offline` one, whose name anybody can type.
+- **Which account leads.** The account that asked for the code is the primary. The other subject's
+  `links` entry points at it, and from then on its saved record, permissions and player key resolve
+  to the primary's. Before confirming, `/link <code>` says which record the player keeps. The other
+  record is left on disk untouched, so `/unlink` brings it back as it was.
+- **One live session.** A linked pair counts as one account in the rule that lets only one session
+  per account be live, so a login on the second edition replaces the first, as a second login of
+  the same account does now.
+- **Names.** Each edition keeps its own name on the wire, since a client checks the name its
+  account carries, but chat, the player list and commands show the primary's name.
+- **Admins.** `/perms` can make and undo a link between two subjects directly, for support, and a
+  link shows on both subjects' entries.
+- **Out of scope.** A global link service shared across servers, such as GeyserMC's, is not used:
+  links live in the server's own data. An addon can add one later through the link store.
+
+The link store and the lookup are PR 12. They come after PR 9, since linking needs a Java player
+who can join, and they change no key the earlier PRs write.
 
 ## 9. Verification
 
