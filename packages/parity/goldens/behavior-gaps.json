@@ -1,10 +1,5 @@
 {
     "blocks.behavior": {
-        "bottom-slab-holds-water:minecraft:stone_slab": {
-            "kind": "defect",
-            "reason": "Fluid rules treat a block as a full cube or as open, so a bottom slab lets its water out of its full bottom face.",
-            "reference": "Java FlowingFluid.canPassThroughWall over the block shapes; issue #3093"
-        },
         "breaking-drops-loot:minecraft:cave_vines_plant": {
             "kind": "intentional",
             "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",

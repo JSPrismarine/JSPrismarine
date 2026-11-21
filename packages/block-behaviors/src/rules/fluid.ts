@@ -162,9 +162,27 @@ const isFullCube = (world: WorldActions, block: HookBlock | undefined): boolean 
     return !isWashedAway(block.identifier);
 };
 
-/** Whether a fluid can move between two cells without a full cube in the way. */
-const canPassThroughWall = (world: WorldActions, from: BlockPosition, to: BlockPosition): boolean =>
-    !isFullCube(world, world.getBlock(from)) && !isFullCube(world, world.getBlock(to));
+/** The face of `from`'s cell that its neighbor `to` is on. */
+const faceToward = (from: BlockPosition, to: BlockPosition): BlockFace => {
+    if (to.y < from.y) return 'down';
+    if (to.y > from.y) return 'up';
+    if (to.z < from.z) return 'north';
+    if (to.z > from.z) return 'south';
+    return to.x < from.x ? 'west' : 'east';
+};
+
+/**
+ * Whether a fluid can move between two neighboring cells, Java's `FlowingFluid.canPassThroughWall`:
+ * neither is a full cube, and their shapes leave the face between them open where the host can
+ * tell, so a bottom slab keeps its water from the cell below.
+ */
+const canPassThroughWall = (world: WorldActions, from: BlockPosition, to: BlockPosition): boolean => {
+    const fromBlock = world.getBlock(from);
+    const toBlock = world.getBlock(to);
+    if (isFullCube(world, fromBlock) || isFullCube(world, toBlock)) return false;
+    if (fromBlock === undefined || toBlock === undefined || world.faceOccludes === undefined) return true;
+    return !world.faceOccludes(fromBlock, toBlock, faceToward(from, to));
+};
 
 /** What a fluid does to a block, by the host's rule when it has one and Bedrock's data otherwise. */
 const liquidReaction = (world: WorldActions, block: HookBlock) =>

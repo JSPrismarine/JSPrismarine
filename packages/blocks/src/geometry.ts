@@ -25,7 +25,8 @@
 import { collisionBox } from './components';
 import table from './tables/blockGeometry';
 import liquidTable from './tables/blockLiquidReactions.json';
-import type { BlockState } from './types';
+import type { BlockFace, HookBlock } from './hooks';
+import type { BlockState, BlockType } from './types';
 
 /** What a liquid reaching a block does, as Bedrock's `liquidReactionOnTouch` names it. */
 export type LiquidReaction =
@@ -265,4 +266,86 @@ export const isFullCubeShape = (shape: readonly BedrockCollisionBox[]): boolean 
             )
         )
     );
+};
+
+/** The axis each face looks along, 0 for X, 1 for Y and 2 for Z, and whether it is the cell's high side. */
+const FACE_AXES: Readonly<Record<BlockFace, { readonly axis: 0 | 1 | 2; readonly high: boolean }>> = {
+    down: { axis: 1, high: false },
+    up: { axis: 1, high: true },
+    north: { axis: 2, high: false },
+    south: { axis: 2, high: true },
+    west: { axis: 0, high: false },
+    east: { axis: 0, high: true }
+};
+
+/** The three axes, and where each one's maximum sits in a box. */
+const AXES = [0, 1, 2] as const;
+const MAX_OF = { 0: 3, 1: 4, 2: 5 } as const;
+
+/** Whether rectangles, each min U, min V, max U, max V, cover the unit square between them. */
+const coversSquare = (rects: readonly (readonly [number, number, number, number])[]): boolean => {
+    if (rects.length === 0) return false;
+    const cuts = (low: 0 | 1, high: 2 | 3): number[] =>
+        [
+            ...new Set([0, 1, ...rects.flatMap((rect) => [rect[low], rect[high]]).filter((cut) => cut > 0 && cut < 1)])
+        ].sort((left, right) => left - right);
+    const middles = (at: number[]): number[] => at.slice(1).map((cut, index) => (cut + (at[index] ?? cut)) / 2);
+    const [us, vs] = [middles(cuts(0, 2)), middles(cuts(1, 3))];
+    return us.every((u) =>
+        vs.every((v) => rects.some(([minU, minV, maxU, maxV]) => minU <= u && u <= maxU && minV <= v && v <= maxV))
+    );
+};
+
+/**
+ * Whether two neighboring shapes together close the face between them, Java's
+ * `Shapes.mergedFaceOccludes`: the boxes of `shape` that reach its `face` side and those of
+ * `neighbor` that reach the opposite side, laid on the face, must cover all of it. A fluid passes
+ * between two cells only where they do not, which is how a bottom slab keeps its water from the
+ * cell below.
+ * @param shape - The boxes of the block the face belongs to, normalized to its cell.
+ * @param neighbor - The boxes of the block on the other side of the face, normalized to its cell.
+ * @param face - The face of `shape`'s cell that the two share.
+ * @returns Whether the face is closed.
+ */
+export const mergedFaceOccludes = (
+    shape: readonly BedrockCollisionBox[],
+    neighbor: readonly BedrockCollisionBox[],
+    face: BlockFace
+): boolean => {
+    const { axis, high } = FACE_AXES[face];
+    const [u, v] = AXES.filter((each) => each !== axis);
+    if (u === undefined || v === undefined) return false;
+    const onFace = (boxes: readonly BedrockCollisionBox[], onHigh: boolean) =>
+        boxes
+            .filter((box) => (onHigh ? box[MAX_OF[axis]] >= 1 : box[axis] <= 0))
+            .map((box) => [box[u], box[v], box[MAX_OF[u]], box[MAX_OF[v]]] as const);
+    return coversSquare([...onFace(shape, high), ...onFace(neighbor, !high)]);
+};
+
+/**
+ * Whether two neighboring blocks' collision shapes together close the face between them, by
+ * {@link mergedFaceOccludes} over each state's {@link collisionShapeOf}. The fluid rules ask it
+ * before a fluid passes. A block the capture says collides with nothing, such as air or water, has
+ * no boxes, and one the registry does not know has no shape to read, so it closes nothing.
+ * @param types - The block types the blocks' states come from.
+ * @param block - The block whose `face` the two share.
+ * @param neighbor - The block on the other side.
+ * @param face - The side of `block` that `neighbor` is on.
+ * @returns Whether the face is closed.
+ */
+export const faceOccludesIn = (
+    types: ReadonlyMap<string, BlockType>,
+    block: Pick<HookBlock, 'identifier' | 'states'>,
+    neighbor: Pick<HookBlock, 'identifier' | 'states'>,
+    face: BlockFace
+): boolean => {
+    const shapeOf = (each: Pick<HookBlock, 'identifier' | 'states'>) => {
+        // Air and the fluids collide with nothing in the capture, whatever their state lacks.
+        if (bedrockHasCollisionOf(each.identifier) === false) return [];
+        const state = types.get(each.identifier)?.state(each.states);
+        return state === undefined ? undefined : collisionShapeOf(state);
+    };
+    const shape = shapeOf(block);
+    const neighborShape = shapeOf(neighbor);
+    return shape !== undefined && neighborShape !== undefined && mergedFaceOccludes(shape, neighborShape, face);
 };

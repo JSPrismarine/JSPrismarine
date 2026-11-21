@@ -5,7 +5,9 @@ import { performPull, performPush, planPush } from '@jsprismarine/block-behavior
 import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
+import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
 import { DEFAULT_BLOCK_BEHAVIOR, behaviorFor } from '@jsprismarine/blocks';
+import type { BlockFace } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
@@ -89,9 +91,12 @@ const fluidWorld = () => {
     for (let x = -FLOOR_REACH; x <= FLOOR_REACH; x++) {
         for (let z = -FLOOR_REACH; z <= FLOOR_REACH; z++) world.set({ x, y: BELOW.y, z }, 'minecraft:stone');
     }
+    type Block = { identifier: string; states: Readonly<Record<string, string | number | boolean>> };
     return Object.assign(world, {
-        isFullCube: (block: { identifier: string; states: Readonly<Record<string, string | number | boolean>> }) =>
-            isFullCube({ name: block.identifier, states: block.states })
+        isFullCube: (block: Block) => isFullCube({ name: block.identifier, states: block.states }),
+        // The server's own answer, from the captured collision shapes.
+        faceOccludes: (block: Block, neighbor: Block, face: BlockFace) =>
+            faceOccludesIn(serverContent().blocks.types, block, neighbor, face)
     });
 };
 
