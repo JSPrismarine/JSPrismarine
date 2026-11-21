@@ -175,6 +175,10 @@ working on the packaging itself.
 The released executables are compiled with Bun by `.github/scripts/build-aot.mjs`, which the
 release and nightly workflows run for each platform. That script needs the build metadata the
 workflows set, so the workflows are the supported way to produce release builds.
+The Linux x64 build also counts each package's code the AOT compiler cannot type, from Bun's
+`--explain` report, and warns when a package has more than `scripts/aot-explain-baseline.json`
+allows. With `bun` on the PATH of a Linux x64 host, `node scripts/check-aot-explain.mts` runs the
+same count locally, and `--update` lowers the baseline after a change removes slow paths.
 
 `pnpm run package` builds a different executable locally: `dist/prismarine`, a Node single
 executable application, with `scripts/package-sea.mts`. It needs Node 25.5 or newer, and a

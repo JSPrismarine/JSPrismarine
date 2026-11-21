@@ -175,6 +175,9 @@ jobs:
             - name: 🗃️ Compile executable
               if: ${{ env.MUSL != 'true' }}
               shell: bash
+              env:
+                  # The Linux x64 build also writes Bun's slow-path report, which the next step counts.
+                  AOT_EXPLAIN_REPORT: ${{ matrix.target == 'bun-linux-x64' && 'aot-explain/report.jsonl' || '' }}
               run: |
                   mkdir -p dist
                   output="dist/prismarine-${BUILD_TARGET#bun-}"
@@ -182,6 +185,16 @@ jobs:
                   node .github/scripts/smoke-executable.mjs "$BUILD_TARGET" "$output"
                   if [[ "$BUILD_TARGET" == bun-darwin-* ]]; then
                       node .github/scripts/package-macos-app.mjs "$output" "${BUILD_TARGET##*-}"
+                  fi
+
+            # Warns rather than fails: this job publishes the nightly, and a pull request that adds
+            # slow paths has already merged by the time it runs.
+            - name: 🐢 Count AOT slow paths
+              if: ${{ matrix.target == 'bun-linux-x64' }}
+              shell: bash
+              run: |
+                  if ! node scripts/check-aot-explain.mts --report aot-explain/report.jsonl; then
+                      echo "::warning title=AOT slow paths::A package has more code the AOT compiler cannot type than scripts/aot-explain-baseline.json allows; see this step's log."
                   fi
 
             # The checkout and its install are mounted at the same path, so pnpm's links resolve.

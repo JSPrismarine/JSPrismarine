@@ -174,6 +174,8 @@ Measure what the code decides, which is the same on every machine:
   workers already held", "the same count whatever the backlog size". Never assert a duration.
 - Use logical cost when work really differs by amount: blocks visited, nodes evaluated, packets
   produced, bytes in the payload.
+- For the AOT executables, count the slow paths Bun's `--explain` report lists with
+  `node scripts/check-aot-explain.mts`, and lower its baseline with `--update` after a fix.
 
 If a wall-clock figure is the only way to see something, such as whether an operating system
 priority is lowered or a control group is throttled, treat it as a diagnostic:
