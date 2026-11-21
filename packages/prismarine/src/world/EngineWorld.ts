@@ -75,6 +75,15 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
             if (section === null || section === undefined) return undefined;
             return (x, y, z) => section.getBlockRuntimeId(x & 15, y & 15, z & 15);
         },
+        sectionRandomTickIds: (origin) => {
+            const section = world.getLoadedChunk(origin.x >> 4, origin.z >> 4)?.getSubChunk(origin.y >> 4);
+            if (section === null || section === undefined) return undefined;
+            const ticks = blockCache.randomTickingLookup();
+            return (x, y, z) => {
+                const runtimeId = section.getBlockRuntimeId(x & 15, y & 15, z & 15);
+                return ticks(runtimeId) ? runtimeId : undefined;
+            };
+        },
         getBlockByRuntimeId: (runtimeId) => blockCache.get(runtimeId).block,
         isRandomlyTickingRuntimeId: (runtimeId) => blockCache.get(runtimeId).randomTicking,
         setBlock: writeBlock,
