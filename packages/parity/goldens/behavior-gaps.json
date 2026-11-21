@@ -1837,13 +1837,7 @@
         }
     },
     "scripting.gametest": {},
-    "scripting.items": {
-        "bds-record:containers": {
-            "kind": "defect",
-            "reason": "A chest slot keeps only a stack's type, count, name, lore, damage and enchantments on JSPrismarine, so the keepOnDeath, lockMode, setCanDestroy, setCanPlaceOn and dynamic properties a ContainerSlot writes are lost (issue #3301). Every find, contains, move, swap, transfer, clearAll, weight, tag read and error matches BDS.",
-            "reference": "issue #3301"
-        }
-    },
+    "scripting.items": {},
     "scripting.lifecycle": {
         "bds-record:jsp-detect": {
             "kind": "intentional",

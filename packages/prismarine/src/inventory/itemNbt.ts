@@ -10,8 +10,10 @@
  * pickaxe for an enchanted one.
  *
  * Inside `tag`: the durability spent as `Damage`, the display name and lore under `display`,
- * the enchantments as `ench`, and a container item's own inventory as a nested `Items` list,
- * which is where Bedrock keeps what a shulker box holds.
+ * the enchantments as `ench`, a container item's own inventory as a nested `Items` list, which
+ * is where Bedrock keeps what a shulker box holds, `minecraft:keep_on_death`,
+ * `minecraft:item_lock`, and the script dynamic properties as `DynamicProperties`. What the stack
+ * may be placed on and may break go beside `tag`, as `CanPlaceOn` and `CanDestroy`.
  *
  * The enchantments go out twice on purpose. `ench` carries the Bedrock numbers the client and
  * a vanilla tool read, and that table covers 37 of the 43 Java enchantments and none of a
@@ -20,7 +22,11 @@
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
+import type { ItemDynamicProperties } from '@jsprismarine/block-behaviors';
+
 import { bedrockEnchantType, javaEnchantmentId } from '../enchantment/bedrockIds';
+import type { DynamicProperties } from '../world/dynamicProperties';
+import { DYNAMIC_PROPERTIES_TAG, dynamicPropertiesFromNbt, dynamicPropertiesToNbt } from '../world/dynamicProperties';
 import type { StoredItemStack } from './persistence';
 
 /** Bedrock's own list tag for the stacks a container holds. */
@@ -28,6 +34,25 @@ export const ITEMS_TAG = 'Items';
 
 /** The Java enchantment ids, under the stack's `tag`, beside Bedrock's own `ench` list. */
 export const ENCHANTMENTS_TAG = 'jsprismarine:enchantments';
+
+/** Bedrock's tag for a stack kept on death, a byte set to 1. */
+const KEEP_ON_DEATH_TAG = 'minecraft:keep_on_death';
+
+/** Bedrock's tag for a locked stack, a byte: 1 locks it in its slot and 2 in the inventory. */
+const ITEM_LOCK_TAG = 'minecraft:item_lock';
+
+/** The {@link ITEM_LOCK_TAG} byte of each lock mode. */
+const LOCK_BYTES = { slot: 1, inventory: 2 } as const;
+
+/** A stack's dynamic properties as the NBT helpers take them, by pack and then by id. */
+const propertyMaps = (properties: ItemDynamicProperties) =>
+    new Map(Object.entries(properties).map(([pack, values]) => [pack, new Map(Object.entries(values))]));
+
+/** A stack's dynamic properties back out of the NBT helpers' maps, leaving out a pack with none. */
+const propertyRecords = (maps: DynamicProperties): ItemDynamicProperties =>
+    Object.fromEntries(
+        [...maps].filter(([, values]) => values.size > 0).map(([pack, values]) => [pack, Object.fromEntries(values)])
+    );
 
 /** One filled slot of a container, as a list tag carries it. */
 export interface NbtItemSlot {
@@ -109,6 +134,8 @@ export const itemStackToNbt = (stack: StoredItemStack, slot?: number): NBTTagCom
     entry.addValue('Count', new Types.ByteVal(stack.count));
     entry.addValue('Damage', new Types.ShortVal(stack.meta ?? 0));
     if (slot !== undefined) entry.addValue('Slot', new Types.ByteVal(slot));
+    if (stack.canPlaceOn && stack.canPlaceOn.length > 0) entry.addValue('CanPlaceOn', stringList(stack.canPlaceOn));
+    if (stack.canDestroy && stack.canDestroy.length > 0) entry.addValue('CanDestroy', stringList(stack.canDestroy));
 
     const tag = new NBTTagCompound('tag');
     let anything = false;
@@ -138,6 +165,20 @@ export const itemStackToNbt = (stack: StoredItemStack, slot?: number): NBTTagCom
         anything = true;
     }
 
+    if (stack.keepOnDeath === true) {
+        tag.addValue(KEEP_ON_DEATH_TAG, new Types.ByteVal(1));
+        anything = true;
+    }
+    if (stack.lockMode !== undefined) {
+        tag.addValue(ITEM_LOCK_TAG, new Types.ByteVal(LOCK_BYTES[stack.lockMode]));
+        anything = true;
+    }
+    const properties = propertyMaps(stack.dynamicProperties ?? {});
+    if ([...properties.values()].some((values) => values.size > 0)) {
+        tag.addChild(dynamicPropertiesToNbt(properties, DYNAMIC_PROPERTIES_TAG));
+        anything = true;
+    }
+
     if (anything) entry.addChild(tag);
     return entry;
 };
@@ -156,6 +197,13 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
     const lore = display === null ? [] : stringsIn(display, 'Lore');
     const enchantments = enchantmentsFromNbt(tag);
     const contents = tag === null ? [] : itemSlotsFromNbt(tag, ITEMS_TAG);
+    const canPlaceOn = stringsIn(entry, 'CanPlaceOn');
+    const canDestroy = stringsIn(entry, 'CanDestroy');
+    const keepOnDeath = tag?.getByte(KEEP_ON_DEATH_TAG, 0) === 1;
+    const lock = tag?.getByte(ITEM_LOCK_TAG, 0) ?? 0;
+    const lockMode = lock === LOCK_BYTES.slot ? 'slot' : lock === LOCK_BYTES.inventory ? 'inventory' : undefined;
+    const propertiesTag = tag?.getCompound(DYNAMIC_PROPERTIES_TAG, false) ?? null;
+    const dynamicProperties = propertiesTag === null ? {} : propertyRecords(dynamicPropertiesFromNbt(propertiesTag));
 
     return {
         name,
@@ -165,7 +213,12 @@ export const itemStackFromNbt = (entry: NBTTagCompound): StoredItemStack | null 
         ...(customName === '' ? {} : { customName }),
         ...(lore.length === 0 ? {} : { lore }),
         ...(enchantments === undefined ? {} : { enchantments }),
-        ...(contents.length === 0 ? {} : { contents: denseSlots(contents) })
+        ...(contents.length === 0 ? {} : { contents: denseSlots(contents) }),
+        ...(canPlaceOn.length === 0 ? {} : { canPlaceOn }),
+        ...(canDestroy.length === 0 ? {} : { canDestroy }),
+        ...(keepOnDeath ? { keepOnDeath } : {}),
+        ...(lockMode === undefined ? {} : { lockMode }),
+        ...(Object.keys(dynamicProperties).length === 0 ? {} : { dynamicProperties })
     };
 };
 

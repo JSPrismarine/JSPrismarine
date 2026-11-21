@@ -61,7 +61,24 @@ export interface ItemDrop {
      * between being broken and being placed again.
      */
     readonly contents?: readonly (ItemDrop | undefined)[];
+    /** The Bedrock block identifiers the stack may be placed on in adventure mode. */
+    readonly canPlaceOn?: readonly string[];
+    /** The Bedrock block identifiers the stack may break in adventure mode. */
+    readonly canDestroy?: readonly string[];
+    /** Whether the stack stays with its owner when they die, Bedrock's `minecraft:keep_on_death`. */
+    readonly keepOnDeath?: boolean;
+    /** Where the stack is locked, Bedrock's `minecraft:item_lock`: in its slot or in the inventory. */
+    readonly lockMode?: 'slot' | 'inventory';
+    /** The script dynamic properties set on the stack, by pack UUID and then by property id. */
+    readonly dynamicProperties?: ItemDynamicProperties;
 }
+
+/** A script dynamic property's value: a number, a boolean, a string or a vector. */
+export type ItemDynamicPropertyValue =
+    number | boolean | string | { readonly x: number; readonly y: number; readonly z: number };
+
+/** A stack's script dynamic properties, by pack UUID and then by property id, in the order they were set. */
+export type ItemDynamicProperties = Readonly<Record<string, Readonly<Record<string, ItemDynamicPropertyValue>>>>;
 
 /**
  * What a block entity stores.

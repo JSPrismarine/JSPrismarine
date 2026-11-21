@@ -83,6 +83,33 @@ describe('block entity records', () => {
         ]);
     });
 
+    it("keeps a stack's adventure lists, its keep-on-death and lock flags and its dynamic properties", () => {
+        const stack = {
+            identifier: 'minecraft:diamond_pickaxe',
+            count: 1,
+            canPlaceOn: ['minecraft:dirt'],
+            canDestroy: ['minecraft:glass', 'minecraft:stone'],
+            keepOnDeath: true,
+            lockMode: 'inventory' as const,
+            dynamicProperties: { '0a1b2c3d-0000-4000-8000-000000000001': { 'jsp:a': 7, 'jsp:b': 'text' } }
+        };
+        const nbt = blockEntityCompound(null, { x: 4, y: 64, z: 4 }, 'minecraft:chest');
+        applyBlockEntityRecord(nbt, { capacity: 2, items: [stack, { ...stack, lockMode: 'slot' as const }] });
+
+        const disk = throughDisk(nbt);
+        const restored = blockEntityRecord(disk);
+
+        expect(restored.items?.[0]).toEqual(stack);
+        expect(restored.items?.[1]?.lockMode).toBe('slot');
+        // Bedrock's own tags, so the game reads the same stack.
+        const first = [...(disk.getList('Items', false) ?? [])][0];
+        if (!(first instanceof NBTTagCompound)) throw new Error('the chest wrote no item compound');
+        expect(first.getCompound('tag', false)?.getByte('minecraft:keep_on_death', 0)).toBe(1);
+        expect(first.getCompound('tag', false)?.getByte('minecraft:item_lock', 0)).toBe(2);
+        expect(first.getCompound('tag', false)?.getCompound('DynamicProperties', false)).not.toBeNull();
+        expect(first.getList('CanDestroy', false)?.size).toBe(2);
+    });
+
     it('keeps the fields Bedrock has no tag for', () => {
         const nbt = blockEntityCompound(null, { x: 0, y: 0, z: 0 }, 'minecraft:chest');
         applyBlockEntityRecord(nbt, { capacity: 27, items: [], pairedWith: { x: 5, y: 64, z: 4 }, sealed: true });

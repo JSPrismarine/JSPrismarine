@@ -12,7 +12,7 @@
  * `undefined` for the same reason: `JSON.stringify` turns an `undefined` array element into
  * `null` anyway, so the two forms would not match across the fallback path.
  */
-import type { ItemDrop } from '@jsprismarine/block-behaviors';
+import type { ItemDrop, ItemDynamicProperties } from '@jsprismarine/block-behaviors';
 
 import { isRecord } from '../utils/isRecord';
 import { isStringList } from '../utils/isStringList';
@@ -56,7 +56,25 @@ export interface StoredItemStack {
     readonly canPlaceOn?: readonly string[];
     /** The Bedrock block identifiers the stack may destroy, which adventure mode reads. */
     readonly canDestroy?: readonly string[];
+    /** Whether the stack stays with its owner when they die. */
+    readonly keepOnDeath?: boolean;
+    /** Where the stack is locked: in its slot or in the inventory. */
+    readonly lockMode?: 'slot' | 'inventory';
+    /** The script dynamic properties set on the stack, by pack UUID and then by property id. */
+    readonly dynamicProperties?: ItemDynamicProperties;
 }
+
+/** Whether a value is a dynamic property value: a number, a boolean, a string or a vector. */
+const isPropertyValue = (value: unknown): boolean =>
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'string' ||
+    (isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number' && typeof value.z === 'number');
+
+/** Whether a value has the shape of a stack's dynamic properties. */
+const isItemDynamicProperties = (value: unknown): value is ItemDynamicProperties =>
+    isRecord(value) &&
+    Object.values(value).every((pack) => isRecord(pack) && Object.values(pack).every(isPropertyValue));
 
 /** Whether an unknown value, such as JSON read from actor NBT, has the shape of a stored stack. */
 export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
@@ -69,6 +87,9 @@ export const isStoredItemStack = (value: unknown): value is StoredItemStack => {
     if (value.lore !== undefined && !isStringList(value.lore)) return false;
     if (value.canPlaceOn !== undefined && !isStringList(value.canPlaceOn)) return false;
     if (value.canDestroy !== undefined && !isStringList(value.canDestroy)) return false;
+    if (value.keepOnDeath !== undefined && typeof value.keepOnDeath !== 'boolean') return false;
+    if (value.lockMode !== undefined && value.lockMode !== 'slot' && value.lockMode !== 'inventory') return false;
+    if (value.dynamicProperties !== undefined && !isItemDynamicProperties(value.dynamicProperties)) return false;
     if (value.enchantments !== undefined) {
         if (!isRecord(value.enchantments)) return false;
         if (!Object.values(value.enchantments).every((level) => typeof level === 'number')) return false;
