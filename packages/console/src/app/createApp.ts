@@ -179,8 +179,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let commandNames: ReadonlySet<string> = new Set();
     /** The server's commands with their descriptions and forms, once it has sent them. */
     let commandReference: readonly CommandInfo[] = [];
-    /** Counts the requests for the command list, so only the newest answer is kept. */
+    /** Counts the requests for the command list, so an older answer never replaces a newer one. */
     let commandsRequest = 0;
+    /** The request whose answer the command list holds now. */
+    let commandsAnswered = 0;
+    /** The first request sent to the server that said hello last; answers to earlier ones are a previous server's. */
+    let commandsServerStart = 0;
     let commandsByName: ReadonlyMap<string, CommandInfo> = new Map();
     let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, { sidePaneWidth });
     let jumpCursor = 0;
@@ -810,13 +814,18 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     /** Asks the server which command names it knows, so `/name` can be told apart from a search. */
-    function learnCommandNames(): void {
-        // Each hello asks again; an answer to an older ask must not replace a newer server's.
+    function learnCommandNames(newServer = false): void {
         const request = ++commandsRequest;
+        if (newServer) commandsServerStart = request;
+        // A previous server's list, or an older one than the list already shown, is stale. An
+        // older answer from the same server is still the best list there is when it is the
+        // first back: the ask sent at hello can answer late, after the one sent at running.
+        const current = (): boolean => request >= commandsServerStart && request > commandsAnswered;
         if (props.onCommands !== undefined) {
             props.onCommands().then(
                 guard((commands: readonly CommandInfo[]) => {
-                    if (request !== commandsRequest) return;
+                    if (!current()) return;
+                    commandsAnswered = request;
                     commandReference = commands;
                     commandsByName = commandIndex(commands);
                     commandNames = new Set(commandsByName.keys());
@@ -831,7 +840,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         props.onComplete('', 0).then(
             guard((result: CompletionResult) => {
-                if (request !== commandsRequest) return;
+                if (!current()) return;
+                commandsAnswered = request;
                 commandNames = new Set(result.completions);
             }),
             () => {
@@ -1218,7 +1228,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 tpsSamples = [];
                 refreshSidePane();
                 refreshTpsPage();
-                learnCommandNames();
+                learnCommandNames(true);
                 return;
             case 'log': {
                 const { seq, level, namespace, at, message: text, formatted } = message;

@@ -135,6 +135,19 @@ describe('startConsole against a stub server', () => {
             expect(await searchPalette(t, 'say')).toContain('Broadcasts a message.');
         });
 
+        it('keeps an early command list that arrives late when the later request goes unanswered', async () => {
+            t = await startTestConsole();
+            const stub = t.connect({ hold: ['commands'] });
+            await stub.play(STARTUP);
+            await stub.waitFor('commands', 2);
+
+            // The request sent on hello is answered only now, after the one sent on running.
+            stub.release('commands', 1);
+
+            await t.test.mockInput.typeText('say ');
+            await t.test.waitForFrame((text) => text.includes('say <message>'));
+        });
+
         it('fails a command in flight when the link closes, and turns the command line off', async () => {
             const { t, stub } = await started({ hold: ['command'] });
 
