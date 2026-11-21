@@ -390,6 +390,8 @@ describe("PlayerSession's player", () => {
 
         it('drowns once the air is gone, two half-hearts a second', async () => {
             const { session, player } = fakePlayer({ underwater: true });
+            // Without saturation, so a full food bar's fast heal does not offset the drowning.
+            player.setSaturation(0);
 
             await tick(session, MAX_AIR_TICKS);
             expect(player.metadata.air).toBe(0);
@@ -466,6 +468,8 @@ describe("PlayerSession's player", () => {
 
         it('heals a well-fed player, and charges them for it', async () => {
             const { session, player } = fakePlayer();
+            // Short of full, so the four-second heal runs rather than a full bar's fast one.
+            player.setFood(19);
             await session.getActor()?.setHealth(10);
 
             await tick(session, 81, 1);
@@ -1100,6 +1104,8 @@ describe("PlayerSession's player", () => {
 
         it('hurts a player four half-hearts every half second once 64 blocks under the floor', async () => {
             const { session, player } = fakePlayer();
+            // Without saturation, so a full food bar's fast heal does not offset the void.
+            player.setSaturation(0);
             await fallTo(session, -200);
 
             await tick(session, 9);
@@ -1144,6 +1150,7 @@ describe("PlayerSession's player", () => {
 
         it('kills, and says the player fell out of the world', async () => {
             const { session, player, sent } = fakePlayer();
+            player.setSaturation(0);
             await fallTo(session, -200);
 
             await tick(session, 50);
