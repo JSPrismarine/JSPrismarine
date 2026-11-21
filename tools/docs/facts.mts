@@ -420,6 +420,9 @@ function scriptingFacts() {
         if (member.kind === 'methods') {
             return [
                 [inlineCode(name), 'object', member.summary],
+                ...Object.entries<{ readonly type: string; readonly summary: string }>(member.properties ?? {}).map(
+                    ([key, property]) => [inlineCode(`${name}.${key}`), typeCell(property.type), property.summary]
+                ),
                 ...Object.entries(member.methods).map(([key, method]) => [
                     call(`${name}.${key}`, method.parameters),
                     'function',

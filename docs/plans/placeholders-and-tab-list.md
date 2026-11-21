@@ -269,8 +269,12 @@ and clear without leaving residue, and a ranks addon can set once and keep it.
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
-       and `script-types`, the fact tables on the module page, and the parity row.
+2. [x] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
+       and `script-types`, the fact tables on the module page, and the parity row. The registry is
+       `ScriptPlaceholders` in the script host, which knows nothing of the engine: the runtime
+       wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
+       lets the server register under an owner of its own. A token's key must be in the provider's
+       `keys`, so the list is what the registry answers. A player who left renders as no player.
 3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
        tests.
 4. [ ] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact

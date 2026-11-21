@@ -25,5 +25,6 @@ export const loadLibrary = (): ScriptHostLibrary => ScriptHostLibrary.load();
 export const TEST_SERVER: JsprismarineServerInfo = {
     version: '0.0.0-test',
     minecraftVersion: '1.26.60',
-    protocolVersion: 2225
+    protocolVersion: 2225,
+    maxPlayers: 10
 };

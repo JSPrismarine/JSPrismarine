@@ -903,6 +903,184 @@ system.run(() => {
             expect(barCalls(members)).toEqual([shown, { kind: 'hide', player: steve, id: shown!.id }]);
         });
 
+        /** Two packs that keep the module in a global: `provider`, which registers `demo`, and `consumer`. */
+        const startTwoPacks = (providerBody: string, consumerBody: string) => {
+            const members = new RecordingMembers();
+            const world = new MemoryWorld();
+            const pack = (name: string, uuid: string, body: string) =>
+                writePack(
+                    `import { system, world } from '@minecraft/server';
+                    const show = (label, call) => {
+                        try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                    };
+                    let jsp;
+                    import('@jsprismarine/server').then((module) => { jsp = module; });
+                    ${body}`,
+                    '2.0.0',
+                    name,
+                    uuid
+                );
+            const { scripts, log } = start(
+                [
+                    pack('provider', '5f3b0f3e-6f1e-4c1c-9d4a-0b7c0a1a0001', providerBody),
+                    pack('consumer', '5f3b0f3e-6f1e-4c1c-9d4a-0b7c0a1a0002', consumerBody)
+                ],
+                { world, members }
+            );
+            return { scripts, world, log };
+        };
+
+        it('renders the tokens of another pack, with the player as the provider\u2019s own object', () => {
+            const { scripts, world, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    jsp.placeholders.register('demo', {
+                        keys: ['name', 'same', 'ping', 'nothing', 'count'],
+                        resolve(key, player) {
+                            if (key === 'name') return player?.name;
+                            if (key === 'same') return player === world.getAllPlayers()[0] ? 'own object' : 'copy';
+                            if (key === 'ping') return player === undefined ? undefined : jsp.getPing(player);
+                            if (key === 'count') return this.keys.length;
+                            return undefined;
+                        }
+                    });
+                }, 1);`,
+                `system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    show('for Steve', () => jsp.placeholders.resolve('{demo:name} {demo:same} {demo:ping}ms {demo:count}', steve));
+                    show('for no one', () => jsp.placeholders.resolve('{demo:name} {demo:ping} {demo:count} {demo:nothing} {demo:other} {other:name} {Demo:name} {demo}', undefined));
+                    show('namespaces', () => jsp.placeholders.namespaces);
+                    show('frozen', () => [Object.isFrozen(jsp.placeholders.namespaces), Object.isFrozen(jsp.placeholders.namespaces[0]), Object.isFrozen(jsp.placeholders.namespaces[0].keys)]);
+                }, 2);`
+            );
+            world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'for Steve "Steve own object {demo:ping}ms 5"',
+                'for no one "{demo:name} {demo:ping} 5 {demo:nothing} {demo:other} {other:name} {Demo:name} {demo}"',
+                'namespaces [{"namespace":"demo","keys":["name","same","ping","nothing","count"]}]',
+                'frozen [true,true,true]'
+            ]);
+        });
+
+        it('leaves the token of a resolver that throws and logs the throw once per namespace', () => {
+            const { scripts, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    jsp.placeholders.register('bad', { keys: ['boom', 'fine'], resolve: (key) => { if (key === 'boom') throw new RangeError('no value'); return 'ok'; } });
+                }, 1);`,
+                `system.runTimeout(() => {
+                    show('first', () => jsp.placeholders.resolve('{bad:boom} {bad:fine} {bad:boom}'));
+                    show('second', () => jsp.placeholders.resolve('{bad:boom}'));
+                }, 2);`
+            );
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['first "{bad:boom} ok {bad:boom}"', 'second "{bad:boom}"']);
+            const reported = log.lines.filter((line) => line.includes('placeholder provider'));
+            expect(reported).toHaveLength(1);
+            expect(reported[0]).toMatch(
+                /^error \[Scripting\] \[provider\] The placeholder provider of bad threw, and its tokens stay as written: RangeError: no value/
+            );
+        });
+
+        it('refuses a malformed registration, a namespace in use and arguments of the wrong type, naming the member', () => {
+            const { scripts, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    show('ok', () => Object.keys(jsp.placeholders.register('demo', { keys: ['a'], resolve: () => 1 })));
+                    show('taken', () => jsp.placeholders.register('demo', { keys: ['a'], resolve: () => 1 }));
+                    show('namespace', () => jsp.placeholders.register('Demo', { keys: ['a'], resolve: () => 1 }));
+                    show('key', () => jsp.placeholders.register('other', { keys: ['a-b'], resolve: () => 1 }));
+                    show('no keys', () => jsp.placeholders.register('other', { keys: [], resolve: () => 1 }));
+                    show('keys', () => jsp.placeholders.register('other', { keys: 'a', resolve: () => 1 }));
+                    show('key object', () => jsp.placeholders.register('other', { keys: [{}], resolve: () => 1 }));
+                    show('resolve', () => jsp.placeholders.register('other', { keys: ['a'] }));
+                    show('resolve object', () => jsp.placeholders.register('other', { keys: ['a'], resolve: {} }));
+                    show('provider', () => jsp.placeholders.register('other', 7));
+                    show('name', () => jsp.placeholders.register(7, { keys: ['a'], resolve: () => 1 }));
+                    show('text', () => jsp.placeholders.resolve(7));
+                    show('player', () => jsp.placeholders.resolve('x', { id: '1' }));
+                }, 1);`,
+                `system.runTimeout(() => {
+                    show('other pack', () => jsp.placeholders.register('demo', { keys: ['a'], resolve: () => 1 }));
+                    show('still one', () => jsp.placeholders.namespaces.map(({ namespace }) => namespace));
+                }, 2);`
+            );
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'ok ["unregister"]',
+                'taken Error: The placeholder namespace demo is registered already',
+                'namespace TypeError: namespace Demo is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter',
+                'key TypeError: key a-b is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter',
+                'no keys TypeError: The placeholder namespace other lists no keys',
+                'keys TypeError: placeholders.register takes a list of strings as its keys',
+                'key object TypeError: placeholders.register takes a list of strings as its keys',
+                'resolve TypeError: placeholders.register takes a function as its resolve',
+                'resolve object TypeError: placeholders.register takes a function as its resolve',
+                'provider TypeError: placeholders.register takes an object as its provider',
+                'name TypeError: placeholders.register takes a string as its namespace',
+                'text TypeError: placeholders.resolve takes a string as its text',
+                'player TypeError: placeholders.resolve takes a Player as its player',
+                'other pack Error: The placeholder namespace demo is registered already',
+                'still one ["demo"]'
+            ]);
+        });
+
+        it('ends a namespace on unregister and when the scripts stop, so a reload starts with none', () => {
+            const { scripts, log } = startTwoPacks(
+                `let registration;
+                system.runTimeout(() => {
+                    show('before registering', () => jsp.placeholders.namespaces.length);
+                    registration = jsp.placeholders.register('demo', { keys: ['a'], resolve: () => 'A' });
+                    jsp.placeholders.register('kept', { keys: ['b'], resolve: () => 'B' });
+                }, 1);
+                system.runTimeout(() => { registration.unregister(); registration.unregister(); }, 3);`,
+                `system.runInterval(() => show('tick ' + system.currentTick, () => jsp.placeholders.resolve('{demo:a}{kept:b}')), 1);`
+            );
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+            scripts.reload();
+            scripts.flush();
+            scripts.flush();
+
+            // The second runtime registers both again, which a `kept` left behind would refuse.
+            expect(log.printed()).toEqual([
+                'before registering 0',
+                'tick 1 "AB"',
+                'tick 2 "AB"',
+                'tick 3 "{demo:a}B"',
+                'before registering 0',
+                'tick 5 "AB"'
+            ]);
+        });
+
+        it('passes no player to a resolver for a player who left', () => {
+            const { scripts, world, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    jsp.placeholders.register('demo', { keys: ['who'], resolve: (key, player) => player === undefined ? 'no one' : player.name });
+                }, 1);`,
+                `let steve;
+                system.runTimeout(() => { steve = world.getAllPlayers()[0]; show('present', () => jsp.placeholders.resolve('{demo:who}', steve)); }, 2);
+                system.runTimeout(() => show('gone', () => jsp.placeholders.resolve('{demo:who}', steve)), 3);`
+            );
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+            world.leave(steve);
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['present "Steve"', 'gone "no one"']);
+        });
+
         it('leaves the members that reach the server out when the server gives none', () => {
             const { scripts, log } = start([
                 writePack(`import { world } from '@minecraft/server';
