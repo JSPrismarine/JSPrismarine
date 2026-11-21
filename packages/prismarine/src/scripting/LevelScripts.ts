@@ -40,6 +40,8 @@ export interface LevelScriptsOptions {
      * of the server. The module leaves them out when absent.
      */
     readonly members?: JsprismarineServerMembers;
+    /** How many players may be online at once, which `jsprismarine.maxPlayers` tells the packs. */
+    readonly maxPlayers: number;
     /** The level's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog: ScriptWatchdogConfig;
@@ -210,7 +212,7 @@ export class LevelScripts {
             config: host.readScriptConfig(options.configDirectory, (message) => log.warn(message)),
             betaApis: options.experiments?.includes(BETA_APIS) === true,
             log,
-            server: { version, minecraftVersion, protocolVersion },
+            server: { version, minecraftVersion, protocolVersion, maxPlayers: options.maxPlayers },
             ...(options.members === undefined ? {} : { members: options.members }),
             seed: options.seed,
             watchdog: host.watchdogSettings({

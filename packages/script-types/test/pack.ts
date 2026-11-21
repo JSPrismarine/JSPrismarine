@@ -14,10 +14,11 @@ if (jsp !== undefined) {
     const { jsprismarine } = jsp;
     const name: 'JSPrismarine' = jsprismarine.name;
     const protocol: number = jsprismarine.protocolVersion;
+    const slots: number = jsprismarine.maxPlayers;
     const versions: string[] = [jsprismarine.version, jsprismarine.minecraftVersion];
     // @ts-expect-error The module's values are read-only.
     jsprismarine.version = '1.0.0';
-    void [name, protocol, versions];
+    void [name, protocol, versions, slots];
 
     // A server older than these members leaves them out, so the pack checks before it uses them.
     if ('performance' in jsp && 'getPing' in jsp && 'bossBars' in jsp) {
@@ -45,6 +46,31 @@ if (jsp !== undefined) {
         // @ts-expect-error The name is a string.
         jsp.playerList.setDisplayName(player, 7);
     }
+}
+
+// The placeholders live in a module of their own, loaded the same way.
+const placeholders = await (async () => {
+    try {
+        return await import('@jsprismarine/placeholders');
+    } catch {
+        return undefined;
+    }
+})();
+if (placeholders !== undefined) {
+    const { register, resolve, namespaces } = placeholders;
+    const player = { id: '-4294967295' };
+    const registration = register('demo', {
+        keys: ['name', 'slots'],
+        // A provider gets the pack's own Player, so every @minecraft/server member is there.
+        resolve: (key, who) => (key === 'name' ? who?.name : jsp?.jsprismarine.maxPlayers)
+    });
+    register('more', { keys: ['tag'], resolve: (_key, who) => who?.getTags().join(',') });
+    const text: string = resolve('{demo:name} of {demo:slots}', player);
+    const names: string[] = namespaces().flatMap(({ namespace, keys }) => [namespace, ...keys]);
+    // @ts-expect-error The list is read-only.
+    namespaces().push({ namespace: 'x', keys: [] });
+    registration.unregister();
+    void [text, names];
 }
 
 export {};
