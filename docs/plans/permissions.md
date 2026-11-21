@@ -105,13 +105,16 @@ interface User {
 }
 ```
 
-Resolution walks the user's nodes, then each group the user holds directly ordered by weight, and
-each group's parents depth first. The first node that decides the query wins, where a specific
-node decides before a wildcard at the same tier, and a negation decides before a grant at the same
+Resolution walks the user's nodes, then each group the user holds directly ordered by weight. A
+group's nodes are its own nodes followed by its parents' depth first, and an inherited node takes
+the weight of the direct group that inherits it, so a light parent of a heavy group still decides
+before a lighter direct group. The first node that decides the query wins, where a specific node
+decides before a wildcard at the same tier, and a negation decides before a grant at the same
 specificity. Expired nodes and memberships are skipped and pruned on the next write. The primary
 group is the heaviest group the user holds directly.
 
-Meta resolves the same way: the user's own meta, then the groups in weight order, then parents.
+Meta resolves in the same order: the user's own meta, then each direct group by weight with its
+parents depth first behind it.
 `level` is read as a number from 0 to 4, and the subject's command level is the larger of it and 4
 when the subject is an operator.
 
@@ -134,11 +137,14 @@ when the subject is an operator.
 
 Operators hold `operator` implicitly, so `defaultOperatorPermissions` has a home without a second
 mechanism. At startup, a file without `schemaVersion` migrates: `defaultPermissions` becomes the
-`default` group's nodes, `defaultOperatorPermissions` becomes `operator`'s, and each `players`
+`default` group's nodes, `defaultOperatorPermissions` becomes `operator`'s, with `*` when the
+field is absent or invalid as the loader assumes today, and each `players`
 entry becomes a user under `xbox` with its UUID kept as `legacyUuid` and no key yet. A user with
 only a `legacyUuid` is filed under a `pending` list until a login with that UUID claims it, which
 writes it under its real kind and drops the UUID. The old file stays beside the new one as
-`permissions.json.bak`. `ops.json` and `banned-players.json` migrate the same way.
+`permissions.json.bak`. `ops.json` migrates the same way. A ban today has a name and no id, so a
+migrated ban keeps its name and keeps matching logins by display name as it does now; a login that
+matches gains the subject on the entry, and the name match stays so a ban never lapses.
 
 The server reloads the file on `/reload` and when the watcher sees it change. A write from a
 command or a script goes through the same code path the config files use, so comments survive.
@@ -184,14 +190,17 @@ command syntax only and never appears in a file or an API.
 | `groupsOf(player)`                  | The groups the player holds directly, heaviest first. |
 | `primaryGroupOf(player)`            | The heaviest group, or `default`.                     |
 | `metaOf(player, key)`               | The resolved meta value, or `undefined`.              |
-| `grant(subject, node, expires?)`    | Adds a node to a player or a group named by string.   |
-| `revoke(subject, node)`             | Removes it.                                           |
+| `grant(player, node, expires?)`     | Adds a node to the player.                            |
+| `revoke(player, node)`              | Removes it.                                           |
+| `grantToGroup(group, node, expires?)` | Adds a node to the group named by string.           |
+| `revokeFromGroup(group, node)`      | Removes it.                                           |
 | `addToGroup(player, group, expires?)` | Adds a membership.                                  |
 | `removeFromGroup(player, group)`    | Removes it.                                           |
 | `afterEvents.permissionsChange`     | Fires after any write, with the subject it touched.   |
 
-Writes persist like a command's do. The members take a `Player` and never expose a subject key;
-a pack that needs one has no case yet.
+Writes persist like a command's do. A member that touches a user takes a `Player`, and one that
+touches a group takes the group's name. No member exposes a subject key; a pack that needs one has
+no case yet.
 
 The server registers a `perms` placeholder namespace with `primary_group`, `groups`, `prefix`,
 `suffix` and `weight`, so the tab list and chat addons read a rank without an API call.
