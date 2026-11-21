@@ -10,6 +10,7 @@ describe('input/Intent', () => {
             'animate',
             'changeGameMode',
             'chat',
+            'closeContainer',
             'eat',
             'emote',
             'finishCredits',
@@ -22,6 +23,7 @@ describe('input/Intent', () => {
             'respawn',
             'runCommand',
             'scriptMessage',
+            'selectHotbarSlot',
             'setDefaultGameMode',
             'setPlayerPermission',
             'setViewDistance'

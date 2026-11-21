@@ -104,6 +104,13 @@ export interface IntentPayloads {
     readonly respawn: Record<never, never>;
     /** The client finished spawning and has a player to show. */
     readonly playerInitialized: Record<never, never>;
+    /**
+     * The player closed a container screen, by window id. `containerType` is the Bedrock
+     * container type the client sent, which the reply echoes until the presenter owns the reply.
+     */
+    readonly closeContainer: { readonly window: number; readonly containerType: number };
+    /** The player moved its hand to a hotbar slot, 0 to 8. */
+    readonly selectHotbarSlot: { readonly slot: number };
 }
 
 /** What the table declares about one intent. */
@@ -145,7 +152,11 @@ export const Intents = {
     scriptMessage: { lane: 'input' },
     respawn: { lane: 'input' },
     // Puts the player into its world.
-    playerInitialized: { lane: 'input' }
+    playerInitialized: { lane: 'input' },
+    // Writes the inventory and may drop items into the world.
+    closeContainer: { lane: 'input' },
+    // Writes the hand slot, which replication shows the players that see the sender.
+    selectHotbarSlot: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

@@ -1,9 +1,11 @@
 import ActorEventDecoder from './ActorEventDecoder';
 import AnimateDecoder from './AnimateDecoder';
 import BossEventDecoder from './BossEventDecoder';
+import ContainerCloseDecoder from './ContainerCloseDecoder';
 import EmoteDecoder from './EmoteDecoder';
 import InteractDecoder from './InteractDecoder';
 import LevelSoundEventDecoder from './LevelSoundEventDecoder';
+import MobEquipmentDecoder from './MobEquipmentDecoder';
 import RequestAbilityDecoder from './RequestAbilityDecoder';
 import RequestChunkRadiusDecoder from './RequestChunkRadiusDecoder';
 import RequestPermissionsDecoder from './RequestPermissionsDecoder';
@@ -25,9 +27,11 @@ export {
     ActorEventDecoder,
     AnimateDecoder,
     BossEventDecoder,
+    ContainerCloseDecoder,
     EmoteDecoder,
     InteractDecoder,
     LevelSoundEventDecoder,
+    MobEquipmentDecoder,
     RequestAbilityDecoder,
     RequestChunkRadiusDecoder,
     RequestPermissionsDecoder,
