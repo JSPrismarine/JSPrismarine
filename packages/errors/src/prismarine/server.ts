@@ -177,11 +177,10 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
      */
     PermissionGroupCycle: 'Making {parent} a parent of {group} would make {group} its own ancestor',
     /**
-     * `permissions.json` is gone or no longer a version 2 file while the server runs, so an edit
-     * cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
+     * `permissions.json` is no longer a version 2 file while the server runs, so an edit cannot
+     * be saved into it. Restore the file, or run `/perms reload` after fixing it.
      */
-    PermissionsFileNotLoaded:
-        '{permissionFileName} is missing or not a version {supported} file, so the edit was not saved',
+    PermissionsFileNotLoaded: '{permissionFileName} is not a version {supported} file, so the edit was not saved',
     /**
      * NetherNet signaling could not bind its TCP port, usually because another process holds it.
      * Free the port, or set `enable-nethernet` to `false`.

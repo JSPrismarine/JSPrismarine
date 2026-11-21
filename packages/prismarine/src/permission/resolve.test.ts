@@ -144,6 +144,18 @@ describe('permission resolution', () => {
         expect(hasPermission(view(scoped), 'jsprismarine.command.tps')).toBe(false);
     });
 
+    it('lets `scope.*` name the scope itself, below an exact node for it', () => {
+        const wild = { default: group({ nodes: nodes('minecraft.command.*') }) };
+        expect(hasPermission(view(wild), 'minecraft.command')).toBe(true);
+        expect(hasPermission(view(wild), 'minecraft')).toBe(false);
+        const denied = { default: group({ nodes: nodes('-minecraft.command.*', 'minecraft.command') }) };
+        expect(hasPermission(view(denied), 'minecraft.command')).toBe(true);
+        expect(hasPermission(view(denied), 'minecraft.command.kick')).toBe(false);
+        expect(
+            hasPermission(view({ default: group({ nodes: nodes('-minecraft.command.*') }) }), 'minecraft.command')
+        ).toBe(false);
+    });
+
     it('lets a negation win a tie, and a bare scope cover its children as the checks always have', () => {
         const tied = {
             default: group({
@@ -193,8 +205,12 @@ describe('permission resolution', () => {
     });
 
     it('says whether a parent would make a group its own ancestor', () => {
-        const chain = { a: group({ parents: ['b'] }), b: group({ parents: ['c'] }), c: group() };
-        const groupOf = (name: string) => chain[name as keyof typeof chain];
+        const chain = new Map([
+            ['a', group({ parents: ['b'] })],
+            ['b', group({ parents: ['c'] })],
+            ['c', group()]
+        ]);
+        const groupOf = (name: string) => chain.get(name);
         expect(wouldCycle('c', 'a', groupOf)).toBe(true);
         expect(wouldCycle('a', 'a', groupOf)).toBe(true);
         expect(wouldCycle('a', 'c', groupOf)).toBe(false);

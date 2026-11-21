@@ -10,6 +10,7 @@ import type { Service } from '../utils/Service';
 import type { PlayerIdentity } from '../playerIdentity';
 import type PlayerSession from '../network/PlayerSession';
 import type { ConfigDocument } from '../config/ConfigDocument';
+import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry } from '../config/JsonConfigTypes';
 import {
     readJsonFile,
@@ -24,7 +25,7 @@ import { sameSubject, subjectId } from '../identity/Subject';
 import { cwd, withCwd } from '../utils/cwd';
 import { isRecord } from '../utils/isRecord';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
-import type { Group, Membership, Node, User } from './model';
+import type { Entry, Group, Membership, Node, User } from './model';
 import {
     BUILT_IN_GROUPS,
     checkExpiry,
@@ -34,6 +35,8 @@ import {
     emptyUser,
     groupJson,
     isExpired,
+    mergeEntries,
+    nextExpiryOf,
     OPERATOR_GROUP,
     userJson
 } from './model';
@@ -82,6 +85,11 @@ const PERMISSION_FILE_NAME = PERMISSIONS_FILE_NAME;
 const OPS_FILE_NAME = 'ops.json';
 /** How long changes to the file may settle before it is read again, in milliseconds. */
 const RELOAD_DEBOUNCE_MS = 150;
+/** The longest wait a timer takes; an expiry further off waits this long and looks again. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/** Whether a thrown value is a system error with this code. */
+const hasErrorCode = (error: unknown, code: string): boolean => isRecord(error) && error.code === code;
 
 /**
  * Anything that can be checked for command permissions: the console, or a player-like object
@@ -151,27 +159,24 @@ const withNode = (nodes: readonly Node[], added: Node, now: number): Node[] => [
     added
 ];
 
-/**
- * The merge of two lists of nodes or memberships, each spelling once: what the subject already
- * holds stays as it is, and a claimed entry joins only when its spelling is absent.
- */
-const merged = <T extends { readonly node: string } | { readonly group: string }>(
-    existing: readonly T[],
-    claimed: readonly T[]
-): T[] => {
-    const key = (entry: T): string => ('node' in entry ? entry.node : entry.group);
-    const seen = new Map(existing.map((entry) => [key(entry), entry]));
-    for (const entry of claimed) if (!seen.has(key(entry))) seen.set(key(entry), entry);
-    return [...seen.values()];
-};
+/** Of two entries of one spelling, the one the subject already holds. */
+const keepExisting = <T extends Entry>(existing: T): T => existing;
+
+/** What memory-first changes a load is to keep: see {@link PermissionManager.duringLoad}. */
+interface DuringLoad {
+    /** Operator changes by {@link subjectId}. */
+    readonly ops: Map<string, boolean>;
+    /** The logins that claimed a legacy entry, by the UUID claimed. */
+    readonly claims: Map<string, PlayerIdentity>;
+}
 
 /**
  * Permission manager: the operators of `ops.json`, and the groups and users of `permissions.json`.
  *
  * Every edit of `permissions.json` and every reload runs on one queue, in order: an edit reads the
  * file, changes one record, writes, and only then changes memory and tells the listeners, so a
- * failed write leaves memory as the file is and the edit can be made again. Operator changes stay
- * memory-first, since a handler applies them in its input step.
+ * failed write leaves memory as the file is and the edit can be made again. Operator changes and
+ * the claims a login makes stay memory-first, since a handler applies them in its input step.
  */
 export class PermissionManager implements Service {
     private readonly server: PermissionManagerServer;
@@ -201,12 +206,16 @@ export class PermissionManager implements Service {
     /** Set by {@link PermissionManager.disable}, so a reload that was in flight publishes nothing. */
     private disabled = false;
     /**
-     * The operator changes made while a load was reading the files, by {@link subjectId}, so the
-     * loaded set does not undo them when it is published. Absent outside a load.
+     * What changed memory-first while a reload was queued or reading the files: operator changes,
+     * and the legacy entries logins claimed. The files are read behind whatever is queued, so the
+     * loaded state would undo these when published; they are applied over it instead, and their
+     * writes are queued behind the load. Absent outside a reload.
      */
-    private opChangesDuringLoad: Map<string, boolean> | undefined;
-    /** How many reloads are queued or running, so the map above lives while any is. */
+    private duringLoad: DuringLoad | undefined;
+    /** How many reloads are queued or running, so the record above lives while any is. */
     private pendingReloads = 0;
+    /** Wakes at the next expiry in memory, to send the clients what applies from then on. */
+    private expiryTimer: NodeJS.Timeout | undefined;
 
     /**
      * Create a new permission manager.
@@ -241,6 +250,8 @@ export class PermissionManager implements Service {
         this.watcher = undefined;
         if (this.reloadTimer !== undefined) clearTimeout(this.reloadTimer);
         this.reloadTimer = undefined;
+        if (this.expiryTimer !== undefined) clearTimeout(this.expiryTimer);
+        this.expiryTimer = undefined;
         // A change made just before the server stops still reaches the file, and a reload in
         // flight finishes without publishing.
         await this.writes;
@@ -256,20 +267,23 @@ export class PermissionManager implements Service {
      * Reads `ops.json` and `permissions.json` again, as `/reload` does, behind the edits queued
      * before it. Memory changes only once both files read, and stays as it was when one does not
      * parse, which is logged and rejects so the command reports it. Afterwards the listeners hear
-     * of it and every connected client gets its command list and abilities again.
+     * of it and every connected client gets its command list and abilities again; a reload that
+     * shutdown overtook publishes nothing and tells nobody.
      * @throws InvalidPermissionsEntry when a file does not parse.
      */
     public reload(): Promise<void> {
-        // From here until the reload has published, an operator change is kept to be applied over
-        // what the files say, since the files are read behind whatever is queued now.
+        // From here until the reload has published, an operator change or a claim is kept to be
+        // applied over what the files say, since the files are read behind whatever is queued now.
         this.pendingReloads++;
-        this.opChangesDuringLoad ??= new Map();
+        this.duringLoad ??= { ops: new Map(), claims: new Map() };
         return this.queue(async () => {
+            let published: boolean;
             try {
-                await this.load(false);
+                published = await this.load(false);
             } finally {
-                if (--this.pendingReloads === 0) this.opChangesDuringLoad = undefined;
+                if (--this.pendingReloads === 0) this.duringLoad = undefined;
             }
+            if (!published) return;
             this.notify({});
             await this.refreshClients({});
         });
@@ -391,11 +405,16 @@ export class PermissionManager implements Service {
     /**
      * Edits one record of `permissions.json` on the queue: reads the file, lets `mutate` change the
      * document, writes it, and only then lets `apply` change memory, tells the listeners and
-     * refreshes the clients. A file that is gone or no longer a version 2 file is rebuilt from
-     * memory first, so the edit lands in a complete file. A failed write is logged and rethrown,
-     * and leaves memory as the file is.
+     * refreshes the clients. A file that changed on disk since it was last read is loaded first,
+     * as the watcher would, so the edit computes from what the file says rather than writing over
+     * a change the watcher has not caught up with; a file this server cannot read refuses the edit
+     * the way a reload would. A file that is gone or blank is written again from memory, so the
+     * edit lands in a complete file. A failed write is logged and rethrown, and leaves memory as
+     * the file is.
      *
      * @returns What `mutate` answered, or undefined when it answered undefined to say nothing changed.
+     * @throws InvalidPermissionsEntry when the file changed on disk into one that does not read,
+     *   PermissionsFileNotLoaded when it is not a version 2 file once read.
      */
     private edit<T>(
         change: PermissionChange,
@@ -403,16 +422,7 @@ export class PermissionManager implements Service {
     ): Promise<T | undefined> {
         return this.queue(async () => {
             const file = withCwd(PERMISSION_FILE_NAME);
-            let document = await readJsonFile(file, '{}');
-            const root = document.get([]);
-            if (!isRecord(root) || layoutOf(root) !== 'current') {
-                this.server
-                    .getLogger()
-                    .warn(
-                        `${PERMISSION_FILE_NAME} is missing or not a version ${PERMISSIONS_SCHEMA_VERSION} file; writing it again from memory.`
-                    );
-                document = documentOf({ groups: this.groups, users: this.users, pending: this.pending }, this.now());
-            }
+            const document = await this.documentToEdit(file);
             const outcome = mutate(document);
             if (outcome === undefined) return undefined;
             try {
@@ -423,10 +433,43 @@ export class PermissionManager implements Service {
                 throw error;
             }
             outcome.apply();
+            this.scheduleExpiryRefresh();
             this.notify(change);
             await this.refreshClients(change);
             return outcome.result;
         });
+    }
+
+    /** The document an edit changes: the file as it is on disk, read into memory first when it changed there. */
+    private async documentToEdit(file: string): Promise<ConfigDocument> {
+        let text: string;
+        try {
+            text = await fs.promises.readFile(file, 'utf8');
+        } catch (error: unknown) {
+            if (!hasErrorCode(error, 'ENOENT')) throw error;
+            text = '';
+        }
+        if (text.trim() === '') {
+            this.server.getLogger().warn(`${PERMISSION_FILE_NAME} is missing; writing it again from memory.`);
+            return documentOf({ groups: this.groups, users: this.users, pending: this.pending }, this.now());
+        }
+        if (text !== this.knownText) {
+            this.server.getLogger().info(`${PERMISSION_FILE_NAME} changed on disk; reading it before the edit.`);
+            if (await this.load(false)) {
+                this.notify({});
+                await this.refreshClients({});
+            }
+            text = await fs.promises.readFile(file, 'utf8');
+        }
+        const document = parseConfigDocument(text);
+        const root = document.get([]);
+        if (!isRecord(root) || layoutOf(root) !== 'current') {
+            throw new PrismarineServerErrors.PermissionsFileNotLoaded({
+                permissionFileName: PERMISSION_FILE_NAME,
+                supported: PERMISSIONS_SCHEMA_VERSION
+            });
+        }
+        return document;
     }
 
     /**
@@ -469,7 +512,11 @@ export class PermissionManager implements Service {
         return group;
     }
 
-    /** A node as a grant writes it, checked now so the caller hears of a bad one before the edit queues. */
+    /**
+     * A node as a grant writes it. A grant checks it when asked for, so the caller hears of a bad
+     * one before the edit queues, and again when the edit runs, so an expiry the queue outlived is
+     * refused rather than written.
+     */
     private nodeToAdd(node: string, expires: string | undefined): Node {
         return expires === undefined
             ? { node: checkNode(node) }
@@ -478,8 +525,11 @@ export class PermissionManager implements Service {
 
     /** Gives a player a node of their own. */
     public async grantUser(player: NamedSubject, node: string, expires?: string): Promise<void> {
-        const added = this.nodeToAdd(node, expires);
-        await this.editUser(player, (user) => ({ ...user, nodes: withNode(user.nodes, added, this.now()) }));
+        this.nodeToAdd(node, expires);
+        await this.editUser(player, (user) => ({
+            ...user,
+            nodes: withNode(user.nodes, this.nodeToAdd(node, expires), this.now())
+        }));
     }
 
     /** Takes a player's own node away. @returns Whether the player had it. */
@@ -490,16 +540,22 @@ export class PermissionManager implements Service {
         });
     }
 
-    /** Adds a player to a group. @throws PermissionGroupNotFound when the group does not exist. */
+    /**
+     * Adds a player to a group. The group and the expiry are checked when asked for and again when
+     * the edit runs, since an edit queued before it may have deleted the group or outlived the expiry.
+     * @throws PermissionGroupNotFound when the group does not exist.
+     */
     public async addToGroup(player: NamedSubject, group: string, expires?: string): Promise<void> {
-        this.groupToEdit(group);
-        const membership: Membership =
-            expires === undefined ? { group } : { group, expires: checkExpiry(expires, this.now()) };
+        const membershipToAdd = (): Membership => {
+            this.groupToEdit(group);
+            return expires === undefined ? { group } : { group, expires: checkExpiry(expires, this.now()) };
+        };
+        membershipToAdd();
         await this.editUser(player, (user) => ({
             ...user,
             groups: [
                 ...user.groups.filter((entry) => entry.group !== group && !isExpired(entry, this.now())),
-                membership
+                membershipToAdd()
             ]
         }));
     }
@@ -551,8 +607,11 @@ export class PermissionManager implements Service {
     /** Gives a group a node. */
     public async grantGroup(name: string, node: string, expires?: string): Promise<void> {
         this.groupToEdit(name);
-        const added = this.nodeToAdd(node, expires);
-        await this.editGroup(name, (group) => ({ ...group, nodes: withNode(group.nodes, added, this.now()) }));
+        this.nodeToAdd(node, expires);
+        await this.editGroup(name, (group) => ({
+            ...group,
+            nodes: withNode(group.nodes, this.nodeToAdd(node, expires), this.now())
+        }));
     }
 
     /** Takes a group's node away. @returns Whether the group had it. */
@@ -577,6 +636,7 @@ export class PermissionManager implements Service {
         }
         if (group.parents.includes(parent)) return;
         await this.editGroup(name, (current) => {
+            this.groupToEdit(parent);
             if (wouldCycle(name, parent, (candidate) => this.groups.get(candidate))) {
                 throw new PrismarineServerErrors.PermissionGroupCycle({ group: name, parent });
             }
@@ -618,26 +678,35 @@ export class PermissionManager implements Service {
     /**
      * Reads both files and publishes them together, so a file that does not parse leaves memory as
      * it was. `announce` logs the entries still waiting for a login, which a start does once.
+     * @returns Whether memory now holds the files: false when shutdown overtook the read.
      * @throws InvalidPermissionsEntry when either file does not parse.
      */
-    private async load(announce: boolean): Promise<void> {
+    private async load(announce: boolean): Promise<boolean> {
         const ops = await this.readOps();
         const permissions = await this.readPermissionsFile();
-        if (this.disabled) return;
+        if (this.disabled) return false;
         this.ops.clear();
         for (const id of ops.ops) this.ops.add(id);
         // An operator made or unmade since the reload was queued keeps that change; its write is
         // queued behind this load, so the file agrees once it runs.
-        for (const [id, op] of this.opChangesDuringLoad ?? []) {
+        for (const [id, op] of this.duringLoad?.ops ?? []) {
             if (op) this.ops.add(id);
             else this.ops.delete(id);
         }
         this.pendingOps.clear();
         for (const [uuid, name] of ops.pendingOps) this.pendingOps.set(uuid, name);
+        // A legacy entry a login claimed since the reload was queued stays claimed: the UUID no
+        // longer waits, and the user holds the claimed record until the claim's own write lands.
+        for (const uuid of this.duringLoad?.claims.keys() ?? []) this.pendingOps.delete(uuid);
         this.groups = permissions.groups;
         this.users = permissions.users;
         this.pending = permissions.pending;
-        if (!announce) return;
+        for (const [uuid, identity] of this.duringLoad?.claims ?? []) {
+            const waiting = this.pending.get(uuid);
+            if (waiting !== undefined) this.users.set(subjectId(identity.subject), this.claimed(identity, waiting));
+        }
+        this.scheduleExpiryRefresh();
+        if (!announce) return true;
         for (const [uuid, name] of this.pendingOps) {
             // Once, so an owner sees who is waiting; see the plan's risks.
             this.server
@@ -653,6 +722,45 @@ export class PermissionManager implements Service {
                     `${user.name} in ${PERMISSION_FILE_NAME} is keyed by the login UUID ${uuid} and gets their permissions back at their next login.`
                 );
         }
+        return true;
+    }
+
+    /** Every node and membership in memory that could expire. */
+    private *entries(): Generator<Entry> {
+        for (const group of this.groups.values()) yield* group.nodes;
+        for (const { user } of this.users.values()) {
+            yield* user.nodes;
+            yield* user.groups;
+        }
+    }
+
+    /**
+     * Wakes at the next expiry in memory. Resolution skips an entry from that instant, but nothing
+     * else runs then, so the connected clients are sent their command list and abilities again as
+     * an edit sends them; until then they would show what they were last sent.
+     */
+    private scheduleExpiryRefresh(): void {
+        if (this.expiryTimer !== undefined) clearTimeout(this.expiryTimer);
+        this.expiryTimer = undefined;
+        if (this.disabled) return;
+        const next = nextExpiryOf(this.entries(), this.now());
+        if (next === undefined) return;
+        this.expiryTimer = setTimeout(
+            () => {
+                this.expiryTimer = undefined;
+                void this.refreshExpired(next);
+            },
+            Math.min(next - this.now(), MAX_TIMER_MS)
+        );
+        this.expiryTimer.unref();
+    }
+
+    /** Sends the clients what applies once `at` has passed, and waits for the expiry after it. */
+    private async refreshExpired(at: number): Promise<void> {
+        if (this.disabled) return;
+        // A timer capped at the longest wait wakes before the instant; it looks again below.
+        if (this.now() >= at) await this.refreshClients({});
+        this.scheduleExpiryRefresh();
     }
 
     /**
@@ -677,7 +785,7 @@ export class PermissionManager implements Service {
 
             const layout = layoutOf(root);
             if (layout === 'absent') {
-                await fs.promises.copyFile(file, withCwd(PERMISSIONS_BACKUP_NAME));
+                await this.backUp(file);
                 document = migrateLegacyPermissions(root);
                 await writeJsonFile(file, document);
                 root = document.get([]);
@@ -712,6 +820,23 @@ export class PermissionManager implements Service {
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: PERMISSION_FILE_NAME });
+        }
+    }
+
+    /**
+     * Copies the file a migration is about to replace to `permissions.json.bak`. A backup already
+     * there is the older file, so it stays and the copy is skipped with a log line.
+     */
+    private async backUp(file: string): Promise<void> {
+        try {
+            await fs.promises.copyFile(file, withCwd(PERMISSIONS_BACKUP_NAME), fs.constants.COPYFILE_EXCL);
+        } catch (error: unknown) {
+            if (!hasErrorCode(error, 'EEXIST')) throw error;
+            this.server
+                .getLogger()
+                .info(
+                    `${PERMISSIONS_BACKUP_NAME} already exists and is kept; ${PERMISSION_FILE_NAME} is not copied over it.`
+                );
         }
     }
 
@@ -826,33 +951,25 @@ export class PermissionManager implements Service {
      */
     public claimLegacy(identity: PlayerIdentity): boolean {
         let claimed = false;
-        const name = this.pendingOps.get(identity.uuid);
+        const { uuid, subject } = identity;
+        const name = this.pendingOps.get(uuid);
         if (name !== undefined) {
-            this.pendingOps.delete(identity.uuid);
-            this.ops.add(subjectId(identity.subject));
+            this.pendingOps.delete(uuid);
+            this.ops.add(subjectId(subject));
+            this.duringLoad?.ops.set(subjectId(subject), true);
             this.server
                 .getLogger()
                 .info(`Operator ${name} logged in as ${identity.name} and is now keyed by their account.`);
-            void this.persistOp(identity.subject, identity.name, true, identity.uuid);
+            void this.persistOp(subject, identity.name, true, uuid);
             claimed = true;
         }
-        const waiting = this.pending.get(identity.uuid);
-        if (waiting !== undefined && !this.claiming.has(identity.uuid)) {
-            const { uuid, subject } = identity;
+        const waiting = this.pending.get(uuid);
+        if (waiting !== undefined && !this.claiming.has(uuid)) {
             this.claiming.add(uuid);
-            const existing = this.userOf(subject);
-            // A record the subject already has keeps what it has; the claimed one adds to it, each
-            // node and membership once, so a claim written twice adds nothing the second time.
-            const user: User = {
-                name: identity.name,
-                groups: merged(existing?.groups ?? [], waiting.groups),
-                nodes: merged(existing?.nodes ?? [], waiting.nodes),
-                meta: { ...waiting.meta, ...existing?.meta }
-            };
             // The player has their permissions from this login on; the file follows, and the entry
             // stays under `pending` in memory and on disk until the write succeeds, so a failed
             // write is retried at their next login.
-            this.users.set(subjectId(subject), { subject, user });
+            this.users.set(subjectId(subject), this.claimed(identity, waiting));
             this.server
                 .getLogger()
                 .info(
@@ -860,17 +977,43 @@ export class PermissionManager implements Service {
                 );
             this.edit({ subject, name: identity.name }, (document) => {
                 removePendingEntries(document, uuid);
-                // The record as it stands when the write runs, so an edit queued before the claim
-                // and already applied is written too, not the record the claim started from.
-                const current = this.userOf(subject) ?? user;
-                document.set(userPath(subject), userJson(current, this.now()));
-                return { result: true, apply: () => void this.pending.delete(uuid) };
+                // Merged again from what memory holds when the write runs: the record as the edits
+                // queued before the claim left it, and the pending entry as a reload in between
+                // read it back, so the file gets the whole claim whatever ran since the login.
+                const filed = this.claimed(identity, this.pending.get(uuid) ?? waiting);
+                document.set(userPath(subject), userJson(filed.user, this.now()));
+                return {
+                    result: true,
+                    apply: () => {
+                        this.users.set(subjectId(subject), filed);
+                        this.pending.delete(uuid);
+                    }
+                };
             })
                 .catch(() => {})
                 .finally(() => this.claiming.delete(uuid));
             claimed = true;
         }
+        if (claimed) this.duringLoad?.claims.set(uuid, identity);
         return claimed;
+    }
+
+    /**
+     * The record a login holds once it claims a pending entry: what the subject already has, with
+     * what waited added to it, each node and membership once and the existing one kept, so a
+     * claim merged twice adds nothing the second time.
+     */
+    private claimed(identity: NamedSubject, waiting: User): FiledUser {
+        const existing = this.userOf(identity.subject);
+        return {
+            subject: identity.subject,
+            user: {
+                name: identity.name,
+                groups: mergeEntries(existing?.groups ?? [], waiting.groups, keepExisting),
+                nodes: mergeEntries(existing?.nodes ?? [], waiting.nodes, keepExisting),
+                meta: { ...waiting.meta, ...existing?.meta }
+            }
+        };
     }
 
     /**
@@ -887,7 +1030,7 @@ export class PermissionManager implements Service {
         const id = subjectId(target.identity.subject);
         if (op) this.ops.add(id);
         else this.ops.delete(id);
-        this.opChangesDuringLoad?.set(id, op);
+        this.duringLoad?.ops.set(id, op);
         this.notify({ subject: target.identity.subject, name: target.identity.name });
         return true;
     }

@@ -111,6 +111,55 @@ export const isExpired = ({ expires }: { readonly expires?: string }, now: numbe
     return at === undefined || at <= now;
 };
 
+/** A node or a membership: what a user or a group holds, each with a spelling and maybe an expiry. */
+export type Entry = Node | Membership;
+
+/** The spelling that makes two entries one: the node, or the group. */
+export const entryKey = (entry: Entry): string => ('node' in entry ? entry.node : entry.group);
+
+/**
+ * How long an entry applies, for choosing between two of one spelling: forever without an expiry,
+ * until the instant it names, or not at all when the expiry is not an instant.
+ */
+const lifetimeOf = ({ expires }: Entry): number =>
+    expires === undefined ? Number.POSITIVE_INFINITY : (parseInstant(expires) ?? Number.NEGATIVE_INFINITY);
+
+/** Of two entries of one spelling, the one that applies longer; the first when they are equal. */
+export const longerLived = <T extends Entry>(first: T, second: T): T =>
+    lifetimeOf(second) > lifetimeOf(first) ? second : first;
+
+/**
+ * `added` merged into `kept`, each spelling once and in the order first seen. `choose` says which
+ * of two entries of one spelling stays: the kept one, or the longer lived, as the caller decides.
+ */
+export const mergeEntries = <T extends Entry>(
+    kept: readonly T[],
+    added: readonly T[],
+    choose: (kept: T, added: T) => T
+): T[] => {
+    const byKey = new Map(kept.map((entry) => [entryKey(entry), entry]));
+    for (const entry of added) {
+        const key = entryKey(entry);
+        const seen = byKey.get(key);
+        byKey.set(key, seen === undefined ? entry : choose(seen, entry));
+    }
+    return [...byKey.values()];
+};
+
+/**
+ * The first moment after `now` at which one of these entries expires, or undefined when none
+ * will: when a client's command list and abilities next need sending again.
+ */
+export const nextExpiryOf = (entries: Iterable<Entry>, now: number): number | undefined => {
+    let next: number | undefined;
+    for (const { expires } of entries) {
+        if (expires === undefined) continue;
+        const at = parseInstant(expires);
+        if (at !== undefined && at > now && (next === undefined || at < next)) next = at;
+    }
+    return next;
+};
+
 /**
  * Checks a node's spelling: non-empty segments separated by dots, `*` alone or as the last
  * segment, and at most one leading `-`.
