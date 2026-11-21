@@ -57,7 +57,9 @@ A full run takes more than an hour. The [Server benchmark workflow](../../.githu
 runs it on one fixed GitHub-hosted Linux x86-64 runner image when master changes a package, the
 harness or the lockfile, every week, and on demand. `BENCHMARK_MAX_RUNS` and
 `BENCHMARK_WINDOW_HOURS` at the top of the workflow cap how many runs measure in a window; a run
-past the cap ends without measuring, and a dispatch from the Actions tab always measures. Each run
+past the cap ends without measuring. A scheduled or push run also ends without measuring when
+nothing that can move a figure has changed since the newest results file on master, as
+[What changed](#what-changed) describes. A dispatch from the Actions tab always measures. Each run
 replaces the branch of one standing pull request with its results file.
 
 ## The results file
@@ -67,6 +69,35 @@ an interrupted benchmark keeps what it measured. It holds every run's raw measur
 averages before and after each run and round, the host, each server's version, build and command
 line, and every setting the harness changed from a server's default, with the reason. The benchmark
 page reads the newest file and computes its medians and ranges with `src/summary.mts`.
+
+## What changed
+
+`src/inputs.mts` hashes every committed file that can move a figure: the packages apart from their
+Markdown and tests, which hold JSPrismarine and the Pumpkin and Bedrock Dedicated Server pins, the
+harness, the lockfile, `.nvmrc` and the workflow. `INPUT_GLOBS` lists them, the same globs as the
+workflow's push `paths`, and a test keeps the two equal. Each results file records the hash as
+`inputs`, or `null` when an input had uncommitted changes. The workflow runs
+`node tools/server-benchmark/src/inputs.mts` before it builds anything, and skips the run when the
+hash matches the newest results file's.
+
+## History
+
+Below the newest run, the benchmark page draws every results file as a history, built by
+`src/history.mts`:
+
+- **One point per change.** Consecutive runs with the same `inputs` count as one, kept at their
+  first quiet run. A file written before `inputs` was recorded is compared by its servers' sources,
+  which name JSPrismarine's commit and the other two pins.
+- **Quiet runs only.** A run with a round that was not quiet is listed in the page's table and left
+  off the charts, since other work on the runner can move its figures with no server changing.
+- **CPU against a pinned server.** GitHub's runners differ in CPU from day to day, so a CPU figure
+  from one run does not compare with another's. The history divides JSPrismarine's CPU figures by
+  those of the pinned server that ran the same workload on the same runner in the same run: Pumpkin
+  over NetherNet, Bedrock Dedicated Server over RakNet. The runner's speed divides out. A line breaks
+  where the pinned server's version changed, and a rule marks each change of CPU model.
+- **Counts as measured.** Memory and bytes per chunk are the same on any machine, so they are drawn
+  as they were measured. Wall clock figures move with the runner's load, which no ratio cancels, so
+  the history leaves them out.
 
 ## Updating Pumpkin
 
