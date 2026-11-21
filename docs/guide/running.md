@@ -336,8 +336,9 @@ The remaining flags:
 
 ### Keys in the terminal UI
 
-Press `?` on an empty input line to open the help overlay, which lists every binding. The ones
-you'll need first:
+Press `?` on an empty input line to open the help overlay, which lists every binding. `Ctrl+K`
+(`⌘K` on macOS) opens the command palette, which finds server commands, online players and the
+console's own actions by name. The keys you'll need first:
 
 | Key | What it does |
 | --- | --- |
@@ -345,11 +346,11 @@ you'll need first:
 | `Up` / `Down` | Move through command history |
 | `Tab` | Complete the command name |
 | `Ctrl+C` | Clear the input line. Pressing it again on an empty line within two seconds stops the server; a press while the server is stopping kills it. |
-| `PgUp` / `PgDn` | Scroll the log. Scrolling up pauses following so new lines don't move what you're reading. |
+| `PgUp` / `PgDn` | Scroll the log, even while you type. Scrolling up pauses following so new lines don't move what you're reading. |
 | `End` | Jump to the newest line and resume following |
 | `Ctrl+L` | Clear the visible log (the buffer is kept) |
 | `?` | Help overlay, on an empty line |
-| `Esc` | Close an overlay or cancel a search |
+| `Esc` | Close an overlay or cancel a search. With nothing open, it moves the keyboard between the command line and the log, where single letters such as `g` and `n` scroll and search. Typing any other character there starts a command. |
 
 On macOS the console uses Command for its own shortcuts and shows modifiers as symbols: `⌘K` opens
 the command palette and `⌘B` shows the details pane. Most macOS terminals keep Command shortcuts

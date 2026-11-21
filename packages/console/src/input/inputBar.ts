@@ -78,6 +78,11 @@ export interface InputBar {
     getSelectedText(): string;
     /** Inserts `text` at the cursor the way a terminal paste does, replacing any selection. */
     paste(text: string): void;
+    /**
+     * Runs a key as if the line had focus, without moving focus. The app sends Ctrl+C here from the
+     * log pane, so the same presses stop the server wherever focus is.
+     */
+    handleKey(key: KeyEvent): void;
     /** Destroys the renderables. The bar must not be used afterwards. */
     dispose(): void;
 }
@@ -355,6 +360,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         getValue: () => input.value,
         getSelectedText: () => input.getSelectedText(),
         paste: insertPasted,
+        handleKey,
         dispose: () => {
             disposed = true;
             renderer.off(CliRenderEvents.RESIZE, layoutStrip);

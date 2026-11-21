@@ -41,7 +41,7 @@ import { INITIAL_DEV_STATE, exitText, reduceDevState } from './devState';
 import type { DevState } from './devState';
 import { SIDE_PANE_RESIZER_WIDTH, SIDE_PANE_WIDTH, computeLayout } from './layout';
 import type { Layout } from './layout';
-import { createSidePane } from './sidePane';
+import { bootStepLabel, createSidePane } from './sidePane';
 import type { BootStep } from './sidePane';
 import { createTitleBar } from './titleBar';
 
@@ -99,6 +99,15 @@ export interface App {
     /** Unsubscribes from the renderer and destroys every renderable. */
     dispose(): void;
 }
+
+/** Whether a key types one printable character with no modifier beyond Shift. */
+const isTypedCharacter = (key: KeyEvent): boolean =>
+    !key.ctrl &&
+    !key.meta &&
+    !key.super &&
+    [...key.sequence].length === 1 &&
+    key.sequence >= ' ' &&
+    key.sequence !== '\u007F';
 
 /** The level filter cycle for Ctrl+F; `undefined` shows every level. */
 const LEVEL_CYCLE: readonly (LogLevel | undefined)[] = ['error', 'warn', 'info', undefined];
@@ -175,6 +184,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let commandsByName: ReadonlyMap<string, CommandInfo> = new Map();
     let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, { sidePaneWidth });
     let jumpCursor = 0;
+    /** Whether the command line is off because no server is linked. */
+    let disabled = false;
 
     store.setLevelFilter(levelFilter);
 
@@ -415,6 +426,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function refreshStatus(): void {
         // The title bar's tile shows the state while the title bar is there.
         const left: Segment[] = layout.titleBar ? [] : [stateSegment(state)];
+        // The details pane lists the start's steps; without it, the footer names the one running,
+        // so a start that takes a while still shows what it is doing.
+        const bootStep = bootSteps.findLast((step) => step.finishedAt === undefined);
+        if (state === 'starting' && layout.sidePane !== 'inline' && bootStep !== undefined) {
+            left.push({ id: 'boot-step', text: `${bootStepLabel(bootStep.id)}…`, tone: 'muted', priority: 99 });
+        }
         left.push({
             id: 'error-count',
             text: `ERR ${store.errorCount}`,
@@ -637,7 +654,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             uptimeMs: metrics.uptimeMs,
             rssBytes: metrics.rssBytes,
             dev,
-            boot: bootSteps
+            boot: bootSteps,
+            now: now()
         });
     }
 
@@ -701,8 +719,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         refreshSidePane();
     }
 
+    /** Says why the command line is off: the server is on its way, or it is down. */
+    function refreshInputHint(): void {
+        input.setDisabled(disabled, state === 'starting' ? 'the server is starting' : undefined);
+    }
+
     function setState(next: ServerState): void {
         state = next;
+        if (disabled) refreshInputHint();
         titleBar.setState(next);
         refreshStatus();
         refreshSidePane();
@@ -1130,15 +1154,37 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 return;
             }
         }
-        if (!inputFocused && key.ctrl && !key.shift && !key.meta && key.name === 'c') {
+        // Ctrl+C copies a selection in the log. Without one it means what it means in every
+        // terminal, so it clears the line or stops the server, as it does on the command line.
+        if (!inputFocused && key.ctrl && !key.shift && !key.meta && !key.super && key.name === 'c') {
             key.preventDefault();
-            run('log.copySelection');
+            if (selectedText() === '') input.handleKey(key);
+            else run('log.copySelection');
+            return;
+        }
+        // The placeholder offers `?` for help, so an empty line opens the overlay rather than typing it.
+        if (
+            inputFocused &&
+            input.getValue() === '' &&
+            !input.isCompleting() &&
+            resolveCommand(key, { inputFocused: false }) === 'view.help'
+        ) {
+            key.preventDefault();
+            run('view.help');
             return;
         }
         const id = resolveCommand(key, { inputFocused });
-        if (id === undefined) return;
-        key.preventDefault();
-        run(id);
+        if (id !== undefined) {
+            key.preventDefault();
+            run(id);
+            return;
+        }
+        // A character no shortcut takes starts a command, so typing works without pressing Esc first.
+        if (!inputFocused && isTypedCharacter(key)) {
+            key.preventDefault();
+            focusInput();
+            input.paste(key.sequence);
+        }
     });
     const onResize = guard(applyLayout);
 
@@ -1211,10 +1257,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 if (message.state === 'started' && step !== undefined) step.finishedAt = now();
                 else if (message.state === 'starting') bootSteps.push({ id: message.step, startedAt: now() });
                 refreshSidePane();
+                refreshStatus();
                 return;
             }
             case 'lifecycle':
                 setState(message.state);
+                // The list asked for at hello can come back short when commands register later in
+                // the start, or not at all on a slow start; a running server has all of them.
+                if (message.state === 'running') learnCommandNames();
                 return;
             case 'command.result':
             case 'complete.result':
@@ -1242,6 +1292,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
             state = event.state;
             titleBar.setState(state);
+            if (disabled) refreshInputHint();
             // The footer carries the state while the title bar is hidden.
             refreshStatus();
             if (event.state === 'starting') {
@@ -1267,7 +1318,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         applyServerMessage: guard(applyServerMessage),
         applySupervisorEvent: guard(applySupervisorEvent),
         setDisabled(flag) {
-            input.setDisabled(flag);
+            disabled = flag;
+            refreshInputHint();
         },
         focus() {
             focusInput();

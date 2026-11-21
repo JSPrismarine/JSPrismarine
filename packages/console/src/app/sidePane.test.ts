@@ -61,6 +61,16 @@ describe('the boot section', () => {
         expect(steps.map((row) => row.tone)).toEqual(['muted', 'warning']);
     });
 
+    it('counts the seconds the running step has taken', () => {
+        const value = (now: number) =>
+            sidePaneRows(model({ state: 'starting', boot, now })).find(
+                (row) => row.kind === 'value' && row.label === '● worlds'
+            );
+        expect(value(3480 + 500)).toMatchObject({ value: 'now' });
+        expect(value(3480 + 12_400)).toMatchObject({ value: '12 s' });
+        expect(value(3480 + 125_000)).toMatchObject({ value: '2 min 5 s' });
+    });
+
     it('goes once the server runs', () => {
         expect(sections(sidePaneRows(model({ state: 'running', boot })))).not.toContain('boot');
     });

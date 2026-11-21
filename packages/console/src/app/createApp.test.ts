@@ -359,6 +359,34 @@ describe('createApp', () => {
         expect(byId(t, 'side-pane-boot')).toBeUndefined();
     });
 
+    it('names the running start step in the footer when the side pane is hidden', async () => {
+        const t = await setup({ width: 80, height: 24 });
+        dispose = t.dispose;
+
+        t.app.applyServerMessage({ type: 'boot', v: 1, step: 'prismarine:content', state: 'starting' });
+        await t.renderOnce();
+        expect(t.captureCharFrame()).toContain('content…');
+
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
+        await t.renderOnce();
+        expect(t.captureCharFrame()).not.toContain('content…');
+    });
+
+    it('asks for the command list again once the server runs', async () => {
+        let requests = 0;
+        const onCommands = async (): Promise<readonly CommandInfo[]> => {
+            requests += 1;
+            return [];
+        };
+        const t = await setup({ width: 120, height: 40 }, { onCommands });
+        dispose = t.dispose;
+
+        t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'running' });
+
+        expect(requests).toBe(2);
+    });
+
     it('appends child output as raw lines', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
@@ -748,6 +776,55 @@ describe('createApp', () => {
         t.mockInput.pressCtrlC();
         await t.renderOnce();
         expect(t.actions.stop).toHaveBeenCalledOnce();
+    });
+
+    it('stops the server on two Ctrl+C presses while the log has focus and nothing is selected', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+        await focusLog(t);
+
+        t.mockInput.pressCtrlC();
+        await t.renderOnce();
+        expect(t.actions.stop).not.toHaveBeenCalled();
+        expect(byId(t, 'status-left-hint')).toBeDefined();
+
+        t.mockInput.pressCtrlC();
+        await t.renderOnce();
+        expect(t.actions.stop).toHaveBeenCalledOnce();
+        expect(t.clipboard.copy).not.toHaveBeenCalled();
+    });
+
+    it('opens help on ? from an empty command line', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+
+        t.mockInput.pressKey('?');
+        await t.renderOnce();
+        expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
+        expect(commandLine(t)).toBe('');
+    });
+
+    it('types ? after other text', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+
+        t.mockInput.pressKey('a');
+        t.mockInput.pressKey('?');
+        await t.renderOnce();
+        expect(commandLine(t)).toBe('a?');
+    });
+
+    it('starts a command when a character no shortcut takes is typed in the log', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+        await focusLog(t);
+
+        t.mockInput.pressKey('s');
+        t.mockInput.pressKey('a');
+        await t.renderOnce();
+
+        expect(inputFocused(t)).toBe(true);
+        expect(commandLine(t)).toBe('sa');
     });
 
     it('force stops on one Ctrl+C while the server is stopping', async () => {
@@ -1295,7 +1372,7 @@ describe('createApp', () => {
             expect(byId(t, 'side-pane')?.visible).toBe(true);
 
             t.mockInput.pressKey('k', { ctrl: true });
-            await t.mockInput.pasteBracketedText('side pane');
+            await t.mockInput.pasteBracketedText('server details');
             t.mockInput.pressEnter();
             await t.renderOnce();
 
@@ -1306,7 +1383,7 @@ describe('createApp', () => {
         it('pastes the clipboard into the open palette on Cmd+V', async () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
-            t.setClipboard('side pane');
+            t.setClipboard('server details');
 
             t.mockInput.pressKey('k', { ctrl: true });
             t.mockInput.pressKey(cmd('v'));
@@ -1365,7 +1442,7 @@ describe('createApp', () => {
             expect(byId(t, 'side-pane')?.visible).toBe(true);
 
             t.mockInput.pressKey('k', { ctrl: true });
-            await t.mockInput.typeText('side pane');
+            await t.mockInput.typeText('server details');
             t.mockInput.pressEnter();
             await t.renderOnce();
 

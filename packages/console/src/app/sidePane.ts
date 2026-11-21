@@ -30,6 +30,8 @@ export interface SidePaneModel {
     dev: DevState;
     /** The steps of the current start, in order; shown while the server is starting. */
     boot?: readonly BootStep[];
+    /** Clock reading in epoch milliseconds, for how long the running boot step has taken so far. */
+    now?: number;
 }
 
 /** One step of the server's start as the console saw it, with its clock readings. */
@@ -40,6 +42,13 @@ export interface BootStep {
     /** Unset while the step runs. */
     finishedAt?: number;
 }
+
+/** How long a running boot step has run, in whole seconds, or `now` in its first second. */
+const runningFor = (startedAt: number, now: number | undefined): string => {
+    const seconds = now === undefined ? 0 : Math.floor((now - startedAt) / 1000);
+    if (seconds < 1) return 'now';
+    return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+};
 
 /** A step's id as the pane names it: `prismarine:load-functions` reads `load functions`. */
 export const bootStepLabel = (id: string): string => (id.split(':').at(-1) ?? id).replaceAll('-', ' ');
@@ -102,7 +111,9 @@ export function sidePaneRows(model: SidePaneModel): SidePaneRow[] {
             rows.push({
                 kind: 'value',
                 label: `${done ? '✓' : '●'} ${bootStepLabel(step.id)}`,
-                value: done ? `${((finishedAt - step.startedAt) / 1000).toFixed(1)} s` : 'now',
+                value: done
+                    ? `${((finishedAt - step.startedAt) / 1000).toFixed(1)} s`
+                    : runningFor(step.startedAt, model.now),
                 tone: done ? 'muted' : 'warning'
             });
         }

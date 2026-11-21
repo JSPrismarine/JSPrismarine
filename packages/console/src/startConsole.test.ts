@@ -158,11 +158,12 @@ describe('startConsole', () => {
         handle = t.handle;
 
         await t.test.renderOnce();
-        expect(t.test.captureCharFrame()).toContain('server is not running');
+        expect(t.test.captureCharFrame()).toContain('the server is starting');
 
         t.supervisor.attach(t.consoleEnd);
         await t.test.waitForFrame((frame) => frame.includes('type a command'));
 
+        t.supervisor.emit({ type: 'supervisor.state', state: 'stopped', generation: 1 });
         t.consoleEnd.close();
         await t.test.waitForFrame((frame) => frame.includes('server is not running'));
     });

@@ -147,7 +147,7 @@ export function activityText(activity: Activity, watchRoot = 'the watched files'
         case 'restarting':
             return `Restarting${after}.`;
         case 'starting':
-            return `Starting generation ${activity.generation ?? 1}${after}.`;
+            return `Starting the server${after}.`;
         case 'running':
             return activity.generation !== undefined && activity.generation > 1
                 ? `Restarted${after}. Watching ${watchRoot} for changes.`

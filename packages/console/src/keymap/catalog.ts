@@ -31,6 +31,8 @@ export interface KeyBinding {
     meta?: boolean;
     /** OS Super key, such as Command on macOS. */
     super?: boolean;
+    /** Whether the chord also runs while the input line has focus; see `CatalogBinding.global`. */
+    global?: true;
 }
 
 /**
@@ -41,6 +43,12 @@ export interface KeyBinding {
 export interface CatalogBinding extends KeyBinding {
     mod?: boolean;
     platform?: KeyPlatform;
+    /**
+     * Whether the binding also runs while the input line has focus. Set it only on chords the line
+     * editor does not use, such as PgUp or Ctrl+L. Command chords are global without it, since a
+     * Cmd chord cannot be typed.
+     */
+    global?: true;
 }
 
 /**
@@ -54,7 +62,7 @@ export interface CommandSpec {
     /** Shown in the key column when the command has no binding of its own: `binding`, then `suffix`. */
     hint?: { binding: KeyBinding; suffix: string };
     /**
-     * Whether the bindings also run while the input line has focus. Only chords that cannot be
+     * Whether every binding also runs while the input line has focus. Only chords that cannot be
      * typed, such as Cmd+C, may set it.
      */
     global?: true;
@@ -65,6 +73,8 @@ export type CommandCatalog = readonly CommandSpec[];
 
 const plain = (name: string): CatalogBinding => ({ name });
 const ctrl = (name: string): CatalogBinding => ({ name, ctrl: true });
+/** A binding the line editor leaves alone, so it runs while the input line has focus too. */
+const anywhere = (binding: CatalogBinding): CatalogBinding => ({ ...binding, global: true });
 const mod = (name: string): CatalogBinding => ({ name, mod: true });
 const modShift = (name: string): CatalogBinding => ({ name, mod: true, shift: true });
 const plainShift = (name: string): CatalogBinding => ({ name, shift: true });
@@ -87,7 +97,7 @@ const pcOnly = (binding: KeyBinding): CatalogBinding => ({ ...binding, platform:
  * so does Ctrl+W, since Cmd+W closes the terminal's tab.
  */
 export const COMMAND_CATALOG = [
-    { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [ctrl('r')] },
+    { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [anywhere(ctrl('r'))] },
     {
         id: 'input.paste',
         title: 'Paste',
@@ -95,8 +105,8 @@ export const COMMAND_CATALOG = [
         bindings: [macOnly({ name: 'v', super: true }), pcOnly({ name: 'v', ctrl: true, shift: true })],
         global: true
     },
-    { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup'), ctrl('u')] },
-    { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown'), ctrl('d')] },
+    { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [anywhere(plain('pageup')), ctrl('u')] },
+    { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [anywhere(plain('pagedown')), ctrl('d')] },
     {
         id: 'log.copySelection',
         title: 'Copy selection',
@@ -112,15 +122,15 @@ export const COMMAND_CATALOG = [
     { id: 'log.nextError', title: 'Next error', group: 'Log', bindings: [ctrl('e')] },
     { id: 'log.nextWarning', title: 'Next warning', group: 'Log', bindings: [ctrl('w')] },
     { id: 'log.toggleWrap', title: 'Toggle wrap', group: 'Log', bindings: [plain('w')] },
-    { id: 'log.clearView', title: 'Clear view', group: 'Log', bindings: [ctrl('l')] },
+    { id: 'log.clearView', title: 'Clear view', group: 'Log', bindings: [anywhere(ctrl('l'))] },
     { id: 'log.filter', title: 'Filter', group: 'Log', bindings: [mod('f')] },
-    { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [mod('b')] },
+    { id: 'view.toggleSidePane', title: 'Server details', group: 'View', bindings: [mod('b')] },
     { id: 'view.tpsGraph', title: 'TPS graph', group: 'View', bindings: [plain('t')] },
     { id: 'view.help', title: 'Help', group: 'View', bindings: [plain('?')] },
     // Global so it opens from the command line too, where it takes Ctrl+K from line editing.
     { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [mod('k')], global: true },
-    { id: 'view.toggleFocus', title: 'Toggle input/log focus', group: 'Input', bindings: [plain('escape')] },
-    { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [modShift('r')] },
+    { id: 'view.toggleFocus', title: 'Switch typing and scrolling', group: 'Input', bindings: [plain('escape')] },
+    { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [anywhere(modShift('r'))] },
     {
         id: 'server.stop',
         title: 'Stop server',
@@ -219,17 +229,21 @@ const matches = (binding: KeyBinding, key: CommandKey): boolean =>
     (binding.meta ?? false) === key.meta &&
     (binding.super ?? false) === (key.super ?? false);
 
+/** Whether a chord runs while the input line has focus: it is marked global, or it holds Command. */
+const runsWhileTyping = (command: CommandSpec, binding: KeyBinding): boolean =>
+    'global' in command || binding.global === true || binding.super === true;
+
 /**
  * Returns the command the key runs, or `undefined` when no binding matches. Input focus leaves
- * every key available for editing, including unmodified shortcuts, so only `global` commands
- * resolve then. A chord from either platform resolves, so a Mac keyboard on a remote Linux
+ * every key available for editing, including unmodified shortcuts, so only global chords resolve
+ * then. A chord from either platform resolves, so a Mac keyboard on a remote Linux
  * console still gets Cmd+K, and a PC keyboard on a Mac still gets Ctrl+Shift+C.
  */
 export function resolveCommand(key: CommandKey, context: ResolveContext): CommandId | undefined {
     for (const command of COMMAND_CATALOG) {
-        if (context.inputFocused && !('global' in command)) continue;
         for (const platform of KEY_PLATFORMS) {
             for (const binding of bindingsFor(command, platform)) {
+                if (context.inputFocused && !runsWhileTyping(command, binding)) continue;
                 if (matches(binding, key)) return command.id;
             }
         }

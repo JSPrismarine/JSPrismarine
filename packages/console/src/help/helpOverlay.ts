@@ -79,16 +79,26 @@ const linesFor = (catalog: CommandCatalog, platform: KeyPlatform): HelpLine[][] 
 
 const joinBlocks = (blocks: HelpLine[][]): HelpLine[] => blocks.flat();
 
-/** Splits the group blocks into two columns of roughly equal height without breaking a group. */
+/**
+ * Splits the group blocks into two columns without breaking a group, choosing the split whose
+ * taller column is shortest. Each column keeps the groups in catalog order, and the first group
+ * stays on the left. A long group can sit alone, so a terminal of common height shows every row
+ * without scrolling.
+ */
 const splitBlocks = (blocks: HelpLine[][]): [HelpLine[], HelpLine[]] => {
-    const total = joinBlocks(blocks).length;
-    let taken = 0;
-    let split = 0;
-    while (split < blocks.length - 1 && taken < total / 2) {
-        taken += blocks[split]?.length ?? 0;
-        split += 1;
+    let best: [HelpLine[][], HelpLine[][]] = [blocks, []];
+    let bestHeight = Number.POSITIVE_INFINITY;
+    // Bit i set puts block i on the right; block 0 always stays left.
+    for (let mask = 2; mask < 2 ** blocks.length; mask += 2) {
+        const left = blocks.filter((_, index) => (mask & (1 << index)) === 0);
+        const right = blocks.filter((_, index) => (mask & (1 << index)) !== 0);
+        const height = Math.max(joinBlocks(left).length, joinBlocks(right).length);
+        if (height < bestHeight) {
+            best = [left, right];
+            bestHeight = height;
+        }
     }
-    return [joinBlocks(blocks.slice(0, split)), joinBlocks(blocks.slice(split))];
+    return [joinBlocks(best[0]), joinBlocks(best[1])];
 };
 
 const keyColumnWidth = (lines: readonly HelpLine[]): number =>
@@ -114,7 +124,7 @@ function layoutHelp(
 ): HelpLayout {
     const blocks = linesFor(catalog, platform);
     const maxInnerWidth = Math.max(1, terminalWidth - BORDER - PADDING_X * 2);
-    const maxPanelHeight = Math.max(1, Math.min(MAX_HEIGHT, Math.ceil(terminalHeight * 0.6), terminalHeight));
+    const maxPanelHeight = Math.max(1, Math.min(MAX_HEIGHT, terminalHeight - 2));
     const maxBodyRows = Math.max(1, maxPanelHeight - BORDER - FOOTER_ROWS);
 
     const single = joinBlocks(blocks);

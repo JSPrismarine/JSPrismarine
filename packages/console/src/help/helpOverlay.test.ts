@@ -63,6 +63,19 @@ describe('createHelpOverlay', () => {
         }
     });
 
+    it('shows every shortcut without scrolling at 120x36', async () => {
+        const t = await setup(120, 36);
+        try {
+            t.overlay.show();
+            const frame = await t.frame();
+            expect(frame).toContain('Filter');
+            expect(frame).toContain('Stop server');
+            expect(frame).not.toContain('PgUp/PgDn ·');
+        } finally {
+            await t.dispose();
+        }
+    });
+
     it('aligns the key column within a group', async () => {
         const t = await setup(120, 40);
         try {
@@ -106,10 +119,10 @@ describe('createHelpOverlay', () => {
             expect(frame).not.toContain('…');
             const historyColumn =
                 lines.find((line) => line.includes('Search history'))?.indexOf('Search history') ?? -1;
-            const paneColumn =
-                lines.find((line) => line.includes('Toggle side pane'))?.indexOf('Toggle side pane') ?? -1;
+            const pageColumn = lines.find((line) => line.includes('Page up'))?.indexOf('Page up') ?? -1;
             expect(historyColumn).toBeGreaterThanOrEqual(0);
-            expect(paneColumn).toBeGreaterThan(historyColumn);
+            expect(pageColumn).toBeGreaterThanOrEqual(0);
+            expect(pageColumn).not.toBe(historyColumn);
         } finally {
             await t.dispose();
         }

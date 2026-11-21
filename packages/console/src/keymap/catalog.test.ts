@@ -112,20 +112,29 @@ describe('resolveCommand', () => {
     const logFocused = { inputFocused: false };
 
     it.each([
-        ['pageup', 'log.pageUp'],
-        ['pagedown', 'log.pageDown'],
         ['u', 'log.pageUp'],
         ['d', 'log.pageDown'],
         ['e', 'log.nextError'],
         ['w', 'log.nextWarning'],
-        ['l', 'log.clearView'],
         ['f', 'log.filter'],
-        ['b', 'view.toggleSidePane'],
-        ['r', 'input.historySearch']
-    ] as const)('resolves %s while the log has focus', (name, expected) => {
+        ['b', 'view.toggleSidePane']
+    ] as const)('resolves %s only while the log has focus, since the line editor uses it', (name, expected) => {
         const press = name.length === 1 ? ctrl(name) : key(name);
         expect(resolveCommand(press, logFocused)).toBe(expected);
         expect(resolveCommand(press, inputFocused)).toBeUndefined();
+    });
+
+    it.each([
+        [key('pageup'), 'log.pageUp'],
+        [key('pagedown'), 'log.pageDown'],
+        [ctrl('l'), 'log.clearView'],
+        [ctrl('r'), 'input.historySearch'],
+        [key('r', { ctrl: true, shift: true }), 'server.restart'],
+        [key('b', { super: true }), 'view.toggleSidePane'],
+        [key('f', { super: true }), 'log.filter']
+    ] as const)('resolves %o whichever side has focus, since the line editor leaves it alone', (press, expected) => {
+        expect(resolveCommand(press, logFocused)).toBe(expected);
+        expect(resolveCommand(press, inputFocused)).toBe(expected);
     });
 
     it('opens the palette on Cmd+K or Ctrl+K whichever side has focus', () => {
@@ -176,7 +185,6 @@ describe('resolveCommand', () => {
     it('restarts on Ctrl+Shift+R and searches history on Ctrl+R', () => {
         expect(resolveCommand(key('r', { ctrl: true, shift: true }), logFocused)).toBe('server.restart');
         expect(resolveCommand(ctrl('r'), logFocused)).toBe('input.historySearch');
-        expect(resolveCommand(ctrl('r'), inputFocused)).toBeUndefined();
     });
 
     it('does not bind a key to stop the server', () => {
