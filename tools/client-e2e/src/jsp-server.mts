@@ -72,6 +72,15 @@ export const SCRIPT_LOOK_EVENT = 'e2e:look';
 export const SCRIPT_LOOK_ROTATION = { x: 30, y: 90 } as const;
 
 /**
+ * The `/scriptevent` id that makes the client e2e script send every player music, a property
+ * override and a camera spline; with the message `end` it stops them again.
+ */
+export const SCRIPT_FEEDBACK_EVENT = 'e2e:feedback';
+
+/** How long the client e2e script's camera spline runs, in seconds. */
+export const SCRIPT_SPLINE_SECONDS = 30;
+
+/**
  * What the client e2e script pack tells a player at each first spawn of a login, followed by how
  * many logins the dynamic property it keeps on the player has counted, this one included, and the
  * player's name.
@@ -520,7 +529,8 @@ export const startServer = async (
                     }
                 ],
                 dependencies: [
-                    { module_name: '@minecraft/server', version: '2.0.0' },
+                    // 2.6.0 is the first version with camera splines.
+                    { module_name: '@minecraft/server', version: '2.6.0' },
                     { module_name: '@minecraft/server-ui', version: '2.0.0' }
                 ]
             },
@@ -531,7 +541,7 @@ export const startServer = async (
     fs.writeFileSync(
         path.join(scriptPack, 'scripts', 'main.js'),
         [
-            "import { CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, system, world } from '@minecraft/server';",
+            "import { CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, LinearSpline, system, world } from '@minecraft/server';",
             "import { ActionFormData } from '@minecraft/server-ui';",
             '',
             'system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {',
@@ -554,6 +564,32 @@ export const startServer = async (
             '    for (const player of world.getAllPlayers()) {',
             `        player.setRotation({ x: ${SCRIPT_LOOK_ROTATION.x}, y: ${SCRIPT_LOOK_ROTATION.y} });`,
             '    }',
+            '});',
+            '',
+            'let feedbackPig;',
+            'system.afterEvents.scriptEventReceive.subscribe((event) => {',
+            `    if (event.id !== '${SCRIPT_FEEDBACK_EVENT}') return;`,
+            '    for (const player of world.getAllPlayers()) {',
+            "        if (event.message === 'end') {",
+            '            player.stopMusic();',
+            '            player.camera.clear();',
+            '            if (feedbackPig?.isValid) player.clearPropertyOverridesForEntity(feedbackPig);',
+            '            continue;',
+            '        }',
+            "        player.playMusic('music.game', { fade: 1, loop: true, volume: 0.5 });",
+            '        const { x, y, z } = player.location;',
+            "        feedbackPig = player.dimension.spawnEntity('minecraft:pig', { x: x + 2, y, z });",
+            "        player.setPropertyOverrideForEntity(feedbackPig, 'minecraft:climate_variant', 'cold');",
+            "        player.camera.setCamera('minecraft:free', { location: { x, y: y + 2, z }, rotation: { x: 30, y: 0 } });",
+            '        const spline = new LinearSpline();',
+            // Three points: BDS plays a linear spline of two, but cinnabar needs three.
+            '        spline.controlPoints = [{ x, y: y + 2, z }, { x, y: y + 5, z: z + 3 }, { x, y: y + 8, z: z + 6 }];',
+            '        player.camera.playAnimation(spline, {',
+            `            totalTimeSeconds: ${SCRIPT_SPLINE_SECONDS},`,
+            '            animation: { progressKeyFrames: [], rotationKeyFrames: [] }',
+            '        });',
+            '    }',
+            "    if (event.message === 'end') feedbackPig?.remove();",
             '});',
             '',
             'world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {',
