@@ -35,7 +35,7 @@ export interface BoundNative<Symbols> {
 export interface NodeFfi {
     dlopen(
         path: string,
-        definitions: Record<string, { arguments: string[]; return: string }>
+        definitions: Record<string, { arguments: readonly string[]; return: string }>
     ): {
         functions: Record<string, (...args: unknown[]) => unknown>;
         lib: {
@@ -43,8 +43,14 @@ export interface NodeFfi {
             /** Binds one more symbol; throws when the library does not export it. */
             getFunction(
                 name: string,
-                definition: { arguments: string[]; return: string }
+                definition: { arguments: readonly string[]; return: string }
             ): (...args: unknown[]) => unknown;
+            /** Makes a native function pointer that runs `callback` on this thread. */
+            registerCallback(
+                signature: { arguments: readonly string[]; return: string },
+                callback: (...args: number[]) => number
+            ): bigint;
+            unregisterCallback(pointer: bigint): void;
         };
     };
     getRawPointer(memory: ArrayBufferLike): bigint;
@@ -87,9 +93,12 @@ export const nodeFfiOf = (ffi: unknown, version: string): NodeFfi => {
 
 /**
  * Loads `node:ffi` without its experimental warning, which would otherwise print on every start.
- * Only that one warning is held back.
+ * Only that one warning is held back. A binding that needs more than {@link bindNative} gives,
+ * such as callbacks, opens its library with this.
+ * @returns The module.
+ * @throws {NativeLibraryError} When the runtime has no `node:ffi`.
  */
-const loadNodeFfi = (): NodeFfi => {
+export const nodeFfi = (): NodeFfi => {
     const emitWarning = process.emitWarning;
     // emitWarning is overloaded, and this one function forwards every overload unchanged.
     process.emitWarning = ((warning: string | Error, ...rest: unknown[]) => {
@@ -158,7 +167,7 @@ export const bindNative = <Symbols>(
         };
     }
 
-    const node = loadNodeFfi();
+    const node = nodeFfi();
     const definitionOf = ([result, parameters]: FfiSignature) => ({
         arguments: parameters.map((kind) => nodeKinds[kind]),
         return: nodeKinds[result]

@@ -18,15 +18,6 @@ Thrown as `NativeNetworkErrors.EventQueueNotOpened`, which extends `NativeLibrar
 
 The native library could not start its event queue. The number is its error code.
 
-## `NATIVE_NETWORK_FFI_UNAVAILABLE`
-
-`node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.`
-
-Thrown as `NativeNetworkErrors.FfiUnavailable`, which extends `NativeLibraryError`.
-
-The Node.js running the server has no `node:ffi`, which the native networking library is
-loaded with. Run a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
-
 ## `NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED`
 
 `{what} failed (libdatachannel error {result})`

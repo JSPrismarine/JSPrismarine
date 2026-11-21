@@ -25,4 +25,4 @@ export { PACKAGE_NAME, approvalAdvice, bundledManifest, verifyLibrary } from './
 export { operatingSystemOf, platformKey } from '@jsprismarine/native-library/platform';
 export type { NativeSymbols } from './ffi';
 export type { LocateOptions } from '@jsprismarine/native-library';
-export type { NativePointer } from './ffi';
+export type { NativePointer } from '@jsprismarine/native-library/ffi';
