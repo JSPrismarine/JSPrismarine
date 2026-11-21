@@ -582,11 +582,15 @@ export const startServer = async (
             "        player.setPropertyOverrideForEntity(feedbackPig, 'minecraft:climate_variant', 'cold');",
             "        player.camera.setCamera('minecraft:free', { location: { x, y: y + 2, z }, rotation: { x: 30, y: 0 } });",
             '        const spline = new LinearSpline();',
-            // Three points: BDS plays a linear spline of two, but cinnabar needs three.
+            // Three points and a key frame on each track: BDS plays a linear spline of two points
+            // with no key frames, but cinnabar refuses one with fewer points or an empty track.
             '        spline.controlPoints = [{ x, y: y + 2, z }, { x, y: y + 5, z: z + 3 }, { x, y: y + 8, z: z + 6 }];',
             '        player.camera.playAnimation(spline, {',
             `            totalTimeSeconds: ${SCRIPT_SPLINE_SECONDS},`,
-            '            animation: { progressKeyFrames: [], rotationKeyFrames: [] }',
+            '            animation: {',
+            `                progressKeyFrames: [{ alpha: 0, timeSeconds: 0 }, { alpha: 1, timeSeconds: ${SCRIPT_SPLINE_SECONDS} }],`,
+            '                rotationKeyFrames: [{ rotation: { x: 30, y: 0, z: 0 }, timeSeconds: 0 }]',
+            '            }',
             '        });',
             '    }',
             "    if (event.message === 'end') feedbackPig?.remove();",
