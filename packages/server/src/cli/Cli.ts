@@ -1,5 +1,6 @@
 import { GENERATION_HOST_ROLE } from '@jsprismarine/chunkgen/hostRole';
 import yargs from 'yargs/yargs';
+import { BUILT_IN_PROTOCOL_PROVIDERS, describeProtocolProviders } from '@jsprismarine/prismarine/protocolProviders';
 import { serverVersion } from '@jsprismarine/prismarine/version';
 import { ServerErrors } from '@jsprismarine/errors/server';
 
@@ -57,7 +58,12 @@ export const serverCli = (argv: readonly string[]) =>
             hidden: true
         })
         .help('help', 'Show this help message')
-        .version('version', 'Show the server version', serverVersion())
+        // The version on the first line, for a script that reads it, then every built-in edition.
+        .version(
+            'version',
+            'Show the server version and the Minecraft versions it speaks',
+            [serverVersion(), ...describeProtocolProviders(BUILT_IN_PROTOCOL_PROVIDERS)].join('\n')
+        )
         .alias('version', 'v')
         .completion('completion', 'Generate a shell completion script')
         .strict()
