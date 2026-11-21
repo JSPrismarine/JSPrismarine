@@ -209,3 +209,18 @@ for (const entry of Object.values(workerEntrypoints)) {
         );
     }
 }
+
+/**
+ * Packages that only run TypeScript from source. A lookup Bun can see, such as
+ * `import.meta.resolve('tsx')`, compiles the whole package and `esbuild` into the binary even
+ * when the executable never reaches it. Each lookup has to sit behind one of the `JSP_EMBEDDED_*`
+ * defines so the compile drops it.
+ */
+for (const sourceOnly of ['tsx', 'esbuild']) {
+    if (binary.includes(Buffer.from(`/node_modules/${sourceOnly}/`))) {
+        throw new Error(
+            `${binaryPath} carries ${sourceOnly}, which only runs code from source; ` +
+                'guard the lookup that pulls it in with a JSP_EMBEDDED_* define'
+        );
+    }
+}
