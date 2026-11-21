@@ -81,7 +81,12 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                     </div>
                     <div>
                         <dt>open source license</dt>
-                        <dd>{{ project.licenses.join(' or ') }}</dd>
+                        <!-- Each name stays whole, so a narrow cell breaks between names, never inside one. -->
+                        <dd>
+                            <template v-for="(license, index) in project.licenses" :key="license"
+                                >{{ index ? ' or ' : '' }}<span class="landing__license">{{ license }}</span></template
+                            >
+                        </dd>
                     </div>
                 </dl>
             </div>
@@ -364,6 +369,10 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
     grid-area: label;
     font: var(--jsp-label-size) / 1.4 var(--vp-font-family-mono);
     color: var(--jsp-mint);
+}
+
+.landing__license {
+    white-space: nowrap;
 }
 
 .landing__jump {
