@@ -189,8 +189,10 @@ of every addon, sorted by name and then by version, oldest first:
 <!-- /fact -->
 
 Each entry has the addon's name and version, the `description` and `minServer` from its
-`addon.json`, where the pack downloads from, and the pack's SHA-256 in lowercase hexadecimal. The
-build writes the file, so you never edit it. `@jsprismarine/addon-tools/addonIndex` reads and
+`addon.json`, where the pack downloads from, and the pack's SHA-256 in lowercase hexadecimal. A
+version built with listing support also has a `listing`: its title, tags, authors and license, any
+deprecation, and the URL and SHA-256 of its README, icon and screenshots, which the release carries
+beside the pack. The build writes the file, so you never edit it. `@jsprismarine/addon-tools/addonIndex` reads and
 writes it for tools of your own; [its README](../../packages/addon-tools/README.md#the-index) lists
 the functions.
 
@@ -211,3 +213,10 @@ same name; an owner who wants both installs the second under another name with `
 `addon install` reads indexes from GitHub releases only. A pack you host elsewhere still installs
 by its `https:` URL, but with no index the server has no hash to check the first download
 against. `--base-url` points a build's index at another host for tools of your own.
+
+## List it in the marketplace
+
+Owners find addons in the [marketplace](../addons/README.md) on jsprismarine.dev. Once your addon
+publishes, [Listing an addon](listing-addons.md) takes it to a page there: a title, tags, an icon and
+screenshots in the addon's folder, and a pull request that adds your repository to
+<!-- fact:addons.listingsFile -->`addons/listings.json`<!-- /fact -->.
