@@ -11,6 +11,21 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./tag": {
+                "types": "./dist/tag.d.ts",
+                "import": "./dist/tag.js",
+                "module": "./dist/tag.js"
+            },
+            "./snbt": {
+                "types": "./dist/snbt.d.ts",
+                "import": "./dist/snbt.js",
+                "module": "./dist/snbt.js"
+            },
+            "./path": {
+                "types": "./dist/path.d.ts",
+                "import": "./dist/path.js",
+                "module": "./dist/path.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -26,6 +41,18 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./tag": {
+            "jsprismarine:dist": "./dist/tag.js",
+            "default": "./src/tag.ts"
+        },
+        "./snbt": {
+            "jsprismarine:dist": "./dist/snbt.js",
+            "default": "./src/snbt.ts"
+        },
+        "./path": {
+            "jsprismarine:dist": "./dist/path.js",
+            "default": "./src/path.ts"
         },
         "./package.json": "./package.json"
     },

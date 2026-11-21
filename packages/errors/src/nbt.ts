@@ -68,5 +68,42 @@ export const NbtErrors = defineErrors('nbt', {
     /** The NBT data has a tag type that does not exist, so it is malformed or not NBT. */
     UnknownTag: 'Invalid NBT Data: Unknown tag <{tagID}>',
     /** A list was written with an element type that does not exist. */
-    UnknownListType: 'Invalid NBTTagType'
+    UnknownListType: 'Invalid NBTTagType',
+    /**
+     * A command's SNBT text is not well formed, such as an unclosed brace or a number too large
+     * for its suffix. Fix the text at the position the message names.
+     */
+    SnbtSyntax: 'Invalid SNBT at position {position}: {reason}',
+    /**
+     * A command's NBT path is not well formed, such as an unclosed `[` or a key that ends in `.`.
+     * Fix the path at the position the message names.
+     */
+    NbtPathSyntax: 'Invalid NBT path {path} at position {position}: {reason}',
+    /** An NBT path matched nothing in the data a command read. Check the path against the data. */
+    NbtPathNothingFound: 'Found no elements matching {path}',
+    /**
+     * A command that reads one value got a path that matched several, such as `Items[]`.
+     * Narrow the path to one element with an index or a pattern.
+     */
+    NbtPathMultiple: 'Only one element allowed, but path {path} matched {count}',
+    /** `/data modify … append`, `prepend` or `insert` named a tag that is not a list or an array. */
+    NbtPathExpectedList: 'Expected list, got: {got}',
+    /** `/data modify … merge` named a tag that is not a compound. */
+    NbtPathExpectedObject: 'Expected object, got: {got}',
+    /**
+     * `/data modify … insert` named an index outside the list, or a typed array was given a
+     * value it cannot hold, such as a string in an int array.
+     */
+    NbtPathInvalidIndex: 'Invalid list index: {index}',
+    /**
+     * A command asked for a number at a path that holds something else, such as `/data get` with a
+     * scale on a compound.
+     */
+    NbtPathNotNumeric: "Can't get {path}; only numeric tags are allowed",
+    /**
+     * `/data modify … set`, `merge`, `append`, `prepend` or `insert` would nest the data deeper
+     * than the 512 levels an SNBT read accepts, so the edited data could not be read back. Use a
+     * shorter path or a value that nests less.
+     */
+    NbtPathTooDeep: 'Resulting NBT too deeply nested'
 });
