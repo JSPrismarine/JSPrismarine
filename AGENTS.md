@@ -60,6 +60,8 @@ commit messages and comments.
   - `pnpm exec turbo gen Addon --args <name> <title> <description> <minServer>` writes
     `addons/<name>/` with fresh UUIDs. Run `pnpm run docs:facts` afterwards to list it in the
     addon catalog.
+  - `pnpm exec turbo gen Tool --args <name> <description>` writes `tools/<name>/`, a private
+    workspace that runs from source and is never published. Run `pnpm install` afterwards to link it.
 
   When a new package or addon needs a file or setting the templates lack, change the templates in
   the same change. To start a new kind of workspace that has no generator, add one to
