@@ -4,7 +4,7 @@
         "name": "Tab List",
         "description": "Renames the entries in the player list from templates: one per player, per group or for everyone.",
         "uuid": "ed5112d2-596e-4c95-a22b-6d3fde35237b",
-        "version": [1, 0, 0],
+        "version": [1, 0, 1],
         "min_engine_version": [1, 26, 60]
     },
     "modules": [
@@ -12,7 +12,7 @@
             "type": "script",
             "language": "javascript",
             "uuid": "2900a97b-0dd9-4b82-98e5-b06c9d96cfea",
-            "version": [1, 0, 0],
+            "version": [1, 0, 1],
             "entry": "scripts/main.js"
         }
     ],

@@ -93,3 +93,6 @@ packages/bedrock-data/src/jsp/v*/packets/
 # Temporary bundles written by scripts/run-ts.mjs
 .jsp-run-*/
 vitest-report.json
+
+# Addon scripts, which tsc-ts builds from each addon's src/.
+/addons/*/scripts/

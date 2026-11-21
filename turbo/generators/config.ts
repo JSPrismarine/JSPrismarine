@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { PlopTypes } from '@turbo/gen';
 
+import addonTools from '../../packages/addon-tools/package.json' with { type: 'json' };
 import { isAddonName } from '../../packages/addon-tools/src/addonIndex.ts';
 import pkg from '../../packages/prismarine/package.json' with { type: 'json' };
 import scriptApi from '../../packages/script-host/src/generated/script-modules/server.json' with { type: 'json' };
@@ -173,11 +174,15 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 templateFiles: 'template/addon/**/*',
                 data: {
                     minEngineVersion,
-                    scriptApiVersion
+                    scriptApiVersion,
+                    // The compiler the addon tools build an addon with, and the rest of the workspace's cleaner.
+                    tscTsVersion: addonTools.dependencies['tsc-ts'],
+                    rimrafVersion: addonTools.devDependencies.rimraf
                 },
                 abortOnFail: true
             },
-            () => 'Run `pnpm run docs:facts` to add the addon to the catalog in docs/addons/README.md'
+            () =>
+                'Run `pnpm install` to link the addon, then `pnpm run docs:facts` to add it to the catalog in docs/addons/README.md'
         ]
     });
 }

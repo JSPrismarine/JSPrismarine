@@ -19,8 +19,8 @@ import { readScriptConfig } from './pack';
 import type { ScriptCommandOutcome } from './world';
 import { WorldScripts } from './WorldScripts';
 
-const TPS_BAR = addonDirectory('tps-bar');
-const PLACEHOLDERS = addonDirectory('standard-placeholders');
+const TPS_BAR = await addonDirectory('tps-bar');
+const PLACEHOLDERS = await addonDirectory('standard-placeholders');
 
 /** What the standard placeholders addon's table module exports, checked, since the module is plain JavaScript. */
 interface PlaceholdersModule {

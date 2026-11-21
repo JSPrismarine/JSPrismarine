@@ -4,7 +4,7 @@
         "name": "TPS Bar",
         "description": "Shows the server's TPS, MSPT and your ping on a boss bar. Run /tpsbar to turn it on or off.",
         "uuid": "83188f0a-f052-42b7-8b4b-d3d9c890ea69",
-        "version": [1, 0, 2],
+        "version": [1, 0, 3],
         "min_engine_version": [1, 21, 100]
     },
     "modules": [
@@ -12,7 +12,7 @@
             "type": "script",
             "language": "javascript",
             "uuid": "70cbd34f-d349-4b2a-859d-9e9ed618ab55",
-            "version": [1, 0, 2],
+            "version": [1, 0, 3],
             "entry": "scripts/main.js"
         }
     ],

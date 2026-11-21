@@ -1,8 +1,9 @@
 /**
  * JSPrismarine's own addons, read from `addons/`: the catalog `docs/addons/README.md` lists on
  * GitHub, and the reusable release workflow's inputs. The site's marketplace is `addonMarket.mts`.
- * Each addon goes through `readAddons` from `@jsprismarine/addon-tools`, the same check the build
- * runs, so the site lists exactly the addons and versions a release would publish.
+ * Each addon goes through `compileAddons` and `readAddons` from `@jsprismarine/addon-tools`, the
+ * same steps the build runs, so the site lists exactly the addons and versions a release would
+ * publish.
  */
 
 import { readFileSync } from 'node:fs';
@@ -11,7 +12,7 @@ import path from 'node:path';
 import { parse } from 'yaml';
 
 import type { Addon } from '../../packages/addon-tools/src/addon.ts';
-import { readAddons } from '../../packages/addon-tools/src/build.ts';
+import { compileAddons, readAddons } from '../../packages/addon-tools/src/build.ts';
 import { isRecord } from '../../scripts/isRecord.mts';
 import { repoRoot } from './project.mts';
 import { addonReadmePath } from './sections.mts';
@@ -22,8 +23,11 @@ export const addonsDirectory = path.join(repoRoot, 'addons');
 /** The reusable workflow that builds and publishes a repository's addons, relative to the repository. */
 export const releaseWorkflow = '.github/workflows/addons-release.yml';
 
-/** Every addon under `addons/`, checked as the build checks it, in name order. */
-export const loadAddons = (): Promise<Addon[]> => readAddons(addonsDirectory);
+/** Every addon under `addons/`, compiled and checked as the build does it, in name order. */
+export const loadAddons = async (): Promise<Addon[]> => {
+    await compileAddons(addonsDirectory);
+    return readAddons(addonsDirectory);
+};
 
 /** An addon's README, as text. */
 export const addonReadme = (addon: Addon): string => new TextDecoder().decode(addon.files.get('README.md'));

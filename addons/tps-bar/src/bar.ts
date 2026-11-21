@@ -1,7 +1,8 @@
 /**
- * What the TPS bar shows for the server's figures. Nothing here imports a module, so the docs
- * build reads the thresholds from this file too.
+ * What the TPS bar shows for the server's figures. Nothing here imports a module at run time, so
+ * the docs build reads the thresholds from this file too.
  */
+import type { BossBarColor, BossBarOptions, performance } from '@jsprismarine/server';
 
 /** TPS at or above the first is green, at or above the second gold, and below it red. */
 export const TPS_LEVELS = [19.5, 15];
@@ -12,13 +13,13 @@ export const TICK_BUDGET_MS = 50;
 
 /** The color code of the labels, and of a number at each level, best first. */
 const LABEL = '§7';
-const LEVEL_TEXT = ['§a', '§6', '§c'];
+const LEVEL_TEXT = ['§a', '§6', '§c'] as const;
 /** The bar's color at each level, best first. */
-const LEVEL_BAR = ['green', 'yellow', 'red'];
+const LEVEL_BAR = ['green', 'yellow', 'red'] as const satisfies readonly BossBarColor[];
 
 /** How many of the thresholds a number misses, so 0 is green and 2 is red. */
-const tpsLevel = (tps) => TPS_LEVELS.filter((least) => tps < least).length;
-const msptLevel = (mspt) => MSPT_LEVELS.filter((below) => mspt >= below).length;
+const tpsLevel = (tps: number): number => TPS_LEVELS.filter((least) => tps < least).length;
+const msptLevel = (mspt: number): number => MSPT_LEVELS.filter((below) => mspt >= below).length;
 
 /**
  * The boss bar options for the server's performance and the player's ping.
@@ -30,7 +31,10 @@ const msptLevel = (mspt) => MSPT_LEVELS.filter((below) => mspt >= below).length;
  * @param ping - The player's round trip time in milliseconds, or undefined when it is unknown.
  * @returns The text, progress and color to show.
  */
-export const barOptions = ({ tps, averageTickMs: mspt }, ping) => {
+export const barOptions = (
+    { tps, averageTickMs: mspt }: typeof performance,
+    ping: number | undefined
+): Required<BossBarOptions> => {
     const tpsAt = tpsLevel(tps);
     const msptAt = msptLevel(mspt);
     const pingText = ping === undefined ? `${LABEL}?` : `${LEVEL_TEXT[0]}${Math.round(ping)}`;

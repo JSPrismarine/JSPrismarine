@@ -20,10 +20,12 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { parse } from 'yaml';
 
+import { PLACEHOLDERS } from '../../addons/standard-placeholders/src/placeholders.ts';
+import { DEFAULT_INTERVAL, EVENTS as TAB_LIST_EVENTS } from '../../addons/tab-list/src/templates.ts';
+import { MSPT_LEVELS, TICK_BUDGET_MS, TPS_LEVELS } from '../../addons/tps-bar/src/bar.ts';
 import {
     ADDON_INDEX_FILE,
     ADDON_INDEX_SCHEMA_VERSION,
@@ -1333,22 +1335,10 @@ async function addonFacts() {
     };
 }
 
-/** A list of numbers that an addon's script module exports, checked, since the module is plain JavaScript. */
-const exportedNumbers = (module: object, name: string): readonly number[] => {
-    const value: unknown = Reflect.get(module, name);
-    if (!Array.isArray(value) || !value.every((item) => typeof item === 'number'))
-        throw new Error(`the addon module exports no list of numbers as ${name}`);
-    return value;
-};
-
 /** The TPS bar's color thresholds and full bar, read from the module that draws the bar. */
-async function tpsBarFacts() {
-    const bar: object = await import(
-        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'tps-bar', 'scripts', 'bar.js')).href
-    );
-    const [tpsGreen, tpsGold] = exportedNumbers(bar, 'TPS_LEVELS');
-    const [msptGreen, msptGold] = exportedNumbers(bar, 'MSPT_LEVELS');
-    const budget: unknown = Reflect.get(bar, 'TICK_BUDGET_MS');
+function tpsBarFacts() {
+    const [tpsGreen, tpsGold] = TPS_LEVELS;
+    const [msptGreen, msptGold] = MSPT_LEVELS;
     return {
         'addons.tps-bar.levels': `\n${table(
             ['Number', 'Green', 'Gold', 'Red'],
@@ -1357,43 +1347,23 @@ async function tpsBarFacts() {
                 ['MSPT', `below ${msptGreen}`, `below ${msptGold}`, `${msptGold} or more`]
             ]
         )}\n`,
-        'addons.tps-bar.tickBudget': String(budget)
+        'addons.tps-bar.tickBudget': String(TICK_BUDGET_MS)
     };
 }
 
 /** The standard placeholders addon's namespaces and keys, read from the module that lists them. */
-async function standardPlaceholdersFacts() {
-    const module: object = await import(
-        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'standard-placeholders', 'scripts', 'placeholders.js')).href
+function standardPlaceholdersFacts() {
+    const rows = Object.entries(PLACEHOLDERS).flatMap(([namespace, keys]) =>
+        Object.entries(keys).map(([key, summary]) => [inlineCode(`{${namespace}:${key}}`), summary])
     );
-    const namespaces: unknown = Reflect.get(module, 'PLACEHOLDERS');
-    if (typeof namespaces !== 'object' || namespaces === null) {
-        throw new Error('the standard placeholders addon exports no PLACEHOLDERS table');
-    }
-    const rows = Object.entries(namespaces).flatMap(([namespace, keys]) => {
-        if (typeof keys !== 'object' || keys === null) throw new Error(`${namespace} lists no keys`);
-        return Object.entries(keys).map(([key, summary]) => [inlineCode(`{${namespace}:${key}}`), String(summary)]);
-    });
     return { 'addons.standard-placeholders.keys': `\n${table(['Token', 'What it renders'], rows)}\n` };
 }
 
 /** The tab list's default interval and script event ids, read from the module that decides them. */
-async function tabListFacts() {
-    const templates: object = await import(
-        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'tab-list', 'scripts', 'templates.js')).href
-    );
-    const interval: unknown = Reflect.get(templates, 'DEFAULT_INTERVAL');
-    const events: unknown = Reflect.get(templates, 'EVENTS');
-    if (typeof interval !== 'number' || typeof events !== 'object' || events === null)
-        throw new Error('the tab list module exports no DEFAULT_INTERVAL number or EVENTS object');
-    const ids: Readonly<Record<string, unknown>> = Object.fromEntries(Object.entries(events));
-    const id = (kind: string): string => {
-        const value = ids[kind];
-        if (typeof value !== 'string') throw new Error(`the tab list module names no ${kind} event`);
-        return inlineCode(value);
-    };
+function tabListFacts() {
+    const id = (kind: keyof typeof TAB_LIST_EVENTS): string => inlineCode(TAB_LIST_EVENTS[kind]);
     return {
-        'addons.tab-list.interval': String(interval),
+        'addons.tab-list.interval': String(DEFAULT_INTERVAL),
         'addons.tab-list.events': `\n${table(
             ['Event', 'Message'],
             [
@@ -1517,9 +1487,9 @@ export async function loadFacts(): Promise<Facts> {
             ...eventFacts(),
             ...prismarineEntryFacts(),
             ...(await addonFacts()),
-            ...(await tpsBarFacts()),
-            ...(await standardPlaceholdersFacts()),
-            ...(await tabListFacts()),
+            ...tpsBarFacts(),
+            ...standardPlaceholdersFacts(),
+            ...tabListFacts(),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
