@@ -167,7 +167,10 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         const workerExecArgv = process.execArgv.filter((argument) => !argument.startsWith('--input-type'));
         // Resolve the source-only loader from this package. A bare `tsx` specifier is resolved
         // from the process entry point, which may be the monorepo root without that dependency.
-        const tsxLoader = sourceWorker ? import.meta.resolve('tsx') : undefined;
+        // `sourceWorker` already rules out a compiled executable. Testing the define again lets
+        // Bun drop the lookup at build time instead of compiling all of `tsx` into the binary.
+        const tsxLoader =
+            sourceWorker && typeof JSP_EMBEDDED_RAKNET_WORKER === 'undefined' ? import.meta.resolve('tsx') : undefined;
         const execArgv =
             tsxLoader !== undefined && !workerExecArgv.some((argument) => argument === 'tsx' || argument === tsxLoader)
                 ? [...workerExecArgv, '--import', tsxLoader]
