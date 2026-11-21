@@ -109,7 +109,14 @@ level in `worlds` stays attached while the config names it; to detach one, remov
 config and restart. A level from `levels.json` detaches while the server runs and keeps its
 files, and attaching it again opens the same save. Two attached levels never share a name,
 while detached ones may, and are told apart by UUID
-([ADR 0029](../adr/0029-worlds-are-levels-the-server-manages.md)). For each entry it reads the config in either spelling, reads the stems the save was
+([ADR 0029](../adr/0029-worlds-are-levels-the-server-manages.md)).
+
+Each level keeps its players' records for itself: their inventory, health, experience, game
+mode and where they were. A player moving to another level leaves one record behind and picks up
+the other, or starts fresh at the level's spawn when they have never been there, and their client
+is told the new level's game rules, clock, weather, custom dimensions and scoreboard. A player who
+logs out in a level other than the entry level comes back in it: `player-levels.json`, beside
+`levels.json`, records which level each such player was last in. For each entry it reads the config in either spelling, reads the stems the save was
 generated with, resolves the stems from the preset, the entry's `dimensions` and the saved ones in
 that order of rising priority, and resolves the dimension types the stems name. A type the vanilla
 three do not cover is read from the datapack registries, which is the first point at which a

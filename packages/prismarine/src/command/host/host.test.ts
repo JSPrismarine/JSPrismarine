@@ -1311,7 +1311,21 @@ describe('the server command host', () => {
             expect(fixture.feedback.at(-1)).toContain('left has 7');
         });
 
-        it('draws a slot and tells the clients about every line in it', async () => {
+        /** A client in the level, whose packets the scoreboard's changes go to. */
+        const watch = () => {
+            fixture.players.push(
+                stub<PlayerSession>({
+                    getWorld: () => fixture.world,
+                    send: async (packet) => {
+                        fixture.sent.push(packet);
+                    },
+                    released: () => {}
+                })
+            );
+        };
+
+        it('draws a slot and tells the clients in the level about every line in it', async () => {
+            watch();
             await fixture.run('scoreboard objectives add kills dummy Kills');
             await fixture.run('scoreboard players set Steve kills 3');
 
@@ -1325,6 +1339,7 @@ describe('the server command host', () => {
         });
 
         it('clears the slot and drops the scores when the objective goes', async () => {
+            watch();
             await fixture.run('scoreboard objectives add kills dummy');
             await fixture.run('scoreboard players set Steve kills 3');
             await fixture.run('scoreboard objectives setdisplay sidebar kills');

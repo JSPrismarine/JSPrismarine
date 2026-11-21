@@ -10,6 +10,7 @@
  * counters, the world manager) is part of the command layer's shared host seam, and widening that
  * seam for one server's extras would make every other host implement them.
  */
+import { transferToLevel } from '../world/levelTransfer';
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandRegistry, CommandSource, Context } from '@jsprismarine/commands';
 import {
@@ -37,7 +38,7 @@ import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
 import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
-import { commandLevelOf, resolvePlayer } from './host/support';
+import { commandLevelOf, playerSessionOf } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
@@ -170,13 +171,14 @@ const debugAction = async (server: Server, current: CommandSource, action: strin
             return `Loaded level ${level.name} with ${[...level.getStems().keys()].join(', ')}`;
         }
         case 'changeWorld': {
-            const player = current.entity === undefined ? undefined : resolvePlayer(server, current.entity);
+            const player = current.entity === undefined ? undefined : playerSessionOf(server, current.entity);
             if (player === undefined) throw new PrismarineCommandErrors.CommandCannotRunFromConsole();
-            const world = server.getWorldManager().getWorldByName(data);
-            if (!world) throw new PrismarineCommandErrors.WorldNotLoaded({ data });
-            // A message the next input step carries out once the world's spawn is known.
-            player.setWorld(world);
-            return `Moving ${player.getFormattedUsername()} to ${world.getName()}`;
+            const level = server.getWorldManager().getLevel(data);
+            if (!level) throw new PrismarineCommandErrors.WorldNotLoaded({ data });
+            // Carried out by the next input step once the arrival is known; the player's record in
+            // the level they leave stays there, and the one in this level comes with them.
+            void transferToLevel(server, player, level).catch((error: unknown) => server.getLogger().error(error));
+            return `Moving ${player.getFormattedUsername()} to ${level.name}`;
         }
         case 'setConfig': {
             const [key = '', ...rest] = data.split(' ');

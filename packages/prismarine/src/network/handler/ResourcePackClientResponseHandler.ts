@@ -8,12 +8,9 @@ import StartGamePacket from '@jsprismarine/protocol/bedrock/packet/StartGamePack
 import type PlayerSession from '../PlayerSession';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { syncActorPropertyPacket } from '../actorProperties';
-import type { Level } from '../../world/Level';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import AvailableActorIdentifiersPacket from '@jsprismarine/protocol/bedrock/packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '@jsprismarine/protocol/bedrock/packet/BiomeDefinitionListPacket';
-import DimensionDataPacket from '@jsprismarine/protocol/bedrock/packet/DimensionDataPacket';
-import DimensionDefinition from '@jsprismarine/protocol/bedrock/structure/DimensionDefinition';
 import FeatureRegistryPacket from '@jsprismarine/protocol/bedrock/packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '@jsprismarine/protocol/bedrock/packet/JigsawStructureDataPacket';
@@ -21,6 +18,7 @@ import type ResourcePackClientResponsePacket from '@jsprismarine/protocol/bedroc
 import ResourcePackStackPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePackStackPacket';
 import { EditorPackType, ResourcePackStatus } from '@jsprismarine/protocol';
 import { joinContentPayloads } from '../contentPayloads';
+import { customDimensionData } from '../customDimensionData';
 import { knownOverworldSpawnOf, overworldSpawnOf, playerSpawnPositionPacket } from '../spawnPosition';
 import { allSent } from '../allSent';
 import { outsideTick } from '../../world/TickContext';
@@ -73,49 +71,6 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             [joinSpawn.requested, PlayerRespawnState.SEARCHING_FOR_SPAWN, 0n],
             [eyePositionAt(joinSpawn.position), PlayerRespawnState.READY_TO_SPAWN, 0n]
         ];
-    }
-
-    /**
-     * The `DimensionData` that tells the client about the level's custom dimension types, or
-     * undefined for a level of vanilla dimensions, which the client knows without it.
-     *
-     * One entry per custom type, keyed by the type's name, with the bounds and the id from
-     * 1000 up that the level chose. The cloud fields go on the wire only when the connection
-     * encodes the packet at protocol 2225 or later; the definition carries them either way.
-     * Sent before the chunks so the client has the bounds when the first `LevelChunk` with
-     * that dimension id arrives. Whether a client accepts an id of 1000 or more has not been
-     * checked against a real client.
-     */
-    private static customDimensionData(level: Level): DimensionDataPacket | undefined {
-        const definitions = level.customDimensionDefinitions();
-        if (definitions.length === 0) return undefined;
-
-        const types = [...level.getDimensionTypes().values()];
-        return new DimensionDataPacket({
-            definitions: definitions.map((fields) => {
-                const type = types.find((candidate) => candidate.bedrockId === fields.dimensionType);
-                if (type === undefined) {
-                    throw new PrismarineNetworkErrors.DimensionWithoutType({
-                        name: level.getName(),
-                        dimensionType: fields.dimensionType
-                    });
-                }
-
-                return {
-                    id: type.name,
-                    definition: new DimensionDefinition(
-                        fields.minimumY,
-                        fields.heightRange,
-                        fields.generatorType,
-                        fields.dimensionType,
-                        fields.packId,
-                        fields.defaultBiome,
-                        fields.cloudHeight,
-                        fields.renderClouds
-                    )
-                };
-            })
-        });
     }
 
     /**
@@ -229,7 +184,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
      * 2. `StartGame`. Nothing game-related may precede it. A client still in its login state
      *    treats game packets as malformed and drops with `InitialConnection-90`. Then
      *    `DimensionData`, only for a level with a dimension type the client has no built-in
-     *    dimension for: see {@link customDimensionData}.
+     *    dimension for: see `customDimensionData`.
      * 3. `ItemRegistry` (our `ItemRegistryPacket`), `AvailableActorIdentifiers`,
      *    `BiomeDefinitionList`, `FeatureRegistry`, `CreativeContent`, `CraftingData`,
      *    `AvailableCommands`. The registries the client builds its world from; it needs them
@@ -340,7 +295,7 @@ export default class ResourcePackClientResponseHandler implements InputLaneHandl
             )
         );
 
-        const dimensionData = ResourcePackClientResponseHandler.customDimensionData(world.getLevel());
+        const dimensionData = customDimensionData(world.getLevel());
         if (dimensionData !== undefined) sends.push(connection.sendDataPacket(dimensionData));
 
         // Every item the content build resolved, with the numbers the
