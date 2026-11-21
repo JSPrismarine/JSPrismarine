@@ -31,8 +31,6 @@ export const UNHANDLED_DATA_COMPONENT_PREDICATE_TYPE: readonly string[] = [
     'minecraft:potion_contents',
     // Needs the armor trim's material and pattern compared.
     'minecraft:trim',
-    // Needs the villager variant component compared.
-    'minecraft:villager/variant',
     // Needs the book's pages matched against a collection predicate.
     'minecraft:writable_book_content',
     // Needs the signed book's author, title, generation and pages compared.
