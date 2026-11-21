@@ -3,7 +3,6 @@ import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Att
 import { describe, expect, it } from 'vitest';
 
 import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { WindowIds } from '../inventory/WindowIds';
 import { Item } from '../item/Item';
 import { beginMeasuredTick } from '../testing/changeTicks.test.helper';
@@ -93,14 +92,14 @@ describe("PlayerSession's sends to its own client", () => {
     it('shows a slot whose write was undone under the new network id of the stack written back', () => {
         const { session, player, live, sent } = fakePlayer();
         const inventory = player.getInventory();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:bread' }), count: 3 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:bread', count: 3 }));
         void session.sendInventory();
-        const first = inventory.getEntry(0)?.toItemStack().stackNetworkId;
+        const first = inventory.container('inventory').get(0)?.stackNetworkId;
         const store = live.runtime.store;
         beginMeasuredTick(store);
 
         store.unit(() => {
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 1 }));
             throw new Error('planned');
         });
         const sealed = store.sealTick();

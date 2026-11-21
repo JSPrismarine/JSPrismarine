@@ -5,7 +5,6 @@
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item } from '../../item/Item';
 import { StorePlayer } from '../storePlayer';
 import { storePlayerHostFacts } from './playerHostFacts';
@@ -20,7 +19,10 @@ const holding = (item?: string) => {
         subject: { kind: 'offline', name: 'Steve' }
     });
     if (item !== undefined)
-        player.getInventory().setItem(0, new ContainerEntry({ item: new Item({ name: item }), count: 1 }));
+        player
+            .getInventory()
+            .container('inventory')
+            .set(0, new Item({ name: item, count: 1 }));
     players.add(player);
     const finished: { player: StorePlayer; item: string }[] = [];
     const broken: string[] = [];
@@ -44,21 +46,21 @@ describe('the store player host facts', () => {
         expect(facts.handsOf(7)).toEqual({ mainhand: 'minecraft:bread' });
         player
             .getInventory()
-            .getOffhand()
-            .setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }) }));
+            .container('offhand')
+            .set(0, new Item({ name: 'minecraft:shield' }));
         expect(facts.handsOf(7)).toEqual({ mainhand: 'minecraft:bread', offhand: 'minecraft:shield' });
         expect(facts.handsOf(8)).toBeUndefined();
     });
 
     it('wear the stack in one hand, and break it once worn through', () => {
         const { player, facts, broken } = holding();
-        const offhand = player.getInventory().getOffhand();
-        offhand.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }) }));
-        const durability = offhand.getItem(0).getMaxDurability();
+        const offhand = player.getInventory().container('offhand');
+        offhand.set(0, new Item({ name: 'minecraft:shield' }));
+        const durability = offhand.get(0)!.getMaxDurability();
         expect(durability).toBeGreaterThan(5);
 
         facts.wearHeldItem(7, 'offhand', 5);
-        expect(offhand.getItem(0).getDurability()).toBe(durability - 5);
+        expect(offhand.get(0)?.getDurability()).toBe(durability - 5);
         expect(broken).toEqual([]);
         facts.wearHeldItem(7, 'offhand', durability);
         expect(facts.handsOf(7)).toEqual({});

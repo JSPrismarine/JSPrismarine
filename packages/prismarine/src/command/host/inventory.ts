@@ -20,9 +20,8 @@
 import type { DataTarget, ItemSlot } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
-import type Inventory from '../../inventory/Inventory';
+import type { ItemContainer } from '../../inventory/ItemContainer';
 import { blockContainerAt } from './containers';
 import { blockPositionOf, carryOut, refuse, resolveTarget, unsupported, worldOf } from './support';
 
@@ -48,7 +47,7 @@ export const BLOCK_CONTAINER_SLOT = 'slot.container';
 
 /** Which container a slot group names, and where in it the group starts. */
 interface SlotTarget {
-    readonly inventory: Inventory;
+    readonly inventory: ItemContainer;
     readonly slot: number;
 }
 
@@ -124,7 +123,9 @@ export const setItemSlot = (
     if (holder === undefined) unsupported("item slots on anything but a player, which this server's inventories");
     const { player, session } = holder;
 
-    const inventory = player.getInventory();
+    const inventory = player.getInventory().container('inventory');
+    const enderChest = player.getInventory().container('ender_chest');
+    const armorContainer = player.getInventory().container('armor');
     const index = slot.index ?? 0;
     const armor = ARMOR_SLOTS.indexOf(slot.name);
 
@@ -134,23 +135,23 @@ export const setItemSlot = (
                 ? { inventory, slot: index }
                 : undefined
             : slot.name === 'slot.inventory'
-              ? index < inventory.getSlotCount() - HOTBAR_SIZE
+              ? index < inventory.size - HOTBAR_SIZE
                   ? { inventory, slot: HOTBAR_SIZE + index }
                   : undefined
               : slot.name === 'slot.weapon.mainhand'
-                ? { inventory, slot: inventory.getHandSlotIndex() }
+                ? { inventory, slot: player.getInventory().getHandSlot() }
                 : slot.name === 'slot.weapon.offhand'
-                  ? { inventory: inventory.getOffhand(), slot: 0 }
+                  ? { inventory: player.getInventory().container('offhand'), slot: 0 }
                   : slot.name === 'slot.enderchest'
-                    ? index < inventory.getEnderChest().getSlotCount()
-                        ? { inventory: inventory.getEnderChest(), slot: index }
+                    ? index < enderChest.size
+                        ? { inventory: enderChest, slot: index }
                         : undefined
                     : slot.name === 'slot.armor'
                       ? index < ARMOR_SLOTS.length
-                          ? { inventory: inventory.getArmor(), slot: index }
+                          ? { inventory: armorContainer, slot: index }
                           : undefined
                       : armor >= 0
-                        ? { inventory: inventory.getArmor(), slot: armor }
+                        ? { inventory: armorContainer, slot: armor }
                         : undefined;
 
     if (resolved === undefined) unsupported(`a '${slot.name}' slot, which this server`);
@@ -159,8 +160,6 @@ export const setItemSlot = (
     const stack = stackOf(server, item);
     if (stack === null) return 0;
 
-    // The wire and every reader of the item count the item's own amount, so the item carries the
-    // slot's count rather than leaving the entry and the item to disagree.
-    resolved.inventory.setItem(resolved.slot, new ContainerEntry({ item: stack.withCount(count), count }));
+    resolved.inventory.set(resolved.slot, stack.withCount(count));
     return carryOut(session.sendInventory(), count);
 };

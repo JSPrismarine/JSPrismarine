@@ -20,7 +20,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../config/Config';
 import type Console from '../Console';
-import ContainerEntry from '../inventory/ContainerEntry';
 import type { Logger } from '@jsprismarine/logger';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { Item } from '../item/Item';
@@ -191,22 +190,14 @@ const logOutAndIn = async () => {
     const leaving = buildPlayer(world, server, uuid);
     const inventory = leaving.getInventory();
 
-    inventory.setItem(PICKAXE_SLOT, new ContainerEntry({ item: pickaxe(), count: 1 }));
+    inventory.container('inventory').set(PICKAXE_SLOT, pickaxe().withCount(1));
     inventory.setHandSlot(PICKAXE_SLOT);
+    inventory.container('armor').set(1, new Item({ name: 'minecraft:iron_chestplate', count: 1 }));
+    inventory.container('offhand').set(0, new Item({ name: 'minecraft:shield', count: 1 }));
+    inventory.container('ender_chest').set(26, new Item({ name: 'minecraft:diamond', count: 12 }));
     inventory
-        .getArmor()
-        .setItem(1, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_chestplate' }), count: 1 }));
-    inventory.getOffhand().setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }), count: 1 }));
-    inventory
-        .getEnderChest()
-        .setItem(26, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 12 }), count: 12 }));
-    inventory.setItem(
-        BOX_SLOT,
-        new ContainerEntry({
-            item: new Item({ name: 'minecraft:black_shulker_box' }).withContents([null, pickaxe()]),
-            count: 1
-        })
-    );
+        .container('inventory')
+        .set(BOX_SLOT, new Item({ name: 'minecraft:black_shulker_box' }).withContents([null, pickaxe()]).withCount(1));
 
     leaving.attributes.setValue(AttributeIds.Health, 11);
     leaving.getPlayer().setFood(13);
@@ -231,31 +222,20 @@ const logOutAndIn = async () => {
     await back.addPlayer(returning);
 
     const returningInventory = returning.getInventory();
-    const original = returningInventory.getEntry(0);
+    const main = returningInventory.container('inventory');
+    const original = main.get(0);
     const baselineDigest = back.replayStateDigest();
-    returningInventory.setCursor(new Item({ name: 'minecraft:diamond', count: 1 }));
+    returningInventory.container('cursor').set(0, new Item({ name: 'minecraft:diamond', count: 1 }));
     const oneCursorDigest = back.replayStateDigest();
-    returningInventory.setCursor(new Item({ name: 'minecraft:diamond', count: 2 }));
+    returningInventory.container('cursor').set(0, new Item({ name: 'minecraft:diamond', count: 2 }));
     const twoCursorDigest = back.replayStateDigest();
-    returningInventory.setCursor(null);
+    returningInventory.container('cursor').set(0, null);
     const clearedCursorDigest = back.replayStateDigest();
-    returningInventory.setItem(
-        0,
-        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 1 }), count: 1 })
-    );
+    main.set(0, new Item({ name: 'minecraft:diamond', count: 1 }));
     const oneStackDigest = back.replayStateDigest();
-    returningInventory.setItem(
-        0,
-        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 2 }), count: 2 })
-    );
+    main.set(0, new Item({ name: 'minecraft:diamond', count: 2 }));
     const duplicatedStackDigest = back.replayStateDigest();
-    returningInventory.setItem(
-        0,
-        new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 1 }), count: 2 })
-    );
-    const mismatchedStackDigest = back.replayStateDigest();
-    if (original === null) returningInventory.removeItem(0);
-    else returningInventory.setItem(0, original);
+    main.set(0, original);
     const restoredDigest = back.replayStateDigest();
 
     await reopened.disable();
@@ -268,7 +248,6 @@ const logOutAndIn = async () => {
             clearedCursorDigest,
             oneStackDigest,
             duplicatedStackDigest,
-            mismatchedStackDigest,
             restoredDigest
         }
     };
@@ -298,15 +277,14 @@ describe('a player logging out and back in', () => {
     it('comes back holding the same stack, in the same slot', () => {
         const inventory = returning.getInventory();
 
-        expect(inventory.getHandSlotIndex()).toBe(PICKAXE_SLOT);
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_pickaxe');
-        expect(inventory.getItem(PICKAXE_SLOT).getAmount()).toBe(1);
+        expect(inventory.getHandSlot()).toBe(PICKAXE_SLOT);
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(inventory.container('inventory').get(PICKAXE_SLOT)?.getAmount()).toBe(1);
     });
 
     it('changes the world digest when a player stack is duplicated', () => {
         expect(digests.oneStackDigest).not.toBe(digests.baselineDigest);
         expect(digests.duplicatedStackDigest).not.toBe(digests.oneStackDigest);
-        expect(digests.mismatchedStackDigest).not.toBe(digests.duplicatedStackDigest);
         expect(digests.restoredDigest).toBe(digests.baselineDigest);
     });
 
@@ -399,33 +377,33 @@ describe('a player logging out and back in', () => {
     });
 
     it('keeps the enchantments, including one no Bedrock number names', () => {
-        const held = returning.getInventory().getItemInHand();
+        const held = returning.getInventory().equipment('mainhand')!;
 
         expect(Object.fromEntries(held.getEnchantments())).toEqual({
             'minecraft:efficiency': 4,
             'minecraft:silk_touch': 1,
             'minecraft:sweeping_edge': 2
         });
-        expect(held.hasEnchantment('silk_touch')).toBe(true);
+        expect(held?.hasEnchantment('silk_touch')).toBe(true);
     });
 
     it('keeps the damage, the name and the lore', () => {
-        const held = returning.getInventory().getItemInHand();
+        const held = returning.getInventory().equipment('mainhand');
 
-        expect(held.getMaxDurability() - held.getDurability()).toBe(37);
-        expect(held.getCustomName()).toBe('Hole Maker');
-        expect(held.getLore()).toEqual(['Property of the test suite']);
+        expect(held!.getMaxDurability() - held!.getDurability()).toBe(37);
+        expect(held?.getCustomName()).toBe('Hole Maker');
+        expect(held?.getLore()).toEqual(['Property of the test suite']);
     });
 
     it('keeps what a shulker box in the inventory was holding', () => {
-        const box = returning.getInventory().getItem(BOX_SLOT);
+        const box = returning.getInventory().container('inventory').get(BOX_SLOT);
 
-        expect(box.getName()).toBe('minecraft:black_shulker_box');
+        expect(box?.getName()).toBe('minecraft:black_shulker_box');
         // The empty slot before it is kept too, so the box opens with its stacks where they
         // were rather than shuffled up to the front.
-        expect(box.getContents()[0]).toBeNull();
+        expect(box?.getContents()[0]).toBeNull();
 
-        const held = box.getContents()[1];
+        const held = box?.getContents()[1];
         expect(held?.getName()).toBe('minecraft:diamond_pickaxe');
         expect(held?.getEnchantmentLevel('minecraft:sweeping_edge')).toBe(2);
         expect(held?.getCustomName()).toBe('Hole Maker');
@@ -435,10 +413,10 @@ describe('a player logging out and back in', () => {
     it('keeps the armor, the off hand and the ender chest', () => {
         const inventory = returning.getInventory();
 
-        expect(inventory.getArmor().getItem(1).getName()).toBe('minecraft:iron_chestplate');
-        expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:shield');
-        expect(inventory.getEnderChest().getItem(26).getName()).toBe('minecraft:diamond');
-        expect(inventory.getEnderChest().getItem(26).getAmount()).toBe(12);
+        expect(inventory.container('armor').get(1)?.getName()).toBe('minecraft:iron_chestplate');
+        expect(inventory.container('offhand').get(0)?.getName()).toBe('minecraft:shield');
+        expect(inventory.container('ender_chest').get(26)?.getName()).toBe('minecraft:diamond');
+        expect(inventory.container('ender_chest').get(26)?.getAmount()).toBe(12);
     });
 
     it('keeps health, food, saturation and experience', () => {

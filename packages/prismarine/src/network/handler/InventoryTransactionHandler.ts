@@ -4,10 +4,9 @@ import type PlayerSession from '../PlayerSession';
 import { EXHAUSTION } from '../../entity/playerHunger';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
-import type { Item } from '../../item/Item';
+import { Item } from '../../item/Item';
 import { consumeTicksOf, useItemInAir, useItemOnEntity } from '../../item/interaction';
 import type { InteractingPlayer, InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
@@ -254,7 +253,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
             return;
         }
 
-        const handSlot = player.getInventory().getHandSlotIndex();
+        const handSlot = player.getInventory().getHandSlot();
         if (data.hotbarSlot !== handSlot) {
             log.verbose(
                 `Dropped an inventory transaction from ${connection.identity.name}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`
@@ -297,14 +296,14 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 container.sourceFlags === null &&
                 Number.isInteger(container.targetSlot) &&
                 container.targetSlot >= 0 &&
-                container.targetSlot < player.getInventory().getSlotCount() &&
+                container.targetSlot < player.getInventory().container('inventory').size &&
                 world.windowId === null &&
                 world.sourceFlags === 0 &&
                 world.targetSlot === 0 &&
                 this.isAir(world.oldItem)
             ) {
-                const inventory = player.getInventory();
-                const held = inventory.getItem(container.targetSlot);
+                const inventory = player.getInventory().container('inventory');
+                const held = inventory.get(container.targetSlot);
                 const oldCount = container.oldItem.getAmount();
                 const remainingCount = this.isAir(container.newItem) ? 0 : container.newItem.getAmount();
                 const droppedCount = world.newItem.getAmount();
@@ -314,7 +313,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     left.getBlockRuntimeId() === right.getBlockRuntimeId();
 
                 if (
-                    !this.isAir(held) &&
+                    held !== null &&
                     sameStack(container.oldItem, held) &&
                     oldCount === held.getAmount() &&
                     droppedCount > 0 &&
@@ -323,12 +322,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     (remainingCount === 0 ||
                         (sameStack(container.newItem, held) && container.newItem.getAmount() === remainingCount))
                 ) {
-                    if (remainingCount === 0) inventory.removeItem(container.targetSlot);
-                    else
-                        inventory.setItem(
-                            container.targetSlot,
-                            new ContainerEntry({ item: held.withCount(remainingCount), count: remainingCount })
-                        );
+                    inventory.set(container.targetSlot, held.withCount(remainingCount));
 
                     const dropped = held.withCount(droppedCount);
                     dropped.stackNetworkId = 0;
@@ -337,7 +331,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                             WindowIds.INVENTORY,
                             ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY,
                             container.targetSlot,
-                            inventory.getItem(container.targetSlot)
+                            inventory.get(container.targetSlot)
                         )
                     );
                     // The stack enters the world before the drop first waits.
@@ -399,8 +393,8 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         if (attacker === undefined) return;
         const player = session.getPlayer();
         const components = player.getComponents();
-        const held = player.getInventory().getItemInHand();
-        const swing = new PlayerAttackEntityEvent(attacker, target, held.getName() === 'minecraft:air' ? null : held);
+        const held = player.getInventory().equipment('mainhand');
+        const swing = new PlayerAttackEntityEvent(attacker, target, held);
         context.services.events.post('playerAttackEntity', swing);
         if (swing.isCanceled()) return;
         // In this input's unit: the blow, its sounds and the hunger it costs are all written
@@ -410,7 +404,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
 
             // What they are holding, not their attack attribute: in vanilla the weapon *is*
             // the number, and an empty hand is one point rather than none.
-            damage: player.getInventory().getItemInHand().getAttackDamage(),
+            damage: (held ?? Item.air()).getAttackDamage(),
 
             // Falling, and actually descending: a player on the way up through a jump is off
             // the ground too, and vanilla does not let them crit from there.
@@ -436,7 +430,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         if (ticks === undefined) return;
 
         if (session.inputs().beginPlayerMeal(player, ticks))
-            startItemUse(session, player.getInventory().getItemInHand(), ticks, step.tick);
+            startItemUse(session, player.getInventory().equipment('mainhand') ?? Item.air(), ticks, step.tick);
     }
 
     /**
@@ -457,7 +451,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
         session.inputs().cancelPlayerMeal(player);
         // The draw's clock, which the store player keeps.
         const drawn = player.takeItemUseTicks(step.tick);
-        const bow = player.getInventory().getItemInHand().getName() === BOW;
+        const bow = player.getInventory().equipment('mainhand')?.getName() === BOW;
         endItemUse(session, bow && data.actionType === ItemReleaseActionType.RELEASE ? 'release' : 'stop', step.tick);
 
         if (data.actionType !== ItemReleaseActionType.RELEASE) return;
@@ -496,7 +490,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     // The block's and the item's behavior families get the click, and the block
                     // in hand goes down when neither takes it. What a click they all decline
                     // gets is nothing: the item places no block, so the client predicted none.
-                    if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
+                    if (player.getInventory().equipment('mainhand')?.getName() === ENDER_EYE) {
                         eyeEcho.usedOnBlock(session.runtimeId, step.tick);
                     }
                     contentUseOnBlock(
@@ -552,7 +546,7 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 // A held input is not a new Eye of Ender click, and neither is the air-use report of
                 // a click that was just used on a block. In particular, after the frame hook fills
                 // a frame, neither a simulation tick nor the click's own echo may throw the eye.
-                if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
+                if (player.getInventory().equipment('mainhand')?.getName() === ENDER_EYE) {
                     const echo = eyeEcho.isEcho(session.runtimeId, step.tick);
                     if (data.triggerType === SIMULATION_TICK_TRIGGER || echo) return;
                 }
@@ -560,9 +554,10 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                 // Bedrock never says how long a bow was drawn for. It says "started" here and
                 // "released" in another transaction entirely, and the gap between the two is the
                 // charge. So the clock starts here.
-                if (player.getInventory().getItemInHand().getName() === BOW) {
+                if (player.getInventory().equipment('mainhand')?.getName() === BOW) {
+                    const bow = player.getInventory().equipment('mainhand') ?? Item.air();
                     session.getPlayer().beginItemUse(step.tick);
-                    startItemUse(session, player.getInventory().getItemInHand(), HELD_USE_TICKS, step.tick);
+                    startItemUse(session, bow, HELD_USE_TICKS, step.tick);
                 }
 
                 // The item's own `onUse`, which is how an eye of ender or a snowball leaves the

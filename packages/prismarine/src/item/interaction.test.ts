@@ -11,7 +11,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { advancementsOf } from '../advancement/progress';
 import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
-import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { inertEntityRuntime } from '../testing/entityServer';
@@ -43,7 +42,7 @@ import { testKernel } from '../testing/kernel.test.helper';
 interface OpenedContainer {
     readonly identifier: string;
     readonly at: Vector3;
-    readonly contents: ContainerEntry[];
+    readonly contents: readonly (Item | null)[];
 }
 
 /** The part of a session's open-window state the block interaction reads. */
@@ -299,15 +298,15 @@ const playerHolding = (
 ): PlayerSession => {
     const item = typeof holding === 'string' ? new Item({ runtimeId: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = new HumanInventory();
-    inventory.setItem(0, new ContainerEntry({ item, count: item.count }));
+    inventory.container('inventory').set(0, item);
     inventory.setHandSlot(0);
     let openWindow: OpenWindow | undefined;
     const session = {
-        opened: [] as { identifier: string; at: Vector3; contents: ContainerEntry[] }[],
+        opened: [] as { identifier: string; at: Vector3; contents: readonly (Item | null)[] }[],
         inventoriesSent: 0,
         sendInventory: async () => void session.inventoriesSent++,
         getOpenBlockContainer: () => openWindow,
-        openBlockContainer: async (at: Vector3, blockIdentifier: string, contents: ContainerEntry[] = []) => {
+        openBlockContainer: async (at: Vector3, blockIdentifier: string, contents: readonly (Item | null)[] = []) => {
             const current = openWindow;
             if (
                 current?.identifier === blockIdentifier &&
@@ -478,7 +477,9 @@ describe('useItemOnBlock', () => {
 
             expect(click(player, at)).toBe('handled');
 
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(gamemode === Gametype.CREATIVE ? 2 : 1);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(
+                gamemode === Gametype.CREATIVE ? 2 : 1
+            );
             expect(sessionOf(player).inventoriesSent).toBe(1);
             expect(world.loadedBlockAt(at.x, at.y, at.z)?.name).toBe(
                 container === 'minecraft:bucket' ? 'minecraft:air' : liquid
@@ -536,8 +537,8 @@ describe('useItemOnBlock', () => {
 
         expect(click(player, { x: 6, y: 64, z: 6 })).toBe('handled');
 
-        expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
-        expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
+        expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(1);
+        expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(1);
     });
 
     it('ignites the air beside the clicked east face and reports that block change', () => {
@@ -599,9 +600,9 @@ describe('useItemOnBlock', () => {
         expect(session.opened[0]!.identifier).toBe('minecraft:chest');
         expect(session.opened[0]!.at).toEqual(new Vector3(4, 64, 4));
         expect(session.opened[0]!.contents).toHaveLength(27);
-        expect(session.opened[0]!.contents[0]!.toItemStack().getName()).toBe('minecraft:stick');
-        expect(session.opened[0]!.contents[0]!.getCount()).toBe(5);
-        expect(session.opened[0]!.contents[1]!.toItemStack().getName()).toBe('minecraft:air');
+        expect(session.opened[0]!.contents[0]?.getName()).toBe('minecraft:stick');
+        expect(session.opened[0]!.contents[0]?.getAmount()).toBe(5);
+        expect(session.opened[0]!.contents[1]).toBeNull();
         expect(sounds()).toContain('random.chestopen');
     });
 
@@ -619,17 +620,17 @@ describe('useItemOnBlock', () => {
         await Promise.resolve();
 
         const session = sessionOf(player);
-        const shown = session.opened[0]!.contents.filter((entry) => entry.toItemStack().getName() !== 'minecraft:air');
+        const shown = session.opened[0]!.contents.filter((entry) => entry !== null);
         // Three bread, over as many slots as Java's own split put them in: a chest with 27
         // free slots and one stack of more than one gets the stack spread rather than piled.
-        expect(shown.every((entry) => entry.toItemStack().getName() === 'minecraft:bread')).toBe(true);
-        expect(shown.reduce((total, entry) => total + entry.getCount(), 0)).toBe(3);
+        expect(shown.every((entry) => entry.getName() === 'minecraft:bread')).toBe(true);
+        expect(shown.reduce((total, entry) => total + entry.getAmount(), 0)).toBe(3);
 
         // And the chest keeps it: the tag is gone and the items are in the block entity, so
         // the next player to open it is shown the same chest rather than a fresh roll.
         const stored = content.world.blockWorld.at(DIMENSION).getBlockData({ x: 6, y: 64, z: 6 });
         expect(stored?.items?.filter((item) => item !== undefined)).toEqual(
-            shown.map((entry) => ({ identifier: 'minecraft:bread', count: entry.getCount() }))
+            shown.map((entry) => ({ identifier: 'minecraft:bread', count: entry.getAmount() }))
         );
         expect(chunk.getBlockEntity(6, 64, 6)!.toNBT().has('LootTable')).toBe(false);
     });
@@ -769,7 +770,7 @@ describe('useItemOnBlock', () => {
             const [eye] = launched;
             expect(eye?.from.y).toBeCloseTo(65 - 1.62 + 0.9);
             expect(eye?.target).toEqual({ x: 400, y: 0, z: -96 });
-            expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -803,7 +804,7 @@ describe('useItemOnBlock', () => {
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
             expect(launched).toHaveLength(1);
-            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(2);
         });
 
         it('throws nothing and spends nothing when no stronghold is in range, and tells the client', () => {
@@ -813,7 +814,7 @@ describe('useItemOnBlock', () => {
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
             expect(launched).toHaveLength(0);
-            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(2);
             // The client took one out of its own hand the moment it clicked.
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
@@ -825,7 +826,7 @@ describe('useItemOnBlock', () => {
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            expect(player.getInventory().getItemInHand().getAmount()).toBe(2);
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(2);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -834,7 +835,7 @@ describe('useItemOnBlock', () => {
 
             expect(useItemInAir({ content, actors: handle.actorsAt(DIMENSION), player })).toBe('handled');
 
-            expect(player.getInventory().getItemInHand().getAmount()).toBe(16);
+            expect(player.getInventory().equipment('mainhand')?.getAmount()).toBe(16);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -863,7 +864,7 @@ describe('useItemOnBlock', () => {
             expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:air');
             expect(changed()).toContain('1,64,1 minecraft:air');
             expect(changed()).not.toContain('1,64,1 minecraft:dirt');
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -962,7 +963,7 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 6, y: 63, z: 6 })).toBe('handled');
 
             expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_wire');
-            expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+            expect(player.getInventory().equipment('mainhand')).toBeNull();
         });
 
         it.each([
@@ -1046,10 +1047,10 @@ describe('useItemOnBlock', () => {
 
             click(player, { x: 4, y: 63, z: 4 });
 
-            const held = player.getInventory().getEntry(0);
-            expect(held?.getCount()).toBe(2);
-            expect(held?.getItem().getAmount()).toBe(2);
-            expect(held?.getItem().stackNetworkId).toBe(1);
+            const held = player.getInventory().container('inventory').get(0);
+            expect(held?.getAmount()).toBe(2);
+            expect(held?.getAmount()).toBe(2);
+            expect(held?.stackNetworkId).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -1059,7 +1060,7 @@ describe('useItemOnBlock', () => {
 
             click(player, { x: 4, y: 63, z: 4 });
 
-            expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+            expect(player.getInventory().equipment('mainhand')).toBeNull();
         });
 
         it('leaves a creative hand as it was, and still resends the inventory', () => {
@@ -1068,7 +1069,7 @@ describe('useItemOnBlock', () => {
 
             click(player, { x: 4, y: 63, z: 4 });
 
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(3);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -1092,7 +1093,7 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:stone');
             expect(changed()).toEqual(['7,63,7 minecraft:stone', '7,64,7 minecraft:stone']);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(3);
             expect(sessionOf(player).inventoriesSent).toBe(1);
             expect(earned(player, 'test:placed')).toBe(false);
         });
@@ -1132,7 +1133,7 @@ describe('useItemOnBlock', () => {
                 const filler = playerHolding(world, new Item({ name: 'minecraft:ender_eye', count: 1, content }));
                 expect(click(filler, frame.at)).toBe('handled');
                 expect(world.loadedBlockAt(frame.at.x, frame.at.y, frame.at.z)?.states['end_portal_eye_bit']).toBe(1);
-                expect(filler.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+                expect(filler.getInventory().equipment('mainhand')).toBeNull();
             }
 
             for (let dx = -1; dx <= 1; dx += 1) {
@@ -1156,7 +1157,7 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
 
             expect(world.loadedBlockAt(3, 64, 3)?.states['end_portal_eye_bit']).toBe(1);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(1);
             expect(sessionOf(player).inventoriesSent).toBe(1);
         });
 
@@ -1171,7 +1172,7 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 3, y: 64, z: 3 })).toBe('handled');
 
             expect(world.loadedBlockAt(3, 64, 3)?.states['end_portal_eye_bit']).toBe(1);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(2);
         });
 
         it('leaves an end portal frame empty for a bare-hand click', () => {
@@ -1195,7 +1196,7 @@ describe('useItemOnBlock', () => {
             expect(click(player, { x: 9, y: top, z: 9 })).toBe('handled');
 
             expect(changed()).toEqual([`9,${top},9 minecraft:stone`]);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(3);
         });
     });
 });

@@ -9,7 +9,6 @@ import { describe, expect, it } from 'vitest';
 
 import { nbtBytesOf } from '../nbtBytes';
 
-import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import {
     enteredStorePlayer,
@@ -27,7 +26,7 @@ import { FLOOR_Y } from './data/testing';
 const slotEntries = (entries: readonly ChangeEntry[]) =>
     entries.filter((entry) => entry.kind === 'field' && entry.field === 'inventory-slot');
 
-const diamonds = (count: number) => new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count }), count });
+const diamonds = (count: number) => new Item({ name: 'minecraft:diamond', count });
 
 /** Runs `work` in a unit of its own tick that throws, so the store undoes what it wrote. */
 const undone = (fixture: EntityFixture, work: () => void) => {
@@ -50,7 +49,7 @@ describe('a store player', () => {
             const entries = logged(fixture.runtime, () => {
                 player.restoreHealth(7);
                 player.setFood(3);
-                player.getInventory().setItem(0, diamonds(2));
+                player.getInventory().container('inventory').set(0, diamonds(2));
                 player.placeAt({ x: 4.5, y: FLOOR_Y + 1 + 1.62, z: 2.5, yaw: 90, pitch: 10, headYaw: 45 });
             });
 
@@ -182,13 +181,15 @@ describe('a store player', () => {
 
             // The slot write is undone after the entity comes back, and needs the player's parts.
             undone(fixture, () => {
-                player.getInventory().setItem(0, diamonds(2));
+                player.getInventory().container('inventory').set(0, diamonds(2));
                 leaveStore(fixture.runtime, player, 'changed dimension');
             });
 
             expect(fixture.runtime.store.get(player.id)).toBe(player.entity);
-            expect(player.getInventory().getItem(0).getName()).toBe('minecraft:air');
-            const entries = logged(fixture.runtime, () => player.getInventory().setItem(0, diamonds(1)));
+            expect(player.getInventory().container('inventory').get(0)).toBeNull();
+            const entries = logged(fixture.runtime, () =>
+                player.getInventory().container('inventory').set(0, diamonds(1))
+            );
             expect(slotEntries(entries)).toHaveLength(1);
         });
 
@@ -213,7 +214,7 @@ describe('a store player', () => {
             const { player } = enteredStorePlayer(fixture);
             const inventory = player.getInventory();
 
-            const entries = logged(fixture.runtime, () => inventory.setItem(4, diamonds(3)));
+            const entries = logged(fixture.runtime, () => inventory.container('inventory').set(4, diamonds(3)));
             expect(slotEntries(entries)).toHaveLength(1);
             expect(slotEntries(entries)[0]).toMatchObject({
                 address: { entity: BigInt(player.id), container: 'inventory', slot: 4 },
@@ -221,11 +222,11 @@ describe('a store player', () => {
             });
 
             undone(fixture, () => {
-                inventory.setItem(4, diamonds(5));
-                inventory.getArmor().setItem(0, diamonds(1));
+                inventory.container('inventory').set(4, diamonds(5));
+                inventory.container('armor').set(0, diamonds(1));
             });
-            expect(inventory.getItem(4).getAmount()).toBe(3);
-            expect(inventory.getArmor().getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(4)?.getAmount()).toBe(3);
+            expect(inventory.container('armor').get(0)).toBeNull();
         });
 
         it('logs and undoes the hand slot and the crafting grid', () => {
@@ -244,7 +245,7 @@ describe('a store player', () => {
                 inventory.setHandSlot(5);
                 player.getCraftingInput().set(1, null);
             });
-            expect(inventory.getHandSlotIndex()).toBe(2);
+            expect(inventory.getHandSlot()).toBe(2);
             expect(player.getCraftingInput().get(1)?.getName()).toBe('minecraft:stick');
         });
 
@@ -274,7 +275,7 @@ describe('a store player', () => {
             leaveStore(fixture.runtime, player, 'changed dimension');
 
             const entries = logged(fixture.runtime, () => {
-                player.getInventory().setItem(0, diamonds(1));
+                player.getInventory().container('inventory').set(0, diamonds(1));
                 player.setFood(1);
             });
 

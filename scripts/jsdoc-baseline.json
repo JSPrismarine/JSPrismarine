@@ -563,8 +563,6 @@
     "packages/prismarine/src/events/raknet/RaknetEncapsulatedPacketEvent.ts exported class `RaknetEncapsulatedPacketEvent`",
     "packages/prismarine/src/events/raknet/RaknetEncapsulatedPacketEvent.ts public method `RaknetEncapsulatedPacketEvent.getInetAddr`",
     "packages/prismarine/src/events/raknet/RaknetEncapsulatedPacketEvent.ts public method `RaknetEncapsulatedPacketEvent.getPacket`",
-    "packages/prismarine/src/inventory/HumanInventory.ts exported class `HumanInventory`",
-    "packages/prismarine/src/inventory/HumanInventory.ts public method `HumanInventory.setCursor`",
     "packages/prismarine/src/item/Item.ts exported interface `ItemProps`",
     "packages/prismarine/src/item/Item.ts public method `Item.getAmount`",
     "packages/prismarine/src/item/Item.ts public method `Item.getDurability`",

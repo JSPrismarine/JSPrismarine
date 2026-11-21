@@ -14,10 +14,11 @@ import {
     fixtureItemDefinitions,
     fixtureRecipeContent
 } from '../../content/testing';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import type CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
+import type { PlayerInventoryContainer } from '../../inventory/EntityInventory';
+import { ItemContainer } from '../../inventory/ItemContainer';
 import { Item } from '../../item/Item';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
@@ -192,8 +193,8 @@ describe('network', () => {
                 server
             );
 
-            expect(inventory.getItem(3).getName()).toBe('minecraft:oak_planks');
-            expect(inventory.getItem(3).getAmount()).toBe(64);
+            expect(inventory.container('inventory').get(3)?.getName()).toBe('minecraft:oak_planks');
+            expect(inventory.container('inventory').get(3)?.getAmount()).toBe(64);
 
             // Answered, and answered about the slot that changed - the client holds its own
             // change back until it hears this.
@@ -204,10 +205,7 @@ describe('network', () => {
 
         it('drops the requested stack into the world', async () => {
             const inventory = new HumanInventory();
-            inventory.setItem(
-                0,
-                new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 3 }), count: 3 })
-            );
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 3 }));
             const dropped: Item[] = [];
             const world = stub<World>({
                 dropFromPlayer: async (_player, contents) => {
@@ -232,16 +230,13 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getAmount()).toBe(2);
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
             expect(dropped.map((item) => [item.getName(), item.getAmount()])).toEqual([['minecraft:stone', 1]]);
         });
 
         it('does not spawn a drop when a later action refuses the request', async () => {
             const inventory = new HumanInventory();
-            inventory.setItem(
-                0,
-                new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 3 }), count: 3 })
-            );
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 3 }));
             const dropped: Item[] = [];
             const world = stub<World>({
                 dropFromPlayer: async (_player, contents) => {
@@ -269,7 +264,7 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
-            expect(inventory.getItem(0).getAmount()).toBe(3);
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(3);
             expect(dropped).toEqual([]);
         });
 
@@ -314,7 +309,7 @@ describe('network', () => {
                 server
             );
 
-            expect(inventory.getItem(3).getName()).toBe(expected);
+            expect(inventory.container('inventory').get(3)?.getName()).toBe(expected);
         });
 
         it('does not hand the same object to two players', async () => {
@@ -354,14 +349,14 @@ describe('network', () => {
             await pick(first);
             await pick(second);
 
-            expect(first.getItem(0)).not.toBe(second.getItem(0));
+            expect(first.container('inventory').get(0)).not.toBe(second.container('inventory').get(0));
             expect(shared.getAmount()).toBe(1);
         });
 
         it('moves a stack between slots', async () => {
             const server = fakeServer([]);
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
 
             await run(
                 [
@@ -383,8 +378,8 @@ describe('network', () => {
                 server
             );
 
-            expect(inventory.getItem(5).getName()).toBe('minecraft:stone');
-            expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(5)?.getName()).toBe('minecraft:stone');
+            expect(inventory.container('inventory').get(0)).toBeNull();
         });
 
         it('keeps what a stack carries when part of it moves and when it merges', async () => {
@@ -393,7 +388,7 @@ describe('network', () => {
             const server = fakeServer([]);
             const inventory = new HumanInventory();
             const rock = new Item({ name: 'minecraft:stone', count: 10, customName: 'Rock', content: testContent() });
-            inventory.setItem(0, new ContainerEntry({ item: rock, count: 10 }));
+            inventory.container('inventory').set(0, rock);
 
             const move = (count: number) => ({
                 requestId: -3,
@@ -404,15 +399,15 @@ describe('network', () => {
 
             await run([move(4)], inventory, server);
 
-            expect(inventory.getItem(5).getAmount()).toBe(4);
-            expect(inventory.getItem(5).getCustomName()).toBe('Rock');
-            expect(inventory.getItem(0).getAmount()).toBe(6);
-            expect(inventory.getItem(0).getCustomName()).toBe('Rock');
+            expect(inventory.container('inventory').get(5)?.getAmount()).toBe(4);
+            expect(inventory.container('inventory').get(5)?.getCustomName()).toBe('Rock');
+            expect(inventory.container('inventory').get(0)?.getAmount()).toBe(6);
+            expect(inventory.container('inventory').get(0)?.getCustomName()).toBe('Rock');
 
             await run([move(2)], inventory, server);
 
-            expect(inventory.getItem(5).getAmount()).toBe(6);
-            expect(inventory.getItem(5).getCustomName()).toBe('Rock');
+            expect(inventory.container('inventory').get(5)?.getAmount()).toBe(6);
+            expect(inventory.container('inventory').get(5)?.getCustomName()).toBe('Rock');
         });
 
         it('hands out a creative pick that reads its tags', async () => {
@@ -443,8 +438,8 @@ describe('network', () => {
                 server
             );
 
-            expect(inventory.getItem(3).getName()).toBe('minecraft:diamond_pickaxe');
-            expect(inventory.getItem(3).harvests('minecraft:stone')).toBe(true);
+            expect(inventory.container('inventory').get(3)?.getName()).toBe('minecraft:diamond_pickaxe');
+            expect(inventory.container('inventory').get(3)?.harvests('minecraft:stone')).toBe(true);
         });
 
         it('reads a crafting table through its own slot numbers', async () => {
@@ -522,8 +517,8 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:redstone_lamp');
-            expect(inventory.getItem(0).getBlockRuntimeId()).toBe(output.blockRuntimeId);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:redstone_lamp');
+            expect(inventory.container('inventory').get(0)?.getBlockRuntimeId()).toBe(output.blockRuntimeId);
         });
 
         it('crafts a stonecutting recipe from the stonecutter input slot', async () => {
@@ -598,7 +593,7 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:redstone_lamp');
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:redstone_lamp');
             expect(open.inputs[0]).toBeNull();
         });
 
@@ -680,7 +675,7 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:diamond_sword');
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:diamond_sword');
             expect(open.inputs[1]).toBeNull();
         });
 
@@ -693,10 +688,7 @@ describe('network', () => {
             const server = fakeServer([]);
 
             const inventory = new HumanInventory();
-            inventory.setItem(
-                0,
-                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }) })
-            );
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }));
             const craftingInput = new CraftingInput();
 
             const response = await run(
@@ -725,7 +717,7 @@ describe('network', () => {
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
             expect(craftingInput.isEmpty()).toBe(true);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:oak_planks');
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:oak_planks');
         });
 
         it('refuses what it cannot do, instead of leaving the client waiting', async () => {
@@ -819,7 +811,7 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:stick');
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stick');
             // Spent, and the client told so - otherwise it keeps showing what it used up.
             expect(craftingInput.isEmpty()).toBe(true);
         });
@@ -881,7 +873,7 @@ describe('network', () => {
                 );
 
                 expect(response.responses[0]?.result, logs.join('\n')).toBe(ItemStackResponseResult.OK);
-                expect(inventory.getItem(0).getName()).toBe('minecraft:crafting_table');
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:crafting_table');
                 expect(craftingInput.isEmpty()).toBe(true);
             }
         );
@@ -937,8 +929,8 @@ describe('network', () => {
 
                 await craftInto(server, inventory);
 
-                expect(inventory.getItem(0).getName()).toBe('minecraft:diamond_pickaxe');
-                expect(inventory.getItem(0).harvests('minecraft:stone')).toBe(true);
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:diamond_pickaxe');
+                expect(inventory.container('inventory').get(0)?.harvests('minecraft:stone')).toBe(true);
             });
 
             it('adds a second craft to the stack the first one left', async () => {
@@ -950,8 +942,8 @@ describe('network', () => {
                 await craftInto(server, inventory);
                 const response = await craftInto(server, inventory);
 
-                expect(inventory.getItem(0).getAmount()).toBe(2);
-                expect(inventory.getEntry(0)?.getCount()).toBe(2);
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
                 const answered = response.responses[0]?.containers.find(
                     (container) => container.container.containerId === ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY
                 );
@@ -1014,7 +1006,7 @@ describe('network', () => {
                 expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
                 expect(craftingInput.get(0)?.getAmount()).toBe(1);
                 expect(craftingInput.get(1)?.getAmount()).toBe(1);
-                expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+                expect(inventory.container('inventory').get(0)).toBeNull();
             });
 
             it('crafts as many as an automatic craft repeats, and spends that many', async () => {
@@ -1039,18 +1031,15 @@ describe('network', () => {
                 );
 
                 expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-                expect(inventory.getItem(0).getName()).toBe('minecraft:stick');
-                expect(inventory.getItem(0).getAmount()).toBe(8);
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stick');
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(8);
                 expect(craftingInput.get(0)?.getAmount()).toBe(1);
                 expect(craftingInput.get(1)?.getAmount()).toBe(1);
             });
 
             it('auto-crafts a recipe from inventory and consumes the requested ingredients', async () => {
                 const inventory = new HumanInventory();
-                inventory.setItem(
-                    0,
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:oak_planks' }), count: 2 })
-                );
+                inventory.container('inventory').set(0, new Item({ name: 'minecraft:oak_planks', count: 2 }));
 
                 const response = await run(
                     [
@@ -1083,9 +1072,9 @@ describe('network', () => {
                 );
 
                 expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-                expect(inventory.getItem(0).getName()).toBe('minecraft:air');
-                expect(inventory.getItem(1).getName()).toBe('minecraft:stick');
-                expect(inventory.getItem(1).getAmount()).toBe(4);
+                expect(inventory.container('inventory').get(0)).toBeNull();
+                expect(inventory.container('inventory').get(1)?.getName()).toBe('minecraft:stick');
+                expect(inventory.container('inventory').get(1)?.getAmount()).toBe(4);
             });
 
             it('takes no more out of the created output than the craft made', async () => {
@@ -1109,7 +1098,7 @@ describe('network', () => {
                     planksGrid(1)
                 );
 
-                expect(inventory.getItem(0).getAmount()).toBe(4);
+                expect(inventory.container('inventory').get(0)?.getAmount()).toBe(4);
             });
         });
 
@@ -1117,10 +1106,7 @@ describe('network', () => {
             // The offhand is slot 1 to the client and the one slot of its own container here, and
             // a hotbar slot is answered as a hotbar slot rather than as the combined inventory.
             const inventory = new HumanInventory();
-            inventory.setItem(
-                2,
-                new ContainerEntry({ item: new Item({ name: 'minecraft:torch', count: 5 }), count: 5 })
-            );
+            inventory.container('inventory').set(2, new Item({ name: 'minecraft:torch', count: 5 }));
 
             const response = await run(
                 [
@@ -1142,7 +1128,7 @@ describe('network', () => {
                 fakeServer([])
             );
 
-            expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:torch');
+            expect(inventory.container('offhand').get(0)?.getName()).toBe('minecraft:torch');
             expect(
                 response.responses[0]?.containers.map(({ container, slots }) => ({
                     container: container.containerId,
@@ -1156,7 +1142,7 @@ describe('network', () => {
 
         it('puts what is worn back when a later step fails', async () => {
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_helmet' }), count: 1 }));
+            inventory.container('inventory').set(0, new Item({ name: 'minecraft:iron_helmet', count: 1 }));
 
             const response = await run(
                 [
@@ -1180,8 +1166,8 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
-            expect(inventory.getArmor().isEmpty(0)).toBe(true);
-            expect(inventory.getItem(0).getName()).toBe('minecraft:iron_helmet');
+            expect(inventory.container('armor').isEmpty(0)).toBe(true);
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:iron_helmet');
         });
 
         it('refuses a recipe the grid does not actually hold', async () => {
@@ -1215,10 +1201,7 @@ describe('network', () => {
         it('moves a stack into the crafting grid, which is how anything gets made', async () => {
             const craftingInput = new CraftingInput();
             const inventory = new HumanInventory();
-            inventory.setItem(
-                0,
-                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }) })
-            );
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }));
 
             await run(
                 [
@@ -1242,7 +1225,7 @@ describe('network', () => {
             );
 
             expect(craftingInput.get(2)?.getName()).toBe('minecraft:oak_planks');
-            expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(0)).toBeNull();
         });
 
         it('encodes the response it produces', async () => {
@@ -1279,7 +1262,7 @@ describe('network', () => {
             // from something other than the game.
             const server = fakeServer([]);
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
 
             for (const requestId of [4, -2]) {
                 const response = await run(
@@ -1307,7 +1290,7 @@ describe('network', () => {
                     requestId,
                     containers: []
                 });
-                expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
             }
         });
 
@@ -1327,7 +1310,7 @@ describe('network', () => {
 
             for (const count of [0, 65]) {
                 const inventory = new HumanInventory();
-                inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
+                inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
 
                 const response = await run(
                     [
@@ -1350,20 +1333,27 @@ describe('network', () => {
                 );
 
                 expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
-                expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
+                expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
             }
         });
 
         it('answers a request whose step threw, and puts things back', async () => {
             // The exception used to escape the handler, so nothing was sent and the client
             // kept its prediction for a move the server never made.
+            class Breaking extends ItemContainer {
+                public override set(slot: number, item: Item | null): boolean {
+                    if (slot === 0 && item === null) throw new Error(`cannot empty slot ${slot}`);
+                    return super.set(slot, item);
+                }
+            }
             class Broken extends HumanInventory {
-                public override removeItem(slot: number): never {
-                    throw new Error(`cannot empty slot ${slot}`);
+                private readonly main = new Breaking(36);
+                public override container(name: PlayerInventoryContainer): ItemContainer {
+                    return name === 'inventory' ? this.main : super.container(name);
                 }
             }
             const inventory = new Broken();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
+            inventory.container('inventory').set(0, new Item({ runtimeId: 1, name: 'minecraft:stone' }));
 
             const response = await run(
                 [
@@ -1390,8 +1380,8 @@ describe('network', () => {
                 requestId: -1,
                 containers: []
             });
-            expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
-            expect(inventory.getItem(5).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:stone');
+            expect(inventory.container('inventory').get(5)).toBeNull();
         });
 
         it('names only the containers something changed in', async () => {

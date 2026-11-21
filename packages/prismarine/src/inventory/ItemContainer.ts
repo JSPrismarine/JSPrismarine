@@ -1,5 +1,5 @@
 import type { SlotObserver, SlotValue } from './slotLog';
-import { slotValueOfItem } from './slotLog';
+import { slotValueOf } from './slotLog';
 import type { Item } from '../item/Item';
 
 /** The name an empty stack goes by on the wire, which a slot never holds. */
@@ -60,7 +60,7 @@ export class ItemContainer {
     public observe(observer: SlotObserver): void {
         this.observer = observer;
         this.logged.length = 0;
-        for (const item of this.slots) this.logged.push(slotValueOfItem(item));
+        for (const item of this.slots) this.logged.push(slotValueOf(item));
     }
 
     /** Whether a slot number is a whole number inside the container. */
@@ -179,7 +179,7 @@ export class ItemContainer {
     private written(slot: number): void {
         if (this.observer === null) return;
         const before = this.logged[slot] ?? null;
-        const after = slotValueOfItem(this.slots[slot] ?? null);
+        const after = slotValueOf(this.slots[slot] ?? null);
         this.logged[slot] = after;
         this.observer(slot, before, after);
     }

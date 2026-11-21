@@ -569,7 +569,6 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/world/changelog/ChangeLog
 @jsprismarine/prismarine/world/BlockMining
 @jsprismarine/prismarine/network/sessionPlayers
-@jsprismarine/prismarine/inventory/ContainerEntry
 @jsprismarine/prismarine/entity/DeathMessages
 @jsprismarine/prismarine/world/generators/datadriven/chunkPipeline
 @jsprismarine/prismarine/world/GameEventListenerRegistry
@@ -623,7 +622,8 @@ export of its module. A path that is not in this list does not resolve:
 @jsprismarine/prismarine/entity/PortalContact
 @jsprismarine/prismarine/entity/data/actorMetadata
 @jsprismarine/prismarine/crafting/CraftingInput
-@jsprismarine/prismarine/inventory/Inventory
+@jsprismarine/prismarine/inventory/ItemContainer
+@jsprismarine/prismarine/inventory/EntityInventory
 @jsprismarine/prismarine/inventory/slotLog
 @jsprismarine/prismarine/network/replica/BlockReplica
 @jsprismarine/prismarine/network/replica/EntityReplica

@@ -18,8 +18,8 @@ describe('the actor of a dropped stack', () => {
     it('carries its stack', () => {
         const { actor } = stoneStack();
 
-        expect(actor.getItem()?.getItem().getName()).toBe('minecraft:stone');
-        expect(actor.getItem()?.getCount()).toBe(3);
+        expect(actor?.getItem()?.getName()).toBe('minecraft:stone');
+        expect(actor.getItem()?.getAmount()).toBe(3);
     });
 
     it('is never said to be on the ground', () => {

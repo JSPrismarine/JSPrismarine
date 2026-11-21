@@ -5,7 +5,7 @@
  * a gamemode and the advancement progress, so every stack a player held was lost on logout
  * along with its enchantments, its durability and its name.
  *
- * The shape here is deliberately plain data rather than `Item` and `ContainerEntry`. A provider
+ * The shape here is deliberately plain data rather than `Item` and `ItemContainer`. A provider
  * decides how to store it - the LevelDB provider writes Bedrock's own `Inventory`, `Armor`,
  * `Offhand` and `EnderChestInventory` lists, the JSON fallback writes it as it stands - and
  * neither should have to know how an inventory is built. An empty slot is `null` and not
@@ -16,9 +16,8 @@ import type { ItemDrop, ItemDynamicProperties } from '@jsprismarine/block-behavi
 
 import { isRecord } from '../utils/isRecord';
 import { isStringList } from '../utils/isStringList';
-import ContainerEntry from './ContainerEntry';
 import type HumanInventory from './HumanInventory';
-import type Inventory from './Inventory';
+import type { ItemContainer } from './ItemContainer';
 import { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
 
@@ -146,28 +145,9 @@ export interface StoredInventory {
     readonly enderChest: readonly (StoredItemStack | null)[];
 }
 
-/**
- * One slot as a record holds it, or null for an empty one.
- *
- * The count comes off the entry when it has one and off the stack otherwise. The two are kept
- * in step by everything that writes a slot, and an entry built with no count at all holds a
- * zero that would store a full stack as empty.
- */
-export const storedStack = (entry: ContainerEntry | null): StoredItemStack | null => {
-    const item = entry?.toItemStack();
-    if (item === undefined) return null;
-
-    // The count comes off the entry when it has one and off the stack otherwise.
-    return storedItem(item, entry?.getCount() || item.getAmount());
-};
-
-/**
- * One stack as a record holds it, or null when there is nothing there to store.
- *
- * @param count - How many, which the caller supplies because a slot's count can live on the
- *   entry holding the stack rather than on the stack.
- */
-export const storedItem = (item: Item, count: number = item.getAmount()): StoredItemStack | null => {
+/** One stack as a record holds it, or null for air or an empty stack, which a record never holds. */
+export const storedItem = (item: Item): StoredItemStack | null => {
+    const count = item.getAmount();
     if (item.getName() === AIR || count <= 0) return null;
 
     const enchantments = item.getEnchantments();
@@ -193,23 +173,10 @@ export const storedItem = (item: Item, count: number = item.getAmount()): Stored
 };
 
 /**
- * One stored slot back as an inventory entry, or null when the slot was empty.
+ * One stored stack back as an item, or null when the record held nothing.
  *
  * @param content - The content build, so a pack that redefines an item decides its maximum
  *   durability rather than Java's committed table doing it.
- */
-export const restoredStack = (
-    stored: StoredItemStack | null | undefined,
-    content?: ServerContent
-): ContainerEntry | null => {
-    const item = restoredItem(stored, content);
-    return item === null ? null : new ContainerEntry({ item, count: item.getAmount() });
-};
-
-/**
- * One stored stack back as an item, or null when the record held nothing.
- *
- * @param content - The content build, which decides the item's maximum durability.
  */
 export const restoredItem = (stored: StoredItemStack | null | undefined, content?: ServerContent): Item | null => {
     if (!stored || stored.name === AIR || stored.count <= 0) return null;
@@ -245,11 +212,8 @@ export const itemOfDrop = (drop: ItemDrop, content?: ServerContent): Item | null
     restoredItem(storedItemDrop(drop), content);
 
 /** Every slot of one container, empty ones included, so a slot index is its position. */
-const storedSlots = (inventory: Inventory): (StoredItemStack | null)[] => {
-    const slots: (StoredItemStack | null)[] = [];
-    for (let slot = 0; slot < inventory.getSlotCount(); slot += 1) slots.push(storedStack(inventory.getEntry(slot)));
-    return slots;
-};
+const storedSlots = (container: ItemContainer): (StoredItemStack | null)[] =>
+    container.items().map((item) => (item === null ? null : storedItem(item)));
 
 /**
  * Puts stored slots back into a container, clearing the ones the record leaves empty.
@@ -258,26 +222,22 @@ const storedSlots = (inventory: Inventory): (StoredItemStack | null)[] => {
  * players' items if it ever ran on one that already held something.
  */
 const restoreSlots = (
-    inventory: Inventory,
+    container: ItemContainer,
     slots: readonly (StoredItemStack | null)[] | undefined,
     content?: ServerContent
 ): void => {
     if (slots === undefined) return;
 
-    for (let slot = 0; slot < inventory.getSlotCount(); slot += 1) {
-        const entry = restoredStack(slots[slot], content);
-        if (entry === null) inventory.removeItem(slot);
-        else inventory.setItem(slot, entry);
-    }
+    for (let slot = 0; slot < container.size; slot += 1) container.set(slot, restoredItem(slots[slot], content));
 };
 
 /** Everything a player carries, ready to be written to a player data record. */
 export const storedInventory = (inventory: HumanInventory): StoredInventory => ({
-    items: storedSlots(inventory),
-    handSlot: inventory.getHandSlotIndex(),
-    armor: storedSlots(inventory.getArmor()),
-    offhand: storedSlots(inventory.getOffhand()),
-    enderChest: storedSlots(inventory.getEnderChest())
+    items: storedSlots(inventory.container('inventory')),
+    handSlot: inventory.getHandSlot(),
+    armor: storedSlots(inventory.container('armor')),
+    offhand: storedSlots(inventory.container('offhand')),
+    enderChest: storedSlots(inventory.container('ender_chest'))
 });
 
 /** Puts a stored record back into a player's containers. */
@@ -288,9 +248,9 @@ export const restoreInventory = (
 ): void => {
     if (stored === undefined) return;
 
-    restoreSlots(inventory, stored.items, content);
-    restoreSlots(inventory.getArmor(), stored.armor, content);
-    restoreSlots(inventory.getOffhand(), stored.offhand, content);
-    restoreSlots(inventory.getEnderChest(), stored.enderChest, content);
+    restoreSlots(inventory.container('inventory'), stored.items, content);
+    restoreSlots(inventory.container('armor'), stored.armor, content);
+    restoreSlots(inventory.container('offhand'), stored.offhand, content);
+    restoreSlots(inventory.container('ender_chest'), stored.enderChest, content);
     inventory.setHandSlot(stored.handSlot);
 };

@@ -80,7 +80,7 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         pitch: 0,
         yaw: 0,
         getRuntimeId: () => 99n,
-        getInventory: () => ({ getItemInHand: () => null }),
+        getInventory: () => ({ equipment: () => null }),
         getNetworkSession: () => session,
         getPosition: () => new Vector3(10, 64, -20),
         getUUID: () => ({ toString: () => 'thrower' }),
@@ -239,7 +239,7 @@ describe('world', () => {
             const dropped = items();
             expect(dropped).toHaveLength(1);
             expect(dropped[0]?.savedItem()?.stack.count).toBe(2);
-            expect(dropped[0]?.getItem()?.getCount()).toBe(2);
+            expect(dropped[0]?.getItem()?.getAmount()).toBe(2);
         });
 
         it('drops nothing for a block whose drop has no item id, rather than air', async () => {
@@ -359,8 +359,8 @@ describe('world', () => {
 
             const [dropped] = items();
             if (!(dropped instanceof ItemEntity)) throw new Error('no item entity was added');
-            expect(dropped.getItem()?.getItem().stackNetworkId).toBe(0);
-            expect(dropped.getItem()?.getItem().getAmount()).toBe(3);
+            expect(dropped?.getItem()?.stackNetworkId).toBe(0);
+            expect(dropped?.getItem()?.getAmount()).toBe(3);
             // A copy: the stack the caller still holds keeps its id.
             expect(held.stackNetworkId).toBe(9);
         });

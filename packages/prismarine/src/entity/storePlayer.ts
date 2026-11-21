@@ -32,7 +32,7 @@ import type { ServerContent } from '../content/ServerContent';
 import type { Subject } from '../identity/Subject';
 import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
-import { itemOfSlotValue, playerContainerNamed } from '../inventory/slotLog';
+import { itemOfSlotValue } from '../inventory/slotLog';
 import type Device from '../utils/Device';
 import type { PlainData } from '../world/changelog/PlainData';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
@@ -141,7 +141,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         private readonly identity: StorePlayerIdentity
     ) {
         this.metadata.setNameTag(identity.name);
-        this.inventory.observeCarried({
+        this.inventory.observe({
             slot: (container, slot, before, after) => this.log?.slot(container, slot, before, after),
             handSlot: (before, after) => this.log?.field(HAND_SLOT_FIELD, before, after)
         });
@@ -575,7 +575,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     private shownForm(): PlayerShownForm {
         const fields: Record<string, PlainData> = {
             [HEAD_YAW_FIELD]: this.lookingHeadYaw,
-            [HAND_SLOT_FIELD]: this.inventory.getHandSlotIndex()
+            [HAND_SLOT_FIELD]: this.inventory.getHandSlot()
         };
         for (const field of SHOWN_PLAYER_COMPONENTS) fields[field] = this.components.get(field);
         const slots: Record<string, PlainData> = {};
@@ -596,9 +596,7 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
 
     /** Writes a logged stack back into a slot of a container the player carries. */
     private restoreSlot(container: string, slot: number, value: PlainData, content: ServerContent): boolean {
-        const named = playerContainerNamed(container);
-        if (named === undefined) return false;
-        if (named !== 'crafting') return this.inventory.restoreSlot(named, slot, value, content);
+        if (container !== 'crafting') return this.inventory.restoreSlot(container, slot, value, content);
         if (!Number.isInteger(slot) || slot < 0 || slot >= CraftingInput.SLOTS) return false;
         this.craftingInput.set(slot, itemOfSlotValue(value, content));
         return true;

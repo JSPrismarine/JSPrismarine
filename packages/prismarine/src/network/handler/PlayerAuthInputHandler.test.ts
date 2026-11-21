@@ -79,7 +79,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         isOnGround: () => groundState,
         // The crack animation reads the held item, so the break time is the
         // tool's rather than a fist's.
-        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
+        getInventory: () => stub<HumanInventory>({ equipment: () => null }),
         getComponents: () => components
     });
     let joined = true;

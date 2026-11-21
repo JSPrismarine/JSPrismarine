@@ -20,7 +20,6 @@ import type { Generator } from './Generator';
 import BaseProvider from './providers/BaseProvider';
 import { World } from './World';
 import { Position } from './Position';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type PlayerSession from '../network/PlayerSession';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
@@ -87,25 +86,26 @@ const playerIn = (world: World): PlayerSession =>
         }
     );
 
-const entry = (name: string, count = 1) => new ContainerEntry({ item: new Item({ name, count }) });
+const entry = (name: string, count = 1) => new Item({ name, count });
 
 /** One write to every container a player carries, and to the hand slot. */
 const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (player: PlayerSession) => void }[] = [
     {
         name: 'inventory',
-        write: (player) => player.getPlayer().getInventory().setItem(4, entry('minecraft:stone', 12))
+        write: (player) => player.getPlayer().getInventory().container('inventory').set(4, entry('minecraft:stone', 12))
     },
     {
         name: 'armor',
-        write: (player) => player.getPlayer().getInventory().getArmor().setItem(0, entry('minecraft:iron_helmet'))
+        write: (player) => player.getPlayer().getInventory().container('armor').set(0, entry('minecraft:iron_helmet'))
     },
     {
         name: 'offhand',
-        write: (player) => player.getPlayer().getInventory().getOffhand().setItem(0, entry('minecraft:shield'))
+        write: (player) => player.getPlayer().getInventory().container('offhand').set(0, entry('minecraft:shield'))
     },
     {
         name: 'ender_chest',
-        write: (player) => player.getPlayer().getInventory().getEnderChest().setItem(3, entry('minecraft:diamond', 2))
+        write: (player) =>
+            player.getPlayer().getInventory().container('ender_chest').set(3, entry('minecraft:diamond', 2))
     },
     {
         name: 'cursor',
@@ -113,7 +113,8 @@ const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (pla
             player
                 .getPlayer()
                 .getInventory()
-                .setCursor(new Item({ name: 'minecraft:torch' }))
+                .container('cursor')
+                .set(0, new Item({ name: 'minecraft:torch' }))
     },
     {
         name: 'crafting',
@@ -124,7 +125,7 @@ const PLAYER_SLOT_WRITES: readonly { readonly name: string; readonly write: (pla
                 .set(1, new Item({ name: 'minecraft:oak_log' }))
     },
     { name: 'inventory.handSlot', write: (player) => player.getPlayer().getInventory().setHandSlot(5) },
-    { name: 'removal', write: (player) => player.getPlayer().getInventory().removeItem(0) }
+    { name: 'removal', write: (player) => player.getPlayer().getInventory().container('inventory').set(0, null) }
 ];
 
 /**
@@ -136,28 +137,33 @@ const slotsOf = (player: PlayerSession) => {
     const stacks = (items: readonly (Item | null)[]) => items.map((item) => item && [item.getName(), item.count]);
     const crafting = player.getPlayer().getCraftingInput();
     return {
-        inventory: stacks(inventory.getItems(true).map((each) => each.getItem())),
+        inventory: stacks(
+            inventory
+                .container('inventory')
+                .items()
+                .map((each) => each)
+        ),
         armor: stacks(
             inventory
-                .getArmor()
-                .getItems(true)
-                .map((each) => each.getItem())
+                .container('armor')
+                .items()
+                .map((each) => each)
         ),
         offhand: stacks(
             inventory
-                .getOffhand()
-                .getItems(true)
-                .map((each) => each.getItem())
+                .container('offhand')
+                .items()
+                .map((each) => each)
         ),
         enderChest: stacks(
             inventory
-                .getEnderChest()
-                .getItems(true)
-                .map((each) => each.getItem())
+                .container('ender_chest')
+                .items()
+                .map((each) => each)
         ),
-        cursor: stacks([inventory.getCursor()]),
+        cursor: stacks([inventory.container('cursor').get(0)]),
         crafting: stacks(Array.from({ length: 9 }, (_, slot) => crafting.get(slot))),
-        hand: inventory.getHandSlotIndex()
+        hand: inventory.getHandSlot()
     };
 };
 
@@ -426,7 +432,7 @@ describe('a world tick and its change log', () => {
             const { world } = worldWithStore();
             const player = playerIn(world);
             await world.addPlayer(player);
-            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 3));
+            player.getPlayer().getInventory().container('inventory').set(0, entry('minecraft:bread', 3));
             return { world, player };
         };
 
@@ -468,8 +474,8 @@ describe('a world tick and its change log', () => {
             const id = player.getRuntimeId();
             beginMeasuredChangeTick(world);
 
-            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 2));
-            player.getPlayer().getInventory().getArmor().setItem(3, entry('minecraft:iron_boots'));
+            player.getPlayer().getInventory().container('inventory').set(0, entry('minecraft:bread', 2));
+            player.getPlayer().getInventory().container('armor').set(3, entry('minecraft:iron_boots'));
             player.getPlayer().getInventory().setHandSlot(2);
             world.sealChangeTick();
 
@@ -502,7 +508,7 @@ describe('a world tick and its change log', () => {
             const { world, player } = await playerWithItems();
             beginMeasuredChangeTick(world);
 
-            player.getPlayer().getInventory().setItem(0, entry('minecraft:bread', 3));
+            player.getPlayer().getInventory().container('inventory').set(0, entry('minecraft:bread', 3));
             player.getPlayer().getInventory().setHandSlot(0);
             player.getPlayer().getCraftingInput().clear();
             world.sealChangeTick();

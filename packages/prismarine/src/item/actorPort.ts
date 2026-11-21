@@ -23,7 +23,6 @@ import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import type { AdvancementPlayer } from '../advancement/triggers';
 import { ArmorSlot } from '@jsprismarine/minecraft';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { damageCauseOf } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
@@ -231,16 +230,14 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (player === undefined || actor === null || target === null || interactWithEntity === undefined) return false;
 
         const inventory = player.getInventory();
-        const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
-        const held = inventory.getItemInHand();
-        const emptyHand = (heldEntry?.getCount() ?? 0) < 1 || held.getName() === 'minecraft:air';
+        const held = inventory.equipment('mainhand');
         let itemIdentifier: string;
         let heldItem: ContentItemDrop;
-        if (emptyHand) {
+        if (held === null) {
             itemIdentifier = 'minecraft:air';
             heldItem = { identifier: itemIdentifier, count: 0 };
         } else {
-            const stored = storedItem(held, heldEntry?.getCount());
+            const stored = storedItem(held);
             if (stored === null) return false;
             itemIdentifier = held.getName();
             heldItem = itemDropOf(stored);
@@ -253,7 +250,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (outcome.takenItem !== undefined) {
             const takenItem = itemOfDrop(outcome.takenItem, player.getServer().getContent());
             if (takenItem !== null) {
-                inventory.setItemInHand(new ContainerEntry({ item: takenItem, count: outcome.takenItem.count }));
+                inventory.setEquipment('mainhand', takenItem);
             } else {
                 const position = player.getPosition();
                 if (position !== undefined)
@@ -268,8 +265,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             }
             return true;
         }
-        if (emptyHand) return true;
-        if (heldEntry === null) return true;
+        if (held === null) return true;
 
         let resultItem: Item | undefined;
         if (outcome.resultItem !== undefined) {
@@ -282,14 +278,13 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             const alreadyHasResult =
                 resultItem !== undefined &&
                 inventory
-                    .getItems()
+                    .container('inventory')
+                    .stacks()
                     .some(
-                        (entry) =>
-                            entry.getItem().getName() === resultItem.getName() &&
-                            entry.getItem().getMeta() === resultItem.getMeta()
+                        (stack) => stack.getName() === resultItem.getName() && stack.getMeta() === resultItem.getMeta()
                     );
             if (resultItem !== undefined && !alreadyHasResult) {
-                inventory.addItem(new ContainerEntry({ item: resultItem, count: 1 }));
+                inventory.container('inventory').add(resultItem.withCount(1));
             }
             return true;
         }
@@ -305,11 +300,11 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (outcome.consumeItem === false) return true;
 
         if (resultItem !== undefined) {
-            const replacement = new ContainerEntry({ item: resultItem, count: 1 });
-            if (heldEntry.getCount() === 1) inventory.setItemInHand(replacement);
+            const replacement = resultItem.withCount(1);
+            if (held.getAmount() === 1) inventory.setEquipment('mainhand', replacement);
             else {
-                inventory.setHandCount(heldEntry.getCount() - 1);
-                const leftOver = inventory.addItem(replacement);
+                inventory.setEquipmentCount('mainhand', held.getAmount() - 1);
+                const leftOver = inventory.container('inventory').add(replacement);
                 const position = player.getPosition();
                 if (leftOver > 0 && position !== undefined) {
                     entities.drop(
@@ -323,7 +318,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 }
             }
         } else {
-            inventory.setHandCount(heldEntry.getCount() - 1);
+            inventory.setEquipmentCount('mainhand', held.getAmount() - 1);
         }
         return true;
     };
@@ -371,8 +366,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         }
 
         // What would not fit goes on the ground, which is what vanilla does with a full
-        // inventory, and `addItem` reports how many of them that is.
-        const leftOver = player.getInventory().addItem(new ContainerEntry({ item, count: stack.count }));
+        // inventory, and `add` reports how many of them that is.
+        const leftOver = player.getInventory().container('inventory').add(item);
         if (leftOver > 0 && position !== undefined) {
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
@@ -390,7 +385,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (item === null) return;
 
         const position = entity.getPosition();
-        const leftOver = entity.getInventory().addItem(new ContainerEntry({ item, count: drop.count }));
+        const leftOver = entity.getInventory().container('inventory').add(item);
         if (leftOver > 0 && position !== undefined) {
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
@@ -403,35 +398,34 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
      * Wears one of the held item in an armor slot, as Java's `Equippable.swapWithEquipmentSlot`
      * does.
      *
-     * The hand's own entry moves, so its durability, enchantments and name go with it. What the
+     * One of the held stack moves, so its durability, enchantments and name go with it. What the
      * slot held goes to the hand when the hand empties, and to the inventory when it does not. A
      * creative hand keeps its item unless the swap hands it the worn one.
      */
     const swapFromHand = (entity: ItemPlayer, index: number): boolean => {
         const inventory = entity.getInventory();
-        const handSlot = inventory.getHandSlotIndex();
-        const held = inventory.getEntry(handSlot);
-        if (held === null || inventory.isEmpty(handSlot)) return false;
+        const held = inventory.equipment('mainhand');
+        if (held === null) return false;
 
-        const armor = inventory.getArmor();
-        const worn = armor.isEmpty(index) ? null : armor.getEntry(index);
+        const armor = inventory.container('armor');
+        const worn = armor.get(index);
         const creative = entity.gamemode === Gametype.CREATIVE;
-        const count = held.getCount();
+        const count = held.getAmount();
 
-        armor.setItem(index, new ContainerEntry({ item: held.getItem().withCount(1), count: 1 }));
+        armor.set(index, held.withCount(1));
 
         if (count <= 1) {
-            if (worn !== null) inventory.setItemInHand(worn);
-            else if (!creative) inventory.removeItem(handSlot);
+            if (worn !== null) inventory.setEquipment('mainhand', worn);
+            else if (!creative) inventory.setEquipment('mainhand', null);
             return true;
         }
 
-        if (!creative) inventory.setHandCount(count - 1);
+        if (!creative) inventory.setEquipmentCount('mainhand', count - 1);
         if (worn === null) return true;
 
-        const leftOver = inventory.addItem(worn);
+        const leftOver = inventory.container('inventory').add(worn);
         const position = entity.getPosition();
-        const stored = storedItem(worn.getItem(), leftOver);
+        const stored = storedItem(worn.withCount(leftOver));
         if (stored !== null && position !== undefined) {
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
@@ -451,22 +445,13 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const item = itemOf(stack);
         if (item === null) return false;
 
-        const entry = new ContainerEntry({ item, count: stack.count });
         const inventory = entity.getInventory();
 
-        if (slot === 'offhand') {
-            inventory.getOffhand().setItem(0, entry);
-            return true;
-        }
-        if (slot === 'hand' || slot === 'mainhand') {
-            inventory.setItemInHand(entry);
-            return true;
-        }
-
+        if (slot === 'offhand') return inventory.setEquipment('offhand', item);
+        if (slot === 'hand' || slot === 'mainhand') return inventory.setEquipment('mainhand', item);
         if (armorIndex === undefined) return false;
 
-        inventory.getArmor().setItem(armorIndex, entry);
-        return true;
+        return inventory.container('armor').set(armorIndex, item);
     };
 
     /**
@@ -481,15 +466,13 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (entity === undefined) return;
 
         const inventory = entity.getInventory();
-        const hand = inventory.getHandSlotIndex();
-        const held = inventory.getItemInHand();
+        const held = inventory.equipment('mainhand');
+        if (held === null) return;
         // A worn copy written into the hand, so the change log hears the slot change.
         const worn = held.withDurability(Math.max(0, held.durability - amount));
 
-        // Emptied to air. Setting the entry's count to zero left the item's count at one, and
-        // the client is sent the item's, so a tool that broke stayed in the hand.
-        if (broke) inventory.removeItem(hand);
-        else inventory.setItem(hand, new ContainerEntry({ item: worn, count: inventory.getEntry(hand)?.getCount() }));
+        // A tool that broke leaves the hand empty.
+        inventory.setEquipment('mainhand', broke ? null : worn);
 
         const actor = broke ? entityOf(source) : null;
         if (actor !== null) world()?.showItemBreak(actor, held.getName());
@@ -575,7 +558,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 // eaten is read out of the hand. `minecraft:consumable` raises
                 // this while the stack is still there: the behavior returns the
                 // reduced stack to its caller, which writes it back afterwards.
-                advancementConsumedItem(entity, entity.getInventory().getItemInHand());
+                const eaten = entity.getInventory().equipment('mainhand');
+                if (eaten !== null) advancementConsumedItem(entity, eaten);
                 return;
             }
             case 'damage-entity': {

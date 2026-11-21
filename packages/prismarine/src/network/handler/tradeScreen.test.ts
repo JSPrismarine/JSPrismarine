@@ -17,7 +17,6 @@ import { definitionsOf } from '../../content/ContentOptions';
 import { buildServerContent } from '../../content/ServerContent';
 import CraftingInput from '../../crafting/CraftingInput';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type Server from '../../Server';
@@ -205,14 +204,14 @@ const makeOffer = (netId: number, spend: number) =>
 describe('a villager trade screen', () => {
     it('spends the payment, hands over the result and moves the villager', async () => {
         const { merchant, inventory, open, run, log, redraws } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:emerald' }), count: 3 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:emerald', count: 3 }));
         await run(pay(3));
 
         const response = await run(makeOffer(1, 3));
 
         expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-        expect(inventory.getItem(5).getName()).toBe('minecraft:bread');
-        expect(inventory.getEntry(5)?.getCount()).toBe(6);
+        expect(inventory.container('inventory').get(5)?.getName()).toBe('minecraft:bread');
+        expect(inventory.container('inventory').get(5)?.getAmount()).toBe(6);
         expect(open.inputs[0]).toBeNull();
         expect(merchant.offers()[0]?.uses).toBe(1);
         expect(merchant.experience).toBe(5);
@@ -224,7 +223,7 @@ describe('a villager trade screen', () => {
 
     it('pays the player the offer’s experience', async () => {
         const { attributes, inventory, run } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:emerald' }), count: 3 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:emerald', count: 3 }));
         await run(pay(3));
         expect(attributes.getValue(AttributeIds.PlayerLevel) + attributes.getValue(AttributeIds.PlayerExperience)).toBe(
             0
@@ -239,21 +238,21 @@ describe('a villager trade screen', () => {
 
     it('refuses an offer the payment does not cover, and leaves the villager and the payment alone', async () => {
         const { merchant, inventory, open, run, log } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:emerald' }), count: 2 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:emerald', count: 2 }));
         await run(pay(2));
 
         const response = await run(makeOffer(1, 2));
 
         expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
         expect(open.inputs[0]?.getAmount()).toBe(2);
-        expect(inventory.getItem(5).getName()).toBe('minecraft:air');
+        expect(inventory.container('inventory').get(5)).toBeNull();
         expect(merchant.offers()[0]?.uses).toBe(0);
         expect(log).toEqual([]);
     });
 
     it('refuses the wrong item as payment', async () => {
         const { merchant, inventory, run } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond' }), count: 3 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:diamond', count: 3 }));
         await run(pay(3));
 
         const response = await run(makeOffer(1, 3));
@@ -264,7 +263,7 @@ describe('a villager trade screen', () => {
 
     it('refuses an offer that does not exist and one that is sold out', async () => {
         const { merchant, inventory, run } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:emerald' }), count: 9 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:emerald', count: 9 }));
 
         await run(pay(3));
         expect((await run(makeOffer(7, 3))).responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
@@ -282,7 +281,7 @@ describe('a villager trade screen', () => {
 
     it('unlocks the next tier once the experience arrives', async () => {
         const { merchant, inventory, run } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:emerald' }), count: 9 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:emerald', count: 9 }));
         await run(pay(3));
         await run(makeOffer(1, 3));
         await run(pay(3));

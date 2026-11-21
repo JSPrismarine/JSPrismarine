@@ -22,7 +22,6 @@ import type { StoreActor } from '../../entity/data/storeActors';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { eyePositionAt } from '../../entity/playerEyes';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import { stemTarget } from '../../world/portal/DimensionTravel';
 import type { World } from '../../world/World';
@@ -386,7 +385,7 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
             );
             if (item === null) return 0;
 
-            const leftover = player.getInventory().addItem(new ContainerEntry({ item, count }));
+            const leftover = player.getInventory().container('inventory').add(item.withCount(count));
             const given = count - leftover;
             if (given === 0) return 0;
 
@@ -404,23 +403,19 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
                     : identifier.includes(':')
                       ? identifier
                       : `minecraft:${identifier}`;
-            const inventory = player.getInventory();
+            const inventory = player.getInventory().container('inventory');
             let removed = 0;
 
-            for (let slot = 0; slot < inventory.getSlotCount() && removed < maxCount; slot += 1) {
-                const entry = inventory.getEntry(slot);
-                if (entry === null) continue;
-                if (wanted !== undefined && entry.getItem().getName() !== wanted) continue;
-                if (entry.getCount() === 0) continue;
+            for (let slot = 0; slot < inventory.size && removed < maxCount; slot += 1) {
+                const held = inventory.get(slot);
+                if (held === null) continue;
+                if (wanted !== undefined && held.getName() !== wanted) continue;
 
-                const take = Math.min(entry.getCount(), maxCount - removed);
+                const take = Math.min(held.getAmount(), maxCount - removed);
                 removed += take;
-                const left = entry.getCount() - take;
-                // A smaller copy written into the slot. Lowering the entry's count in place left
-                // the stack's own count, which the client is sent, as it was.
-                if (left === 0) inventory.removeItem(slot);
-                else
-                    inventory.setItem(slot, new ContainerEntry({ item: entry.getItem().withCount(left), count: left }));
+                // A smaller copy written into the slot, which a count of zero empties. Lowering
+                // the count in place would be a change the change log never hears.
+                inventory.set(slot, held.withCount(held.getAmount() - take));
             }
 
             if (removed === 0) return 0;
@@ -437,17 +432,12 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
                     : identifier.includes(':')
                       ? identifier
                       : `minecraft:${identifier}`;
-            const inventory = player.getInventory();
-            let found = 0;
-
-            for (let slot = 0; slot < inventory.getSlotCount(); slot += 1) {
-                const entry = inventory.getEntry(slot);
-                if (entry === null) continue;
-                if (wanted !== undefined && entry.getItem().getName() !== wanted) continue;
-                found += entry.getCount();
-            }
-
-            return found;
+            return player
+                .getInventory()
+                .container('inventory')
+                .stacks()
+                .filter((held) => wanted === undefined || held.getName() === wanted)
+                .reduce((found, held) => found + held.getAmount(), 0);
         },
 
         addEffect: (ref, effect, seconds, amplifier, hideParticles) => {
@@ -477,8 +467,8 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
             const { player, session } = target;
 
             const inventory = player.getInventory();
-            const held = inventory.getItemInHand();
-            if (held.getName() === 'minecraft:air') refuse(`${ref.name} is not holding anything`);
+            const held = inventory.equipment('mainhand');
+            if (held === null) return refuse(`${ref.name} is not holding anything`);
 
             const id = enchantment.includes(':') ? enchantment : `minecraft:${enchantment}`;
             // Java's three checks, made only for an enchantment the stack
@@ -498,7 +488,7 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
             }
 
             const enchanted = held.withEnchantments(new Map([...held.getEnchantments(), [id, level]]));
-            inventory.setItemInHand(new ContainerEntry({ item: enchanted, count: held.getAmount() }));
+            inventory.setEquipment('mainhand', enchanted);
             return carryOut(session.sendInventory(), true);
         },
 

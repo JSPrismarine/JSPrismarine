@@ -27,10 +27,10 @@
 import { slotsOf, pairedPosition } from '@jsprismarine/block-behaviors';
 import type { WorldActions } from '@jsprismarine/block-behaviors';
 
-import ContainerEntry from './ContainerEntry';
-import type Inventory from './Inventory';
+import type HumanInventory from './HumanInventory';
+import type { ItemContainer } from './ItemContainer';
 import { itemDropOf, restoredItem, storedItem, storedItemDrop } from './persistence';
-import { Item } from '../item/Item';
+import type { Item } from '../item/Item';
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 
@@ -80,21 +80,12 @@ const recordItemOf = (item: Item | null): RecordItem | undefined => {
     return stored === null ? undefined : itemDropOf(stored);
 };
 
-/** An inventory slot's stack, with the empty one reported as empty rather than as air. */
-const inventoryItem = (inventory: Inventory, slot: number): Item | null => {
-    const item = inventory.getItem(slot);
-    return item.getName() === 'minecraft:air' ? null : item;
-};
-
 /** The ender chest, which travels with the player rather than with the block they opened. */
-const enderChestBacking = (inventory: Inventory): SlotBacking => ({
-    size: inventory.getSlotCount(),
-    read: () => Array.from({ length: inventory.getSlotCount() }, (_unused, slot) => inventoryItem(inventory, slot)),
+const enderChestBacking = (container: ItemContainer): SlotBacking => ({
+    size: container.size,
+    read: () => [...container.items()],
     write: (slots) => {
-        slots.forEach((item, slot) => {
-            if (item === null) inventory.removeItem(slot);
-            else inventory.setItem(slot, new ContainerEntry({ item, count: item.getAmount() }));
-        });
+        slots.forEach((item, slot) => container.set(slot, item));
     }
 });
 
@@ -129,7 +120,7 @@ export const isPerPlayerContainer = (identifier: string): boolean => identifier.
 export interface ContainerViewer {
     getServer(): { getContent(): ServerContent | undefined };
     getWorld(): { getDimension(): { readonly name: string }; getLevel(): { readonly name: string } };
-    getInventory(): { getEnderChest(): Inventory };
+    getInventory(): Pick<HumanInventory, 'container'>;
 }
 
 /** A block's own slots, across however many block entities the block spans. */
@@ -177,7 +168,7 @@ export const openContainerSlots = (
     identifier: string
 ): OpenContainerSlots | undefined => {
     const backing = isPerPlayerContainer(identifier)
-        ? enderChestBacking(player.getInventory().getEnderChest())
+        ? enderChestBacking(player.getInventory().container('ender_chest'))
         : blockEntityBacking(player, at, identifier);
 
     if (backing === undefined || backing.size === 0) return undefined;
@@ -256,7 +247,7 @@ export const containerAnchorOf = (
 };
 
 /**
- * What a block is holding, one entry per slot, for the `InventoryContent` that follows an open.
+ * What a block is holding, one stack or null per slot, for the `InventoryContent` that follows an open.
  *
  * The same read the request path uses, so the slots a player is shown and the slots they can
  * then move a stack through are the same slots in the same order. A double chest is 54 entries
@@ -266,14 +257,9 @@ export const openContainerContents = (
     player: ContainerViewer,
     at: ContentPosition,
     identifier: string
-): ContainerEntry[] => {
+): (Item | null)[] => {
     const slots = openContainerSlots(player, at, identifier);
     if (slots === undefined) return [];
 
-    return Array.from({ length: slots.size }, (_unused, slot) => {
-        const item = slots.get(slot);
-        return item === null
-            ? new ContainerEntry({ item: Item.air() })
-            : new ContainerEntry({ item, count: item.getAmount() });
-    });
+    return Array.from({ length: slots.size }, (_unused, slot) => slots.get(slot));
 };

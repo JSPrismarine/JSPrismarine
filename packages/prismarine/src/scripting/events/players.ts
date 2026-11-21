@@ -31,8 +31,8 @@ const HOTBAR_SIZE = 9;
 const INVENTORY_SIZE = 36;
 
 /** What a stack is, for telling whether a slot changed: its type, count, name and wear. */
-const stackKey = (item: Item): string =>
-    item.getName() === 'minecraft:air' || item.getAmount() <= 0
+const stackKey = (item: Item | null): string =>
+    item === null || item.getName() === 'minecraft:air' || item.getAmount() <= 0
         ? ''
         : `${item.getName()}\n${item.getAmount()}\n${item.getCustomName() ?? ''}\n${item.getDurability()}`;
 
@@ -41,7 +41,7 @@ interface SeenPlayer {
     readonly slot: number;
     readonly sneaking: boolean;
     readonly keys: readonly string[];
-    readonly items: readonly Item[];
+    readonly items: readonly (Item | null)[];
     /** The stack on the cursor, null for none. */
     readonly cursor: Item | null;
 }
@@ -58,11 +58,11 @@ export const playerEvents = (server: Server, level: Level): WorldEventSource => 
         try {
             const player = session.getPlayer();
             const inventory = player.getInventory();
-            const items = Array.from({ length: INVENTORY_SIZE }, (_, slot) => inventory.getItem(slot));
-            const cursor = inventory.getCursor();
+            const items = inventory.container('inventory').items();
+            const cursor = inventory.container('cursor').get(0);
             return {
-                cursor: cursor === null || stackKey(cursor) === '' ? null : cursor,
-                slot: inventory.getHandSlotIndex(),
+                cursor,
+                slot: inventory.getHandSlot(),
                 sneaking: player.isSneaking(),
                 keys: items.map(stackKey),
                 items
@@ -89,7 +89,7 @@ export const playerEvents = (server: Server, level: Level): WorldEventSource => 
             const was = before.items[slot];
             const is = now.items[slot];
             if (before.keys[slot] === now.keys[slot] || was === undefined || is === undefined) continue;
-            const quantityOnly = was.getName() === is.getName() && before.keys[slot] !== '' && now.keys[slot] !== '';
+            const quantityOnly = was?.getName() === is?.getName() && before.keys[slot] !== '' && now.keys[slot] !== '';
             emit({
                 event: 'PlayerInventoryItemChangeAfterEvent',
                 fields: fieldsOf({

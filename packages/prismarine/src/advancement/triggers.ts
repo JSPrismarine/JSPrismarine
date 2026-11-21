@@ -59,7 +59,7 @@ import type { AdvancementSubjectPlayer } from './subject';
  */
 export interface AdvancementPlayer extends AdvancementSubjectPlayer, RaisingPlayer {
     getServer(): Server;
-    getInventory(): Pick<HumanInventory, 'getSlotCount' | 'getEntry'>;
+    getInventory(): Pick<HumanInventory, 'container'>;
 }
 
 /**
@@ -80,16 +80,12 @@ const viewOf = (entity: StoreActor) =>
     });
 
 /** Every slot of a player's main inventory, with an empty slot as undefined. */
-const inventoryOf = (player: AdvancementPlayer): readonly (PredicateItemStack | undefined)[] => {
-    const inventory = player.getInventory();
-    const slots: (PredicateItemStack | undefined)[] = [];
-
-    for (let slot = 0; slot < inventory.getSlotCount(); slot += 1) {
-        const held = inventory.getEntry(slot)?.toItemStack();
-        slots.push(held && held.getName() !== 'minecraft:air' ? held.asPredicateStack() : undefined);
-    }
-    return slots;
-};
+const inventoryOf = (player: AdvancementPlayer): readonly (PredicateItemStack | undefined)[] =>
+    player
+        .getInventory()
+        .container('inventory')
+        .items()
+        .map((held) => held?.asPredicateStack());
 
 /**
  * A player's inventory changed.

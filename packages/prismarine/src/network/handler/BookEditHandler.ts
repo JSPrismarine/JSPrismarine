@@ -22,9 +22,9 @@ const pageInRange = (page: number): boolean => Number.isInteger(page) && page >=
 const bookEditRejection = (player: Pick<StorePlayer, 'getInventory'>, data: BookEdit): string | null => {
     const { bookSlot, operation } = data;
 
-    // `getItem` answers air for a slot the inventory does not have, so an out of range slot
-    // fails the same way as an empty one.
-    const held = player.getInventory().getItem(bookSlot).getName();
+    // `get` answers null for a slot the inventory does not have, so an out of range slot fails the
+    // same way as an empty one.
+    const held = player.getInventory().container('inventory').get(bookSlot)?.getName() ?? 'minecraft:air';
     if (held !== WRITABLE_BOOK) return `slot ${bookSlot} holds ${held}`;
 
     if (operation.action === BookEditAction.Finalize) return null;

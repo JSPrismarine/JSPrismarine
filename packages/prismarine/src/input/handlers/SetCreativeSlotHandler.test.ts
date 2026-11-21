@@ -29,8 +29,8 @@ const scene = (gamemode: Gametype) => {
 };
 
 const slotOf = (inventory: HumanInventory, slot: number) => {
-    const entry = inventory.getEntry(slot);
-    return entry === null ? null : `${entry.getItem().getName()} x${entry.getCount()}`;
+    const entry = inventory.container('inventory').get(slot);
+    return entry === null ? null : `${entry.getName()} x${entry.getAmount()}`;
 };
 
 describe('SetCreativeSlotHandler', () => {
@@ -40,16 +40,16 @@ describe('SetCreativeSlotHandler', () => {
         await set({ container: 'inventory', slot: 2, item: { name: 'minecraft:stone', count: 99 } });
         await set({ container: 'armor', slot: 0, item: { name: 'minecraft:iron_helmet', count: 1 } });
         expect(slotOf(inventory, 2)).toBe('minecraft:stone x64');
-        expect(inventory.getArmor().getItem(0).getName()).toBe('minecraft:iron_helmet');
+        expect(inventory.container('armor').get(0)?.getName()).toBe('minecraft:iron_helmet');
 
         await set({ container: 'inventory', slot: 2, item: null });
-        expect(inventory.getItem(2).getName()).toBe('minecraft:air');
+        expect(inventory.container('inventory').get(2)).toBeNull();
     });
 
     it('puts back the slot of a player who is not in creative, or who names no item', async () => {
         const survival = scene(Gametype.SURVIVAL);
         await survival.set({ container: 'inventory', slot: 0, item: { name: 'minecraft:diamond', count: 64 } });
-        expect(survival.inventory.getItem(0).getName()).toBe('minecraft:air');
+        expect(survival?.inventory.container('inventory').get(0)).toBeNull();
         expect(survival.resent).toEqual(['inventory 0']);
 
         const creative = scene(Gametype.CREATIVE);

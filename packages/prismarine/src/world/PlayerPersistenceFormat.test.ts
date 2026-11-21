@@ -40,7 +40,6 @@ import { entityFixture } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import type { StorePlayer } from '../entity/storePlayer';
 import { enteredStorePlayer } from '../testing/storePlayer.test.helper';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type ClientConnection from '../network/ClientConnection';
 import { connectedSession, sessionsWith } from '../testing/playerSession.test.helper';
@@ -187,12 +186,10 @@ const giveState = async (session: PlayerSession): Promise<void> => {
         .withEnchantments({ 'minecraft:efficiency': 4 })
         .withDisplay('Hole Maker', ['Property of the test suite']);
     pickaxe.durability = pickaxe.getMaxDurability() - 37;
-    inventory.setItem(3, new ContainerEntry({ item: pickaxe, count: 1 }));
+    inventory.container('inventory').set(3, pickaxe);
     inventory.setHandSlot(3);
-    inventory.getOffhand().setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }), count: 1 }));
-    inventory
-        .getEnderChest()
-        .setItem(5, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 9 }), count: 9 }));
+    inventory.container('offhand').set(0, new Item({ name: 'minecraft:shield', count: 1 }));
+    inventory.container('ender_chest').set(5, new Item({ name: 'minecraft:diamond', count: 9 }));
 
     player.attributes.setValue(AttributeIds.Health, 11);
     player.setFood(13);
@@ -282,10 +279,10 @@ describe.each([
         const player = session.getPlayer();
         const inventory = player.getInventory();
 
-        expect(inventory.getHandSlotIndex()).toBe(3);
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_pickaxe');
-        expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:shield');
-        expect(inventory.getEnderChest().getItem(5).getAmount()).toBe(9);
+        expect(inventory.getHandSlot()).toBe(3);
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(inventory.container('offhand').get(0)?.getName()).toBe('minecraft:shield');
+        expect(inventory.container('ender_chest').get(5)?.getAmount()).toBe(9);
         expect(player.getHealth()).toBe(11);
         expect(player.getFood()).toBe(13);
         expect(player.getSaturation()).toBe(4);
@@ -335,12 +332,10 @@ const giveStoreState = (player: StorePlayer): void => {
         .withEnchantments({ 'minecraft:efficiency': 4 })
         .withDisplay('Hole Maker', ['Property of the test suite']);
     pickaxe.durability = pickaxe.getMaxDurability() - 37;
-    inventory.setItem(3, new ContainerEntry({ item: pickaxe, count: 1 }));
+    inventory.container('inventory').set(3, pickaxe);
     inventory.setHandSlot(3);
-    inventory.getOffhand().setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:shield' }), count: 1 }));
-    inventory
-        .getEnderChest()
-        .setItem(5, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 9 }), count: 9 }));
+    inventory.container('offhand').set(0, new Item({ name: 'minecraft:shield', count: 1 }));
+    inventory.container('ender_chest').set(5, new Item({ name: 'minecraft:diamond', count: 9 }));
 
     player.restoreHealth(11);
     player.setFood(13);
@@ -432,10 +427,10 @@ describe.each([
         const player = await loadStoreRecord(fileRecords);
         const inventory = player.getInventory();
 
-        expect(inventory.getHandSlotIndex()).toBe(3);
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_pickaxe');
-        expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:shield');
-        expect(inventory.getEnderChest().getItem(5).getAmount()).toBe(9);
+        expect(inventory.getHandSlot()).toBe(3);
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(inventory.container('offhand').get(0)?.getName()).toBe('minecraft:shield');
+        expect(inventory.container('ender_chest').get(5)?.getAmount()).toBe(9);
         // Health is the entity's, not the attribute table's.
         expect(player.entity?.instance.attributes.get('health')?.current).toBe(11);
         expect(player.getFood()).toBe(13);
@@ -522,9 +517,9 @@ describe('a store player record', () => {
         const record = playerRecordFrom(player, fixtureServices(), Dimensions.Overworld);
         const before = structuredClone(record);
 
-        player.getInventory().getItem(3).durability = 1;
-        player.getInventory().removeItem(3);
-        player.getInventory().getEnderChest().removeItem(5);
+        player.getInventory().container('inventory').get(3)!.durability = 1;
+        player.getInventory().container('inventory').set(3, null);
+        player.getInventory().container('ender_chest').set(5, null);
         player.setSpawnPoint({ x: 0, y: 0, z: 0, dimension: 'minecraft:the_nether' });
         player.restoreHealth(2);
         player.setFood(1);

@@ -1,6 +1,6 @@
 import type { Item } from '../item/Item';
 import type { SlotObserver, SlotValue } from '../inventory/slotLog';
-import { slotValueOfItem } from '../inventory/slotLog';
+import { slotValueOf } from '../inventory/slotLog';
 import CraftingGrid from './CraftingGrid';
 
 /**
@@ -92,7 +92,7 @@ export class CraftingInput {
      */
     public observe(observer: SlotObserver): void {
         this.observer = observer;
-        for (const [slot, item] of this.slots.entries()) this.logged[slot] = slotValueOfItem(item);
+        for (const [slot, item] of this.slots.entries()) this.logged[slot] = slotValueOf(item);
     }
 
     public get(slot: number): Item | null {
@@ -118,7 +118,7 @@ export class CraftingInput {
     private written(slot: number): void {
         if (this.observer === null) return;
         const before = this.logged[slot] ?? null;
-        this.logged[slot] = slotValueOfItem(this.slots[slot] ?? null);
+        this.logged[slot] = slotValueOf(this.slots[slot] ?? null);
         this.observer(slot, before, this.logged[slot] ?? null);
     }
 

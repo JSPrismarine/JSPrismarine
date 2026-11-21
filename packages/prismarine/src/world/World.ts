@@ -600,9 +600,7 @@ export interface WorldData {
 
 /** The stack in a player's hand, or null for an empty hand. */
 const heldItem = (player: Pick<BlockBreaker, 'getInventory'>): Item | null => {
-    // A test double's hand may hold nothing at all.
-    const held: Item | null = player.getInventory().getItemInHand() ?? null;
-    return held === null || held.getName() === 'minecraft:air' || held.getAmount() <= 0 ? null : held;
+    return player.getInventory().equipment('mainhand');
 };
 
 /** The player who broke a block, as {@link World.breakBlock} reads one: the break's three reads and its id. */
@@ -3011,7 +3009,7 @@ export class World implements Service {
             // TODO: no item declares a tool type yet - `Item.getToolType` is hardcoded to
             // `None` - so a block that needs one drops nothing however good the pickaxe is.
             // The item is passed all the same, so that fixing the item side fixes this too.
-            const itemInHand = player?.getInventory().getItemInHand() ?? null;
+            const itemInHand = player?.getInventory().equipment('mainhand') ?? null;
 
             // What the break cost the tool. After the block is gone and before what it drops,
             // which is Java's order. `itemInHand` is read first, so a tool that breaks here
@@ -4818,26 +4816,14 @@ export class World implements Service {
             if (entity instanceof StorePlayerActor) {
                 const { player } = entity;
                 const inventory = player.getInventory();
-                const containers = [inventory, inventory.getArmor(), inventory.getOffhand(), inventory.getEnderChest()];
-                const stackCounts = containers.map((container) =>
-                    Array.from({ length: container.getSlotCount() }, (_unused, slot) => {
-                        const entry = container.getEntry(slot);
-                        return entry === null
-                            ? null
-                            : { entryCount: entry.getCount(), itemCount: entry.getItem().getAmount() };
-                    })
-                );
-                const cursor = inventory.getCursor();
+                const cursor = inventory.container('cursor').get(0);
 
-                // A slot can carry two counts that normally agree; preserve both so the digest
-                // catches the same split state that can duplicate a stack during inventory moves.
                 // The cursor is transient and is not part of storedInventory's persistence record.
                 // The components are what the change log records of the player besides its body.
                 hash.update(
                     JSON.stringify({
                         inventory: storedInventory(inventory),
                         cursor: cursor === null ? null : storedItem(cursor),
-                        stackCounts,
                         components: player.getComponents().snapshot()
                     })
                 );

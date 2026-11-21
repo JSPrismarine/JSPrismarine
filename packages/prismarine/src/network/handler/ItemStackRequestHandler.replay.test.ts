@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import type Server from '../../Server';
 import CraftingInput from '../../crafting/CraftingInput';
 import { fixtureRecipeContent } from '../../content/testing';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
@@ -146,8 +145,8 @@ const replay = async () => {
     const startLine = lines.find((line) => line.kind === 'inventory')!;
     // Parsed JSON: the inventory line's slots are written by the fixture builder in this shape.
     for (const stack of startLine.slots as StackLine[]) {
-        const item = itemOf(stack);
-        inventory.setItem(stack.slot, new ContainerEntry({ item, count: stack.count }));
+        const item = itemOf(stack).withCount(stack.count);
+        inventory.container('inventory').set(stack.slot, item);
         seeded.set(inventory.assignStackNetworkId(item), stack.stackNetworkId);
     }
 
@@ -187,9 +186,9 @@ const replay = async () => {
             // request: the slot simply holds less.
             const slot = Number(line.slot);
             const count = Number(line.count);
-            const held = inventory.getItem(slot);
-            if (count === 0) inventory.removeItem(slot);
-            else inventory.setItem(slot, new ContainerEntry({ item: held.withCount(count), count }));
+            const held = inventory.container('inventory').get(slot);
+            if (count === 0) inventory.container('inventory').set(slot, null);
+            else inventory.container('inventory').set(slot, held?.withCount(count) ?? null);
         } else if (line.kind === 'request') {
             const packet = new ItemStackRequestPacket(Buffer.from(String(line.payload), 'base64'));
             packet.decode();

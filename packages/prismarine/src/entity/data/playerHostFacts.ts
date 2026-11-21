@@ -9,13 +9,8 @@
  * server's item interaction code, which needs the session and the content world, so the server
  * hands that in as `finish`. The live host (`live.ts`) spreads these facts into its own.
  */
-import ContainerEntry from '../../inventory/ContainerEntry';
-import type HumanInventory from '../../inventory/HumanInventory';
-import type Inventory from '../../inventory/Inventory';
-import { slotValueOfItem } from '../../inventory/slotLog';
-import type { Item } from '../../item/Item';
 import type { StorePlayer } from '../storePlayer';
-import type { EntityHostFacts, PlayerHands } from './host';
+import type { EntityHostFacts } from './host';
 import type { StorePlayers } from './storePlayers';
 
 /**
@@ -32,12 +27,12 @@ export const storePlayerHostFacts = (
     finish: (player: StorePlayer, item: string) => void,
     broke: (player: StorePlayer, item: string) => void
 ): Required<Pick<EntityHostFacts, 'heldItemOf' | 'handsOf' | 'wearHeldItem' | 'finishMeal'>> => ({
-    heldItemOf: (playerId) => nameOf(players.of(playerId)?.getInventory().getItemInHand()),
+    heldItemOf: (playerId) => players.of(playerId)?.getInventory().equipment('mainhand')?.getName(),
     handsOf: (playerId) => {
         const inventory = players.of(playerId)?.getInventory();
         if (inventory === undefined) return undefined;
-        const mainhand = nameOf(inventory.getItemInHand());
-        const offhand = nameOf(inventory.getOffhand().getEntry(0)?.toItemStack());
+        const mainhand = inventory.equipment('mainhand')?.getName();
+        const offhand = inventory.equipment('offhand')?.getName();
         return {
             ...(mainhand === undefined ? {} : { mainhand }),
             ...(offhand === undefined ? {} : { offhand })
@@ -47,33 +42,18 @@ export const storePlayerHostFacts = (
         const player = players.of(playerId);
         const inventory = player?.getInventory();
         if (player === undefined || inventory === undefined) return;
-        const { container, slot } = handSlotOf(inventory, hand);
-        const entry = container.getEntry(slot);
-        const held = entry?.getItem();
-        if (entry === null || held === undefined || held.getMaxDurability() <= 0) return;
+        const held = inventory.equipment(hand);
+        if (held === null || held.getMaxDurability() <= 0) return;
         const left = held.getDurability() - amount;
         // A copy written into the slot, so the change log hears it; worn through, it breaks.
         if (left <= 0) {
-            container.removeItem(slot);
+            inventory.setEquipment(hand, null);
             broke(player, held.getName());
-        } else
-            container.setItem(slot, new ContainerEntry({ item: held.withDurability(left), count: entry.getCount() }));
+        } else inventory.setEquipment(hand, held.withDurability(left));
     },
     finishMeal: (playerId, item) => {
         const player = players.of(playerId);
-        if (player !== undefined && player.getInventory().getItemInHand().getName() === item) finish(player, item);
+        if (player !== undefined && player.getInventory().equipment('mainhand')?.getName() === item)
+            finish(player, item);
     }
 });
-
-/** An item's identifier, or undefined for an empty slot, one the change log records as holding nothing. */
-const nameOf = (item: Item | undefined): string | undefined =>
-    item === undefined || slotValueOfItem(item) === null ? undefined : item.getName();
-
-/** The container and slot of one of a player's hands. */
-const handSlotOf = (
-    inventory: HumanInventory,
-    hand: keyof PlayerHands
-): { readonly container: Inventory; readonly slot: number } =>
-    hand === 'mainhand'
-        ? { container: inventory, slot: inventory.getHandSlotIndex() }
-        : { container: inventory.getOffhand(), slot: 0 };

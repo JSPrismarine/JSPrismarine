@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../item/Item';
-import ContainerEntry from './ContainerEntry';
 import HumanInventory from './HumanInventory';
 import { storedInventory } from './persistence';
 
@@ -14,25 +13,25 @@ const sword = (): Item => {
     return stack;
 };
 
-const entry = (item: Item): ContainerEntry => new ContainerEntry({ item, count: item.getAmount() });
-
 describe('storedInventory', () => {
     // A save that holds a player's record across later ticks depends on this: the record has to
     // be a copy, so nothing the player does after it was taken can reach what gets written.
     it('returns a record that later changes to the inventory do not reach', () => {
         const inventory = new HumanInventory();
-        inventory.setItem(0, entry(sword()));
-        inventory.setItem(1, entry(new Item({ name: 'minecraft:black_shulker_box' }).withContents([null, sword()])));
-        inventory.getEnderChest().setItem(3, entry(new Item({ name: 'minecraft:diamond', count: 5 })));
+        const main = inventory.container('inventory');
+        const enderChest = inventory.container('ender_chest');
+        main.set(0, sword());
+        main.set(1, new Item({ name: 'minecraft:black_shulker_box' }).withContents([null, sword()]));
+        enderChest.set(3, new Item({ name: 'minecraft:diamond', count: 5 }));
 
         const stored = storedInventory(inventory);
         const before = structuredClone(stored);
 
-        inventory.getItem(0).durability = 1;
-        inventory.getItem(1).getContents()[1]!.durability = 1;
-        inventory.setItem(2, entry(new Item({ name: 'minecraft:dirt', count: 3 })));
-        inventory.removeItem(1);
-        inventory.getEnderChest().removeItem(3);
+        main.get(0)!.durability = 1;
+        main.get(1)!.getContents()[1]!.durability = 1;
+        main.set(2, new Item({ name: 'minecraft:dirt', count: 3 }));
+        main.set(1, null);
+        enderChest.set(3, null);
         inventory.setHandSlot(4);
 
         expect(stored).toEqual(before);

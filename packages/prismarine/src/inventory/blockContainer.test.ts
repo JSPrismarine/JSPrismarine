@@ -66,7 +66,6 @@ import { Dimensions } from '../world/DimensionType';
 import type { Generator } from '../world/Generator';
 import LevelDB from '../world/providers/leveldb/LevelDB';
 import type { World } from '../world/World';
-import ContainerEntry from './ContainerEntry';
 import { openContainerContents } from './containerStore';
 import { inertEntityRuntime } from '../testing/entityServer';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
@@ -376,7 +375,8 @@ describe('a block container a player can put things in', () => {
 
         player
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 12 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 12 }));
 
         const opened = await player.openBlockContainer(
             new Vector3(CHEST.x, CHEST.y, CHEST.z),
@@ -394,7 +394,7 @@ describe('a block container a player can put things in', () => {
         ]);
 
         expect(storedItems(blocks, CHEST)[5]).toEqual({ identifier: 'minecraft:diamond', count: 12 });
-        expect(player.getInventory().getItem(HELD_SLOT).getName()).toBe('minecraft:air');
+        expect(player.getInventory().container('inventory').get(HELD_SLOT)).toBeNull();
 
         // Out again, into a different inventory slot, which is the other half of the gesture.
         await apply(server, player, [
@@ -402,8 +402,8 @@ describe('a block container a player can put things in', () => {
         ]);
 
         expect(storedItems(blocks, CHEST)[5]).toBeUndefined();
-        expect(player.getInventory().getItem(9).getName()).toBe('minecraft:diamond');
-        expect(player.getInventory().getItem(9).getAmount()).toBe(12);
+        expect(player.getInventory().container('inventory').get(9)?.getName()).toBe('minecraft:diamond');
+        expect(player.getInventory().container('inventory').get(9)?.getAmount()).toBe(12);
 
         // Back in, then through a save and a fresh world over the same database: what a chest
         // holds has to be in the chunk's NBT and not in anything this process is keeping.
@@ -431,7 +431,8 @@ describe('a block container a player can put things in', () => {
 
         player
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 8 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:coal', count: 8 }));
 
         await player.openBlockContainer(
             new Vector3(FURNACE.x, FURNACE.y, FURNACE.z),
@@ -447,7 +448,7 @@ describe('a block container a player can put things in', () => {
                 8
             )
         ]);
-        expect(player.getInventory().getItem(HELD_SLOT).getAmount()).toBe(8);
+        expect(player.getInventory().container('inventory').get(HELD_SLOT)?.getAmount()).toBe(8);
         expect(storedItems(blocks, FURNACE)[2]).toEqual({ identifier: 'minecraft:stone', count: 1 });
 
         // The fuel slot takes it, because that is what a player puts coal in.
@@ -464,7 +465,7 @@ describe('a block container a player can put things in', () => {
         await apply(server, player, [
             move(at(ContainerUiId.FURNACE_RESULT_CONTAINER, 2), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 3), 1)
         ]);
-        expect(player.getInventory().getItem(3).getName()).toBe('minecraft:stone');
+        expect(player.getInventory().container('inventory').get(3)?.getName()).toBe('minecraft:stone');
 
         await level.disable();
     }, 120_000);
@@ -489,7 +490,7 @@ describe('a block container a player can put things in', () => {
         const contents = openContainerContents(player, FURNACE, 'minecraft:lit_furnace');
 
         expect(contents).toHaveLength(3);
-        expect(contents.map((entry) => entry.getItem().getName())).toEqual([
+        expect(contents.map((entry) => entry?.getName())).toEqual([
             'minecraft:iron_ore',
             'minecraft:coal',
             'minecraft:iron_ingot'
@@ -637,7 +638,8 @@ describe('a block container a player can put things in', () => {
 
         player
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 3 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 3 }));
 
         const contents = openContainerContents(player, CHEST_PARTNER, 'minecraft:chest');
         expect(contents).toHaveLength(54);
@@ -671,7 +673,8 @@ describe('a block container a player can put things in', () => {
         blocks.setBlock(CHEST, 'minecraft:chest');
         player
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 7 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 7 }));
 
         await player.openBlockContainer(
             new Vector3(CHEST.x, CHEST.y, CHEST.z),
@@ -694,7 +697,7 @@ describe('a block container a player can put things in', () => {
         const dropped = world
             .getActors()
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
-            .map((entity) => entity.getItem()?.getItem());
+            .map((entity) => entity.getItem());
 
         expect(dropped.map((item) => item?.getName())).toContain('minecraft:diamond');
         expect(dropped.find((item) => item?.getName() === 'minecraft:diamond')?.getAmount()).toBe(7);
@@ -711,7 +714,8 @@ describe('a block container a player can put things in', () => {
 
         first
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 5 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 5 }));
 
         for (const player of [first, second]) {
             await player.openBlockContainer(
@@ -731,8 +735,8 @@ describe('a block container a player can put things in', () => {
 
         // The first player's own 27 slots, and nothing of the second player's: an ender chest
         // is the one container the block does not hold.
-        expect(first.getInventory().getEnderChest().getItem(2).getName()).toBe('minecraft:diamond');
-        expect(second.getInventory().getEnderChest().getItem(2).getName()).toBe('minecraft:air');
+        expect(first.getInventory().container('ender_chest').get(2)?.getName()).toBe('minecraft:diamond');
+        expect(second.getInventory().container('ender_chest').get(2)).toBeNull();
 
         await level.disable();
     }, 120_000);
@@ -747,7 +751,7 @@ describe('a block container a player can put things in', () => {
         const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', count: 1, content }).withEnchantments({
             'minecraft:fortune': 3
         });
-        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
+        player.getInventory().container('inventory').set(HELD_SLOT, pickaxe);
 
         await player.openBlockContainer(
             new Vector3(CHEST.x, CHEST.y, CHEST.z),
@@ -768,7 +772,7 @@ describe('a block container a player can put things in', () => {
         const dropped = world
             .getActors()
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
-            .map((entity) => entity.getItem()?.getItem());
+            .map((entity) => entity.getItem());
 
         // Nothing spilled, and the box on the ground is carrying the enchanted pickaxe.
         expect(dropped.map((item) => item?.getName())).not.toContain('minecraft:diamond_pickaxe');
@@ -790,7 +794,7 @@ describe('a block container a player can put things in', () => {
             .withEnchantments({ 'minecraft:fortune': 3, 'minecraft:unbreaking': 2 })
             .withDisplay('Rockbreaker', ['Mined a million blocks']);
         pickaxe.durability = pickaxe.getMaxDurability() - 57;
-        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
+        player.getInventory().container('inventory').set(HELD_SLOT, pickaxe);
 
         await player.openBlockContainer(
             new Vector3(CHEST.x, CHEST.y, CHEST.z),
@@ -842,13 +846,13 @@ describe('a block container a player can put things in', () => {
             move(at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2), 1)
         ]);
 
-        const back = second.getInventory().getItem(2);
-        expect(back.getName()).toBe('minecraft:diamond_pickaxe');
-        expect(back.getEnchantmentLevel('minecraft:fortune')).toBe(3);
-        expect(back.getEnchantmentLevel('minecraft:unbreaking')).toBe(2);
-        expect(back.getMaxDurability() - back.getDurability()).toBe(57);
-        expect(back.getCustomName()).toBe('Rockbreaker');
-        expect(back.getLore()).toEqual(['Mined a million blocks']);
+        const back = second.getInventory().container('inventory').get(2);
+        expect(back?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(back?.getEnchantmentLevel('minecraft:fortune')).toBe(3);
+        expect(back?.getEnchantmentLevel('minecraft:unbreaking')).toBe(2);
+        expect(back!.getMaxDurability() - back!.getDurability()).toBe(57);
+        expect(back?.getCustomName()).toBe('Rockbreaker');
+        expect(back?.getLore()).toEqual(['Mined a million blocks']);
 
         await reopened.level.disable();
     }, 120_000);
@@ -863,7 +867,7 @@ describe('a block container a player can put things in', () => {
         const sword = new Item({ name: 'minecraft:diamond_sword', count: 1, content }).withEnchantments({
             'minecraft:sweeping_edge': 3
         });
-        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: sword, count: 1 }));
+        player.getInventory().container('inventory').set(HELD_SLOT, sword);
 
         await player.openBlockContainer(
             new Vector3(CHEST.x, CHEST.y, CHEST.z),
@@ -903,7 +907,8 @@ describe('a block container a player can put things in', () => {
         blocks.setBlock(CHEST, 'minecraft:chest');
         first
             .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 2 }) }));
+            .container('inventory')
+            .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 2 }));
 
         for (const player of [first, second]) {
             await player.openBlockContainer(
@@ -927,7 +932,7 @@ describe('a block container a player can put things in', () => {
             move(at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 1), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 4), 2)
         ]);
 
-        expect(second.getInventory().getItem(4).getName()).toBe('minecraft:diamond');
+        expect(second.getInventory().container('inventory').get(4)?.getName()).toBe('minecraft:diamond');
         expect(storedItems(blocks, CHEST)[1]).toBeUndefined();
 
         await level.disable();
@@ -946,7 +951,8 @@ describe('a block container a player can put things in', () => {
             blocks.setBlock(CHEST, 'minecraft:chest');
             player
                 .getInventory()
-                .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 3 }) }));
+                .container('inventory')
+                .set(HELD_SLOT, new Item({ name: 'minecraft:diamond', count: 3 }));
             await player.openBlockContainer(
                 new Vector3(CHEST.x, CHEST.y, CHEST.z),
                 'minecraft:chest',
