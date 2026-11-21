@@ -1165,6 +1165,32 @@ export class GenerationRegion {
 
     /** The seam `@jsprismarine/worldgen`'s surface pass writes through. */
     public surfaceChunk(): SurfaceChunk {
+        // The surface pass writes a handful of names thousands of times, so each name's slot and
+        // whether its state holds a fluid are worked out once.
+        const slots = new Map<string, number>();
+        const holdsFluid = new Map<number, boolean>();
+        let previousName: string | undefined;
+        let previousSlot = 0;
+        const slotOf = (name: string): number => {
+            if (name === previousName) return previousSlot;
+            let slot = slots.get(name);
+            if (slot === undefined) {
+                slot = this.paletteSlotForName(name);
+                slots.set(name, slot);
+            }
+            previousName = name;
+            previousSlot = slot;
+            return slot;
+        };
+        const fluidAt = (slot: number): boolean => {
+            let fluid = holdsFluid.get(slot);
+            if (fluid === undefined) {
+                fluid = this.options.blocks.fluid(this.palette[slot]!.java) !== 'empty';
+                holdsFluid.set(slot, fluid);
+            }
+            return fluid;
+        };
+
         return {
             chunkX: this.chunkX,
             chunkZ: this.chunkZ,
@@ -1185,9 +1211,27 @@ export class GenerationRegion {
                 for (let y = this.minY; y <= this.maxY; y++) out[y - this.minY] = this.stateAt(x, y, z).name;
             },
             setBlock: (x, y, z, state) => {
-                this.writeName(x, y, z, state);
+                const index = this.indexOf(x, y, z);
+                if (index === -1) return;
+                const slot = slotOf(state);
+                if (
+                    this.viewWrites === undefined &&
+                    !this.trackingWrites &&
+                    this.blockEntities.size === 0 &&
+                    !this.isAirByPaletteSlot[slot]
+                ) {
+                    // The terrain stage's tile has no overlay, tracking or block entity for a write
+                    // to update, and a block that is not air can only raise its column's ceiling.
+                    this.directTerrainWriting = false;
+                    this.states[index] = slot;
+                    const column = this.columnIndex(x, z);
+                    this.invalidateHeightmapCache(column);
+                    if (y > this.highest[column]!) this.highest[column] = y;
+                } else {
+                    this.writeResolvedSlot(index, x, y, z, slot);
+                }
                 // Java's surface pass marks a block it places that holds fluid for post-processing.
-                if (this.options.blocks.fluid(this.stateAt(x, y, z)) !== 'empty') this.markForPostProcessing(x, y, z);
+                if (fluidAt(slot)) this.markForPostProcessing(x, y, z);
             },
             surfaceHeight: (localX, localZ) => {
                 const column = this.columnIndex(this.chunkX * 16 + localX, this.chunkZ * 16 + localZ);

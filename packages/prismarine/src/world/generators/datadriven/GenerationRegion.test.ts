@@ -963,6 +963,40 @@ describe('terrain name writer', () => {
         expect(built.centerBlockSlots().columnTops[0]).toBe(-61);
     });
 
+    it('leaves the same blocks, ceilings and post-processing marks as the general write path', () => {
+        const writes = [
+            [0, -62, 0, 'minecraft:stone'],
+            [0, -61, 0, 'minecraft:grass_block'],
+            [1, -60, 1, 'minecraft:water'],
+            [1, -59, 1, 'minecraft:sand'],
+            // Air lowers the column's ceiling, which only the general path tracks.
+            [1, -59, 1, 'minecraft:air'],
+            [2, 400, 2, 'minecraft:stone']
+        ] as const;
+        const general = terrainTile(0, 0);
+        const direct = terrainTile(0, 0);
+        const surface = direct.surfaceChunk();
+        for (const [x, y, z, name] of writes) {
+            if (general.writeName(x, y, z, name) && name === 'minecraft:water') general.markForPostProcessing(x, y, z);
+            surface.setBlock(x, y, z, name);
+        }
+
+        expect(direct.centerBlockSlots()).toEqual(general.centerBlockSlots());
+        expect(direct.centerFluidTicks()).toEqual(general.centerFluidTicks());
+        expect(direct.centerFluidTicks()).toEqual([{ x: 1, y: -60, z: 1, postProcess: true }]);
+    });
+
+    it('takes the general write path once a surface write would replace a block entity', () => {
+        const built = terrainTile(0, 0);
+        const position = { x: 0, y: -61, z: 0 };
+        built.featureWorld().setBlock(position, { name: 'minecraft:chest', properties: {} });
+        built.featureWorld().setBlockEntity?.(position, { id: 'minecraft:chest' });
+
+        built.surfaceChunk().setBlock(position.x, position.y, position.z, 'minecraft:stone');
+
+        expect(built.centerBlockEntities()).toEqual([]);
+    });
+
     it('refuses direct terrain writes after the region becomes observable', () => {
         const built = terrainTile(0, 0);
         built.writeName(0, 10, 0, 'minecraft:stone');
