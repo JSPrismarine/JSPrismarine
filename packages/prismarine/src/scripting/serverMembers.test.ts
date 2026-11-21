@@ -260,7 +260,8 @@ describe('scriptPermissionMembers', () => {
         scripts.addToGroup('7', 'vip', '2030-01-01T00:00:00Z');
         scripts.grant('7', 'minecraft.command.kick');
         scripts.grantToGroup('vip', 'minecraft.command.ban');
-        await permissions['writes'];
+        // A reload drains the queued writes and reads the file again, so what follows survived persistence.
+        await permissions.reload();
 
         expect(scripts.has('7', 'minecraft.command.ban')).toBe(true);
         expect(scripts.has('7', 'minecraft.command.kick')).toBe(true);
@@ -275,7 +276,8 @@ describe('scriptPermissionMembers', () => {
         scripts.revokeFromGroup('vip', 'minecraft.command.ban');
         scripts.revoke('7', 'minecraft.command.kick');
         scripts.removeFromGroup('7', 'vip');
-        await permissions['writes'];
+        // A reload drains the queued writes and reads the file again, so what follows survived persistence.
+        await permissions.reload();
         expect(scripts.has('7', 'minecraft.command.ban')).toBe(false);
         expect(scripts.groupsOf('7')).toEqual(['default']);
         expect(scripts.weightOf('7')).toBe(0);

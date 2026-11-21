@@ -126,6 +126,15 @@ describe('@jsprismarine/server', () => {
         dispatch('vip', undefined, undefined);
 
         expect(seen).toEqual([{ target: { group: 'vip' } }, { target: { name: 'Steve', player } }, {}]);
+
+        // A subscriber that throws does not keep the ones after it from hearing of the change.
+        const after: unknown[] = [];
+        subscribe(() => {
+            throw new Error('first');
+        });
+        subscribe((event: unknown) => void after.push(event));
+        expect(() => dispatch('vip', undefined, undefined)).toThrow('first');
+        expect(after).toEqual([{ target: { group: 'vip' } }]);
         expect(seen.every((event) => Object.isFrozen(event))).toBe(true);
         expect(Object.isFrozen(at(seen[0], 'target'))).toBe(true);
         expect(calls.filter(([name]) => name === 'grantToGroup')).toEqual([

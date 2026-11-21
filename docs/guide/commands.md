@@ -67,12 +67,17 @@ or `2w`.
 /perms reload
 ```
 
-The command is gated by `jsprismarine.command.perms`, and each subcommand by a node under it named
-by its words: `jsprismarine.command.perms.user.permission.set`, `jsprismarine.command.perms.group.list`,
-`jsprismarine.command.perms.reload` and so on. The bare `jsprismarine.command.perms` covers every
-subcommand, so to give a moderator part of the command, grant the bare node and negate the
-subcommands they may not use, such as `-jsprismarine.command.perms.group.delete`. An operator and the
-console run every subcommand.
+The command is gated by <!-- fact:permissions.perms.node -->`jsprismarine.command.perms`<!-- /fact -->, and each subcommand by a node under
+it named by its words: <!-- fact:permissions.perms.subcommandNodes -->`jsprismarine.command.perms.user.info`, `jsprismarine.command.perms.user.permission.set`, `jsprismarine.command.perms.user.permission.unset`, `jsprismarine.command.perms.user.group.add`, `jsprismarine.command.perms.user.group.remove`, `jsprismarine.command.perms.user.meta.set`, `jsprismarine.command.perms.user.meta.unset`, `jsprismarine.command.perms.group.list`, `jsprismarine.command.perms.group.create`, `jsprismarine.command.perms.group.delete`, `jsprismarine.command.perms.group.info`, `jsprismarine.command.perms.group.permission.set`, `jsprismarine.command.perms.group.permission.unset`, `jsprismarine.command.perms.group.parent.add`, `jsprismarine.command.perms.group.parent.remove`, `jsprismarine.command.perms.group.weight`, `jsprismarine.command.perms.group.meta.set`, `jsprismarine.command.perms.group.meta.unset` and `jsprismarine.command.perms.reload`<!-- /fact -->. The bare
+`jsprismarine.command.perms` covers every subcommand, and an operator and the console run every
+one. The check reads the player who typed the command, so `/execute as` lends nobody another
+player's authority.
+
+Give the bare node only to people you would make operators. A player who holds `user.permission
+set`, `user.group add`, `user.meta set` or either `group ... set` can raise their own permissions
+with it, so a negation of one subcommand does not keep the others in check. For a moderator who
+should only look, grant the bare node and negate the writing subcommands, or wait for a role that
+needs no `/perms` at all and give them the commands directly.
 
 ## Addons
 
