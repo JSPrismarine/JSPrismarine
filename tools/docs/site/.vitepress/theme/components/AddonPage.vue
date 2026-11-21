@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 
 import AddonIcon from '../AddonIcon.vue';
 import type { MarketAddonPage } from '../addonMarket';
-import { releaseLabel, tagLabel } from '../addonMarket';
+import { installCommand, releaseLabel, tagLabel } from '../addonMarket';
 import BrandButton from './BrandButton.vue';
 import PrismMark from './PrismMark.vue';
 
@@ -17,7 +17,7 @@ const props = defineProps<{ addon: MarketAddonPage }>();
 const copied = ref(false);
 let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
-const command = computed(() => `addon install ${props.addon.id}`);
+const command = computed(() => installCommand(props.addon.id));
 const released = computed(() =>
     releaseLabel(props.addon.versions.find(({ version }) => version === props.addon.version))
 );
@@ -84,7 +84,7 @@ async function copy() {
                         replaces it.
                     </template>
                     <template v-else-if="addon.deprecated.replacedBy">
-                        <code>addon install {{ addon.deprecated.replacedBy }}</code> installs its replacement.
+                        <code>{{ installCommand(addon.deprecated.replacedBy) }}</code> installs its replacement.
                     </template>
                     You can still install this one{{
                         addon.deprecated.by === 'author' ? ', and the console warns you when you do' : ''

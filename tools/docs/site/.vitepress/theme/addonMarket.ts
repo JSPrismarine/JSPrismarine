@@ -86,6 +86,9 @@ export const formatDay = (day: string): string =>
         timeZone: 'UTC'
     });
 
+/** The console command that installs an addon, which its page shows with a Copy button. */
+export const installCommand = (id: string): string => `addon install ${id}`;
+
 /** A tag as a filter names it: `performance` is `Performance`. */
 export const tagLabel = (tag: string): string => `${tag.slice(0, 1).toUpperCase()}${tag.slice(1)}`;
 
