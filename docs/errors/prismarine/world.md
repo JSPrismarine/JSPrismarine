@@ -28,6 +28,15 @@ Thrown as `PrismarineWorldErrors.AirNotRegistered`, which extends `Error`.
 The block registry has no air, so it was read before it was built. This is a bug in the
 server; report it with the stack trace.
 
+## `PRISMARINE_AMBIGUOUS_LEVEL_NAME`
+
+`More than one detached level is named {name}: {ids}`
+
+Thrown as `PrismarineWorldErrors.AmbiguousLevelName`, which extends `Error`.
+
+More than one detached level has that name, which detached levels may share. Name the one
+to attach by its UUID, which `/world list` shows.
+
 ## `PRISMARINE_BIOME_ID_OUT_OF_RANGE`
 
 `A biome id is an integer from 0 to {maxBiomeId}, got {biome}`
@@ -108,6 +117,15 @@ Thrown as `PrismarineWorldErrors.ConfigDimensionsShareType`, which extends `Erro
 
 Two dimensions in `config.json` use the same dimension type, and each type backs one
 dimension in a world. Give one of them another type.
+
+## `PRISMARINE_CONFIG_LEVEL_CANNOT_DETACH`
+
+`` Level {name} is declared in config.json; remove it from `worlds` and restart the server to detach it ``
+
+Thrown as `PrismarineWorldErrors.ConfigLevelCannotDetach`, which extends `Error`.
+
+A level the config's `worlds` declares is attached for as long as the config names it. To
+detach it, remove its entry from `config.json` and restart the server.
 
 ## `PRISMARINE_CUSTOM_DIMENSION_ID_TOO_LOW`
 
@@ -256,6 +274,15 @@ Thrown as `PrismarineWorldErrors.InvalidMinecraftCatalogVersion`, which extends 
 
 The block catalog's Minecraft version is not a version number. The generated block data is
 damaged; regenerate it.
+
+## `PRISMARINE_INVALID_NEW_LEVEL_NAME`
+
+`{name} is not a level name: use 1 to 64 letters, digits, underscores and hyphens`
+
+Thrown as `PrismarineWorldErrors.InvalidNewLevelName`, which extends `Error`.
+
+A level's name is 1 to 64 letters, digits, underscores and hyphens, since it also names the
+level's folder under `worlds/`. Choose a name of those characters.
 
 ## `PRISMARINE_INVALID_REPLAY_SNAPSHOT_ENTRY`
 
@@ -451,6 +478,15 @@ Thrown as `PrismarineWorldErrors.LevelHasNoOverworld`, which extends `Error`.
 The world has no overworld, where Bedrock keeps the spawn point and the clock. Add one to its
 dimensions.
 
+## `PRISMARINE_LEVEL_NAME_TAKEN`
+
+`A level named {name} is attached or declared in config.json already`
+
+Thrown as `PrismarineWorldErrors.LevelNameTaken`, which extends `Error`.
+
+Two attached levels cannot share a name, and a new level cannot take the name of one the
+config declares. Choose another name, or detach the level that has it.
+
 ## `PRISMARINE_LEVEL_NOT_ATTACHED`
 
 `No attached level is named {name}`
@@ -467,6 +503,14 @@ Thrown as `PrismarineWorldErrors.LevelNotOpened`, which extends `Error`.
 
 A dimension was built before its world was opened. This is a bug in the server; report it
 with the stack trace.
+
+## `PRISMARINE_LEVEL_NOT_REGISTERED`
+
+`No detached level is named {name}`
+
+Thrown as `PrismarineWorldErrors.LevelNotRegistered`, which extends `Error`.
+
+No detached level in `levels.json` has that name or UUID. `/world list` shows them.
 
 ## `PRISMARINE_LEVEL_WITHOUT_OVERWORLD`
 

@@ -71,7 +71,7 @@ Out of scope for now:
        events for attached, detaching and detached. The scripts module, the content runtime and
        the command layer follow the events instead of reading the levels once. Detaching moves
        players to the entry level's spawn and saves before it closes.
-6. [ ] **The runtime registry.** `levels.json` in the server directory records the levels created at
+6. [x] **The runtime registry.** `levels.json` in the server directory records the levels created at
        runtime, with their UUID, name, folder, creation parameters and state. Startup attaches the
        config's levels and the registry's attached ones. Attaching a level whose name an attached
        level has is refused, and so is a config level whose name an attached registry level has.

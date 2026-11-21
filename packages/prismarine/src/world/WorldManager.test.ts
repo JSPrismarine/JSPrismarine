@@ -410,7 +410,7 @@ describe('WorldManager', () => {
     });
 
     it('announces each level attached, and a detach as detaching then detached, keeping its save', async () => {
-        const { manager, kernel } = buildManager('main', { main: entryOf(), other: entryOf() });
+        const { manager, kernel } = buildManager('main', { main: entryOf() });
         const seen: string[] = [];
         kernel.events.on('levelAttached', (event) => void seen.push(`attached ${event.getLevel().name}`));
         kernel.events.on('levelDetaching', (event) => {
@@ -420,31 +420,77 @@ describe('WorldManager', () => {
             seen.push(`detached ${event.getLevel().name} ${event.getLevel().isClosed()}`);
         });
         await manager.enable();
-        const id = manager.getLevel('other')?.id;
+        const arena = await manager.createLevel('arena', entryOf());
 
-        await manager.detachLevel('other');
-        expect(manager.getLevel('other')).toBeUndefined();
-        const again = await manager.loadLevel(entryOf(), 'other');
+        await manager.detachLevel('arena');
+        expect(manager.getLevel('arena')).toBeUndefined();
+        const again = await manager.attachLevel('arena');
 
         expect(seen).toEqual([
             'attached main',
-            'attached other',
-            'detaching other detaching',
-            'detached other true',
-            'attached other'
+            'attached arena',
+            'detaching arena detaching',
+            'detached arena true',
+            'attached arena'
         ]);
-        expect(again.id).toBe(id);
+        expect(again.id).toBe(arena.id);
         expect(manager.getLevelState(again)).toBe('attached');
 
         await manager.disable();
     });
 
-    it('refuses to detach the entry level, or a level that is not attached', async () => {
-        const { manager } = buildManager('main', { main: entryOf() });
+    it('refuses to detach the entry level, a configured level, or a level that is not attached', async () => {
+        const { manager } = buildManager('main', { main: entryOf(), other: entryOf() });
         await manager.enable();
 
         await expect(manager.detachLevel('main')).rejects.toThrow(/players join first/);
+        await expect(manager.detachLevel('other')).rejects.toThrow(/declared in config.json/);
         await expect(manager.detachLevel('nowhere')).rejects.toThrow(/No attached level is named nowhere/);
+
+        await manager.disable();
+    });
+
+    it('records created levels in levels.json, and attaches the attached ones at the next start', async () => {
+        const first = buildManager('main', { main: entryOf() });
+        await first.manager.enable();
+        const arena = await first.manager.createLevel('arena', entryOf());
+        const lobby = await first.manager.createLevel('lobby', entryOf());
+        await first.manager.detachLevel('lobby');
+        await first.manager.disable();
+
+        const second = buildManager('main', { main: entryOf() });
+        await second.manager.enable();
+
+        expect(second.manager.getLevels().map((level) => [level.name, level.id])).toEqual([
+            ['main', second.manager.getDefaultLevel().id],
+            ['arena', arena.id]
+        ]);
+        expect(second.manager.getLevelOrigin(second.manager.getLevel('arena') ?? arena)).toBe('registry');
+        expect(second.manager.getRegisteredLevels().map(({ name, state, id }) => [name, state, id])).toEqual([
+            ['arena', 'attached', arena.id],
+            ['lobby', 'detached', lobby.id]
+        ]);
+        expect(JSON.parse(fs.readFileSync(path.join(scratch, 'levels.json'), 'utf8')).schemaVersion).toBe(1);
+
+        await second.manager.disable();
+    });
+
+    it('refuses a name that is not one or that a level has, and tells detached levels of one name apart', async () => {
+        const { manager } = buildManager('main', { main: entryOf(), other: entryOf() });
+        await manager.enable();
+
+        await expect(manager.createLevel('an arena', entryOf())).rejects.toThrow(/is not a level name/);
+        await expect(manager.createLevel('OTHER', entryOf())).rejects.toThrow(/declared in config.json already/);
+        const first = await manager.createLevel('arena', entryOf());
+        await expect(manager.createLevel('arena', entryOf())).rejects.toThrow(/attached or declared/);
+        await manager.detachLevel('arena');
+        const second = await manager.createLevel('arena', entryOf());
+        await manager.detachLevel('arena');
+
+        await expect(manager.attachLevel('arena')).rejects.toThrow(/More than one detached level is named arena/);
+        expect((await manager.attachLevel(first.id)).id).toBe(first.id);
+        await expect(manager.attachLevel(second.id)).rejects.toThrow(/attached or declared/);
+        expect(new Set(manager.getRegisteredLevels().map((record) => record.folder)).size).toBe(2);
 
         await manager.disable();
     });
@@ -465,10 +511,10 @@ describe('WorldManager', () => {
     });
 
     it('moves the players of a detaching level to the entry level first', async () => {
-        const { manager, sessions } = buildManager('main', { main: entryOf(), other: entryOf() });
+        const { manager, sessions } = buildManager('main', { main: entryOf() });
         await manager.enable();
-        const other = manager.getLevel('other');
-        const otherWorld = other?.loadedWorld(OVERWORLD_STEM_ID);
+        const other = await manager.createLevel('other', entryOf());
+        const otherWorld = other.loadedWorld(OVERWORLD_STEM_ID);
         if (otherWorld === undefined) throw new Error('the other level has an Overworld');
         let world = otherWorld;
         const moves: string[] = [];
@@ -485,7 +531,7 @@ describe('WorldManager', () => {
         await manager.detachLevel('other');
 
         expect(moves).toEqual(['main']);
-        expect(other?.isClosed()).toBe(true);
+        expect(other.isClosed()).toBe(true);
 
         await manager.disable();
     });

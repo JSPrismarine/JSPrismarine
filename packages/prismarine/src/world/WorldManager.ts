@@ -22,6 +22,8 @@ import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
 import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import type { World } from './World';
 import { WorldgenCatalog } from './WorldgenCatalog';
+import { LEVELS_FILE_NAME, LevelRegistry } from './LevelRegistry';
+import type { RegisteredLevel } from './LevelRegistry';
 import type { WorldGenSettings } from './WorldPersistence';
 import LevelAttachedEvent from '../events/level/LevelAttachedEvent';
 import LevelDetachedEvent from '../events/level/LevelDetachedEvent';
@@ -31,6 +33,12 @@ import { SerialQueue } from '../utils/serialQueue';
 export type { WorldData } from '../config/JsonConfigTypes';
 
 const WORLDS_FOLDER = 'worlds';
+
+/** What a level created while the server runs may be named, since the name also names its folder. */
+const LEVEL_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** Where a level comes from: the config's `worlds`, or `levels.json`, which records the ones created at runtime. */
+export type LevelOrigin = 'config' | 'registry';
 
 /**
  * Where a level is in its lifecycle. A level the manager has no state for is detached: not loaded,
@@ -69,6 +77,10 @@ export default class WorldManager implements Service {
     private readonly states = new Map<string, LevelState>();
     /** Attaches and detaches, one at a time, so two of them never race over one level or one name. */
     private readonly operations = new SerialQueue();
+    /** Where each loaded level comes from, by UUID: the config's `worlds`, or `levels.json`. */
+    private readonly origins = new Map<string, LevelOrigin>();
+    /** The levels created while the server ran, which `levels.json` records. */
+    private readonly registry: LevelRegistry;
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
     private defaultLevel!: Level;
@@ -82,6 +94,7 @@ export default class WorldManager implements Service {
     public constructor(server: Server) {
         this.server = server;
         this.worldgen = new WorldgenCatalog(server);
+        this.registry = new LevelRegistry(withCwd(LEVELS_FILE_NAME), server.getLogger());
         server.getLogger().verbose(`Registered §b${this.worldgen.factories.kinds().length}§r generator kind(s)!`);
 
         // Here rather than in a world, because this runs before the shutdown awaits anything -
@@ -144,6 +157,118 @@ export default class WorldManager implements Service {
             if (name === defaultName) continue;
             await this.loadLevel(data, name);
         }
+
+        // Then the levels created while the server ran, those recorded as attached.
+        await this.registry.load();
+        for (const record of this.registry.all()) {
+            if (record.state !== 'attached') continue;
+            try {
+                await this.operations.run(() => this.attachRegistered(record));
+            } catch (error: unknown) {
+                this.server.getLogger().error(`Level ${record.name} (${record.id}) from levels.json did not attach`);
+                this.server.getLogger().error(error);
+            }
+        }
+    }
+
+    /**
+     * Creates a level while the server runs, records it in `levels.json` as attached and attaches
+     * it. It never goes into the config.
+     *
+     * @param name - The level's name: letters, digits, underscores and hyphens.
+     * @param world - What the level is created with, in the shape of a `worlds.<name>` entry.
+     * @throws {Error} When the name is not one, or an attached or configured level has it.
+     */
+    public createLevel(name: string, world: WorldData): Promise<Level> {
+        return this.operations.run(async () => {
+            if (!LEVEL_NAME.test(name)) throw new PrismarineWorldErrors.InvalidNewLevelName({ name });
+            this.checkNameFree(name);
+            const folder = this.newFolder(name);
+            const prepared = await this.prepareLevel(world, name, { origin: 'registry', folder });
+            const { level } = prepared;
+            await this.registry.put({ id: level.id, name, folder, state: 'attached', world });
+            await this.finishLoading(prepared, level.enable());
+            return level;
+        });
+    }
+
+    /**
+     * Attaches a detached level from `levels.json`, by its UUID or its name, and records it as
+     * attached.
+     *
+     * @throws {Error} When no detached level has the UUID or name, more than one has the name, or an
+     *   attached or configured level has its name.
+     */
+    public attachLevel(nameOrId: string): Promise<Level> {
+        return this.operations.run(async () => {
+            const byId = this.registry.get(nameOrId);
+            const wanted = nameOrId.toLowerCase();
+            const candidates =
+                byId?.state === 'detached'
+                    ? [byId]
+                    : this.registry
+                          .all()
+                          .filter((record) => record.state === 'detached' && record.name.toLowerCase() === wanted);
+            const [record, ...others] = candidates;
+            if (record === undefined) throw new PrismarineWorldErrors.LevelNotRegistered({ name: nameOrId });
+            if (others.length > 0) {
+                throw new PrismarineWorldErrors.AmbiguousLevelName({
+                    name: nameOrId,
+                    ids: candidates.map((candidate) => candidate.id).join(', ')
+                });
+            }
+            const level = await this.attachRegistered(record);
+            await this.registry.put({ ...record, state: 'attached' });
+            return level;
+        });
+    }
+
+    /** The levels `levels.json` records, attached and detached. */
+    public getRegisteredLevels(): readonly RegisteredLevel[] {
+        return this.registry.all();
+    }
+
+    /** Where a loaded level comes from, or undefined for one that is not loaded. */
+    public getLevelOrigin(level: Level): LevelOrigin | undefined {
+        return this.origins.get(level.id);
+    }
+
+    /** Loads a registered level from its folder, refusing it when an attached or configured level has its name. */
+    private async attachRegistered(record: RegisteredLevel): Promise<Level> {
+        this.checkNameFree(record.name);
+        const prepared = await this.prepareLevel(record.world, record.name, {
+            origin: 'registry',
+            folder: record.folder
+        });
+        if (prepared.level.id !== record.id) {
+            this.server
+                .getLogger()
+                .warn(
+                    `Level ${record.name}'s save holds UUID ${prepared.level.id}, not the ${record.id} levels.json records for its folder`
+                );
+        }
+        await this.finishLoading(prepared, prepared.level.enable());
+        return prepared.level;
+    }
+
+    /** Throws when an attached level, or a level the config declares, has a name. */
+    private checkNameFree(name: string): void {
+        const wanted = name.toLowerCase();
+        const configured = Object.keys(this.server.getConfig().getWorlds()).some((key) => key.toLowerCase() === wanted);
+        if (configured || this.isWorldLoaded(name)) throw new PrismarineWorldErrors.LevelNameTaken({ name });
+    }
+
+    /**
+     * A folder under `worlds/` for a new level: its name, or its name with a random suffix when a
+     * folder or a registered level has that one already, since detached levels may share a name.
+     */
+    private newFolder(name: string): string {
+        const taken = (folder: string) =>
+            fs.existsSync(withCwd(WORLDS_FOLDER, folder)) ||
+            this.registry.all().some((record) => record.folder.toLowerCase() === folder.toLowerCase());
+        let folder = name;
+        while (taken(folder)) folder = `${name}-${randomUUID().slice(0, 8)}`;
+        return folder;
     }
 
     /**
@@ -228,7 +353,7 @@ export default class WorldManager implements Service {
     private async prepareLevel(
         worldData: WorldData,
         folderName: string,
-        options: { overworld?: 'eager' | 'lazy' } = {}
+        options: { overworld?: 'eager' | 'lazy'; origin?: LevelOrigin; folder?: string } = {}
     ): Promise<PreparedLevel> {
         if (!worldData) throw new PrismarineWorldErrors.InvalidWorldConfig();
 
@@ -236,7 +361,8 @@ export default class WorldManager implements Service {
             throw new PrismarineWorldErrors.WorldAlreadyLoaded({ folderName });
         }
 
-        const levelPath = withCwd(WORLDS_FOLDER, folderName);
+        const origin = options.origin ?? 'config';
+        const levelPath = withCwd(WORLDS_FOLDER, options.folder ?? folderName);
         const providerClass = this.providers.get(worldData.provider);
         if (!providerClass) {
             // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
@@ -255,8 +381,12 @@ export default class WorldManager implements Service {
         const normalized = normalizeWorldData(worldData, this.worldgen.factories.kinds());
         if (normalized.deprecations.length > 0) {
             for (const deprecation of normalized.deprecations) logger.warn(`World '${folderName}': ${deprecation}`);
-            this.server.getConfig().setWorld(folderName, worldDataOf(normalized), true);
-            logger.info(`World '${folderName}': rewrote its config entry as \`preset\` and \`dimensions\``);
+            // Only the config's entries are written back: a registered level was created in the
+            // new spelling.
+            if (origin === 'config') {
+                this.server.getConfig().setWorld(folderName, worldDataOf(normalized), true);
+                logger.info(`World '${folderName}': rewrote its config entry as \`preset\` and \`dimensions\``);
+            }
         }
 
         // The config holds whatever the file said; this is where it becomes a seed.
@@ -319,6 +449,7 @@ export default class WorldManager implements Service {
         });
         this.levels.set(level.id, level);
         this.states.set(level.id, 'attaching');
+        this.origins.set(level.id, origin);
 
         return { level, firstLoad: saved.worldGenSettings === undefined || saved.levelId === undefined };
     }
@@ -365,6 +496,7 @@ export default class WorldManager implements Service {
         await level.disable();
         this.levels.delete(level.id);
         this.states.delete(level.id);
+        this.origins.delete(level.id);
         // After the save, which reads them: a level loaded again under this name would otherwise
         // be handed the runtimes, and the entities, of this one.
         if (this.server.hasEntityRuntime()) this.server.getContentWorld().closeLevel(level.name);
@@ -389,12 +521,16 @@ export default class WorldManager implements Service {
                 throw new PrismarineWorldErrors.LevelNotAttached({ name: folderName });
             if (level === this.defaultLevel)
                 throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
+            if (this.origins.get(level.id) === 'config')
+                throw new PrismarineWorldErrors.ConfigLevelCannotDetach({ name: level.name });
 
             this.states.set(level.id, 'detaching');
             const events = this.server.getKernel().events;
             await events.emit('levelDetaching', new LevelDetachingEvent(level));
             await this.evacuate(level);
             await this.unloadWorld(level.name);
+            const record = this.registry.get(level.id);
+            if (record !== undefined) await this.registry.put({ ...record, state: 'detached' });
             await events.emit('levelDetached', new LevelDetachedEvent(level));
         });
     }
