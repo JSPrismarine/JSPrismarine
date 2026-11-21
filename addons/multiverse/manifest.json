@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Multiverse",
+        "description": "Creates worlds, each a level of its own, and moves players between them, with per-world game mode and access.",
+        "uuid": "6e714018-3251-45c9-9c56-9188446848ce",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 26, 60]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "24e7b7b9-83ba-4ea5-b94e-017170d3313b",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [{ "module_name": "@minecraft/server", "version": "2.11.0" }]
+}

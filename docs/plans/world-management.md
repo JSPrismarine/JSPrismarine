@@ -92,7 +92,7 @@ Out of scope for now:
         console the same.
 11. [x] **Script API.** `@jsprismarine/server` lists levels and moves a player between them, and
         creates, attaches and detaches levels.
-12. [ ] **Multiverse.** The addon in #3630 rebuilt on slices 10 and 11: its own file holds only
+12. [x] **Multiverse.** The addon in #3630 rebuilt on slices 10 and 11: its own file holds only
         per-world rules (alias, game mode, spawn, access), keyed by level UUID.
 
 ## Decided along the way

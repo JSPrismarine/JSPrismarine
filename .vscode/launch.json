@@ -2,6 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug addon scripts: Multiverse",
+            "type": "minecraft-js",
+            "request": "attach",
+            "mode": "listen",
+            "port": 19144,
+            "localRoot": "${workspaceFolder}/addons/multiverse/src",
+            "sourceMapRoot": "${workspaceFolder}/addons/multiverse/scripts",
+            "generatedSourceRoot": "${workspaceFolder}/addons/multiverse/scripts",
+            "targetModuleUuid": "24e7b7b9-83ba-4ea5-b94e-017170d3313b",
+            "preLaunchTask": "Dev server with script debugging"
+        },
+        {
             "name": "Debug addon scripts: Standard Placeholders",
             "type": "minecraft-js",
             "request": "attach",

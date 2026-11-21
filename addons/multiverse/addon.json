@@ -1,0 +1,5 @@
+{
+    "description": "Creates worlds, each a level of its own, and moves players between them, with per-world game mode and access.",
+    "minServer": "0.25.0",
+    "license": "(MIT OR MPL-2.0)"
+}

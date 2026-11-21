@@ -3,7 +3,12 @@
  * over a memory world: the test sets its figures and pings before each tick, and reads the bars and
  * the player list names the pack gave each player.
  */
-import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from '../host/jsprismarineMembers';
+import type {
+    JsprismarineServerMembers,
+    ScriptBossBarState,
+    ScriptLevelMembers,
+    ScriptPerformance
+} from '../host/jsprismarineMembers';
 
 /** A server whose figures the test sets before each tick, and which keeps what each player sees. */
 export class ManualServer implements JsprismarineServerMembers {
@@ -17,6 +22,8 @@ export class ManualServer implements JsprismarineServerMembers {
     public readonly listNames = new Map<string, string>();
     /** Every player list call, as `name <player> <name>` or `unname <player>`. */
     public readonly listCalls: string[] = [];
+    /** The server's levels, when the test gives it some. */
+    public levels?: ScriptLevelMembers;
 
     public performance(): ScriptPerformance {
         return this.current;
