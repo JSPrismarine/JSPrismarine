@@ -15,7 +15,8 @@ const SHIFT_UP_EPSILON = f32(1e-7);
 export class SmearedPerlinNoise extends PerlinNoise {
     public constructor(
         random: RandomSource,
-        private readonly fudgeYScale: number
+        /** The step the lattice's y fraction snaps down to. */
+        public readonly fudgeYScale: number
     ) {
         super(random);
     }

@@ -73,7 +73,8 @@ export class RandomState {
                 settings.useLegacyRandomSource && id === BLENDED_NOISE_SEED
                     ? new LegacyRandomSource(seed)
                     : this.random.fromHashOf(id),
-            endIslandRandom: () => new LegacyRandomSource(seed)
+            endIslandRandom: () => new LegacyRandomSource(seed),
+            stack: (noise) => (this.nativeLibrary === undefined ? noise : withNativeStack(this.nativeLibrary, noise))
         };
         this.compiler = new DensityFunctionCompiler(environment, options);
     }

@@ -228,10 +228,10 @@ volume runtime exists. The order:
    table. Moving `native-network` and `script-host` onto that binder follows.
 3. Worldgen uses native stacks for `NormalNoise` when the library loads. The parity families and
    the vectors run on both paths. An overworld chunk's terrain fill runs 0 TypeScript Perlin
-   octave samples on the native path, against 39,256 without it. Blended noise's 39,000 smeared
-   octave samples per chunk still run in TypeScript.
-4. Smeared and blended noise, the aquifer and the density program follow, each proven by the same
-   bit comparison.
+   octave samples on the native path, against 39,256 without it. Blended noise's smeared stacks
+   followed: an overworld chunk now runs 0 TypeScript octaves of either kind, against 78,256, and
+   every vanilla noise setting runs 0.
+4. The aquifer and the density program follow, each proven by the same bit comparison.
 
 The design below stays the target for the density program:
 

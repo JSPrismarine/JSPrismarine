@@ -5,6 +5,7 @@ import type { NativeNoiseLayer, NativeNoiseStack } from '@jsprismarine/native-wo
 import type { Noise } from './GradientNoise';
 import { NoiseStack } from './NoiseStack';
 import { PerlinNoise } from './PerlinNoise';
+import { SmearedPerlinNoise } from './SmearedPerlinNoise';
 
 /** The library this thread loaded: undefined until asked, null when there is no usable build. */
 let loaded: NativeWorldgen | null | undefined;
@@ -54,9 +55,9 @@ export class NativeStackNoise implements Noise {
 }
 
 /**
- * The native mirror of a noise, when the kernel reproduces it: a {@link NoiseStack} of plain
- * Perlin octaves, which every `worldgen/noise` entry builds. Smeared, blended and simplex noise
- * have no kernel yet.
+ * The native mirror of a noise, when the kernel reproduces it: a {@link NoiseStack} of Perlin
+ * octaves, plain as every `worldgen/noise` entry builds them or smeared as old blended noise
+ * builds them. Simplex noise has no kernel yet.
  * @param library - The loaded library.
  * @param noise - A seeded noise.
  * @returns The native noise, or the same noise when the kernel does not cover it.
@@ -66,15 +67,17 @@ export const withNativeStack = (library: NativeWorldgen, noise: Noise): Noise =>
     const layers: NativeNoiseLayer[] = [];
     for (const layer of noise.layers) {
         const perlin = layer.noise;
-        // Exactly PerlinNoise: a subclass, such as smeared noise, samples differently.
-        if (!(perlin instanceof PerlinNoise) || perlin.constructor !== PerlinNoise) return noise;
+        // Exactly one of the two classes the kernel reproduces: another subclass samples differently.
+        const smeared = perlin instanceof SmearedPerlinNoise && perlin.constructor === SmearedPerlinNoise;
+        if (!smeared && (!(perlin instanceof PerlinNoise) || perlin.constructor !== PerlinNoise)) return noise;
         layers.push({
             permutation: perlin.permutationTable(),
             offsetX: perlin.offsetX,
             offsetY: perlin.offsetY,
             offsetZ: perlin.offsetZ,
             frequency: layer.frequency,
-            amplitude: layer.amplitude
+            amplitude: layer.amplitude,
+            ...(smeared ? { smearY: perlin.fudgeYScale } : {})
         });
     }
     return new NativeStackNoise(library.createStack(layers), noise);

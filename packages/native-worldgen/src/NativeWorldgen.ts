@@ -9,7 +9,7 @@ import { locateLibrary } from './library';
 export const ABI_VERSION = 1;
 
 /** The doubles each layer takes in the parameters `jwg_stack_create` reads. */
-const LAYER_PARAMS = 5;
+const LAYER_PARAMS = 6;
 
 /** The C interface (`native/include/jsp_native_worldgen.h`), one method per exported function. */
 interface NativeSymbols {
@@ -41,6 +41,11 @@ export interface NativeNoiseLayer {
     readonly frequency: number;
     /** The octave's weight, a single-precision value. */
     readonly amplitude: number;
+    /**
+     * `SmearedPerlinNoise`'s `fudgeYScale`: the step the lattice's y fraction snaps down to, as
+     * old blended noise samples. Absent or 0 for plain Perlin noise.
+     */
+    readonly smearY?: number;
 }
 
 /**
@@ -108,7 +113,7 @@ export class NativeWorldgen {
             }
             perms.set(Array.from(layer.permutation), index * 256);
             params.set(
-                [layer.offsetX, layer.offsetY, layer.offsetZ, layer.frequency, layer.amplitude],
+                [layer.offsetX, layer.offsetY, layer.offsetZ, layer.frequency, layer.amplitude, layer.smearY ?? 0],
                 index * LAYER_PARAMS
             );
         });

@@ -20,7 +20,7 @@ million samples of six vanilla noises.
 import { NativeWorldgen } from '@jsprismarine/native-worldgen';
 
 const native = NativeWorldgen.load();
-const stack = native.createStack(layers); // each layer: permutation, offsets, frequency, amplitude
+const stack = native.createStack(layers); // each layer: permutation, offsets, frequency, amplitude, smearY
 const value = stack.get3(x, y, z); // NoiseStack.get3's value, bit for bit
 stack.fill(positions, values); // a buffer of positions in one call
 stack.destroy();
