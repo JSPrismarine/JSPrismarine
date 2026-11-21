@@ -145,6 +145,8 @@ export interface LoggedBodyState {
     invulnerable: boolean;
     fuseTicks: number | undefined;
     fireTicks: number;
+    /** Ticks since the entity died, Java's `DeathTime`; 0 while it lives. */
+    deathTime: number;
     /** The online owner's runtime id, or undefined while its owner is offline or absent. */
     owner: number | undefined;
     /** The status effect clock, as its reading at one update ({@link StatusEffectClock}). */
@@ -389,6 +391,18 @@ export class MobBody {
 
     public set fireTicks(fireTicks: number) {
         this.write('fireTicks', fireTicks);
+    }
+
+    /**
+     * Ticks since a living entity died, Java's `LivingEntity.deathTime`. It stays in the world
+     * for its death animation, and `EntityRuntime` removes it once this reaches Java's limit.
+     */
+    public get deathTime(): number {
+        return this.logged.deathTime;
+    }
+
+    public set deathTime(deathTime: number) {
+        this.write('deathTime', deathTime);
     }
 
     /**
@@ -705,6 +719,7 @@ export class MobBody {
             invulnerable: false,
             fuseTicks: undefined,
             fireTicks: 0,
+            deathTime: 0,
             owner: undefined,
             statusEffectClock: undefined,
             actorTags: undefined,

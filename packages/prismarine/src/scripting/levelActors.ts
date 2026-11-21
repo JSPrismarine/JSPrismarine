@@ -12,8 +12,11 @@ import type Server from '../Server';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 
-/** Whether an actor is in the world: alive, or of a type with no health, such as a minecart. */
-export const presentActor = (actor: StoreActor): boolean => actor.isAlive() || actor.getMaxHealth() <= 0;
+/**
+ * Whether an actor is in the world: still in its store, whatever its health. A dead mob stays
+ * there through its death animation, and a script reads it as valid until it leaves, as on BDS.
+ */
+export const presentActor = (actor: StoreActor): boolean => actor.entity.removed === undefined;
 
 /** The lookups of one level. */
 export const levelActors = (server: Server, level: Level) => ({

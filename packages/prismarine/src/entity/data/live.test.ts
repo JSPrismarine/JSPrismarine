@@ -1885,7 +1885,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
                 expect(landed).toBe(true);
                 expect(routes()).toMatchObject({ melee: 1 });
-                expect(live.runtime.byId(cow.id)).toBeUndefined();
+                expect(cow.instance.attributes.get('health')?.current).toBe(0);
                 expect(posted).toEqual(['entityDamage', 'entityDeath']);
                 expect(
                     asked.filter((trigger) => trigger === 'player_killed_entity' || trigger === 'player_hurt_entity')
@@ -1957,7 +1957,7 @@ describe('the data-driven entity runtime over a live world', () => {
                     const outcome = store.unit(() => {
                         strike();
                         inUnit = {
-                            removed: live.runtime.byId(cow.id) === undefined,
+                            dead: live.runtime.byId(cow.id)?.instance.attributes.get('health')?.current === 0,
                             deaths: [...deaths],
                             raised: [...raised]
                         };
@@ -1965,8 +1965,8 @@ describe('the data-driven entity runtime over a live world', () => {
                     store.sealTick();
 
                     expect(outcome.failed).toBe(false);
-                    // The mob is out of the world before anything hears of its death.
-                    expect(inUnit).toEqual({ removed: true, deaths: [], raised: [] });
+                    // The mob is dead before anything hears of its death.
+                    expect(inUnit).toEqual({ dead: true, deaths: [], raised: [] });
                     expect(deaths).toEqual([{ type: 'minecraft:cow', position, health: 0 }]);
                     expect(raised).toEqual(['player_killed_entity', 'player_hurt_entity']);
                 });
@@ -2027,6 +2027,8 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(host.kill(ref)).toBe(true);
 
                 expect(routes()).toMatchObject({ command: 2 });
+                // Java's `LivingEntity.tickDeath`: the body leaves after its death animation.
+                await run(20);
                 expect(live.runtime.byId(cow.id)).toBeUndefined();
             });
 
@@ -2321,7 +2323,8 @@ describe('the data-driven entity runtime over a live world', () => {
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
 
             live.runtime.kill(cow);
-            await run(1);
+            // The loot falls at once, and the body leaves after its death animation.
+            await run(20);
 
             const dropped = world
                 .getActors()
@@ -2879,13 +2882,14 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(dustling?.body.nameTag).toBe('Dusty');
         });
 
-        it('kills a summoned mob through its actor, in the store', () => {
+        it('kills a summoned mob through its actor, in the store', async () => {
             const host = entityCommandHost(world.getServer(), () => new Scoreboard());
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
             if (ref === undefined) throw new Error('the dustling was not summoned');
 
             expect(world.getActor(BigInt(ref.id))).toBe(live.actors.actorOf(Number(ref.id)));
             expect(host.kill(ref)).toBe(true);
+            await run(20);
             expect(live.runtime.byId(Number(ref.id))).toBeUndefined();
         });
 

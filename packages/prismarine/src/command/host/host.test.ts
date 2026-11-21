@@ -346,7 +346,9 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3, al
         getPosition: () => Position.fromVector3(position, fixture.world),
         getFeetY: () => position.getY(),
         getWorld: () => world,
-        isAlive: () => alive
+        isAlive: () => alive,
+        // An entity that is not alive here is one with no health at all, such as a boat.
+        getMaxHealth: () => (alive ? 10 : 0)
     });
     for (const angle of ['yaw', 'pitch', 'headYaw']) Object.defineProperty(actor, angle, { value: 0 });
     fixture.entities.push(actor);
@@ -478,6 +480,14 @@ describe('the server command host', () => {
             );
         });
 
+        it('passes over a mob in its death animation, as Java selects only living entities', async () => {
+            const dying = mobAt(fixture, 7n, 'minecraft:pig', new Vector3(0, 0, 0));
+            Object.defineProperty(dying.actor, 'isAlive', { value: () => false });
+
+            await expect(fixture.run('kill @e')).resolves.toBe(0);
+            expect(dying.kill).not.toHaveBeenCalled();
+        });
+
         it('removes an entity that has no health to take', async () => {
             const item = mobAt(fixture, 7n, 'minecraft:boat', new Vector3(0, 0, 0), false);
 
@@ -530,7 +540,8 @@ describe('the server command host', () => {
                 getName: () => '',
                 getPosition: () => new Vector3(0, 64, 0),
                 getFeetY: () => 64,
-                getWorld: () => fixture.world
+                getWorld: () => fixture.world,
+                isAlive: () => true
             });
             fixture.entities.push(actor);
 

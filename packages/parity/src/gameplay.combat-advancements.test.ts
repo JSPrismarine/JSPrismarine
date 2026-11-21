@@ -43,7 +43,8 @@ describeFamily(
             runtime.damage(swing(cow.id, 2));
             const heardAfterHit = heard.length;
             runtime.damage(swing(cow.id, 100));
-            const removedInCall = runtime.byId(cow.id) === undefined;
+            // Java's `LivingEntity.tickDeath` takes the body away later, after its death animation.
+            const dyingAfterCall = runtime.byId(cow.id) !== undefined;
             world.onCommit = undefined;
             world.players = [];
 
@@ -53,7 +54,7 @@ describeFamily(
                 heard[1]?.died === true &&
                 heard[1].inStore &&
                 heard[1].health === 0 &&
-                removedInCall;
+                dyingAfterCall;
             reportParityCases(FAMILIES.gameplayCombatAdvancements, import.meta.filename, [
                 {
                     id: 'minecraft:player_hurt_entity/timing',
@@ -75,7 +76,8 @@ describeFamily(
                 // Inside the hurt cooldown the first swing started, so it lands for the difference.
                 { died: true, inStore: true, health: 0, taken: 100 - 2 }
             ]);
-            expect(removedInCall).toBe(true);
+            expect(dyingAfterCall).toBe(true);
+            runtime.remove(cow.id, 'parity combat advancements complete');
         });
     },
     { tags: ['real-data'] }

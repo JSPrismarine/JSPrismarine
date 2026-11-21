@@ -701,8 +701,57 @@ const conditionScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     }
 ];
 
+/**
+ * How many ticks a dead entity of a Java type stays in the world: `LivingEntity.tickDeath`'s
+ * limit on `deathTime`, read from the jar, or 0 for a type whose `kill` removes it at once, as
+ * `ArmorStand.kill` does.
+ */
+const javaDeathTicks = (javaId: string): number => {
+    const className = javaEntityClassName(javaId);
+    if (javaMethodOf(className, 'kill')?.owner === 'ArmorStand') return 0;
+    const limit = pushedNumbers(javaMethod('net/minecraft/world/entity/LivingEntity', 'tickDeath')).find(
+        (value) => value > 1
+    );
+    if (limit === undefined) throw new Error('LivingEntity.tickDeath pushes no death limit');
+    return limit;
+};
+
+/**
+ * How many ticks a server entity stays after a blow kills it, or a reason it cannot be measured.
+ * The ender dragon's death is its own sequence, which the `dragon-death` rows compare.
+ */
+const deathTicksOnServer = (bedrock: string, limit: number): number | string =>
+    inSandbox(bedrock, 'air', ({ stack, entity, tick }) => {
+        const outcome = stack.runtime.damage({
+            target: entity.id,
+            cause: 'void',
+            amount: 100_000,
+            source: { route: 'component', feedback: false, remembered: false }
+        });
+        if (!outcome.committed || !outcome.died) return 'a lethal void blow does not kill it';
+        if (entity.removed !== undefined) return 0;
+        let stayed: number | undefined;
+        tick(limit + 5, (ticked) => {
+            if (stayed === undefined && entity.removed !== undefined) stayed = ticked;
+        });
+        return stayed ?? `it is still in the world ${limit + 5} ticks after its death`;
+    });
+
 /** The scenarios of the damage, environment and senses theme. */
 export const damageScenarios: readonly BehaviorScenario<EntitySubject>[] = [
+    {
+        name: 'death-animation',
+        java: "A dead living entity stays in the world through its death animation, LivingEntity.tickDeath's 20 ticks, and only then leaves; an armor stand leaves at once.",
+        reference: 'Java LivingEntity.tickDeath and ArmorStand.kill, read from the pinned jar; issue #3263',
+        subjects: () => livingSubjects().filter((subject) => subject.javaId !== 'minecraft:ender_dragon'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const java = javaDeathTicks(subject.javaId);
+            const server = deathTicksOnServer(subject.bedrock, java);
+            if (typeof server === 'string') return server;
+            return server === java ? undefined : `it leaves ${server} ticks after its death, where Java takes ${java}`;
+        }
+    },
     {
         name: 'lava-hurts',
         java: "A living entity in lava takes Java's lava damage on the first tick and every half second after, unless its type is fireImmune, which lava never hurts.",

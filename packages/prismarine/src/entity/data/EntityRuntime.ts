@@ -369,6 +369,21 @@ const EXPERIENCE_ORB = 'minecraft:xp_orb';
 const MOB_NO_DESPAWN_DISTANCE = 32;
 /** How long Java's `LivingEntity.tick` keeps `lastHurtByMob` after the blow, in ticks. */
 const LAST_HURT_BY_MEMORY_TICKS = 100;
+
+/**
+ * How long a dead mob stays for its death animation: Java's `LivingEntity.tickDeath` counts
+ * `deathTime` up once a tick and removes the mob when it reaches 20.
+ */
+const DEATH_DURATION_TICKS = 20;
+
+/**
+ * Whether a dead entity stays for a death animation, as a Java `LivingEntity` does. Bedrock's
+ * `minecraft:movement` marks the types that move themselves, which are Java's mobs; a dropped
+ * stack, an orb, a crystal or an armor stand has none, and Java removes those at once. The
+ * `entities.behavior` parity row `death-animation` checks this against the jar's classes.
+ */
+const diesSlowly = (entity: DataEntity): boolean =>
+    !clientOwnsMovement(entity.identifier) && entity.instance.hasComponent('minecraft:movement');
 /** `Creaking.checkCanMove`'s `isLookingAtMe` tolerance, and the height above its feet it also checks. */
 const CREAKING_LOOK_TOLERANCE = 0.5;
 const CREAKING_LOOK_HEIGHT = 0.5;
@@ -1639,6 +1654,8 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        // Saved during its death animation, as Java saves `DeathTime`: it goes on dying from there.
+        if (entity.body.deathTime > 0 && !clientOwnsMovement(entity.identifier)) this.setDying(entity.id, true);
         if (record.merchant !== undefined) this.merchantSnapshots.set(entity.id, record.merchant);
         this.watchEquipment(entity);
         if (record.leashHolderIdentity !== undefined) this.setLeashHolder(entity.id, record.leashHolderIdentity);
@@ -2401,6 +2418,10 @@ export class EntityRuntime implements EntityScene {
         }
         if (isAreaEffectCloud(entity)) {
             this.areaEffectClouds.update(entity);
+            return;
+        }
+        if (this.dying.has(entity.id) && !clientOwnsMovement(entity.identifier)) {
+            this.tickDeath(entity);
             return;
         }
         this.tickHitGrace(entity.id);
@@ -6070,7 +6091,26 @@ export class EntityRuntime implements EntityScene {
             if (table !== undefined) this.dropDeathLoot(entity, table);
             this.dropDeathExperience(entity);
         }
-        this.remove(entity.id, 'death');
+        // Java's `LivingEntity.tickDeath`: a mob stays in the world, dying, for its death
+        // animation, and `tickDeath` removes it. Its loot has fallen already, as Java's does in
+        // `die`. Anything else leaves at once; see `diesSlowly`.
+        if (!diesSlowly(entity)) {
+            this.remove(entity.id, 'death');
+            return;
+        }
+        // A death event can add a group that declares `minecraft:health` again, as the panda's
+        // does, which would read as full health on a body that is dying. Java's stays at 0.
+        if ((entity.instance.attributes.get('health')?.current ?? 0) > 0) entity.instance.attributes.set('health', 0);
+        this.setDying(entity.id, true);
+    }
+
+    /**
+     * One tick of a dead mob's death, Java's `LivingEntity.tickDeath`: its `deathTime` counts up,
+     * and at {@link DEATH_DURATION_TICKS} it leaves the world. A dying mob does nothing else.
+     */
+    private tickDeath(entity: DataEntity): void {
+        entity.body.deathTime += 1;
+        if (entity.body.deathTime >= DEATH_DURATION_TICKS) this.remove(entity.id, 'death');
     }
 
     /**

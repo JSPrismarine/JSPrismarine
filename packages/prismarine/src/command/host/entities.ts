@@ -223,7 +223,11 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
                   .getSessionManager()
                   .getSessions()
                   .flatMap((session) => session.getActor() ?? [])
-            : worldOf(server, dimension).getActors();
+            : // Java's `EntitySelector.ENTITY_STILL_ALIVE`: `@e` passes over a mob in its death
+              // animation, which is still in the world but no longer alive.
+              worldOf(server, dimension)
+                  .getActors()
+                  .filter((actor) => actor.isAlive() || actor.getMaxHealth() <= 0);
 
     const applyAttribute = (
         ref: EntityRef,

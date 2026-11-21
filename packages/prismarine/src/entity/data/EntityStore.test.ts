@@ -76,6 +76,7 @@ const WRITES: readonly {
     { field: 'invulnerable', write: ({ body }) => (body.invulnerable = true) },
     { field: 'fuseTicks', write: ({ body }) => (body.fuseTicks = 30) },
     { field: 'fireTicks', write: ({ body }) => (body.fireTicks = 80) },
+    { field: 'deathTime', write: ({ body }) => (body.deathTime = 4) },
     { field: 'owner', write: ({ body }) => (body.owner = 7) },
     // A new entity's clock starts again, as a new store actor's did, so no saved form holds it.
     { field: 'statusEffectClock', write: ({ body }) => (body.statusEffectClock = { age: 40, tick: 9 }), saved: false },
@@ -649,6 +650,7 @@ describe('the entity store', () => {
 
             world.failing = false;
             expect(runtime.damage(lethal)).toMatchObject({ committed: true, died: true });
+            for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
             expect(runtime.store.has(entity.id)).toBe(false);
         });
 
