@@ -1171,6 +1171,19 @@ export class GenerationRegion {
             minY: this.minY,
             maxY: this.maxY,
             getBlock: (x, y, z) => this.stateAt(x, y, z).name,
+            readColumn: (localX, localZ, out) => {
+                const x = this.chunkX * 16 + localX;
+                const z = this.chunkZ * 16 + localZ;
+                if (this.terrainSources === undefined && this.viewWrites === undefined) {
+                    // A region's own buffer holds a column as consecutive slots, minY first.
+                    const start = this.columnIndex(x, z) * this.height;
+                    for (let index = 0; index < this.height; index++) {
+                        out[index] = this.palette[this.states[start + index]!]!.java.name;
+                    }
+                    return;
+                }
+                for (let y = this.minY; y <= this.maxY; y++) out[y - this.minY] = this.stateAt(x, y, z).name;
+            },
             setBlock: (x, y, z, state) => {
                 this.writeName(x, y, z, state);
                 // Java's surface pass marks a block it places that holds fluid for post-processing.
