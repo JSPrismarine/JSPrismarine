@@ -4,7 +4,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PhotoTransferPacket from '@jsprismarine/protocol/packet/PhotoTransferPacket';
+import PhotoTransferPacket from '@jsprismarine/protocol/bedrock/packet/PhotoTransferPacket';
 import PhotoTransferHandler from './PhotoTransferHandler';
 
 describe('PhotoTransferHandler', () => {

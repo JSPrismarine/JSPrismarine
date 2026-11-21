@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import LabTablePacket, { LabTableReactionType, LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import LabTablePacket, {
+    LabTableReactionType,
+    LabTableType
+} from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import LabTableHandler from './LabTableHandler';
 
 const packetAt = (position: BlockPosition) =>

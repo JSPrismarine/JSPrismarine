@@ -1,5 +1,5 @@
-import type ServerboundLoadingScreenPacket from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
-import { ServerboundLoadingScreenPacketType } from '@jsprismarine/protocol/packet/ServerboundLoadingScreenPacket';
+import type ServerboundLoadingScreenPacket from '@jsprismarine/protocol/bedrock/packet/ServerboundLoadingScreenPacket';
+import { ServerboundLoadingScreenPacketType } from '@jsprismarine/protocol/bedrock/packet/ServerboundLoadingScreenPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

@@ -4,7 +4,7 @@ import type { ShownEntity } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
 import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
-import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
+import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 

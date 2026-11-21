@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { BatchCodec } from '../src/BatchCodec.ts';
+import { BatchCodec } from '../src/bedrock/BatchCodec.ts';
 
 const PAYLOAD_SIZES = [24, 64, 128, 256, 512, 4 * 1024, 64 * 1024];
 const LEVELS = [1, 6, 7];

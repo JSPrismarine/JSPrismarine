@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import AnvilDamagePacket from '@jsprismarine/protocol/bedrock/packet/AnvilDamagePacket';
 import AnvilDamageHandler from './AnvilDamageHandler';
 
 const packetAt = (blockPosition: BlockPosition) =>

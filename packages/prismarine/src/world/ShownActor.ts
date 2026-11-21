@@ -8,9 +8,9 @@
  * hands tracking a {@link ShownEntity} for each entity it holds.
  */
 import type { Vector3 } from '@jsprismarine/math';
-import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
 import type { TrackableEntity } from '../network/EntityTracker';
 import type PlayerSession from '../network/PlayerSession';

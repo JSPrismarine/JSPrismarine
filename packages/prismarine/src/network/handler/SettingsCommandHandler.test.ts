@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import SettingsCommandPacket from '@jsprismarine/protocol/packet/SettingsCommandPacket';
+import SettingsCommandPacket from '@jsprismarine/protocol/bedrock/packet/SettingsCommandPacket';
 import type { HandlerServices } from './HandlerContext';
 import SettingsCommandHandler from './SettingsCommandHandler';
 

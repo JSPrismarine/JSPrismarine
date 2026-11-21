@@ -1,6 +1,6 @@
 import type { EntityPosition } from '@jsprismarine/entities';
-import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import PlayerSession from '../network/PlayerSession';
 import { entityIds } from '../entity/entityIds';

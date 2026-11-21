@@ -4,9 +4,9 @@ import BlockPosition from '../../world/BlockPosition';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
     StructureRedstoneSaveMode
-} from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import { defaultStructureSettings } from '@jsprismarine/protocol/structure/StructureSettings';
+} from '@jsprismarine/protocol/bedrock/packet/StructureBlockUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import { defaultStructureSettings } from '@jsprismarine/protocol/bedrock/structure/StructureSettings';
 import StructureBlockUpdateHandler from './StructureBlockUpdateHandler';
 
 const packetAt = (position: BlockPosition) => {

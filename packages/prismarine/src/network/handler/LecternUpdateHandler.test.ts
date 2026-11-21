@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import LecternUpdatePacket from '@jsprismarine/protocol/bedrock/packet/LecternUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import LecternUpdateHandler from './LecternUpdateHandler';
 
 const packetAt = (position: BlockPosition) =>

@@ -1,4 +1,4 @@
-import type StructureBlockUpdatePacket from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
+import type StructureBlockUpdatePacket from '@jsprismarine/protocol/bedrock/packet/StructureBlockUpdatePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';

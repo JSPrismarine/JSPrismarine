@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addedPacketIds, removedPacketNames } from '@jsprismarine/protocol/wire/versions/v2259';
+import { addedPacketIds, removedPacketNames } from '@jsprismarine/protocol/bedrock/wire/versions/v2259';
 import Codec2225 from './Codec2225';
 import Codec2259 from './Codec2259';
 import { advertisedCodec, codecForProtocol, latestCodec } from './CodecRegistry';

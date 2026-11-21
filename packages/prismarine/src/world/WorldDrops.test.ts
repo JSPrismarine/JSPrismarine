@@ -8,7 +8,7 @@ import { ItemActor as ItemEntity } from '../entity/data/itemActor';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
-import AddItemActorPacket from '@jsprismarine/protocol/packet/AddItemActorPacket';
+import AddItemActorPacket from '@jsprismarine/protocol/bedrock/packet/AddItemActorPacket';
 import Codec2193 from '../network/codec/Codec2193';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { liveTestEntities } from '../testing/entityServer';

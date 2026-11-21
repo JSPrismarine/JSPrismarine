@@ -1,8 +1,8 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
 import { CREATIVE_REACH, SURVIVAL_REACH } from '../../entity/Combat';
-import type InteractPacket from '@jsprismarine/protocol/packet/InteractPacket';
-import { InteractAction } from '@jsprismarine/protocol/packet/InteractPacket';
+import type InteractPacket from '@jsprismarine/protocol/bedrock/packet/InteractPacket';
+import { InteractAction } from '@jsprismarine/protocol/bedrock/packet/InteractPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

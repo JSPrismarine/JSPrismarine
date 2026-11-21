@@ -1,6 +1,6 @@
 import { CommandOutputPacket, CommandOutputType } from '@jsprismarine/protocol';
 import type { CommandRequestPacket } from '@jsprismarine/protocol';
-import CommandOriginType from '@jsprismarine/protocol/wire/structures/CommandOriginType';
+import CommandOriginType from '@jsprismarine/protocol/bedrock/wire/structures/CommandOriginType';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

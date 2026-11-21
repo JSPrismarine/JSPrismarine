@@ -9,13 +9,13 @@ import {
     PositionMode,
     TransactionType
 } from '@jsprismarine/protocol';
-import InventoryTransactionPacket from '@jsprismarine/protocol/packet/InventoryTransactionPacket';
-import type PlayerAuthInputPacket from '@jsprismarine/protocol/packet/PlayerAuthInputPacket';
+import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
+import type PlayerAuthInputPacket from '@jsprismarine/protocol/bedrock/packet/PlayerAuthInputPacket';
 
 import BlockPosition from '../../world/BlockPosition';
 import { inventoryTransactionToProtocol } from '../InventoryTransactionAdapter';
 import { playerAuthInputFromProtocol } from '../PlayerAuthInputAdapter';
-import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';

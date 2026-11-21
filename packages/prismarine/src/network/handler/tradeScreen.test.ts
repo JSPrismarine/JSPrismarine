@@ -16,7 +16,7 @@ import { fixtureBlockPalette, fixtureItemDefinitions } from '../../content/testi
 import { definitionsOf } from '../../content/ContentOptions';
 import { buildServerContent } from '../../content/ServerContent';
 import CraftingInput from '../../crafting/CraftingInput';
-import { AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -31,10 +31,10 @@ import type { Logger } from '@jsprismarine/logger';
 import type { OpenBlockContainer } from '../PlayerSession';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, {
     ItemStackResponseResult
-} from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+} from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '@jsprismarine/protocol';
 import { ItemStackRequestActionType } from '@jsprismarine/protocol';
 import ItemStackRequestHandler from './ItemStackRequestHandler';

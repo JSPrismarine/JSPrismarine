@@ -8,8 +8,8 @@
  * re-architecture replaces these reads with replication from the change log.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
-import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 
 import type Device from '../utils/Device';
 import type { ShownActor } from './ShownActor';

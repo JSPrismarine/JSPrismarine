@@ -9,10 +9,10 @@ import { sealBlockEntityWrite } from '../testing/sealedBlocks.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import BlockActorDataPacket from '@jsprismarine/protocol/packet/BlockActorDataPacket';
+import BlockActorDataPacket from '@jsprismarine/protocol/bedrock/packet/BlockActorDataPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import type PlayerSession from './PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 

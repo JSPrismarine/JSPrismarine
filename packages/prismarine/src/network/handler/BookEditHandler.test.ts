@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
-import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
-import type { BookEditOperation } from '@jsprismarine/protocol/packet/BookEditPacket';
+import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
+import type { BookEditOperation } from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
 import BookEditHandler from './BookEditHandler';
 import { sessionSeeingBlocks } from './blockTargetSession.test.helper';
 

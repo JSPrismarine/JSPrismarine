@@ -9,7 +9,7 @@ import type ClientConnection from '../ClientConnection';
 import { latestCodec } from '../codec/CodecRegistry';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
+import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import type { HandlerServices } from './HandlerContext';
 import { subjectId } from '../../identity/Subject';
 import type { World } from '../../world/World';

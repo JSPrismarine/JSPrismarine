@@ -4,7 +4,7 @@ import { gameRuleSpellings } from '../content/world/gameRules';
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { InetAddress } from '@jsprismarine/raknet';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { vi } from 'vitest';
 

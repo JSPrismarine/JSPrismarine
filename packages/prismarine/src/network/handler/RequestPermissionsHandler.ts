@@ -1,5 +1,5 @@
 import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import type RequestPermissionsPacket from '@jsprismarine/protocol/packet/RequestPermissionsPacket';
+import type RequestPermissionsPacket from '@jsprismarine/protocol/bedrock/packet/RequestPermissionsPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

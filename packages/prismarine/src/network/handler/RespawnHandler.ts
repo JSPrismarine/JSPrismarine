@@ -1,4 +1,4 @@
-import type RespawnPacket from '@jsprismarine/protocol/packet/RespawnPacket';
+import type RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';

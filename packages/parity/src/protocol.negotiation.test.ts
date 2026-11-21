@@ -20,8 +20,8 @@ import {
     RequestNetworkSettingsPacket
 } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { stub } from '@jsprismarine/prismarine/testing/stub.test.helper';
 import { describe, expect, it } from 'vitest';
 

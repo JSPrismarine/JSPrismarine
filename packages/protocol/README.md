@@ -37,7 +37,7 @@ import {
     buildCraftingData,
     buildCreativeContent,
     buildItemRegistry
-} from '@jsprismarine/protocol/payload';
+} from '@jsprismarine/protocol/bedrock/payload';
 
 const { properties } = buildBlockProperties([]);
 const { entries } = buildItemRegistry([]);
@@ -47,7 +47,7 @@ void [properties, creative, crafting];
 ```
 
 For payload types, NBT helpers, and block palette checks, import from
-`@jsprismarine/protocol/payload`. Packet classes and structures are exported from the package
+`@jsprismarine/protocol/bedrock/payload`. Packet classes and structures are exported from the package
 root and from their individual module subpaths.
 
 ## Compression benchmark

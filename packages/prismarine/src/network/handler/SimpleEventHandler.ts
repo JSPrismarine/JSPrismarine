@@ -1,5 +1,5 @@
-import { SimpleEventSubtype } from '@jsprismarine/protocol/packet/SimpleEventPacket';
-import type SimpleEventPacket from '@jsprismarine/protocol/packet/SimpleEventPacket';
+import { SimpleEventSubtype } from '@jsprismarine/protocol/bedrock/packet/SimpleEventPacket';
+import type SimpleEventPacket from '@jsprismarine/protocol/bedrock/packet/SimpleEventPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

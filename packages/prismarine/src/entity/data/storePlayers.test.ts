@@ -8,16 +8,16 @@
  */
 import type { Logger } from '@jsprismarine/logger';
 import { Gametype, WindowIds } from '@jsprismarine/minecraft';
-import AddPlayerPacket from '@jsprismarine/protocol/packet/AddPlayerPacket';
-import MobArmorEquipmentPacket from '@jsprismarine/protocol/packet/MobArmorEquipmentPacket';
-import MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import AddPlayerPacket from '@jsprismarine/protocol/bedrock/packet/AddPlayerPacket';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobArmorEquipmentPacket';
+import MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import RemoveActorPacket from '@jsprismarine/protocol/packet/RemoveActorPacket';
-import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
-import UpdateAbilitiesPacket, { AbilityLayerFlag } from '@jsprismarine/protocol/packet/UpdateAbilitiesPacket';
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
+import SetActorDataPacket from '@jsprismarine/protocol/bedrock/packet/SetActorDataPacket';
+import UpdateAbilitiesPacket, { AbilityLayerFlag } from '@jsprismarine/protocol/bedrock/packet/UpdateAbilitiesPacket';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { isRecord } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 

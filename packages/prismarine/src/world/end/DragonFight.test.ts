@@ -9,7 +9,10 @@ import { endSpikesForSeed } from '@jsprismarine/features';
 import { Vector3 } from '@jsprismarine/math';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-import BossEventPacket, { BossBarColor, BossEventUpdateType } from '@jsprismarine/protocol/packet/BossEventPacket';
+import BossEventPacket, {
+    BossBarColor,
+    BossEventUpdateType
+} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
@@ -37,7 +40,7 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../DimensionType';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { portalRuleOf } from '../portal/rules';
 import { createEngineWorld } from '../EngineWorld';
 import type { Generator } from '../Generator';

@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
 import { CREATIVE_REACH } from '../../entity/Combat';
 import { PLAYER_IDENTIFIER } from '../../entity/playerOverlay';
-import type LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
+import type LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

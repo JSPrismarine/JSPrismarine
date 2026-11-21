@@ -1,5 +1,5 @@
-import type LabTablePacket from '@jsprismarine/protocol/packet/LabTablePacket';
-import { LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
+import type LabTablePacket from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
+import { LabTableType } from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';

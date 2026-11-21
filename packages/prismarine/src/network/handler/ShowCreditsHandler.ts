@@ -1,5 +1,5 @@
-import type ShowCreditsPacket from '@jsprismarine/protocol/packet/ShowCreditsPacket';
-import { CreditsState } from '@jsprismarine/protocol/packet/ShowCreditsPacket';
+import type ShowCreditsPacket from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
+import { CreditsState } from '@jsprismarine/protocol/bedrock/packet/ShowCreditsPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

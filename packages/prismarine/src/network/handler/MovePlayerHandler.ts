@@ -1,4 +1,4 @@
-import type MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
+import type MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

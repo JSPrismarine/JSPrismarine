@@ -1,6 +1,6 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 
-import type SetPlayerGameTypePacket from '@jsprismarine/protocol/packet/SetPlayerGameTypePacket';
+import type SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import { isGametype } from '../../isGametype';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';

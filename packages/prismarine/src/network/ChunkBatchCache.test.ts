@@ -5,7 +5,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
 import type { NetworkPacket } from '@jsprismarine/protocol';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { Dimensions } from '../world/DimensionType';

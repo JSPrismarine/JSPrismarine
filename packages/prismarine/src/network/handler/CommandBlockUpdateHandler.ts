@@ -1,5 +1,5 @@
-import type CommandBlockUpdatePacket from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
-import { CommandBlockMode } from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
+import type CommandBlockUpdatePacket from '@jsprismarine/protocol/bedrock/packet/CommandBlockUpdatePacket';
+import { CommandBlockMode } from '@jsprismarine/protocol/bedrock/packet/CommandBlockUpdatePacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

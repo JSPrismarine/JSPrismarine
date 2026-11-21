@@ -1,4 +1,4 @@
-import type ClientCameraAimAssistPacket from '@jsprismarine/protocol/packet/ClientCameraAimAssistPacket';
+import type ClientCameraAimAssistPacket from '@jsprismarine/protocol/bedrock/packet/ClientCameraAimAssistPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

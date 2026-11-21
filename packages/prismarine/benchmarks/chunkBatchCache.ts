@@ -3,7 +3,7 @@ import { performance } from 'node:perf_hooks';
 
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec } from '@jsprismarine/protocol';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import ChunkBatchCache from '../src/network/ChunkBatchCache';
 import Codec2193 from '../src/network/codec/Codec2193';

@@ -2,10 +2,10 @@ import { generateKeyPairSync } from 'node:crypto';
 import { UnsecuredJWT } from 'jose';
 import { describe, expect, it } from 'vitest';
 
-import { protocolVersion } from '@jsprismarine/protocol/wire/versions/v2193';
+import { protocolVersion } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import { parseLoginIdentity } from './LoginIdentity';
 
-import type { Login } from '@jsprismarine/protocol/packet/LoginPacket';
+import type { Login } from '@jsprismarine/protocol/bedrock/packet/LoginPacket';
 
 const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
 const KEY = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');

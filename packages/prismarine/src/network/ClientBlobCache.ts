@@ -1,4 +1,4 @@
-import type { MissingBlobData } from '@jsprismarine/protocol/packet/ClientCacheMissResponsePacket';
+import type { MissingBlobData } from '@jsprismarine/protocol/bedrock/packet/ClientCacheMissResponsePacket';
 
 import type Chunk from '../world/chunk/Chunk';
 import type { ReadonlySubChunk } from '../world/chunk/SubChunk';

@@ -2,7 +2,7 @@ import { WindowIds } from '@jsprismarine/minecraft';
 
 import HumanInventory from '../../inventory/HumanInventory';
 import { blockMiningOf, playerMiningOf } from '../../world/BlockMining';
-import type MobEquipmentPacket from '@jsprismarine/protocol/packet/MobEquipmentPacket';
+import type MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

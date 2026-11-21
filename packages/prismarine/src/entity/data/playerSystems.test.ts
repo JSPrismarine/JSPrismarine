@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { enteredStorePlayer, fieldsOf, logged, storePlayerFixture } from '../../testing/storePlayer.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import { moveStorePlayer, spawnStorePlayer, StorePlayers } from './storePlayers';
 import type { DataEntity } from './DataEntity';

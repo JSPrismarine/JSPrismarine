@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/packet/ServerboundDiagnosticsPacket';
+import ServerboundDiagnosticsPacket from '@jsprismarine/protocol/bedrock/packet/ServerboundDiagnosticsPacket';
 import ServerboundDiagnosticsHandler from './ServerboundDiagnosticsHandler';
 
 describe('ServerboundDiagnosticsHandler', () => {

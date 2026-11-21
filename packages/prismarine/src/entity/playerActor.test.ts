@@ -3,7 +3,7 @@
  * player's actor, and every identity check entity code makes compares actors. These cases are the
  * comparisons that used to be made against the player itself.
  */
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';

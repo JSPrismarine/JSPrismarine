@@ -3,13 +3,13 @@ import { item_components as ItemComponents } from '@jsprismarine/bedrock-data';
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data/v2193';
 import { item_table as ItemTable2225 } from '@jsprismarine/bedrock-data/v2225';
 import { NetworkBinaryStream, ProtocolVersions, newestRelease } from '@jsprismarine/protocol';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import { netIdFor } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import { reportProgress } from '../../../../.test/reportProgress';
 
-import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
+import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
 import type { ItemRegistryEntry, ProtocolContext } from '@jsprismarine/protocol';
 import { itemDataForProtocol } from './codec/itemData';
 

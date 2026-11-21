@@ -1,4 +1,4 @@
-import type SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/packet/SetPlayerInventoryOptionsPacket';
+import type SetPlayerInventoryOptionsPacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerInventoryOptionsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

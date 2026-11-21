@@ -1,9 +1,9 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
-import ServerToClientHandshakePacket from '@jsprismarine/protocol/packet/ServerToClientHandshakePacket';
+import ServerToClientHandshakePacket from '@jsprismarine/protocol/bedrock/packet/ServerToClientHandshakePacket';
 import { sessionEncryption } from '../SessionEncryption';
-import type LoginPacket from '@jsprismarine/protocol/packet/LoginPacket';
-import ResourcePacksInfoPacket from '@jsprismarine/protocol/packet/ResourcePacksInfoPacket';
+import type LoginPacket from '@jsprismarine/protocol/bedrock/packet/LoginPacket';
+import ResourcePacksInfoPacket from '@jsprismarine/protocol/bedrock/packet/ResourcePacksInfoPacket';
 import { identityFromXUID, parseLoginIdentity } from '../LoginIdentity';
 import { verifyLogin } from '@jsprismarine/auth/server';
 import { AuthErrors, LoginRefused } from '@jsprismarine/errors/auth';

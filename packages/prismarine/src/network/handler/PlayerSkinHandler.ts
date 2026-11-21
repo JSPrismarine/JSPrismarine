@@ -1,6 +1,6 @@
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import type SkinImage from '@jsprismarine/protocol/wire/structures/skin/SkinImage';
-import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import type SkinImage from '@jsprismarine/protocol/bedrock/wire/structures/skin/SkinImage';
+import PlayerSkinPacket from '@jsprismarine/protocol/bedrock/packet/PlayerSkinPacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 

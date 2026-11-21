@@ -1,8 +1,8 @@
 import type { Module } from '@jsprismarine/kernel';
-import ClientboundCloseFormPacket from '@jsprismarine/protocol/packet/ClientboundCloseFormPacket';
-import ModalFormRequestPacket from '@jsprismarine/protocol/packet/ModalFormRequestPacket';
-import PrimitiveShapesPacket from '@jsprismarine/protocol/packet/PrimitiveShapesPacket';
-import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
+import ClientboundCloseFormPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundCloseFormPacket';
+import ModalFormRequestPacket from '@jsprismarine/protocol/bedrock/packet/ModalFormRequestPacket';
+import PrimitiveShapesPacket from '@jsprismarine/protocol/bedrock/packet/PrimitiveShapesPacket';
+import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 
 import type { ScriptComponentSink } from '@jsprismarine/script-host/host/world';
 

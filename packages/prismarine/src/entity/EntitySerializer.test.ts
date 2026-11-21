@@ -6,7 +6,7 @@ import { EntitySerializer } from './EntitySerializer';
 import { storeWorld } from '../testing/storeWorld.test.helper';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
-import { MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import { ItemActor } from './data/itemActor';
 import type { LiveEntityRuntime } from './data/live';
 import { dataEntityRecordIn, dataEntityRecordOf, writeDataEntityRecord } from './data/persistence';

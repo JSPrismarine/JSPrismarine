@@ -14,13 +14,13 @@
 import type { Point3 } from '../../world/Proximity';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import SetActorDataPacket from '@jsprismarine/protocol/packet/SetActorDataPacket';
-import UpdateAttributesPacket from '@jsprismarine/protocol/packet/UpdateAttributesPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
+import SetActorDataPacket from '@jsprismarine/protocol/bedrock/packet/SetActorDataPacket';
+import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import { Vector3 } from '@jsprismarine/math';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
 import type { ServerContent } from '../../content/ServerContent';
 import { applyActorMetadataProjection, sameActorMetadataProjection } from '../../entity/data/actorMetadata';

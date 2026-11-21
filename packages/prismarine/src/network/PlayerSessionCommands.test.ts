@@ -15,9 +15,9 @@ import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
 import { sessionFor } from '../testing/playerSession.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
-import AvailableCommandsPacket from '@jsprismarine/protocol/packet/AvailableCommandsPacket';
+import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import { CommandParameterType } from '@jsprismarine/protocol/wire/structures/CommandParameter';
+import { CommandParameterType } from '@jsprismarine/protocol/bedrock/wire/structures/CommandParameter';
 import { testContent } from '../testing/entityServer';
 
 /** What a fresh `permissions.json` grants everyone. */

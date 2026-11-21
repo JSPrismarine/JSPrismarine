@@ -1,5 +1,5 @@
-import type PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
-import { MAX_PARTY_ID_LENGTH } from '@jsprismarine/protocol/structure/PlayerPartyInfo';
+import type PartyChangedPacket from '@jsprismarine/protocol/bedrock/packet/PartyChangedPacket';
+import { MAX_PARTY_ID_LENGTH } from '@jsprismarine/protocol/bedrock/structure/PlayerPartyInfo';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

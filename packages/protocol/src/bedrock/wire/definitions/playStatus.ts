@@ -1,0 +1,20 @@
+/**
+ * `PlayStatusPacket`: the server's verdict on a login or spawn stage.
+ *
+ * One big-endian int32, unusual on a wire that is otherwise little-endian and varint-heavy; the
+ * docs carry it as `int32 (BE)` and every implementation agrees.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/play-status-packet/
+ */
+import { definePacket } from '../../../wire/define';
+import * as t from '../../../wire/fieldTypes';
+
+import type { PayloadOf } from '../../../wire/define';
+
+/** The `PlayStatusPacket` field list. */
+export const playStatusPacket = definePacket('PlayStatusPacket', {
+    /** `Status`: 0 login success, 1/2 version mismatch, 3 player spawn, … */
+    status: t.i32
+});
+
+/** Reports whether login or player spawning succeeded, failed, or requires another protocol. */
+export type PlayStatusPayload = PayloadOf<typeof playStatusPacket>;

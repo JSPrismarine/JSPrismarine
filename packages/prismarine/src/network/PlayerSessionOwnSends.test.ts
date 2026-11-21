@@ -1,8 +1,8 @@
 import { Gametype } from '@jsprismarine/minecraft';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { describe, expect, it } from 'vitest';
 
-import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { WindowIds } from '../inventory/WindowIds';
 import { Item } from '../item/Item';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from './NetworkBinaryStream';
-import BlockPos from './structure/BlockPos';
-import SerializedAbilityLayer from './structure/SerializedAbilityLayer';
-import Vec3 from './structure/Vec3';
+import BlockPos from './bedrock/structure/BlockPos';
+import SerializedAbilityLayer from './bedrock/structure/SerializedAbilityLayer';
+import Vec3 from './bedrock/structure/Vec3';
 
 describe('NetworkStructure.deserialize', () => {
     it('returns a real instance of the calling class', () => {

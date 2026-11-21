@@ -22,19 +22,22 @@ import BaseProvider from '@jsprismarine/prismarine/world/providers/BaseProvider'
 import BlockPosition from '@jsprismarine/prismarine/world/BlockPosition';
 import { Position } from '@jsprismarine/prismarine/world/Position';
 import { World } from '@jsprismarine/prismarine/world/World';
-import AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
-import LabTablePacket, { LabTableReactionType, LabTableType } from '@jsprismarine/protocol/packet/LabTablePacket';
-import LecternUpdatePacket from '@jsprismarine/protocol/packet/LecternUpdatePacket';
-import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/packet/PlayerToggleCrafterSlotRequestPacket';
+import AnvilDamagePacket from '@jsprismarine/protocol/bedrock/packet/AnvilDamagePacket';
+import LabTablePacket, {
+    LabTableReactionType,
+    LabTableType
+} from '@jsprismarine/protocol/bedrock/packet/LabTablePacket';
+import LecternUpdatePacket from '@jsprismarine/protocol/bedrock/packet/LecternUpdatePacket';
+import PlayerToggleCrafterSlotRequestPacket from '@jsprismarine/protocol/bedrock/packet/PlayerToggleCrafterSlotRequestPacket';
 import StructureBlockUpdatePacket, {
     StructureBlockType,
     StructureRedstoneSaveMode
-} from '@jsprismarine/protocol/packet/StructureBlockUpdatePacket';
+} from '@jsprismarine/protocol/bedrock/packet/StructureBlockUpdatePacket';
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
-} from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import { defaultStructureSettings } from '@jsprismarine/protocol/structure/StructureSettings';
+} from '@jsprismarine/protocol/bedrock/packet/StructureTemplateDataRequestPacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import { defaultStructureSettings } from '@jsprismarine/protocol/bedrock/structure/StructureSettings';
 import { expect, it } from 'vitest';
 
 import { FAMILIES } from './families.ts';

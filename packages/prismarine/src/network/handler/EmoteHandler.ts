@@ -1,5 +1,5 @@
-import type EmotePacket from '@jsprismarine/protocol/packet/EmotePacket';
-import { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
+import type EmotePacket from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
+import { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
 import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import { isUuid } from '../../utils/isUuid';

@@ -2,7 +2,7 @@ import BossEventPacket, {
     BossBarColor,
     BossBarOverlay,
     BossEventUpdateType
-} from '@jsprismarine/protocol/packet/BossEventPacket';
+} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 
 import type PlayerSession from './PlayerSession';
 

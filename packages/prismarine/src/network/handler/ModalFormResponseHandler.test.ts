@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { Logger } from '@jsprismarine/logger';
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
-import ModalFormResponsePacket, { ModalFormCancelReason } from '@jsprismarine/protocol/packet/ModalFormResponsePacket';
+import ModalFormResponsePacket, {
+    ModalFormCancelReason
+} from '@jsprismarine/protocol/bedrock/packet/ModalFormResponsePacket';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';

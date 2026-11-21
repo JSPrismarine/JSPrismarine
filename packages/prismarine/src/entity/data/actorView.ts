@@ -7,8 +7,8 @@
  * test can hold one against the other.
  */
 import type { EntityPosition } from '@jsprismarine/entities';
-import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
 import { syncedPropertiesOf } from '../../network/actorProperties';
 import type { MobEquipmentSet } from '../equipment';

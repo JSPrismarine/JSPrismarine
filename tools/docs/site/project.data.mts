@@ -9,7 +9,7 @@ export default {
     watch: [
         '../../../package.json',
         '../../../packages/*/package.json',
-        '../../../packages/protocol/src/wire/versions/*.ts',
+        '../../../packages/protocol/src/bedrock/wire/versions/*.ts',
         '../../../packages/prismarine/src/config/Config.ts',
         '../../../.github/scripts/build-aot.mjs'
     ],

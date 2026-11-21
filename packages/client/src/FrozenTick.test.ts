@@ -3,7 +3,7 @@ import { Logger } from '@jsprismarine/logger';
 import { Config } from '@jsprismarine/prismarine/config/Config';
 import { Server } from '@jsprismarine/prismarine';
 import { networkToken } from '@jsprismarine/prismarine/modules/tokens';
-import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';

@@ -1,5 +1,5 @@
-import { MultiplayerSettingsPacketType } from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
-import type MultiplayerSettingsPacket from '@jsprismarine/protocol/packet/MultiplayerSettingsPacket';
+import { MultiplayerSettingsPacketType } from '@jsprismarine/protocol/bedrock/packet/MultiplayerSettingsPacket';
+import type MultiplayerSettingsPacket from '@jsprismarine/protocol/bedrock/packet/MultiplayerSettingsPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

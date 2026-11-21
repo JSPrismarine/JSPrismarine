@@ -1,4 +1,4 @@
-import type ServerboundPackSettingChangePacket from '@jsprismarine/protocol/packet/ServerboundPackSettingChangePacket';
+import type ServerboundPackSettingChangePacket from '@jsprismarine/protocol/bedrock/packet/ServerboundPackSettingChangePacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

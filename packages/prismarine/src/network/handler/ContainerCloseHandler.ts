@@ -1,7 +1,7 @@
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import type { Item } from '../../item/Item';
-import ContainerClosePacket from '@jsprismarine/protocol/packet/ContainerClosePacket';
+import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import type PlayerSession from '../PlayerSession';
 import type { InputContext, InputStep } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';

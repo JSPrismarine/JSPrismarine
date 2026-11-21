@@ -1,4 +1,4 @@
-import type ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/packet/ClientMovementPredictionSyncPacket';
+import type ClientMovementPredictionSyncPacket from '@jsprismarine/protocol/bedrock/packet/ClientMovementPredictionSyncPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

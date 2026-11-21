@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
-import ItemRegistryPacket from '@jsprismarine/protocol/packet/ItemRegistryPacket';
-import { netIdFor } from '@jsprismarine/protocol/wire/versions/v2193';
+import ItemRegistryPacket from '@jsprismarine/protocol/bedrock/packet/ItemRegistryPacket';
+import { netIdFor } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import { itemDataForProtocol } from '@jsprismarine/prismarine/network/codec/itemData';
 
 /**

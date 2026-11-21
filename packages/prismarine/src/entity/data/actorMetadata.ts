@@ -23,8 +23,8 @@ import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import { FlagType, MetadataFlag } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
+import { FlagType, MetadataFlag } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { DataEntity } from './DataEntity';
 
 /** One actor flag and the value the component state projects onto it. */

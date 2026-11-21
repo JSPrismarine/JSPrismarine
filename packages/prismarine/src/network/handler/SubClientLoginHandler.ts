@@ -1,4 +1,4 @@
-import type SubClientLoginPacket from '@jsprismarine/protocol/packet/SubClientLoginPacket';
+import type SubClientLoginPacket from '@jsprismarine/protocol/bedrock/packet/SubClientLoginPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

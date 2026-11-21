@@ -1,5 +1,5 @@
-import type BossEventPacket from '@jsprismarine/protocol/packet/BossEventPacket';
-import { BossEventUpdateType } from '@jsprismarine/protocol/packet/BossEventPacket';
+import type BossEventPacket from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
+import { BossEventUpdateType } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 
 import { BossBar } from '../BossBar';
 import type { SessionContext } from './HandlerContext';

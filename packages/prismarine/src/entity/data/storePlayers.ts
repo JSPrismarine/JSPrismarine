@@ -26,11 +26,11 @@
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
-import { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import type { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
-import type Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
-import type UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type Device from '../../utils/Device';
 import type { ShownPlayer } from '../../world/ShownPlayer';

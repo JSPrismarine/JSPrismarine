@@ -2,7 +2,7 @@ import BossEventPacket, {
     BossBarColor,
     BossBarOverlay,
     BossEventUpdateType
-} from '@jsprismarine/protocol/packet/BossEventPacket';
+} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import { describe, expect, it } from 'vitest';
 
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';

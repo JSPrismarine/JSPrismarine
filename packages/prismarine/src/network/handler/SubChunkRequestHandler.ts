@@ -1,4 +1,4 @@
-import type SubChunkRequestPacket from '@jsprismarine/protocol/packet/SubChunkRequestPacket';
+import type SubChunkRequestPacket from '@jsprismarine/protocol/bedrock/packet/SubChunkRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
 

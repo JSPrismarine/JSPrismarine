@@ -13,15 +13,15 @@ import type { TransportConnection } from './transport/Transport';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
-import AnimatePacket from '@jsprismarine/protocol/packet/AnimatePacket';
-import LevelChunkPacket from '@jsprismarine/protocol/packet/LevelChunkPacket';
-import StartGamePacket from '@jsprismarine/protocol/packet/StartGamePacket';
+import AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
+import LevelChunkPacket from '@jsprismarine/protocol/bedrock/packet/LevelChunkPacket';
+import StartGamePacket from '@jsprismarine/protocol/bedrock/packet/StartGamePacket';
 import { HandSlot } from '@jsprismarine/protocol';
 import { encodePacketBatch } from './encodePacketBatch';
 import { PacketLogFilter } from './PacketLogFilter';
 
 const START_GAME_CAPTURE = readFileSync(
-    new URL('../../../protocol/src/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)
+    new URL('../../../protocol/src/bedrock/packet/__fixtures__/start-game-bds-1.26.51.1.bin', import.meta.url)
 );
 const START_GAME_DATA = new StartGamePacket().deserialize(new NetworkBinaryStream(START_GAME_CAPTURE), {
     protocolVersion: 2193

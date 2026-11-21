@@ -2,7 +2,7 @@
  * The live host's store player facts: the item in hand, what each hand holds and its wear, and the
  * finish of a meal, read from the server's store players.
  */
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../../inventory/ContainerEntry';

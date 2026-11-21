@@ -21,27 +21,30 @@ import type { ScriptItem } from '@jsprismarine/script-host/host/world';
 import { isRecord } from '@jsprismarine/entities';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { BuildPlatform } from '@jsprismarine/minecraft';
-import CameraAimAssistPacket from '@jsprismarine/protocol/packet/CameraAimAssistPacket';
+import CameraAimAssistPacket from '@jsprismarine/protocol/bedrock/packet/CameraAimAssistPacket';
 import CameraAimAssistPresetsPacket, {
     CameraAimAssistPresetsOperation
-} from '@jsprismarine/protocol/packet/CameraAimAssistPresetsPacket';
-import CameraInstructionPacket from '@jsprismarine/protocol/packet/CameraInstructionPacket';
-import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
-import ClientboundControlSchemeSetPacket from '@jsprismarine/protocol/packet/ClientboundControlSchemeSetPacket';
-import PlayerStartItemCooldownPacket from '@jsprismarine/protocol/packet/PlayerStartItemCooldownPacket';
-import SetHudPacket from '@jsprismarine/protocol/packet/SetHudPacket';
-import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
-import UpdateClientInputLocksPacket from '@jsprismarine/protocol/packet/UpdateClientInputLocksPacket';
+} from '@jsprismarine/protocol/bedrock/packet/CameraAimAssistPresetsPacket';
+import CameraInstructionPacket from '@jsprismarine/protocol/bedrock/packet/CameraInstructionPacket';
+import CameraShakePacket, {
+    CameraShakeAction,
+    CameraShakeType
+} from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
+import ClientboundControlSchemeSetPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundControlSchemeSetPacket';
+import PlayerStartItemCooldownPacket from '@jsprismarine/protocol/bedrock/packet/PlayerStartItemCooldownPacket';
+import SetHudPacket from '@jsprismarine/protocol/bedrock/packet/SetHudPacket';
+import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
+import UpdateClientInputLocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateClientInputLocksPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import type { CameraInstructionData, EasingFunction } from '@jsprismarine/protocol/structure/CameraInstruction';
-import { isEasingFunction } from '@jsprismarine/protocol/structure/CameraInstruction';
-import CameraAimAssistCategoryDefinition from '@jsprismarine/protocol/structure/CameraAimAssistCategoryDefinition';
-import CameraAimAssistCategoryPriorities from '@jsprismarine/protocol/structure/CameraAimAssistCategoryPriorities';
-import CameraAimAssistPresetDefinition from '@jsprismarine/protocol/structure/CameraAimAssistPresetDefinition';
-import { ControlScheme } from '@jsprismarine/protocol/structure/CameraPreset';
-import Vec2 from '@jsprismarine/protocol/structure/Vec2';
-import Vec3 from '@jsprismarine/protocol/structure/Vec3';
-import type { CameraAimAssistPresets } from '@jsprismarine/protocol/packet/CameraAimAssistPresetsPacket';
+import type { CameraInstructionData, EasingFunction } from '@jsprismarine/protocol/bedrock/structure/CameraInstruction';
+import { isEasingFunction } from '@jsprismarine/protocol/bedrock/structure/CameraInstruction';
+import CameraAimAssistCategoryDefinition from '@jsprismarine/protocol/bedrock/structure/CameraAimAssistCategoryDefinition';
+import CameraAimAssistCategoryPriorities from '@jsprismarine/protocol/bedrock/structure/CameraAimAssistCategoryPriorities';
+import CameraAimAssistPresetDefinition from '@jsprismarine/protocol/bedrock/structure/CameraAimAssistPresetDefinition';
+import { ControlScheme } from '@jsprismarine/protocol/bedrock/structure/CameraPreset';
+import Vec2 from '@jsprismarine/protocol/bedrock/structure/Vec2';
+import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
+import type { CameraAimAssistPresets } from '@jsprismarine/protocol/bedrock/packet/CameraAimAssistPresetsPacket';
 
 import type { StoreActor } from '../../entity/data/storeActors';
 import { consumeItem } from '../../item/interaction';

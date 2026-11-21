@@ -12,7 +12,7 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { ConnectionId } from '../src/network/transport/ConnectionId';
 import { BatchCodec } from '@jsprismarine/protocol';
-import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 
 import type { ServerEventBus } from '../src/events/ServerEvents';

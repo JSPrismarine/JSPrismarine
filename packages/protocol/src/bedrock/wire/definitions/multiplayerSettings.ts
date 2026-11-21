@@ -1,0 +1,18 @@
+/**
+ * `MultiplayerSettingsPacket`: A change to the multiplayer settings of an Education Edition
+ * session.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/multiplayer-settings-packet/}
+ */
+import { definePacket } from '../../../wire/define';
+import * as t from '../../../wire/fieldTypes';
+
+import type { PayloadOf } from '../../../wire/define';
+
+/** The `MultiplayerSettingsPacket` field list. */
+export const multiplayerSettingsPacket = definePacket('MultiplayerSettingsPacket', {
+    /** PacketType: the single setting this packet carries. */
+    packetType: t.varint32
+});
+
+/** A change to the multiplayer settings of an Education Edition session. */
+export type MultiplayerSettingsPayload = PayloadOf<typeof multiplayerSettingsPacket>;

@@ -15,9 +15,9 @@ import { serverInputContext } from '../../testing/serverInputContext.test.helper
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ItemStackRequestPacket from '@jsprismarine/protocol/packet/ItemStackRequestPacket';
-import ItemStackResponsePacket from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
-import type { ItemStackResponse } from '@jsprismarine/protocol/packet/ItemStackResponsePacket';
+import ItemStackRequestPacket from '@jsprismarine/protocol/bedrock/packet/ItemStackRequestPacket';
+import ItemStackResponsePacket from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
+import type { ItemStackResponse } from '@jsprismarine/protocol/bedrock/packet/ItemStackResponsePacket';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { testKernel } from '../../testing/kernel.test.helper';
 

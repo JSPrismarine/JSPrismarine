@@ -2,7 +2,7 @@ import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
 import type { SessionPlayer } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
-import type { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
+import type { PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
 import type { PlayerIdentity } from './playerIdentity';
 import { sameAccount } from './playerIdentity';
 

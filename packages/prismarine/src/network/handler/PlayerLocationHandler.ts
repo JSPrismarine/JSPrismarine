@@ -1,5 +1,5 @@
-import type PlayerLocationPacket from '@jsprismarine/protocol/packet/PlayerLocationPacket';
-import { PlayerLocationPacketType } from '@jsprismarine/protocol/packet/PlayerLocationPacket';
+import type PlayerLocationPacket from '@jsprismarine/protocol/bedrock/packet/PlayerLocationPacket';
+import { PlayerLocationPacketType } from '@jsprismarine/protocol/bedrock/packet/PlayerLocationPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';

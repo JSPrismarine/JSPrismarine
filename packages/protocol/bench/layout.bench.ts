@@ -4,8 +4,8 @@
  * Run with `pnpm --filter @jsprismarine/protocol run bench:layout-cache`.
  */
 import { performance } from 'node:perf_hooks';
-import UpdateBlockPacket from '../src/packet/UpdateBlockPacket';
-import { updateBlockPacket } from '../src/wire/definitions/blocks';
+import UpdateBlockPacket from '../src/bedrock/packet/UpdateBlockPacket';
+import { updateBlockPacket } from '../src/bedrock/wire/definitions/blocks';
 import { layoutAt } from '../src/wire/WireLayout';
 
 const protocolVersion = 2225;

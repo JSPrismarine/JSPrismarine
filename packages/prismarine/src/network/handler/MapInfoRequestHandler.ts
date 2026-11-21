@@ -1,4 +1,4 @@
-import type MapInfoRequestPacket from '@jsprismarine/protocol/packet/MapInfoRequestPacket';
+import type MapInfoRequestPacket from '@jsprismarine/protocol/bedrock/packet/MapInfoRequestPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

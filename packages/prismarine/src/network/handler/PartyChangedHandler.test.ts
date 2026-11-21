@@ -6,8 +6,8 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PartyChangedPacket from '@jsprismarine/protocol/packet/PartyChangedPacket';
-import PlayerPartyInfo from '@jsprismarine/protocol/structure/PlayerPartyInfo';
+import PartyChangedPacket from '@jsprismarine/protocol/bedrock/packet/PartyChangedPacket';
+import PlayerPartyInfo from '@jsprismarine/protocol/bedrock/structure/PlayerPartyInfo';
 import PartyChangedHandler from './PartyChangedHandler';
 
 const fakeSession = () => {

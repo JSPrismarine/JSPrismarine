@@ -6,13 +6,13 @@ import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import type { StorePlayer } from '../../entity/storePlayer';
 import { stub } from '../../testing/stub.test.helper';
-import UUID from '@jsprismarine/protocol/wire/structures/UUID';
-import Skin from '@jsprismarine/protocol/wire/structures/skin/Skin';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
+import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 import type PlayerSession from '../PlayerSession';
 import type ClientConnection from '../ClientConnection';
 import type { SessionPhase } from '../SessionPhase';
-import { PlayerListEntry } from '@jsprismarine/protocol/wire/structures/PlayerListEntry';
-import PlayerSkinPacket from '@jsprismarine/protocol/packet/PlayerSkinPacket';
+import { PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
+import PlayerSkinPacket from '@jsprismarine/protocol/bedrock/packet/PlayerSkinPacket';
 import PlayerSkinHandler from './PlayerSkinHandler';
 
 const SENDER_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';

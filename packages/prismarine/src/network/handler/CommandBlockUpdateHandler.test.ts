@@ -5,8 +5,10 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import CommandBlockUpdatePacket, { CommandBlockMode } from '@jsprismarine/protocol/packet/CommandBlockUpdatePacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import CommandBlockUpdatePacket, {
+    CommandBlockMode
+} from '@jsprismarine/protocol/bedrock/packet/CommandBlockUpdatePacket';
 import CommandBlockUpdateHandler from './CommandBlockUpdateHandler';
 
 const fakeSession = () => {

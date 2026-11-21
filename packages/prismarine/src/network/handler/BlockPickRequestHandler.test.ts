@@ -5,8 +5,8 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import BlockPos from '@jsprismarine/protocol/structure/BlockPos';
-import BlockPickRequestPacket from '@jsprismarine/protocol/packet/BlockPickRequestPacket';
+import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
+import BlockPickRequestPacket from '@jsprismarine/protocol/bedrock/packet/BlockPickRequestPacket';
 import BlockPickRequestHandler from './BlockPickRequestHandler';
 
 describe('BlockPickRequestHandler', () => {

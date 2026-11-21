@@ -9,8 +9,8 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
-import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
-import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import { describe, expect, it } from 'vitest';
 
 import { DamageCause } from './entity/DamageCause';

@@ -18,7 +18,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | PR | Slice | State |
 | --- | --- | --- |
 | 1 | This plan, ADR 0026 and ADR 0027 | In review |
-| 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/`, empty `java/` | Not started |
+| 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | In review |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Not started |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: movement, inventory, interaction, the rest | Not started |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | Not started |
@@ -39,7 +39,7 @@ The Bedrock side is layered, and each layer is a seam the Java side can use or h
 | --- | --- | --- |
 | Transport | `packages/prismarine/src/network/transport/` | Nothing. A frame is opaque bytes; `TransportNames` lists `raknet` and `nethernet`. |
 | Framing, compression, encryption | `MinecraftSession`, `BatchCodec`, `EncryptionCodec` | Everything. The `0xFE` batch id, zlib and Snappy, AES-GCM with the Bedrock counter. |
-| Codecs | `packages/protocol/src/ProtocolCodec.ts`, `prismarine/src/network/codec/Codec2193.ts` and siblings | A codec is a protocol number, packet ids and a `ProtocolContext` of captured tables. Three releases are registered: 2193, 2225 and the 2259 preview. |
+| Codecs | `packages/protocol/src/bedrock/ProtocolCodec.ts`, `prismarine/src/network/codec/Codec2193.ts` and siblings | A codec is a protocol number, packet ids and a `ProtocolContext` of captured tables. Three releases are registered: 2193, 2225 and the 2259 preview. |
 | Phases | `SessionPhase.ts` | `handshake`, `login`, `encryption`, `resourcePacks`, `play`. |
 | Handlers | `prismarine/src/network/handler/`, 74 files | One handler per packet, registered by packet name, declaring its phases and lane ([ADR 0014](../adr/0014-handlers-share-a-shape-and-run-in-the-input-step.md)). Most validate and then call one `PlayerSession` method. |
 | Session | `PlayerSession.ts`, about 140 public methods | Most build Bedrock packets: `sendInventory`, `openBlockContainer`, `sendAvailableCommands`, `sendGamemode`. |
@@ -59,19 +59,24 @@ tags.
 ## 2. The protocol package
 
 `@jsprismarine/protocol` holds both editions. The edition-neutral modules stay at the root:
-`NetworkPacket`, `FieldNetworkPacket`, `NetworkBinaryStream`, `NetworkStructure`, `ProtocolCodec`,
-`ProtocolCodecRegistry`, `PacketIdentifier`, `handler/` and the `wire/` machinery (`define.ts`,
-`WireLayout.ts`, `fieldTypes.ts`, `structureTypes.ts`, `wireGates.ts`). Everything that names a
-Bedrock packet moves under `src/bedrock/`: `packet/`, `structure/`, `payload/`, `wire/definitions/`,
-`wire/structures/`, `wire/versions/`, `ProtocolVersion.ts`, `BatchCodec`, `CompressionCodec`,
-`EncryptionCodec`, `HandshakeCodec`, `Snappy` and `BlockRuntimeId`. `src/java/` starts empty in
-PR 2 and gains the same shape from PR 7.
+`NetworkPacket`, `FieldNetworkPacket`, `NetworkBinaryStream`, `NetworkStructure`, `handler/` and
+the `wire/` machinery (`define.ts`, `WireLayout.ts`, `fieldTypes.ts`, `formatWireValue.ts`,
+`networkUtil.ts`). Everything that names a Bedrock packet, table or version moves under
+`src/bedrock/`: `packet/`, `structure/`, `payload/`, `wire/definitions/`, `wire/structures/`,
+`wire/versions/`, `wire/wireGates.ts`, `wire/structureTypes.ts`, `ProtocolVersion`,
+`ProtocolCodec`, `ProtocolCodecRegistry`, `ProtocolContext`, `PacketIdentifier`, `BatchCodec`,
+`CompressionCodec`, `EncryptionCodec`, `HandshakeCodec`, `Snappy` and `BlockRuntimeId`. The codec
+and its context move too because `createProtocolCodec` builds from the Bedrock packet classes and
+`ProtocolContext` names Bedrock's captured tables; PR 7 lifts the edition-neutral codec interface
+to the root when a Java codec gives it a second implementation. Two root modules still reach into
+`bedrock/` after PR 2: `NetworkPacket` and `FieldNetworkPacket` take a `ProtocolContext` and
+default their protocol to 2193, which PR 7 generalizes. `src/java/` is created in PR 7.
 
-Every import of `@jsprismarine/protocol/packet/X` across the repository becomes
+Every import of `@jsprismarine/protocol/bedrock/packet/X` across the repository becomes
 `@jsprismarine/protocol/bedrock/packet/X`, and the package's `exports` map, the packet-codec baseline
-and the wire-layout baseline move with them. PR 2 changes no behavior and carries a major Changeset.
-Bedrock stops being the unnamed default: a reader of an import path sees which edition it belongs
-to.
+and the wire-layout baseline move with them. PR 2 changes no behavior and carries a breaking-change
+Changeset, which is a minor bump while the package is below 1.0. Bedrock stops being the unnamed
+default: a reader of an import path sees which edition it belongs to.
 
 A Java codec has the same `ProtocolCodec` interface. Its `protocolVersion` is Java's protocol number
 (777 for release 26.3), its `minecraftVersions` the release ids, and its `ProtocolContext` the

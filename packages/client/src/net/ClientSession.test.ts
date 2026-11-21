@@ -10,8 +10,8 @@ import {
     TextPacket,
     TextPacketType
 } from '@jsprismarine/protocol';
-import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/packet/AnimatePacket';
-import { AnimateHand } from '@jsprismarine/protocol/wire/definitions/animate';
+import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
+import { AnimateHand } from '@jsprismarine/protocol/bedrock/wire/definitions/animate';
 import { describe, expect, it, vi } from 'vitest';
 import { ShowCreditsPacket } from '../Credits';
 import { FakeTransport } from '../testing/fakeTransport.test.helper';

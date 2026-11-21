@@ -17,9 +17,9 @@ import type {
 import type { ScriptItem, ScriptVector3 } from '@jsprismarine/script-host/host/world';
 import { legacy_item_aliases, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
-import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import PlaySoundPacket from '@jsprismarine/protocol/packet/PlaySoundPacket';
-import StopSoundPacket from '@jsprismarine/protocol/packet/StopSoundPacket';
+import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
+import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
+import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { Vector3 } from '@jsprismarine/math';
 
 import { blockFromContent } from '../../block/Block';

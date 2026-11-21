@@ -1,0 +1,55 @@
+import BinaryStream from '@jsprismarine/binaryutils';
+import { Vector3 } from '@jsprismarine/math';
+import { describe, expect, it } from 'vitest';
+
+import { changeDimensionPacket } from '../wire/definitions/worldStatus';
+import { layoutAt } from '../../wire/WireLayout';
+import type { ChangeDimensionPayload } from './ChangeDimensionPacket';
+
+/**
+ * Bytes captured from the hand-written encoder, with one case for each optional screen-id
+ * branch. The first uses negative dimension and position values to exercise signed encoding.
+ */
+const cases: readonly { branch: string; bytes: Buffer; payload: ChangeDimensionPayload }[] = [
+    {
+        branch: 'without a loading screen id',
+        bytes: Buffer.from('010000c0bf00209643000000c50100', 'hex'),
+        payload: {
+            dimension: -1,
+            position: new Vector3(-1.5, 300.25, -2048),
+            respawn: true,
+            loadingScreenId: null
+        }
+    },
+    {
+        branch: 'with a loading screen id above 2^31',
+        bytes: Buffer.from('020000000000000000000000000001efbeadde', 'hex'),
+        payload: {
+            dimension: 1,
+            position: Vector3.ZERO,
+            respawn: false,
+            loadingScreenId: 0xdeadbeef
+        }
+    }
+];
+
+/**
+ * The 1.26.60 changelog's "Loading Screen Id is now optional" corrects the docs rather than the
+ * wire (`docs/research/protocol-2225-delta.md`), so both versions carry the presence byte.
+ */
+describe.each([2193, 2225])('the declarative ChangeDimension layout at %i', (version) => {
+    const layout = layoutAt(changeDimensionPacket, version);
+
+    for (const { branch, bytes, payload } of cases) {
+        it(`writes the bytes the hand-written encoder wrote ${branch}`, () => {
+            const stream = new BinaryStream();
+            layout.encode(stream, payload);
+
+            expect(stream.getBuffer()).toEqual(bytes);
+        });
+
+        it(`reads those bytes back ${branch}`, () => {
+            expect(layout.decode(new BinaryStream(bytes))).toEqual(payload);
+        });
+    }
+});

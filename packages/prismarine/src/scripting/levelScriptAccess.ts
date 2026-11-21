@@ -21,8 +21,8 @@ import { ATTRIBUTES } from '@jsprismarine/entities/attributes';
 import type { AttributeName, AttributeSpec } from '@jsprismarine/entities/attributes';
 
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-import PlayerHotbarPacket from '@jsprismarine/protocol/packet/PlayerHotbarPacket';
-import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
+import PlayerHotbarPacket from '@jsprismarine/protocol/bedrock/packet/PlayerHotbarPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/bedrock/packet/SpawnParticleEffectPacket';
 import { readMcStructure } from '@jsprismarine/structures/bedrockTemplate';
 import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound } from '@jsprismarine/nbt';

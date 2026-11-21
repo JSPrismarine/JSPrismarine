@@ -14,7 +14,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import { PositionMode } from '@jsprismarine/protocol';
 
 import type Server from '../../Server';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import { damageSourceOfType, hasDamageType } from '../../entity/damageTypes';

@@ -153,7 +153,7 @@ export function loadProject(): ProjectData {
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const versionsDir = path.join(packagesDir, 'protocol', 'src', 'wire', 'versions');
+    const versionsDir = path.join(packagesDir, 'protocol', 'src', 'bedrock', 'wire', 'versions');
     const protocols = readdirSync(versionsDir)
         .flatMap((file) => {
             const match = /^v(\d+)\.ts$/.exec(file);

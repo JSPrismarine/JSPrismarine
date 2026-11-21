@@ -23,10 +23,10 @@ import { item_table as item_table_2193 } from '@jsprismarine/bedrock-data/v2193'
 import { item_table as item_table_2225 } from '@jsprismarine/bedrock-data/v2225';
 import { item_table as item_table_2259 } from '@jsprismarine/bedrock-data/v2259';
 
-import { newestRelease } from '@jsprismarine/protocol/ProtocolVersion';
-import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/wire/versions/v2193';
-import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/wire/versions/v2225';
-import { protocolVersion as protocol2259 } from '@jsprismarine/protocol/wire/versions/v2259';
+import { newestRelease } from '@jsprismarine/protocol/bedrock/ProtocolVersion';
+import { protocolVersion as protocol2193 } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
+import { protocolVersion as protocol2225 } from '@jsprismarine/protocol/bedrock/wire/versions/v2225';
+import { protocolVersion as protocol2259 } from '@jsprismarine/protocol/bedrock/wire/versions/v2259';
 
 import type { ItemTypeEntry } from '@jsprismarine/bedrock-data';
 import type { ProtocolItemData } from '@jsprismarine/protocol';

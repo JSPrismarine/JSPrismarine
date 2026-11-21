@@ -17,7 +17,7 @@ import type { EntityView } from '@jsprismarine/predicates';
 
 import { getGametypeName } from '@jsprismarine/minecraft';
 import type Server from '../Server';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ExperienceHolder } from '../entity/Experience';
 import { entityPredicateView } from '../entity/predicateView';
 import type { ViewableEntity, ViewableEquipment } from '../entity/predicateView';

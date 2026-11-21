@@ -1,4 +1,7 @@
-import BossEventPacket, { BossBarColor, BossEventUpdateType } from '@jsprismarine/protocol/packet/BossEventPacket';
+import BossEventPacket, {
+    BossBarColor,
+    BossEventUpdateType
+} from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import { describe, expect, it } from 'vitest';
 
 import type ClientConnection from '../network/ClientConnection';

@@ -7,12 +7,12 @@ import { stubPlayerPort } from '../testing/playerPort.test.helper';
 import type { ShownActor } from '../world/ShownActor';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import MovePlayerPacket from '@jsprismarine/protocol/packet/MovePlayerPacket';
-import SetActorMotionPacket from '@jsprismarine/protocol/packet/SetActorMotionPacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
+import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
-import type { MovePlayer } from '@jsprismarine/protocol/packet/MovePlayerPacket';
+import type { MovePlayer } from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 
 /**
  * The `Tick` of a `MovePlayerPacket` or `SetActorMotionPacket` is a `PlayerInputTick`. For the

@@ -9,7 +9,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import TextPacket from '@jsprismarine/protocol/packet/TextPacket';
+import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 import TextHandler from './TextHandler';
 

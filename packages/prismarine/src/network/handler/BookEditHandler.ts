@@ -1,7 +1,7 @@
-import type BookEditPacket from '@jsprismarine/protocol/packet/BookEditPacket';
-import { BookEditAction } from '@jsprismarine/protocol/packet/BookEditPacket';
+import type BookEditPacket from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
+import { BookEditAction } from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
 
-import type { BookEdit } from '@jsprismarine/protocol/packet/BookEditPacket';
+import type { BookEdit } from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ReadLaneHandler } from './SessionHandler';
 import type { StorePlayer } from '../../entity/storePlayer';

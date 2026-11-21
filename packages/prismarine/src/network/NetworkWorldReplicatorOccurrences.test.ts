@@ -4,12 +4,12 @@ import { ActorEvent, LevelEvent, LevelSoundEvent, PacketCompressionAlgorithm } f
 import type { ProtocolCodec } from '@jsprismarine/protocol';
 import { BatchCodec } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import ActorEventPacket from '@jsprismarine/protocol/packet/ActorEventPacket';
-import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/packet/EmotePacket';
-import BlockEventPacket from '@jsprismarine/protocol/packet/BlockEventPacket';
-import LevelEventPacket from '@jsprismarine/protocol/packet/LevelEventPacket';
-import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
-import SpawnParticleEffectPacket from '@jsprismarine/protocol/packet/SpawnParticleEffectPacket';
+import ActorEventPacket from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
+import BlockEventPacket from '@jsprismarine/protocol/bedrock/packet/BlockEventPacket';
+import LevelEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
+import SpawnParticleEffectPacket from '@jsprismarine/protocol/bedrock/packet/SpawnParticleEffectPacket';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';

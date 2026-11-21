@@ -26,10 +26,10 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import type { Attributes } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { AttributeIds } from '@jsprismarine/protocol/wire/structures/Attribute';
-import { Metadata } from '@jsprismarine/protocol/wire/structures/Metadata';
-import type { SyncedProperties } from '@jsprismarine/protocol/wire/structures/SyncedProperties';
+import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
+import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
 import { syncedPropertiesOf } from '../../network/actorProperties';
 import type Server from '../../Server';

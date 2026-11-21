@@ -5,7 +5,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import ServerSettingsRequestPacket from '@jsprismarine/protocol/packet/ServerSettingsRequestPacket';
+import ServerSettingsRequestPacket from '@jsprismarine/protocol/bedrock/packet/ServerSettingsRequestPacket';
 import ServerSettingsRequestHandler from './ServerSettingsRequestHandler';
 
 describe('ServerSettingsRequestHandler', () => {

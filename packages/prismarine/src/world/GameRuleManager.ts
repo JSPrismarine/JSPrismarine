@@ -2,8 +2,8 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { gameRuleSpellings } from '../content/world/gameRules';
 import type Server from '../Server';
-import type { GameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
-import { GameRuleValueType, writeGameRule } from '@jsprismarine/protocol/wire/structures/GameRule';
+import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
+import { GameRuleValueType, writeGameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 
 /**
  * The rules every world registers, spelled the way the client spells them.

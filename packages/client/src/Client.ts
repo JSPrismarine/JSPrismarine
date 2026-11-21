@@ -20,7 +20,7 @@ import {
     v2193,
     v2225
 } from '@jsprismarine/protocol';
-import * as v2259 from '@jsprismarine/protocol/wire/versions/v2259';
+import * as v2259 from '@jsprismarine/protocol/bedrock/wire/versions/v2259';
 import { EventEmitter } from 'node:events';
 import Credits, { ShowCreditsPacket } from './Credits';
 import DimensionChange from './DimensionChange';

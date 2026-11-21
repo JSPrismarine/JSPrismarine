@@ -6,7 +6,7 @@ import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import ClientCacheStatusHandler from './ClientCacheStatusHandler';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
-import ClientCacheStatusPacket from '@jsprismarine/protocol/packet/ClientCacheStatusPacket';
+import ClientCacheStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheStatusPacket';
 import type PlayerSession from '../PlayerSession';
 
 /**

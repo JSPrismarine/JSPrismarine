@@ -16,7 +16,9 @@ import type { EntityRef } from '@jsprismarine/commands';
 import type { RecipeBook } from '@jsprismarine/recipes';
 
 import type Server from '../../Server';
-import UnlockedRecipesPacket, { UnlockedRecipesType } from '@jsprismarine/protocol/packet/UnlockedRecipesPacket';
+import UnlockedRecipesPacket, {
+    UnlockedRecipesType
+} from '@jsprismarine/protocol/bedrock/packet/UnlockedRecipesPacket';
 import { carryOut, playerSessionOf, refuse } from './support';
 
 /** The recipe name `/recipe` means "every one of them" by. */

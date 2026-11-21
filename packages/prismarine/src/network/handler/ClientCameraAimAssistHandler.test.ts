@@ -6,7 +6,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import ClientCameraAimAssistPacket, {
     ClientCameraAimAssistAction
-} from '@jsprismarine/protocol/packet/ClientCameraAimAssistPacket';
+} from '@jsprismarine/protocol/bedrock/packet/ClientCameraAimAssistPacket';
 import PacketHandlerRegistry from '../PacketHandlerRegistry';
 import ClientCameraAimAssistHandler from './ClientCameraAimAssistHandler';
 

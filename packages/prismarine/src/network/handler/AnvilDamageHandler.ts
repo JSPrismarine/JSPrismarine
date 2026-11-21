@@ -1,4 +1,4 @@
-import type AnvilDamagePacket from '@jsprismarine/protocol/packet/AnvilDamagePacket';
+import type AnvilDamagePacket from '@jsprismarine/protocol/bedrock/packet/AnvilDamagePacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';

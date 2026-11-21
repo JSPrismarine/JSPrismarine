@@ -1,5 +1,5 @@
-import type StructureTemplateDataRequestPacket from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
-import { StructureTemplateRequestOperation } from '@jsprismarine/protocol/packet/StructureTemplateDataRequestPacket';
+import type StructureTemplateDataRequestPacket from '@jsprismarine/protocol/bedrock/packet/StructureTemplateDataRequestPacket';
+import { StructureTemplateRequestOperation } from '@jsprismarine/protocol/bedrock/packet/StructureTemplateDataRequestPacket';
 import BlockPosition from '../../world/BlockPosition';
 import { blockTargetRejection } from './BlockTarget';
 import type { SessionContext } from './HandlerContext';

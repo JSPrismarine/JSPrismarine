@@ -11,11 +11,14 @@ import type { EntityRef, ServerCommandHost, TitleInstruction } from '@jsprismari
 import { TitleType } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
-import AnimateEntityPacket from '@jsprismarine/protocol/packet/AnimateEntityPacket';
-import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '@jsprismarine/protocol/packet/CameraShakePacket';
-import PlayerFogPacket from '@jsprismarine/protocol/packet/PlayerFogPacket';
-import SetTitlePacket from '@jsprismarine/protocol/packet/SetTitlePacket';
-import TransferPacket from '@jsprismarine/protocol/packet/TransferPacket';
+import AnimateEntityPacket from '@jsprismarine/protocol/bedrock/packet/AnimateEntityPacket';
+import CameraShakePacket, {
+    CameraShakeAction,
+    CameraShakeType
+} from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
+import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
+import SetTitlePacket from '@jsprismarine/protocol/bedrock/packet/SetTitlePacket';
+import TransferPacket from '@jsprismarine/protocol/bedrock/packet/TransferPacket';
 import { TextPacketType } from '@jsprismarine/protocol';
 import { UnlockedRecipes, changeRecipes } from './recipes';
 import { carryOut, entityRefOf, playerSessionOf, resolveEntity, sessionsOf } from './support';

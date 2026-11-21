@@ -8,7 +8,9 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-import SubChunkHeightmapData, { HeightMapDataType } from '@jsprismarine/protocol/structure/SubChunkHeightmapData';
+import SubChunkHeightmapData, {
+    HeightMapDataType
+} from '@jsprismarine/protocol/bedrock/structure/SubChunkHeightmapData';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Furnace, MobSpawner } from '../../blockentity/BlockEntities';

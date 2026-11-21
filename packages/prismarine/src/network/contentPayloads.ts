@@ -37,7 +37,7 @@ import {
     buildItemRegistry,
     creativeItemProperties,
     itemIdsOf
-} from '@jsprismarine/protocol/payload';
+} from '@jsprismarine/protocol/bedrock/payload';
 
 import { canonicalItemData } from './codec/itemData';
 import { blockTranslationFor } from './codec/blockTranslation';
@@ -55,7 +55,12 @@ import type {
     ItemStackData,
     PotionMix
 } from '@jsprismarine/protocol';
-import type { CreativeCatalog, ItemIdLookup, WireItemInstance, WireResult } from '@jsprismarine/protocol/payload';
+import type {
+    CreativeCatalog,
+    ItemIdLookup,
+    WireItemInstance,
+    WireResult
+} from '@jsprismarine/protocol/bedrock/payload';
 
 /** The captured vanilla item components, parsed once from network NBT. */
 const capturedItemComponents = Object.fromEntries(
@@ -226,7 +231,7 @@ export interface ContentPayloadOptions {
  *   managers, so two servers with the same content send the same bytes.
  * @throws {import('./contentPalette').ContentPaletteError} When the content
  *   palette disagrees with the one a client has.
- * @throws {import('@jsprismarine/protocol/payload').BlockPaletteError} When a declared
+ * @throws {import('@jsprismarine/protocol/bedrock/payload').BlockPaletteError} When a declared
  *   definition names a vanilla block the client palette does not have, or
  *   declares a state the client disagrees with.
  */

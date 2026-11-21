@@ -5,8 +5,8 @@ import { Vector3 } from '@jsprismarine/math';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec, DEFAULT_COMPRESSION_LEVEL } from '@jsprismarine/protocol';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
-import MoveActorDeltaPacket from '@jsprismarine/protocol/packet/MoveActorDeltaPacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
+import MoveActorDeltaPacket from '@jsprismarine/protocol/bedrock/packet/MoveActorDeltaPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { EntityPosition } from '@jsprismarine/entities';
 

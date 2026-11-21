@@ -4,7 +4,7 @@ import { sessionContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { STEVE } from '../../testing/sessionIdentity.test.helper';
 import type PlayerSession from '../PlayerSession';
-import MapCreateLockedCopyPacket from '@jsprismarine/protocol/packet/MapCreateLockedCopyPacket';
+import MapCreateLockedCopyPacket from '@jsprismarine/protocol/bedrock/packet/MapCreateLockedCopyPacket';
 import MapCreateLockedCopyHandler from './MapCreateLockedCopyHandler';
 
 describe('MapCreateLockedCopyHandler', () => {

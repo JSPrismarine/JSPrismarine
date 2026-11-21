@@ -8,7 +8,9 @@ import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
-import RequestAbilityPacket, { RequestAbilityValueType } from '@jsprismarine/protocol/packet/RequestAbilityPacket';
+import RequestAbilityPacket, {
+    RequestAbilityValueType
+} from '@jsprismarine/protocol/bedrock/packet/RequestAbilityPacket';
 import RequestAbilityHandler from './RequestAbilityHandler';
 
 /**

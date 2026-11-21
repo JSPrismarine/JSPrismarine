@@ -1,0 +1,40 @@
+import NetworkPacket from '../../NetworkPacket';
+import { PacketIdentifier } from '../PacketIdentifier';
+import { editorNetworkPacket } from '../wire/definitions/editorNetwork';
+import { layoutAt } from '../../wire/WireLayout';
+
+import type NetworkBinaryStream from '../../NetworkBinaryStream';
+
+/** The fields of an `EditorNetworkPacket`, in wire order. */
+export interface EditorNetwork {
+    /** `Route To Manager`: deliver the payload to the editor's network manager instead of the default receiver. */
+    routeToManager: boolean;
+    /** `Raw Variant Name`, the name of the `IEditorNetworkPayload` type that produced the data. */
+    rawVariantName: string;
+    /** `Raw Variant Data`, the payload serialized by that type. Opaque to the protocol. */
+    rawVariantData: string;
+}
+
+/**
+ * Carries an opaque Bedrock Editor payload between an editor client and an editor server.
+ * The protocol does not interpret the payload; the named variant type on each side does.
+ *
+ * Protocol 2193 layout, in wire order: `Route To Manager` as one byte, then
+ * `Raw Variant Name` and `Raw Variant Data` as strings, each a varuint32 byte length followed
+ * by UTF-8. Protocol 2225 is identical.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.60/packets/editor-network-packet/
+ */
+export default class EditorNetworkPacket extends NetworkPacket<EditorNetwork> {
+    public get id(): number {
+        return PacketIdentifier.EDITOR_NETWORK;
+    }
+
+    protected serializePayload(stream: NetworkBinaryStream, data: EditorNetwork): void {
+        layoutAt(editorNetworkPacket, this.codecProtocol).encode(stream, data);
+    }
+
+    protected deserializePayload(stream: NetworkBinaryStream): EditorNetwork {
+        return layoutAt(editorNetworkPacket, this.codecProtocol).decode(stream);
+    }
+}

@@ -1,4 +1,4 @@
-import type TickingAreasLoadStatusPacket from '@jsprismarine/protocol/packet/TickingAreasLoadStatusPacket';
+import type TickingAreasLoadStatusPacket from '@jsprismarine/protocol/bedrock/packet/TickingAreasLoadStatusPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

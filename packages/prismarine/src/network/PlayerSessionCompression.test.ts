@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type { Config } from '../config/Config';
 import type { ShownActor } from '../world/ShownActor';
-import MoveActorAbsolutePacket from '@jsprismarine/protocol/packet/MoveActorAbsolutePacket';
+import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
 import type { SessionPlayer } from './sessionPlayers';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';

@@ -9,7 +9,7 @@ import type { StubMembers } from '../../testing/stub.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import LevelSoundEventPacket from '@jsprismarine/protocol/packet/LevelSoundEventPacket';
+import LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
 import LevelSoundEventHandler from './LevelSoundEventHandler';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
 import { inputContext } from '../../testing/handlerContext.test.helper';

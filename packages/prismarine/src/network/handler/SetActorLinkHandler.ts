@@ -1,4 +1,4 @@
-import type SetActorLinkPacket from '@jsprismarine/protocol/packet/SetActorLinkPacket';
+import type SetActorLinkPacket from '@jsprismarine/protocol/bedrock/packet/SetActorLinkPacket';
 import type { SessionContext } from './HandlerContext';
 import type { ConnectionLaneHandler } from './SessionHandler';
 

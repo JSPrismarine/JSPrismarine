@@ -11,10 +11,10 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
-            "./BatchCodec": {
-                "types": "./dist/BatchCodec.d.ts",
-                "import": "./dist/BatchCodec.js",
-                "module": "./dist/BatchCodec.js"
+            "./bedrock/BatchCodec": {
+                "types": "./dist/bedrock/BatchCodec.d.ts",
+                "import": "./dist/bedrock/BatchCodec.js",
+                "module": "./dist/bedrock/BatchCodec.js"
             },
             "./NetworkBinaryStream": {
                 "types": "./dist/NetworkBinaryStream.d.ts",
@@ -26,10 +26,10 @@
                 "import": "./dist/NetworkPacket.js",
                 "module": "./dist/NetworkPacket.js"
             },
-            "./ProtocolVersion": {
-                "types": "./dist/ProtocolVersion.d.ts",
-                "import": "./dist/ProtocolVersion.js",
-                "module": "./dist/ProtocolVersion.js"
+            "./bedrock/ProtocolVersion": {
+                "types": "./dist/bedrock/ProtocolVersion.d.ts",
+                "import": "./dist/bedrock/ProtocolVersion.js",
+                "module": "./dist/bedrock/ProtocolVersion.js"
             },
             "./handler/Lane": {
                 "types": "./dist/handler/Lane.d.ts",
@@ -41,870 +41,870 @@
                 "import": "./dist/handler/PacketHandler.js",
                 "module": "./dist/handler/PacketHandler.js"
             },
-            "./packet/ActorEventPacket": {
-                "types": "./dist/packet/ActorEventPacket.d.ts",
-                "import": "./dist/packet/ActorEventPacket.js",
-                "module": "./dist/packet/ActorEventPacket.js"
-            },
-            "./packet/ActorPickRequestPacket": {
-                "types": "./dist/packet/ActorPickRequestPacket.d.ts",
-                "import": "./dist/packet/ActorPickRequestPacket.js",
-                "module": "./dist/packet/ActorPickRequestPacket.js"
-            },
-            "./packet/AddActorPacket": {
-                "types": "./dist/packet/AddActorPacket.d.ts",
-                "import": "./dist/packet/AddActorPacket.js",
-                "module": "./dist/packet/AddActorPacket.js"
-            },
-            "./packet/AddItemActorPacket": {
-                "types": "./dist/packet/AddItemActorPacket.d.ts",
-                "import": "./dist/packet/AddItemActorPacket.js",
-                "module": "./dist/packet/AddItemActorPacket.js"
-            },
-            "./packet/AddPaintingPacket": {
-                "types": "./dist/packet/AddPaintingPacket.d.ts",
-                "import": "./dist/packet/AddPaintingPacket.js",
-                "module": "./dist/packet/AddPaintingPacket.js"
-            },
-            "./packet/AddPlayerPacket": {
-                "types": "./dist/packet/AddPlayerPacket.d.ts",
-                "import": "./dist/packet/AddPlayerPacket.js",
-                "module": "./dist/packet/AddPlayerPacket.js"
-            },
-            "./packet/AnimateEntityPacket": {
-                "types": "./dist/packet/AnimateEntityPacket.d.ts",
-                "import": "./dist/packet/AnimateEntityPacket.js",
-                "module": "./dist/packet/AnimateEntityPacket.js"
-            },
-            "./packet/AnimatePacket": {
-                "types": "./dist/packet/AnimatePacket.d.ts",
-                "import": "./dist/packet/AnimatePacket.js",
-                "module": "./dist/packet/AnimatePacket.js"
-            },
-            "./packet/AnvilDamagePacket": {
-                "types": "./dist/packet/AnvilDamagePacket.d.ts",
-                "import": "./dist/packet/AnvilDamagePacket.js",
-                "module": "./dist/packet/AnvilDamagePacket.js"
-            },
-            "./packet/AvailableActorIdentifiersPacket": {
-                "types": "./dist/packet/AvailableActorIdentifiersPacket.d.ts",
-                "import": "./dist/packet/AvailableActorIdentifiersPacket.js",
-                "module": "./dist/packet/AvailableActorIdentifiersPacket.js"
-            },
-            "./packet/AvailableCommandsPacket": {
-                "types": "./dist/packet/AvailableCommandsPacket.d.ts",
-                "import": "./dist/packet/AvailableCommandsPacket.js",
-                "module": "./dist/packet/AvailableCommandsPacket.js"
-            },
-            "./packet/BiomeDefinitionListPacket": {
-                "types": "./dist/packet/BiomeDefinitionListPacket.d.ts",
-                "import": "./dist/packet/BiomeDefinitionListPacket.js",
-                "module": "./dist/packet/BiomeDefinitionListPacket.js"
-            },
-            "./packet/BlockActorDataPacket": {
-                "types": "./dist/packet/BlockActorDataPacket.d.ts",
-                "import": "./dist/packet/BlockActorDataPacket.js",
-                "module": "./dist/packet/BlockActorDataPacket.js"
-            },
-            "./packet/BlockEventPacket": {
-                "types": "./dist/packet/BlockEventPacket.d.ts",
-                "import": "./dist/packet/BlockEventPacket.js",
-                "module": "./dist/packet/BlockEventPacket.js"
-            },
-            "./packet/BlockPickRequestPacket": {
-                "types": "./dist/packet/BlockPickRequestPacket.d.ts",
-                "import": "./dist/packet/BlockPickRequestPacket.js",
-                "module": "./dist/packet/BlockPickRequestPacket.js"
-            },
-            "./packet/BookEditPacket": {
-                "types": "./dist/packet/BookEditPacket.d.ts",
-                "import": "./dist/packet/BookEditPacket.js",
-                "module": "./dist/packet/BookEditPacket.js"
-            },
-            "./packet/BossEventPacket": {
-                "types": "./dist/packet/BossEventPacket.d.ts",
-                "import": "./dist/packet/BossEventPacket.js",
-                "module": "./dist/packet/BossEventPacket.js"
-            },
-            "./packet/CameraShakePacket": {
-                "types": "./dist/packet/CameraShakePacket.d.ts",
-                "import": "./dist/packet/CameraShakePacket.js",
-                "module": "./dist/packet/CameraShakePacket.js"
-            },
-            "./packet/ChangeDimensionPacket": {
-                "types": "./dist/packet/ChangeDimensionPacket.d.ts",
-                "import": "./dist/packet/ChangeDimensionPacket.js",
-                "module": "./dist/packet/ChangeDimensionPacket.js"
-            },
-            "./packet/ChunkRadiusUpdatedPacket": {
-                "types": "./dist/packet/ChunkRadiusUpdatedPacket.d.ts",
-                "import": "./dist/packet/ChunkRadiusUpdatedPacket.js",
-                "module": "./dist/packet/ChunkRadiusUpdatedPacket.js"
-            },
-            "./packet/ClientCacheBlobStatusPacket": {
-                "types": "./dist/packet/ClientCacheBlobStatusPacket.d.ts",
-                "import": "./dist/packet/ClientCacheBlobStatusPacket.js",
-                "module": "./dist/packet/ClientCacheBlobStatusPacket.js"
-            },
-            "./packet/ClientCacheMissResponsePacket": {
-                "types": "./dist/packet/ClientCacheMissResponsePacket.d.ts",
-                "import": "./dist/packet/ClientCacheMissResponsePacket.js",
-                "module": "./dist/packet/ClientCacheMissResponsePacket.js"
-            },
-            "./packet/ClientCacheStatusPacket": {
-                "types": "./dist/packet/ClientCacheStatusPacket.d.ts",
-                "import": "./dist/packet/ClientCacheStatusPacket.js",
-                "module": "./dist/packet/ClientCacheStatusPacket.js"
-            },
-            "./packet/ClientCameraAimAssistPacket": {
-                "types": "./dist/packet/ClientCameraAimAssistPacket.d.ts",
-                "import": "./dist/packet/ClientCameraAimAssistPacket.js",
-                "module": "./dist/packet/ClientCameraAimAssistPacket.js"
-            },
-            "./packet/ClientMovementPredictionSyncPacket": {
-                "types": "./dist/packet/ClientMovementPredictionSyncPacket.d.ts",
-                "import": "./dist/packet/ClientMovementPredictionSyncPacket.js",
-                "module": "./dist/packet/ClientMovementPredictionSyncPacket.js"
-            },
-            "./packet/ClientToServerHandshakePacket": {
-                "types": "./dist/packet/ClientToServerHandshakePacket.d.ts",
-                "import": "./dist/packet/ClientToServerHandshakePacket.js",
-                "module": "./dist/packet/ClientToServerHandshakePacket.js"
-            },
-            "./packet/ClientboundCloseFormPacket": {
-                "types": "./dist/packet/ClientboundCloseFormPacket.d.ts",
-                "import": "./dist/packet/ClientboundCloseFormPacket.js",
-                "module": "./dist/packet/ClientboundCloseFormPacket.js"
-            },
-            "./packet/CommandBlockUpdatePacket": {
-                "types": "./dist/packet/CommandBlockUpdatePacket.d.ts",
-                "import": "./dist/packet/CommandBlockUpdatePacket.js",
-                "module": "./dist/packet/CommandBlockUpdatePacket.js"
-            },
-            "./packet/ContainerClosePacket": {
-                "types": "./dist/packet/ContainerClosePacket.d.ts",
-                "import": "./dist/packet/ContainerClosePacket.js",
-                "module": "./dist/packet/ContainerClosePacket.js"
-            },
-            "./packet/ContainerOpenPacket": {
-                "types": "./dist/packet/ContainerOpenPacket.d.ts",
-                "import": "./dist/packet/ContainerOpenPacket.js",
-                "module": "./dist/packet/ContainerOpenPacket.js"
-            },
-            "./packet/ContainerSetDataPacket": {
-                "types": "./dist/packet/ContainerSetDataPacket.d.ts",
-                "import": "./dist/packet/ContainerSetDataPacket.js",
-                "module": "./dist/packet/ContainerSetDataPacket.js"
-            },
-            "./packet/CraftingDataPacket": {
-                "types": "./dist/packet/CraftingDataPacket.d.ts",
-                "import": "./dist/packet/CraftingDataPacket.js",
-                "module": "./dist/packet/CraftingDataPacket.js"
-            },
-            "./packet/CreativeContentPacket": {
-                "types": "./dist/packet/CreativeContentPacket.d.ts",
-                "import": "./dist/packet/CreativeContentPacket.js",
-                "module": "./dist/packet/CreativeContentPacket.js"
-            },
-            "./packet/DeathInfoPacket": {
-                "types": "./dist/packet/DeathInfoPacket.d.ts",
-                "import": "./dist/packet/DeathInfoPacket.js",
-                "module": "./dist/packet/DeathInfoPacket.js"
-            },
-            "./packet/DimensionDataPacket": {
-                "types": "./dist/packet/DimensionDataPacket.d.ts",
-                "import": "./dist/packet/DimensionDataPacket.js",
-                "module": "./dist/packet/DimensionDataPacket.js"
-            },
-            "./packet/EmoteListPacket": {
-                "types": "./dist/packet/EmoteListPacket.d.ts",
-                "import": "./dist/packet/EmoteListPacket.js",
-                "module": "./dist/packet/EmoteListPacket.js"
-            },
-            "./packet/EmotePacket": {
-                "types": "./dist/packet/EmotePacket.d.ts",
-                "import": "./dist/packet/EmotePacket.js",
-                "module": "./dist/packet/EmotePacket.js"
-            },
-            "./packet/ScriptMessagePacket": {
-                "types": "./dist/packet/ScriptMessagePacket.d.ts",
-                "import": "./dist/packet/ScriptMessagePacket.js",
-                "module": "./dist/packet/ScriptMessagePacket.js"
-            },
-            "./packet/FeatureRegistryPacket": {
-                "types": "./dist/packet/FeatureRegistryPacket.d.ts",
-                "import": "./dist/packet/FeatureRegistryPacket.js",
-                "module": "./dist/packet/FeatureRegistryPacket.js"
-            },
-            "./packet/GameRulesChangedPacket": {
-                "types": "./dist/packet/GameRulesChangedPacket.d.ts",
-                "import": "./dist/packet/GameRulesChangedPacket.js",
-                "module": "./dist/packet/GameRulesChangedPacket.js"
-            },
-            "./packet/InteractPacket": {
-                "types": "./dist/packet/InteractPacket.d.ts",
-                "import": "./dist/packet/InteractPacket.js",
-                "module": "./dist/packet/InteractPacket.js"
-            },
-            "./packet/InventoryContentPacket": {
-                "types": "./dist/packet/InventoryContentPacket.d.ts",
-                "import": "./dist/packet/InventoryContentPacket.js",
-                "module": "./dist/packet/InventoryContentPacket.js"
-            },
-            "./packet/InventorySlotPacket": {
-                "types": "./dist/packet/InventorySlotPacket.d.ts",
-                "import": "./dist/packet/InventorySlotPacket.js",
-                "module": "./dist/packet/InventorySlotPacket.js"
-            },
-            "./packet/InventoryTransactionPacket": {
-                "types": "./dist/packet/InventoryTransactionPacket.d.ts",
-                "import": "./dist/packet/InventoryTransactionPacket.js",
-                "module": "./dist/packet/InventoryTransactionPacket.js"
-            },
-            "./packet/ItemRegistryPacket": {
-                "types": "./dist/packet/ItemRegistryPacket.d.ts",
-                "import": "./dist/packet/ItemRegistryPacket.js",
-                "module": "./dist/packet/ItemRegistryPacket.js"
-            },
-            "./packet/ItemStackRequestPacket": {
-                "types": "./dist/packet/ItemStackRequestPacket.d.ts",
-                "import": "./dist/packet/ItemStackRequestPacket.js",
-                "module": "./dist/packet/ItemStackRequestPacket.js"
-            },
-            "./packet/ItemStackResponsePacket": {
-                "types": "./dist/packet/ItemStackResponsePacket.d.ts",
-                "import": "./dist/packet/ItemStackResponsePacket.js",
-                "module": "./dist/packet/ItemStackResponsePacket.js"
-            },
-            "./packet/JigsawStructureDataPacket": {
-                "types": "./dist/packet/JigsawStructureDataPacket.d.ts",
-                "import": "./dist/packet/JigsawStructureDataPacket.js",
-                "module": "./dist/packet/JigsawStructureDataPacket.js"
-            },
-            "./packet/LabTablePacket": {
-                "types": "./dist/packet/LabTablePacket.d.ts",
-                "import": "./dist/packet/LabTablePacket.js",
-                "module": "./dist/packet/LabTablePacket.js"
-            },
-            "./packet/LecternUpdatePacket": {
-                "types": "./dist/packet/LecternUpdatePacket.d.ts",
-                "import": "./dist/packet/LecternUpdatePacket.js",
-                "module": "./dist/packet/LecternUpdatePacket.js"
-            },
-            "./packet/LevelChunkPacket": {
-                "types": "./dist/packet/LevelChunkPacket.d.ts",
-                "import": "./dist/packet/LevelChunkPacket.js",
-                "module": "./dist/packet/LevelChunkPacket.js"
-            },
-            "./packet/LevelEventPacket": {
-                "types": "./dist/packet/LevelEventPacket.d.ts",
-                "import": "./dist/packet/LevelEventPacket.js",
-                "module": "./dist/packet/LevelEventPacket.js"
-            },
-            "./packet/LevelSoundEventPacket": {
-                "types": "./dist/packet/LevelSoundEventPacket.d.ts",
-                "import": "./dist/packet/LevelSoundEventPacket.js",
-                "module": "./dist/packet/LevelSoundEventPacket.js"
-            },
-            "./packet/LoginPacket": {
-                "types": "./dist/packet/LoginPacket.d.ts",
-                "import": "./dist/packet/LoginPacket.js",
-                "module": "./dist/packet/LoginPacket.js"
-            },
-            "./packet/MapCreateLockedCopyPacket": {
-                "types": "./dist/packet/MapCreateLockedCopyPacket.d.ts",
-                "import": "./dist/packet/MapCreateLockedCopyPacket.js",
-                "module": "./dist/packet/MapCreateLockedCopyPacket.js"
-            },
-            "./packet/MapInfoRequestPacket": {
-                "types": "./dist/packet/MapInfoRequestPacket.d.ts",
-                "import": "./dist/packet/MapInfoRequestPacket.js",
-                "module": "./dist/packet/MapInfoRequestPacket.js"
-            },
-            "./packet/MobArmorEquipmentPacket": {
-                "types": "./dist/packet/MobArmorEquipmentPacket.d.ts",
-                "import": "./dist/packet/MobArmorEquipmentPacket.js",
-                "module": "./dist/packet/MobArmorEquipmentPacket.js"
-            },
-            "./packet/MobEffectPacket": {
-                "types": "./dist/packet/MobEffectPacket.d.ts",
-                "import": "./dist/packet/MobEffectPacket.js",
-                "module": "./dist/packet/MobEffectPacket.js"
-            },
-            "./packet/MobEquipmentPacket": {
-                "types": "./dist/packet/MobEquipmentPacket.d.ts",
-                "import": "./dist/packet/MobEquipmentPacket.js",
-                "module": "./dist/packet/MobEquipmentPacket.js"
-            },
-            "./packet/ModalFormRequestPacket": {
-                "types": "./dist/packet/ModalFormRequestPacket.d.ts",
-                "import": "./dist/packet/ModalFormRequestPacket.js",
-                "module": "./dist/packet/ModalFormRequestPacket.js"
-            },
-            "./packet/ModalFormResponsePacket": {
-                "types": "./dist/packet/ModalFormResponsePacket.d.ts",
-                "import": "./dist/packet/ModalFormResponsePacket.js",
-                "module": "./dist/packet/ModalFormResponsePacket.js"
-            },
-            "./packet/MoveActorAbsolutePacket": {
-                "types": "./dist/packet/MoveActorAbsolutePacket.d.ts",
-                "import": "./dist/packet/MoveActorAbsolutePacket.js",
-                "module": "./dist/packet/MoveActorAbsolutePacket.js"
-            },
-            "./packet/MoveActorDeltaPacket": {
-                "types": "./dist/packet/MoveActorDeltaPacket.d.ts",
-                "import": "./dist/packet/MoveActorDeltaPacket.js",
-                "module": "./dist/packet/MoveActorDeltaPacket.js"
-            },
-            "./packet/MovePlayerPacket": {
-                "types": "./dist/packet/MovePlayerPacket.d.ts",
-                "import": "./dist/packet/MovePlayerPacket.js",
-                "module": "./dist/packet/MovePlayerPacket.js"
-            },
-            "./packet/MultiplayerSettingsPacket": {
-                "types": "./dist/packet/MultiplayerSettingsPacket.d.ts",
-                "import": "./dist/packet/MultiplayerSettingsPacket.js",
-                "module": "./dist/packet/MultiplayerSettingsPacket.js"
-            },
-            "./packet/NetworkChunkPublisherUpdatePacket": {
-                "types": "./dist/packet/NetworkChunkPublisherUpdatePacket.d.ts",
-                "import": "./dist/packet/NetworkChunkPublisherUpdatePacket.js",
-                "module": "./dist/packet/NetworkChunkPublisherUpdatePacket.js"
-            },
-            "./packet/NetworkStackLatencyPacket": {
-                "types": "./dist/packet/NetworkStackLatencyPacket.d.ts",
-                "import": "./dist/packet/NetworkStackLatencyPacket.js",
-                "module": "./dist/packet/NetworkStackLatencyPacket.js"
-            },
-            "./packet/NpcRequestPacket": {
-                "types": "./dist/packet/NpcRequestPacket.d.ts",
-                "import": "./dist/packet/NpcRequestPacket.js",
-                "module": "./dist/packet/NpcRequestPacket.js"
-            },
-            "./packet/PacketViolationWarningPacket": {
-                "types": "./dist/packet/PacketViolationWarningPacket.d.ts",
-                "import": "./dist/packet/PacketViolationWarningPacket.js",
-                "module": "./dist/packet/PacketViolationWarningPacket.js"
-            },
-            "./packet/PartyChangedPacket": {
-                "types": "./dist/packet/PartyChangedPacket.d.ts",
-                "import": "./dist/packet/PartyChangedPacket.js",
-                "module": "./dist/packet/PartyChangedPacket.js"
-            },
-            "./packet/PhotoTransferPacket": {
-                "types": "./dist/packet/PhotoTransferPacket.d.ts",
-                "import": "./dist/packet/PhotoTransferPacket.js",
-                "module": "./dist/packet/PhotoTransferPacket.js"
-            },
-            "./packet/PlaySoundPacket": {
-                "types": "./dist/packet/PlaySoundPacket.d.ts",
-                "import": "./dist/packet/PlaySoundPacket.js",
-                "module": "./dist/packet/PlaySoundPacket.js"
-            },
-            "./packet/PlayerActionPacket": {
-                "types": "./dist/packet/PlayerActionPacket.d.ts",
-                "import": "./dist/packet/PlayerActionPacket.js",
-                "module": "./dist/packet/PlayerActionPacket.js"
-            },
-            "./packet/PlayerAuthInputPacket": {
-                "types": "./dist/packet/PlayerAuthInputPacket.d.ts",
-                "import": "./dist/packet/PlayerAuthInputPacket.js",
-                "module": "./dist/packet/PlayerAuthInputPacket.js"
-            },
-            "./packet/PlayerEnchantOptionsPacket": {
-                "types": "./dist/packet/PlayerEnchantOptionsPacket.d.ts",
-                "import": "./dist/packet/PlayerEnchantOptionsPacket.js",
-                "module": "./dist/packet/PlayerEnchantOptionsPacket.js"
-            },
-            "./packet/PlayerFogPacket": {
-                "types": "./dist/packet/PlayerFogPacket.d.ts",
-                "import": "./dist/packet/PlayerFogPacket.js",
-                "module": "./dist/packet/PlayerFogPacket.js"
-            },
-            "./packet/PlayerHotbarPacket": {
-                "types": "./dist/packet/PlayerHotbarPacket.d.ts",
-                "import": "./dist/packet/PlayerHotbarPacket.js",
-                "module": "./dist/packet/PlayerHotbarPacket.js"
-            },
-            "./packet/PlayerListPacket": {
-                "types": "./dist/packet/PlayerListPacket.d.ts",
-                "import": "./dist/packet/PlayerListPacket.js",
-                "module": "./dist/packet/PlayerListPacket.js"
-            },
-            "./packet/PlayerLocationPacket": {
-                "types": "./dist/packet/PlayerLocationPacket.d.ts",
-                "import": "./dist/packet/PlayerLocationPacket.js",
-                "module": "./dist/packet/PlayerLocationPacket.js"
-            },
-            "./packet/PlayerSkinPacket": {
-                "types": "./dist/packet/PlayerSkinPacket.d.ts",
-                "import": "./dist/packet/PlayerSkinPacket.js",
-                "module": "./dist/packet/PlayerSkinPacket.js"
-            },
-            "./packet/PlayerToggleCrafterSlotRequestPacket": {
-                "types": "./dist/packet/PlayerToggleCrafterSlotRequestPacket.d.ts",
-                "import": "./dist/packet/PlayerToggleCrafterSlotRequestPacket.js",
-                "module": "./dist/packet/PlayerToggleCrafterSlotRequestPacket.js"
-            },
-            "./packet/PositionTrackingDBClientRequestPacket": {
-                "types": "./dist/packet/PositionTrackingDBClientRequestPacket.d.ts",
-                "import": "./dist/packet/PositionTrackingDBClientRequestPacket.js",
-                "module": "./dist/packet/PositionTrackingDBClientRequestPacket.js"
-            },
-            "./packet/PrimitiveShapesPacket": {
-                "types": "./dist/packet/PrimitiveShapesPacket.d.ts",
-                "import": "./dist/packet/PrimitiveShapesPacket.js",
-                "module": "./dist/packet/PrimitiveShapesPacket.js"
-            },
-            "./packet/PurchaseReceiptPacket": {
-                "types": "./dist/packet/PurchaseReceiptPacket.d.ts",
-                "import": "./dist/packet/PurchaseReceiptPacket.js",
-                "module": "./dist/packet/PurchaseReceiptPacket.js"
-            },
-            "./packet/RemoveActorPacket": {
-                "types": "./dist/packet/RemoveActorPacket.d.ts",
-                "import": "./dist/packet/RemoveActorPacket.js",
-                "module": "./dist/packet/RemoveActorPacket.js"
-            },
-            "./packet/RequestAbilityPacket": {
-                "types": "./dist/packet/RequestAbilityPacket.d.ts",
-                "import": "./dist/packet/RequestAbilityPacket.js",
-                "module": "./dist/packet/RequestAbilityPacket.js"
-            },
-            "./packet/RequestPermissionsPacket": {
-                "types": "./dist/packet/RequestPermissionsPacket.d.ts",
-                "import": "./dist/packet/RequestPermissionsPacket.js",
-                "module": "./dist/packet/RequestPermissionsPacket.js"
-            },
-            "./packet/ResourcePackChunkRequestPacket": {
-                "types": "./dist/packet/ResourcePackChunkRequestPacket.d.ts",
-                "import": "./dist/packet/ResourcePackChunkRequestPacket.js",
-                "module": "./dist/packet/ResourcePackChunkRequestPacket.js"
-            },
-            "./packet/ResourcePackClientResponsePacket": {
-                "types": "./dist/packet/ResourcePackClientResponsePacket.d.ts",
-                "import": "./dist/packet/ResourcePackClientResponsePacket.js",
-                "module": "./dist/packet/ResourcePackClientResponsePacket.js"
-            },
-            "./packet/ResourcePackStackPacket": {
-                "types": "./dist/packet/ResourcePackStackPacket.d.ts",
-                "import": "./dist/packet/ResourcePackStackPacket.js",
-                "module": "./dist/packet/ResourcePackStackPacket.js"
-            },
-            "./packet/ResourcePacksInfoPacket": {
-                "types": "./dist/packet/ResourcePacksInfoPacket.d.ts",
-                "import": "./dist/packet/ResourcePacksInfoPacket.js",
-                "module": "./dist/packet/ResourcePacksInfoPacket.js"
-            },
-            "./packet/ResourcePacksReadyForValidationPacket": {
-                "types": "./dist/packet/ResourcePacksReadyForValidationPacket.d.ts",
-                "import": "./dist/packet/ResourcePacksReadyForValidationPacket.js",
-                "module": "./dist/packet/ResourcePacksReadyForValidationPacket.js"
-            },
-            "./packet/RespawnPacket": {
-                "types": "./dist/packet/RespawnPacket.d.ts",
-                "import": "./dist/packet/RespawnPacket.js",
-                "module": "./dist/packet/RespawnPacket.js"
-            },
-            "./packet/ServerSettingsRequestPacket": {
-                "types": "./dist/packet/ServerSettingsRequestPacket.d.ts",
-                "import": "./dist/packet/ServerSettingsRequestPacket.js",
-                "module": "./dist/packet/ServerSettingsRequestPacket.js"
-            },
-            "./packet/ServerToClientHandshakePacket": {
-                "types": "./dist/packet/ServerToClientHandshakePacket.d.ts",
-                "import": "./dist/packet/ServerToClientHandshakePacket.js",
-                "module": "./dist/packet/ServerToClientHandshakePacket.js"
-            },
-            "./packet/ServerboundDiagnosticsPacket": {
-                "types": "./dist/packet/ServerboundDiagnosticsPacket.d.ts",
-                "import": "./dist/packet/ServerboundDiagnosticsPacket.js",
-                "module": "./dist/packet/ServerboundDiagnosticsPacket.js"
-            },
-            "./packet/ServerboundLoadingScreenPacket": {
-                "types": "./dist/packet/ServerboundLoadingScreenPacket.d.ts",
-                "import": "./dist/packet/ServerboundLoadingScreenPacket.js",
-                "module": "./dist/packet/ServerboundLoadingScreenPacket.js"
-            },
-            "./packet/ServerboundPackSettingChangePacket": {
-                "types": "./dist/packet/ServerboundPackSettingChangePacket.d.ts",
-                "import": "./dist/packet/ServerboundPackSettingChangePacket.js",
-                "module": "./dist/packet/ServerboundPackSettingChangePacket.js"
-            },
-            "./packet/SetActorDataPacket": {
-                "types": "./dist/packet/SetActorDataPacket.d.ts",
-                "import": "./dist/packet/SetActorDataPacket.js",
-                "module": "./dist/packet/SetActorDataPacket.js"
-            },
-            "./packet/SetActorLinkPacket": {
-                "types": "./dist/packet/SetActorLinkPacket.d.ts",
-                "import": "./dist/packet/SetActorLinkPacket.js",
-                "module": "./dist/packet/SetActorLinkPacket.js"
-            },
-            "./packet/SetActorMotionPacket": {
-                "types": "./dist/packet/SetActorMotionPacket.d.ts",
-                "import": "./dist/packet/SetActorMotionPacket.js",
-                "module": "./dist/packet/SetActorMotionPacket.js"
-            },
-            "./packet/SetCommandsEnabledPacket": {
-                "types": "./dist/packet/SetCommandsEnabledPacket.d.ts",
-                "import": "./dist/packet/SetCommandsEnabledPacket.js",
-                "module": "./dist/packet/SetCommandsEnabledPacket.js"
-            },
-            "./packet/SetDefaultGameTypePacket": {
-                "types": "./dist/packet/SetDefaultGameTypePacket.d.ts",
-                "import": "./dist/packet/SetDefaultGameTypePacket.js",
-                "module": "./dist/packet/SetDefaultGameTypePacket.js"
-            },
-            "./packet/SetDifficultyPacket": {
-                "types": "./dist/packet/SetDifficultyPacket.d.ts",
-                "import": "./dist/packet/SetDifficultyPacket.js",
-                "module": "./dist/packet/SetDifficultyPacket.js"
-            },
-            "./packet/SetPlayerFurnaceOptionsPacket": {
-                "types": "./dist/packet/SetPlayerFurnaceOptionsPacket.d.ts",
-                "import": "./dist/packet/SetPlayerFurnaceOptionsPacket.js",
-                "module": "./dist/packet/SetPlayerFurnaceOptionsPacket.js"
-            },
-            "./packet/SetPlayerGameTypePacket": {
-                "types": "./dist/packet/SetPlayerGameTypePacket.d.ts",
-                "import": "./dist/packet/SetPlayerGameTypePacket.js",
-                "module": "./dist/packet/SetPlayerGameTypePacket.js"
-            },
-            "./packet/SetPlayerInventoryOptionsPacket": {
-                "types": "./dist/packet/SetPlayerInventoryOptionsPacket.d.ts",
-                "import": "./dist/packet/SetPlayerInventoryOptionsPacket.js",
-                "module": "./dist/packet/SetPlayerInventoryOptionsPacket.js"
-            },
-            "./packet/SetSpawnPositionPacket": {
-                "types": "./dist/packet/SetSpawnPositionPacket.d.ts",
-                "import": "./dist/packet/SetSpawnPositionPacket.js",
-                "module": "./dist/packet/SetSpawnPositionPacket.js"
-            },
-            "./packet/SetTitlePacket": {
-                "types": "./dist/packet/SetTitlePacket.d.ts",
-                "import": "./dist/packet/SetTitlePacket.js",
-                "module": "./dist/packet/SetTitlePacket.js"
-            },
-            "./packet/SettingsCommandPacket": {
-                "types": "./dist/packet/SettingsCommandPacket.d.ts",
-                "import": "./dist/packet/SettingsCommandPacket.js",
-                "module": "./dist/packet/SettingsCommandPacket.js"
-            },
-            "./packet/ShowCreditsPacket": {
-                "types": "./dist/packet/ShowCreditsPacket.d.ts",
-                "import": "./dist/packet/ShowCreditsPacket.js",
-                "module": "./dist/packet/ShowCreditsPacket.js"
-            },
-            "./packet/SimpleEventPacket": {
-                "types": "./dist/packet/SimpleEventPacket.d.ts",
-                "import": "./dist/packet/SimpleEventPacket.js",
-                "module": "./dist/packet/SimpleEventPacket.js"
-            },
-            "./packet/SpawnParticleEffectPacket": {
-                "types": "./dist/packet/SpawnParticleEffectPacket.d.ts",
-                "import": "./dist/packet/SpawnParticleEffectPacket.js",
-                "module": "./dist/packet/SpawnParticleEffectPacket.js"
-            },
-            "./packet/StartGamePacket": {
-                "types": "./dist/packet/StartGamePacket.d.ts",
-                "import": "./dist/packet/StartGamePacket.js",
-                "module": "./dist/packet/StartGamePacket.js"
-            },
-            "./packet/StopSoundPacket": {
-                "types": "./dist/packet/StopSoundPacket.d.ts",
-                "import": "./dist/packet/StopSoundPacket.js",
-                "module": "./dist/packet/StopSoundPacket.js"
-            },
-            "./packet/StructureBlockUpdatePacket": {
-                "types": "./dist/packet/StructureBlockUpdatePacket.d.ts",
-                "import": "./dist/packet/StructureBlockUpdatePacket.js",
-                "module": "./dist/packet/StructureBlockUpdatePacket.js"
-            },
-            "./packet/StructureTemplateDataRequestPacket": {
-                "types": "./dist/packet/StructureTemplateDataRequestPacket.d.ts",
-                "import": "./dist/packet/StructureTemplateDataRequestPacket.js",
-                "module": "./dist/packet/StructureTemplateDataRequestPacket.js"
-            },
-            "./packet/SubChunkPacket": {
-                "types": "./dist/packet/SubChunkPacket.d.ts",
-                "import": "./dist/packet/SubChunkPacket.js",
-                "module": "./dist/packet/SubChunkPacket.js"
-            },
-            "./packet/SubChunkRequestPacket": {
-                "types": "./dist/packet/SubChunkRequestPacket.d.ts",
-                "import": "./dist/packet/SubChunkRequestPacket.js",
-                "module": "./dist/packet/SubChunkRequestPacket.js"
-            },
-            "./packet/SubClientLoginPacket": {
-                "types": "./dist/packet/SubClientLoginPacket.d.ts",
-                "import": "./dist/packet/SubClientLoginPacket.js",
-                "module": "./dist/packet/SubClientLoginPacket.js"
-            },
-            "./packet/SyncActorPropertyPacket": {
-                "types": "./dist/packet/SyncActorPropertyPacket.d.ts",
-                "import": "./dist/packet/SyncActorPropertyPacket.js",
-                "module": "./dist/packet/SyncActorPropertyPacket.js"
-            },
-            "./packet/TextPacket": {
-                "types": "./dist/packet/TextPacket.d.ts",
-                "import": "./dist/packet/TextPacket.js",
-                "module": "./dist/packet/TextPacket.js"
-            },
-            "./packet/TickingAreasLoadStatusPacket": {
-                "types": "./dist/packet/TickingAreasLoadStatusPacket.d.ts",
-                "import": "./dist/packet/TickingAreasLoadStatusPacket.js",
-                "module": "./dist/packet/TickingAreasLoadStatusPacket.js"
-            },
-            "./packet/TransferPacket": {
-                "types": "./dist/packet/TransferPacket.d.ts",
-                "import": "./dist/packet/TransferPacket.js",
-                "module": "./dist/packet/TransferPacket.js"
-            },
-            "./packet/UnlockedRecipesPacket": {
-                "types": "./dist/packet/UnlockedRecipesPacket.d.ts",
-                "import": "./dist/packet/UnlockedRecipesPacket.js",
-                "module": "./dist/packet/UnlockedRecipesPacket.js"
-            },
-            "./packet/UpdateAbilitiesPacket": {
-                "types": "./dist/packet/UpdateAbilitiesPacket.d.ts",
-                "import": "./dist/packet/UpdateAbilitiesPacket.js",
-                "module": "./dist/packet/UpdateAbilitiesPacket.js"
-            },
-            "./packet/UpdateAdventureSettingsPacket": {
-                "types": "./dist/packet/UpdateAdventureSettingsPacket.d.ts",
-                "import": "./dist/packet/UpdateAdventureSettingsPacket.js",
-                "module": "./dist/packet/UpdateAdventureSettingsPacket.js"
-            },
-            "./packet/UpdateAttributesPacket": {
-                "types": "./dist/packet/UpdateAttributesPacket.d.ts",
-                "import": "./dist/packet/UpdateAttributesPacket.js",
-                "module": "./dist/packet/UpdateAttributesPacket.js"
-            },
-            "./packet/UpdateBlockPacket": {
-                "types": "./dist/packet/UpdateBlockPacket.d.ts",
-                "import": "./dist/packet/UpdateBlockPacket.js",
-                "module": "./dist/packet/UpdateBlockPacket.js"
-            },
-            "./packet/UpdateClientOptionsPacket": {
-                "types": "./dist/packet/UpdateClientOptionsPacket.d.ts",
-                "import": "./dist/packet/UpdateClientOptionsPacket.js",
-                "module": "./dist/packet/UpdateClientOptionsPacket.js"
-            },
-            "./packet/UpdatePlayerGameTypePacket": {
-                "types": "./dist/packet/UpdatePlayerGameTypePacket.d.ts",
-                "import": "./dist/packet/UpdatePlayerGameTypePacket.js",
-                "module": "./dist/packet/UpdatePlayerGameTypePacket.js"
-            },
-            "./packet/UpdateSubChunkBlocksPacket": {
-                "types": "./dist/packet/UpdateSubChunkBlocksPacket.d.ts",
-                "import": "./dist/packet/UpdateSubChunkBlocksPacket.js",
-                "module": "./dist/packet/UpdateSubChunkBlocksPacket.js"
-            },
-            "./packet/UpdateTradePacket": {
-                "types": "./dist/packet/UpdateTradePacket.d.ts",
-                "import": "./dist/packet/UpdateTradePacket.js",
-                "module": "./dist/packet/UpdateTradePacket.js"
-            },
-            "./payload": {
-                "types": "./dist/payload/index.d.ts",
-                "import": "./dist/payload/index.js",
-                "module": "./dist/payload/index.js"
-            },
-            "./structure/BlockPos": {
-                "types": "./dist/structure/BlockPos.d.ts",
-                "import": "./dist/structure/BlockPos.js",
-                "module": "./dist/structure/BlockPos.js"
-            },
-            "./structure/DimensionDefinition": {
-                "types": "./dist/structure/DimensionDefinition.d.ts",
-                "import": "./dist/structure/DimensionDefinition.js",
-                "module": "./dist/structure/DimensionDefinition.js"
-            },
-            "./structure/PlayerPartyInfo": {
-                "types": "./dist/structure/PlayerPartyInfo.d.ts",
-                "import": "./dist/structure/PlayerPartyInfo.js",
-                "module": "./dist/structure/PlayerPartyInfo.js"
-            },
-            "./structure/PrimitiveShapeData": {
-                "types": "./dist/structure/PrimitiveShapeData.d.ts",
-                "import": "./dist/structure/PrimitiveShapeData.js",
-                "module": "./dist/structure/PrimitiveShapeData.js"
-            },
-            "./structure/StructureSettings": {
-                "types": "./dist/structure/StructureSettings.d.ts",
-                "import": "./dist/structure/StructureSettings.js",
-                "module": "./dist/structure/StructureSettings.js"
-            },
-            "./structure/SubChunkHeightmapData": {
-                "types": "./dist/structure/SubChunkHeightmapData.d.ts",
-                "import": "./dist/structure/SubChunkHeightmapData.js",
-                "module": "./dist/structure/SubChunkHeightmapData.js"
-            },
-            "./structure/SubChunkPos": {
-                "types": "./dist/structure/SubChunkPos.d.ts",
-                "import": "./dist/structure/SubChunkPos.js",
-                "module": "./dist/structure/SubChunkPos.js"
-            },
-            "./structure/SubChunkPosOffset": {
-                "types": "./dist/structure/SubChunkPosOffset.d.ts",
-                "import": "./dist/structure/SubChunkPosOffset.js",
-                "module": "./dist/structure/SubChunkPosOffset.js"
-            },
-            "./structure/UUID": {
-                "types": "./dist/structure/UUID.d.ts",
-                "import": "./dist/structure/UUID.js",
-                "module": "./dist/structure/UUID.js"
-            },
-            "./structure/UpdateSubChunkNetworkBlockInfo": {
-                "types": "./dist/structure/UpdateSubChunkNetworkBlockInfo.d.ts",
-                "import": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js",
-                "module": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js"
-            },
-            "./structure/Vec2": {
-                "types": "./dist/structure/Vec2.d.ts",
-                "import": "./dist/structure/Vec2.js",
-                "module": "./dist/structure/Vec2.js"
-            },
-            "./structure/Vec3": {
-                "types": "./dist/structure/Vec3.d.ts",
-                "import": "./dist/structure/Vec3.js",
-                "module": "./dist/structure/Vec3.js"
-            },
-            "./wire/definitions/addActor": {
-                "types": "./dist/wire/definitions/addActor.d.ts",
-                "import": "./dist/wire/definitions/addActor.js",
-                "module": "./dist/wire/definitions/addActor.js"
-            },
-            "./wire/definitions/animate": {
-                "types": "./dist/wire/definitions/animate.d.ts",
-                "import": "./dist/wire/definitions/animate.js",
-                "module": "./dist/wire/definitions/animate.js"
-            },
-            "./wire/definitions/playerList": {
-                "types": "./dist/wire/definitions/playerList.d.ts",
-                "import": "./dist/wire/definitions/playerList.js",
-                "module": "./dist/wire/definitions/playerList.js"
-            },
-            "./wire/definitions/playerSkin": {
-                "types": "./dist/wire/definitions/playerSkin.d.ts",
-                "import": "./dist/wire/definitions/playerSkin.js",
-                "module": "./dist/wire/definitions/playerSkin.js"
+            "./bedrock/packet/ActorEventPacket": {
+                "types": "./dist/bedrock/packet/ActorEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/ActorEventPacket.js",
+                "module": "./dist/bedrock/packet/ActorEventPacket.js"
+            },
+            "./bedrock/packet/ActorPickRequestPacket": {
+                "types": "./dist/bedrock/packet/ActorPickRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/ActorPickRequestPacket.js",
+                "module": "./dist/bedrock/packet/ActorPickRequestPacket.js"
+            },
+            "./bedrock/packet/AddActorPacket": {
+                "types": "./dist/bedrock/packet/AddActorPacket.d.ts",
+                "import": "./dist/bedrock/packet/AddActorPacket.js",
+                "module": "./dist/bedrock/packet/AddActorPacket.js"
+            },
+            "./bedrock/packet/AddItemActorPacket": {
+                "types": "./dist/bedrock/packet/AddItemActorPacket.d.ts",
+                "import": "./dist/bedrock/packet/AddItemActorPacket.js",
+                "module": "./dist/bedrock/packet/AddItemActorPacket.js"
+            },
+            "./bedrock/packet/AddPaintingPacket": {
+                "types": "./dist/bedrock/packet/AddPaintingPacket.d.ts",
+                "import": "./dist/bedrock/packet/AddPaintingPacket.js",
+                "module": "./dist/bedrock/packet/AddPaintingPacket.js"
+            },
+            "./bedrock/packet/AddPlayerPacket": {
+                "types": "./dist/bedrock/packet/AddPlayerPacket.d.ts",
+                "import": "./dist/bedrock/packet/AddPlayerPacket.js",
+                "module": "./dist/bedrock/packet/AddPlayerPacket.js"
+            },
+            "./bedrock/packet/AnimateEntityPacket": {
+                "types": "./dist/bedrock/packet/AnimateEntityPacket.d.ts",
+                "import": "./dist/bedrock/packet/AnimateEntityPacket.js",
+                "module": "./dist/bedrock/packet/AnimateEntityPacket.js"
+            },
+            "./bedrock/packet/AnimatePacket": {
+                "types": "./dist/bedrock/packet/AnimatePacket.d.ts",
+                "import": "./dist/bedrock/packet/AnimatePacket.js",
+                "module": "./dist/bedrock/packet/AnimatePacket.js"
+            },
+            "./bedrock/packet/AnvilDamagePacket": {
+                "types": "./dist/bedrock/packet/AnvilDamagePacket.d.ts",
+                "import": "./dist/bedrock/packet/AnvilDamagePacket.js",
+                "module": "./dist/bedrock/packet/AnvilDamagePacket.js"
+            },
+            "./bedrock/packet/AvailableActorIdentifiersPacket": {
+                "types": "./dist/bedrock/packet/AvailableActorIdentifiersPacket.d.ts",
+                "import": "./dist/bedrock/packet/AvailableActorIdentifiersPacket.js",
+                "module": "./dist/bedrock/packet/AvailableActorIdentifiersPacket.js"
+            },
+            "./bedrock/packet/AvailableCommandsPacket": {
+                "types": "./dist/bedrock/packet/AvailableCommandsPacket.d.ts",
+                "import": "./dist/bedrock/packet/AvailableCommandsPacket.js",
+                "module": "./dist/bedrock/packet/AvailableCommandsPacket.js"
+            },
+            "./bedrock/packet/BiomeDefinitionListPacket": {
+                "types": "./dist/bedrock/packet/BiomeDefinitionListPacket.d.ts",
+                "import": "./dist/bedrock/packet/BiomeDefinitionListPacket.js",
+                "module": "./dist/bedrock/packet/BiomeDefinitionListPacket.js"
+            },
+            "./bedrock/packet/BlockActorDataPacket": {
+                "types": "./dist/bedrock/packet/BlockActorDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/BlockActorDataPacket.js",
+                "module": "./dist/bedrock/packet/BlockActorDataPacket.js"
+            },
+            "./bedrock/packet/BlockEventPacket": {
+                "types": "./dist/bedrock/packet/BlockEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/BlockEventPacket.js",
+                "module": "./dist/bedrock/packet/BlockEventPacket.js"
+            },
+            "./bedrock/packet/BlockPickRequestPacket": {
+                "types": "./dist/bedrock/packet/BlockPickRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/BlockPickRequestPacket.js",
+                "module": "./dist/bedrock/packet/BlockPickRequestPacket.js"
+            },
+            "./bedrock/packet/BookEditPacket": {
+                "types": "./dist/bedrock/packet/BookEditPacket.d.ts",
+                "import": "./dist/bedrock/packet/BookEditPacket.js",
+                "module": "./dist/bedrock/packet/BookEditPacket.js"
+            },
+            "./bedrock/packet/BossEventPacket": {
+                "types": "./dist/bedrock/packet/BossEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/BossEventPacket.js",
+                "module": "./dist/bedrock/packet/BossEventPacket.js"
+            },
+            "./bedrock/packet/CameraShakePacket": {
+                "types": "./dist/bedrock/packet/CameraShakePacket.d.ts",
+                "import": "./dist/bedrock/packet/CameraShakePacket.js",
+                "module": "./dist/bedrock/packet/CameraShakePacket.js"
+            },
+            "./bedrock/packet/ChangeDimensionPacket": {
+                "types": "./dist/bedrock/packet/ChangeDimensionPacket.d.ts",
+                "import": "./dist/bedrock/packet/ChangeDimensionPacket.js",
+                "module": "./dist/bedrock/packet/ChangeDimensionPacket.js"
+            },
+            "./bedrock/packet/ChunkRadiusUpdatedPacket": {
+                "types": "./dist/bedrock/packet/ChunkRadiusUpdatedPacket.d.ts",
+                "import": "./dist/bedrock/packet/ChunkRadiusUpdatedPacket.js",
+                "module": "./dist/bedrock/packet/ChunkRadiusUpdatedPacket.js"
+            },
+            "./bedrock/packet/ClientCacheBlobStatusPacket": {
+                "types": "./dist/bedrock/packet/ClientCacheBlobStatusPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientCacheBlobStatusPacket.js",
+                "module": "./dist/bedrock/packet/ClientCacheBlobStatusPacket.js"
+            },
+            "./bedrock/packet/ClientCacheMissResponsePacket": {
+                "types": "./dist/bedrock/packet/ClientCacheMissResponsePacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientCacheMissResponsePacket.js",
+                "module": "./dist/bedrock/packet/ClientCacheMissResponsePacket.js"
+            },
+            "./bedrock/packet/ClientCacheStatusPacket": {
+                "types": "./dist/bedrock/packet/ClientCacheStatusPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientCacheStatusPacket.js",
+                "module": "./dist/bedrock/packet/ClientCacheStatusPacket.js"
+            },
+            "./bedrock/packet/ClientCameraAimAssistPacket": {
+                "types": "./dist/bedrock/packet/ClientCameraAimAssistPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientCameraAimAssistPacket.js",
+                "module": "./dist/bedrock/packet/ClientCameraAimAssistPacket.js"
+            },
+            "./bedrock/packet/ClientMovementPredictionSyncPacket": {
+                "types": "./dist/bedrock/packet/ClientMovementPredictionSyncPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientMovementPredictionSyncPacket.js",
+                "module": "./dist/bedrock/packet/ClientMovementPredictionSyncPacket.js"
+            },
+            "./bedrock/packet/ClientToServerHandshakePacket": {
+                "types": "./dist/bedrock/packet/ClientToServerHandshakePacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientToServerHandshakePacket.js",
+                "module": "./dist/bedrock/packet/ClientToServerHandshakePacket.js"
+            },
+            "./bedrock/packet/ClientboundCloseFormPacket": {
+                "types": "./dist/bedrock/packet/ClientboundCloseFormPacket.d.ts",
+                "import": "./dist/bedrock/packet/ClientboundCloseFormPacket.js",
+                "module": "./dist/bedrock/packet/ClientboundCloseFormPacket.js"
+            },
+            "./bedrock/packet/CommandBlockUpdatePacket": {
+                "types": "./dist/bedrock/packet/CommandBlockUpdatePacket.d.ts",
+                "import": "./dist/bedrock/packet/CommandBlockUpdatePacket.js",
+                "module": "./dist/bedrock/packet/CommandBlockUpdatePacket.js"
+            },
+            "./bedrock/packet/ContainerClosePacket": {
+                "types": "./dist/bedrock/packet/ContainerClosePacket.d.ts",
+                "import": "./dist/bedrock/packet/ContainerClosePacket.js",
+                "module": "./dist/bedrock/packet/ContainerClosePacket.js"
+            },
+            "./bedrock/packet/ContainerOpenPacket": {
+                "types": "./dist/bedrock/packet/ContainerOpenPacket.d.ts",
+                "import": "./dist/bedrock/packet/ContainerOpenPacket.js",
+                "module": "./dist/bedrock/packet/ContainerOpenPacket.js"
+            },
+            "./bedrock/packet/ContainerSetDataPacket": {
+                "types": "./dist/bedrock/packet/ContainerSetDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/ContainerSetDataPacket.js",
+                "module": "./dist/bedrock/packet/ContainerSetDataPacket.js"
+            },
+            "./bedrock/packet/CraftingDataPacket": {
+                "types": "./dist/bedrock/packet/CraftingDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/CraftingDataPacket.js",
+                "module": "./dist/bedrock/packet/CraftingDataPacket.js"
+            },
+            "./bedrock/packet/CreativeContentPacket": {
+                "types": "./dist/bedrock/packet/CreativeContentPacket.d.ts",
+                "import": "./dist/bedrock/packet/CreativeContentPacket.js",
+                "module": "./dist/bedrock/packet/CreativeContentPacket.js"
+            },
+            "./bedrock/packet/DeathInfoPacket": {
+                "types": "./dist/bedrock/packet/DeathInfoPacket.d.ts",
+                "import": "./dist/bedrock/packet/DeathInfoPacket.js",
+                "module": "./dist/bedrock/packet/DeathInfoPacket.js"
+            },
+            "./bedrock/packet/DimensionDataPacket": {
+                "types": "./dist/bedrock/packet/DimensionDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/DimensionDataPacket.js",
+                "module": "./dist/bedrock/packet/DimensionDataPacket.js"
+            },
+            "./bedrock/packet/EmoteListPacket": {
+                "types": "./dist/bedrock/packet/EmoteListPacket.d.ts",
+                "import": "./dist/bedrock/packet/EmoteListPacket.js",
+                "module": "./dist/bedrock/packet/EmoteListPacket.js"
+            },
+            "./bedrock/packet/EmotePacket": {
+                "types": "./dist/bedrock/packet/EmotePacket.d.ts",
+                "import": "./dist/bedrock/packet/EmotePacket.js",
+                "module": "./dist/bedrock/packet/EmotePacket.js"
+            },
+            "./bedrock/packet/ScriptMessagePacket": {
+                "types": "./dist/bedrock/packet/ScriptMessagePacket.d.ts",
+                "import": "./dist/bedrock/packet/ScriptMessagePacket.js",
+                "module": "./dist/bedrock/packet/ScriptMessagePacket.js"
+            },
+            "./bedrock/packet/FeatureRegistryPacket": {
+                "types": "./dist/bedrock/packet/FeatureRegistryPacket.d.ts",
+                "import": "./dist/bedrock/packet/FeatureRegistryPacket.js",
+                "module": "./dist/bedrock/packet/FeatureRegistryPacket.js"
+            },
+            "./bedrock/packet/GameRulesChangedPacket": {
+                "types": "./dist/bedrock/packet/GameRulesChangedPacket.d.ts",
+                "import": "./dist/bedrock/packet/GameRulesChangedPacket.js",
+                "module": "./dist/bedrock/packet/GameRulesChangedPacket.js"
+            },
+            "./bedrock/packet/InteractPacket": {
+                "types": "./dist/bedrock/packet/InteractPacket.d.ts",
+                "import": "./dist/bedrock/packet/InteractPacket.js",
+                "module": "./dist/bedrock/packet/InteractPacket.js"
+            },
+            "./bedrock/packet/InventoryContentPacket": {
+                "types": "./dist/bedrock/packet/InventoryContentPacket.d.ts",
+                "import": "./dist/bedrock/packet/InventoryContentPacket.js",
+                "module": "./dist/bedrock/packet/InventoryContentPacket.js"
+            },
+            "./bedrock/packet/InventorySlotPacket": {
+                "types": "./dist/bedrock/packet/InventorySlotPacket.d.ts",
+                "import": "./dist/bedrock/packet/InventorySlotPacket.js",
+                "module": "./dist/bedrock/packet/InventorySlotPacket.js"
+            },
+            "./bedrock/packet/InventoryTransactionPacket": {
+                "types": "./dist/bedrock/packet/InventoryTransactionPacket.d.ts",
+                "import": "./dist/bedrock/packet/InventoryTransactionPacket.js",
+                "module": "./dist/bedrock/packet/InventoryTransactionPacket.js"
+            },
+            "./bedrock/packet/ItemRegistryPacket": {
+                "types": "./dist/bedrock/packet/ItemRegistryPacket.d.ts",
+                "import": "./dist/bedrock/packet/ItemRegistryPacket.js",
+                "module": "./dist/bedrock/packet/ItemRegistryPacket.js"
+            },
+            "./bedrock/packet/ItemStackRequestPacket": {
+                "types": "./dist/bedrock/packet/ItemStackRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/ItemStackRequestPacket.js",
+                "module": "./dist/bedrock/packet/ItemStackRequestPacket.js"
+            },
+            "./bedrock/packet/ItemStackResponsePacket": {
+                "types": "./dist/bedrock/packet/ItemStackResponsePacket.d.ts",
+                "import": "./dist/bedrock/packet/ItemStackResponsePacket.js",
+                "module": "./dist/bedrock/packet/ItemStackResponsePacket.js"
+            },
+            "./bedrock/packet/JigsawStructureDataPacket": {
+                "types": "./dist/bedrock/packet/JigsawStructureDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/JigsawStructureDataPacket.js",
+                "module": "./dist/bedrock/packet/JigsawStructureDataPacket.js"
+            },
+            "./bedrock/packet/LabTablePacket": {
+                "types": "./dist/bedrock/packet/LabTablePacket.d.ts",
+                "import": "./dist/bedrock/packet/LabTablePacket.js",
+                "module": "./dist/bedrock/packet/LabTablePacket.js"
+            },
+            "./bedrock/packet/LecternUpdatePacket": {
+                "types": "./dist/bedrock/packet/LecternUpdatePacket.d.ts",
+                "import": "./dist/bedrock/packet/LecternUpdatePacket.js",
+                "module": "./dist/bedrock/packet/LecternUpdatePacket.js"
+            },
+            "./bedrock/packet/LevelChunkPacket": {
+                "types": "./dist/bedrock/packet/LevelChunkPacket.d.ts",
+                "import": "./dist/bedrock/packet/LevelChunkPacket.js",
+                "module": "./dist/bedrock/packet/LevelChunkPacket.js"
+            },
+            "./bedrock/packet/LevelEventPacket": {
+                "types": "./dist/bedrock/packet/LevelEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/LevelEventPacket.js",
+                "module": "./dist/bedrock/packet/LevelEventPacket.js"
+            },
+            "./bedrock/packet/LevelSoundEventPacket": {
+                "types": "./dist/bedrock/packet/LevelSoundEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/LevelSoundEventPacket.js",
+                "module": "./dist/bedrock/packet/LevelSoundEventPacket.js"
+            },
+            "./bedrock/packet/LoginPacket": {
+                "types": "./dist/bedrock/packet/LoginPacket.d.ts",
+                "import": "./dist/bedrock/packet/LoginPacket.js",
+                "module": "./dist/bedrock/packet/LoginPacket.js"
+            },
+            "./bedrock/packet/MapCreateLockedCopyPacket": {
+                "types": "./dist/bedrock/packet/MapCreateLockedCopyPacket.d.ts",
+                "import": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js",
+                "module": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js"
+            },
+            "./bedrock/packet/MapInfoRequestPacket": {
+                "types": "./dist/bedrock/packet/MapInfoRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/MapInfoRequestPacket.js",
+                "module": "./dist/bedrock/packet/MapInfoRequestPacket.js"
+            },
+            "./bedrock/packet/MobArmorEquipmentPacket": {
+                "types": "./dist/bedrock/packet/MobArmorEquipmentPacket.d.ts",
+                "import": "./dist/bedrock/packet/MobArmorEquipmentPacket.js",
+                "module": "./dist/bedrock/packet/MobArmorEquipmentPacket.js"
+            },
+            "./bedrock/packet/MobEffectPacket": {
+                "types": "./dist/bedrock/packet/MobEffectPacket.d.ts",
+                "import": "./dist/bedrock/packet/MobEffectPacket.js",
+                "module": "./dist/bedrock/packet/MobEffectPacket.js"
+            },
+            "./bedrock/packet/MobEquipmentPacket": {
+                "types": "./dist/bedrock/packet/MobEquipmentPacket.d.ts",
+                "import": "./dist/bedrock/packet/MobEquipmentPacket.js",
+                "module": "./dist/bedrock/packet/MobEquipmentPacket.js"
+            },
+            "./bedrock/packet/ModalFormRequestPacket": {
+                "types": "./dist/bedrock/packet/ModalFormRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/ModalFormRequestPacket.js",
+                "module": "./dist/bedrock/packet/ModalFormRequestPacket.js"
+            },
+            "./bedrock/packet/ModalFormResponsePacket": {
+                "types": "./dist/bedrock/packet/ModalFormResponsePacket.d.ts",
+                "import": "./dist/bedrock/packet/ModalFormResponsePacket.js",
+                "module": "./dist/bedrock/packet/ModalFormResponsePacket.js"
+            },
+            "./bedrock/packet/MoveActorAbsolutePacket": {
+                "types": "./dist/bedrock/packet/MoveActorAbsolutePacket.d.ts",
+                "import": "./dist/bedrock/packet/MoveActorAbsolutePacket.js",
+                "module": "./dist/bedrock/packet/MoveActorAbsolutePacket.js"
+            },
+            "./bedrock/packet/MoveActorDeltaPacket": {
+                "types": "./dist/bedrock/packet/MoveActorDeltaPacket.d.ts",
+                "import": "./dist/bedrock/packet/MoveActorDeltaPacket.js",
+                "module": "./dist/bedrock/packet/MoveActorDeltaPacket.js"
+            },
+            "./bedrock/packet/MovePlayerPacket": {
+                "types": "./dist/bedrock/packet/MovePlayerPacket.d.ts",
+                "import": "./dist/bedrock/packet/MovePlayerPacket.js",
+                "module": "./dist/bedrock/packet/MovePlayerPacket.js"
+            },
+            "./bedrock/packet/MultiplayerSettingsPacket": {
+                "types": "./dist/bedrock/packet/MultiplayerSettingsPacket.d.ts",
+                "import": "./dist/bedrock/packet/MultiplayerSettingsPacket.js",
+                "module": "./dist/bedrock/packet/MultiplayerSettingsPacket.js"
+            },
+            "./bedrock/packet/NetworkChunkPublisherUpdatePacket": {
+                "types": "./dist/bedrock/packet/NetworkChunkPublisherUpdatePacket.d.ts",
+                "import": "./dist/bedrock/packet/NetworkChunkPublisherUpdatePacket.js",
+                "module": "./dist/bedrock/packet/NetworkChunkPublisherUpdatePacket.js"
+            },
+            "./bedrock/packet/NetworkStackLatencyPacket": {
+                "types": "./dist/bedrock/packet/NetworkStackLatencyPacket.d.ts",
+                "import": "./dist/bedrock/packet/NetworkStackLatencyPacket.js",
+                "module": "./dist/bedrock/packet/NetworkStackLatencyPacket.js"
+            },
+            "./bedrock/packet/NpcRequestPacket": {
+                "types": "./dist/bedrock/packet/NpcRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/NpcRequestPacket.js",
+                "module": "./dist/bedrock/packet/NpcRequestPacket.js"
+            },
+            "./bedrock/packet/PacketViolationWarningPacket": {
+                "types": "./dist/bedrock/packet/PacketViolationWarningPacket.d.ts",
+                "import": "./dist/bedrock/packet/PacketViolationWarningPacket.js",
+                "module": "./dist/bedrock/packet/PacketViolationWarningPacket.js"
+            },
+            "./bedrock/packet/PartyChangedPacket": {
+                "types": "./dist/bedrock/packet/PartyChangedPacket.d.ts",
+                "import": "./dist/bedrock/packet/PartyChangedPacket.js",
+                "module": "./dist/bedrock/packet/PartyChangedPacket.js"
+            },
+            "./bedrock/packet/PhotoTransferPacket": {
+                "types": "./dist/bedrock/packet/PhotoTransferPacket.d.ts",
+                "import": "./dist/bedrock/packet/PhotoTransferPacket.js",
+                "module": "./dist/bedrock/packet/PhotoTransferPacket.js"
+            },
+            "./bedrock/packet/PlaySoundPacket": {
+                "types": "./dist/bedrock/packet/PlaySoundPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlaySoundPacket.js",
+                "module": "./dist/bedrock/packet/PlaySoundPacket.js"
+            },
+            "./bedrock/packet/PlayerActionPacket": {
+                "types": "./dist/bedrock/packet/PlayerActionPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerActionPacket.js",
+                "module": "./dist/bedrock/packet/PlayerActionPacket.js"
+            },
+            "./bedrock/packet/PlayerAuthInputPacket": {
+                "types": "./dist/bedrock/packet/PlayerAuthInputPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerAuthInputPacket.js",
+                "module": "./dist/bedrock/packet/PlayerAuthInputPacket.js"
+            },
+            "./bedrock/packet/PlayerEnchantOptionsPacket": {
+                "types": "./dist/bedrock/packet/PlayerEnchantOptionsPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerEnchantOptionsPacket.js",
+                "module": "./dist/bedrock/packet/PlayerEnchantOptionsPacket.js"
+            },
+            "./bedrock/packet/PlayerFogPacket": {
+                "types": "./dist/bedrock/packet/PlayerFogPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerFogPacket.js",
+                "module": "./dist/bedrock/packet/PlayerFogPacket.js"
+            },
+            "./bedrock/packet/PlayerHotbarPacket": {
+                "types": "./dist/bedrock/packet/PlayerHotbarPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerHotbarPacket.js",
+                "module": "./dist/bedrock/packet/PlayerHotbarPacket.js"
+            },
+            "./bedrock/packet/PlayerListPacket": {
+                "types": "./dist/bedrock/packet/PlayerListPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerListPacket.js",
+                "module": "./dist/bedrock/packet/PlayerListPacket.js"
+            },
+            "./bedrock/packet/PlayerLocationPacket": {
+                "types": "./dist/bedrock/packet/PlayerLocationPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerLocationPacket.js",
+                "module": "./dist/bedrock/packet/PlayerLocationPacket.js"
+            },
+            "./bedrock/packet/PlayerSkinPacket": {
+                "types": "./dist/bedrock/packet/PlayerSkinPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerSkinPacket.js",
+                "module": "./dist/bedrock/packet/PlayerSkinPacket.js"
+            },
+            "./bedrock/packet/PlayerToggleCrafterSlotRequestPacket": {
+                "types": "./dist/bedrock/packet/PlayerToggleCrafterSlotRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/PlayerToggleCrafterSlotRequestPacket.js",
+                "module": "./dist/bedrock/packet/PlayerToggleCrafterSlotRequestPacket.js"
+            },
+            "./bedrock/packet/PositionTrackingDBClientRequestPacket": {
+                "types": "./dist/bedrock/packet/PositionTrackingDBClientRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/PositionTrackingDBClientRequestPacket.js",
+                "module": "./dist/bedrock/packet/PositionTrackingDBClientRequestPacket.js"
+            },
+            "./bedrock/packet/PrimitiveShapesPacket": {
+                "types": "./dist/bedrock/packet/PrimitiveShapesPacket.d.ts",
+                "import": "./dist/bedrock/packet/PrimitiveShapesPacket.js",
+                "module": "./dist/bedrock/packet/PrimitiveShapesPacket.js"
+            },
+            "./bedrock/packet/PurchaseReceiptPacket": {
+                "types": "./dist/bedrock/packet/PurchaseReceiptPacket.d.ts",
+                "import": "./dist/bedrock/packet/PurchaseReceiptPacket.js",
+                "module": "./dist/bedrock/packet/PurchaseReceiptPacket.js"
+            },
+            "./bedrock/packet/RemoveActorPacket": {
+                "types": "./dist/bedrock/packet/RemoveActorPacket.d.ts",
+                "import": "./dist/bedrock/packet/RemoveActorPacket.js",
+                "module": "./dist/bedrock/packet/RemoveActorPacket.js"
+            },
+            "./bedrock/packet/RequestAbilityPacket": {
+                "types": "./dist/bedrock/packet/RequestAbilityPacket.d.ts",
+                "import": "./dist/bedrock/packet/RequestAbilityPacket.js",
+                "module": "./dist/bedrock/packet/RequestAbilityPacket.js"
+            },
+            "./bedrock/packet/RequestPermissionsPacket": {
+                "types": "./dist/bedrock/packet/RequestPermissionsPacket.d.ts",
+                "import": "./dist/bedrock/packet/RequestPermissionsPacket.js",
+                "module": "./dist/bedrock/packet/RequestPermissionsPacket.js"
+            },
+            "./bedrock/packet/ResourcePackChunkRequestPacket": {
+                "types": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.js"
+            },
+            "./bedrock/packet/ResourcePackClientResponsePacket": {
+                "types": "./dist/bedrock/packet/ResourcePackClientResponsePacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePackClientResponsePacket.js",
+                "module": "./dist/bedrock/packet/ResourcePackClientResponsePacket.js"
+            },
+            "./bedrock/packet/ResourcePackStackPacket": {
+                "types": "./dist/bedrock/packet/ResourcePackStackPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePackStackPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePackStackPacket.js"
+            },
+            "./bedrock/packet/ResourcePacksInfoPacket": {
+                "types": "./dist/bedrock/packet/ResourcePacksInfoPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePacksInfoPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePacksInfoPacket.js"
+            },
+            "./bedrock/packet/ResourcePacksReadyForValidationPacket": {
+                "types": "./dist/bedrock/packet/ResourcePacksReadyForValidationPacket.d.ts",
+                "import": "./dist/bedrock/packet/ResourcePacksReadyForValidationPacket.js",
+                "module": "./dist/bedrock/packet/ResourcePacksReadyForValidationPacket.js"
+            },
+            "./bedrock/packet/RespawnPacket": {
+                "types": "./dist/bedrock/packet/RespawnPacket.d.ts",
+                "import": "./dist/bedrock/packet/RespawnPacket.js",
+                "module": "./dist/bedrock/packet/RespawnPacket.js"
+            },
+            "./bedrock/packet/ServerSettingsRequestPacket": {
+                "types": "./dist/bedrock/packet/ServerSettingsRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerSettingsRequestPacket.js",
+                "module": "./dist/bedrock/packet/ServerSettingsRequestPacket.js"
+            },
+            "./bedrock/packet/ServerToClientHandshakePacket": {
+                "types": "./dist/bedrock/packet/ServerToClientHandshakePacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerToClientHandshakePacket.js",
+                "module": "./dist/bedrock/packet/ServerToClientHandshakePacket.js"
+            },
+            "./bedrock/packet/ServerboundDiagnosticsPacket": {
+                "types": "./dist/bedrock/packet/ServerboundDiagnosticsPacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerboundDiagnosticsPacket.js",
+                "module": "./dist/bedrock/packet/ServerboundDiagnosticsPacket.js"
+            },
+            "./bedrock/packet/ServerboundLoadingScreenPacket": {
+                "types": "./dist/bedrock/packet/ServerboundLoadingScreenPacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerboundLoadingScreenPacket.js",
+                "module": "./dist/bedrock/packet/ServerboundLoadingScreenPacket.js"
+            },
+            "./bedrock/packet/ServerboundPackSettingChangePacket": {
+                "types": "./dist/bedrock/packet/ServerboundPackSettingChangePacket.d.ts",
+                "import": "./dist/bedrock/packet/ServerboundPackSettingChangePacket.js",
+                "module": "./dist/bedrock/packet/ServerboundPackSettingChangePacket.js"
+            },
+            "./bedrock/packet/SetActorDataPacket": {
+                "types": "./dist/bedrock/packet/SetActorDataPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetActorDataPacket.js",
+                "module": "./dist/bedrock/packet/SetActorDataPacket.js"
+            },
+            "./bedrock/packet/SetActorLinkPacket": {
+                "types": "./dist/bedrock/packet/SetActorLinkPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetActorLinkPacket.js",
+                "module": "./dist/bedrock/packet/SetActorLinkPacket.js"
+            },
+            "./bedrock/packet/SetActorMotionPacket": {
+                "types": "./dist/bedrock/packet/SetActorMotionPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetActorMotionPacket.js",
+                "module": "./dist/bedrock/packet/SetActorMotionPacket.js"
+            },
+            "./bedrock/packet/SetCommandsEnabledPacket": {
+                "types": "./dist/bedrock/packet/SetCommandsEnabledPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetCommandsEnabledPacket.js",
+                "module": "./dist/bedrock/packet/SetCommandsEnabledPacket.js"
+            },
+            "./bedrock/packet/SetDefaultGameTypePacket": {
+                "types": "./dist/bedrock/packet/SetDefaultGameTypePacket.d.ts",
+                "import": "./dist/bedrock/packet/SetDefaultGameTypePacket.js",
+                "module": "./dist/bedrock/packet/SetDefaultGameTypePacket.js"
+            },
+            "./bedrock/packet/SetDifficultyPacket": {
+                "types": "./dist/bedrock/packet/SetDifficultyPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetDifficultyPacket.js",
+                "module": "./dist/bedrock/packet/SetDifficultyPacket.js"
+            },
+            "./bedrock/packet/SetPlayerFurnaceOptionsPacket": {
+                "types": "./dist/bedrock/packet/SetPlayerFurnaceOptionsPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetPlayerFurnaceOptionsPacket.js",
+                "module": "./dist/bedrock/packet/SetPlayerFurnaceOptionsPacket.js"
+            },
+            "./bedrock/packet/SetPlayerGameTypePacket": {
+                "types": "./dist/bedrock/packet/SetPlayerGameTypePacket.d.ts",
+                "import": "./dist/bedrock/packet/SetPlayerGameTypePacket.js",
+                "module": "./dist/bedrock/packet/SetPlayerGameTypePacket.js"
+            },
+            "./bedrock/packet/SetPlayerInventoryOptionsPacket": {
+                "types": "./dist/bedrock/packet/SetPlayerInventoryOptionsPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetPlayerInventoryOptionsPacket.js",
+                "module": "./dist/bedrock/packet/SetPlayerInventoryOptionsPacket.js"
+            },
+            "./bedrock/packet/SetSpawnPositionPacket": {
+                "types": "./dist/bedrock/packet/SetSpawnPositionPacket.d.ts",
+                "import": "./dist/bedrock/packet/SetSpawnPositionPacket.js",
+                "module": "./dist/bedrock/packet/SetSpawnPositionPacket.js"
+            },
+            "./bedrock/packet/SetTitlePacket": {
+                "types": "./dist/bedrock/packet/SetTitlePacket.d.ts",
+                "import": "./dist/bedrock/packet/SetTitlePacket.js",
+                "module": "./dist/bedrock/packet/SetTitlePacket.js"
+            },
+            "./bedrock/packet/SettingsCommandPacket": {
+                "types": "./dist/bedrock/packet/SettingsCommandPacket.d.ts",
+                "import": "./dist/bedrock/packet/SettingsCommandPacket.js",
+                "module": "./dist/bedrock/packet/SettingsCommandPacket.js"
+            },
+            "./bedrock/packet/ShowCreditsPacket": {
+                "types": "./dist/bedrock/packet/ShowCreditsPacket.d.ts",
+                "import": "./dist/bedrock/packet/ShowCreditsPacket.js",
+                "module": "./dist/bedrock/packet/ShowCreditsPacket.js"
+            },
+            "./bedrock/packet/SimpleEventPacket": {
+                "types": "./dist/bedrock/packet/SimpleEventPacket.d.ts",
+                "import": "./dist/bedrock/packet/SimpleEventPacket.js",
+                "module": "./dist/bedrock/packet/SimpleEventPacket.js"
+            },
+            "./bedrock/packet/SpawnParticleEffectPacket": {
+                "types": "./dist/bedrock/packet/SpawnParticleEffectPacket.d.ts",
+                "import": "./dist/bedrock/packet/SpawnParticleEffectPacket.js",
+                "module": "./dist/bedrock/packet/SpawnParticleEffectPacket.js"
+            },
+            "./bedrock/packet/StartGamePacket": {
+                "types": "./dist/bedrock/packet/StartGamePacket.d.ts",
+                "import": "./dist/bedrock/packet/StartGamePacket.js",
+                "module": "./dist/bedrock/packet/StartGamePacket.js"
+            },
+            "./bedrock/packet/StopSoundPacket": {
+                "types": "./dist/bedrock/packet/StopSoundPacket.d.ts",
+                "import": "./dist/bedrock/packet/StopSoundPacket.js",
+                "module": "./dist/bedrock/packet/StopSoundPacket.js"
+            },
+            "./bedrock/packet/StructureBlockUpdatePacket": {
+                "types": "./dist/bedrock/packet/StructureBlockUpdatePacket.d.ts",
+                "import": "./dist/bedrock/packet/StructureBlockUpdatePacket.js",
+                "module": "./dist/bedrock/packet/StructureBlockUpdatePacket.js"
+            },
+            "./bedrock/packet/StructureTemplateDataRequestPacket": {
+                "types": "./dist/bedrock/packet/StructureTemplateDataRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/StructureTemplateDataRequestPacket.js",
+                "module": "./dist/bedrock/packet/StructureTemplateDataRequestPacket.js"
+            },
+            "./bedrock/packet/SubChunkPacket": {
+                "types": "./dist/bedrock/packet/SubChunkPacket.d.ts",
+                "import": "./dist/bedrock/packet/SubChunkPacket.js",
+                "module": "./dist/bedrock/packet/SubChunkPacket.js"
+            },
+            "./bedrock/packet/SubChunkRequestPacket": {
+                "types": "./dist/bedrock/packet/SubChunkRequestPacket.d.ts",
+                "import": "./dist/bedrock/packet/SubChunkRequestPacket.js",
+                "module": "./dist/bedrock/packet/SubChunkRequestPacket.js"
+            },
+            "./bedrock/packet/SubClientLoginPacket": {
+                "types": "./dist/bedrock/packet/SubClientLoginPacket.d.ts",
+                "import": "./dist/bedrock/packet/SubClientLoginPacket.js",
+                "module": "./dist/bedrock/packet/SubClientLoginPacket.js"
+            },
+            "./bedrock/packet/SyncActorPropertyPacket": {
+                "types": "./dist/bedrock/packet/SyncActorPropertyPacket.d.ts",
+                "import": "./dist/bedrock/packet/SyncActorPropertyPacket.js",
+                "module": "./dist/bedrock/packet/SyncActorPropertyPacket.js"
+            },
+            "./bedrock/packet/TextPacket": {
+                "types": "./dist/bedrock/packet/TextPacket.d.ts",
+                "import": "./dist/bedrock/packet/TextPacket.js",
+                "module": "./dist/bedrock/packet/TextPacket.js"
+            },
+            "./bedrock/packet/TickingAreasLoadStatusPacket": {
+                "types": "./dist/bedrock/packet/TickingAreasLoadStatusPacket.d.ts",
+                "import": "./dist/bedrock/packet/TickingAreasLoadStatusPacket.js",
+                "module": "./dist/bedrock/packet/TickingAreasLoadStatusPacket.js"
+            },
+            "./bedrock/packet/TransferPacket": {
+                "types": "./dist/bedrock/packet/TransferPacket.d.ts",
+                "import": "./dist/bedrock/packet/TransferPacket.js",
+                "module": "./dist/bedrock/packet/TransferPacket.js"
+            },
+            "./bedrock/packet/UnlockedRecipesPacket": {
+                "types": "./dist/bedrock/packet/UnlockedRecipesPacket.d.ts",
+                "import": "./dist/bedrock/packet/UnlockedRecipesPacket.js",
+                "module": "./dist/bedrock/packet/UnlockedRecipesPacket.js"
+            },
+            "./bedrock/packet/UpdateAbilitiesPacket": {
+                "types": "./dist/bedrock/packet/UpdateAbilitiesPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateAbilitiesPacket.js",
+                "module": "./dist/bedrock/packet/UpdateAbilitiesPacket.js"
+            },
+            "./bedrock/packet/UpdateAdventureSettingsPacket": {
+                "types": "./dist/bedrock/packet/UpdateAdventureSettingsPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateAdventureSettingsPacket.js",
+                "module": "./dist/bedrock/packet/UpdateAdventureSettingsPacket.js"
+            },
+            "./bedrock/packet/UpdateAttributesPacket": {
+                "types": "./dist/bedrock/packet/UpdateAttributesPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateAttributesPacket.js",
+                "module": "./dist/bedrock/packet/UpdateAttributesPacket.js"
+            },
+            "./bedrock/packet/UpdateBlockPacket": {
+                "types": "./dist/bedrock/packet/UpdateBlockPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateBlockPacket.js",
+                "module": "./dist/bedrock/packet/UpdateBlockPacket.js"
+            },
+            "./bedrock/packet/UpdateClientOptionsPacket": {
+                "types": "./dist/bedrock/packet/UpdateClientOptionsPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateClientOptionsPacket.js",
+                "module": "./dist/bedrock/packet/UpdateClientOptionsPacket.js"
+            },
+            "./bedrock/packet/UpdatePlayerGameTypePacket": {
+                "types": "./dist/bedrock/packet/UpdatePlayerGameTypePacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdatePlayerGameTypePacket.js",
+                "module": "./dist/bedrock/packet/UpdatePlayerGameTypePacket.js"
+            },
+            "./bedrock/packet/UpdateSubChunkBlocksPacket": {
+                "types": "./dist/bedrock/packet/UpdateSubChunkBlocksPacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateSubChunkBlocksPacket.js",
+                "module": "./dist/bedrock/packet/UpdateSubChunkBlocksPacket.js"
+            },
+            "./bedrock/packet/UpdateTradePacket": {
+                "types": "./dist/bedrock/packet/UpdateTradePacket.d.ts",
+                "import": "./dist/bedrock/packet/UpdateTradePacket.js",
+                "module": "./dist/bedrock/packet/UpdateTradePacket.js"
+            },
+            "./bedrock/payload": {
+                "types": "./dist/bedrock/payload/index.d.ts",
+                "import": "./dist/bedrock/payload/index.js",
+                "module": "./dist/bedrock/payload/index.js"
+            },
+            "./bedrock/structure/BlockPos": {
+                "types": "./dist/bedrock/structure/BlockPos.d.ts",
+                "import": "./dist/bedrock/structure/BlockPos.js",
+                "module": "./dist/bedrock/structure/BlockPos.js"
+            },
+            "./bedrock/structure/DimensionDefinition": {
+                "types": "./dist/bedrock/structure/DimensionDefinition.d.ts",
+                "import": "./dist/bedrock/structure/DimensionDefinition.js",
+                "module": "./dist/bedrock/structure/DimensionDefinition.js"
+            },
+            "./bedrock/structure/PlayerPartyInfo": {
+                "types": "./dist/bedrock/structure/PlayerPartyInfo.d.ts",
+                "import": "./dist/bedrock/structure/PlayerPartyInfo.js",
+                "module": "./dist/bedrock/structure/PlayerPartyInfo.js"
+            },
+            "./bedrock/structure/PrimitiveShapeData": {
+                "types": "./dist/bedrock/structure/PrimitiveShapeData.d.ts",
+                "import": "./dist/bedrock/structure/PrimitiveShapeData.js",
+                "module": "./dist/bedrock/structure/PrimitiveShapeData.js"
+            },
+            "./bedrock/structure/StructureSettings": {
+                "types": "./dist/bedrock/structure/StructureSettings.d.ts",
+                "import": "./dist/bedrock/structure/StructureSettings.js",
+                "module": "./dist/bedrock/structure/StructureSettings.js"
+            },
+            "./bedrock/structure/SubChunkHeightmapData": {
+                "types": "./dist/bedrock/structure/SubChunkHeightmapData.d.ts",
+                "import": "./dist/bedrock/structure/SubChunkHeightmapData.js",
+                "module": "./dist/bedrock/structure/SubChunkHeightmapData.js"
+            },
+            "./bedrock/structure/SubChunkPos": {
+                "types": "./dist/bedrock/structure/SubChunkPos.d.ts",
+                "import": "./dist/bedrock/structure/SubChunkPos.js",
+                "module": "./dist/bedrock/structure/SubChunkPos.js"
+            },
+            "./bedrock/structure/SubChunkPosOffset": {
+                "types": "./dist/bedrock/structure/SubChunkPosOffset.d.ts",
+                "import": "./dist/bedrock/structure/SubChunkPosOffset.js",
+                "module": "./dist/bedrock/structure/SubChunkPosOffset.js"
+            },
+            "./bedrock/structure/UUID": {
+                "types": "./dist/bedrock/structure/UUID.d.ts",
+                "import": "./dist/bedrock/structure/UUID.js",
+                "module": "./dist/bedrock/structure/UUID.js"
+            },
+            "./bedrock/structure/UpdateSubChunkNetworkBlockInfo": {
+                "types": "./dist/bedrock/structure/UpdateSubChunkNetworkBlockInfo.d.ts",
+                "import": "./dist/bedrock/structure/UpdateSubChunkNetworkBlockInfo.js",
+                "module": "./dist/bedrock/structure/UpdateSubChunkNetworkBlockInfo.js"
+            },
+            "./bedrock/structure/Vec2": {
+                "types": "./dist/bedrock/structure/Vec2.d.ts",
+                "import": "./dist/bedrock/structure/Vec2.js",
+                "module": "./dist/bedrock/structure/Vec2.js"
+            },
+            "./bedrock/structure/Vec3": {
+                "types": "./dist/bedrock/structure/Vec3.d.ts",
+                "import": "./dist/bedrock/structure/Vec3.js",
+                "module": "./dist/bedrock/structure/Vec3.js"
+            },
+            "./bedrock/wire/definitions/addActor": {
+                "types": "./dist/bedrock/wire/definitions/addActor.d.ts",
+                "import": "./dist/bedrock/wire/definitions/addActor.js",
+                "module": "./dist/bedrock/wire/definitions/addActor.js"
+            },
+            "./bedrock/wire/definitions/animate": {
+                "types": "./dist/bedrock/wire/definitions/animate.d.ts",
+                "import": "./dist/bedrock/wire/definitions/animate.js",
+                "module": "./dist/bedrock/wire/definitions/animate.js"
+            },
+            "./bedrock/wire/definitions/playerList": {
+                "types": "./dist/bedrock/wire/definitions/playerList.d.ts",
+                "import": "./dist/bedrock/wire/definitions/playerList.js",
+                "module": "./dist/bedrock/wire/definitions/playerList.js"
+            },
+            "./bedrock/wire/definitions/playerSkin": {
+                "types": "./dist/bedrock/wire/definitions/playerSkin.d.ts",
+                "import": "./dist/bedrock/wire/definitions/playerSkin.js",
+                "module": "./dist/bedrock/wire/definitions/playerSkin.js"
             },
             "./wire/networkUtil": {
                 "types": "./dist/wire/networkUtil.d.ts",
                 "import": "./dist/wire/networkUtil.js",
                 "module": "./dist/wire/networkUtil.js"
             },
-            "./wire/structures/Attribute": {
-                "types": "./dist/wire/structures/Attribute.d.ts",
-                "import": "./dist/wire/structures/Attribute.js",
-                "module": "./dist/wire/structures/Attribute.js"
+            "./bedrock/wire/structures/Attribute": {
+                "types": "./dist/bedrock/wire/structures/Attribute.d.ts",
+                "import": "./dist/bedrock/wire/structures/Attribute.js",
+                "module": "./dist/bedrock/wire/structures/Attribute.js"
             },
-            "./wire/structures/CommandChainedSubcommand": {
-                "types": "./dist/wire/structures/CommandChainedSubcommand.d.ts",
-                "import": "./dist/wire/structures/CommandChainedSubcommand.js",
-                "module": "./dist/wire/structures/CommandChainedSubcommand.js"
+            "./bedrock/wire/structures/CommandChainedSubcommand": {
+                "types": "./dist/bedrock/wire/structures/CommandChainedSubcommand.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandChainedSubcommand.js",
+                "module": "./dist/bedrock/wire/structures/CommandChainedSubcommand.js"
             },
-            "./wire/structures/CommandData": {
-                "types": "./dist/wire/structures/CommandData.d.ts",
-                "import": "./dist/wire/structures/CommandData.js",
-                "module": "./dist/wire/structures/CommandData.js"
+            "./bedrock/wire/structures/CommandData": {
+                "types": "./dist/bedrock/wire/structures/CommandData.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandData.js",
+                "module": "./dist/bedrock/wire/structures/CommandData.js"
             },
-            "./wire/structures/CommandEnum": {
-                "types": "./dist/wire/structures/CommandEnum.d.ts",
-                "import": "./dist/wire/structures/CommandEnum.js",
-                "module": "./dist/wire/structures/CommandEnum.js"
+            "./bedrock/wire/structures/CommandEnum": {
+                "types": "./dist/bedrock/wire/structures/CommandEnum.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandEnum.js",
+                "module": "./dist/bedrock/wire/structures/CommandEnum.js"
             },
-            "./wire/structures/CommandEnumConstraint": {
-                "types": "./dist/wire/structures/CommandEnumConstraint.d.ts",
-                "import": "./dist/wire/structures/CommandEnumConstraint.js",
-                "module": "./dist/wire/structures/CommandEnumConstraint.js"
+            "./bedrock/wire/structures/CommandEnumConstraint": {
+                "types": "./dist/bedrock/wire/structures/CommandEnumConstraint.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandEnumConstraint.js",
+                "module": "./dist/bedrock/wire/structures/CommandEnumConstraint.js"
             },
-            "./wire/structures/CommandOriginData": {
-                "types": "./dist/wire/structures/CommandOriginData.d.ts",
-                "import": "./dist/wire/structures/CommandOriginData.js",
-                "module": "./dist/wire/structures/CommandOriginData.js"
+            "./bedrock/wire/structures/CommandOriginData": {
+                "types": "./dist/bedrock/wire/structures/CommandOriginData.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandOriginData.js",
+                "module": "./dist/bedrock/wire/structures/CommandOriginData.js"
             },
-            "./wire/structures/CommandOriginType": {
-                "types": "./dist/wire/structures/CommandOriginType.d.ts",
-                "import": "./dist/wire/structures/CommandOriginType.js",
-                "module": "./dist/wire/structures/CommandOriginType.js"
+            "./bedrock/wire/structures/CommandOriginType": {
+                "types": "./dist/bedrock/wire/structures/CommandOriginType.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandOriginType.js",
+                "module": "./dist/bedrock/wire/structures/CommandOriginType.js"
             },
-            "./wire/structures/CommandParameter": {
-                "types": "./dist/wire/structures/CommandParameter.d.ts",
-                "import": "./dist/wire/structures/CommandParameter.js",
-                "module": "./dist/wire/structures/CommandParameter.js"
+            "./bedrock/wire/structures/CommandParameter": {
+                "types": "./dist/bedrock/wire/structures/CommandParameter.d.ts",
+                "import": "./dist/bedrock/wire/structures/CommandParameter.js",
+                "module": "./dist/bedrock/wire/structures/CommandParameter.js"
             },
-            "./wire/structures/DimensionDefinition": {
-                "types": "./dist/wire/structures/DimensionDefinition.d.ts",
-                "import": "./dist/wire/structures/DimensionDefinition.js",
-                "module": "./dist/wire/structures/DimensionDefinition.js"
+            "./bedrock/wire/structures/DimensionDefinition": {
+                "types": "./dist/bedrock/wire/structures/DimensionDefinition.d.ts",
+                "import": "./dist/bedrock/wire/structures/DimensionDefinition.js",
+                "module": "./dist/bedrock/wire/structures/DimensionDefinition.js"
             },
-            "./wire/structures/GameRule": {
-                "types": "./dist/wire/structures/GameRule.d.ts",
-                "import": "./dist/wire/structures/GameRule.js",
-                "module": "./dist/wire/structures/GameRule.js"
+            "./bedrock/wire/structures/GameRule": {
+                "types": "./dist/bedrock/wire/structures/GameRule.d.ts",
+                "import": "./dist/bedrock/wire/structures/GameRule.js",
+                "module": "./dist/bedrock/wire/structures/GameRule.js"
             },
-            "./wire/structures/InventoryTransaction": {
-                "types": "./dist/wire/structures/InventoryTransaction.d.ts",
-                "import": "./dist/wire/structures/InventoryTransaction.js",
-                "module": "./dist/wire/structures/InventoryTransaction.js"
+            "./bedrock/wire/structures/InventoryTransaction": {
+                "types": "./dist/bedrock/wire/structures/InventoryTransaction.d.ts",
+                "import": "./dist/bedrock/wire/structures/InventoryTransaction.js",
+                "module": "./dist/bedrock/wire/structures/InventoryTransaction.js"
             },
-            "./wire/structures/ItemStackDescriptor": {
-                "types": "./dist/wire/structures/ItemStackDescriptor.d.ts",
-                "import": "./dist/wire/structures/ItemStackDescriptor.js",
-                "module": "./dist/wire/structures/ItemStackDescriptor.js"
+            "./bedrock/wire/structures/ItemStackDescriptor": {
+                "types": "./dist/bedrock/wire/structures/ItemStackDescriptor.d.ts",
+                "import": "./dist/bedrock/wire/structures/ItemStackDescriptor.js",
+                "module": "./dist/bedrock/wire/structures/ItemStackDescriptor.js"
             },
-            "./wire/structures/Metadata": {
-                "types": "./dist/wire/structures/Metadata.d.ts",
-                "import": "./dist/wire/structures/Metadata.js",
-                "module": "./dist/wire/structures/Metadata.js"
+            "./bedrock/wire/structures/Metadata": {
+                "types": "./dist/bedrock/wire/structures/Metadata.d.ts",
+                "import": "./dist/bedrock/wire/structures/Metadata.js",
+                "module": "./dist/bedrock/wire/structures/Metadata.js"
             },
-            "./wire/structures/PassengerOfBlock": {
-                "types": "./dist/wire/structures/PassengerOfBlock.d.ts",
-                "import": "./dist/wire/structures/PassengerOfBlock.js",
-                "module": "./dist/wire/structures/PassengerOfBlock.js"
+            "./bedrock/wire/structures/PassengerOfBlock": {
+                "types": "./dist/bedrock/wire/structures/PassengerOfBlock.d.ts",
+                "import": "./dist/bedrock/wire/structures/PassengerOfBlock.js",
+                "module": "./dist/bedrock/wire/structures/PassengerOfBlock.js"
             },
-            "./wire/structures/PlayerListEntry": {
-                "types": "./dist/wire/structures/PlayerListEntry.d.ts",
-                "import": "./dist/wire/structures/PlayerListEntry.js",
-                "module": "./dist/wire/structures/PlayerListEntry.js"
+            "./bedrock/wire/structures/PlayerListEntry": {
+                "types": "./dist/bedrock/wire/structures/PlayerListEntry.d.ts",
+                "import": "./dist/bedrock/wire/structures/PlayerListEntry.js",
+                "module": "./dist/bedrock/wire/structures/PlayerListEntry.js"
             },
-            "./wire/structures/SyncedProperties": {
-                "types": "./dist/wire/structures/SyncedProperties.d.ts",
-                "import": "./dist/wire/structures/SyncedProperties.js",
-                "module": "./dist/wire/structures/SyncedProperties.js"
+            "./bedrock/wire/structures/SyncedProperties": {
+                "types": "./dist/bedrock/wire/structures/SyncedProperties.d.ts",
+                "import": "./dist/bedrock/wire/structures/SyncedProperties.js",
+                "module": "./dist/bedrock/wire/structures/SyncedProperties.js"
             },
-            "./wire/structures/UUID": {
-                "types": "./dist/wire/structures/UUID.d.ts",
-                "import": "./dist/wire/structures/UUID.js",
-                "module": "./dist/wire/structures/UUID.js"
+            "./bedrock/wire/structures/UUID": {
+                "types": "./dist/bedrock/wire/structures/UUID.d.ts",
+                "import": "./dist/bedrock/wire/structures/UUID.js",
+                "module": "./dist/bedrock/wire/structures/UUID.js"
             },
-            "./wire/structures/skin/Skin": {
-                "types": "./dist/wire/structures/skin/Skin.d.ts",
-                "import": "./dist/wire/structures/skin/Skin.js",
-                "module": "./dist/wire/structures/skin/Skin.js"
+            "./bedrock/wire/structures/skin/Skin": {
+                "types": "./dist/bedrock/wire/structures/skin/Skin.d.ts",
+                "import": "./dist/bedrock/wire/structures/skin/Skin.js",
+                "module": "./dist/bedrock/wire/structures/skin/Skin.js"
             },
-            "./wire/structures/skin/SkinImage": {
-                "types": "./dist/wire/structures/skin/SkinImage.d.ts",
-                "import": "./dist/wire/structures/skin/SkinImage.js",
-                "module": "./dist/wire/structures/skin/SkinImage.js"
+            "./bedrock/wire/structures/skin/SkinImage": {
+                "types": "./dist/bedrock/wire/structures/skin/SkinImage.d.ts",
+                "import": "./dist/bedrock/wire/structures/skin/SkinImage.js",
+                "module": "./dist/bedrock/wire/structures/skin/SkinImage.js"
             },
-            "./wire/versions/v2193": {
-                "types": "./dist/wire/versions/v2193.d.ts",
-                "import": "./dist/wire/versions/v2193.js",
-                "module": "./dist/wire/versions/v2193.js"
+            "./bedrock/wire/versions/v2193": {
+                "types": "./dist/bedrock/wire/versions/v2193.d.ts",
+                "import": "./dist/bedrock/wire/versions/v2193.js",
+                "module": "./dist/bedrock/wire/versions/v2193.js"
             },
-            "./wire/versions/v2225": {
-                "types": "./dist/wire/versions/v2225.d.ts",
-                "import": "./dist/wire/versions/v2225.js",
-                "module": "./dist/wire/versions/v2225.js"
+            "./bedrock/wire/versions/v2225": {
+                "types": "./dist/bedrock/wire/versions/v2225.d.ts",
+                "import": "./dist/bedrock/wire/versions/v2225.js",
+                "module": "./dist/bedrock/wire/versions/v2225.js"
             },
-            "./wire/versions/v2259": {
-                "types": "./dist/wire/versions/v2259.d.ts",
-                "import": "./dist/wire/versions/v2259.js",
-                "module": "./dist/wire/versions/v2259.js"
+            "./bedrock/wire/versions/v2259": {
+                "types": "./dist/bedrock/wire/versions/v2259.d.ts",
+                "import": "./dist/bedrock/wire/versions/v2259.js",
+                "module": "./dist/bedrock/wire/versions/v2259.js"
             },
             "./package.json": "./package.json"
         }
@@ -922,9 +922,9 @@
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
         },
-        "./BatchCodec": {
-            "jsprismarine:dist": "./dist/BatchCodec.js",
-            "default": "./src/BatchCodec.ts"
+        "./bedrock/BatchCodec": {
+            "jsprismarine:dist": "./dist/bedrock/BatchCodec.js",
+            "default": "./src/bedrock/BatchCodec.ts"
         },
         "./NetworkBinaryStream": {
             "jsprismarine:dist": "./dist/NetworkBinaryStream.js",
@@ -934,9 +934,9 @@
             "jsprismarine:dist": "./dist/NetworkPacket.js",
             "default": "./src/NetworkPacket.ts"
         },
-        "./ProtocolVersion": {
-            "jsprismarine:dist": "./dist/ProtocolVersion.js",
-            "default": "./src/ProtocolVersion.ts"
+        "./bedrock/ProtocolVersion": {
+            "jsprismarine:dist": "./dist/bedrock/ProtocolVersion.js",
+            "default": "./src/bedrock/ProtocolVersion.ts"
         },
         "./handler/Lane": {
             "jsprismarine:dist": "./dist/handler/Lane.js",
@@ -946,753 +946,753 @@
             "jsprismarine:dist": "./dist/handler/PacketHandler.js",
             "default": "./src/handler/PacketHandler.ts"
         },
-        "./packet/ActorEventPacket": {
-            "jsprismarine:dist": "./dist/packet/ActorEventPacket.js",
-            "default": "./src/packet/ActorEventPacket.ts"
-        },
-        "./packet/ActorPickRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/ActorPickRequestPacket.js",
-            "default": "./src/packet/ActorPickRequestPacket.ts"
-        },
-        "./packet/AddActorPacket": {
-            "jsprismarine:dist": "./dist/packet/AddActorPacket.js",
-            "default": "./src/packet/AddActorPacket.ts"
-        },
-        "./packet/AddItemActorPacket": {
-            "jsprismarine:dist": "./dist/packet/AddItemActorPacket.js",
-            "default": "./src/packet/AddItemActorPacket.ts"
-        },
-        "./packet/AddPaintingPacket": {
-            "jsprismarine:dist": "./dist/packet/AddPaintingPacket.js",
-            "default": "./src/packet/AddPaintingPacket.ts"
-        },
-        "./packet/AddPlayerPacket": {
-            "jsprismarine:dist": "./dist/packet/AddPlayerPacket.js",
-            "default": "./src/packet/AddPlayerPacket.ts"
-        },
-        "./packet/AnimateEntityPacket": {
-            "jsprismarine:dist": "./dist/packet/AnimateEntityPacket.js",
-            "default": "./src/packet/AnimateEntityPacket.ts"
-        },
-        "./packet/AnimatePacket": {
-            "jsprismarine:dist": "./dist/packet/AnimatePacket.js",
-            "default": "./src/packet/AnimatePacket.ts"
-        },
-        "./packet/AnvilDamagePacket": {
-            "jsprismarine:dist": "./dist/packet/AnvilDamagePacket.js",
-            "default": "./src/packet/AnvilDamagePacket.ts"
-        },
-        "./packet/AvailableActorIdentifiersPacket": {
-            "jsprismarine:dist": "./dist/packet/AvailableActorIdentifiersPacket.js",
-            "default": "./src/packet/AvailableActorIdentifiersPacket.ts"
-        },
-        "./packet/AvailableCommandsPacket": {
-            "jsprismarine:dist": "./dist/packet/AvailableCommandsPacket.js",
-            "default": "./src/packet/AvailableCommandsPacket.ts"
-        },
-        "./packet/BiomeDefinitionListPacket": {
-            "jsprismarine:dist": "./dist/packet/BiomeDefinitionListPacket.js",
-            "default": "./src/packet/BiomeDefinitionListPacket.ts"
-        },
-        "./packet/BlockActorDataPacket": {
-            "jsprismarine:dist": "./dist/packet/BlockActorDataPacket.js",
-            "default": "./src/packet/BlockActorDataPacket.ts"
-        },
-        "./packet/BlockEventPacket": {
-            "jsprismarine:dist": "./dist/packet/BlockEventPacket.js",
-            "default": "./src/packet/BlockEventPacket.ts"
-        },
-        "./packet/BlockPickRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/BlockPickRequestPacket.js",
-            "default": "./src/packet/BlockPickRequestPacket.ts"
-        },
-        "./packet/BookEditPacket": {
-            "jsprismarine:dist": "./dist/packet/BookEditPacket.js",
-            "default": "./src/packet/BookEditPacket.ts"
-        },
-        "./packet/BossEventPacket": {
-            "jsprismarine:dist": "./dist/packet/BossEventPacket.js",
-            "default": "./src/packet/BossEventPacket.ts"
-        },
-        "./packet/CameraShakePacket": {
-            "jsprismarine:dist": "./dist/packet/CameraShakePacket.js",
-            "default": "./src/packet/CameraShakePacket.ts"
-        },
-        "./packet/ChangeDimensionPacket": {
-            "jsprismarine:dist": "./dist/packet/ChangeDimensionPacket.js",
-            "default": "./src/packet/ChangeDimensionPacket.ts"
-        },
-        "./packet/ChunkRadiusUpdatedPacket": {
-            "jsprismarine:dist": "./dist/packet/ChunkRadiusUpdatedPacket.js",
-            "default": "./src/packet/ChunkRadiusUpdatedPacket.ts"
-        },
-        "./packet/ClientCacheBlobStatusPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientCacheBlobStatusPacket.js",
-            "default": "./src/packet/ClientCacheBlobStatusPacket.ts"
-        },
-        "./packet/ClientCacheMissResponsePacket": {
-            "jsprismarine:dist": "./dist/packet/ClientCacheMissResponsePacket.js",
-            "default": "./src/packet/ClientCacheMissResponsePacket.ts"
-        },
-        "./packet/ClientCacheStatusPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientCacheStatusPacket.js",
-            "default": "./src/packet/ClientCacheStatusPacket.ts"
-        },
-        "./packet/ClientCameraAimAssistPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientCameraAimAssistPacket.js",
-            "default": "./src/packet/ClientCameraAimAssistPacket.ts"
-        },
-        "./packet/ClientMovementPredictionSyncPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientMovementPredictionSyncPacket.js",
-            "default": "./src/packet/ClientMovementPredictionSyncPacket.ts"
-        },
-        "./packet/ClientToServerHandshakePacket": {
-            "jsprismarine:dist": "./dist/packet/ClientToServerHandshakePacket.js",
-            "default": "./src/packet/ClientToServerHandshakePacket.ts"
-        },
-        "./packet/ClientboundCloseFormPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientboundCloseFormPacket.js",
-            "default": "./src/packet/ClientboundCloseFormPacket.ts"
-        },
-        "./packet/CommandBlockUpdatePacket": {
-            "jsprismarine:dist": "./dist/packet/CommandBlockUpdatePacket.js",
-            "default": "./src/packet/CommandBlockUpdatePacket.ts"
-        },
-        "./packet/ContainerClosePacket": {
-            "jsprismarine:dist": "./dist/packet/ContainerClosePacket.js",
-            "default": "./src/packet/ContainerClosePacket.ts"
-        },
-        "./packet/ContainerOpenPacket": {
-            "jsprismarine:dist": "./dist/packet/ContainerOpenPacket.js",
-            "default": "./src/packet/ContainerOpenPacket.ts"
-        },
-        "./packet/ContainerSetDataPacket": {
-            "jsprismarine:dist": "./dist/packet/ContainerSetDataPacket.js",
-            "default": "./src/packet/ContainerSetDataPacket.ts"
-        },
-        "./packet/CraftingDataPacket": {
-            "jsprismarine:dist": "./dist/packet/CraftingDataPacket.js",
-            "default": "./src/packet/CraftingDataPacket.ts"
-        },
-        "./packet/CreativeContentPacket": {
-            "jsprismarine:dist": "./dist/packet/CreativeContentPacket.js",
-            "default": "./src/packet/CreativeContentPacket.ts"
-        },
-        "./packet/DeathInfoPacket": {
-            "jsprismarine:dist": "./dist/packet/DeathInfoPacket.js",
-            "default": "./src/packet/DeathInfoPacket.ts"
-        },
-        "./packet/DimensionDataPacket": {
-            "jsprismarine:dist": "./dist/packet/DimensionDataPacket.js",
-            "default": "./src/packet/DimensionDataPacket.ts"
-        },
-        "./packet/EmoteListPacket": {
-            "jsprismarine:dist": "./dist/packet/EmoteListPacket.js",
-            "default": "./src/packet/EmoteListPacket.ts"
-        },
-        "./packet/EmotePacket": {
-            "jsprismarine:dist": "./dist/packet/EmotePacket.js",
-            "default": "./src/packet/EmotePacket.ts"
-        },
-        "./packet/ScriptMessagePacket": {
-            "jsprismarine:dist": "./dist/packet/ScriptMessagePacket.js",
-            "default": "./src/packet/ScriptMessagePacket.ts"
-        },
-        "./packet/FeatureRegistryPacket": {
-            "jsprismarine:dist": "./dist/packet/FeatureRegistryPacket.js",
-            "default": "./src/packet/FeatureRegistryPacket.ts"
-        },
-        "./packet/GameRulesChangedPacket": {
-            "jsprismarine:dist": "./dist/packet/GameRulesChangedPacket.js",
-            "default": "./src/packet/GameRulesChangedPacket.ts"
-        },
-        "./packet/InteractPacket": {
-            "jsprismarine:dist": "./dist/packet/InteractPacket.js",
-            "default": "./src/packet/InteractPacket.ts"
-        },
-        "./packet/InventoryContentPacket": {
-            "jsprismarine:dist": "./dist/packet/InventoryContentPacket.js",
-            "default": "./src/packet/InventoryContentPacket.ts"
-        },
-        "./packet/InventorySlotPacket": {
-            "jsprismarine:dist": "./dist/packet/InventorySlotPacket.js",
-            "default": "./src/packet/InventorySlotPacket.ts"
-        },
-        "./packet/InventoryTransactionPacket": {
-            "jsprismarine:dist": "./dist/packet/InventoryTransactionPacket.js",
-            "default": "./src/packet/InventoryTransactionPacket.ts"
-        },
-        "./packet/ItemRegistryPacket": {
-            "jsprismarine:dist": "./dist/packet/ItemRegistryPacket.js",
-            "default": "./src/packet/ItemRegistryPacket.ts"
-        },
-        "./packet/ItemStackRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/ItemStackRequestPacket.js",
-            "default": "./src/packet/ItemStackRequestPacket.ts"
-        },
-        "./packet/ItemStackResponsePacket": {
-            "jsprismarine:dist": "./dist/packet/ItemStackResponsePacket.js",
-            "default": "./src/packet/ItemStackResponsePacket.ts"
-        },
-        "./packet/JigsawStructureDataPacket": {
-            "jsprismarine:dist": "./dist/packet/JigsawStructureDataPacket.js",
-            "default": "./src/packet/JigsawStructureDataPacket.ts"
-        },
-        "./packet/LabTablePacket": {
-            "jsprismarine:dist": "./dist/packet/LabTablePacket.js",
-            "default": "./src/packet/LabTablePacket.ts"
-        },
-        "./packet/LecternUpdatePacket": {
-            "jsprismarine:dist": "./dist/packet/LecternUpdatePacket.js",
-            "default": "./src/packet/LecternUpdatePacket.ts"
-        },
-        "./packet/LevelChunkPacket": {
-            "jsprismarine:dist": "./dist/packet/LevelChunkPacket.js",
-            "default": "./src/packet/LevelChunkPacket.ts"
-        },
-        "./packet/LevelEventPacket": {
-            "jsprismarine:dist": "./dist/packet/LevelEventPacket.js",
-            "default": "./src/packet/LevelEventPacket.ts"
-        },
-        "./packet/LevelSoundEventPacket": {
-            "jsprismarine:dist": "./dist/packet/LevelSoundEventPacket.js",
-            "default": "./src/packet/LevelSoundEventPacket.ts"
-        },
-        "./packet/LoginPacket": {
-            "jsprismarine:dist": "./dist/packet/LoginPacket.js",
-            "default": "./src/packet/LoginPacket.ts"
-        },
-        "./packet/MapCreateLockedCopyPacket": {
-            "jsprismarine:dist": "./dist/packet/MapCreateLockedCopyPacket.js",
-            "default": "./src/packet/MapCreateLockedCopyPacket.ts"
-        },
-        "./packet/MapInfoRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/MapInfoRequestPacket.js",
-            "default": "./src/packet/MapInfoRequestPacket.ts"
-        },
-        "./packet/MobArmorEquipmentPacket": {
-            "jsprismarine:dist": "./dist/packet/MobArmorEquipmentPacket.js",
-            "default": "./src/packet/MobArmorEquipmentPacket.ts"
-        },
-        "./packet/MobEffectPacket": {
-            "jsprismarine:dist": "./dist/packet/MobEffectPacket.js",
-            "default": "./src/packet/MobEffectPacket.ts"
-        },
-        "./packet/MobEquipmentPacket": {
-            "jsprismarine:dist": "./dist/packet/MobEquipmentPacket.js",
-            "default": "./src/packet/MobEquipmentPacket.ts"
-        },
-        "./packet/ModalFormRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/ModalFormRequestPacket.js",
-            "default": "./src/packet/ModalFormRequestPacket.ts"
-        },
-        "./packet/ModalFormResponsePacket": {
-            "jsprismarine:dist": "./dist/packet/ModalFormResponsePacket.js",
-            "default": "./src/packet/ModalFormResponsePacket.ts"
-        },
-        "./packet/MoveActorAbsolutePacket": {
-            "jsprismarine:dist": "./dist/packet/MoveActorAbsolutePacket.js",
-            "default": "./src/packet/MoveActorAbsolutePacket.ts"
-        },
-        "./packet/MoveActorDeltaPacket": {
-            "jsprismarine:dist": "./dist/packet/MoveActorDeltaPacket.js",
-            "default": "./src/packet/MoveActorDeltaPacket.ts"
-        },
-        "./packet/MovePlayerPacket": {
-            "jsprismarine:dist": "./dist/packet/MovePlayerPacket.js",
-            "default": "./src/packet/MovePlayerPacket.ts"
-        },
-        "./packet/MultiplayerSettingsPacket": {
-            "jsprismarine:dist": "./dist/packet/MultiplayerSettingsPacket.js",
-            "default": "./src/packet/MultiplayerSettingsPacket.ts"
-        },
-        "./packet/NetworkChunkPublisherUpdatePacket": {
-            "jsprismarine:dist": "./dist/packet/NetworkChunkPublisherUpdatePacket.js",
-            "default": "./src/packet/NetworkChunkPublisherUpdatePacket.ts"
-        },
-        "./packet/NetworkStackLatencyPacket": {
-            "jsprismarine:dist": "./dist/packet/NetworkStackLatencyPacket.js",
-            "default": "./src/packet/NetworkStackLatencyPacket.ts"
-        },
-        "./packet/NpcRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/NpcRequestPacket.js",
-            "default": "./src/packet/NpcRequestPacket.ts"
-        },
-        "./packet/PacketViolationWarningPacket": {
-            "jsprismarine:dist": "./dist/packet/PacketViolationWarningPacket.js",
-            "default": "./src/packet/PacketViolationWarningPacket.ts"
-        },
-        "./packet/PartyChangedPacket": {
-            "jsprismarine:dist": "./dist/packet/PartyChangedPacket.js",
-            "default": "./src/packet/PartyChangedPacket.ts"
-        },
-        "./packet/PhotoTransferPacket": {
-            "jsprismarine:dist": "./dist/packet/PhotoTransferPacket.js",
-            "default": "./src/packet/PhotoTransferPacket.ts"
-        },
-        "./packet/PlaySoundPacket": {
-            "jsprismarine:dist": "./dist/packet/PlaySoundPacket.js",
-            "default": "./src/packet/PlaySoundPacket.ts"
-        },
-        "./packet/PlayerActionPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerActionPacket.js",
-            "default": "./src/packet/PlayerActionPacket.ts"
-        },
-        "./packet/PlayerAuthInputPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerAuthInputPacket.js",
-            "default": "./src/packet/PlayerAuthInputPacket.ts"
-        },
-        "./packet/PlayerEnchantOptionsPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerEnchantOptionsPacket.js",
-            "default": "./src/packet/PlayerEnchantOptionsPacket.ts"
-        },
-        "./packet/PlayerFogPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerFogPacket.js",
-            "default": "./src/packet/PlayerFogPacket.ts"
-        },
-        "./packet/PlayerHotbarPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerHotbarPacket.js",
-            "default": "./src/packet/PlayerHotbarPacket.ts"
-        },
-        "./packet/PlayerListPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerListPacket.js",
-            "default": "./src/packet/PlayerListPacket.ts"
-        },
-        "./packet/PlayerLocationPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerLocationPacket.js",
-            "default": "./src/packet/PlayerLocationPacket.ts"
-        },
-        "./packet/PlayerSkinPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerSkinPacket.js",
-            "default": "./src/packet/PlayerSkinPacket.ts"
-        },
-        "./packet/PlayerToggleCrafterSlotRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerToggleCrafterSlotRequestPacket.js",
-            "default": "./src/packet/PlayerToggleCrafterSlotRequestPacket.ts"
-        },
-        "./packet/PositionTrackingDBClientRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/PositionTrackingDBClientRequestPacket.js",
-            "default": "./src/packet/PositionTrackingDBClientRequestPacket.ts"
-        },
-        "./packet/PrimitiveShapesPacket": {
-            "jsprismarine:dist": "./dist/packet/PrimitiveShapesPacket.js",
-            "default": "./src/packet/PrimitiveShapesPacket.ts"
-        },
-        "./packet/PurchaseReceiptPacket": {
-            "jsprismarine:dist": "./dist/packet/PurchaseReceiptPacket.js",
-            "default": "./src/packet/PurchaseReceiptPacket.ts"
-        },
-        "./packet/RemoveActorPacket": {
-            "jsprismarine:dist": "./dist/packet/RemoveActorPacket.js",
-            "default": "./src/packet/RemoveActorPacket.ts"
-        },
-        "./packet/RequestAbilityPacket": {
-            "jsprismarine:dist": "./dist/packet/RequestAbilityPacket.js",
-            "default": "./src/packet/RequestAbilityPacket.ts"
-        },
-        "./packet/RequestPermissionsPacket": {
-            "jsprismarine:dist": "./dist/packet/RequestPermissionsPacket.js",
-            "default": "./src/packet/RequestPermissionsPacket.ts"
-        },
-        "./packet/ResourcePackChunkRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/ResourcePackChunkRequestPacket.js",
-            "default": "./src/packet/ResourcePackChunkRequestPacket.ts"
-        },
-        "./packet/ResourcePackClientResponsePacket": {
-            "jsprismarine:dist": "./dist/packet/ResourcePackClientResponsePacket.js",
-            "default": "./src/packet/ResourcePackClientResponsePacket.ts"
-        },
-        "./packet/ResourcePackStackPacket": {
-            "jsprismarine:dist": "./dist/packet/ResourcePackStackPacket.js",
-            "default": "./src/packet/ResourcePackStackPacket.ts"
-        },
-        "./packet/ResourcePacksInfoPacket": {
-            "jsprismarine:dist": "./dist/packet/ResourcePacksInfoPacket.js",
-            "default": "./src/packet/ResourcePacksInfoPacket.ts"
-        },
-        "./packet/ResourcePacksReadyForValidationPacket": {
-            "jsprismarine:dist": "./dist/packet/ResourcePacksReadyForValidationPacket.js",
-            "default": "./src/packet/ResourcePacksReadyForValidationPacket.ts"
-        },
-        "./packet/RespawnPacket": {
-            "jsprismarine:dist": "./dist/packet/RespawnPacket.js",
-            "default": "./src/packet/RespawnPacket.ts"
-        },
-        "./packet/ServerSettingsRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/ServerSettingsRequestPacket.js",
-            "default": "./src/packet/ServerSettingsRequestPacket.ts"
-        },
-        "./packet/ServerToClientHandshakePacket": {
-            "jsprismarine:dist": "./dist/packet/ServerToClientHandshakePacket.js",
-            "default": "./src/packet/ServerToClientHandshakePacket.ts"
-        },
-        "./packet/ServerboundDiagnosticsPacket": {
-            "jsprismarine:dist": "./dist/packet/ServerboundDiagnosticsPacket.js",
-            "default": "./src/packet/ServerboundDiagnosticsPacket.ts"
-        },
-        "./packet/ServerboundLoadingScreenPacket": {
-            "jsprismarine:dist": "./dist/packet/ServerboundLoadingScreenPacket.js",
-            "default": "./src/packet/ServerboundLoadingScreenPacket.ts"
-        },
-        "./packet/ServerboundPackSettingChangePacket": {
-            "jsprismarine:dist": "./dist/packet/ServerboundPackSettingChangePacket.js",
-            "default": "./src/packet/ServerboundPackSettingChangePacket.ts"
-        },
-        "./packet/SetActorDataPacket": {
-            "jsprismarine:dist": "./dist/packet/SetActorDataPacket.js",
-            "default": "./src/packet/SetActorDataPacket.ts"
-        },
-        "./packet/SetActorLinkPacket": {
-            "jsprismarine:dist": "./dist/packet/SetActorLinkPacket.js",
-            "default": "./src/packet/SetActorLinkPacket.ts"
-        },
-        "./packet/SetActorMotionPacket": {
-            "jsprismarine:dist": "./dist/packet/SetActorMotionPacket.js",
-            "default": "./src/packet/SetActorMotionPacket.ts"
-        },
-        "./packet/SetCommandsEnabledPacket": {
-            "jsprismarine:dist": "./dist/packet/SetCommandsEnabledPacket.js",
-            "default": "./src/packet/SetCommandsEnabledPacket.ts"
-        },
-        "./packet/SetDefaultGameTypePacket": {
-            "jsprismarine:dist": "./dist/packet/SetDefaultGameTypePacket.js",
-            "default": "./src/packet/SetDefaultGameTypePacket.ts"
-        },
-        "./packet/SetDifficultyPacket": {
-            "jsprismarine:dist": "./dist/packet/SetDifficultyPacket.js",
-            "default": "./src/packet/SetDifficultyPacket.ts"
-        },
-        "./packet/SetPlayerFurnaceOptionsPacket": {
-            "jsprismarine:dist": "./dist/packet/SetPlayerFurnaceOptionsPacket.js",
-            "default": "./src/packet/SetPlayerFurnaceOptionsPacket.ts"
-        },
-        "./packet/SetPlayerGameTypePacket": {
-            "jsprismarine:dist": "./dist/packet/SetPlayerGameTypePacket.js",
-            "default": "./src/packet/SetPlayerGameTypePacket.ts"
-        },
-        "./packet/SetPlayerInventoryOptionsPacket": {
-            "jsprismarine:dist": "./dist/packet/SetPlayerInventoryOptionsPacket.js",
-            "default": "./src/packet/SetPlayerInventoryOptionsPacket.ts"
-        },
-        "./packet/SetSpawnPositionPacket": {
-            "jsprismarine:dist": "./dist/packet/SetSpawnPositionPacket.js",
-            "default": "./src/packet/SetSpawnPositionPacket.ts"
-        },
-        "./packet/SetTitlePacket": {
-            "jsprismarine:dist": "./dist/packet/SetTitlePacket.js",
-            "default": "./src/packet/SetTitlePacket.ts"
-        },
-        "./packet/SettingsCommandPacket": {
-            "jsprismarine:dist": "./dist/packet/SettingsCommandPacket.js",
-            "default": "./src/packet/SettingsCommandPacket.ts"
-        },
-        "./packet/ShowCreditsPacket": {
-            "jsprismarine:dist": "./dist/packet/ShowCreditsPacket.js",
-            "default": "./src/packet/ShowCreditsPacket.ts"
-        },
-        "./packet/SimpleEventPacket": {
-            "jsprismarine:dist": "./dist/packet/SimpleEventPacket.js",
-            "default": "./src/packet/SimpleEventPacket.ts"
-        },
-        "./packet/SpawnParticleEffectPacket": {
-            "jsprismarine:dist": "./dist/packet/SpawnParticleEffectPacket.js",
-            "default": "./src/packet/SpawnParticleEffectPacket.ts"
-        },
-        "./packet/StartGamePacket": {
-            "jsprismarine:dist": "./dist/packet/StartGamePacket.js",
-            "default": "./src/packet/StartGamePacket.ts"
-        },
-        "./packet/StopSoundPacket": {
-            "jsprismarine:dist": "./dist/packet/StopSoundPacket.js",
-            "default": "./src/packet/StopSoundPacket.ts"
-        },
-        "./packet/StructureBlockUpdatePacket": {
-            "jsprismarine:dist": "./dist/packet/StructureBlockUpdatePacket.js",
-            "default": "./src/packet/StructureBlockUpdatePacket.ts"
-        },
-        "./packet/StructureTemplateDataRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/StructureTemplateDataRequestPacket.js",
-            "default": "./src/packet/StructureTemplateDataRequestPacket.ts"
-        },
-        "./packet/SubChunkPacket": {
-            "jsprismarine:dist": "./dist/packet/SubChunkPacket.js",
-            "default": "./src/packet/SubChunkPacket.ts"
-        },
-        "./packet/SubChunkRequestPacket": {
-            "jsprismarine:dist": "./dist/packet/SubChunkRequestPacket.js",
-            "default": "./src/packet/SubChunkRequestPacket.ts"
-        },
-        "./packet/SubClientLoginPacket": {
-            "jsprismarine:dist": "./dist/packet/SubClientLoginPacket.js",
-            "default": "./src/packet/SubClientLoginPacket.ts"
-        },
-        "./packet/SyncActorPropertyPacket": {
-            "jsprismarine:dist": "./dist/packet/SyncActorPropertyPacket.js",
-            "default": "./src/packet/SyncActorPropertyPacket.ts"
-        },
-        "./packet/TextPacket": {
-            "jsprismarine:dist": "./dist/packet/TextPacket.js",
-            "default": "./src/packet/TextPacket.ts"
-        },
-        "./packet/TickingAreasLoadStatusPacket": {
-            "jsprismarine:dist": "./dist/packet/TickingAreasLoadStatusPacket.js",
-            "default": "./src/packet/TickingAreasLoadStatusPacket.ts"
-        },
-        "./packet/TransferPacket": {
-            "jsprismarine:dist": "./dist/packet/TransferPacket.js",
-            "default": "./src/packet/TransferPacket.ts"
-        },
-        "./packet/UnlockedRecipesPacket": {
-            "jsprismarine:dist": "./dist/packet/UnlockedRecipesPacket.js",
-            "default": "./src/packet/UnlockedRecipesPacket.ts"
-        },
-        "./packet/UpdateAbilitiesPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateAbilitiesPacket.js",
-            "default": "./src/packet/UpdateAbilitiesPacket.ts"
-        },
-        "./packet/UpdateAdventureSettingsPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateAdventureSettingsPacket.js",
-            "default": "./src/packet/UpdateAdventureSettingsPacket.ts"
-        },
-        "./packet/UpdateAttributesPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateAttributesPacket.js",
-            "default": "./src/packet/UpdateAttributesPacket.ts"
-        },
-        "./packet/UpdateBlockPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateBlockPacket.js",
-            "default": "./src/packet/UpdateBlockPacket.ts"
-        },
-        "./packet/UpdateClientOptionsPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateClientOptionsPacket.js",
-            "default": "./src/packet/UpdateClientOptionsPacket.ts"
-        },
-        "./packet/UpdatePlayerGameTypePacket": {
-            "jsprismarine:dist": "./dist/packet/UpdatePlayerGameTypePacket.js",
-            "default": "./src/packet/UpdatePlayerGameTypePacket.ts"
-        },
-        "./packet/UpdateSubChunkBlocksPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateSubChunkBlocksPacket.js",
-            "default": "./src/packet/UpdateSubChunkBlocksPacket.ts"
-        },
-        "./packet/UpdateTradePacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateTradePacket.js",
-            "default": "./src/packet/UpdateTradePacket.ts"
-        },
-        "./payload": {
-            "jsprismarine:dist": "./dist/payload/index.js",
-            "default": "./src/payload/index.ts"
-        },
-        "./structure/BlockPos": {
-            "jsprismarine:dist": "./dist/structure/BlockPos.js",
-            "default": "./src/structure/BlockPos.ts"
-        },
-        "./structure/DimensionDefinition": {
-            "jsprismarine:dist": "./dist/structure/DimensionDefinition.js",
-            "default": "./src/structure/DimensionDefinition.ts"
-        },
-        "./structure/PlayerPartyInfo": {
-            "jsprismarine:dist": "./dist/structure/PlayerPartyInfo.js",
-            "default": "./src/structure/PlayerPartyInfo.ts"
-        },
-        "./structure/PrimitiveShapeData": {
-            "jsprismarine:dist": "./dist/structure/PrimitiveShapeData.js",
-            "default": "./src/structure/PrimitiveShapeData.ts"
-        },
-        "./structure/StructureSettings": {
-            "jsprismarine:dist": "./dist/structure/StructureSettings.js",
-            "default": "./src/structure/StructureSettings.ts"
-        },
-        "./structure/SubChunkHeightmapData": {
-            "jsprismarine:dist": "./dist/structure/SubChunkHeightmapData.js",
-            "default": "./src/structure/SubChunkHeightmapData.ts"
-        },
-        "./structure/SubChunkPos": {
-            "jsprismarine:dist": "./dist/structure/SubChunkPos.js",
-            "default": "./src/structure/SubChunkPos.ts"
-        },
-        "./structure/SubChunkPosOffset": {
-            "jsprismarine:dist": "./dist/structure/SubChunkPosOffset.js",
-            "default": "./src/structure/SubChunkPosOffset.ts"
-        },
-        "./structure/UUID": {
-            "jsprismarine:dist": "./dist/structure/UUID.js",
-            "default": "./src/structure/UUID.ts"
-        },
-        "./structure/UpdateSubChunkNetworkBlockInfo": {
-            "jsprismarine:dist": "./dist/structure/UpdateSubChunkNetworkBlockInfo.js",
-            "default": "./src/structure/UpdateSubChunkNetworkBlockInfo.ts"
-        },
-        "./structure/Vec2": {
-            "jsprismarine:dist": "./dist/structure/Vec2.js",
-            "default": "./src/structure/Vec2.ts"
-        },
-        "./structure/Vec3": {
-            "jsprismarine:dist": "./dist/structure/Vec3.js",
-            "default": "./src/structure/Vec3.ts"
-        },
-        "./wire/definitions/addActor": {
-            "jsprismarine:dist": "./dist/wire/definitions/addActor.js",
-            "default": "./src/wire/definitions/addActor.ts"
-        },
-        "./wire/definitions/animate": {
-            "jsprismarine:dist": "./dist/wire/definitions/animate.js",
-            "default": "./src/wire/definitions/animate.ts"
-        },
-        "./wire/definitions/playerList": {
-            "jsprismarine:dist": "./dist/wire/definitions/playerList.js",
-            "default": "./src/wire/definitions/playerList.ts"
-        },
-        "./wire/definitions/playerSkin": {
-            "jsprismarine:dist": "./dist/wire/definitions/playerSkin.js",
-            "default": "./src/wire/definitions/playerSkin.ts"
+        "./bedrock/packet/ActorEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ActorEventPacket.js",
+            "default": "./src/bedrock/packet/ActorEventPacket.ts"
+        },
+        "./bedrock/packet/ActorPickRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ActorPickRequestPacket.js",
+            "default": "./src/bedrock/packet/ActorPickRequestPacket.ts"
+        },
+        "./bedrock/packet/AddActorPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AddActorPacket.js",
+            "default": "./src/bedrock/packet/AddActorPacket.ts"
+        },
+        "./bedrock/packet/AddItemActorPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AddItemActorPacket.js",
+            "default": "./src/bedrock/packet/AddItemActorPacket.ts"
+        },
+        "./bedrock/packet/AddPaintingPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AddPaintingPacket.js",
+            "default": "./src/bedrock/packet/AddPaintingPacket.ts"
+        },
+        "./bedrock/packet/AddPlayerPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AddPlayerPacket.js",
+            "default": "./src/bedrock/packet/AddPlayerPacket.ts"
+        },
+        "./bedrock/packet/AnimateEntityPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AnimateEntityPacket.js",
+            "default": "./src/bedrock/packet/AnimateEntityPacket.ts"
+        },
+        "./bedrock/packet/AnimatePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AnimatePacket.js",
+            "default": "./src/bedrock/packet/AnimatePacket.ts"
+        },
+        "./bedrock/packet/AnvilDamagePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AnvilDamagePacket.js",
+            "default": "./src/bedrock/packet/AnvilDamagePacket.ts"
+        },
+        "./bedrock/packet/AvailableActorIdentifiersPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AvailableActorIdentifiersPacket.js",
+            "default": "./src/bedrock/packet/AvailableActorIdentifiersPacket.ts"
+        },
+        "./bedrock/packet/AvailableCommandsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/AvailableCommandsPacket.js",
+            "default": "./src/bedrock/packet/AvailableCommandsPacket.ts"
+        },
+        "./bedrock/packet/BiomeDefinitionListPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BiomeDefinitionListPacket.js",
+            "default": "./src/bedrock/packet/BiomeDefinitionListPacket.ts"
+        },
+        "./bedrock/packet/BlockActorDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BlockActorDataPacket.js",
+            "default": "./src/bedrock/packet/BlockActorDataPacket.ts"
+        },
+        "./bedrock/packet/BlockEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BlockEventPacket.js",
+            "default": "./src/bedrock/packet/BlockEventPacket.ts"
+        },
+        "./bedrock/packet/BlockPickRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BlockPickRequestPacket.js",
+            "default": "./src/bedrock/packet/BlockPickRequestPacket.ts"
+        },
+        "./bedrock/packet/BookEditPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BookEditPacket.js",
+            "default": "./src/bedrock/packet/BookEditPacket.ts"
+        },
+        "./bedrock/packet/BossEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/BossEventPacket.js",
+            "default": "./src/bedrock/packet/BossEventPacket.ts"
+        },
+        "./bedrock/packet/CameraShakePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CameraShakePacket.js",
+            "default": "./src/bedrock/packet/CameraShakePacket.ts"
+        },
+        "./bedrock/packet/ChangeDimensionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ChangeDimensionPacket.js",
+            "default": "./src/bedrock/packet/ChangeDimensionPacket.ts"
+        },
+        "./bedrock/packet/ChunkRadiusUpdatedPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ChunkRadiusUpdatedPacket.js",
+            "default": "./src/bedrock/packet/ChunkRadiusUpdatedPacket.ts"
+        },
+        "./bedrock/packet/ClientCacheBlobStatusPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientCacheBlobStatusPacket.js",
+            "default": "./src/bedrock/packet/ClientCacheBlobStatusPacket.ts"
+        },
+        "./bedrock/packet/ClientCacheMissResponsePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientCacheMissResponsePacket.js",
+            "default": "./src/bedrock/packet/ClientCacheMissResponsePacket.ts"
+        },
+        "./bedrock/packet/ClientCacheStatusPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientCacheStatusPacket.js",
+            "default": "./src/bedrock/packet/ClientCacheStatusPacket.ts"
+        },
+        "./bedrock/packet/ClientCameraAimAssistPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientCameraAimAssistPacket.js",
+            "default": "./src/bedrock/packet/ClientCameraAimAssistPacket.ts"
+        },
+        "./bedrock/packet/ClientMovementPredictionSyncPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientMovementPredictionSyncPacket.js",
+            "default": "./src/bedrock/packet/ClientMovementPredictionSyncPacket.ts"
+        },
+        "./bedrock/packet/ClientToServerHandshakePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientToServerHandshakePacket.js",
+            "default": "./src/bedrock/packet/ClientToServerHandshakePacket.ts"
+        },
+        "./bedrock/packet/ClientboundCloseFormPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundCloseFormPacket.js",
+            "default": "./src/bedrock/packet/ClientboundCloseFormPacket.ts"
+        },
+        "./bedrock/packet/CommandBlockUpdatePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CommandBlockUpdatePacket.js",
+            "default": "./src/bedrock/packet/CommandBlockUpdatePacket.ts"
+        },
+        "./bedrock/packet/ContainerClosePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ContainerClosePacket.js",
+            "default": "./src/bedrock/packet/ContainerClosePacket.ts"
+        },
+        "./bedrock/packet/ContainerOpenPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ContainerOpenPacket.js",
+            "default": "./src/bedrock/packet/ContainerOpenPacket.ts"
+        },
+        "./bedrock/packet/ContainerSetDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ContainerSetDataPacket.js",
+            "default": "./src/bedrock/packet/ContainerSetDataPacket.ts"
+        },
+        "./bedrock/packet/CraftingDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CraftingDataPacket.js",
+            "default": "./src/bedrock/packet/CraftingDataPacket.ts"
+        },
+        "./bedrock/packet/CreativeContentPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CreativeContentPacket.js",
+            "default": "./src/bedrock/packet/CreativeContentPacket.ts"
+        },
+        "./bedrock/packet/DeathInfoPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/DeathInfoPacket.js",
+            "default": "./src/bedrock/packet/DeathInfoPacket.ts"
+        },
+        "./bedrock/packet/DimensionDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/DimensionDataPacket.js",
+            "default": "./src/bedrock/packet/DimensionDataPacket.ts"
+        },
+        "./bedrock/packet/EmoteListPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/EmoteListPacket.js",
+            "default": "./src/bedrock/packet/EmoteListPacket.ts"
+        },
+        "./bedrock/packet/EmotePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/EmotePacket.js",
+            "default": "./src/bedrock/packet/EmotePacket.ts"
+        },
+        "./bedrock/packet/ScriptMessagePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ScriptMessagePacket.js",
+            "default": "./src/bedrock/packet/ScriptMessagePacket.ts"
+        },
+        "./bedrock/packet/FeatureRegistryPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/FeatureRegistryPacket.js",
+            "default": "./src/bedrock/packet/FeatureRegistryPacket.ts"
+        },
+        "./bedrock/packet/GameRulesChangedPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/GameRulesChangedPacket.js",
+            "default": "./src/bedrock/packet/GameRulesChangedPacket.ts"
+        },
+        "./bedrock/packet/InteractPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/InteractPacket.js",
+            "default": "./src/bedrock/packet/InteractPacket.ts"
+        },
+        "./bedrock/packet/InventoryContentPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/InventoryContentPacket.js",
+            "default": "./src/bedrock/packet/InventoryContentPacket.ts"
+        },
+        "./bedrock/packet/InventorySlotPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/InventorySlotPacket.js",
+            "default": "./src/bedrock/packet/InventorySlotPacket.ts"
+        },
+        "./bedrock/packet/InventoryTransactionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/InventoryTransactionPacket.js",
+            "default": "./src/bedrock/packet/InventoryTransactionPacket.ts"
+        },
+        "./bedrock/packet/ItemRegistryPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ItemRegistryPacket.js",
+            "default": "./src/bedrock/packet/ItemRegistryPacket.ts"
+        },
+        "./bedrock/packet/ItemStackRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ItemStackRequestPacket.js",
+            "default": "./src/bedrock/packet/ItemStackRequestPacket.ts"
+        },
+        "./bedrock/packet/ItemStackResponsePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ItemStackResponsePacket.js",
+            "default": "./src/bedrock/packet/ItemStackResponsePacket.ts"
+        },
+        "./bedrock/packet/JigsawStructureDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/JigsawStructureDataPacket.js",
+            "default": "./src/bedrock/packet/JigsawStructureDataPacket.ts"
+        },
+        "./bedrock/packet/LabTablePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LabTablePacket.js",
+            "default": "./src/bedrock/packet/LabTablePacket.ts"
+        },
+        "./bedrock/packet/LecternUpdatePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LecternUpdatePacket.js",
+            "default": "./src/bedrock/packet/LecternUpdatePacket.ts"
+        },
+        "./bedrock/packet/LevelChunkPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LevelChunkPacket.js",
+            "default": "./src/bedrock/packet/LevelChunkPacket.ts"
+        },
+        "./bedrock/packet/LevelEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LevelEventPacket.js",
+            "default": "./src/bedrock/packet/LevelEventPacket.ts"
+        },
+        "./bedrock/packet/LevelSoundEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LevelSoundEventPacket.js",
+            "default": "./src/bedrock/packet/LevelSoundEventPacket.ts"
+        },
+        "./bedrock/packet/LoginPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/LoginPacket.js",
+            "default": "./src/bedrock/packet/LoginPacket.ts"
+        },
+        "./bedrock/packet/MapCreateLockedCopyPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MapCreateLockedCopyPacket.js",
+            "default": "./src/bedrock/packet/MapCreateLockedCopyPacket.ts"
+        },
+        "./bedrock/packet/MapInfoRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MapInfoRequestPacket.js",
+            "default": "./src/bedrock/packet/MapInfoRequestPacket.ts"
+        },
+        "./bedrock/packet/MobArmorEquipmentPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MobArmorEquipmentPacket.js",
+            "default": "./src/bedrock/packet/MobArmorEquipmentPacket.ts"
+        },
+        "./bedrock/packet/MobEffectPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MobEffectPacket.js",
+            "default": "./src/bedrock/packet/MobEffectPacket.ts"
+        },
+        "./bedrock/packet/MobEquipmentPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MobEquipmentPacket.js",
+            "default": "./src/bedrock/packet/MobEquipmentPacket.ts"
+        },
+        "./bedrock/packet/ModalFormRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ModalFormRequestPacket.js",
+            "default": "./src/bedrock/packet/ModalFormRequestPacket.ts"
+        },
+        "./bedrock/packet/ModalFormResponsePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ModalFormResponsePacket.js",
+            "default": "./src/bedrock/packet/ModalFormResponsePacket.ts"
+        },
+        "./bedrock/packet/MoveActorAbsolutePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MoveActorAbsolutePacket.js",
+            "default": "./src/bedrock/packet/MoveActorAbsolutePacket.ts"
+        },
+        "./bedrock/packet/MoveActorDeltaPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MoveActorDeltaPacket.js",
+            "default": "./src/bedrock/packet/MoveActorDeltaPacket.ts"
+        },
+        "./bedrock/packet/MovePlayerPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MovePlayerPacket.js",
+            "default": "./src/bedrock/packet/MovePlayerPacket.ts"
+        },
+        "./bedrock/packet/MultiplayerSettingsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/MultiplayerSettingsPacket.js",
+            "default": "./src/bedrock/packet/MultiplayerSettingsPacket.ts"
+        },
+        "./bedrock/packet/NetworkChunkPublisherUpdatePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/NetworkChunkPublisherUpdatePacket.js",
+            "default": "./src/bedrock/packet/NetworkChunkPublisherUpdatePacket.ts"
+        },
+        "./bedrock/packet/NetworkStackLatencyPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/NetworkStackLatencyPacket.js",
+            "default": "./src/bedrock/packet/NetworkStackLatencyPacket.ts"
+        },
+        "./bedrock/packet/NpcRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/NpcRequestPacket.js",
+            "default": "./src/bedrock/packet/NpcRequestPacket.ts"
+        },
+        "./bedrock/packet/PacketViolationWarningPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PacketViolationWarningPacket.js",
+            "default": "./src/bedrock/packet/PacketViolationWarningPacket.ts"
+        },
+        "./bedrock/packet/PartyChangedPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PartyChangedPacket.js",
+            "default": "./src/bedrock/packet/PartyChangedPacket.ts"
+        },
+        "./bedrock/packet/PhotoTransferPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PhotoTransferPacket.js",
+            "default": "./src/bedrock/packet/PhotoTransferPacket.ts"
+        },
+        "./bedrock/packet/PlaySoundPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlaySoundPacket.js",
+            "default": "./src/bedrock/packet/PlaySoundPacket.ts"
+        },
+        "./bedrock/packet/PlayerActionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerActionPacket.js",
+            "default": "./src/bedrock/packet/PlayerActionPacket.ts"
+        },
+        "./bedrock/packet/PlayerAuthInputPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerAuthInputPacket.js",
+            "default": "./src/bedrock/packet/PlayerAuthInputPacket.ts"
+        },
+        "./bedrock/packet/PlayerEnchantOptionsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerEnchantOptionsPacket.js",
+            "default": "./src/bedrock/packet/PlayerEnchantOptionsPacket.ts"
+        },
+        "./bedrock/packet/PlayerFogPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerFogPacket.js",
+            "default": "./src/bedrock/packet/PlayerFogPacket.ts"
+        },
+        "./bedrock/packet/PlayerHotbarPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerHotbarPacket.js",
+            "default": "./src/bedrock/packet/PlayerHotbarPacket.ts"
+        },
+        "./bedrock/packet/PlayerListPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerListPacket.js",
+            "default": "./src/bedrock/packet/PlayerListPacket.ts"
+        },
+        "./bedrock/packet/PlayerLocationPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerLocationPacket.js",
+            "default": "./src/bedrock/packet/PlayerLocationPacket.ts"
+        },
+        "./bedrock/packet/PlayerSkinPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerSkinPacket.js",
+            "default": "./src/bedrock/packet/PlayerSkinPacket.ts"
+        },
+        "./bedrock/packet/PlayerToggleCrafterSlotRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerToggleCrafterSlotRequestPacket.js",
+            "default": "./src/bedrock/packet/PlayerToggleCrafterSlotRequestPacket.ts"
+        },
+        "./bedrock/packet/PositionTrackingDBClientRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PositionTrackingDBClientRequestPacket.js",
+            "default": "./src/bedrock/packet/PositionTrackingDBClientRequestPacket.ts"
+        },
+        "./bedrock/packet/PrimitiveShapesPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PrimitiveShapesPacket.js",
+            "default": "./src/bedrock/packet/PrimitiveShapesPacket.ts"
+        },
+        "./bedrock/packet/PurchaseReceiptPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PurchaseReceiptPacket.js",
+            "default": "./src/bedrock/packet/PurchaseReceiptPacket.ts"
+        },
+        "./bedrock/packet/RemoveActorPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/RemoveActorPacket.js",
+            "default": "./src/bedrock/packet/RemoveActorPacket.ts"
+        },
+        "./bedrock/packet/RequestAbilityPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/RequestAbilityPacket.js",
+            "default": "./src/bedrock/packet/RequestAbilityPacket.ts"
+        },
+        "./bedrock/packet/RequestPermissionsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/RequestPermissionsPacket.js",
+            "default": "./src/bedrock/packet/RequestPermissionsPacket.ts"
+        },
+        "./bedrock/packet/ResourcePackChunkRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackChunkRequestPacket.js",
+            "default": "./src/bedrock/packet/ResourcePackChunkRequestPacket.ts"
+        },
+        "./bedrock/packet/ResourcePackClientResponsePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackClientResponsePacket.js",
+            "default": "./src/bedrock/packet/ResourcePackClientResponsePacket.ts"
+        },
+        "./bedrock/packet/ResourcePackStackPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePackStackPacket.js",
+            "default": "./src/bedrock/packet/ResourcePackStackPacket.ts"
+        },
+        "./bedrock/packet/ResourcePacksInfoPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePacksInfoPacket.js",
+            "default": "./src/bedrock/packet/ResourcePacksInfoPacket.ts"
+        },
+        "./bedrock/packet/ResourcePacksReadyForValidationPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ResourcePacksReadyForValidationPacket.js",
+            "default": "./src/bedrock/packet/ResourcePacksReadyForValidationPacket.ts"
+        },
+        "./bedrock/packet/RespawnPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/RespawnPacket.js",
+            "default": "./src/bedrock/packet/RespawnPacket.ts"
+        },
+        "./bedrock/packet/ServerSettingsRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerSettingsRequestPacket.js",
+            "default": "./src/bedrock/packet/ServerSettingsRequestPacket.ts"
+        },
+        "./bedrock/packet/ServerToClientHandshakePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerToClientHandshakePacket.js",
+            "default": "./src/bedrock/packet/ServerToClientHandshakePacket.ts"
+        },
+        "./bedrock/packet/ServerboundDiagnosticsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerboundDiagnosticsPacket.js",
+            "default": "./src/bedrock/packet/ServerboundDiagnosticsPacket.ts"
+        },
+        "./bedrock/packet/ServerboundLoadingScreenPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerboundLoadingScreenPacket.js",
+            "default": "./src/bedrock/packet/ServerboundLoadingScreenPacket.ts"
+        },
+        "./bedrock/packet/ServerboundPackSettingChangePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ServerboundPackSettingChangePacket.js",
+            "default": "./src/bedrock/packet/ServerboundPackSettingChangePacket.ts"
+        },
+        "./bedrock/packet/SetActorDataPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetActorDataPacket.js",
+            "default": "./src/bedrock/packet/SetActorDataPacket.ts"
+        },
+        "./bedrock/packet/SetActorLinkPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetActorLinkPacket.js",
+            "default": "./src/bedrock/packet/SetActorLinkPacket.ts"
+        },
+        "./bedrock/packet/SetActorMotionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetActorMotionPacket.js",
+            "default": "./src/bedrock/packet/SetActorMotionPacket.ts"
+        },
+        "./bedrock/packet/SetCommandsEnabledPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetCommandsEnabledPacket.js",
+            "default": "./src/bedrock/packet/SetCommandsEnabledPacket.ts"
+        },
+        "./bedrock/packet/SetDefaultGameTypePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetDefaultGameTypePacket.js",
+            "default": "./src/bedrock/packet/SetDefaultGameTypePacket.ts"
+        },
+        "./bedrock/packet/SetDifficultyPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetDifficultyPacket.js",
+            "default": "./src/bedrock/packet/SetDifficultyPacket.ts"
+        },
+        "./bedrock/packet/SetPlayerFurnaceOptionsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetPlayerFurnaceOptionsPacket.js",
+            "default": "./src/bedrock/packet/SetPlayerFurnaceOptionsPacket.ts"
+        },
+        "./bedrock/packet/SetPlayerGameTypePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetPlayerGameTypePacket.js",
+            "default": "./src/bedrock/packet/SetPlayerGameTypePacket.ts"
+        },
+        "./bedrock/packet/SetPlayerInventoryOptionsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetPlayerInventoryOptionsPacket.js",
+            "default": "./src/bedrock/packet/SetPlayerInventoryOptionsPacket.ts"
+        },
+        "./bedrock/packet/SetSpawnPositionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetSpawnPositionPacket.js",
+            "default": "./src/bedrock/packet/SetSpawnPositionPacket.ts"
+        },
+        "./bedrock/packet/SetTitlePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetTitlePacket.js",
+            "default": "./src/bedrock/packet/SetTitlePacket.ts"
+        },
+        "./bedrock/packet/SettingsCommandPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SettingsCommandPacket.js",
+            "default": "./src/bedrock/packet/SettingsCommandPacket.ts"
+        },
+        "./bedrock/packet/ShowCreditsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ShowCreditsPacket.js",
+            "default": "./src/bedrock/packet/ShowCreditsPacket.ts"
+        },
+        "./bedrock/packet/SimpleEventPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SimpleEventPacket.js",
+            "default": "./src/bedrock/packet/SimpleEventPacket.ts"
+        },
+        "./bedrock/packet/SpawnParticleEffectPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SpawnParticleEffectPacket.js",
+            "default": "./src/bedrock/packet/SpawnParticleEffectPacket.ts"
+        },
+        "./bedrock/packet/StartGamePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/StartGamePacket.js",
+            "default": "./src/bedrock/packet/StartGamePacket.ts"
+        },
+        "./bedrock/packet/StopSoundPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/StopSoundPacket.js",
+            "default": "./src/bedrock/packet/StopSoundPacket.ts"
+        },
+        "./bedrock/packet/StructureBlockUpdatePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/StructureBlockUpdatePacket.js",
+            "default": "./src/bedrock/packet/StructureBlockUpdatePacket.ts"
+        },
+        "./bedrock/packet/StructureTemplateDataRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/StructureTemplateDataRequestPacket.js",
+            "default": "./src/bedrock/packet/StructureTemplateDataRequestPacket.ts"
+        },
+        "./bedrock/packet/SubChunkPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SubChunkPacket.js",
+            "default": "./src/bedrock/packet/SubChunkPacket.ts"
+        },
+        "./bedrock/packet/SubChunkRequestPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SubChunkRequestPacket.js",
+            "default": "./src/bedrock/packet/SubChunkRequestPacket.ts"
+        },
+        "./bedrock/packet/SubClientLoginPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SubClientLoginPacket.js",
+            "default": "./src/bedrock/packet/SubClientLoginPacket.ts"
+        },
+        "./bedrock/packet/SyncActorPropertyPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SyncActorPropertyPacket.js",
+            "default": "./src/bedrock/packet/SyncActorPropertyPacket.ts"
+        },
+        "./bedrock/packet/TextPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/TextPacket.js",
+            "default": "./src/bedrock/packet/TextPacket.ts"
+        },
+        "./bedrock/packet/TickingAreasLoadStatusPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/TickingAreasLoadStatusPacket.js",
+            "default": "./src/bedrock/packet/TickingAreasLoadStatusPacket.ts"
+        },
+        "./bedrock/packet/TransferPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/TransferPacket.js",
+            "default": "./src/bedrock/packet/TransferPacket.ts"
+        },
+        "./bedrock/packet/UnlockedRecipesPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UnlockedRecipesPacket.js",
+            "default": "./src/bedrock/packet/UnlockedRecipesPacket.ts"
+        },
+        "./bedrock/packet/UpdateAbilitiesPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateAbilitiesPacket.js",
+            "default": "./src/bedrock/packet/UpdateAbilitiesPacket.ts"
+        },
+        "./bedrock/packet/UpdateAdventureSettingsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateAdventureSettingsPacket.js",
+            "default": "./src/bedrock/packet/UpdateAdventureSettingsPacket.ts"
+        },
+        "./bedrock/packet/UpdateAttributesPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateAttributesPacket.js",
+            "default": "./src/bedrock/packet/UpdateAttributesPacket.ts"
+        },
+        "./bedrock/packet/UpdateBlockPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateBlockPacket.js",
+            "default": "./src/bedrock/packet/UpdateBlockPacket.ts"
+        },
+        "./bedrock/packet/UpdateClientOptionsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateClientOptionsPacket.js",
+            "default": "./src/bedrock/packet/UpdateClientOptionsPacket.ts"
+        },
+        "./bedrock/packet/UpdatePlayerGameTypePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdatePlayerGameTypePacket.js",
+            "default": "./src/bedrock/packet/UpdatePlayerGameTypePacket.ts"
+        },
+        "./bedrock/packet/UpdateSubChunkBlocksPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateSubChunkBlocksPacket.js",
+            "default": "./src/bedrock/packet/UpdateSubChunkBlocksPacket.ts"
+        },
+        "./bedrock/packet/UpdateTradePacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateTradePacket.js",
+            "default": "./src/bedrock/packet/UpdateTradePacket.ts"
+        },
+        "./bedrock/payload": {
+            "jsprismarine:dist": "./dist/bedrock/payload/index.js",
+            "default": "./src/bedrock/payload/index.ts"
+        },
+        "./bedrock/structure/BlockPos": {
+            "jsprismarine:dist": "./dist/bedrock/structure/BlockPos.js",
+            "default": "./src/bedrock/structure/BlockPos.ts"
+        },
+        "./bedrock/structure/DimensionDefinition": {
+            "jsprismarine:dist": "./dist/bedrock/structure/DimensionDefinition.js",
+            "default": "./src/bedrock/structure/DimensionDefinition.ts"
+        },
+        "./bedrock/structure/PlayerPartyInfo": {
+            "jsprismarine:dist": "./dist/bedrock/structure/PlayerPartyInfo.js",
+            "default": "./src/bedrock/structure/PlayerPartyInfo.ts"
+        },
+        "./bedrock/structure/PrimitiveShapeData": {
+            "jsprismarine:dist": "./dist/bedrock/structure/PrimitiveShapeData.js",
+            "default": "./src/bedrock/structure/PrimitiveShapeData.ts"
+        },
+        "./bedrock/structure/StructureSettings": {
+            "jsprismarine:dist": "./dist/bedrock/structure/StructureSettings.js",
+            "default": "./src/bedrock/structure/StructureSettings.ts"
+        },
+        "./bedrock/structure/SubChunkHeightmapData": {
+            "jsprismarine:dist": "./dist/bedrock/structure/SubChunkHeightmapData.js",
+            "default": "./src/bedrock/structure/SubChunkHeightmapData.ts"
+        },
+        "./bedrock/structure/SubChunkPos": {
+            "jsprismarine:dist": "./dist/bedrock/structure/SubChunkPos.js",
+            "default": "./src/bedrock/structure/SubChunkPos.ts"
+        },
+        "./bedrock/structure/SubChunkPosOffset": {
+            "jsprismarine:dist": "./dist/bedrock/structure/SubChunkPosOffset.js",
+            "default": "./src/bedrock/structure/SubChunkPosOffset.ts"
+        },
+        "./bedrock/structure/UUID": {
+            "jsprismarine:dist": "./dist/bedrock/structure/UUID.js",
+            "default": "./src/bedrock/structure/UUID.ts"
+        },
+        "./bedrock/structure/UpdateSubChunkNetworkBlockInfo": {
+            "jsprismarine:dist": "./dist/bedrock/structure/UpdateSubChunkNetworkBlockInfo.js",
+            "default": "./src/bedrock/structure/UpdateSubChunkNetworkBlockInfo.ts"
+        },
+        "./bedrock/structure/Vec2": {
+            "jsprismarine:dist": "./dist/bedrock/structure/Vec2.js",
+            "default": "./src/bedrock/structure/Vec2.ts"
+        },
+        "./bedrock/structure/Vec3": {
+            "jsprismarine:dist": "./dist/bedrock/structure/Vec3.js",
+            "default": "./src/bedrock/structure/Vec3.ts"
+        },
+        "./bedrock/wire/definitions/addActor": {
+            "jsprismarine:dist": "./dist/bedrock/wire/definitions/addActor.js",
+            "default": "./src/bedrock/wire/definitions/addActor.ts"
+        },
+        "./bedrock/wire/definitions/animate": {
+            "jsprismarine:dist": "./dist/bedrock/wire/definitions/animate.js",
+            "default": "./src/bedrock/wire/definitions/animate.ts"
+        },
+        "./bedrock/wire/definitions/playerList": {
+            "jsprismarine:dist": "./dist/bedrock/wire/definitions/playerList.js",
+            "default": "./src/bedrock/wire/definitions/playerList.ts"
+        },
+        "./bedrock/wire/definitions/playerSkin": {
+            "jsprismarine:dist": "./dist/bedrock/wire/definitions/playerSkin.js",
+            "default": "./src/bedrock/wire/definitions/playerSkin.ts"
         },
         "./wire/networkUtil": {
             "jsprismarine:dist": "./dist/wire/networkUtil.js",
             "default": "./src/wire/networkUtil.ts"
         },
-        "./wire/structures/Attribute": {
-            "jsprismarine:dist": "./dist/wire/structures/Attribute.js",
-            "default": "./src/wire/structures/Attribute.ts"
+        "./bedrock/wire/structures/Attribute": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/Attribute.js",
+            "default": "./src/bedrock/wire/structures/Attribute.ts"
         },
-        "./wire/structures/CommandChainedSubcommand": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandChainedSubcommand.js",
-            "default": "./src/wire/structures/CommandChainedSubcommand.ts"
+        "./bedrock/wire/structures/CommandChainedSubcommand": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandChainedSubcommand.js",
+            "default": "./src/bedrock/wire/structures/CommandChainedSubcommand.ts"
         },
-        "./wire/structures/CommandData": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandData.js",
-            "default": "./src/wire/structures/CommandData.ts"
+        "./bedrock/wire/structures/CommandData": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandData.js",
+            "default": "./src/bedrock/wire/structures/CommandData.ts"
         },
-        "./wire/structures/CommandEnum": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandEnum.js",
-            "default": "./src/wire/structures/CommandEnum.ts"
+        "./bedrock/wire/structures/CommandEnum": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandEnum.js",
+            "default": "./src/bedrock/wire/structures/CommandEnum.ts"
         },
-        "./wire/structures/CommandEnumConstraint": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandEnumConstraint.js",
-            "default": "./src/wire/structures/CommandEnumConstraint.ts"
+        "./bedrock/wire/structures/CommandEnumConstraint": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandEnumConstraint.js",
+            "default": "./src/bedrock/wire/structures/CommandEnumConstraint.ts"
         },
-        "./wire/structures/CommandOriginData": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandOriginData.js",
-            "default": "./src/wire/structures/CommandOriginData.ts"
+        "./bedrock/wire/structures/CommandOriginData": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandOriginData.js",
+            "default": "./src/bedrock/wire/structures/CommandOriginData.ts"
         },
-        "./wire/structures/CommandOriginType": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandOriginType.js",
-            "default": "./src/wire/structures/CommandOriginType.ts"
+        "./bedrock/wire/structures/CommandOriginType": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandOriginType.js",
+            "default": "./src/bedrock/wire/structures/CommandOriginType.ts"
         },
-        "./wire/structures/CommandParameter": {
-            "jsprismarine:dist": "./dist/wire/structures/CommandParameter.js",
-            "default": "./src/wire/structures/CommandParameter.ts"
+        "./bedrock/wire/structures/CommandParameter": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/CommandParameter.js",
+            "default": "./src/bedrock/wire/structures/CommandParameter.ts"
         },
-        "./wire/structures/DimensionDefinition": {
-            "jsprismarine:dist": "./dist/wire/structures/DimensionDefinition.js",
-            "default": "./src/wire/structures/DimensionDefinition.ts"
+        "./bedrock/wire/structures/DimensionDefinition": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/DimensionDefinition.js",
+            "default": "./src/bedrock/wire/structures/DimensionDefinition.ts"
         },
-        "./wire/structures/GameRule": {
-            "jsprismarine:dist": "./dist/wire/structures/GameRule.js",
-            "default": "./src/wire/structures/GameRule.ts"
+        "./bedrock/wire/structures/GameRule": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/GameRule.js",
+            "default": "./src/bedrock/wire/structures/GameRule.ts"
         },
-        "./wire/structures/InventoryTransaction": {
-            "jsprismarine:dist": "./dist/wire/structures/InventoryTransaction.js",
-            "default": "./src/wire/structures/InventoryTransaction.ts"
+        "./bedrock/wire/structures/InventoryTransaction": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/InventoryTransaction.js",
+            "default": "./src/bedrock/wire/structures/InventoryTransaction.ts"
         },
-        "./wire/structures/ItemStackDescriptor": {
-            "jsprismarine:dist": "./dist/wire/structures/ItemStackDescriptor.js",
-            "default": "./src/wire/structures/ItemStackDescriptor.ts"
+        "./bedrock/wire/structures/ItemStackDescriptor": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/ItemStackDescriptor.js",
+            "default": "./src/bedrock/wire/structures/ItemStackDescriptor.ts"
         },
-        "./wire/structures/Metadata": {
-            "jsprismarine:dist": "./dist/wire/structures/Metadata.js",
-            "default": "./src/wire/structures/Metadata.ts"
+        "./bedrock/wire/structures/Metadata": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/Metadata.js",
+            "default": "./src/bedrock/wire/structures/Metadata.ts"
         },
-        "./wire/structures/PassengerOfBlock": {
-            "jsprismarine:dist": "./dist/wire/structures/PassengerOfBlock.js",
-            "default": "./src/wire/structures/PassengerOfBlock.ts"
+        "./bedrock/wire/structures/PassengerOfBlock": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/PassengerOfBlock.js",
+            "default": "./src/bedrock/wire/structures/PassengerOfBlock.ts"
         },
-        "./wire/structures/PlayerListEntry": {
-            "jsprismarine:dist": "./dist/wire/structures/PlayerListEntry.js",
-            "default": "./src/wire/structures/PlayerListEntry.ts"
+        "./bedrock/wire/structures/PlayerListEntry": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/PlayerListEntry.js",
+            "default": "./src/bedrock/wire/structures/PlayerListEntry.ts"
         },
-        "./wire/structures/SyncedProperties": {
-            "jsprismarine:dist": "./dist/wire/structures/SyncedProperties.js",
-            "default": "./src/wire/structures/SyncedProperties.ts"
+        "./bedrock/wire/structures/SyncedProperties": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/SyncedProperties.js",
+            "default": "./src/bedrock/wire/structures/SyncedProperties.ts"
         },
-        "./wire/structures/UUID": {
-            "jsprismarine:dist": "./dist/wire/structures/UUID.js",
-            "default": "./src/wire/structures/UUID.ts"
+        "./bedrock/wire/structures/UUID": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/UUID.js",
+            "default": "./src/bedrock/wire/structures/UUID.ts"
         },
-        "./wire/structures/skin/Skin": {
-            "jsprismarine:dist": "./dist/wire/structures/skin/Skin.js",
-            "default": "./src/wire/structures/skin/Skin.ts"
+        "./bedrock/wire/structures/skin/Skin": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/skin/Skin.js",
+            "default": "./src/bedrock/wire/structures/skin/Skin.ts"
         },
-        "./wire/structures/skin/SkinImage": {
-            "jsprismarine:dist": "./dist/wire/structures/skin/SkinImage.js",
-            "default": "./src/wire/structures/skin/SkinImage.ts"
+        "./bedrock/wire/structures/skin/SkinImage": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/skin/SkinImage.js",
+            "default": "./src/bedrock/wire/structures/skin/SkinImage.ts"
         },
-        "./wire/versions/v2193": {
-            "jsprismarine:dist": "./dist/wire/versions/v2193.js",
-            "default": "./src/wire/versions/v2193.ts"
+        "./bedrock/wire/versions/v2193": {
+            "jsprismarine:dist": "./dist/bedrock/wire/versions/v2193.js",
+            "default": "./src/bedrock/wire/versions/v2193.ts"
         },
-        "./wire/versions/v2225": {
-            "jsprismarine:dist": "./dist/wire/versions/v2225.js",
-            "default": "./src/wire/versions/v2225.ts"
+        "./bedrock/wire/versions/v2225": {
+            "jsprismarine:dist": "./dist/bedrock/wire/versions/v2225.js",
+            "default": "./src/bedrock/wire/versions/v2225.ts"
         },
-        "./wire/versions/v2259": {
-            "jsprismarine:dist": "./dist/wire/versions/v2259.js",
-            "default": "./src/wire/versions/v2259.ts"
+        "./bedrock/wire/versions/v2259": {
+            "jsprismarine:dist": "./dist/bedrock/wire/versions/v2259.js",
+            "default": "./src/bedrock/wire/versions/v2259.ts"
         },
-        "./packet/CameraPresetsPacket": {
-            "jsprismarine:dist": "./dist/packet/CameraPresetsPacket.js",
-            "default": "./src/packet/CameraPresetsPacket.ts"
+        "./bedrock/packet/CameraPresetsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CameraPresetsPacket.js",
+            "default": "./src/bedrock/packet/CameraPresetsPacket.ts"
         },
-        "./packet/CameraAimAssistPresetsPacket": {
-            "jsprismarine:dist": "./dist/packet/CameraAimAssistPresetsPacket.js",
-            "default": "./src/packet/CameraAimAssistPresetsPacket.ts"
+        "./bedrock/packet/CameraAimAssistPresetsPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CameraAimAssistPresetsPacket.js",
+            "default": "./src/bedrock/packet/CameraAimAssistPresetsPacket.ts"
         },
-        "./packet/CameraInstructionPacket": {
-            "jsprismarine:dist": "./dist/packet/CameraInstructionPacket.js",
-            "default": "./src/packet/CameraInstructionPacket.ts"
+        "./bedrock/packet/CameraInstructionPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CameraInstructionPacket.js",
+            "default": "./src/bedrock/packet/CameraInstructionPacket.ts"
         },
-        "./packet/SetHudPacket": {
-            "jsprismarine:dist": "./dist/packet/SetHudPacket.js",
-            "default": "./src/packet/SetHudPacket.ts"
+        "./bedrock/packet/SetHudPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/SetHudPacket.js",
+            "default": "./src/bedrock/packet/SetHudPacket.ts"
         },
-        "./packet/UpdateClientInputLocksPacket": {
-            "jsprismarine:dist": "./dist/packet/UpdateClientInputLocksPacket.js",
-            "default": "./src/packet/UpdateClientInputLocksPacket.ts"
+        "./bedrock/packet/UpdateClientInputLocksPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/UpdateClientInputLocksPacket.js",
+            "default": "./src/bedrock/packet/UpdateClientInputLocksPacket.ts"
         },
-        "./packet/PlayerStartItemCooldownPacket": {
-            "jsprismarine:dist": "./dist/packet/PlayerStartItemCooldownPacket.js",
-            "default": "./src/packet/PlayerStartItemCooldownPacket.ts"
+        "./bedrock/packet/PlayerStartItemCooldownPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/PlayerStartItemCooldownPacket.js",
+            "default": "./src/bedrock/packet/PlayerStartItemCooldownPacket.ts"
         },
-        "./packet/ClientboundControlSchemeSetPacket": {
-            "jsprismarine:dist": "./dist/packet/ClientboundControlSchemeSetPacket.js",
-            "default": "./src/packet/ClientboundControlSchemeSetPacket.ts"
+        "./bedrock/packet/ClientboundControlSchemeSetPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/ClientboundControlSchemeSetPacket.js",
+            "default": "./src/bedrock/packet/ClientboundControlSchemeSetPacket.ts"
         },
-        "./packet/CameraAimAssistPacket": {
-            "jsprismarine:dist": "./dist/packet/CameraAimAssistPacket.js",
-            "default": "./src/packet/CameraAimAssistPacket.ts"
+        "./bedrock/packet/CameraAimAssistPacket": {
+            "jsprismarine:dist": "./dist/bedrock/packet/CameraAimAssistPacket.js",
+            "default": "./src/bedrock/packet/CameraAimAssistPacket.ts"
         },
-        "./wire/structures/PlayerAuthInput": {
-            "jsprismarine:dist": "./dist/wire/structures/PlayerAuthInput.js",
-            "default": "./src/wire/structures/PlayerAuthInput.ts"
+        "./bedrock/wire/structures/PlayerAuthInput": {
+            "jsprismarine:dist": "./dist/bedrock/wire/structures/PlayerAuthInput.js",
+            "default": "./src/bedrock/wire/structures/PlayerAuthInput.ts"
         },
-        "./structure/CameraInstruction": {
-            "jsprismarine:dist": "./dist/structure/CameraInstruction.js",
-            "default": "./src/structure/CameraInstruction.ts"
+        "./bedrock/structure/CameraInstruction": {
+            "jsprismarine:dist": "./dist/bedrock/structure/CameraInstruction.js",
+            "default": "./src/bedrock/structure/CameraInstruction.ts"
         },
-        "./structure/CameraAimAssistCategoryDefinition": {
-            "jsprismarine:dist": "./dist/structure/CameraAimAssistCategoryDefinition.js",
-            "default": "./src/structure/CameraAimAssistCategoryDefinition.ts"
+        "./bedrock/structure/CameraAimAssistCategoryDefinition": {
+            "jsprismarine:dist": "./dist/bedrock/structure/CameraAimAssistCategoryDefinition.js",
+            "default": "./src/bedrock/structure/CameraAimAssistCategoryDefinition.ts"
         },
-        "./structure/CameraAimAssistCategoryPriorities": {
-            "jsprismarine:dist": "./dist/structure/CameraAimAssistCategoryPriorities.js",
-            "default": "./src/structure/CameraAimAssistCategoryPriorities.ts"
+        "./bedrock/structure/CameraAimAssistCategoryPriorities": {
+            "jsprismarine:dist": "./dist/bedrock/structure/CameraAimAssistCategoryPriorities.js",
+            "default": "./src/bedrock/structure/CameraAimAssistCategoryPriorities.ts"
         },
-        "./structure/CameraAimAssistPresetDefinition": {
-            "jsprismarine:dist": "./dist/structure/CameraAimAssistPresetDefinition.js",
-            "default": "./src/structure/CameraAimAssistPresetDefinition.ts"
+        "./bedrock/structure/CameraAimAssistPresetDefinition": {
+            "jsprismarine:dist": "./dist/bedrock/structure/CameraAimAssistPresetDefinition.js",
+            "default": "./src/bedrock/structure/CameraAimAssistPresetDefinition.ts"
         },
-        "./structure/CameraPreset": {
-            "jsprismarine:dist": "./dist/structure/CameraPreset.js",
-            "default": "./src/structure/CameraPreset.ts"
+        "./bedrock/structure/CameraPreset": {
+            "jsprismarine:dist": "./dist/bedrock/structure/CameraPreset.js",
+            "default": "./src/bedrock/structure/CameraPreset.ts"
         },
         "./package.json": "./package.json"
     },

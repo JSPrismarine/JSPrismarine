@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { Item } from './Item';
-import InventorySlotPacket from '@jsprismarine/protocol/packet/InventorySlotPacket';
+import InventorySlotPacket from '@jsprismarine/protocol/bedrock/packet/InventorySlotPacket';
 
 /**
  * `Item` reads an item stack by hand while `@jsprismarine/protocol` already describes the
