@@ -375,7 +375,9 @@ passed, with a full run each night. The baseline is a fixed commit, so it is the
 
 The 5 Executable jobs left pull request pushes ahead of the queue: a pull request builds the
 executables only when it changes the build scripts, the embedded files or the dependencies, and
-master builds them when a nightly is due.
+master builds them when a nightly is due. The 2 generation host jobs left too: a pull request
+starts them only when it changes `packages/chunkgen`, the test workflow, the install action, the
+lockfile or `.nvmrc`, and master still runs them on every push.
 
 Done when 9 jobs leave each pull request push (the 5 Executable jobs, the 2 generation host jobs,
 CodeQL and the Bedrock Dedicated Server suites), a merged pull request costs one full run, its merge
