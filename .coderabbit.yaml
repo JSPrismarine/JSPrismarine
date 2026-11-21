@@ -170,13 +170,16 @@ reviews:
         drafts: true
         # Zero keeps reviews enabled for every update to an open pull request.
         auto_pause_after_reviewed_commits: 0
-        # Skip work-in-progress and release pull request titles.
+        # Skip work-in-progress, release and native library manifest pull request titles. The
+        # manifest pull requests come from native-library.yml under the machine user's token, so
+        # they carry a person's login and only their title tells them apart.
         ignore_title_keywords:
             - WIP
             - "WIP:"
             - "DRAFT:"
             - DO NOT MERGE
             - 🚀 Release packages
+            - point the manifest at builds
         # Skip pull requests opened by bots: dependency updates, the release pull request and
         # runner migrations. The names match exactly, so each bot is listed by its full login.
         ignore_usernames:

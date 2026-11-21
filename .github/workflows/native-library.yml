@@ -292,6 +292,7 @@ jobs:
                   git add "$PACKAGE_DIR/native/manifest.json"
                   # Another run may have published these sources first.
                   if git diff --cached --quiet; then exit 0; fi
+                  # .coderabbit.yaml skips review of pull requests whose title holds "point the manifest at builds".
                   message="build($PACKAGE): point the manifest at builds $hash"
                   git commit -m "$message"
                   if [ "$GITHUB_REF_NAME" != master ]; then
