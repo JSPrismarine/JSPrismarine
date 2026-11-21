@@ -254,6 +254,35 @@ describe('world', () => {
             expect(draws).toBe(4);
         });
 
+        it('answers random tick draws for blocks a section gains after its first draws', async () => {
+            const world = await flatWorld();
+            const engine = createEngineWorld(world);
+            const origin = { x: 0, y: 48, z: 0 };
+            const wheat = named('minecraft:wheat', { growth: 3 });
+            place(world, 1, GROUND, 1, wheat);
+
+            const first = engine.sectionRandomTickIds!(origin)!;
+            expect(first(1, GROUND, 1)).toBe(idOf(wheat));
+            expect(first(2, GROUND, 2)).toBeUndefined();
+
+            // New palette entries, appended after the section's answers were first kept.
+            place(world, 2, GROUND, 2, wheat);
+            place(world, 3, GROUND, 3, named('minecraft:oak_sapling'));
+            place(world, 4, GROUND, 4, named('minecraft:glass'));
+            const again = engine.sectionRandomTickIds!(origin)!;
+            for (const [x, z] of [
+                [1, 1],
+                [2, 2],
+                [3, 3],
+                [4, 4],
+                [5, 5]
+            ] as const) {
+                const runtimeId = world.loadedBlockRuntimeIdAt(x, GROUND, z)!;
+                expect(again(x, GROUND, z)).toBe(engine.isRandomlyTickingRuntimeId!(runtimeId) ? runtimeId : undefined);
+            }
+            expect(again(3, GROUND, 3)).toBe(idOf(named('minecraft:oak_sapling')));
+        });
+
         /**
          * The container fill level a comparator reads.
          *
