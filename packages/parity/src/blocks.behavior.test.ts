@@ -12,6 +12,7 @@ import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprisma
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
 import { DYE_INDEX_FIELD } from '@jsprismarine/prismarine/blockentity/contentRecord';
+import { needsSupport } from '@jsprismarine/prismarine/world/physics/BlockRules';
 import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { expect, it } from 'vitest';
 
@@ -154,6 +155,12 @@ const FAMILY_BY_TAG: readonly (readonly [string, string])[] = [
     ['minecraft:flower_pots', 'jsprismarine:flower_pot'],
     ['minecraft:logs', 'jsprismarine:log']
 ];
+
+/**
+ * The Java block classes whose `canSurvive` asks only that nothing solid sits on top, so they
+ * stay with nothing around them: farmland and a dirt path.
+ */
+const SURVIVES_IN_AIR: readonly string[] = ['FarmlandBlock', 'PathBlock'];
 
 /** A state value as the palette holds it, where a boolean is 0 or 1. */
 const paletteValue = (value: string | number | boolean | undefined): string | number | undefined =>
@@ -903,6 +910,33 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
             }))
     },
     {
+        name: 'pops-without-support',
+        classify: () => ({
+            kind: 'defect',
+            reason: "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
+            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3557'
+        }),
+        java: 'A block whose Java class decides where it can stay (canSurvive) breaks off when nothing around it holds it, once a neighbor changes; farmland and a dirt path, which only mind what is on top, stay.',
+        reference: "Each Java block class's canSurvive and updateShape",
+        subjects: () =>
+            Object.keys(blocksTable.blocks)
+                .filter((javaId) => javaBlockBehaviors(javaId).some(({ kind }) => kind.aspect === 'support'))
+                .flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.neighborChanged(ORIGIN, 'down');
+            harness.tick(ORIGIN);
+            // The world's own block physics pops what a liquid would wash away once nothing holds
+            // it up, beside what the block's family does.
+            const stays = harness.dimension.identifierAt(ORIGIN) === subject.bedrock && !needsSupport(subject.bedrock);
+            const javaStays = SURVIVES_IN_AIR.some((simple) => javaBlockIsA(subject.javaId, simple));
+            if (stays === javaStays) return undefined;
+            return stays ? 'it stayed in thin air' : 'it broke in thin air, where Java keeps it';
+        }
+    },
+    {
         name: 'pillar-axis',
         java: "A log, pillar or other rotated pillar placed against a face lies along that face's axis.",
         reference: 'Java RotatedPillarBlock.getStateForPlacement',
@@ -1025,6 +1059,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'torch-inversion-delay': ['neighbor-update'],
     'lamp-off-delay': ['neighbor-update', 'scheduled-tick'],
     'pillar-axis': ['placement'],
+    'pops-without-support': ['support'],
     'stairs-placement': ['placement'],
     'slab-placement': ['placement']
 };

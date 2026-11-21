@@ -730,6 +730,11 @@
                 "import": "./dist/entity/StatusEffect.js",
                 "module": "./dist/entity/StatusEffect.js"
             },
+            "./world/physics/BlockRules": {
+                "types": "./dist/world/physics/BlockRules.d.ts",
+                "import": "./dist/world/physics/BlockRules.js",
+                "module": "./dist/world/physics/BlockRules.js"
+            },
             "./entity/StatusEffectTick": {
                 "types": "./dist/entity/StatusEffectTick.d.ts",
                 "import": "./dist/entity/StatusEffectTick.js",
@@ -2369,6 +2374,10 @@
         "./entity/StatusEffect": {
             "jsprismarine:dist": "./dist/entity/StatusEffect.js",
             "default": "./src/entity/StatusEffect.ts"
+        },
+        "./world/physics/BlockRules": {
+            "jsprismarine:dist": "./dist/world/physics/BlockRules.js",
+            "default": "./src/world/physics/BlockRules.ts"
         },
         "./entity/StatusEffectTick": {
             "jsprismarine:dist": "./dist/entity/StatusEffectTick.js",
