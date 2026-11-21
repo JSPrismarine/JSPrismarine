@@ -1,24 +1,19 @@
-import type { SetLocalPlayerAsInitializedPacket } from '@jsprismarine/protocol';
-import type { InputContext } from './HandlerContext';
-import type { InputLaneHandler } from './SessionHandler';
+import type { InputContext } from '../../network/handler/HandlerContext';
+import type { Intent } from '../Intent';
+import type { IntentHandler } from '../IntentHandler';
 
 /**
- * The client saying it has finished spawning and has a player to show.
+ * The client finished spawning and has a player to show.
  *
- * The packet carries a runtime id, which is ignored: the only player this can be about is
- * the one on the connection it arrived on. The client sends it once, and a second one is
- * dropped - acting on it again re-announced the player to everyone who can see it and
- * resent its whole state, which is a spawn broadcast per packet for anything that cares to
- * send them.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-local-player-as-initialized-packet/
+ * The client sends it once, and a second one is dropped: acting on it again re-announced the
+ * player to everyone who can see it and resent its whole state, which is a spawn broadcast per
+ * notice for anything that cares to send them.
  */
-export default class SetLocalPlayerAsInitializedHandler implements InputLaneHandler<SetLocalPlayerAsInitializedPacket> {
-    public static PacketName = 'SetLocalPlayerAsInitializedPacket';
-    public readonly phases = ['play'] as const;
-    public readonly lane = 'input';
+export default class PlayerInitializedHandler implements IntentHandler<'playerInitialized'> {
+    public static readonly Kind = 'playerInitialized';
 
     /** Puts the player into its world and sends it the state the client throws away while spawning. */
-    public handle(_packet: SetLocalPlayerAsInitializedPacket, { session, log, step }: InputContext): undefined {
+    public handle(_intent: Intent<'playerInitialized'>, { session, log, step }: InputContext): undefined {
         // The player's own world, which is where `completeSpawn` and everything after it
         // look for them. It is the default world today, because that is the only one a join
         // puts anybody in, but reading it off the session is what keeps the two in step.
@@ -39,9 +34,9 @@ export default class SetLocalPlayerAsInitializedHandler implements InputLaneHand
         // The one place `completeSpawn` runs. The join burst in
         // `ResourcePackClientResponseHandler` already sent the gamemode, settings, abilities,
         // attributes, metadata and inventory, but the client rebuilds its local player while
-        // spawning and loses them - the hunger bar sat empty without this. It used to run from
-        // the burst as well, so everything went out twice. It writes and queues its packets
-        // before it returns, and only the transport's framing is left to the step's outputs.
+        // spawning and loses them - the hunger bar sat empty without this. It writes and queues
+        // its packets before it returns, and only the transport's framing is left to the step's
+        // outputs.
         step.output(session.completeSpawn());
     }
 }

@@ -1,11 +1,21 @@
 import AnimateHandler from './handlers/AnimateHandler';
+import ChangeGameModeHandler from './handlers/ChangeGameModeHandler';
 import ChatHandler from './handlers/ChatHandler';
 import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
+import FinishCreditsHandler from './handlers/FinishCreditsHandler';
 import OpenInventoryHandler from './handlers/OpenInventoryHandler';
 import OpenNpcHandler from './handlers/OpenNpcHandler';
+import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PlaySoundHandler from './handlers/PlaySoundHandler';
 import QueryBossBarHandler from './handlers/QueryBossBarHandler';
+import RequestAbilityHandler from './handlers/RequestAbilityHandler';
+import RespawnHandler from './handlers/RespawnHandler';
+import RunCommandHandler from './handlers/RunCommandHandler';
+import ScriptMessageHandler from './handlers/ScriptMessageHandler';
+import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
+import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
+import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
 
 /**
  * The built-in handler of every intent kind, which `IntentHandlerRegistry.enable` registers. A
@@ -13,11 +23,21 @@ import QueryBossBarHandler from './handlers/QueryBossBarHandler';
  */
 export {
     AnimateHandler,
+    ChangeGameModeHandler,
     ChatHandler,
     EatHandler,
     EmoteHandler,
+    FinishCreditsHandler,
     OpenInventoryHandler,
     OpenNpcHandler,
+    PlayerInitializedHandler,
     PlaySoundHandler,
-    QueryBossBarHandler
+    QueryBossBarHandler,
+    RequestAbilityHandler,
+    RespawnHandler,
+    RunCommandHandler,
+    ScriptMessageHandler,
+    SetDefaultGameModeHandler,
+    SetPlayerPermissionHandler,
+    SetViewDistanceHandler
 };

@@ -8,13 +8,23 @@ describe('input/Intent', () => {
         // comparing the table with itself.
         expect([...INTENT_KINDS].sort()).toEqual([
             'animate',
+            'changeGameMode',
             'chat',
             'eat',
             'emote',
+            'finishCredits',
             'openInventory',
             'openNpc',
             'playSound',
-            'queryBossBar'
+            'playerInitialized',
+            'queryBossBar',
+            'requestAbility',
+            'respawn',
+            'runCommand',
+            'scriptMessage',
+            'setDefaultGameMode',
+            'setPlayerPermission',
+            'setViewDistance'
         ]);
     });
 

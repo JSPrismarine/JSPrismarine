@@ -1,14 +1,12 @@
+import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import { Gametype } from '@jsprismarine/minecraft';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { canExecute } from '../../permission/PermissionManager';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../PlayerSession';
-import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
-import { PacketIdentifier } from '@jsprismarine/protocol';
-import SetPlayerGameTypeHandler from './SetPlayerGameTypeHandler';
+import type PlayerSession from '../../network/PlayerSession';
+import ChangeGameModeHandler from './ChangeGameModeHandler';
 
 /**
  * The permission check used to be inverted: a player with `minecraft.command.gamemode` was
@@ -29,41 +27,34 @@ const fakeSession = (permissions: string[]) => {
     return { applied, resent, context, outputs, settled };
 };
 
-const request = (gametype: Gametype): SetPlayerGameTypePacket => new SetPlayerGameTypePacket({ gametype });
-
-describe('SetPlayerGameTypeHandler', () => {
-    it('applies the requested game type for a player who may run the gamemode command', async () => {
+describe('ChangeGameModeHandler', () => {
+    it('applies the requested game mode for a player who may run the gamemode command', async () => {
         const { applied, resent, context, outputs, settled } = fakeSession(['minecraft.command.gamemode']);
 
-        new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), context);
+        new ChangeGameModeHandler().handle({ kind: 'changeGameMode', gamemode: Gametype.CREATIVE }, context);
         // In the input's own unit: the change is written before the handler returns, and only
         // the sends are left to wait on.
         expect(outputs).toHaveLength(1);
         expect(applied).toEqual([Gametype.CREATIVE]);
         await settled();
 
-        expect(applied).toEqual([Gametype.CREATIVE]);
         expect(resent).toEqual([]);
     });
 
-    it('resends the current game type to a player who may not', async () => {
+    it('resends the current game mode to a player who may not', async () => {
         const { applied, resent, context, settled } = fakeSession([]);
 
-        new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), context);
+        new ChangeGameModeHandler().handle({ kind: 'changeGameMode', gamemode: Gametype.CREATIVE }, context);
         await settled();
 
         expect(applied).toEqual([]);
         expect(resent).toEqual([undefined]);
     });
 
-    it('resends the current game type when the value is not a game type', async () => {
+    it('resends the current game mode when the value is not a game type', async () => {
         const { applied, resent, context, settled } = fakeSession(['minecraft.command.gamemode']);
 
-        // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
-        const packet = new SetPlayerGameTypePacket(Buffer.from([PacketIdentifier.SET_PLAYER_GAME_TYPE, 0x54]));
-        packet.decode();
-
-        new SetPlayerGameTypeHandler().handle(packet, context);
+        new ChangeGameModeHandler().handle({ kind: 'changeGameMode', gamemode: 42 }, context);
         await settled();
 
         expect(applied).toEqual([]);
