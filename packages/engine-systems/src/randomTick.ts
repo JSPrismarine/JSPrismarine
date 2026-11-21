@@ -139,7 +139,8 @@ export const runRandomTicks = (
     const runtimeIdTakesRandomTicks = world.isRandomlyTickingRuntimeId;
     for (const section of sections) {
         // Found once for the section's draws rather than once a draw.
-        const sectionReader = world.sectionRuntimeIds?.(section);
+        const tickingReader = blockByRuntimeId === undefined ? undefined : world.sectionRandomTickIds?.(section);
+        const sectionReader = tickingReader === undefined ? world.sectionRuntimeIds?.(section) : undefined;
         for (let draw = 0; draw < tickSpeed; draw++) {
             // The same draw as `next`, kept as numbers: most positions hold a block that does not
             // tick, and only one that does becomes a position object.
@@ -148,7 +149,11 @@ export const runRandomTicks = (
             const y = section.y + ((value >> 16) & 15);
             const z = section.z + ((value >> 8) & 15);
             let block: BlockRef;
-            if (
+            if (tickingReader !== undefined && blockByRuntimeId !== undefined) {
+                const runtimeId = tickingReader(x, y, z);
+                if (runtimeId === undefined) continue;
+                block = blockByRuntimeId.call(world, runtimeId);
+            } else if (
                 runtimeIdAt !== undefined &&
                 blockByRuntimeId !== undefined &&
                 runtimeIdTakesRandomTicks !== undefined

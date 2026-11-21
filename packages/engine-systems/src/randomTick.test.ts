@@ -141,6 +141,48 @@ describe('runRandomTicks', () => {
         expect(ticked).toEqual([{ x: 7, y: 11, z: 12 }]);
     });
 
+    it("reads each section's draws through the host's random tick reader, with no check per draw", () => {
+        const base = createTestWorld();
+        let readers = 0;
+        let tickChecks = 0;
+        // 1 is a runtime id that ticks, at the one position that holds lava; 0 is air.
+        const runtimeIdAt = (at: BlockPosition) => (positionKey(at) === '7,11,12' ? 1 : 0);
+        const host: WorldAccess = {
+            ...base,
+            getBlockRuntimeId: runtimeIdAt,
+            getBlockByRuntimeId: (runtimeId) => block(runtimeId === 1 ? 'minecraft:lava' : 'minecraft:air'),
+            isRandomlyTickingRuntimeId: (runtimeId) => {
+                tickChecks++;
+                return runtimeId === 1;
+            }
+        };
+        const withReader: WorldAccess = {
+            ...host,
+            sectionRandomTickIds: () => {
+                readers++;
+                return (x, y, z) => (runtimeIdAt({ x, y, z }) === 1 ? 1 : undefined);
+            }
+        };
+        const sections = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 16, z: 0 }
+        ];
+        const tickedWith = (world: WorldAccess): BlockPosition[] => {
+            const ticked: BlockPosition[] = [];
+            runRandomTicks(world, new BlockRandomPositions(), sections, (at) => ticked.push(at));
+            return ticked;
+        };
+
+        const expected = tickedWith(host);
+        const checksPerDraw = tickChecks;
+        tickChecks = 0;
+
+        expect(tickedWith(withReader)).toEqual(expected);
+        expect(readers).toBe(sections.length);
+        expect(tickChecks).toBe(0);
+        expect(checksPerDraw).toBe(sections.length * DEFAULT_RANDOM_TICK_SPEED);
+    });
+
     it('draws nothing when the tick speed is zero', () => {
         const world = createTestWorld();
         world.place({ x: 7, y: 11, z: 12 }, block('minecraft:lava'));

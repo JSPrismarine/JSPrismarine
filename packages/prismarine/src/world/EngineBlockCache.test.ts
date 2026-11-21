@@ -60,4 +60,39 @@ describe('EngineBlockCache', () => {
             BlockRuntimeIds.reset();
         }
     });
+
+    it('checks the content build once per random tick lookup, however many ids it answers', () => {
+        const content = testContent();
+        let contentReads = 0;
+        const cache = createEngineBlockCache(() => {
+            contentReads++;
+            return content;
+        });
+        const runtimeIds = [
+            BlockRuntimeIds.getByName('minecraft:stone'),
+            BlockRuntimeIds.get(BlockStateSchemas.get('minecraft:wheat')!.createState({ growth: 3 })),
+            BlockRuntimeIds.getByName('minecraft:grass_block')
+        ];
+
+        const ticks = cache.randomTickingLookup();
+        const answers = Array.from({ length: 300 }, (_, draw) => ticks(runtimeIds[draw % runtimeIds.length]!));
+
+        expect(contentReads).toBe(1);
+        // The same answers `get` gives, read through the content check it makes on every call.
+        expect(answers.slice(0, runtimeIds.length)).toEqual(runtimeIds.map((id) => cache.get(id).randomTicking));
+    });
+
+    it('answers a random tick lookup kept past a content reload from the new build', () => {
+        let content = testContent();
+        const cache = createEngineBlockCache(() => content);
+        const wheat = BlockRuntimeIds.get(BlockStateSchemas.get('minecraft:wheat')!.createState({ growth: 3 }));
+        const ticks = cache.randomTickingLookup();
+        const before = ticks(wheat);
+
+        content = { ...content };
+        cache.get(wheat);
+
+        expect(ticks(wheat)).toBe(before);
+        expect(cache.randomTickingLookup()(wheat)).toBe(cache.get(wheat).randomTicking);
+    });
 });

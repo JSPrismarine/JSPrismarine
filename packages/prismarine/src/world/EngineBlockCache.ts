@@ -28,6 +28,14 @@ export interface EngineBlockFacts {
 export interface EngineBlockCache {
     /** Resolve one Bedrock runtime id to its immutable block reference and cached facts. */
     get(runtimeId: number): EngineBlockFacts;
+    /**
+     * Whether each runtime id receives random ticks, for the content build current now.
+     *
+     * The content and schema checks {@link get} makes on every call are made once here rather than
+     * by each call of the returned function. A random tick pass asks once per section and then once
+     * per draw, so use the function for one section's draws and ask again for the next.
+     */
+    randomTickingLookup(): (runtimeId: number) => boolean;
 }
 
 /**
@@ -43,38 +51,49 @@ export const createEngineBlockCache = (contentAtCall: () => ServerContent): Engi
     let schemaRevision = -1;
     const byRuntimeId = new Map<number, EngineBlockFacts>();
 
+    /** The content build now, after dropping every fact remembered for a different one. */
+    const currentContent = (): ServerContent => {
+        const current = contentAtCall();
+        const currentRevision = BlockStateSchemas.getRevision();
+        if (current !== content || currentRevision !== schemaRevision) {
+            byRuntimeId.clear();
+            content = current;
+            schemaRevision = currentRevision;
+        }
+        return current;
+    };
+
+    const factsOf = (runtimeId: number, current: ServerContent): EngineBlockFacts => {
+        const cached = byRuntimeId.get(runtimeId);
+        if (cached !== undefined) return cached;
+
+        const state = BlockRuntimeIds.getState(runtimeId);
+        if (state === null) {
+            throw new PrismarineWorldErrors.UnknownRuntimeId({ runtimeId });
+        }
+
+        const contentState = current.blocks.types.get(state.name)?.state(state.properties);
+        const conductivity = contentState?.content.params(redstoneConductivity);
+        const block = Object.freeze({
+            name: state.name,
+            states: Object.freeze(javaBlockStates(state.name, state.properties)),
+            ...(conductivity === undefined ? {} : { redstoneConductor: conductivity.redstoneConductor })
+        });
+
+        // Random-tick overrides are keyed by Bedrock palette values. Java state spelling
+        // changes pitcher_crop's upper_block_bit 0 to "lower", which no longer matches.
+        const randomTicking = bedrockBlockPropertiesOf(state.name, state.properties)?.randomTick ?? false;
+        const facts = Object.freeze({ block, randomTicking, contentState });
+        byRuntimeId.set(runtimeId, facts);
+        return facts;
+    };
+
     return {
-        get(runtimeId) {
-            const currentContent = contentAtCall();
-            const currentRevision = BlockStateSchemas.getRevision();
-            if (currentContent !== content || currentRevision !== schemaRevision) {
-                byRuntimeId.clear();
-                content = currentContent;
-                schemaRevision = currentRevision;
-            }
-
-            const cached = byRuntimeId.get(runtimeId);
-            if (cached !== undefined) return cached;
-
-            const state = BlockRuntimeIds.getState(runtimeId);
-            if (state === null) {
-                throw new PrismarineWorldErrors.UnknownRuntimeId({ runtimeId });
-            }
-
-            const contentState = currentContent.blocks.types.get(state.name)?.state(state.properties);
-            const conductivity = contentState?.content.params(redstoneConductivity);
-            const block = Object.freeze({
-                name: state.name,
-                states: Object.freeze(javaBlockStates(state.name, state.properties)),
-                ...(conductivity === undefined ? {} : { redstoneConductor: conductivity.redstoneConductor })
-            });
-
-            // Random-tick overrides are keyed by Bedrock palette values. Java state spelling
-            // changes pitcher_crop's upper_block_bit 0 to "lower", which no longer matches.
-            const randomTicking = bedrockBlockPropertiesOf(state.name, state.properties)?.randomTick ?? false;
-            const facts = Object.freeze({ block, randomTicking, contentState });
-            byRuntimeId.set(runtimeId, facts);
-            return facts;
+        get: (runtimeId) => factsOf(runtimeId, currentContent()),
+        randomTickingLookup() {
+            const current = currentContent();
+            // A lookup kept past a content reload checks the new build, as `get` would.
+            return (runtimeId) => factsOf(runtimeId, content === current ? current : currentContent()).randomTicking;
         }
     };
 };

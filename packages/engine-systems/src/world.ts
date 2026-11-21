@@ -171,6 +171,15 @@ export interface WorldAccess {
      */
     sectionRuntimeIds?(origin: BlockPosition): ((x: number, y: number, z: number) => number) | undefined;
     /**
+     * A reader for one section's random tick draws: the runtime id of the block at a position when
+     * it takes random ticks, and undefined when it does not. Found once per section, so the host settles
+     * what a runtime id's facts depend on once rather than on every draw. Preferred over
+     * {@link sectionRuntimeIds} with {@link isRandomlyTickingRuntimeId}, and undefined when the
+     * section is not loaded.
+     * @param origin - The section's lowest corner.
+     */
+    sectionRandomTickIds?(origin: BlockPosition): ((x: number, y: number, z: number) => number | undefined) | undefined;
+    /**
      * Whether the stored block state at one position receives random ticks.
      * Hosts that translate state names for engine behavior can answer from their native state.
      */
