@@ -31,13 +31,14 @@ import {
     stringArgument,
     timeArgument
 } from '../argumentTypes';
-import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot, LootSource } from '../host';
+import type { CommandSource, DataModifyOperation, DataModifySource, DataTarget, ItemSlot, LootSource } from '../host';
 import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
     arg,
     command,
     lit,
+    refuse,
     report,
     resolvePosition,
     scoreHolderOne,
@@ -59,24 +60,63 @@ export const DATA_MODIFY_OPERATIONS: readonly DataModifyOperation[] = ['append',
 /** The four `/loot` destinations crossed with the four sources Java defines. */
 export const LOOT_DESTINATIONS = ['give', 'insert', 'spawn', 'replace'] as const;
 
-const targetOf = (context: Context, kind: 'block' | 'entity' | 'storage', prefix = ''): DataTarget => {
+/** The three kinds of thing `/data` reads and writes. */
+type DataKind = DataTarget['kind'];
+
+/** The argument a target of each kind is read from. */
+const TARGET_ARGUMENTS = { block: 'pos', entity: 'target', storage: 'storage' } as const;
+
+/**
+ * The argument the second target on a line is read from: the source of
+ * `/data modify … from` and of `/function … with`, which Java names `source`
+ * whatever its kind.
+ */
+const SOURCE_ARGUMENT = 'source';
+
+const targetOf = (context: Context, kind: DataKind, name: string = TARGET_ARGUMENTS[kind]): DataTarget => {
     const current = source(context);
     if (kind === 'block') {
-        return {
-            kind,
-            dimension: current.dimension,
-            position: resolvePosition(value(context, `${prefix}pos`), current)
-        };
+        return { kind, dimension: current.dimension, position: resolvePosition(value(context, name), current) };
     }
-    if (kind === 'entity') return { kind, entity: selectOne(current, value(context, `${prefix}target`)) };
-    return { kind, id: value(context, `${prefix}storage`) };
+    if (kind === 'entity') return { kind, entity: selectOne(current, value(context, name)) };
+    return { kind, id: value(context, name) };
 };
 
+/** Java's `/data` feedback after a write: `Modified storage <id>`, `Modified block data of <x, y, z>`. */
+const modifiedMessage = (target: DataTarget): string => {
+    if (target.kind === 'storage') return `Modified storage ${target.id}`;
+    if (target.kind === 'entity') return `Modified entity data of ${target.entity.name}`;
+    const { x, y, z } = target.position;
+    return `Modified block data of ${x}, ${y}, ${z}`;
+};
+
+/** Java's `/data get` feedback for a tag it prints whole. */
+const queryMessage = (target: DataTarget, snbt: string): string => {
+    if (target.kind === 'storage') return `Storage ${target.id} has the following contents: ${snbt}`;
+    if (target.kind === 'entity') return `${target.entity.name} has the following entity data: ${snbt}`;
+    const { x, y, z } = target.position;
+    return `${x}, ${y}, ${z} has the following block data: ${snbt}`;
+};
+
+/** Java's `/data get … <scale>` feedback, with the scale to two places as Java's `%.2f` prints it. */
+const scaledMessage = (target: DataTarget, path: string, scale: number, result: number): string => {
+    const factor = scale.toFixed(2);
+    if (target.kind === 'storage')
+        return `${path} in storage ${target.id} after scale factor of ${factor} is ${result}`;
+    if (target.kind === 'entity')
+        return `${path} on ${target.entity.name} after scale factor of ${factor} is ${result}`;
+    const { x, y, z } = target.position;
+    return `${path} on block ${x}, ${y}, ${z} after scale factor of ${factor} is ${result}`;
+};
+
+/** Java's refusal when a `/data` write left the data as it was. */
+const UNCHANGED = 'Nothing changed. The specified properties already have these values';
+
+/** Java's refusal when a path matched nothing. */
+const nothingFound = (path: string): string => `Found no elements matching ${path}`;
+
 /** Adds `block <pos>`, `entity <target>` and `storage <id>` under one node. */
-const withTargets = (
-    node: ReturnType<typeof lit>,
-    build: (kind: 'block' | 'entity' | 'storage') => ReturnType<typeof arg>
-) =>
+const withTargets = (node: ReturnType<typeof lit>, build: (kind: DataKind) => ReturnType<typeof arg>) =>
     node
         .then(lit('block').then(build('block')))
         .then(lit('entity').then(build('entity')))
@@ -111,6 +151,17 @@ export const registerDataCommands = (registry: CommandRegistry<CommandSource>): 
                             );
                             return report(current, outcome.result, `Ran the function`);
                         })
+                    )
+                )
+                .then(
+                    withTargets(lit('with'), (kind) =>
+                        targetArgument(kind, SOURCE_ARGUMENT)
+                            .executes(command((context) => runFunctionWith(context, kind, undefined)))
+                            .then(
+                                arg('path', nbtPathArgument()).executes(
+                                    command((context) => runFunctionWith(context, kind, value(context, 'path')))
+                                )
+                            )
                     )
                 )
         ),
@@ -253,15 +304,16 @@ const buildData = () => {
                 .executes(
                     command((context) => {
                         const current = source(context);
-                        const found = current.host.data.getData(targetOf(context, kind));
+                        const target = targetOf(context, kind);
+                        const found = current.host.data.getData(target);
                         if (found === undefined) return report(current, 0, 'There is no data there');
-                        current.sendFeedback(found);
-                        return 1;
+                        current.sendFeedback(queryMessage(target, found.snbt));
+                        return found.result;
                     })
                 )
                 .then(
                     arg('path', nbtPathArgument())
-                        .executes(command((context) => getData(context, kind, 1)))
+                        .executes(command((context) => getData(context, kind, undefined)))
                         .then(
                             arg('scale', floatArgument()).executes(
                                 command((context) => getData(context, kind, value(context, 'scale')))
@@ -277,8 +329,11 @@ const buildData = () => {
                 arg('nbt', nbtCompoundArgument()).executes(
                     command((context) => {
                         const current = source(context);
-                        const merged = current.host.data.mergeData(targetOf(context, kind), value(context, 'nbt'));
-                        return report(current, merged ? 1 : 0, 'Merged the data');
+                        const target = targetOf(context, kind);
+                        const merged = current.host.data.mergeData(target, value(context, 'nbt'));
+                        // Java throws when nothing changed, so the line fails for `execute store success`.
+                        if (!merged) refuse(UNCHANGED);
+                        return report(current, 1, modifiedMessage(target));
                     })
                 )
             )
@@ -291,8 +346,10 @@ const buildData = () => {
                 arg('path', nbtPathArgument()).executes(
                     command((context) => {
                         const current = source(context);
-                        const removed = current.host.data.removeData(targetOf(context, kind), value(context, 'path'));
-                        return report(current, removed ? 1 : 0, 'Removed the data');
+                        const target = targetOf(context, kind);
+                        const removed = current.host.data.removeData(target, value(context, 'path'));
+                        if (removed === 0) refuse(UNCHANGED);
+                        return report(current, removed, modifiedMessage(target));
                     })
                 )
             )
@@ -304,16 +361,40 @@ const buildData = () => {
         const target = targetArgument(kind);
         const path = arg('path', nbtPathArgument());
         for (const operation of DATA_MODIFY_OPERATIONS) {
-            const operationNode = lit(operation);
             const valueNode = lit('value').then(
                 arg('nbt', nbtTagArgument()).executes(
-                    command((context) => modifyData(context, kind, operation, value(context, 'nbt')))
+                    command((context) =>
+                        modifyData(context, kind, operation, { kind: 'value', snbt: value(context, 'nbt') })
+                    )
                 )
             );
+            const fromNode = withTargets(lit('from'), (sourceKind) =>
+                targetArgument(sourceKind, SOURCE_ARGUMENT)
+                    .executes(
+                        command((context) =>
+                            modifyData(context, kind, operation, {
+                                kind: 'from',
+                                target: targetOf(context, sourceKind, SOURCE_ARGUMENT)
+                            })
+                        )
+                    )
+                    .then(
+                        arg('sourcePath', nbtPathArgument()).executes(
+                            command((context) =>
+                                modifyData(context, kind, operation, {
+                                    kind: 'from',
+                                    target: targetOf(context, sourceKind, SOURCE_ARGUMENT),
+                                    path: value(context, 'sourcePath')
+                                })
+                            )
+                        )
+                    )
+            );
+            const operationNode = lit(operation);
             if (operation === 'insert') {
-                operationNode.then(arg('index', integerArgument()).then(valueNode));
+                operationNode.then(arg('index', integerArgument()).then(valueNode).then(fromNode));
             } else {
-                operationNode.then(valueNode);
+                operationNode.then(valueNode).then(fromNode);
             }
             path.then(operationNode);
         }
@@ -324,39 +405,53 @@ const buildData = () => {
     return node;
 };
 
-const targetArgument = (kind: 'block' | 'entity' | 'storage') =>
-    kind === 'block'
-        ? arg<unknown>('pos', blockPositionArgument())
-        : kind === 'entity'
-          ? arg<unknown>('target', entityArgument())
-          : arg<unknown>('storage', stringArgument());
+const targetArgument = (kind: DataKind, name: string = TARGET_ARGUMENTS[kind]) => {
+    if (kind === 'block') return arg<unknown>(name, blockPositionArgument());
+    if (kind === 'entity') return arg<unknown>(name, entityArgument());
+    return arg<unknown>(name, stringArgument());
+};
 
-const getData = (context: Context, kind: 'block' | 'entity' | 'storage', scale: number): number => {
+/** `/data get <target> <path> [<scale>]`: Java prints the tag without a scale and the scaled number with one. */
+const getData = (context: Context, kind: DataKind, scale: number | undefined): number => {
     const current = source(context);
+    const target = targetOf(context, kind);
     const path = value<string>(context, 'path');
-    const found = current.host.data.getData(targetOf(context, kind), path);
-    if (found === undefined) return report(current, 0, `The path ${path} matched nothing`);
-    current.sendFeedback(found);
-    const parsed = Number(found);
-    return Number.isFinite(parsed) ? Math.trunc(parsed * scale) : 1;
+    const found = current.host.data.getData(target, path, scale);
+    // Java throws, so a path that matched nothing fails the line rather than succeeding with 0.
+    if (found === undefined) refuse(nothingFound(path));
+    current.sendFeedback(
+        scale === undefined ? queryMessage(target, found.snbt) : scaledMessage(target, path, scale, found.result)
+    );
+    return found.result;
 };
 
 const modifyData = (
     context: Context,
-    kind: 'block' | 'entity' | 'storage',
+    kind: DataKind,
     operation: DataModifyOperation,
-    nbt: string
+    from: DataModifySource
 ): number => {
     const current = source(context);
+    const target = targetOf(context, kind);
     const index = operation === 'insert' ? value<number>(context, 'index') : undefined;
-    const changed = current.host.data.modifyData(
-        targetOf(context, kind),
-        value(context, 'path'),
-        operation,
-        nbt,
-        index
-    );
-    return report(current, changed ? 1 : 0, 'Modified the data');
+    const changed = current.host.data.modifyData(target, value(context, 'path'), operation, from, index);
+    if (changed === 0) refuse(UNCHANGED);
+    return report(current, changed, modifiedMessage(target));
+};
+
+/**
+ * `/function <name> with <source> [<path>]`: runs a macro function with a
+ * compound read from a block, an entity or a storage as its arguments.
+ */
+const runFunctionWith = (context: Context, kind: DataKind, path: string | undefined): number => {
+    const current = source(context);
+    const found = current.host.data.getData(targetOf(context, kind, SOURCE_ARGUMENT), path);
+    // Java throws for both, so the line fails rather than succeeding with 0.
+    if (found === undefined) refuse(nothingFound(path ?? ''));
+    // A compound's SNBT, and nothing else's, starts with `{`: a string is printed quoted.
+    if (!found.snbt.startsWith('{')) refuse(`Invalid argument type: ${found.snbt}, expected a compound`);
+    const outcome = current.host.data.runFunction(value(context, 'name'), current, found.snbt, true);
+    return report(current, outcome.result, `Ran the function`);
 };
 
 const slotOf = (context: Context): ItemSlot => ({ name: value<string>(context, 'slots') });

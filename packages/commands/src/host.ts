@@ -71,6 +71,30 @@ export type DataTarget =
 /** The five `/data modify` operations. */
 export type DataModifyOperation = 'append' | 'insert' | 'merge' | 'prepend' | 'set';
 
+/**
+ * Where `/data modify` takes the tags it writes from.
+ *
+ * `value` is one SNBT tag typed on the command line. `from` reads another
+ * target: its whole compound, or every tag `path` matches there, which can be
+ * several, as Java's `resolveSourcePath` reads them.
+ */
+export type DataModifySource =
+    | { readonly kind: 'value'; readonly snbt: string }
+    | { readonly kind: 'from'; readonly target: DataTarget; readonly path?: string };
+
+/** What `/data get` read. */
+export interface DataValue {
+    /** The tag, printed as SNBT the way `/data get` shows it. */
+    readonly snbt: string;
+    /**
+     * The number the command returns, which is Java's: with a scale,
+     * `floor(value * scale)` of a numeric tag; with none, `floor(value)` of a
+     * numeric tag, the size of a list, an array or a compound, or the length
+     * of a string. A read of the whole target returns 1.
+     */
+    readonly result: number;
+}
+
 /** What `/item`, `/loot replace` and `/replaceitem` address. */
 export interface ItemSlot {
     /** The slot name, `container.0` or `weapon.mainhand`. */
@@ -322,19 +346,37 @@ export interface ScoreboardCommandHost {
 
 /** The NBT, loot and function verbs a command needs. */
 export interface DataCommandHost {
-    /** @returns The value at the path, as SNBT source, or undefined when the path matches nothing. */
-    getData(target: DataTarget, path?: string): string | undefined;
+    /**
+     * Reads the target's data, or the one tag a path names in it.
+     *
+     * @param path - The NBT path. Without one, the whole compound is read.
+     * @param scale - What `/data get … <scale>` multiplies by. With one, the
+     *   tag must be numeric.
+     * @returns The tag and the command's result, or undefined when the path
+     *   matches nothing.
+     * @throws When the path matches more than one tag, or a scale is given
+     *   and the tag is not numeric.
+     */
+    getData(target: DataTarget, path?: string, scale?: number): DataValue | undefined;
     /** @returns How many elements the path matched. */
     countData(target: DataTarget, path: string): number;
+    /** @returns Whether the merge changed anything. */
     mergeData(target: DataTarget, nbt: string): boolean;
+    /**
+     * Writes tags at a path, which is `/data modify` and `execute store`.
+     *
+     * @param index - Where `insert` puts the tags. Negative counts from the end.
+     * @returns How many tags changed; 0 when the data already held them.
+     */
     modifyData(
         target: DataTarget,
         path: string,
         operation: DataModifyOperation,
-        value: string,
+        source: DataModifySource,
         index?: number
-    ): boolean;
-    removeData(target: DataTarget, path: string): boolean;
+    ): number;
+    /** @returns How many tags the path matched and removed. */
+    removeData(target: DataTarget, path: string): number;
     /** Applies a standalone item modifier to the items in a slot. */
     applyItemModifier(target: DataTarget, slot: ItemSlot, modifier: string): number;
     /**
@@ -366,8 +408,14 @@ export interface DataCommandHost {
     runLoot(loot: LootSource, source: CommandSource, destination: LootDestination): number;
     /** Evaluates a datapack predicate, for `execute if predicate`. */
     testPredicate(predicate: string, source: CommandSource): boolean;
-    /** Runs a function or `#tag`; see {@link FunctionOutcome} for the two things a call reports. */
-    runFunction(name: string, source: CommandSource, nbt?: string): FunctionOutcome;
+    /**
+     * Runs a function or `#tag`; see {@link FunctionOutcome} for the two things a call reports.
+     * @param nbt - The argument compound as SNBT, for a macro function.
+     * @param stored - Whether `nbt` is a stored compound printed back, as `/function … with`
+     *   passes it, rather than text a player typed. A printed `Infinityd` then reads as the
+     *   number it was, where typed it reads as a string, as Java's reader does.
+     */
+    runFunction(name: string, source: CommandSource, nbt?: string, stored?: boolean): FunctionOutcome;
     /**
      * Ends the function the running command line belongs to, which is
      * `/return`.
