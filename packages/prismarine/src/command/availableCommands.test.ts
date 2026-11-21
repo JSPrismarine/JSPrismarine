@@ -35,7 +35,7 @@ describe('the available-commands bridge', () => {
     it('lists the command itself first in its alias enum', () => {
         const data = commandDataOf(find('teleport'), CommandPermissionLevel.ANY);
 
-        expect(data.aliases?.name).toBe('teleportAliases');
+        expect(data.aliases?.name).toBe('teleportCommandAliases');
         expect(data.aliases?.values).toEqual(['teleport', 'tp']);
     });
 

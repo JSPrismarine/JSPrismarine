@@ -19,6 +19,7 @@ import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/Avail
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { CommandParameterType } from '@jsprismarine/protocol/bedrock/wire/structures/CommandParameter';
 import { testContent } from '../testing/entityServer';
+import type { ScriptCommandSet } from '@jsprismarine/script-host/host/world';
 
 /** What a fresh `permissions.json` grants everyone. */
 const DEFAULT_PERMISSIONS = ['minecraft.command.help', 'minecraft.command.list', 'minecraft.command.me'];
@@ -33,10 +34,11 @@ const holds = (grants: readonly string[], node: string): boolean =>
  * The `AvailableCommandsPacket` the default command set produces for one player, through the
  * real command manager and the real permission rules over a fixed set of grants.
  */
-const commandsSentTo = async ({
+const packetSentTo = async ({
     op = false,
-    permissions = DEFAULT_PERMISSIONS
-}: { op?: boolean; permissions?: string[] } = {}) => {
+    permissions = DEFAULT_PERMISSIONS,
+    scripts
+}: { op?: boolean; permissions?: string[]; scripts?: ScriptCommandSet } = {}) => {
     const sent: NetworkPacket[] = [];
     const sessions: PlayerSession[] = [];
     const logger = stub<Logger>({ verbose() {}, debug() {}, info() {}, warn() {}, error() {} });
@@ -57,6 +59,7 @@ const commandsSentTo = async ({
     });
     const commandManager = new CommandManager(server);
     await commandManager.enable();
+    if (scripts !== undefined) commandManager.setScriptCommands(scripts);
 
     const player = stub<SessionPlayer>({ getName: () => 'Steve' });
     const connection = stub<ClientConnection>({
@@ -77,8 +80,32 @@ const commandsSentTo = async ({
 
     const [packet] = sent;
     if (!(packet instanceof AvailableCommandsPacket)) throw new Error('No AvailableCommandsPacket was sent');
-    return packet.commandData;
+    return packet;
 };
+
+/** The commands {@link packetSentTo} sends one player. */
+const commandsSentTo = async (options: Parameters<typeof packetSentTo>[0] = {}) =>
+    (await packetSentTo(options)).commandData;
+
+/** A behavior pack's `/jsp:tpsbar`, which a game director or above may run. */
+const TPS_BAR: ScriptCommandSet = {
+    enums: [],
+    commands: [
+        {
+            name: 'jsp:tpsbar',
+            description: 'Shows or hides the TPS bar.',
+            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
+            cheatsRequired: false,
+            mandatoryParameters: [],
+            optionalParameters: []
+        }
+    ],
+    run: () => ({ status: 'success' })
+};
+
+/** The values of the `CommandName` enum a packet carries. */
+const commandNamesOf = (packet: AvailableCommandsPacket) =>
+    packet.hardcodedEnums.find(({ name }) => name === 'CommandName')?.values;
 
 /** `name: type` per parameter, the way the client's autocomplete would show an overload. */
 const spell = (overload: { paramName: string; paramType: number; enum: { name: string } | null }[]) =>
@@ -266,6 +293,30 @@ describe('PlayerSession', () => {
             expect(names).not.toContain('say');
             expect(names).not.toContain('tp');
             expect(commands.every(({ permission }) => permission === CommandPermissionLevel.ANY)).toBe(true);
+        });
+
+        it("names every command it sends, a script's namespaced one with its alias too, in CommandName", async () => {
+            // The client completes a namespaced command only from this enum, as a Bedrock
+            // Dedicated Server sends it, so an operator saw no `/jsp:tpsbar` without it.
+            const packet = await packetSentTo({ op: true, scripts: TPS_BAR });
+            const names = commandNamesOf(packet);
+
+            expect(packet.commandData.map(({ commandName }) => commandName)).toContain('jsp:tpsbar');
+            expect(names).toEqual(expect.arrayContaining(['jsp:tpsbar', 'tpsbar', 'teleport', 'tp']));
+            expect(new Set(names)).toEqual(
+                new Set(
+                    packet.commandData.flatMap(({ commandName, aliases }) => [commandName, ...(aliases?.values ?? [])])
+                )
+            );
+        });
+
+        it("leaves a script's command out of a player below its level, CommandName included", async () => {
+            const packet = await packetSentTo({ scripts: TPS_BAR });
+
+            expect(packet.commandData.map(({ commandName }) => commandName)).not.toContain('jsp:tpsbar');
+            expect(commandNamesOf(packet)).not.toContain('jsp:tpsbar');
+            expect(commandNamesOf(packet)).not.toContain('tpsbar');
+            expect(commandNamesOf(packet)).toContain('help');
         });
     });
 });

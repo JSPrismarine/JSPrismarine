@@ -459,7 +459,7 @@ describe('AvailableCommandsPacket', () => {
         for (const command of decoded.commands) {
             expect(command.permission).toBe('any');
             if (command.aliasesOffset !== -1) {
-                expect(decoded.enums[command.aliasesOffset]?.type).toBe(`${command.name}Aliases`);
+                expect(decoded.enums[command.aliasesOffset]?.type).toBe(`${command.name}CommandAliases`);
             }
             for (const overload of command.overloads) {
                 for (const parameter of overload.parameters) {
