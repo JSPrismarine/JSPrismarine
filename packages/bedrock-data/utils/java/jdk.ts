@@ -6,7 +6,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, realpathSync } from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /** Points the Java steps at one JDK, ahead of `JAVA_HOME` and anything macOS has registered. */
 export const JDK_HOME_ENV = 'JSP_JAVA_HOME';
@@ -24,10 +24,26 @@ export interface JdkRequirement {
     readonly binaries?: readonly string[];
 }
 
+/**
+ * Where a JDK search looks: the environment variables and the platform, the process's own unless
+ * a caller passes others. A test passes its own rather than changing the process's, which test
+ * files running beside it on other threads read too.
+ */
+export interface JdkSearchContext {
+    /** The environment `JSP_JAVA_HOME`, `JAVA_HOME` and `PATH` are read from. */
+    readonly env?: Readonly<Record<string, string | undefined>>;
+    /** The platform, which decides the executable names and the `PATH` separator. */
+    readonly platform?: NodeJS.Platform;
+    /** Runs `java --version` and returns what it wrote; a candidate whose run throws is skipped. */
+    readonly versionOf?: (javaBinary: string) => string;
+}
+
+/** Runs a JDK's `java --version`. */
+const runVersion = (javaBinary: string): string => execFileSync(javaBinary, ['--version'], { encoding: 'utf8' });
+
 /** Resolves a tool name to its executable under a JDK's `bin/` directory. */
-export const jdkBinaryPath = (home: string, binary: string): string => {
-    const executable =
-        process.platform === 'win32' && !binary.toLowerCase().endsWith('.exe') ? `${binary}.exe` : binary;
+export const jdkBinaryPath = (home: string, binary: string, platform: NodeJS.Platform = process.platform): string => {
+    const executable = platform === 'win32' && !binary.toLowerCase().endsWith('.exe') ? `${binary}.exe` : binary;
     return join(home, 'bin', executable);
 };
 
@@ -39,9 +55,10 @@ export const jdkBinaryPath = (home: string, binary: string): string => {
  * to, so the lookup behaves the same on every platform. The symlink is resolved first, because
  * a distribution's `/usr/bin/java` usually points into the real home.
  */
-export const pathJavaHome = (): string | undefined => {
-    const binary = process.platform === 'win32' ? 'java.exe' : 'java';
-    for (const entry of (process.env['PATH'] ?? '').split(delimiter)) {
+export const pathJavaHome = ({ env = process.env, platform = process.platform }: JdkSearchContext = {}):
+    string | undefined => {
+    const binary = platform === 'win32' ? 'java.exe' : 'java';
+    for (const entry of (env['PATH'] ?? '').split(platform === 'win32' ? ';' : ':')) {
         if (entry === '') continue;
 
         const candidate = join(entry, binary);
@@ -58,14 +75,19 @@ export const pathJavaHome = (): string | undefined => {
 };
 
 /** Homes to try, in order: the two environment variables, the macOS registry, then `PATH`. */
-const candidateHomes = (minimumMajor: number, maximumMajor?: number): string[] => {
+const candidateHomes = (
+    minimumMajor: number,
+    maximumMajor: number | undefined,
+    context: JdkSearchContext
+): string[] => {
+    const { env = process.env, platform = process.platform } = context;
     const homes: string[] = [];
     for (const variable of [JDK_HOME_ENV, 'JAVA_HOME']) {
-        const home = process.env[variable];
+        const home = env[variable];
         if (home !== undefined && home !== '') homes.push(home);
     }
 
-    if (process.platform === 'darwin') {
+    if (platform === 'darwin') {
         try {
             const range = maximumMajor === minimumMajor ? `${minimumMajor}` : `${minimumMajor}+`;
             const home = execFileSync('/usr/libexec/java_home', ['-v', range], {
@@ -77,7 +99,7 @@ const candidateHomes = (minimumMajor: number, maximumMajor?: number): string[] =
         }
     }
 
-    const onPath = pathJavaHome();
+    const onPath = pathJavaHome(context);
     if (onPath !== undefined) homes.push(onPath);
 
     return homes;
@@ -92,9 +114,9 @@ const candidateHomes = (minimumMajor: number, maximumMajor?: number): string[] =
  * @returns The leading number of the banner, or 0 when the binary does not run or says nothing
  *   recognizable.
  */
-const featureRelease = (javaBinary: string): number => {
+const featureRelease = (javaBinary: string, versionOf: (javaBinary: string) => string): number => {
     try {
-        const banner = execFileSync(javaBinary, ['--version'], { encoding: 'utf8' });
+        const banner = versionOf(javaBinary);
         return Number(/\b(\d+)/.exec(banner.split('\n')[0] ?? '')?.[1] ?? 0);
     } catch {
         return 0;
@@ -104,14 +126,16 @@ const featureRelease = (javaBinary: string): number => {
 /**
  * Returns the home directory of a JDK that meets the requirement.
  *
+ * @param context - Where to look, the process's environment and platform by default.
  * @throws Error naming {@link JDK_HOME_ENV} when no candidate qualifies.
  */
-export const findJdkHome = (requirement: JdkRequirement): string => {
+export const findJdkHome = (requirement: JdkRequirement, context: JdkSearchContext = {}): string => {
+    const platform = context.platform ?? process.platform;
     const binaries = requirement.binaries ?? ['java'];
     const { minimumMajor, maximumMajor = Number.POSITIVE_INFINITY } = requirement;
-    for (const home of candidateHomes(minimumMajor, requirement.maximumMajor)) {
-        if (!binaries.every((binary) => existsSync(jdkBinaryPath(home, binary)))) continue;
-        const major = featureRelease(jdkBinaryPath(home, 'java'));
+    for (const home of candidateHomes(minimumMajor, requirement.maximumMajor, context)) {
+        if (!binaries.every((binary) => existsSync(jdkBinaryPath(home, binary, platform)))) continue;
+        const major = featureRelease(jdkBinaryPath(home, 'java', platform), context.versionOf ?? runVersion);
         if (major >= minimumMajor && major <= maximumMajor) return home;
     }
 

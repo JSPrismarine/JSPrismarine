@@ -12,9 +12,6 @@
         "landmines-testing/no-flake-masking": 1,
         "landmines-testing/no-test-doubles": 1
     },
-    "packages/bedrock-data/utils/java/jdk.test.ts": {
-        "landmines-testing/no-test-doubles": 2
-    },
     "packages/binaryutils/src/BinaryStream.alloc.test.ts": {
         "landmines-testing/no-test-doubles": 2
     },
