@@ -66,6 +66,19 @@ describe('pageMarkdown', () => {
         );
     });
 
+    it('reads a link that names a page by its file, as VitePress does', () => {
+        expect(
+            pageMarkdown('[Errors](/errors/index.md) [Run](/guide/running.md#start)', options('guide/index.md'))
+        ).toBe('[Errors](https://docs.example/errors/index.md) [Run](https://docs.example/guide/running.md#start)');
+    });
+
+    it('leaves Markdown inside code as written', () => {
+        const markdown = 'Show `![A sign](media/sign.png)` as [here](/guide/).\n\n```md\n[Run](/guide/running)\n```\n';
+        expect(pageMarkdown(markdown, options('guide/running.md'))).toBe(
+            'Show `![A sign](media/sign.png)` as [here](https://docs.example/guide/index.md).\n\n```md\n[Run](/guide/running)\n```\n'
+        );
+    });
+
     it('finds a folder linked without its slash', () => {
         expect(pageMarkdown('[Errors](/errors)', options('guide/index.md'))).toBe(
             '[Errors](https://docs.example/errors/index.md)'
@@ -318,6 +331,24 @@ describe('llmsIndex', () => {
         expect(note('/adr/0001-stats')).toBe('Status: accepted, 2026-11-15. Each entity owns its stats.');
         expect(note('/plans/undated')).toBe('Updated 2026-11-02. The decision is elsewhere.');
         expect(note('/packages')).toBe('Every package on npm.');
+    });
+
+    it("leaves a lookup section's page out of the full text even when a guide group lists it", () => {
+        const input = source();
+        const groups = input.overviewGroups;
+        const full = llmsFullText(
+            llmsIndex({
+                ...input,
+                overviewGroups: (section) =>
+                    groups(section)?.map((group) => ({
+                        ...group,
+                        items: [...group.items, { text: 'Errors', link: '/errors/', description: '' }]
+                    }))
+            }),
+            input
+        );
+        expect(full).not.toContain('url: https://docs.example/errors/');
+        expect(full).toContain('url: https://docs.example/guide/running');
     });
 
     it("holds each documentation page's copy once, in order, and leaves out lookup sections and Optional", () => {

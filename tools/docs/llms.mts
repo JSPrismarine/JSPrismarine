@@ -19,8 +19,10 @@ import { isRecord } from '../../scripts/isRecord.mts';
 import type { ProjectData } from './project.mts';
 import {
     type DocSection,
+    fenceLines,
     findUnfencedLine,
     isStagedPage,
+    linkRoute,
     pageDate,
     pageRoute,
     pageSummary,
@@ -70,8 +72,10 @@ function routeFiles(route: string) {
 function absoluteLink(target: string, { page, siteUrl, markdownPages }: MarkdownPageOptions) {
     if (target.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(target)) return target;
     const site = new URL(siteUrl);
+    // A link may name a page by its file, `/addons/index.md`, which VitePress resolves to its route.
+    const routed = linkRoute(target);
     // Site-absolute links are written without the base, which VitePress adds to them on the site.
-    const url = target.startsWith('/') ? new URL(target.slice(1), site) : new URL(target, pageUrl(page, siteUrl));
+    const url = routed.startsWith('/') ? new URL(routed.slice(1), site) : new URL(routed, pageUrl(page, siteUrl));
     if (url.origin !== site.origin || !url.pathname.startsWith(site.pathname)) return url.href;
     const route = url.pathname.slice(site.pathname.length);
     const file = routeFiles(route).find((candidate) => markdownPages.has(candidate));
@@ -104,7 +108,20 @@ export function pageMarkdown(markdown: string, options: MarkdownPageOptions) {
         body = lines.join('\n');
     }
 
-    return body.replace(/\]\(([^)\s]+)\)/g, (_link, target: string) => `](${absoluteLink(target, options)})`);
+    const lines = body.split('\n');
+    for (const { index, fenced } of fenceLines(lines, 0)) {
+        if (fenced) continue;
+        // A code span shows Markdown as written, such as a README's `![A warp sign](media/sign.png)`.
+        lines[index] = (lines[index] ?? '')
+            .split(/(`+[^`]*`+)/)
+            .map((part, i) =>
+                i % 2 === 1
+                    ? part
+                    : part.replace(/\]\(([^)\s]+)\)/g, (_link, target: string) => `](${absoluteLink(target, options)})`)
+            )
+            .join('');
+    }
+    return lines.join('\n');
 }
 
 /** The site's paths and pages, as VitePress gives them to `buildEnd`. */
@@ -301,14 +318,16 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
  * `/llms.txt` lists them, each under a block giving its URL. A page linked twice, such as once per
  * heading, is written once.
  */
-export function llmsFullText(index: LlmsIndex, site: Omit<MarkdownSite, 'outDir'>) {
+export function llmsFullText(index: LlmsIndex, site: Omit<MarkdownSite, 'outDir'> & Pick<IndexSource, 'sections'>) {
     const { siteUrl } = site;
     const published = markdownPages(site);
+    // A lookup section's page stays out even when a guide group lists it, such as the errors overview.
+    const lookup = (page: string) => site.sections.some(({ dir, lookup }) => lookup && page.startsWith(`${dir}/`));
     const written = new Set<string>();
     const blocks: string[] = [];
     for (const { links } of index.sections.filter(({ fullText }) => fullText)) {
         for (const { page } of links) {
-            if (page === undefined || !published.has(page) || written.has(page)) continue;
+            if (page === undefined || !published.has(page) || written.has(page) || lookup(page)) continue;
             written.add(page);
             const copy = pageMarkdown(copySource(site, page), {
                 page,
