@@ -101,6 +101,30 @@ whenLoaded(() => {
             overworld.getBlocks(box, { includeTypes: ['minecraft:dirt'], closest: 2, location: { x: 3, y: 20, z: 0 } })
         )
     );
+    // A cube of dirt around a location, so whole rings of blocks lie at the same distance, and
+    // the blocks `closest` picks among them show the server's rule for breaking a tie (#3317).
+    attempt('getBlocks closest ties', () => {
+        const cube = new BlockVolume({ x: 4, y: 30, z: 4 }, { x: 6, y: 32, z: 6 });
+        overworld.fillBlocks(cube, 'minecraft:dirt');
+        return [
+            { x: 5, y: 31, z: 5 },
+            { x: 5.5, y: 31.5, z: 5.5 },
+            { x: 7, y: 31, z: 5 }
+        ].map((location) =>
+            [1, 2, 3, 4, 7, 10, 19, 27, undefined].map((closest) =>
+                [
+                    ...overworld
+                        .getBlocks(
+                            cube,
+                            closest === undefined
+                                ? { includeTypes: ['minecraft:dirt'] }
+                                : { includeTypes: ['minecraft:dirt'], closest, location }
+                        )
+                        .getBlockLocationIterator()
+                ].map((at) => `${at.x} ${at.y} ${at.z}`)
+            )
+        );
+    });
     attempt('containsBiomes', () => [
         overworld.containsBiomes(box, { includeBiomes: ['minecraft:plains'] }, false),
         overworld.containsBiomes(box, { includeBiomes: ['minecraft:desert'] }, false),
