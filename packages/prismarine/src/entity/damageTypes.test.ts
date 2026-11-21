@@ -6,7 +6,13 @@ import type { ServerContent } from '../content/ServerContent';
 import { buildContentTags } from '../content/tags';
 import { stub } from '../testing/stub.test.helper';
 import { DamageCause } from './DamageCause';
-import { damageCauseOfType, damageCausesInTag, damageSourceOfType, hasDamageType } from './damageTypes';
+import {
+    damageCauseOfType,
+    damageCausesInTag,
+    damageSourceOfType,
+    foodExhaustionOf,
+    hasDamageType
+} from './damageTypes';
 import type { StoreActor } from './data/storeActors';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -151,5 +157,43 @@ describe('damage types', () => {
         const source = damageSourceOfType(content, 'minecraft:fall', { by: entityAt(1, 1) });
 
         expect(source.getKnockbackOrigin()).toBeNull();
+    });
+});
+
+describe('foodExhaustionOf', () => {
+    /** Java 26.3's declared exhaustion for the types these blows stand for. */
+    const exhausting = stub<ServerContent>({
+        definitions: stub<ServerContent['definitions']>({
+            damageTypes: new Map(
+                (
+                    [
+                        ['mob_attack', 0.1],
+                        ['in_fire', 0.1],
+                        ['on_fire', 0],
+                        ['fall', 0],
+                        ['magic', 0]
+                    ] as const
+                ).map(([name, exhaustion]) => [
+                    `minecraft:${name}`,
+                    stub<Definition>({ identifier: `minecraft:${name}`, data: { exhaustion } })
+                ])
+            )
+        })
+    });
+
+    it("charges the exhaustion of the Java type a blow's cause stands for", () => {
+        expect(foodExhaustionOf(exhausting, 'entity_attack')).toBe(0.1);
+        expect(foodExhaustionOf(exhausting, 'fall')).toBe(0);
+        // A flame a player stands in costs exhaustion, and the burning it leaves does not.
+        expect(foodExhaustionOf(exhausting, 'fire')).toBe(0.1);
+        expect(foodExhaustionOf(exhausting, 'fire_tick')).toBe(0);
+    });
+
+    it('charges the type a blow names over its cause', () => {
+        expect(foodExhaustionOf(exhausting, 'entity_attack', 'minecraft:magic')).toBe(0);
+    });
+
+    it('charges nothing for a type the packs do not declare', () => {
+        expect(foodExhaustionOf(exhausting, 'lava')).toBe(0);
     });
 });

@@ -5,6 +5,7 @@ import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { StoreActor } from './data/storeActors';
 import { damageTagsOf } from './mobLoot';
+import { isRecord } from '../utils/isRecord';
 
 /**
  * Java damage types, as `/damage` and datapacks name them, mapped onto the causes this server
@@ -73,6 +74,48 @@ export const damageCausesInTag = (content: ServerContent, tag: string): Readonly
                   .map((type) => damageCauseOfType(type, new Set(damageTagsOf(content, type))))
             : []
     );
+
+/**
+ * The Java damage type a blow stands for when it names none, by the cause name the blow carries:
+ * the Bedrock cause or this server's own. A flame a player stands in is Java's `in_fire`, and the
+ * burning it leaves (`fire_tick`) is `on_fire`.
+ */
+const TYPE_BY_CAUSE: Readonly<Record<string, string>> = {
+    attack: 'minecraft:mob_attack',
+    entity_attack: 'minecraft:mob_attack',
+    projectile: 'minecraft:arrow',
+    explosion: 'minecraft:explosion',
+    entity_explosion: 'minecraft:explosion',
+    block_explosion: 'minecraft:explosion',
+    fire: 'minecraft:in_fire',
+    fire_tick: 'minecraft:on_fire',
+    lava: 'minecraft:lava',
+    contact: 'minecraft:cactus',
+    thorns: 'minecraft:thorns',
+    drowning: 'minecraft:drown',
+    fall: 'minecraft:fall',
+    starvation: 'minecraft:starve',
+    starve: 'minecraft:starve',
+    void: 'minecraft:out_of_world',
+    suffocation: 'minecraft:in_wall',
+    magic: 'minecraft:magic',
+    wither: 'minecraft:wither',
+    sonic_boom: 'minecraft:sonic_boom',
+    self_destruct: 'minecraft:generic_kill'
+};
+
+/**
+ * The food exhaustion a blow that takes a player's health costs, Java's
+ * `DamageSource.getFoodExhaustion`: the `exhaustion` its damage type declares, 0.1 for a blow and
+ * 0 for drowning, falling, starving and the other types that are not.
+ * @param content - The content build, for the damage type definitions.
+ * @param cause - The cause name the blow carries.
+ * @param damageType - The Java damage type the blow names, when it names one.
+ */
+export const foodExhaustionOf = (content: ServerContent, cause: string, damageType?: string): number => {
+    const data = content.definitions.damageTypes.get(damageType ?? TYPE_BY_CAUSE[cause] ?? 'minecraft:generic')?.data;
+    return isRecord(data) && typeof data.exhaustion === 'number' ? data.exhaustion : 0;
+};
 
 /** Where `/damage` says a blow came from. */
 export interface DamageOrigins {

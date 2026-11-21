@@ -271,7 +271,7 @@ import { DamageSensingSlot, ITEM_BLOCKING, damageGuards, damageModifiers } from 
 import { INVULNERABILITY_TICKS } from '../Damage';
 import type { DamageCause } from '../DamageCause';
 import { damageCauseOf } from '../DamageCause';
-import { damageCauseOfType, damageCausesInTag } from '../damageTypes';
+import { damageCauseOfType, damageCausesInTag, foodExhaustionOf } from '../damageTypes';
 import { damageTagsOf } from '../mobLoot';
 import type { HitGrace } from './damageStages';
 import { BASE_KNOCKBACK, KNOCKBACK_PER_LEVEL, behind, livingKnockback } from '../knockback';
@@ -3638,6 +3638,9 @@ export class EntityRuntime implements EntityScene {
             taken,
             sensing?.events ?? []
         );
+        // Java's `Player.actuallyHurt` charges the damage type's exhaustion for a blow that took health.
+        if (result.amount > 0 && clientOwnsMovement(entity.identifier))
+            this.playerSystems.exhaust(entity, foodExhaustionOf(this.content(), intent.cause, source.damageType));
         // Before either brain write below, on any route the blow took.
         if (result.amount > 0) this.keepBrainMemories(entity);
         if (result.amount > 0 && source.remembered !== false) {

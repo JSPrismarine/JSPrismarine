@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { JAVA_GAME_RULES } from '@jsprismarine/commands/gamerules';
 import type { Difficulty } from '@jsprismarine/engine-systems';
 import { pointsForNextLevel } from '@jsprismarine/prismarine/entity/Experience';
@@ -18,7 +21,8 @@ import { FAMILIES } from './families.ts';
 import { gameplayAspects, gameplayId, javaDatapackEntries, javaGameplayUniverse } from './javaGameplay.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
-import { serverContent } from './serverStack.ts';
+import { unpackVanillaDatapack } from './javaDatapack.ts';
+import { realStack, serverContent } from './serverStack.ts';
 
 /** One Java mechanic named by a Java registry entry. */
 interface Mechanic {
@@ -216,6 +220,58 @@ const playerScenarios: readonly BehaviorScenario<GameplaySubject>[] = [
     }
 ];
 
+/** Bedrock cause names a blow carries, and the Java damage type each stands for. */
+const HURT_CAUSES: readonly (readonly [cause: string, javaType: string])[] = [
+    ['entity_attack', 'mob_attack'],
+    ['projectile', 'arrow'],
+    ['entity_explosion', 'explosion'],
+    ['lava', 'lava'],
+    ['fire', 'in_fire'],
+    ['fire_tick', 'on_fire'],
+    ['fall', 'fall'],
+    ['drowning', 'drown'],
+    ['magic', 'magic'],
+    ['starve', 'starve']
+];
+
+/** A Java damage type's declared exhaustion, read from the vanilla datapack. */
+const javaDamageExhaustion = (type: string): number => {
+    const file = join(unpackVanillaDatapack(), 'data', 'minecraft', 'damage_type', `${type}.json`);
+    // Parsed JSON boundary: a vanilla damage type file.
+    const data = JSON.parse(readFileSync(file, 'utf-8')) as { readonly exhaustion?: number };
+    return data.exhaustion ?? 0;
+};
+
+const hurtExhaustionScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'hurt-exhaustion',
+    java: "A blow that takes a player's health costs the exhaustion its damage type declares: 0.1 for a blow, 0 for a fall, drowning, magic or starving.",
+    reference: 'Java Player.actuallyHurt and DamageSource.getFoodExhaustion; data/minecraft/damage_type',
+    subjects: () => [subject('mechanic', 'hunger')],
+    idOf: (entry) => entry.id,
+    aspects: () => ['behavior'],
+    run: () => {
+        const { runtime } = realStack();
+        const player = runtime.spawn('minecraft:player', { x: 41_000.5, y: 64, z: 41_000.5 });
+        if (player === undefined) return 'the server spawned no player';
+        try {
+            const components = runtime.playerSystems.componentsOf(player);
+            for (const [cause, type] of HURT_CAUSES) {
+                player.instance.attributes.set('health', 20);
+                components.set('vitals.exhaustion', 0);
+                runtime.damage({ target: player.id, cause, amount: 1, source: { route: 'command' } });
+                const charged = components.get('vitals.exhaustion');
+                const java = javaDamageExhaustion(type);
+                if (Math.abs(charged - java) > 1e-6) {
+                    return `a ${cause} blow costs ${charged} exhaustion, Java's ${type} ${java}`;
+                }
+            }
+            return undefined;
+        } finally {
+            if (player.removed === undefined) runtime.remove(player.id, 'parity hurt exhaustion complete');
+        }
+    }
+};
+
 let advertised: ReadonlySet<string> | undefined;
 
 /** The ids of the recipes the server advertises to a joining client, which are the ones a client can make. */
@@ -324,7 +380,8 @@ describeFamily(
                 scenarioGroup([gameRuleScenario]),
                 scenarioGroup([professionScenario]),
                 scenarioGroup(playerScenarios),
-                scenarioGroup([recipeScenario])
+                scenarioGroup([recipeScenario]),
+                scenarioGroup([hurtExhaustionScenario])
             );
 
             reportCoverage(
