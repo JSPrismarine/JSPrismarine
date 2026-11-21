@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -238,12 +238,15 @@ describe('/perms', () => {
         expect(permissions.groupOf('b')?.parents).toEqual([]);
     });
 
-    it('reloads both files', async () => {
-        const reload = vi.spyOn(permissions, 'reload');
+    it('reads both files again on reload, so an edit made on disk applies', async () => {
+        const document = parseConfigDocument(readFileSync(path.join(directory, 'permissions.json'), 'utf8'));
+        document.set(['groups', 'default', 'meta'], { prefix: 'edited' });
+        writeFileSync(path.join(directory, 'permissions.json'), document.toString());
+        expect(permissions.metaOf(steve, 'prefix')).toBeUndefined();
 
         await run('perms reload');
 
-        expect(reload).toHaveBeenCalledOnce();
+        expect(permissions.metaOf(steve, 'prefix')).toBe('edited');
         expect(feedback).toEqual(['Reloaded permissions.json and ops.json']);
     });
 
@@ -310,6 +313,27 @@ describe('/perms', () => {
 
             expect(feedback).toEqual(['Created group vip']);
             expect(errors).toEqual([expect.stringContaining('group.delete')]);
+        });
+
+        it("gates on the player who typed the command, so `execute as` lends nobody another player's authority", async () => {
+            const alex = identityNamed('Alex', '00000000-0000-0000-0000-000000000008');
+            const alexRef: EntityRef = { ...steveRef, id: '8', name: 'Alex' };
+            await permissions.grantUser(alex, 'jsprismarine.command.perms');
+            // Steve types the command and runs it as Alex, who may run every subcommand.
+            const source = createCommandSource({
+                host: testCommandHost({ entities: { select: () => [steveRef] } }),
+                entity: steveRef,
+                permissionLevel: CommandPermissionLevel.ANY,
+                onFeedback: (message) => void feedback.push(message),
+                onError: (message) => void errors.push(message)
+            }).withEntity(alexRef);
+
+            await Promise.all(
+                collectAsyncCommands(() => registry.getDispatcher().execute('perms group create vip', source))
+            );
+
+            expect(permissions.groupOf('vip')).toBeUndefined();
+            expect(errors).toEqual([expect.stringContaining('group.create')]);
         });
 
         it('names a node for every subcommand the plan lists', () => {

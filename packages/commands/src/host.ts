@@ -608,6 +608,11 @@ export interface CommandSource {
     readonly host: CommandHost;
     /** The entity the command runs as, absent for the console. */
     readonly entity?: EntityRef;
+    /**
+     * The entity that issued the command, absent for the console. `execute as` changes `entity`
+     * and keeps this, so a command that gates on who typed it reads this and not `entity`.
+     */
+    readonly caller?: EntityRef;
     readonly position: Vector3;
     readonly rotation: Rotation;
     readonly dimension: string;
@@ -656,6 +661,7 @@ export interface CommandSourceInput {
 interface SourceState {
     readonly host: CommandHost;
     readonly entity?: EntityRef;
+    readonly caller?: EntityRef;
     readonly position: Vector3;
     readonly rotation: Rotation;
     readonly dimension: string;
@@ -676,6 +682,10 @@ class StackCommandSource implements CommandSource {
 
     public get host(): CommandHost {
         return this.state.host;
+    }
+
+    public get caller(): EntityRef | undefined {
+        return this.state.caller;
     }
 
     public get entity(): EntityRef | undefined {
@@ -767,7 +777,7 @@ class StackCommandSource implements CommandSource {
 export const createCommandSource = (input: CommandSourceInput): CommandSource =>
     new StackCommandSource({
         host: input.host,
-        ...(input.entity === undefined ? {} : { entity: input.entity }),
+        ...(input.entity === undefined ? {} : { entity: input.entity, caller: input.entity }),
         position: input.position ?? input.entity?.position ?? ORIGIN,
         rotation: input.rotation ?? input.entity?.rotation ?? FORWARD,
         dimension: input.dimension ?? input.entity?.dimension ?? 'minecraft:overworld',

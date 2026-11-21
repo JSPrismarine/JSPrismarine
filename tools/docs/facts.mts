@@ -34,6 +34,18 @@ import { ADDON_FILES, ADDON_MODULE_TYPES } from '../../packages/addon-tools/src/
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
 import { USAGE as ADDON_TOOLS_USAGE } from '../../packages/addon-tools/src/command.ts';
 import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/addons/addonFiles.ts';
+import { SUBJECT_KINDS } from '../../packages/prismarine/src/identity/Subject.ts';
+import {
+    BUILT_IN_GROUPS,
+    EVERY_NODE,
+    LEVEL_META,
+    OPERATOR_GROUP
+} from '../../packages/prismarine/src/permission/model.ts';
+import {
+    PERMISSIONS_BACKUP_NAME,
+    PERMISSIONS_SCHEMA_VERSION
+} from '../../packages/prismarine/src/permission/PermissionsFile.ts';
+import { PERMS_COMMAND_PERMISSION, PERMS_SUBCOMMANDS } from '../../packages/prismarine/src/command/permsCommand.ts';
 import {
     ADDONS_DIRECTORY,
     ADDONS_FILE,
@@ -257,6 +269,25 @@ function bedrockCommandCountsTable() {
 
 /** An operator's permission level; a command above it is the console's alone. */
 const CONSOLE_ONLY_ABOVE = CommandPermissionLevel.OWNER;
+
+/** The permission files: the platforms users are filed under, the built-in groups, and the migration's names. */
+function permissionFacts() {
+    return {
+        'permissions.kinds': list(SUBJECT_KINDS.map((kind) => inlineCode(kind))),
+        'permissions.builtInGroups': list(BUILT_IN_GROUPS.map((group) => inlineCode(group))),
+        'permissions.operatorGroup': inlineCode(OPERATOR_GROUP),
+        'permissions.operatorNode': inlineCode(EVERY_NODE),
+        'permissions.levelMeta': inlineCode(LEVEL_META),
+        'permissions.levelRange': `${CommandPermissionLevel.ANY} to ${CommandPermissionLevel.OWNER}`,
+        'permissions.operatorLevel': String(CommandPermissionLevel.OWNER),
+        'permissions.schemaVersion': String(PERMISSIONS_SCHEMA_VERSION),
+        'permissions.backupFile': inlineCode(PERMISSIONS_BACKUP_NAME),
+        'permissions.perms.node': inlineCode(PERMS_COMMAND_PERMISSION),
+        'permissions.perms.subcommandNodes': list(
+            PERMS_SUBCOMMANDS.map((sub) => inlineCode(`${PERMS_COMMAND_PERMISSION}.${sub}`))
+        )
+    };
+}
 
 /** The command reference: every command the server answers, with its permission and who has it. */
 async function commandReferenceFacts() {
@@ -1245,6 +1276,7 @@ export async function loadFacts(): Promise<Facts> {
             'world.betaApis': BETA_APIS,
             // The port `/script debugger listen` and `connect` use when given none.
             'scripting.debuggerPort': String(DEFAULT_DEBUGGER_PORT),
+            ...permissionFacts(),
             ...scriptingFacts(),
             ...eventFacts(),
             ...prismarineEntryFacts(),

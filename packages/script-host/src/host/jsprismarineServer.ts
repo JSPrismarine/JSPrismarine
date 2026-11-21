@@ -364,6 +364,53 @@ export const JSPRISMARINE_TYPES = {
                     'The parsed JSON of the file after the change, frozen, or `undefined` when the file is gone. A file that fails to parse gives the last value.'
             }
         }
+    },
+    PermissionsAfterEvents: {
+        kind: 'interface',
+        summary: 'The events the permission files raise, after the fact.',
+        properties: {
+            permissionsChange: {
+                type: 'PermissionsChangeSignal',
+                summary:
+                    'Fires after any write to the permission files, whoever made it, and after the files are read again on `/reload` or a change on disk.'
+            }
+        }
+    },
+    PermissionsChangeSignal: {
+        kind: 'interface',
+        summary: 'Where a pack subscribes to permission changes.',
+        properties: {},
+        methods: {
+            subscribe: {
+                summary:
+                    "Calls `callback` after each change, with the player and the group it touched, and returns the callback. A pack's subscriptions end when its scripts stop.",
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: '(event: PermissionsChangeEvent) => void'
+            },
+            unsubscribe: {
+                summary: 'Stops calling a callback `subscribe` returned.',
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: 'void'
+            }
+        }
+    },
+    PermissionsChangeEvent: {
+        kind: 'interface',
+        summary: 'What a permission change touched.',
+        properties: {
+            target: {
+                type: 'PermissionsChangeTarget',
+                optional: true,
+                summary:
+                    'The group or the user the write touched. Absent after the files were read again on `/reload` or a change on disk, which may have changed anything.'
+            }
+        }
+    },
+    PermissionsChangeTarget: {
+        kind: 'alias',
+        summary:
+            'The group a group write touched, by name, or the user a user write touched, by the name their record shows, with their `Player` while they are online.',
+        type: '{ readonly group: string } | { readonly name: string; readonly player?: Player }'
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -492,53 +539,6 @@ export const JSPRISMARINE_PLACEHOLDER_TYPES = {
                     'The tick at which an animation in the template next changes the text, so a consumer that refreshes on an interval renders again then. Absent when the template holds no animation with more than one frame.'
             }
         }
-    },
-    PermissionsAfterEvents: {
-        kind: 'interface',
-        summary: 'The events the permission files raise, after the fact.',
-        properties: {
-            permissionsChange: {
-                type: 'PermissionsChangeSignal',
-                summary:
-                    'Fires after any write to the permission files, whoever made it, and after the files are read again on `/reload` or a change on disk.'
-            }
-        }
-    },
-    PermissionsChangeSignal: {
-        kind: 'interface',
-        summary: 'Where a pack subscribes to permission changes.',
-        properties: {},
-        methods: {
-            subscribe: {
-                summary:
-                    "Calls `callback` after each change, with the player and the group it touched, and returns the callback. A pack's subscriptions end when its scripts stop.",
-                parameters: 'callback: (event: PermissionsChangeEvent) => void',
-                returns: '(event: PermissionsChangeEvent) => void'
-            },
-            unsubscribe: {
-                summary: 'Stops calling a callback `subscribe` returned.',
-                parameters: 'callback: (event: PermissionsChangeEvent) => void',
-                returns: 'void'
-            }
-        }
-    },
-    PermissionsChangeEvent: {
-        kind: 'interface',
-        summary: 'What a permission change touched.',
-        properties: {
-            target: {
-                type: 'PermissionsChangeTarget',
-                optional: true,
-                summary:
-                    'The group or the user the write touched. Absent after the files were read again on `/reload` or a change on disk, which may have changed anything.'
-            }
-        }
-    },
-    PermissionsChangeTarget: {
-        kind: 'alias',
-        summary:
-            'The group a group write touched, by name, or the user a user write touched, by the name their record shows, with their `Player` while they are online.',
-        type: '{ readonly group: string } | { readonly name: string; readonly player?: Player }'
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -668,7 +668,11 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        const target =',
         '            group !== undefined ? freeze({ group }) : name !== undefined ? freeze({ name, player }) : undefined;',
         '        const event = freeze(target === undefined ? {} : { target });',
-        '        for (const callback of [...subscribers]) callback(event);',
+        '        let failed;',
+        '        for (const callback of [...subscribers]) {',
+        '            try { callback(event); } catch (error) { failed ??= error; }',
+        '        }',
+        '        if (failed !== undefined) throw failed;',
         '    });',
         '    const permissionsChange = freeze({',
         '        subscribe(callback) { subscribers.add(callback); return callback; },',
@@ -854,7 +858,8 @@ const typeLines = (name: string, type: TypeDefinition): string[] => {
     if (type.kind === 'union') {
         return [comment, `    export type ${name} = ${type.values.map((value) => JSON.stringify(value)).join(' | ')};`];
     }
-    if (type.kind === 'alias') return [comment, `    export type ${name} =${type.type.startsWith('\n') ? '' : ' '}${type.type};`];
+    if (type.kind === 'alias')
+        return [comment, `    export type ${name} =${type.type.startsWith('\n') ? '' : ' '}${type.type};`];
     return [
         comment,
         `    export interface ${name} {`,

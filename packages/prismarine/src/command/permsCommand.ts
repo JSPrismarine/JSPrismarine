@@ -95,8 +95,8 @@ export const expiryOf = (raw: string, now: number): string => {
 /** The qualified form a name takes to pick one platform: `xbox:Steve`, `java:Steve` or `offline:Steve`. */
 const qualified = (kind: SubjectKind, name: string): string => `${kind}:${name}`;
 
-/** Where the command runs as nobody in particular: the console, or a function it runs. */
-const isConsole = (current: CommandSource): boolean => current.entity === undefined;
+/** Where the command was typed by nobody in particular: the console, or a function it runs. */
+const isConsole = (current: CommandSource): boolean => current.caller === undefined;
 
 /** Splits a qualified target into its kind and name, or undefined for a name without a kind. */
 const splitQualified = (raw: string): { kind: SubjectKind; name: string } | undefined => {
@@ -125,11 +125,13 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
 
     /**
      * Whether the sender may run a subcommand. The console may run every one; a player needs the
-     * subcommand's node, which the bare command node and an operator's status cover.
+     * subcommand's node, which the bare command node and an operator's status cover. The check
+     * reads the player who typed the command, not the entity it runs as, so `execute as` lends
+     * nobody another player's authority here.
      */
     const allowed = (current: CommandSource, sub: PermsSubcommand): boolean => {
-        if (isConsole(current)) return true;
-        const session = current.entity === undefined ? undefined : playerSessionOf(server, current.entity);
+        if (current.caller === undefined) return true;
+        const session = playerSessionOf(server, current.caller);
         if (session === undefined) return false;
         return permissions().can(session).execute(permsSubcommandNode(sub));
     };
