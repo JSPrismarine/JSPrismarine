@@ -602,11 +602,12 @@ export default class PlayerSession {
         connection: ClientConnection,
         player: SessionPlayerRef,
         players: SessionPlayers<SessionPlayer>,
-        world: World
+        world: World,
+        presenter: SessionPresenter = new BedrockPresenter(connection)
     ) {
         this.server = server;
         this.connection = connection;
-        this.presenter = new BedrockPresenter(connection);
+        this.presenter = presenter;
         this.runtimeId = player.runtimeId;
         this.identity = player.identity;
         this.players = players;

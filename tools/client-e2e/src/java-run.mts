@@ -15,6 +15,7 @@ import type { JavaClient } from './headlessmc.mts';
 import { launchJavaClient } from './headlessmc.mts';
 import type { JspServer } from './jsp-server.mts';
 import { startServer } from './jsp-server.mts';
+import { chat } from './java-scenarios/chat.mts';
 import { join } from './java-scenarios/join.mts';
 
 /** What a Java scenario is given: the server, its Java port and the client, connected to nothing yet. */
@@ -30,7 +31,7 @@ export interface JavaScenario {
     run(context: JavaScenarioContext): Promise<void>;
 }
 
-const SCENARIOS: readonly JavaScenario[] = [join];
+const SCENARIOS: readonly JavaScenario[] = [join, chat];
 
 /** A TCP port nothing listens on. */
 const freeTcpPort = (): Promise<number> =>
@@ -66,6 +67,7 @@ for (const scenario of chosen) {
         failed += 1;
         console.log(`FAIL ${scenario.name}: ${error instanceof Error ? error.message : String(error)}`);
         console.log(`  the client's output: ${clientLog}`);
+        console.log(`  the server's last lines:\n${server.lines.slice(-25).join('\n')}`);
     } finally {
         await client?.stop();
         await server.stop();

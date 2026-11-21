@@ -165,6 +165,10 @@ export class JavaChunkTranslator {
         const worldX = chunk.getX() * 16;
         const worldZ = chunk.getZ() * 16;
         const highest = minY + Math.max(0, ...heights);
+        // Every light source is a block, and light falls off by one a block, so no block light
+        // reaches past 15 above the highest block; those sections are dark without a read.
+        const blockLightOf = (baseY: number): Buffer | undefined =>
+            light === undefined || baseY > highest + 15 ? undefined : this.lightOf(light.block, worldX, baseY, worldZ);
         /** Each section's sky and block light, undefined where the section is dark. */
         const sky: (Buffer | undefined)[] = [];
         const block: (Buffer | undefined)[] = [];
@@ -194,7 +198,7 @@ export class JavaChunkTranslator {
             // Above every column's highest block, the sky is all there is.
             if (baseY >= highest) {
                 sky.push(FULL_LIGHT);
-                block.push(light === undefined ? undefined : this.lightOf(light.block, worldX, baseY, worldZ));
+                block.push(blockLightOf(baseY));
                 continue;
             }
             sky.push(
@@ -202,7 +206,7 @@ export class JavaChunkTranslator {
                     ? nibbles((i) => (baseY + (i >> 8) >= minY + (heights[i & 255] ?? 0) ? 15 : 0))
                     : this.lightOf(light.sky, worldX, baseY, worldZ)
             );
-            block.push(light === undefined ? undefined : this.lightOf(light.block, worldX, baseY, worldZ));
+            block.push(blockLightOf(baseY));
         }
 
         const heightmap = packHeightmap(heights, height);

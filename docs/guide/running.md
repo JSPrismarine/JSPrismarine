@@ -536,10 +536,15 @@ does, and refuses one it cannot verify; with it off, a player is known by the UU
 and the connection is not encrypted, as on a vanilla server. The server configures the client as
 vanilla 26.3 does, with the same registries and tags; a client without vanilla's own data pack of
 that release, which those registries come from, is turned away with a message that names the pack.
-It then shows the player the default world around its spawn, up to 8 chunks out or the view
-distance if that is less, with the blocks and biomes a Java client knows and sky light worked out
-from the ground. The player is not yet in the world for anyone else: chat, moving past the chunks
-it was sent, and seeing or being seen by other players come later.
+The player then joins the default world as a player like any other: their record is saved and
+loaded under their own name, they stand at the world's spawn when they are new, and they are sent
+the world around them, up to 8 chunks out or the view distance if that is less, with the blocks
+and biomes a Java client knows and the light the server's light engine keeps. As they walk, the
+chunks they come into view of follow. Their chat reaches every player and the console, and other
+players' chat, the server's messages and command output reach them; their commands run as any
+player's do. Bedrock players see them, with a plain default skin. A Java player does not yet see
+other players or mobs, cannot change blocks or use an inventory, and has no health or hunger bar
+the server keeps current.
 [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks that work.
 
 When another program holds `java-port`, the server does not start, and its error names the port.

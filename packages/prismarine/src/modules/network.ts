@@ -44,6 +44,7 @@ import type { Transport, TransportConnection, TransportName } from '../network/t
 import { TransportNames } from '../network/transport/Transport';
 import { TcpTransport } from '../network/transport/TcpTransport';
 import { JavaConnections } from '../network/java/JavaConnections';
+import { javaPlayersOf } from '../network/java/javaPlayers';
 import { about } from '../about';
 import { softwareLabel } from '../version';
 import type Server from '../Server';
@@ -52,10 +53,7 @@ import { errorMessage } from '../utils/errorMessage';
 import { networkToken } from './tokens';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
-/** The game modes a Java client numbers, by the name `gamemode` in the config gives them. */
-const JAVA_GAME_MODES: Readonly<Record<string, number>> = { survival: 0, creative: 1, adventure: 2, spectator: 3 };
-
-/** The most chunks out from spawn a joining Java player is sent, while they all go in one batch. */
+/** The most chunks out from a Java player they are sent, while each batch goes at once. */
 const JAVA_JOIN_RADIUS = 8;
 
 /** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
@@ -209,6 +207,8 @@ export class ServerNetworking implements Networking {
             driver !== undefined && udpPorts?.local !== undefined
                 ? await this.openSharedPorts(address, port, udpPorts.local, config.getEnableRakNet())
                 : new Map<number, SharedPort>();
+        // One queue for both editions' inputs, so they apply in one order in the input step.
+        const inputs = new InputQueue(() => server.getChunkCompletionQueue().isActive);
         const rakNet: RakNetTransport[] = [];
         // One per transport that binds, settled once it listens or cannot.
         const listening: Promise<void>[] = [];
@@ -240,7 +240,7 @@ export class ServerNetworking implements Networking {
                 // Not among the transports returned: Java frames are not Bedrock batches, so the
                 // Bedrock dispatcher never sees them. It shares the connection IDs all the same.
                 if (config.getJavaEnabled()) {
-                    this.java = this.startJava(address, config.getJavaPort(), serverName, ids, listening);
+                    this.java = this.startJava(address, config.getJavaPort(), serverName, ids, listening, inputs);
                 }
                 this.startedTransports = [
                     ...(rakNet.length > 0 ? [TransportNames.raknet] : []),
@@ -267,7 +267,7 @@ export class ServerNetworking implements Networking {
             // steps ticks by hand turns it on itself. Inputs wait for that step under the same
             // switch, so a hand-stepped tick still applies them in its input step, and a server
             // whose loop does not run applies them on arrival instead of holding them forever.
-            inputs: new InputQueue(() => server.getChunkCompletionQueue().isActive),
+            inputs,
             createConnection: (connection) =>
                 new ClientConnection(
                     connection,
@@ -376,7 +376,8 @@ export class ServerNetworking implements Networking {
         port: number,
         serverName: ServerName,
         ids: ConnectionIds,
-        listening: Promise<void>[]
+        listening: Promise<void>[],
+        inputs: InputQueue
     ): { transport: TcpTransport; connections: JavaConnections } {
         const logger = this.server.getLogger();
         const transport = new TcpTransport(ids, logger);
@@ -389,11 +390,7 @@ export class ServerNetworking implements Networking {
             onlineMode: () => config.getOnlineMode(),
             log: logger,
             world: {
-                spawn: async () => {
-                    const spawn = await world().getSpawnPosition();
-                    // The middle of the spawn block, as a vanilla server places a joining player.
-                    return { x: Math.floor(spawn.getX()) + 0.5, y: spawn.getY(), z: Math.floor(spawn.getZ()) + 0.5 };
-                },
+                players: javaPlayersOf(server, inputs),
                 chunk: (x, z) => world().getChunk(x, z),
                 light: () => {
                     const systems = world().getSystems();
@@ -402,9 +399,8 @@ export class ServerNetworking implements Networking {
                         block: (x, y, z) => systems.getBlockLight(x, y, z)
                     };
                 },
-                // One batch at join, so a modest radius until chunks stream as the player moves.
+                // Each batch is sent at once, so a modest radius until batches are paced.
                 viewDistance: () => Math.min(config.getViewDistance(), JAVA_JOIN_RADIUS),
-                gameMode: () => JAVA_GAME_MODES[config.getGamemode()] ?? 0,
                 maxPlayers: () => config.getMaxPlayers()
             }
         });

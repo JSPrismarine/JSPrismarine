@@ -36,12 +36,20 @@ import {
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
+    ChatCommand,
+    ChatMessage,
     ChunkBatchFinished,
     ChunkBatchStart,
     ClientboundKeepAlive,
     ConfirmTeleportation,
     GameEvent,
+    MOVE_ON_GROUND,
+    MovePlayerPos,
+    MovePlayerPosRot,
+    MovePlayerRot,
+    MovePlayerStatusOnly,
     PlayDisconnect,
+    PlayerLoaded,
     PlayLogin,
     ServerboundKeepAlive,
     SetCenterChunk,
@@ -60,7 +68,13 @@ import type { JavaProfile } from './javaAuth';
 import { hasJoined, offlineUuid, serverHash } from './javaAuth';
 import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
+import { Vector3 } from '@jsprismarine/math';
+
+import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type Chunk from '../../world/chunk/Chunk';
+import type PlayerSession from '../PlayerSession';
+import type { JavaPlayers } from './javaPlayers';
+import { javaGameModeOf } from './JavaPresenter';
 import type { JavaChunkLight } from './javaChunk';
 import { JavaChunkTranslator } from './javaChunk';
 
@@ -86,18 +100,16 @@ export interface JavaLoginOptions {
     readonly world?: JavaWorldHost;
 }
 
-/** What a Java player in play is shown of the world, until they join it as a player. */
+/** The world a Java player in play joins, and the chunks they are shown of it. */
 export interface JavaWorldHost {
-    /** Where a joining player stands. */
-    spawn(): Promise<{ readonly x: number; readonly y: number; readonly z: number }>;
+    /** The world's Java players, which a player who reaches play joins. */
+    readonly players: JavaPlayers;
     /** One chunk of the default world, generated or loaded when it has to be. */
     chunk(x: number, z: number): Promise<Chunk>;
     /** The world's light, which a chunk carries to a Java client, settled before it is read. */
     light(): JavaChunkLight;
     /** How many chunks out from the player the client is sent. */
     viewDistance(): number;
-    /** The game mode a joining player has, as Java numbers it: 0 survival to 3 spectator. */
-    gameMode(): number;
     maxPlayers(): number;
 }
 
@@ -135,6 +147,16 @@ interface JavaConnectionState {
     /** The name and token of a login waiting for its encryption response. */
     pending?: { readonly name: string; readonly verifyToken: Buffer };
     profile?: JavaProfile;
+    /** Whether Mojang vouched for the profile, which makes the player a `java` subject rather than `offline`. */
+    verified?: boolean;
+    /** The player's session, once they are in the world. */
+    session?: PlayerSession;
+    /** The facing and footing the last move reported, for the moves that leave either out. */
+    pose?: { yaw: number; pitch: number; onGround: boolean };
+    /** Whether the client confirmed a teleport since its last move, as Bedrock's `HandledTeleport` says. */
+    teleportHandled?: boolean;
+    /** The chunk the client's view centers on, and every chunk it has been sent. */
+    view?: { x: number; z: number; readonly sent: Set<string> };
     /** The keep-alive timer, and the id the client has not yet answered, once the player is in play. */
     keepAlive?: { readonly timer: NodeJS.Timeout; awaiting: bigint | undefined };
 }
@@ -182,10 +204,11 @@ export class JavaConnections {
         transport.onConnect(
             (connection) => void this.connections.set(connection.id, { connection, phase: 'handshake' })
         );
-        transport.onDisconnect((id) => {
+        transport.onDisconnect(async (id) => {
             const state = this.connections.get(id);
             if (state?.keepAlive !== undefined) clearInterval(state.keepAlive.timer);
             this.connections.delete(id);
+            if (state?.session !== undefined) await this.options.world?.players.leave(id);
         });
         transport.onFrame((frame, id) => this.receive(frame, id));
     }
@@ -247,11 +270,10 @@ export class JavaConnections {
                     }
                     if (packetId === ConfirmTeleportation.id) {
                         expect(ConfirmTeleportation);
+                        state.teleportHandled = true;
                         return;
                     }
-                    // Movement, chat and the rest wait for the player to join the world.
-                    if (PLAY_SERVERBOUND.has(packetId)) return;
-                    throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
+                    return await this.play(state, packetId, expect);
             }
         } catch (error) {
             this.options.log.debug(
@@ -283,7 +305,7 @@ export class JavaConnections {
     private async loginStart(state: JavaConnectionState, name: string): Promise<void> {
         if (!VALID_NAME.test(name)) return this.refuse(state, translated('multiplayer.disconnect.invalid_player_data'));
         if (!this.options.onlineMode()) {
-            return this.finishLogin(state, { id: offlineUuid(name), name, properties: [] });
+            return this.finishLogin(state, { id: offlineUuid(name), name, properties: [] }, false);
         }
         const verifyToken = randomBytes(4);
         state.pending = { name, verifyToken };
@@ -311,10 +333,11 @@ export class JavaConnections {
 
         const profile = await this.askSessionServer(pending.name, serverHash('', secret, this.key.publicDer));
         if (profile === undefined) return this.refuse(state, translated('multiplayer.disconnect.unverified_username'));
-        await this.finishLogin(state, profile);
+        await this.finishLogin(state, profile, true);
     }
 
-    private async finishLogin(state: JavaConnectionState, profile: JavaProfile): Promise<void> {
+    private async finishLogin(state: JavaConnectionState, profile: JavaProfile, verified: boolean): Promise<void> {
+        state.verified = verified;
         this.send(state, SetCompression, { threshold: COMPRESSION_THRESHOLD });
         state.compression = COMPRESSION_THRESHOLD;
         state.profile = profile;
@@ -377,11 +400,18 @@ export class JavaConnections {
      * leaves one unanswered for a whole interval is dropped, as vanilla drops it.
      */
     private async beginPlay(state: JavaConnectionState, world: JavaWorldHost): Promise<void> {
-        const spawn = await world.spawn();
+        const { session, feet } = await world.players.join(
+            state.profile!,
+            state.verified ?? false,
+            state.connection.id,
+            (definition, value) => this.send(state, definition, value)
+        );
+        state.session = session;
+        const player = session.getPlayer();
+        state.pose = { yaw: player.yaw, pitch: player.pitch, onGround: true };
         const radius = world.viewDistance();
         this.send(state, PlayLogin, {
-            // The player has no entity in the world yet; this id is the connection's own.
-            entityId: state.connection.id,
+            entityId: Number(session.runtimeId),
             hardcore: false,
             dimensions: ['minecraft:overworld', 'minecraft:the_nether', 'minecraft:the_end'],
             maxPlayers: world.maxPlayers(),
@@ -393,7 +423,7 @@ export class JavaConnections {
             dimensionType: Math.max(0, DIMENSION_TYPES.indexOf('minecraft:overworld')),
             dimension: 'minecraft:overworld',
             hashedSeed: 0n,
-            gameMode: world.gameMode(),
+            gameMode: javaGameModeOf(player.gamemode),
             previousGameMode: null,
             isDebug: false,
             isFlat: false,
@@ -405,32 +435,19 @@ export class JavaConnections {
         });
         this.send(state, SynchronizePlayerPosition, {
             teleportId: 1,
-            x: spawn.x,
-            y: spawn.y,
-            z: spawn.z,
+            x: feet.x,
+            y: feet.y,
+            z: feet.z,
             velocityX: 0,
             velocityY: 0,
             velocityZ: 0,
-            yaw: 0,
-            pitch: 0,
+            yaw: player.yaw,
+            pitch: player.pitch,
             flags: 0
         });
         this.send(state, GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
-        const centerX = Math.floor(spawn.x) >> 4;
-        const centerZ = Math.floor(spawn.z) >> 4;
-        this.send(state, SetCenterChunk, { x: centerX, z: centerZ });
-
-        const around: { x: number; z: number }[] = [];
-        for (let dx = -radius; dx <= radius; dx++) {
-            for (let dz = -radius; dz <= radius; dz++) around.push({ x: centerX + dx, z: centerZ + dz });
-        }
-        // Nearest first, so the client can show the ground under the player before the rest.
-        around.sort((a, b) => Math.hypot(a.x - centerX, a.z - centerZ) - Math.hypot(b.x - centerX, b.z - centerZ));
-        this.send(state, ChunkBatchStart, {});
-        for (const { x, z } of around) {
-            this.send(state, LevelChunkWithLight, this.chunks.columnOf(await world.chunk(x, z), world.light()));
-        }
-        this.send(state, ChunkBatchFinished, { batchSize: around.length });
+        state.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
+        await this.sendChunksAround(state, world);
 
         const keepAlive = {
             awaiting: undefined as bigint | undefined,
@@ -446,6 +463,114 @@ export class JavaConnections {
         };
         keepAlive.timer.unref();
         state.keepAlive = keepAlive;
+    }
+
+    /**
+     * Centers the client's view on its chunk and sends every chunk around it the client has not
+     * had, nearest first, as one batch.
+     */
+    private async sendChunksAround(state: JavaConnectionState, world: JavaWorldHost): Promise<void> {
+        const view = state.view!;
+        const radius = world.viewDistance();
+        this.send(state, SetCenterChunk, { x: view.x, z: view.z });
+        const missing: { x: number; z: number }[] = [];
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) {
+                const key = `${view.x + dx},${view.z + dz}`;
+                if (!view.sent.has(key)) missing.push({ x: view.x + dx, z: view.z + dz });
+            }
+        }
+        if (missing.length === 0) return;
+        missing.sort((a, b) => Math.hypot(a.x - view.x, a.z - view.z) - Math.hypot(b.x - view.x, b.z - view.z));
+        this.send(state, ChunkBatchStart, {});
+        for (const { x, z } of missing) {
+            view.sent.add(`${x},${z}`);
+            this.send(state, LevelChunkWithLight, this.chunks.columnOf(await world.chunk(x, z), world.light()));
+        }
+        this.send(state, ChunkBatchFinished, { batchSize: missing.length });
+    }
+
+    /**
+     * A packet of a player in the world. A loaded client, chat and commands decode into the
+     * intents a Bedrock client's packets decode into, and a move goes through the movement a
+     * Bedrock input applies; the rest waits for the slices that bring it.
+     */
+    private async play(
+        state: JavaConnectionState,
+        packetId: number,
+        expect: <T>(definition: JavaPacketDefinition<T>) => T
+    ): Promise<void> {
+        const session = state.session;
+        const world = this.options.world;
+        if (session === undefined || world === undefined || !PLAY_SERVERBOUND.has(packetId)) {
+            throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
+        }
+        const { players } = world;
+        switch (packetId) {
+            case PlayerLoaded.id:
+                expect(PlayerLoaded);
+                return players.intent(session, { kind: 'playerInitialized' });
+            case ChatMessage.id:
+                return players.intent(session, { kind: 'chat', message: expect(ChatMessage).message });
+            case ChatCommand.id:
+                return players.intent(session, { kind: 'runCommand', command: expect(ChatCommand).command });
+            case MovePlayerPos.id:
+            case MovePlayerPosRot.id:
+            case MovePlayerRot.id:
+            case MovePlayerStatusOnly.id:
+                return this.move(state, session, world, packetId, expect);
+            default:
+                // Packets the milestone does not read yet, such as the client's tick end.
+                return;
+        }
+    }
+
+    /** One move packet, as the movement a Bedrock input reports, and the chunks it brings into view. */
+    private async move(
+        state: JavaConnectionState,
+        session: PlayerSession,
+        world: JavaWorldHost,
+        packetId: number,
+        expect: <T>(definition: JavaPacketDefinition<T>) => T
+    ): Promise<void> {
+        const pose = state.pose!;
+        const feet = session.getPlayer().getPosition();
+        let { x, z } = { x: feet.getX(), z: feet.getZ() };
+        let y = feet.getY() - EYE_HEIGHT;
+        let flags: number;
+        if (packetId === MovePlayerPos.id) {
+            ({ x, y, z, flags } = expect(MovePlayerPos));
+        } else if (packetId === MovePlayerPosRot.id) {
+            const move = expect(MovePlayerPosRot);
+            ({ x, y, z, flags } = move);
+            pose.yaw = move.yaw;
+            pose.pitch = move.pitch;
+        } else if (packetId === MovePlayerRot.id) {
+            const move = expect(MovePlayerRot);
+            flags = move.flags;
+            pose.yaw = move.yaw;
+            pose.pitch = move.pitch;
+        } else flags = expect(MovePlayerStatusOnly).flags;
+        pose.onGround = (flags & MOVE_ON_GROUND) !== 0;
+        const handledTeleport = state.teleportHandled === true;
+        state.teleportHandled = false;
+        await world.players.move(session, {
+            position: new Vector3(x, y + EYE_HEIGHT, z),
+            pitch: pose.pitch,
+            yaw: pose.yaw,
+            headYaw: pose.yaw,
+            onGround: pose.onGround,
+            handledTeleport
+        });
+
+        const view = state.view!;
+        const chunkX = Math.floor(x) >> 4;
+        const chunkZ = Math.floor(z) >> 4;
+        if (chunkX !== view.x || chunkZ !== view.z) {
+            view.x = chunkX;
+            view.z = chunkZ;
+            await this.sendChunksAround(state, world);
+        }
     }
 
     /** Ends a login with a reason the client shows. */

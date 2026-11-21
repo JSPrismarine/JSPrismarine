@@ -25,7 +25,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
-| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, in review. |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, in review. |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
@@ -149,6 +149,17 @@ request and the inventory transaction, wait for the inventory slice in PR 10, wh
 inventory intents are designed with the Java click-slot protocol beside them. Each PR runs the Bedrock
 client e2e suite, and the replay traces under `packages/prismarine` keep producing the same
 digests, since a decoder plus an intent handler does what the handler did.
+
+### The Java player's session
+
+PR 9c makes a Java player a player session like a Bedrock player's: `createConnectedPlayer` and
+`session.join()` as a Bedrock login uses them, over a `ClientConnection` whose transport drops the
+Bedrock packets the session still sends, with a `JavaPresenter` for the contract's calls. Java's
+`player_loaded` decodes into `playerInitialized`, chat into `chat` and `chat_command` into
+`runCommand`, run by the same intent handlers in the same input step as Bedrock's, through one
+`InputQueue` both editions share; a move goes through `applyClientMovement`, the movement a Bedrock
+input applies, with `Confirm Teleportation` standing for Bedrock's `HandledTeleport`. A Java player
+is shown to Bedrock players with the auth package's default skin until their own is fetched.
 
 ### Movement
 

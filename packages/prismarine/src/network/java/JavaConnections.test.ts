@@ -15,10 +15,15 @@ import {
 import { defineJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
+    ChatMessage,
     ChunkBatchFinished,
     ChunkBatchStart,
+    ConfirmTeleportation,
     GameEvent,
+    MOVE_ON_GROUND,
+    MovePlayerPos,
     PlayDisconnect,
+    PlayerLoaded,
     PlayLogin,
     SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
@@ -42,6 +47,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { javaClient } from '../../testing/javaClient.test-utils';
 import Chunk from '../../world/chunk/Chunk';
+import { Gametype } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
+import { EYE_HEIGHT } from '../../entity/playerEyes';
+import { stub } from '../../testing/stub.test.helper';
+import type PlayerSession from '../PlayerSession';
+import type { SessionPlayer } from '../sessionPlayers';
 import { ConnectionIds } from '../transport/ConnectionId';
 import { TcpTransport } from '../transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
@@ -165,23 +176,49 @@ describe('JavaConnections', () => {
         await java.closed;
     });
 
-    it('shows a player who reaches play the world around spawn, in the order vanilla sends it', async () => {
+    it('joins a player who reaches play to the world, shows it in the order vanilla sends it, and reads what the player does', async () => {
         transport = new TcpTransport(new ConnectionIds(), quiet);
         const asked: string[] = [];
+        const did: string[] = [];
+        let left: () => void = () => {};
+        const leaving = new Promise<void>((resolve) => (left = resolve));
+        const session = stub<PlayerSession>({
+            runtimeId: 7n,
+            getPlayer: () =>
+                stub<SessionPlayer>({
+                    yaw: 90,
+                    pitch: 0,
+                    gamemode: Gametype.CREATIVE,
+                    getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
+                })
+        });
         new JavaConnections(transport, {
             status,
             brand: 'JSPrismarine',
             onlineMode: () => false,
             log: quiet,
             world: {
-                spawn: async () => ({ x: 8.5, y: -60, z: 8.5 }),
+                players: {
+                    join: async (profile, verified) => {
+                        did.push(`join ${profile.name} ${verified ? 'java' : 'offline'}`);
+                        return { session, feet: { x: 8.5, y: -60, z: 8.5 } };
+                    },
+                    move: async (_session, { position, onGround, handledTeleport }) =>
+                        void did.push(
+                            `move ${position.getX()} ${position.getY() - EYE_HEIGHT} ${onGround} ${handledTeleport}`
+                        ),
+                    intent: async (_session, intent) => void did.push(`intent ${JSON.stringify(intent)}`),
+                    leave: async () => {
+                        did.push('leave');
+                        left();
+                    }
+                },
                 chunk: async (x, z) => {
                     asked.push(`${x},${z}`);
                     return new Chunk(x, z);
                 },
                 light: () => ({ sky: () => 15, block: () => 0 }),
                 viewDistance: () => 1,
-                gameMode: () => 1,
                 maxPlayers: () => 20
             }
         });
@@ -203,21 +240,50 @@ describe('JavaConnections', () => {
         const chunks = [];
         for (let i = 0; i < 9; i++) chunks.push(await java.receive(LevelChunkWithLight));
         const finished = await java.receive(ChunkBatchFinished);
-        java.destroy();
 
         expect(login).toMatchObject({
+            entityId: 7,
             dimension: 'minecraft:overworld',
             gameMode: 1,
-            previousGameMode: null,
-            viewDistance: 1
+            previousGameMode: null
         });
-        expect(position).toMatchObject({ teleportId: 1, x: 8.5, y: -60, z: 8.5 });
+        expect(position).toMatchObject({ teleportId: 1, x: 8.5, y: -60, z: 8.5, yaw: 90 });
         expect(event).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
         expect(center).toEqual({ x: 0, z: 0 });
         // The chunk under the player first, then the eight around it.
         expect([chunks[0]!.x, chunks[0]!.z]).toEqual([0, 0]);
-        expect(new Set(chunks.map(({ x, z }) => `${x},${z}`))).toEqual(new Set(asked));
         expect(finished).toEqual({ batchSize: 9 });
+
+        // Loaded, a line of chat, then a confirmed teleport and a step east into the next chunk.
+        java.send(PlayerLoaded, {});
+        java.send(ChatMessage, {
+            message: 'hello',
+            timestamp: 0n,
+            salt: 0n,
+            signature: null,
+            lastSeenOffset: 0,
+            acknowledged: Buffer.alloc(3),
+            checksum: 0
+        });
+        java.send(ConfirmTeleportation, { teleportId: 1, x: 8.5, y: -60, z: 8.5, yaw: 90, pitch: 0 });
+        java.send(MovePlayerPos, { x: 16.5, y: -60, z: 8.5, flags: MOVE_ON_GROUND });
+        expect(await java.receive(SetCenterChunk)).toEqual({ x: 1, z: 0 });
+        await java.receive(ChunkBatchStart);
+        for (let i = 0; i < 3; i++) await java.receive(LevelChunkWithLight);
+        expect(await java.receive(ChunkBatchFinished)).toEqual({ batchSize: 3 });
+        java.destroy();
+        await leaving;
+
+        expect(did).toEqual([
+            'join Steve offline',
+            'intent {"kind":"playerInitialized"}',
+            'intent {"kind":"chat","message":"hello"}',
+            'move 16.5 -60 true true',
+            'leave'
+        ]);
+        expect(new Set(asked)).toEqual(
+            new Set(['-1,-1', '-1,0', '-1,1', '0,-1', '0,0', '0,1', '1,-1', '1,0', '1,1', '2,-1', '2,0', '2,1'])
+        );
     });
 
     it('ends the join of a client without the pack the registries come from', async () => {

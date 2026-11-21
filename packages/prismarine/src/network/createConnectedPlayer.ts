@@ -4,6 +4,7 @@ import type { PlayerIdentity } from '../playerIdentity';
 import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
+import type { SessionPresenter } from './presenter/SessionPresenter';
 
 /**
  * Joins a login's store player to the connection it speaks through.
@@ -31,13 +32,16 @@ export const createConnectedPlayer = ({
     connection,
     player,
     identity,
-    world
+    world,
+    presenter
 }: {
     server: Server;
     connection: ClientConnection;
     player: StorePlayer;
     identity: PlayerIdentity;
     world: World;
+    /** What the session's client is shown through; the Bedrock presenter over `connection` unless given. */
+    presenter?: SessionPresenter;
 }): PlayerSession => {
     // Filed by id before the session exists, because the session holds the id and not the
     // player. `PlayerSession.disable` forgets it.
@@ -48,7 +52,8 @@ export const createConnectedPlayer = ({
         connection,
         { runtimeId: player.getRuntimeId(), identity },
         players,
-        world
+        world,
+        presenter
     );
 
     connection.attachPlayerSession(session);

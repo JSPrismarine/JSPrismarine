@@ -31,6 +31,11 @@
                 "import": "./dist/server.js",
                 "module": "./dist/server.js"
             },
+            "./DefaultSkin": {
+                "types": "./dist/DefaultSkin.d.ts",
+                "import": "./dist/DefaultSkin.js",
+                "module": "./dist/DefaultSkin.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -62,6 +67,10 @@
         "./server": {
             "jsprismarine:dist": "./dist/server.js",
             "default": "./src/server.ts"
+        },
+        "./DefaultSkin": {
+            "jsprismarine:dist": "./dist/DefaultSkin.js",
+            "default": "./src/DefaultSkin.ts"
         },
         "./package.json": "./package.json"
     },
