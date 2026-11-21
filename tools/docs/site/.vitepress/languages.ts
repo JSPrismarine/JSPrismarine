@@ -1,5 +1,5 @@
-import mcfunction from './mcfunction.tmLanguage.json';
-import molang from './molang.tmLanguage.json';
+import mcfunction from './mcfunction.tmLanguage.json' with { type: 'json' };
+import molang from './molang.tmLanguage.json' with { type: 'json' };
 
 /**
  * Shiki ships no grammar for mcfunction or Molang, so their fences fall back to plain text; these

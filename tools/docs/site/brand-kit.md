@@ -8,7 +8,8 @@ outline: deep
 import { minecraftRange } from './.vitepress/theme/landing.ts';
 import { palette } from './.vitepress/theme/tokens.ts';
 import { data as project } from './project.data.mts';
-import { data as releases } from './releases.data.mts';
+import { data as latestRelease } from './latestRelease.data.mts';
+import { data as releaseLine } from './releaseLine.data.mts';
 </script>
 
 # Brand kit
@@ -115,7 +116,7 @@ Every component below is registered globally, so a site page can use it without 
 
 ### LatestRelease
 
-<div class="kit-tile is-forest kit-tile--wide"><LatestRelease :release="releases.releases[0]" /></div>
+<div class="kit-tile is-forest kit-tile--wide"><LatestRelease v-if="latestRelease.latest" :release="latestRelease.latest" /></div>
 
 ```vue
 <LatestRelease :release="releases.releases[0]" :limit="3" />
@@ -250,7 +251,7 @@ The release history on a selectable `RouteLine`. Point at a stop, or walk the li
 the release under it changes.
 
 <div class="kit-tile is-ink kit-tile--wide" style="color: var(--jsp-cream)">
-    <ReleaseLine style="width: 100%; --route-surface: var(--jsp-ink)" :history="releases.history" :changelog-url="releases.changelogUrl" :pending="releases.pending" :pending-url="releases.pendingUrl" />
+    <ReleaseLine style="width: 100%; --route-surface: var(--jsp-ink)" :history="releaseLine.history" :changelog-url="releaseLine.changelogUrl" :pending="releaseLine.pending" :pending-url="releaseLine.pendingUrl" />
 </div>
 
 ```vue

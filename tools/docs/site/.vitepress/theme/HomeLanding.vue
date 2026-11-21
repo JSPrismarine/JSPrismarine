@@ -2,7 +2,7 @@
 import { withBase } from 'vitepress';
 
 import { data as project } from '../../project.data.mts';
-import { data as releases } from '../../releases.data.mts';
+import { data as releaseLine } from '../../releaseLine.data.mts';
 import AudienceTabs from './components/AudienceTabs.vue';
 import BentoGrid from './components/BentoGrid.vue';
 import BentoTile from './components/BentoTile.vue';
@@ -177,16 +177,16 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                 </p>
                 <ParityBars />
             </BentoTile>
-            <BentoTile v-if="releases.releases[0]" tone="deep" :span="6">
+            <BentoTile v-if="releaseLine.history[0]" tone="deep" :span="6">
                 <p class="bento-caption">
                     <b>Ride the releases</b>Each stop is a release, sized by how much it changed. Pick one to read what
                     it brought. <a :href="withBase('/releases')">All release notes</a>
                 </p>
                 <ReleaseLine
-                    :history="releases.history"
-                    :changelog-url="releases.changelogUrl"
-                    :pending="releases.pending"
-                    :pending-url="releases.pendingUrl"
+                    :history="releaseLine.history"
+                    :changelog-url="releaseLine.changelogUrl"
+                    :pending="releaseLine.pending"
+                    :pending-url="releaseLine.pendingUrl"
                 />
             </BentoTile>
         </BentoGrid>

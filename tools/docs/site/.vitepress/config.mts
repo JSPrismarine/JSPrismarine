@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { type DefaultTheme, defineConfig, type HeadConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
-import typedocSidebar from '../api/typedoc-sidebar.json';
+import typedocSidebar from '../api/typedoc-sidebar.json' with { type: 'json' };
 import { footerHtml } from './footer.mts';
 import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
@@ -18,6 +18,7 @@ import { sidebar } from './sidebar.mts';
 import { wordmark } from './theme/prism.ts';
 import { pageDescriptions } from './pageDescriptions.ts';
 import { cardPages, sectionCardsPlugin } from './sectionCards.ts';
+import { codeChunkSize } from './chunkSize.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { packageAreas } from './theme/packageAreas.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
@@ -238,6 +239,11 @@ export default defineConfig({
         const { relativePath, lastUpdated, frontmatter } = pageData;
         const page = { relativePath, url, title, description, lastUpdated, frontmatter };
         frontmatter.head.push(...structuredDataHead(page, { siteUrl, discordInvite, site: siteConfig.site }));
+    },
+    vite: {
+        // Vite's check counts each page's own chunk, which holds its content; codeChunkSize checks the rest.
+        build: { chunkSizeWarningLimit: Number.POSITIVE_INFINITY },
+        plugins: [codeChunkSize()]
     },
     ignoreDeadLinks: [
         (link, source) => {
