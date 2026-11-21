@@ -723,6 +723,11 @@ jobs:
         timeout-minutes: 15
         strategy:
             fail-fast: false
+            # A pull request runs two shards at a time, so its run holds fewer of the organization's
+            # twenty runner slots at once and a master or merge group job finds one free sooner.
+            # GitHub has no priority between queued jobs; this is the nearest thing. The real-data
+            # shards and the client e2e jobs do the same.
+            max-parallel: ${{ github.event_name == 'pull_request' && 2 || 16 }}
             matrix:
                 shard: ${{ fromJSON(needs.plan.outputs.unit) }}
         steps:
@@ -876,6 +881,7 @@ jobs:
         timeout-minutes: 30
         strategy:
             fail-fast: false
+            max-parallel: ${{ github.event_name == 'pull_request' && 2 || 16 }}
             matrix:
                 shard: ${{ fromJSON(needs.plan.outputs.real_data) }}
         steps:
@@ -1296,6 +1302,7 @@ jobs:
             && needs.plan.outputs.e2e_reused != 'true' }}
         strategy:
             fail-fast: false
+            max-parallel: ${{ github.event_name == 'pull_request' && 2 || 16 }}
             matrix:
                 pin: ${{ fromJSON(needs.plan.outputs.pins) }}
                 shard: ${{ fromJSON(needs.plan.outputs.e2e_shards) }}
