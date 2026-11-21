@@ -20,12 +20,16 @@ export interface ClientDataPayload {
     GameVersion: string;
     GuiScale: number;
     LanguageCode: string;
+    /** `createClientData` always sets it; optional so payloads written before it was added still compile. */
+    MaxViewDistance?: number;
     PlatformOnlineId: string;
     PlayFabId: string;
     SelfSignedId: string;
     ServerAddress: string;
     ThirdPartyName: string;
     ThirdPartyNameOnly: boolean;
+    /** `createClientData` always sets it; optional so payloads written before it was added still compile. */
+    UIProfile?: number;
 
     AnimatedImageData: AnimatedImage[];
     ArmSize: string;
@@ -74,6 +78,11 @@ export interface ClientDataOptions {
     readonly deviceId?: string;
     readonly deviceModel?: string;
     readonly deviceOS?: number;
+    /**
+     * The largest view distance, in chunks, the client says its settings allow. A server still
+     * clamps the view to its own setting and to what the client asks for in `RequestChunkRadius`.
+     */
+    readonly maxViewDistance?: number;
     readonly skinId?: string;
     /** Raw RGBA, `width * height * 4` bytes. Defaults to the generated skin. */
     readonly skinImage?: Buffer;
@@ -111,6 +120,10 @@ export const createClientData = (options: ClientDataOptions): ClientDataPayload 
         GameVersion: options.gameVersion ?? blockSchemas.minecraftVersion,
         GuiScale: 0,
         LanguageCode: options.languageCode ?? 'en_GB',
+        // A retail client always sends this, and Pumpkin refuses a login without it. It does not
+        // limit the view, which each server clamps to its own setting. 32 is the `view-distance`
+        // Bedrock Dedicated Server ships in `server.properties`.
+        MaxViewDistance: options.maxViewDistance ?? 32,
         PlatformOnlineId: '',
         // Only meaningful for an authenticated client; the server stores it and hands it back.
         PlayFabId: '',
@@ -118,6 +131,9 @@ export const createClientData = (options: ClientDataOptions): ClientDataPayload 
         ServerAddress: options.serverAddress,
         ThirdPartyName: options.displayName ?? '',
         ThirdPartyNameOnly: false,
+        // 0 is Classic in Mojang's UIProfile enum, the desktop layout; 1 is Pocket. A retail client
+        // always sends it, and Pumpkin refuses a login without it.
+        UIProfile: 0,
 
         AnimatedImageData: [],
         ArmSize: 'wide',
