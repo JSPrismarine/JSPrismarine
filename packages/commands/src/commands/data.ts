@@ -31,7 +31,15 @@ import {
     stringArgument,
     timeArgument
 } from '../argumentTypes';
-import type { CommandSource, DataModifyOperation, DataModifySource, DataTarget, ItemSlot, LootSource } from '../host';
+import type {
+    CommandSource,
+    DataModifyOperation,
+    DataModifySource,
+    DataTarget,
+    ItemSlot,
+    LootSource,
+    SlotTarget
+} from '../host';
 import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
@@ -454,64 +462,100 @@ const runFunctionWith = (context: Context, kind: DataKind, path: string | undefi
     return report(current, outcome.result, `Ran the function`);
 };
 
-const slotOf = (context: Context): ItemSlot => ({ name: value<string>(context, 'slots') });
+/** The two kinds of thing with item slots, which `/item` and `/loot replace` address. */
+type SlotKind = SlotTarget['kind'];
+
+/**
+ * Every target the `target` (or `source`) argument of an `/item` or `/loot replace` line names.
+ * @throws {CommandSyntaxException} When an entity selector matched nothing, as Java's
+ *   `EntityArgument.getEntities` refuses, so an `/item … from` with no source writes nothing.
+ */
+const slotTargetsOf = (context: Context, kind: SlotKind, name: string): readonly SlotTarget[] => {
+    const current = source(context);
+    if (kind === 'block') {
+        return [{ kind, dimension: current.dimension, position: resolvePosition(value(context, name), current) }];
+    }
+    const entities = select(current, value(context, name));
+    if (entities.length === 0) refuse('No entity was found');
+    return entities.map((entity) => ({ kind, entity }));
+};
+
+/** What Java's `/item` feedback names the targets as: one entity by name, a block by position, or a count. */
+const slotTargetsLabel = (targets: readonly SlotTarget[]): string => {
+    const [first] = targets;
+    if (targets.length !== 1 || first === undefined) return `${targets.length} entities`;
+    if (first.kind === 'entity') return first.entity.name;
+    const { x, y, z } = first.position;
+    return `${x}, ${y}, ${z}`;
+};
+
+/** The three `/item` actions that write stacks, and how each spreads them over the slots. */
+const ITEM_WRITE_ACTIONS = ['replace', 'fill', 'override'] as const;
 
 const buildItem = (content: ContentRegistryIds) => {
     const node = lit('item');
 
-    for (const action of ['replace', 'fill', 'modify', 'override'] as const) {
-        const actionNode = lit(action);
-        for (const kind of ['block', 'entity'] as const) {
-            const holder = lit(kind);
-            const slots = arg('slots', stringArgument());
+    /** `<slots> <modifier>`, the `/item modify` tail. */
+    const modifyTail = (kind: SlotKind) =>
+        arg('slots', stringArgument()).then(
+            arg('modifier', itemModifierArgument()).executes(
+                command((context) => {
+                    const current = source(context);
+                    const targets = slotTargetsOf(context, kind, 'target');
+                    const changed = current.host.data.applyItemModifier(
+                        targets,
+                        { name: value<string>(context, 'slots') },
+                        value(context, 'modifier')
+                    );
+                    return report(current, changed, `Modified ${changed} slot(s) on ${slotTargetsLabel(targets)}`);
+                })
+            )
+        );
 
-            if (action === 'modify') {
-                slots.then(
-                    arg('modifier', itemModifierArgument()).executes(
-                        command((context) => {
-                            const current = source(context);
-                            const changed = current.host.data.applyItemModifier(
-                                targetOf(context, kind),
-                                slotOf(context),
-                                value(context, 'modifier')
-                            );
-                            return report(current, changed, `Changed ${changed} items`);
-                        })
+    /** `<slots> with <item> [<count>]` and `<slots> from <block|entity> <source> <sourceSlots> [<modifier>]`. */
+    const writeTail = (kind: SlotKind, action: (typeof ITEM_WRITE_ACTIONS)[number]) => {
+        const slots = arg('slots', stringArgument());
+        slots.then(
+            lit('with').then(
+                arg('item', resourceArgument('minecraft:item', content.items))
+                    .executes(command((context) => setSlots(context, kind, action, 1)))
+                    .then(
+                        arg('count', integerArgument({ min: 1, max: 99 })).executes(
+                            command((context) => setSlots(context, kind, action, value(context, 'count')))
+                        )
                     )
-                );
-            } else {
-                slots.then(
-                    lit('with').then(
-                        arg('item', resourceArgument('minecraft:item', content.items))
-                            .executes(command((context) => setSlot(context, kind, 1)))
+            )
+        );
+
+        // The source is either kind whatever the target is: Java copies a chest slot onto a
+        // player as readily as a player's slot into a chest.
+        const from = lit('from');
+        for (const sourceKind of ['block', 'entity'] as const) {
+            from.then(
+                lit(sourceKind).then(
+                    targetArgument(sourceKind, SOURCE_ARGUMENT).then(
+                        arg('sourceSlots', stringArgument())
+                            .executes(command((context) => copySlots(context, kind, sourceKind, action, undefined)))
                             .then(
-                                arg('count', integerArgument({ min: 1, max: 99 })).executes(
-                                    command((context) => setSlot(context, kind, value(context, 'count')))
+                                arg('modifier', itemModifierArgument()).executes(
+                                    command((context) =>
+                                        copySlots(context, kind, sourceKind, action, value<string>(context, 'modifier'))
+                                    )
                                 )
                             )
                     )
-                );
-                slots.then(
-                    lit('from').then(
-                        lit(kind).then(
-                            targetArgument(kind).then(
-                                arg('sourceSlots', stringArgument())
-                                    .executes(command((context) => copySlots(context, kind, undefined)))
-                                    .then(
-                                        arg('modifier', itemModifierArgument()).executes(
-                                            command((context) =>
-                                                copySlots(context, kind, value<string>(context, 'modifier'))
-                                            )
-                                        )
-                                    )
-                            )
-                        )
-                    )
-                );
-            }
+                )
+            );
+        }
+        slots.then(from);
+        return slots;
+    };
 
-            holder.then(targetArgument(kind).then(slots));
-            actionNode.then(holder);
+    for (const action of [...ITEM_WRITE_ACTIONS, 'modify'] as const) {
+        const actionNode = lit(action);
+        for (const kind of ['block', 'entity'] as const) {
+            const tail = action === 'modify' ? modifyTail(kind) : writeTail(kind, action);
+            actionNode.then(lit(kind).then(targetArgument(kind, 'target').then(tail)));
         }
         node.then(actionNode);
     }
@@ -519,22 +563,39 @@ const buildItem = (content: ContentRegistryIds) => {
     return node;
 };
 
-const setSlot = (context: Context, kind: 'block' | 'entity', count: number): number => {
+/** `/item replace|fill|override … with <item> [<count>]`. */
+const setSlots = (
+    context: Context,
+    kind: SlotKind,
+    action: (typeof ITEM_WRITE_ACTIONS)[number],
+    count: number
+): number => {
     const current = source(context);
-    const placed = current.host.data.setSlot(targetOf(context, kind), slotOf(context), value(context, 'item'), count);
-    return report(current, placed, `Set ${placed} items`);
+    const targets = slotTargetsOf(context, kind, 'target');
+    const item = value<string>(context, 'item');
+    const written = current.host.data.setSlot(targets, { name: value<string>(context, 'slots') }, item, count, action);
+    return report(current, written, `Replaced ${written} slot(s) on ${slotTargetsLabel(targets)} with ${item}`);
 };
 
-const copySlots = (context: Context, kind: 'block' | 'entity', modifier: string | undefined): number => {
+/** `/item replace|fill|override … from <block|entity> <source> <sourceSlots> [<modifier>]`. */
+const copySlots = (
+    context: Context,
+    kind: SlotKind,
+    sourceKind: SlotKind,
+    action: (typeof ITEM_WRITE_ACTIONS)[number],
+    modifier: string | undefined
+): number => {
     const current = source(context);
-    const copied = current.host.data.copySlots(
-        targetOf(context, kind),
+    const targets = slotTargetsOf(context, kind, 'target');
+    const written = current.host.data.copySlots(
+        slotTargetsOf(context, sourceKind, SOURCE_ARGUMENT),
         { name: value<string>(context, 'sourceSlots') },
-        targetOf(context, kind),
-        slotOf(context),
+        targets,
+        { name: value<string>(context, 'slots') },
+        action,
         modifier
     );
-    return report(current, copied, `Copied ${copied} items`);
+    return report(current, written, `Replaced ${written} slot(s) on ${slotTargetsLabel(targets)}`);
 };
 
 const buildLoot = () => {
@@ -631,21 +692,9 @@ const buildLoot = () => {
         const deliver = (context: Context, loot: LootSource, count: number | undefined): number => {
             const current = source(context);
             const slot: ItemSlot = { name: value(context, 'slot'), ...(count === undefined ? {} : { count }) };
-            const targets: readonly DataTarget[] =
-                kind === 'block'
-                    ? [
-                          {
-                              kind: 'block',
-                              dimension: current.dimension,
-                              position: resolvePosition(value(context, 'targetPos'), current)
-                          }
-                      ]
-                    : select(current, value(context, 'targets')).map((entity) => ({ kind: 'entity', entity }));
-
-            const placed = targets.reduce(
-                (total, target) => total + current.host.data.runLoot(loot, current, { kind: 'replace', target, slot }),
-                0
-            );
+            // One roll for every target, which Java hands to each of them.
+            const targets = slotTargetsOf(context, kind, kind === 'block' ? 'targetPos' : 'targets');
+            const placed = current.host.data.runLoot(loot, current, { kind: 'replace', targets, slot });
             return report(current, placed, `Replaced ${placed} items`);
         };
 

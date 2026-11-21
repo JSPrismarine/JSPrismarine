@@ -62,11 +62,13 @@ export type CloneMaskMode = 'replace' | 'masked' | 'filtered';
 /** The three ways `/clone` treats the source region. */
 export type CloneMode = 'normal' | 'force' | 'move';
 
-/** Where `/data` and `execute if data` read from. */
-export type DataTarget =
+/** What has item slots: a container block, or an entity. `/item`, `/loot replace` and `/replaceitem` address one. */
+export type SlotTarget =
     | { readonly kind: 'block'; readonly dimension: string; readonly position: Vector3 }
-    | { readonly kind: 'entity'; readonly entity: EntityRef }
-    | { readonly kind: 'storage'; readonly id: string };
+    | { readonly kind: 'entity'; readonly entity: EntityRef };
+
+/** Where `/data` and `execute if data` read from: something with slots, or a command storage. */
+export type DataTarget = SlotTarget | { readonly kind: 'storage'; readonly id: string };
 
 /** The five `/data modify` operations. */
 export type DataModifyOperation = 'append' | 'insert' | 'merge' | 'prepend' | 'set';
@@ -97,8 +99,12 @@ export interface DataValue {
 
 /** What `/item`, `/loot replace` and `/replaceitem` address. */
 export interface ItemSlot {
-    /** The slot name, `container.0` or `weapon.mainhand`. */
+    /**
+     * The slot name: Java's (`container.0`, `weapon.mainhand`, `armor.*`) or Bedrock's group
+     * (`slot.hotbar`), which starts with `slot.`.
+     */
     readonly name: string;
+    /** How many slots on from this one `/loot replace … <count>` writes. */
     readonly count?: number;
     /**
      * The position inside a multi-slot group.
@@ -109,6 +115,20 @@ export interface ItemSlot {
      */
     readonly index?: number;
 }
+
+/**
+ * How a slot write treats what is there, and how one stack spreads over the slots a name such as
+ * `container.*` covers.
+ *
+ * - `replace` puts the stacks into the slots in order and leaves the slots past the last stack
+ *   alone, which is Java's `/item replace` and Bedrock's default.
+ * - `destroy` is Bedrock's explicit spelling of `replace`.
+ * - `keep` leaves an occupied slot alone, which is Bedrock's other `/replaceitem` mode.
+ * - `fill` repeats the stacks until every slot has one, which is Java's `/item fill`.
+ * - `override` puts the stacks in order and empties every slot past the last one, which is
+ *   Java's `/item override`.
+ */
+export type SlotWriteMode = 'destroy' | 'fill' | 'keep' | 'override' | 'replace';
 
 /** What `execute store` writes a result into. */
 export type StoreTarget =
@@ -377,26 +397,43 @@ export interface DataCommandHost {
     ): number;
     /** @returns How many tags the path matched and removed. */
     removeData(target: DataTarget, path: string): number;
-    /** Applies a standalone item modifier to the items in a slot. */
-    applyItemModifier(target: DataTarget, slot: ItemSlot, modifier: string): number;
     /**
-     * Puts an item stack directly into a slot.
+     * Applies a standalone item modifier to the items in the slots a name covers, on every target.
      *
-     * @param mode - What to do with what is already there. `replace`, Java's
-     *   only behavior, is the default; `keep` leaves an occupied slot alone and
-     *   `destroy` is Bedrock's explicit spelling of replace, both from
-     *   `/replaceitem`.
-     * @returns How many items were put in.
+     * @returns How many slots changed.
+     * @throws When the name is not a slot, or no target has it.
      */
-    setSlot(
-        target: DataTarget,
-        slot: ItemSlot,
-        item: string,
-        count: number,
-        mode?: 'destroy' | 'keep' | 'replace'
+    applyItemModifier(targets: readonly SlotTarget[], slot: ItemSlot, modifier: string): number;
+    /**
+     * Puts an item stack into the slots a name covers, on every target.
+     *
+     * @param targets - What `/item` or `/replaceitem` addressed. A target without the slot is
+     *   skipped, as Java skips it.
+     * @param mode - What to do with what is there, and how the stack spreads over a wildcard;
+     *   see {@link SlotWriteMode}. `replace` is the default.
+     * @returns How many slots were written.
+     * @throws When the name is not a slot, or no target has it.
+     */
+    setSlot(targets: readonly SlotTarget[], slot: ItemSlot, item: string, count: number, mode?: SlotWriteMode): number;
+    /**
+     * Copies the stacks in the slots a name covers on the sources into the slots another name
+     * covers on every target, which is `/item replace|fill|override … from`.
+     *
+     * @param sources - Where the stacks are read, in order: each source's slots, empty ones
+     *   included, one after another.
+     * @param mode - How the stacks spread over the target slots. `replace` is the default.
+     * @param modifier - An item modifier each stack goes through on the way.
+     * @returns How many slots were written.
+     * @throws When either name is not a slot, no source has its slot, or no target has its slot.
+     */
+    copySlots(
+        sources: readonly SlotTarget[],
+        fromSlot: ItemSlot,
+        targets: readonly SlotTarget[],
+        toSlot: ItemSlot,
+        mode?: Exclude<SlotWriteMode, 'destroy' | 'keep'>,
+        modifier?: string
     ): number;
-    /** Copies items from one slot range to another, optionally through a modifier. */
-    copySlots(from: DataTarget, fromSlot: ItemSlot, to: DataTarget, toSlot: ItemSlot, modifier?: string): number;
     /**
      * Rolls loot and delivers it.
      *
@@ -500,7 +537,7 @@ export type LootDestination =
     | { readonly kind: 'give'; readonly players: readonly EntityRef[] }
     | { readonly kind: 'insert'; readonly dimension: string; readonly position: Vector3 }
     | { readonly kind: 'spawn'; readonly dimension: string; readonly position: Vector3 }
-    | { readonly kind: 'replace'; readonly target: DataTarget; readonly slot: ItemSlot };
+    | { readonly kind: 'replace'; readonly targets: readonly SlotTarget[]; readonly slot: ItemSlot };
 
 /**
  * What one `/title` or `/titleraw` line asks the client to draw.

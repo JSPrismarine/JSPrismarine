@@ -1059,7 +1059,7 @@ describe('the server command host', () => {
         it('writes a hotbar slot through /replaceitem', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
-            await expect(fixture.run('replaceitem entity @a slot.hotbar 2 minecraft:stone 4')).resolves.toBe(4);
+            await expect(fixture.run('replaceitem entity @a slot.hotbar 2 minecraft:stone 4')).resolves.toBe(1);
             expect(player.getInventory().container('inventory').get(2)?.getName()).toBe('minecraft:stone');
             expect(player.getInventory().container('inventory').get(2)?.getAmount()).toBe(4);
         });
@@ -1082,7 +1082,7 @@ describe('the server command host', () => {
         it('writes the ender chest, which is a container a player carries', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
-            await expect(fixture.run('replaceitem entity @a slot.enderchest 3 minecraft:stone 2')).resolves.toBe(2);
+            await expect(fixture.run('replaceitem entity @a slot.enderchest 3 minecraft:stone 2')).resolves.toBe(1);
             expect(player.getInventory().container('ender_chest').get(3)?.getName()).toBe('minecraft:stone');
         });
 
@@ -1090,7 +1090,7 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('replaceitem entity @a slot.armor 1 minecraft:stone 1')).resolves.toBe(1);
-            await expect(fixture.run('replaceitem entity @a slot.armor.legs 0 minecraft:stone 2')).resolves.toBe(2);
+            await expect(fixture.run('replaceitem entity @a slot.armor.legs 0 minecraft:stone 2')).resolves.toBe(1);
 
             // Index 1 is the chestplate and `slot.armor.legs` is index 2, so
             // the two spellings addressed different slots of one container.
@@ -1098,13 +1098,76 @@ describe('the server command host', () => {
             expect(player.getInventory().container('armor').get(2)?.getAmount()).toBe(2);
         });
 
-        it('refuses a slot group this server has no container for', async () => {
+        it('refuses a slot group the target does not have, in a sentence', async () => {
             playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
-            // A saddle is a slot Bedrock names and no entity here holds, so a
-            // write would land nowhere.
+            // A player has no saddle; a mount does.
             await expect(fixture.run('replaceitem entity @a slot.saddle 0 minecraft:stone')).rejects.toThrow(
-                'slot.saddle'
+                'A player has no slot.saddle slots'
+            );
+            await expect(fixture.run('replaceitem entity @a slot.hotbar 9 minecraft:stone')).rejects.toThrow(
+                'Could not replace slot 9, must be a value between 0 and 8.'
+            );
+        });
+
+        it("writes Java's container.0 into hotbar slot 0, not the first slot past it", async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('item replace entity @a container.0 with minecraft:stone 3')).resolves.toBe(1);
+            await expect(fixture.run('item replace entity @a inventory.0 with minecraft:stone 7')).resolves.toBe(1);
+
+            const main = player.getInventory().container('inventory');
+            expect(main.get(0)?.getAmount()).toBe(3);
+            expect(main.get(9)?.getAmount()).toBe(7);
+        });
+
+        it('writes a player ender chest slot through /item', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('item replace entity @a enderchest.4 with minecraft:stone')).resolves.toBe(1);
+            expect(player.getInventory().container('ender_chest').get(4)?.getName()).toBe('minecraft:stone');
+        });
+
+        it('spreads one stack over a wildcard as replace, fill and override each do', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            const main = player.getInventory().container('inventory');
+            const counts = () =>
+                main
+                    .items()
+                    .slice(0, 9)
+                    .map((stack) => stack?.getAmount() ?? 0);
+
+            // `replace` writes the first slot the name covers and leaves the rest.
+            await expect(fixture.run('item replace entity @a hotbar.* with minecraft:stone 1')).resolves.toBe(1);
+            expect(counts()).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+            // `fill` writes every one of them.
+            await expect(fixture.run('item fill entity @a hotbar.* with minecraft:stone 2')).resolves.toBe(9);
+            expect(counts()).toEqual(Array(9).fill(2));
+
+            // `override` writes the first and empties the rest.
+            await expect(fixture.run('item override entity @a hotbar.* with minecraft:stone 3')).resolves.toBe(9);
+            expect(counts()).toEqual([3, 0, 0, 0, 0, 0, 0, 0, 0]);
+        });
+
+        it('copies one slot to another through /item replace … from, an empty one included', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            await fixture.run('item replace entity @a hotbar.0 with minecraft:stone 5');
+
+            await expect(fixture.run('item replace entity @a armor.head from entity @a hotbar.0')).resolves.toBe(1);
+            expect(player.getInventory().container('armor').get(0)?.getAmount()).toBe(5);
+            // A copy, not the same stack in two slots.
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(5);
+
+            await fixture.run('item replace entity @a armor.head from entity @a hotbar.1');
+            expect(player.getInventory().container('armor').get(0)).toBeNull();
+        });
+
+        it('refuses an item modifier with a sentence', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('item modify entity @a weapon.mainhand mypack:sharpen')).rejects.toThrow(
+                'This server has no item modifiers for /item yet, so that command cannot run'
             );
         });
 

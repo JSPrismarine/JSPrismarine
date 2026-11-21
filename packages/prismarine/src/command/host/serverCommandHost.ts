@@ -11,7 +11,7 @@ import type { CommandHost, DataCommandHost } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
 import { entityCommandHost } from './entities';
-import { setItemSlot } from './inventory';
+import { copyItemSlots, setItemSlot } from './inventory';
 import { runLootCommand } from './loot';
 import { nbtDataVerbs } from './nbtData';
 import { RandomSequences } from './randomSequences';
@@ -24,10 +24,9 @@ import { worldCommandHost } from './world';
  * The NBT, loot, predicate and function group.
  *
  * The NBT verbs read and write the default level's command storage (see `./nbtData`). The
- * function verbs run `@jsprismarine/mcfunction` over whatever the loaded datapacks declared;
- * `setSlot` writes a named inventory slot, which is all `/replaceitem` needs. What still refuses
- * is NBT for blocks and entities, item modifiers, copying items between slots, and the predicate
- * evaluator.
+ * function verbs run `@jsprismarine/mcfunction` over whatever the loaded datapacks declared. The
+ * slot verbs write named slots on players, mobs and container blocks (see `./inventory`). What
+ * still refuses is NBT for blocks and entities, item modifiers, and the predicate evaluator.
  */
 const dataCommandHost = (server: Server, sequences: RandomSequences): DataCommandHost => {
     const functions = () => server.getCommandManager().getFunctionRuntime();
@@ -37,9 +36,10 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
 
     return {
         ...nbtDataVerbs(storage),
-        applyItemModifier: () => unsupported('item modifiers'),
-        setSlot: (target, slot, item, count, mode) => setItemSlot(server, target, slot, item, count, mode),
-        copySlots: () => unsupported('copying items between slots'),
+        applyItemModifier: () => unsupported('item modifiers for /item'),
+        setSlot: (targets, slot, item, count, mode) => setItemSlot(server, targets, slot, item, count, mode),
+        copySlots: (sources, fromSlot, targets, toSlot, mode, modifier) =>
+            copyItemSlots(server, sources, fromSlot, targets, toSlot, mode, modifier),
         runLoot: (loot, commandSource, destination) => runLootCommand(server, loot, commandSource, destination),
         testPredicate: () => unsupported('datapack predicate evaluator'),
         runFunction: (name, source, nbt, stored) => functions().run(name, source, nbt, stored),

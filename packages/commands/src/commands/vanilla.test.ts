@@ -101,7 +101,8 @@ describe('the command set', () => {
         // The packet then left out `/gamerule`'s camelCase names, which a Bedrock client refuses.
         // `/data modify … from`, `/function … with` and the `value` and `max` literals of
         // `execute store … bossbar` then joined the tree.
-        expect(digest).toBe('e590372f5aa5326af067f65d6f02ebb9874c5e35');
+        // `/item … from` then took a source of either kind under every target, as Java's does.
+        expect(digest).toBe('cf684aaaf7ed5c8ed1a92e170bece431ad1ec9c3');
     });
 });
 
@@ -1097,7 +1098,7 @@ describe('the data-driven commands', () => {
         run('item modify entity @s weapon.mainhand mypack:sharpen', {
             entities: { select: () => [testEntity()] },
             data: {
-                applyItemModifier: (_target, slot, modifier) => {
+                applyItemModifier: (_targets, slot, modifier) => {
                     seen.push({ slot, modifier });
                     return 1;
                 }
@@ -1105,6 +1106,99 @@ describe('the data-driven commands', () => {
         });
 
         expect(seen).toEqual([{ slot: { name: 'weapon.mainhand' }, modifier: 'mypack:sharpen' }]);
+    });
+
+    it('/item hands every target to the host, with the action that spreads the stack', () => {
+        const pig = testEntity({ id: 'pig', name: 'Pig', type: 'minecraft:pig', isPlayer: false });
+        const cow = testEntity({ id: 'cow', name: 'Cow', type: 'minecraft:cow', isPlayer: false });
+        const seen: unknown[] = [];
+        const feedback: string[] = [];
+        for (const action of ['replace', 'fill', 'override']) {
+            run(
+                `item ${action} entity @e armor.* with minecraft:iron_helmet 2`,
+                {
+                    entities: { select: () => [pig, cow] },
+                    data: {
+                        setSlot: (targets, slot, item, count, mode) => {
+                            seen.push({ targets: targets.length, slot, item, count, mode });
+                            return 2;
+                        }
+                    }
+                },
+                { feedback }
+            );
+        }
+
+        expect(seen).toEqual(
+            ['replace', 'fill', 'override'].map((mode) => ({
+                targets: 2,
+                slot: { name: 'armor.*' },
+                item: 'minecraft:iron_helmet',
+                count: 2,
+                mode
+            }))
+        );
+        expect(feedback[0]).toBe('Replaced 2 slot(s) on 2 entities with minecraft:iron_helmet');
+    });
+
+    it('/item … from refuses a source selector that matched nothing, before writing a target', () => {
+        const steve = testEntity({ id: 'steve', name: 'Steve' });
+        const copied: unknown[] = [];
+        const overrides: TestCommandHostOverrides = {
+            entities: { select: (selector) => (selector.base === '@a' ? [steve] : []) },
+            data: {
+                copySlots: (...call) => {
+                    copied.push(call);
+                    return 1;
+                }
+            }
+        };
+
+        expect(() =>
+            run('item override entity @a hotbar.* from entity @e[tag=copy_source] weapon.mainhand', overrides)
+        ).toThrow('No entity was found');
+        expect(() =>
+            run('loot replace entity @e[tag=nobody] hotbar.0 loot minecraft:chests/simple_dungeon', overrides)
+        ).toThrow('No entity was found');
+        expect(copied).toEqual([]);
+    });
+
+    it('/item replace … from reads a source of either kind, apart from the target', () => {
+        const steve = testEntity({ id: 'steve', name: 'Steve' });
+        const pig = testEntity({ id: 'pig', name: 'Pig', type: 'minecraft:pig', isPlayer: false });
+        const seen: unknown[] = [];
+        const overrides: TestCommandHostOverrides = {
+            // The target selector names the pig and the source selector names Steve.
+            entities: { select: (selector) => (selector.base === '@s' ? [steve] : [pig]) },
+            data: {
+                copySlots: (sources, fromSlot, targets, toSlot, mode, modifier) => {
+                    seen.push({ sources, fromSlot, targets, toSlot, mode, modifier });
+                    return 1;
+                }
+            }
+        };
+
+        run('item replace entity @e[type=pig] armor.head from entity @s weapon.mainhand', overrides);
+        run('item replace block 1 2 3 container.0 from entity @s hotbar.0 mypack:sharpen', overrides);
+
+        expect(seen).toEqual([
+            {
+                sources: [{ kind: 'entity', entity: steve }],
+                fromSlot: { name: 'weapon.mainhand' },
+                targets: [{ kind: 'entity', entity: pig }],
+                toSlot: { name: 'armor.head' },
+                mode: 'replace',
+                modifier: undefined
+            },
+            {
+                sources: [{ kind: 'entity', entity: steve }],
+                fromSlot: { name: 'hotbar.0' },
+                targets: [{ kind: 'block', dimension: 'minecraft:overworld', position: { x: 1, y: 2, z: 3 } }],
+                toSlot: { name: 'container.0' },
+                mode: 'replace',
+                modifier: 'mypack:sharpen'
+            }
+        ]);
     });
 
     it('/loot give runs the table into the players', () => {
@@ -1168,7 +1262,7 @@ describe('the data-driven commands', () => {
         expect(seen).toEqual([{ kind: 'kill', entity: testEntity() }]);
     });
 
-    it('/loot replace writes one slot per named entity', () => {
+    it('/loot replace rolls once and hands the roll to every named entity', () => {
         const seen: unknown[] = [];
         run('loot replace entity @a container.0 3 loot mypack:prize', {
             entities: { select: () => [testEntity(), testEntity()] },
@@ -1180,8 +1274,9 @@ describe('the data-driven commands', () => {
             }
         });
 
-        expect(seen).toHaveLength(2);
+        expect(seen).toHaveLength(1);
         expect(seen[0]).toMatchObject({ kind: 'replace', slot: { name: 'container.0', count: 3 } });
+        expect(seen[0]).toHaveProperty('targets.length', 2);
     });
 
     it('/function returns what the function returned', () => {
