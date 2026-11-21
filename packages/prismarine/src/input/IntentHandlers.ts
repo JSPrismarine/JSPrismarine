@@ -5,6 +5,7 @@ import CloseContainerHandler from './handlers/CloseContainerHandler';
 import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
+import MineBlockHandler from './handlers/MineBlockHandler';
 import OpenInventoryHandler from './handlers/OpenInventoryHandler';
 import OpenNpcHandler from './handlers/OpenNpcHandler';
 import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
@@ -31,6 +32,7 @@ export {
     EatHandler,
     EmoteHandler,
     FinishCreditsHandler,
+    MineBlockHandler,
     OpenInventoryHandler,
     OpenNpcHandler,
     PlayerInitializedHandler,

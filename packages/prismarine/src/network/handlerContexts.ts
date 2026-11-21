@@ -31,6 +31,7 @@ export type ContextSource = Pick<
     | 'getConsoleSender'
     | 'getKernel'
     | 'getScripts'
+    | 'getPacketHandlerRegistry'
 >;
 
 /**
@@ -82,6 +83,9 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
     },
     get events() {
         return server.getKernel().events;
+    },
+    get intents() {
+        return server.getPacketHandlerRegistry().getIntentHandlers();
     },
     scriptForms: {
         answerForm: (response) => {

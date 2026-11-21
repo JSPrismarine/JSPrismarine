@@ -5,9 +5,17 @@ import type {
     InputContext,
     SessionContext
 } from '../network/handler/HandlerContext';
+import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
 import type PlayerSession from '../network/PlayerSession';
 import { stub } from './stub.test.helper';
 import type { StubMembers } from './stub.test.helper';
+
+/** The built-in intent handlers, as a started server has them. */
+const builtInIntents = (): IntentHandlerRegistry => {
+    const registry = new IntentHandlerRegistry({ debug: () => {}, verbose: () => {} });
+    registry.enable();
+    return registry;
+};
 
 /** What a test hands {@link sessionContext} or {@link inputContext} beside the session. */
 export interface ContextParts {
@@ -35,8 +43,8 @@ export const inputContext = (session: PlayerSession, parts: ContextParts = {}) =
     const outputs: Promise<void>[] = [];
     const context: InputContext = {
         ...sessionContext(session, parts),
-        // A bus no one listens on, unless the test hands its own.
-        services: stub<HandlerServices>({ events: { post: () => 0 }, ...parts.services }),
+        // A bus no one listens on and the built-in intent handlers, unless the test hands its own.
+        services: stub<HandlerServices>({ events: { post: () => 0 }, intents: builtInIntents(), ...parts.services }),
         step: {
             tick: parts.tick ?? 0,
             output: (send) => void outputs.push(send)

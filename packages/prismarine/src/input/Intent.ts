@@ -24,6 +24,22 @@ export const PLAYER_ANIMATIONS = ['swing', 'wakeUp', 'criticalHit', 'magicCritic
 export type PlayerAnimation = (typeof PLAYER_ANIMATIONS)[number];
 
 /**
+ * The steps of mining a block, which each edition's decoder maps its own actions onto.
+ *
+ * - `start`: mining began on the block.
+ * - `continue`: the player dragged onto another block without letting go, which starts it anew.
+ * - `abort`: the player let go before the block broke.
+ * - `stop`: the player let go after it broke, which changes nothing.
+ * - `swing`: another punch while mining, heard by the players near.
+ * - `finish`: the client says the block gave way, which the server checks against how long it was mined.
+ * - `instant`: a creative break, at once.
+ */
+export const MINING_STEPS = ['start', 'continue', 'abort', 'stop', 'swing', 'finish', 'instant'] as const;
+
+/** One of {@link MINING_STEPS}. */
+export type MiningStep = (typeof MINING_STEPS)[number];
+
+/**
  * What each intent carries beside its `kind`. Every field is plain data
  * ([ADR 0011](../../../../docs/adr/0011-a-world-exchanges-only-plain-data.md)), so an intent can
  * be recorded, replayed and compared.
@@ -111,6 +127,23 @@ export interface IntentPayloads {
     readonly closeContainer: { readonly window: number; readonly containerType: number };
     /** The player moved its hand to a hotbar slot, 0 to 8. */
     readonly selectHotbarSlot: { readonly slot: number };
+    /**
+     * The player mined a block, one step at a time. `face` is the face struck, 0 to 5 for down,
+     * up, north, south, west and east, which both editions number alike.
+     *
+     * `serverTimed` says the server times the break and checks the client's `finish` against it,
+     * as it does for every Java client and for a Bedrock one under
+     * `server-authoritative-block-breaking`; otherwise the client times it and reports the break
+     * another way. `breaksIfInstant` is set for a client that starts mining a block that gives
+     * way at once and sends nothing more for it, as Java's does; Bedrock's reports it as a `finish`.
+     */
+    readonly mineBlock: {
+        readonly step: MiningStep;
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly face: number;
+        readonly serverTimed: boolean;
+        readonly breaksIfInstant: boolean;
+    };
 }
 
 /** What the table declares about one intent. */
@@ -156,7 +189,9 @@ export const Intents = {
     // Writes the inventory and may drop items into the world.
     closeContainer: { lane: 'input' },
     // Writes the hand slot, which replication shows the players that see the sender.
-    selectHotbarSlot: { lane: 'input' }
+    selectHotbarSlot: { lane: 'input' },
+    // Breaks blocks and times the mining in the world.
+    mineBlock: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

@@ -14,6 +14,7 @@ describe('input/Intent', () => {
             'eat',
             'emote',
             'finishCredits',
+            'mineBlock',
             'openInventory',
             'openNpc',
             'playSound',

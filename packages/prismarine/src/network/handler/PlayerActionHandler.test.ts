@@ -1,183 +1,17 @@
 import { Gametype } from '@jsprismarine/minecraft';
-import { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { PlayerActionPacket, PlayerActionType } from '@jsprismarine/protocol';
-import type { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import type { Logger } from '@jsprismarine/logger';
-import type { Block } from '../../block/Block';
 import type { StatusEffect } from '../../entity/StatusEffect';
-import type HumanInventory from '../../inventory/HumanInventory';
-import { Item } from '../../item/Item';
-import type { EntityRuntime } from '../../entity/data/EntityRuntime';
-import type { LiveEntityRuntime } from '../../entity/data/live';
-import { PlayerComponents } from '../../entity/playerComponents';
-import type { BlockMining } from '../../world/BlockMining';
-import { blockMiningOf, MINING_LATENCY_TICKS } from '../../world/BlockMining';
+import { MINING_LATENCY_TICKS } from '../../world/BlockMining';
 import BlockPosition from '../../world/BlockPosition';
-import { Position } from '../../world/Position';
-import type { World } from '../../world/World';
-import type Chunk from '../../world/chunk/Chunk';
 import { inputContext } from '../../testing/handlerContext.test.helper';
-import { identityNamed } from '../../testing/sessionIdentity.test.helper';
-import { stubPlayerPort } from '../../testing/playerPort.test.helper';
+import type { MiningScene } from '../../testing/miningScene.test-utils';
+import { miningScene, PICKAXE, SELF } from '../../testing/miningScene.test-utils';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../PlayerSession';
 import PlayerActionHandler from './PlayerActionHandler';
 
-const SELF = 7n;
-
-/** What the player holds, so a test can see the break time is read for it. */
-const PICKAXE = new Item({ name: 'minecraft:iron_pickaxe' });
-
-/**
- * A player at the origin, with runtime id 7 and a pickaxe in hand, and a world that records
- * every block it was asked to touch.
- *
- * The world generates nothing, so a position the handler should have refused shows up here
- * as a call that was made rather than as terrain that appeared. Every log line is kept too,
- * so an action the handler should have taken quietly shows up as a line.
- */
-const fakeSession = (
-    gamemode: Gametype,
-    { serverAuthoritativeBreaking = false, chunksLoaded = true, breakSeconds = 1 } = {}
-) => {
-    const broken: BlockPosition[] = [];
-    const hit: BlockPosition[] = [];
-    /** Whom each hit named as its striker, who is left out of the sound. */
-    const strikers: Array<Parameters<World['hitBlock']>[2]> = [];
-    const resent: BlockPosition[] = [];
-    const sprinting: boolean[] = [];
-    const flying: boolean[] = [];
-    const logged: string[] = [];
-    /** Cracking calls in order, as `start x,y,z (previous)`, `stop x,y,z` and `event x,y,z`. */
-    const cracking: string[] = [];
-    /** The tool each crack animation was started for. */
-    const tools: Array<Item | null> = [];
-    /** What the client reported that the store player keeps: the block it mines, the sneak, the sleep and the jumps. */
-    const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
-    const jumps: number[] = [];
-    const state = {
-        get mining(): BlockMining | null {
-            const held = components.get('mining.block');
-            return blockMiningOf(held);
-        }
-    };
-    /**
-     * The server's tick and the client's input count, which a test moves on to stand in for time
-     * spent mining.
-     */
-    const clock = { tick: 0, inputs: 0 };
-    /** The runtime id of what stands at every position; mining records 1. */
-    const standing = { runtimeId: 1 };
-    const effects: StatusEffect[] = [];
-    const at = (where: Vector3) => `${where.getX()},${where.getY()},${where.getZ()}`;
-
-    const world = stub<World>({
-        breakBlock: (where: Vector3) => {
-            broken.push(BlockPosition.fromVector3(where));
-            return true;
-        },
-        hitBlock: (where: Vector3, _face: number, striker?: Parameters<World['hitBlock']>[2]) => {
-            hit.push(BlockPosition.fromVector3(where));
-            strikers.push(striker);
-        },
-        resendBlock: (x, y, z) => void resent.push(new BlockPosition(x, y, z)),
-        // Every chunk near the player is loaded unless the test says otherwise, and every
-        // block in it is stone.
-        getLoadedChunk: () => (chunksLoaded ? stub<Chunk>({}) : null),
-        loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
-        loadedBlockRuntimeIdAt: () => standing.runtimeId,
-        loadedBlock: () => stub<Block>({ getBreakTicks: () => Math.ceil(breakSeconds * 20) }),
-        sendWorldEvent: (where: Vector3 | null) => {
-            if (where) cracking.push(`event ${at(where)}`);
-        },
-        startBlockCracking: (
-            where: Vector3,
-            face: number,
-            tool: Item | null,
-            previous: BlockMining | null,
-            input?: number
-        ) => {
-            cracking.push(`start ${at(where)} (${previous === null ? 'none' : at(previous.position)})`);
-            tools.push(tool);
-            const breakTicks = Math.ceil(breakSeconds * 20);
-            // As the world does: mining continued on the same block keeps the tick it began on.
-            const continued = previous !== null && previous.position.equals(where);
-            const startedAt = continued ? previous.startedAt : clock.tick;
-            const startedAtInput = continued ? previous.startedAtInput : input;
-            return {
-                position: where,
-                face,
-                runtimeId: 1,
-                progressPerTick: 5461,
-                breakTicks,
-                startedAt,
-                startedAtInput
-            };
-        },
-        stopBlockCracking: (where: Vector3) => {
-            cracking.push(`stop ${at(where)}`);
-        }
-    });
-
-    const player = stubPlayerPort({
-        gamemode,
-        getPosition: () => new Position(0, 0, 0, world),
-        getInventory: () => stub<HumanInventory>({ getItemInHand: () => PICKAXE }),
-        getComponents: () => components,
-        getStatusEffects: () => effects
-    });
-    // The runtime's answer for a player in no store: each input lands on the components.
-    const inputs = stub<EntityRuntime>({
-        setPlayerMining: (_player, mining) => components.set('mining.block', mining),
-        setPlayerSneaking: (_player, sneaking) => components.set('movement.sneaking', sneaking),
-        playerJumped: () => void jumps.push(1)
-    });
-    Object.assign(world, { dataEntities: () => stub<LiveEntityRuntime>({ runtime: inputs }) });
-
-    const logger = stub<Logger>({
-        debug: (...message) => void logged.push(message[0] ?? ''),
-        verbose: (...message) => void logged.push(message[0] ?? '')
-    });
-
-    return {
-        broken,
-        hit,
-        strikers,
-        resent,
-        sprinting,
-        flying,
-        logged,
-        cracking,
-        tools,
-        state,
-        clock,
-        standing,
-        effects,
-        player,
-        log: logger,
-        config: { getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking },
-        components,
-        jumps,
-        session: stub<PlayerSession>({
-            runtimeId: SELF,
-            identity: identityNamed('tester'),
-            getPlayer: () => player,
-            getWorld: () => world,
-            inputs: () => inputs,
-            handledInputs: () => clock.inputs,
-            setSprinting: async (value: boolean) => {
-                sprinting.push(value);
-            },
-            setFlying: async (value: boolean) => {
-                flying.push(value);
-            }
-        })
-    };
-};
-
-type Scene = ReturnType<typeof fakeSession>;
+type Scene = MiningScene;
 
 /** Applies one action as the input step does: the handler, then what it sent. */
 const act = async ({ session, log, config, clock }: Scene, action: number, position: BlockPosition, face: number) => {
@@ -209,7 +43,7 @@ const packet = (runtimeEntityId: bigint, action: PlayerActionType, blockPosition
 describe('PlayerActionHandler', () => {
     describe('handleAction', () => {
         it('breaks the block for a creative player within reach', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { broken } = scene;
 
             await act(scene, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0), 0);
@@ -218,7 +52,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('refuses a creative break from a player who is not in creative', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { broken } = scene;
 
             await act(scene, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0), 0);
@@ -227,7 +61,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('refuses a block action aimed far outside the player reach', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { broken, hit } = scene;
 
             await act(scene, PlayerActionType.CreativeDestroyBlock, FAR_AWAY, 0);
@@ -240,7 +74,7 @@ describe('PlayerActionHandler', () => {
         it('refuses a block action in a chunk that is not loaded, and reads no block for it', async () => {
             // The input step cannot wait for a chunk, and a client cannot act on terrain it was
             // never sent.
-            const scene = fakeSession(Gametype.CREATIVE, { chunksLoaded: false });
+            const scene = miningScene(Gametype.CREATIVE, { chunksLoaded: false });
             const nearby = new BlockPosition(1, 0, 0);
 
             await act(scene, PlayerActionType.CreativeDestroyBlock, nearby, 0);
@@ -254,7 +88,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('breaks a block in the handler', () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { context } = inputContext(scene.session, scene);
 
             new PlayerActionHandler().handleAction(
@@ -267,7 +101,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('takes a jump, a sneak and a sprint in the handler', () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { context } = inputContext(scene.session, scene);
             const handler = new PlayerActionHandler();
 
@@ -281,7 +115,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('refuses every block action from a spectator', async () => {
-            const scene = fakeSession(Gametype.SPECTATOR);
+            const scene = miningScene(Gametype.SPECTATOR);
             const { broken, hit } = scene;
             const nearby = new BlockPosition(1, 0, 0);
 
@@ -293,7 +127,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('still takes an action that carries no block, which arrives at the origin', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { sprinting } = scene;
 
             await act(scene, PlayerActionType.StartSprinting, NOWHERE, 0);
@@ -302,7 +136,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('toggles flight for the flying pair', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { flying } = scene;
 
             await act(scene, PlayerActionType.StartFlying, NOWHERE, 0);
@@ -312,7 +146,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('accepts the actions the docs still send standalone without logging anything', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { logged } = scene;
 
             for (const action of [
@@ -332,7 +166,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('logs an action number outside the enum and does not throw', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { logged } = scene;
 
             await act(scene, 99, NOWHERE, 0);
@@ -343,7 +177,7 @@ describe('PlayerActionHandler', () => {
 
     describe('handle', () => {
         it('acts on a packet that names the sender', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { flying, logged } = scene;
 
             await handle(scene, packet(SELF, PlayerActionType.StartFlying));
@@ -353,7 +187,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('drops a packet whose runtime id is not the sender', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { flying, logged } = scene;
 
             await handle(scene, packet(8n, PlayerActionType.StartFlying));
@@ -365,7 +199,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('ignores a block action that belongs in the input packet', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { hit, logged } = scene;
             const nearby = new BlockPosition(1, 0, 0);
 
@@ -380,7 +214,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('still takes a creative break from the standalone packet', async () => {
-            const scene = fakeSession(Gametype.CREATIVE);
+            const scene = miningScene(Gametype.CREATIVE);
             const { broken } = scene;
 
             await handle(scene, packet(SELF, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0)));
@@ -392,7 +226,7 @@ describe('PlayerActionHandler', () => {
     describe('with server-authoritative block breaking', () => {
         const near = (x: number) => new BlockPosition(x, 1, 0);
         const serverTimed = (gamemode = Gametype.SURVIVAL) =>
-            fakeSession(gamemode, { serverAuthoritativeBreaking: true });
+            miningScene(gamemode, { serverAuthoritativeBreaking: true });
 
         it('breaks the block a survival player predicts gave way', async () => {
             const scene = serverTimed();
@@ -521,7 +355,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('refuses a predicted break of a block that never breaks', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL, {
+            const scene = miningScene(Gametype.SURVIVAL, {
                 serverAuthoritativeBreaking: true,
                 breakSeconds: Number.POSITIVE_INFINITY
             });
@@ -535,7 +369,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('breaks a block that gives way at once, which has no mining to time', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL, { serverAuthoritativeBreaking: true, breakSeconds: 0 });
+            const scene = miningScene(Gametype.SURVIVAL, { serverAuthoritativeBreaking: true, breakSeconds: 0 });
 
             await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
 
@@ -621,7 +455,7 @@ describe('PlayerActionHandler', () => {
         const near = (x: number) => new BlockPosition(x, 1, 0);
 
         it('starts the crack animation once, with a hit, and leaves the ticking to the client', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { hit, strikers, player, cracking, state } = scene;
 
             await act(scene, PlayerActionType.StartDestroyBlock, near(2), 1);
@@ -634,7 +468,7 @@ describe('PlayerActionHandler', () => {
         });
 
         it('breaks nothing on a predicted break, which only a server-timed client sends', async () => {
-            const scene = fakeSession(Gametype.SURVIVAL);
+            const scene = miningScene(Gametype.SURVIVAL);
             const { broken } = scene;
 
             await act(scene, PlayerActionType.PredictDestroyBlock, near(2), 5);
