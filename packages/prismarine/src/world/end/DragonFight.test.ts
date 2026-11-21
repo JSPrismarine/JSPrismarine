@@ -219,7 +219,7 @@ const liveEndWorld = ({ unloaded = [], readChunk, completionQueue }: LiveEndWorl
             getEntityRuntime: (dimension: string) => runtimes.at(dimension),
             getWorldManager: () =>
                 stub<WorldManager>({
-                    getDefaultWorld: () => world,
+                    getEntryWorld: () => world,
                     getWorldByDimension: (dimension) => (dimension === END.id ? world : undefined)
                 }),
             getContent: () => content

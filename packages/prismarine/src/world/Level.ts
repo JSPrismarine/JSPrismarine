@@ -297,7 +297,9 @@ export class Level {
                 const world = this.loadedWorld(stemId);
                 return world !== undefined && [...this.worlds()].includes(world) ? world : undefined;
             },
-            worldSpawn: () => this.server.getWorldManager().getDefaultWorld()
+            // The level's own Overworld, which every level builds as it opens: a player without a
+            // spawn point of their own comes back in the level they died in.
+            worldSpawn: () => this.loadedWorld(OVERWORLD_STEM_ID) ?? this.server.getWorldManager().getEntryWorld()
         });
         this.seed = options.seed;
         this.javaTarget = options.javaTarget ?? DEFAULT_JAVA_DATA_TARGET;

@@ -385,7 +385,7 @@ const runPreload = async (
     workers: number | undefined,
     host: 'process' | 'in-process'
 ): Promise<PreloadReport> => {
-    const world = server.getWorldManager().getDefaultWorld();
+    const world = server.getWorldManager().getEntryWorld();
     const generator = world.getGenerator();
     const control = generator.generationControl?.();
     const base = {
@@ -593,7 +593,7 @@ const run = async (): Promise<void> => {
         await server.bootstrap('127.0.0.1', port);
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const phases = botFleetPhases(terrain);
         const loginTimeoutMs = botFleetLoginTimeoutMs(terrain);
         const runPhase = async (

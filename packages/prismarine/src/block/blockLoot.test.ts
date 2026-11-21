@@ -224,16 +224,12 @@ describe('block', () => {
             const content = dimensionKeyed();
             const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', content });
             const stone = new Block({ name: 'minecraft:stone', content });
-            const serverIn = (dimension: string) => ({
-                getWorldManager: () => ({
-                    getDefaultWorld: () => ({ getTicks: () => 0, getDimension: () => ({ name: dimension }) })
-                })
-            });
+            const worldIn = (dimension: string) => ({ getTicks: () => 0, getDimension: () => ({ name: dimension }) });
 
-            expect(stone.getDrops(pickaxe, serverIn('minecraft:overworld')).map((drop) => drop?.getName())).toEqual([
-                'minecraft:cobblestone'
-            ]);
-            expect(stone.getDrops(pickaxe, serverIn('minecraft:the_nether'))).toEqual([]);
+            expect(
+                stone.getDrops(pickaxe, undefined, worldIn('minecraft:overworld')).map((drop) => drop?.getName())
+            ).toEqual(['minecraft:cobblestone']);
+            expect(stone.getDrops(pickaxe, undefined, worldIn('minecraft:the_nether'))).toEqual([]);
         });
 
         /**

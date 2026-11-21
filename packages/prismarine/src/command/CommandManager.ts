@@ -30,8 +30,9 @@ import type { FunctionContent } from './function/load';
 import { readBehaviorPackFunctions, withBehaviorPackFunctions } from './function/behaviorPackFunctions';
 import { FunctionRuntime } from './function/runtime';
 import { functionContentOf, loadServerFunctions } from './function/load';
-import { dimensionIdOf, entityRefOf, playerSessionOf, splitCommandDimension } from './host/support';
+import { commandLevelOf, dimensionIdOf, entityRefOf, playerSessionOf, splitCommandDimension } from './host/support';
 import type { ReferencedEntity } from './host/support';
+import type { Level } from '../world/Level';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
 import type { RandomSequencesState } from './host/randomSequences';
@@ -148,6 +149,8 @@ export class CommandManager implements Service {
 
     /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
     private readonly host: CommandHost;
+    /** The hosts of the levels other than the entry level, made on first use and gone with their level. */
+    private readonly levelHosts = new WeakMap<Level, CommandHost>();
     private readonly randomSequences: RandomSequences;
 
     /**
@@ -195,7 +198,7 @@ export class CommandManager implements Service {
     public constructor(server: Server, onStopCommandComplete?: (stopped: boolean) => void) {
         this.server = server;
         this.onStopCommandComplete = onStopCommandComplete;
-        this.randomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
+        this.randomSequences = new RandomSequences(() => server.getWorldManager().getEntryWorld().getSeed());
         this.host = serverCommandHost(
             server,
             (shutdown) => {
@@ -205,9 +208,33 @@ export class CommandManager implements Service {
         );
     }
 
-    /** The host every command's verbs read and write the server through. */
-    public getHost(): CommandHost {
-        return this.host;
+    /**
+     * The host a command's verbs read and write the server through: the one of the level it runs
+     * in, whose scoreboard and command storage it keeps score and data in.
+     * @param level - The level; left out, the entry level, which the console and functions run in.
+     */
+    public getHost(level?: Level): CommandHost {
+        if (level === undefined || level === this.server.getWorldManager().getEntryLevel()) return this.host;
+        let host = this.levelHosts.get(level);
+        if (host === undefined) {
+            host = serverCommandHost(
+                this.server,
+                (shutdown) => {
+                    this.requestedShutdown = shutdown;
+                },
+                this.randomSequences,
+                () => level
+            );
+            this.levelHosts.set(level, host);
+        }
+        return host;
+    }
+
+    /** The host of the level a command source runs in: an entity's, or the one its dimension names. */
+    private hostOf(source: { readonly entity: ReferencedEntity } | { readonly dimension: string }): CommandHost {
+        return this.getHost(
+            'entity' in source ? source.entity.getWorld().getLevel() : commandLevelOf(this.server, source.dimension)
+        );
     }
 
     /** Captures the persistent command random streams for a replay baseline. */
@@ -355,7 +382,7 @@ export class CommandManager implements Service {
         let started: Promise<unknown>[] = [];
         this.server
             .getWorldManager()
-            .getDefaultWorld()
+            .getEntryWorld()
             .runInputNow(() => {
                 started = collectAsyncCommands(() => {
                     commands = runtime.tick(this.internalSource());
@@ -388,7 +415,7 @@ export class CommandManager implements Service {
     private internalSource(): CommandSource {
         return createCommandSource({
             host: this.host,
-            dimension: dimensionIdOf(this.server.getWorldManager().getDefaultWorld()),
+            dimension: dimensionIdOf(this.server.getWorldManager().getEntryWorld()),
             permissionLevel: CommandPermissionLevel.INTERNAL,
             silent: true,
             onError: (message) => this.server.getLogger().warn(`§cfunction:§r ${message}`)
@@ -745,10 +772,10 @@ export class CommandManager implements Service {
         const entity = isPlayerSender(target) ? entityRefOf(target) : undefined;
         const player = isPlayerSender(sender) ? sender : undefined;
         const operator = player === undefined || player.isOp() || player.hasPermission('*');
-        const world = player?.getWorld() ?? this.server.getWorldManager().getDefaultWorld();
+        const world = player?.getWorld() ?? this.server.getWorldManager().getEntryWorld();
 
         const commandSource = createCommandSource({
-            host: this.host,
+            host: this.getHost(world.getLevel()),
             ...(entity === undefined ? {} : { entity }),
             // The sender issued the command; `target` is only who it runs as.
             ...(player === undefined ? {} : { caller: entityRefOf(player) }),
@@ -876,7 +903,7 @@ export class CommandManager implements Service {
         if (parsed.length !== selector.trimEnd().length) return undefined;
         const model = parsed.selector;
         const commandSource = createCommandSource({
-            host: this.host,
+            host: this.hostOf(source),
             ...('entity' in source ? { entity: entityRefOf(source.entity) } : { dimension: source.dimension }),
             permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
             silent: true,
@@ -897,7 +924,7 @@ export class CommandManager implements Service {
     ): { readonly successCount: number } | { readonly error: string } {
         const errors: string[] = [];
         const commandSource = createCommandSource({
-            host: this.host,
+            host: this.hostOf(source),
             ...('entity' in source ? { entity: entityRefOf(source.entity) } : { dimension: source.dimension }),
             permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
             silent: true,

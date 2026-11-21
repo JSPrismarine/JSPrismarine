@@ -115,7 +115,7 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
 
     return {
         join: async (profile, verified, id, send) => {
-            const world = server.getWorldManager().getDefaultWorld();
+            const world = server.getWorldManager().getEntryWorld();
             const connection = new ClientConnection(javaSide(id), server.getLogger());
             connection.codec = latestCodec;
             connection.phase = 'play';

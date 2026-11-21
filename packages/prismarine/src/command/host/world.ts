@@ -29,9 +29,12 @@ import SetSpawnPositionPacket, {
 import SpawnParticleEffectPacket from '@jsprismarine/protocol/bedrock/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import type { World } from '../../world/World';
+import type { Level } from '../../world/Level';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import {
     blockPositionOf,
     carryOut,
+    dimensionInLevel,
     dimensionInLevelOf,
     loadedDimensions,
     playersOf,
@@ -130,8 +133,14 @@ const sameBlock = (left: BlockRef | undefined, right: BlockRef | undefined): boo
  *
  * @param server - The live server every verb reads and writes through.
  */
-export const worldCommandHost = (server: Server): WorldCommandHost => {
-    const defaultWorld = () => server.getWorldManager().getDefaultWorld();
+export const worldCommandHost = (
+    server: Server,
+    level: () => Level = () => server.getWorldManager().getEntryLevel()
+): WorldCommandHost => {
+    /** The level's Overworld, whose clock, weather and rules the level's commands read and set. */
+    const levelWorld = () => level().loadedWorld(OVERWORLD_STEM_ID) ?? server.getWorldManager().getEntryWorld();
+    /** The world of a dimension a command carries, in the host's level when it names none. */
+    const worldIn = (dimension: string) => worldOf(server, dimensionInLevel(server, dimension, level()));
 
     const readBlock = (world: World, x: number, y: number, z: number): BlockRef | undefined => {
         const found = world.loadedBlockAt(x, y, z);
@@ -168,14 +177,14 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
     return {
         getBlock: (dimension, position) => {
             const at = blockPositionOf(position);
-            return readBlock(worldOf(server, dimension), at.getX(), at.getY(), at.getZ());
+            return readBlock(worldIn(dimension), at.getX(), at.getY(), at.getZ());
         },
 
         setBlock: (dimension, position, block, mode) =>
-            writeBlock(worldOf(server, dimension), blockPositionOf(position), block, mode),
+            writeBlock(worldIn(dimension), blockPositionOf(position), block, mode),
 
         fill: (dimension, from, to, block, mode, filter) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const region = regionOf(from, to);
             if (regionSize(region) > MAX_BLOCK_MODIFICATIONS) {
                 unsupported(`a region bigger than ${MAX_BLOCK_MODIFICATIONS} blocks, which this`);
@@ -204,7 +213,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         clone: (dimension, begin, end, destination, maskMode, mode, filter) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const region = regionOf(begin, end);
             if (regionSize(region) > MAX_BLOCK_MODIFICATIONS) {
                 unsupported(`a region bigger than ${MAX_BLOCK_MODIFICATIONS} blocks, which this`);
@@ -254,7 +263,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         compareRegions: (dimension, begin, end, destination, masked) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const region = regionOf(begin, end);
             const offset = blockPositionOf(destination);
             let matching = 0;
@@ -277,32 +286,32 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             return matching;
         },
 
-        getTime: () => defaultWorld().getDayTime(),
-        getGameTime: () => defaultWorld().getTicks(),
+        getTime: () => levelWorld().getDayTime(),
+        getGameTime: () => levelWorld().getTicks(),
         setTime: (ticks) => {
-            const world = defaultWorld();
+            const world = levelWorld();
             world.setDayTime(ticks);
             world.syncTime();
         },
         addTime: (ticks) => {
-            const world = defaultWorld();
+            const world = levelWorld();
             const next = world.getDayTime() + ticks;
             world.setDayTime(next);
             world.syncTime();
             return next;
         },
 
-        getWeather: () => defaultWorld().getWeather(),
-        setWeather: (kind, durationTicks) => defaultWorld().setWeather(kind, durationTicks),
+        getWeather: () => levelWorld().getWeather(),
+        setWeather: (kind, durationTicks) => levelWorld().setWeather(kind, durationTicks),
 
         getGameRule: (name) => {
-            const stored = defaultWorld().getGameRuleManager()?.getGameRule(serverGameRuleName(name));
+            const stored = levelWorld().getGameRuleManager()?.getGameRule(serverGameRuleName(name));
             return !stored ? undefined : stored[0];
         },
         setGameRule: (name, value) => {
             if (typeof value === 'string') return false;
 
-            const gameRules = defaultWorld().getGameRuleManager();
+            const gameRules = levelWorld().getGameRuleManager();
             assert(gameRules);
 
             const spelling = serverGameRuleName(name);
@@ -326,7 +335,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         setWorldSpawn: (dimension, position, _angle) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const at = blockPositionOf(position);
             world.setSpawnPosition(at);
 
@@ -356,7 +365,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
                 x: at.getX(),
                 y: at.getY(),
                 z: at.getZ(),
-                dimension: worldOf(server, dimension).getDimension().name,
+                dimension: worldIn(dimension).getDimension().name,
                 forced: true
             });
 
@@ -364,7 +373,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             const packet = new SetSpawnPositionPacket({
                 type: SpawnPositionType.PlayerRespawn,
                 position: blockPosition,
-                dimension: worldOf(server, dimension).getDimension().bedrockId,
+                dimension: worldIn(dimension).getDimension().bedrockId,
                 blockPosition
             });
 
@@ -376,7 +385,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         // an index of bed, job site and portal blocks in loaded chunks, and nothing here
         // maintains one. Refused rather than answered with a position that is not one.
         locate: (kind, name, origin, dimension) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             switch (kind) {
                 case 'structure':
                     return world.locateStructure(name, origin);
@@ -387,11 +396,11 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             }
         },
         locateNames: (kind, dimension) =>
-            kind === 'poi' ? [] : (worldOf(server, dimension).getGenerator().locatableNames?.(kind) ?? []),
+            kind === 'poi' ? [] : (worldIn(dimension).getGenerator().locatableNames?.(kind) ?? []),
         place: () => unsupported('runtime feature and structure placement'),
 
         particle: (name, position, dimension, parameters) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const packet = new SpawnParticleEffectPacket();
             packet.dimensionId = world.getDimension().bedrockId;
             packet.effectName = name;
@@ -423,7 +432,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         spreadPlayers: (dimension, center, spreadDistance, maxRange, _respectTeams, targets) => {
             // No teams exist on this server, so every player is their own
             // team and `respectTeams` is satisfied whichever way it was asked.
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const players = playersOf(server, targets);
             const placed: { x: number; z: number }[] = [];
             const random = server.getRandom();
@@ -460,7 +469,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         heightmap: (dimension, position, _kind) => {
             // This server keeps one heightmap, the topmost non-air block, so
             // every Java heightmap kind reads the same number.
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const at = blockPositionOf(position);
             const chunk = world.getLoadedChunk(at.getX() >> 4, at.getZ() >> 4);
             const highest = chunk?.getHighestBlockAt(at.getX(), at.getZ());
@@ -468,7 +477,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         },
 
         getBiome: (dimension, position) => {
-            const world = worldOf(server, dimension);
+            const world = worldIn(dimension);
             const at = blockPositionOf(position);
             const chunk = world.getLoadedChunk(at.getX() >> 4, at.getZ() >> 4);
             if (!chunk) return undefined;
@@ -477,12 +486,12 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
 
         isLoaded: (dimension, position) => {
             const at = blockPositionOf(position);
-            return worldOf(server, dimension).getLoadedChunk(at.getX() >> 4, at.getZ() >> 4) !== null;
+            return worldIn(dimension).getLoadedChunk(at.getX() >> 4, at.getZ() >> 4) !== null;
         },
 
-        dimensions: () => loadedDimensions(server),
+        dimensions: () => loadedDimensions(level()),
         dimensionIn: dimensionInLevelOf,
 
-        tickingAreas: tickingAreaCommandHost(server)
+        tickingAreas: tickingAreaCommandHost(server, level)
     };
 };

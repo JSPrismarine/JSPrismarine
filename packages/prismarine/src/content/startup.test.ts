@@ -118,7 +118,7 @@ describe('the server building its content at startup', () => {
         vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
 
         const server = await bootstrap('replay-state');
-        const level = server.getWorldManager().getDefaultWorld().getLevel();
+        const level = server.getWorldManager().getEntryWorld().getLevel();
         const manifest = await level.captureReplayInitialState();
         const restored = deserializeReplayInitialStateManifest(serializeReplayInitialStateManifest(manifest));
         const expected = server.getRandom()();
@@ -144,7 +144,7 @@ describe('the server building its content at startup', () => {
         vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
 
         const server = await bootstrap('replay-settling');
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const level = world.getLevel();
         world.markChunkSettling(3, -2);
         const manifest = await level.captureReplayInitialState();

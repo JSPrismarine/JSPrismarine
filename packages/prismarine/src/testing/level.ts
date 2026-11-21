@@ -127,7 +127,7 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
         hasStem: (stemId) => stems.has(stemId),
         world,
         built: (dimensionId) => worlds().find((each) => each.getDimension().id === dimensionId),
-        worldSpawn: () => server.getWorldManager().getDefaultWorld()
+        worldSpawn: () => server.getWorldManager().getEntryWorld()
     });
 
     return stub<Level>({

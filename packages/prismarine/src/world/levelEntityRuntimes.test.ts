@@ -147,7 +147,7 @@ describe('two levels that share a dimension', () => {
         await server.bootstrap('127.0.0.1', 0);
 
         const manager = server.getWorldManager();
-        alpha = manager.getDefaultWorld();
+        alpha = manager.getEntryWorld();
         const other = manager.getWorldByName(OTHER_LEVEL);
         if (other === null) throw new Error(`level ${OTHER_LEVEL} loaded no Overworld`);
         beta = other;

@@ -23,6 +23,7 @@ import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 import type { MoveMode } from '../../network/presenter/SessionPresenter';
 
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import type Server from '../../Server';
 import type { ExperienceHolder } from '../../entity/Experience';
 import type HumanInventory from '../../inventory/HumanInventory';
@@ -100,7 +101,7 @@ const commandDimension = (dimension: string, level: string | undefined): string 
  */
 export const dimensionIdOf = (world: World): string => {
     const level = world.getLevel();
-    const isDefault = level === world.getServer().getWorldManager().getDefaultLevel();
+    const isDefault = level === world.getServer().getWorldManager().getEntryLevel();
     return commandDimension(world.getDimension().id, isDefault ? undefined : level.name);
 };
 
@@ -123,6 +124,18 @@ export const dimensionInLevelOf = (current: string, named: string): string =>
     commandDimension(splitCommandDimension(named).dimension, splitCommandDimension(current).level);
 
 /**
+ * A dimension a command carries, placed in a level when it names none: a script's bare
+ * `minecraft:overworld` means its own level's.
+ * @param dimension - The dimension, which may carry a level already.
+ * @param level - The level to place it in; the entry level's dimensions carry no level.
+ */
+export const dimensionInLevel = (server: Server, dimension: string, level: Level): string => {
+    const split = splitCommandDimension(dimension);
+    if (split.level !== undefined || level === server.getWorldManager().getEntryLevel()) return dimension;
+    return commandDimension(split.dimension, level.name);
+};
+
+/**
  * The level a dimension a command carries names, or undefined for the default level, which a
  * dimension without a level is in.
  */
@@ -138,23 +151,27 @@ export const commandLevelOf = (server: Server, dimension: string): Level | undef
  * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one,
  *   naming its level after `@` when it is not the default one.
  * @returns That level's world of the dimension, which may still be enabling and then has no
- *   chunks loaded, or the default world when no stem names the dimension.
+ *   chunks loaded, or the Overworld of the dimension's level, then the entry level's, when no stem
+ *   names the dimension.
  */
 export const worldOf = (server: Server, dimension: string): World => {
     const split = splitCommandDimension(dimension);
     // A dimension the level has but nobody has entered is started, not swapped for the default
     // world: `execute in minecraft:the_nether run fill` used to write into the Overworld.
+    const worlds = server.getWorldManager();
     return (
-        server.getWorldManager().startWorld(split.dimension, split.level) ?? server.getWorldManager().getDefaultWorld()
+        worlds.startWorld(split.dimension, split.level) ??
+        (split.level === undefined ? undefined : worlds.getLevel(split.level)?.loadedWorld(OVERWORLD_STEM_ID)) ??
+        worlds.getEntryWorld()
     );
 };
 
 /**
- * Every dimension a command may name: the dimension type of each stem of the default level,
- * whether or not its world is built yet.
+ * Every dimension a command in a level may name: the dimension type of each of its stems, whether
+ * or not its world is built yet.
  */
-export const loadedDimensions = (server: Server): readonly string[] => [
-    ...new Set([...server.getWorldManager().getDefaultLevel().getStems().values()].map((stem) => stem.type))
+export const loadedDimensions = (level: Level): readonly string[] => [
+    ...new Set([...level.getStems().values()].map((stem) => stem.type))
 ];
 
 /** What {@link entityRefOf} reads of an entity. */

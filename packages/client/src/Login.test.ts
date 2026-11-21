@@ -270,7 +270,7 @@ describe('logging into a real server', () => {
         });
 
         const startGame = await client.connect();
-        const spawn = await server!.getWorldManager().getDefaultWorld().getSpawnPosition();
+        const spawn = await server!.getWorldManager().getEntryWorld().getSpawnPosition();
         const requested = { x: spawn.getX() + 0.5, y: spawn.getY() + 1, z: spawn.getZ() + 0.5 };
 
         // StartGame says where the spawn point asked for: the block center, one block above the

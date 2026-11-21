@@ -217,6 +217,7 @@ const buildFixture = (): Fixture => {
             yield world;
         },
         readyWorld: (stemId) => (stemId === Dimensions.Nether.id ? nether : undefined),
+        loadedWorld: (stemId) => (stemId === Dimensions.Overworld.id ? world : undefined),
         prepareWorld: async () => {}
     });
 
@@ -224,8 +225,8 @@ const buildFixture = (): Fixture => {
         getLogger: () => stub({ debug: () => {}, verbose: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getWorldManager: () =>
             stub<WorldManager>({
-                getDefaultWorld: () => world,
-                getDefaultLevel: () => level,
+                getEntryWorld: () => world,
+                getEntryLevel: () => level,
                 getLevels: () => [level],
                 getWorldByDimension: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
@@ -948,7 +949,7 @@ describe('the server command host', () => {
             await expect(fixture.run('data get storage state b')).resolves.toBe(2);
 
             expect(fixture.feedback.at(-1)).toBe('Storage state has the following contents: 2b');
-            const saved = fixture.server.getWorldManager().getDefaultLevel().getCommandStorage().get('state');
+            const saved = fixture.server.getWorldManager().getEntryLevel().getCommandStorage().get('state');
             expect(formatSnbt(saved)).toBe('{a: 1, b: 2b}');
         });
 
@@ -969,7 +970,7 @@ describe('the server command host', () => {
                 `execute store result storage mypack:out down float -${huge} run data get storage mypack:x v`
             );
 
-            const stored = fixture.server.getWorldManager().getDefaultLevel().getCommandStorage().get('mypack:out');
+            const stored = fixture.server.getWorldManager().getEntryLevel().getCommandStorage().get('mypack:out');
             expect(stored.value.up).toEqual(floatTag(Number.POSITIVE_INFINITY));
             expect(stored.value.down).toEqual(floatTag(Number.NEGATIVE_INFINITY));
         });

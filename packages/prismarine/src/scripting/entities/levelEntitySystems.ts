@@ -201,7 +201,7 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
         presets: []
     };
     const runtimeOf = (actor: StoreActor) => actor.getWorld().dataEntities().runtime;
-    const host = () => server.getCommandManager().getHost();
+    const host = () => server.getCommandManager().getHost(level);
     const send = (session: PlayerSession, packet: NetworkPacket<unknown>): void =>
         session.released(session.getConnection().sendDataPacket(packet));
     const refOf = (actor: StoreActor) => ({

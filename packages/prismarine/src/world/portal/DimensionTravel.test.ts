@@ -166,7 +166,7 @@ const buildLevel = async ({ entities }: SceneOptions = {}) => {
         },
         getWorldManager: () =>
             stub<WorldManager>({
-                getDefaultWorld: () => {
+                getEntryWorld: () => {
                     const overworld = level?.loadedWorld(OVERWORLD_STEM_ID);
                     if (overworld === undefined) throw new Error('no Overworld yet');
                     return overworld;

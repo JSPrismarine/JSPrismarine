@@ -26,7 +26,7 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
         // Resolved here because this is where a world is first available and awaiting is
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const spawn = await world.getSpawnPosition();
         // The entity id is drawn here, and the store player enters a store only at
         // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is

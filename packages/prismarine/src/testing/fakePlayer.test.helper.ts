@@ -131,7 +131,7 @@ export const fakePlayer = ({
                 isOp,
                 commandLevelOf: () => CommandPermissionLevel.ANY
             }),
-        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
+        getWorldManager: () => stub<WorldManager>({ getEntryWorld: () => world }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
         getContent: () => entities.content(),

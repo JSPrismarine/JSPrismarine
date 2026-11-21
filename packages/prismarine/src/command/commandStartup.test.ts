@@ -168,7 +168,7 @@ describe('the command layer on a booted server', () => {
         vi.spyOn(server, 'shutdown').mockResolvedValue(true);
         await server.bootstrap('127.0.0.1', 0);
 
-        world = server.getWorldManager().getDefaultWorld();
+        world = server.getWorldManager().getEntryWorld();
         // Nothing is preloaded at radius 0, and the command verbs write through
         // the synchronous loaded-chunk path on purpose, so the chunk the test
         // writes into is asked for first - which is what a player standing in
@@ -703,7 +703,7 @@ describe('the command layer on a server with packs of its own', () => {
         vi.spyOn(server, 'shutdown').mockResolvedValue(true);
         await server.bootstrap('127.0.0.1', 0);
 
-        world = server.getWorldManager().getDefaultWorld();
+        world = server.getWorldManager().getEntryWorld();
         await world.getChunkAt(0, 0);
 
         sender = {

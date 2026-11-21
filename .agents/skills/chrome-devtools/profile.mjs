@@ -542,7 +542,7 @@ const statusExpression = (player) => `(() => {
     const session = server.getSessionManager().findSession({ name: ${JSON.stringify(player)} });
     let control;
     try {
-        control = server.getWorldManager().getDefaultWorld()?.getGenerator().generationControl?.();
+        control = server.getWorldManager().getEntryWorld()?.getGenerator().generationControl?.();
     } catch {}
     const position = session?.getPlayer().getPosition();
     const size = (value) => value?.size ?? value?.length ?? null;

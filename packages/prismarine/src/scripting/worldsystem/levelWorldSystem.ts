@@ -155,7 +155,7 @@ const scriptItems = (drops: readonly ContentItemDrop[]): ScriptItem[] =>
  * @param level - The level the scripts run in.
  */
 export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSystem => {
-    const commands = () => server.getCommandManager().getHost().world;
+    const commands = () => server.getCommandManager().getHost(level).world;
     const sessions = (): PlayerSession[] =>
         server
             .getSessionManager()
@@ -218,7 +218,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             level.getGameRuleManager().setGameRule(name, value, true);
         },
         isHardcore: () => false,
-        seed: () => (overworld() ?? server.getWorldManager().getDefaultWorld()).getSeed().toString(),
+        seed: () => level.seed.toString(),
         allowCheats: () => settings.allowCheats,
         setAllowCheats: (allow) => {
             settings.allowCheats = allow;

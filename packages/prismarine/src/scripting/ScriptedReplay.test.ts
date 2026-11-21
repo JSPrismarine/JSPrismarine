@@ -149,7 +149,7 @@ const runSession = async (seed: string, wallClock: () => number, replay: boolean
     try {
         expect(server.getScripts()).toBeDefined();
         const debuggerListened = await accepts(debuggerPort);
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const digests: string[] = [];
         const weather: string[] = [];
         for (let tick = 0; tick < TICKS; tick++) {

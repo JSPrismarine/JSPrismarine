@@ -45,7 +45,7 @@ world.afterEvents.weatherChange.subscribe((event) => world.sendMessage('${MESSAG
         });
 
         // Between ticks, as a console `/weather rain` would land; the next tick's flush runs the after-event.
-        server.getWorldManager().getDefaultWorld().setWeather('rain', 6000);
+        server.getWorldManager().getEntryWorld().setWeather('rain', 6000);
         expect(lines).toEqual([]);
         server.advanceTick();
         await settle();

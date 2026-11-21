@@ -27,7 +27,7 @@ describe('Server', () => {
 
     beforeAll(() => {
         // This used to configure no world at all, which only booted because a missing
-        // default world was warned about and shrugged off - leaving `getDefaultWorld()`
+        // default world was warned about and shrugged off - leaving `getEntryWorld()`
         // undefined and every caller asserting it away. It now fails at startup instead, so
         // the smoke test loads a real world. Pointed at a temp directory via `JSP_DIR` so
         // the run writes nothing into the repository.

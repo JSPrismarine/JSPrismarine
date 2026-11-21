@@ -10,6 +10,7 @@
 import type { CommandHost, DataCommandHost } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
+import type { Level } from '../../world/Level';
 import { entityCommandHost } from './entities';
 import { copyItemSlots, setItemSlot } from './inventory';
 import { runLootCommand } from './loot';
@@ -23,16 +24,15 @@ import { worldCommandHost } from './world';
 /**
  * The NBT, loot, predicate and function group.
  *
- * The NBT verbs read and write the default level's command storage (see `./nbtData`). The
+ * The NBT verbs read and write the command's level's command storage (see `./nbtData`). The
  * function verbs run `@jsprismarine/mcfunction` over whatever the loaded datapacks declared. The
  * slot verbs write named slots on players, mobs and container blocks (see `./inventory`). What
  * still refuses is NBT for blocks and entities, item modifiers, and the predicate evaluator.
  */
-const dataCommandHost = (server: Server, sequences: RandomSequences): DataCommandHost => {
+const dataCommandHost = (server: Server, sequences: RandomSequences, level: () => Level): DataCommandHost => {
     const functions = () => server.getCommandManager().getFunctionRuntime();
-    // The default level's, as the scoreboard is; read per call, since the host is built before the
-    // worlds load.
-    const storage = () => server.getWorldManager().getDefaultLevel().getCommandStorage();
+    // The level's, as the scoreboard is; read per call, since the host is built before the worlds load.
+    const storage = () => level().getCommandStorage();
 
     return {
         ...nbtDataVerbs(storage),
@@ -54,29 +54,32 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
 /**
  * Builds the host the vanilla command set runs against.
  *
- * The scoreboard is the default level's, while the command manager owns and passes the
- * random sequences so replay capture can save the same streams this host uses.
+ * The scoreboard and the command storage are the level's, so a command typed in a level keeps
+ * score and data there, while the command manager owns and passes the random sequences so replay
+ * capture can save the same streams this host uses.
  *
  * @param server - The live server. Held rather than snapshotted: a command
  *   runs long after the host was built and has to see the world as it is then.
  * @param onStopRequested - Called when the `stop` command reaches its server host, with the
  *   shutdown it started.
  * @param sequences - The command-owned random streams, shared with replay capture.
+ * @param level - The level the commands run in. Left out, the entry level, read per command since
+ *   the host is built before the worlds load.
  */
 export const serverCommandHost = (
     server: Server,
     onStopRequested: (shutdown: Promise<void>) => void = () => {},
-    sequences: RandomSequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed())
+    sequences: RandomSequences = new RandomSequences(() => server.getWorldManager().getEntryWorld().getSeed()),
+    level: () => Level = () => server.getWorldManager().getEntryLevel()
 ): CommandHost => {
-    // The default level's, which the scripts share and its save writes; read per command, since
-    // the host is built before the worlds load.
-    const scoreboard = () => server.getWorldManager().getDefaultLevel().getScoreboard();
+    // The level's, which its scripts share and its save writes.
+    const scoreboard = () => level().getScoreboard();
 
     return {
         entities: entityCommandHost(server, scoreboard),
-        world: worldCommandHost(server),
+        world: worldCommandHost(server, level),
         scoreboard: scoreboardCommandHost(server, scoreboard),
-        data: dataCommandHost(server, sequences),
+        data: dataCommandHost(server, sequences, level),
         server: serverSideCommandHost(server, onStopRequested)
     };
 };

@@ -3963,7 +3963,7 @@ export default class PlayerSession {
         if (answer.spawn === 'own' && own === undefined)
             throw new PrismarineNetworkErrors.RespawnDimensionNotReady({ dimension: answer.dimension });
         return {
-            world: own ?? this.server.getWorldManager().getDefaultWorld(),
+            world: own ?? this.server.getWorldManager().getEntryWorld(),
             announced: Vector3.fromObject(answer.announced),
             block: Vector3.fromObject(answer.block),
             eyes: Vector3.fromObject(answer.eyes)

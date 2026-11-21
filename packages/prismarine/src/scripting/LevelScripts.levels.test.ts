@@ -97,7 +97,7 @@ describe.skipIf(!scriptHostAvailable())('the scripts of several levels', { tags:
         const runtimes = levels.map((level) => server.getScripts(level));
         expect(runtimes.every((scripts) => scripts !== undefined)).toBe(true);
         expect(new Set(runtimes).size).toBe(2);
-        expect(server.getScripts()).toBe(server.getScripts(worlds.getDefaultLevel()));
+        expect(server.getScripts()).toBe(server.getScripts(worlds.getEntryLevel()));
 
         for (let tick = 0; tick < 5; tick++) server.advanceTick();
 

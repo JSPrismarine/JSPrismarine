@@ -64,7 +64,7 @@ world.afterEvents.weatherChange.subscribe(() => {
         });
 
         // The tick's flush shows the form; the answer arrives before the next tick.
-        server.getWorldManager().getDefaultWorld().setWeather('rain', 6000);
+        server.getWorldManager().getEntryWorld().setWeather('rain', 6000);
         server.advanceTick();
         await settle();
         expect(forms).toEqual([
