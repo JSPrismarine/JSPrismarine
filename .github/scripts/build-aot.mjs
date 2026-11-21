@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -169,13 +169,22 @@ if (withPayload === checkedInSource) {
 const bunExecutable = process.platform === 'win32' ? 'bun.exe' : 'bun';
 
 /**
+ * Where to write Bun's `--explain=json` report, which `scripts/check-aot-explain.mts` counts. The
+ * report shares stdout with Bun's progress lines, which the check skips. Unset, there is no report.
+ */
+const explainReport = process.env.AOT_EXPLAIN_REPORT;
+if (explainReport) args.push('--explain=json');
+
+/**
  * Compiles with `--trim`, which drops the Bun APIs the program never reaches, and without it
  * for a target whose Bun build has no trim table: the linux-arm64 one answered `NoTrimTable`
  * and took the whole release down. An untrimmed executable is larger and otherwise the same.
  */
 const compile = () => {
+    if (explainReport) mkdirSync(path.dirname(path.resolve(explainReport)), { recursive: true });
+    const stdout = explainReport ? openSync(explainReport, 'w') : 'inherit';
     try {
-        execFileSync(bunExecutable, args, { cwd: repositoryRoot, stdio: ['inherit', 'inherit', 'pipe'] });
+        execFileSync(bunExecutable, args, { cwd: repositoryRoot, stdio: ['inherit', stdout, 'pipe'] });
     } catch (error) {
         const stderr = String(error.stderr ?? '');
         process.stderr.write(stderr);
@@ -185,8 +194,10 @@ const compile = () => {
         execFileSync(
             bunExecutable,
             args.filter((arg) => arg !== '--trim'),
-            { cwd: repositoryRoot, stdio: 'inherit' }
+            { cwd: repositoryRoot, stdio: ['inherit', stdout, 'inherit'] }
         );
+    } finally {
+        if (typeof stdout === 'number') closeSync(stdout);
     }
 };
 

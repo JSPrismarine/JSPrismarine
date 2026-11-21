@@ -1,0 +1,233 @@
+{
+    "packages/addon-tools": {
+        "unknown-callee": 25,
+        "unknown-object": 42,
+        "lost-track": 3
+    },
+    "packages/advancements": {
+        "unknown-callee": 70,
+        "unknown-object": 16,
+        "lost-track": 1
+    },
+    "packages/auth": {
+        "unknown-callee": 35,
+        "unknown-object": 38
+    },
+    "packages/bedrock-data": {
+        "unknown-callee": 22,
+        "unknown-object": 69
+    },
+    "packages/binaryutils": {
+        "unknown-callee": 23,
+        "unknown-object": 19,
+        "lost-track": 9
+    },
+    "packages/block-behaviors": {
+        "unknown-callee": 254,
+        "unknown-object": 54,
+        "lost-track": 26
+    },
+    "packages/blocks": {
+        "unknown-callee": 44,
+        "unknown-object": 60,
+        "lost-track": 2
+    },
+    "packages/brigadier": {
+        "unknown-callee": 49,
+        "unknown-object": 97,
+        "lost-track": 47
+    },
+    "packages/chunkgen": {
+        "unknown-callee": 99,
+        "unknown-object": 157,
+        "lost-track": 24
+    },
+    "packages/color-parser": {
+        "unknown-object": 11
+    },
+    "packages/commands": {
+        "unknown-callee": 270,
+        "unknown-object": 112,
+        "lost-track": 22
+    },
+    "packages/console": {
+        "unknown-callee": 155,
+        "unknown-object": 243,
+        "lost-track": 29
+    },
+    "packages/console-protocol": {
+        "unknown-callee": 13,
+        "unknown-object": 18
+    },
+    "packages/content": {
+        "unknown-callee": 22,
+        "unknown-object": 54,
+        "lost-track": 2
+    },
+    "packages/enchantments": {
+        "unknown-callee": 21,
+        "unknown-object": 19,
+        "lost-track": 9
+    },
+    "packages/engine-systems": {
+        "unknown-callee": 13,
+        "unknown-object": 20,
+        "lost-track": 10
+    },
+    "packages/entities": {
+        "unknown-callee": 93,
+        "unknown-object": 157,
+        "lost-track": 39
+    },
+    "packages/entity-brains": {
+        "unknown-callee": 77,
+        "unknown-object": 120,
+        "lost-track": 46
+    },
+    "packages/entity-goals": {
+        "unknown-callee": 248,
+        "unknown-object": 253,
+        "lost-track": 194
+    },
+    "packages/errors": {
+        "unknown-callee": 3,
+        "unknown-object": 57
+    },
+    "packages/features": {
+        "unknown-callee": 170,
+        "unknown-object": 150,
+        "lost-track": 99
+    },
+    "packages/item-behaviors": {
+        "unknown-callee": 7,
+        "unknown-object": 14,
+        "lost-track": 6
+    },
+    "packages/items": {
+        "unknown-callee": 22,
+        "unknown-object": 27,
+        "lost-track": 3
+    },
+    "packages/kernel": {
+        "unknown-callee": 19,
+        "unknown-object": 25,
+        "lost-track": 2
+    },
+    "packages/leveldb": {
+        "unknown-callee": 219,
+        "unknown-object": 358,
+        "lost-track": 17
+    },
+    "packages/lighting": {
+        "unknown-callee": 8,
+        "unknown-object": 42,
+        "lost-track": 7
+    },
+    "packages/logger": {
+        "unknown-callee": 8,
+        "unknown-object": 12
+    },
+    "packages/loot": {
+        "unknown-callee": 49,
+        "unknown-object": 33,
+        "lost-track": 3
+    },
+    "packages/mapping": {
+        "unknown-callee": 4,
+        "unknown-object": 50,
+        "lost-track": 1
+    },
+    "packages/math": {
+        "unknown-callee": 2,
+        "unknown-object": 4,
+        "lost-track": 4
+    },
+    "packages/mcfunction": {
+        "unknown-callee": 20,
+        "unknown-object": 23,
+        "lost-track": 3
+    },
+    "packages/minecraft": {
+        "unknown-callee": 3,
+        "unknown-object": 631
+    },
+    "packages/molang": {
+        "unknown-callee": 73,
+        "unknown-object": 60,
+        "lost-track": 22
+    },
+    "packages/native-network": {
+        "unknown-callee": 57,
+        "unknown-object": 55,
+        "lost-track": 3
+    },
+    "packages/nbt": {
+        "unknown-callee": 25,
+        "unknown-object": 40
+    },
+    "packages/nethernet": {
+        "unknown-callee": 131,
+        "unknown-object": 147,
+        "lost-track": 9
+    },
+    "packages/packs": {
+        "unknown-callee": 97,
+        "unknown-object": 160,
+        "lost-track": 3
+    },
+    "packages/predicates": {
+        "unknown-callee": 99,
+        "unknown-object": 55,
+        "lost-track": 27
+    },
+    "packages/prismarine": {
+        "unknown-callee": 3121,
+        "unknown-object": 4287,
+        "lost-track": 819
+    },
+    "packages/protocol": {
+        "unknown-callee": 299,
+        "unknown-object": 620,
+        "lost-track": 28
+    },
+    "packages/raknet": {
+        "unknown-callee": 132,
+        "unknown-object": 162,
+        "lost-track": 32
+    },
+    "packages/recipes": {
+        "unknown-callee": 23,
+        "unknown-object": 51,
+        "lost-track": 4
+    },
+    "packages/script-host": {
+        "unknown-callee": 834,
+        "unknown-object": 1929,
+        "lost-track": 67
+    },
+    "packages/server": {
+        "unknown-callee": 207,
+        "unknown-object": 254,
+        "lost-track": 5
+    },
+    "packages/spawning": {
+        "unknown-callee": 19,
+        "unknown-object": 22,
+        "lost-track": 12
+    },
+    "packages/structures": {
+        "unknown-callee": 81,
+        "unknown-object": 223,
+        "lost-track": 16
+    },
+    "packages/trading": {
+        "unknown-callee": 15,
+        "unknown-object": 11,
+        "lost-track": 2
+    },
+    "packages/worldgen": {
+        "unknown-callee": 266,
+        "unknown-object": 430,
+        "lost-track": 137
+    }
+}
