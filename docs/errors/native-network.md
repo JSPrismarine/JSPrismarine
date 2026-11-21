@@ -10,41 +10,6 @@ category: Errors
 These are the errors `@jsprismarine/native-network` throws. [The error reference](README.md) explains how to read an entry.
 
 <!-- fact:errors.page.native-network -->
-## Groups
-
-Catch one of these classes to handle every error that extends it.
-
-| Class                | What its errors mean                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `NativeLibraryError` | Why the library cannot be loaded, with the platform and what to do about it in the message. |
-
-## `NATIVE_NETWORK_DIGEST_DOES_NOT_MATCH_PUBLISHED_BUILD`
-
-`{path} has SHA-256 {digest}, not the {published} {packageName} publishes for {platform}`
-
-Thrown as `NativeNetworkErrors.DigestDoesNotMatchPublishedBuild`, which extends `NativeLibraryError`.
-
-The native library file is not the build the package publishes, so it was altered or comes
-from another version. Reinstall the package.
-
-## `NATIVE_NETWORK_DOWNLOAD_DIGEST_MISMATCH`
-
-`{file} has SHA-256 {digest} and {byteLength} bytes; the manifest expects {sha256} and {bytes}`
-
-Thrown as `NativeNetworkErrors.DownloadDigestMismatch`, which extends `Error`.
-
-The downloaded native library does not match the digest the package publishes, so it was
-corrupted in transit or replaced. Retry the install.
-
-## `NATIVE_NETWORK_DOWNLOAD_FAILED`
-
-`{url} answered {status}`
-
-Thrown as `NativeNetworkErrors.DownloadFailed`, which extends `Error`.
-
-Downloading the native networking library failed with that HTTP status. Retry, or point
-`JSP_NATIVE_NETWORK_LIBRARY` at a library you built.
-
 ## `NATIVE_NETWORK_EVENT_QUEUE_NOT_OPENED`
 
 `The native networking library could not open its event queue ({opened})`
@@ -61,24 +26,6 @@ Thrown as `NativeNetworkErrors.FfiUnavailable`, which extends `NativeLibraryErro
 
 The Node.js running the server has no `node:ffi`, which the native networking library is
 loaded with. Run a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
-
-## `NATIVE_NETWORK_INVALID_NATIVE_MANIFEST`
-
-`` The native manifest needs `build` and `baseUrl` strings ``
-
-Thrown as `NativeNetworkErrors.InvalidNativeManifest`, which extends `Error`.
-
-The package's native manifest is malformed, so the package was published broken. Reinstall
-it, or report it.
-
-## `NATIVE_NETWORK_INVALID_NATIVE_MANIFEST_ENTRY`
-
-`The native manifest's entry for {key} is malformed`
-
-Thrown as `NativeNetworkErrors.InvalidNativeManifestEntry`, which extends `Error`.
-
-The package's native manifest has a malformed platform entry, so the package was published
-broken. Reinstall it, or report it.
 
 ## `NATIVE_NETWORK_LIBDATACHANNEL_CALL_FAILED`
 
@@ -106,42 +53,6 @@ Thrown as `NativeNetworkErrors.LibraryInterfaceMismatch`, which extends `NativeL
 
 The native library was built for a different version of this package. Reinstall the package
 so the two match, or rebuild the library.
-
-## `NATIVE_NETWORK_LIBRARY_NOT_INSTALLED`
-
-`{packageName} has no build for {platform} at {installed}. {advice}`
-
-Thrown as `NativeNetworkErrors.LibraryNotInstalled`, which extends `NativeLibraryError`.
-
-The native networking library for this platform is not installed. The message says how to get
-it.
-
-## `NATIVE_NETWORK_LIBRARY_OVERRIDE_MISSING`
-
-`{libraryEnv} names {override}, which does not exist`
-
-Thrown as `NativeNetworkErrors.LibraryOverrideMissing`, which extends `NativeLibraryError`.
-
-The environment variable that overrides the native library points at a file that does not
-exist.
-
-## `NATIVE_NETWORK_NO_BUILD_FOR_PLATFORM`
-
-`{packageName} publishes no build for {platform}.`
-
-Thrown as `NativeNetworkErrors.NoBuildForPlatform`, which extends `NativeLibraryError`.
-
-No prebuilt native networking library exists for this platform. Build it from source with
-`pnpm --filter
-
-## `NATIVE_NETWORK_NO_PUBLISHED_BUILD_TO_CHECK`
-
-`{path} has SHA-256 {digest}, and {packageName} publishes no build for {platform} to check it against`
-
-Thrown as `NativeNetworkErrors.NoPublishedBuildToCheck`, which extends `NativeLibraryError`.
-
-The native library file has no published digest to check against for this platform, and it
-was not built locally either, so it is refused.
 
 ## `NATIVE_NETWORK_PEER_CONNECTION_FAILED`
 

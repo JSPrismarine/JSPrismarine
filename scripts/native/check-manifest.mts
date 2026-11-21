@@ -17,7 +17,7 @@ let failed = false;
 for (const id of ids) {
     const pkg = nativePackage(id);
     const path = join(pkg.dir, 'native', 'manifest.json');
-    // Our own manifest; the package's src/manifest.ts checks its full shape where it loads it.
+    // Our own manifest; @jsprismarine/native-library's manifest.ts checks its full shape where it loads it.
     const manifest = JSON.parse(readFileSync(join(repoRoot, path), 'utf8')) as {
         build: string;
         platforms: Record<string, unknown>;

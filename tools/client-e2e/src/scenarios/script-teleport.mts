@@ -6,7 +6,8 @@
  */
 import assert from 'node:assert/strict';
 
-import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
+import { platformKey } from '../../../../packages/native-library/src/platform.ts';
+import { isPublishedPlatform } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_TELEPORT_DISTANCE } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep, vec3 } from '../scenario.mts';
@@ -20,7 +21,7 @@ export const scriptTeleport: Scenario = {
     run: async ({ client, server, log }) => {
         // A platform without a published script host build runs the server
         // without scripts, which this scenario cannot check.
-        if (!isPublishedPlatform()) {
+        if (!isPublishedPlatform(platformKey())) {
             log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }

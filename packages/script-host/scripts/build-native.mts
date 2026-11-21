@@ -23,14 +23,11 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { absentGlobals, splitAbsentPath } from '../src/absentGlobals.ts';
-import { nativeSourceHash } from '../src/nativeHash.ts';
-import {
-    PUBLISHED_PLATFORMS,
-    installedLibraryPath,
-    isPublishedPlatform,
-    platformKey,
-    sharedLibraryName
-} from '../src/platform.ts';
+// By path, not by package name: this script runs where no dependencies are installed.
+import { nativeSourceHash } from '../../native-library/src/nativeHash.ts';
+import { installedLibraryFile, platformKey, sharedLibraryFile } from '../../native-library/src/platform.ts';
+import { BUILD_SCRIPTS } from '../src/nativeHash.ts';
+import { LIBRARY, PUBLISHED_PLATFORMS, isPublishedPlatform } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const nativeDir = join(packageDir, 'native');
@@ -209,15 +206,15 @@ const workers = Array.from({ length: Math.min(availableParallelism(), queue.leng
 });
 await Promise.all(workers);
 
-const out = resolve(values.out ?? dirname(installedLibraryPath(packageDir, key)));
+const out = resolve(values.out ?? dirname(installedLibraryFile(packageDir, key, LIBRARY)));
 mkdirSync(out, { recursive: true });
-const shared = join(out, sharedLibraryName());
+const shared = join(out, sharedLibraryFile(LIBRARY));
 
 /** The linker flags for this operating system: only the jsh_ interface is exported, and unused sections go. */
 const linkFlags = (): string[] => {
     if (process.platform === 'darwin') {
         // The C layer marks the jsh_ functions visible, and -fvisibility=hidden hides the rest.
-        return ['-dynamiclib', `-Wl,-install_name,@rpath/${sharedLibraryName()}`, '-Wl,-dead_strip'];
+        return ['-dynamiclib', `-Wl,-install_name,@rpath/${sharedLibraryFile(LIBRARY)}`, '-Wl,-dead_strip'];
     }
     if (process.platform === 'win32') {
         // JSH_EXPORT marks the jsh_ functions dllexport, so the DLL exports only them. -static links
@@ -233,10 +230,10 @@ else if (!values.debug && process.platform !== 'win32') run('strip', ['--strip-u
 
 const report = {
     platform: key,
-    sourceHash: nativeSourceHash(packageDir),
+    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS),
     buildType: values.debug ? 'Debug' : 'Release',
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),
-    shared: { file: sharedLibraryName(), bytes: statSync(shared).size, sha256: sha256(shared) }
+    shared: { file: sharedLibraryFile(LIBRARY), bytes: statSync(shared).size, sha256: sha256(shared) }
 };
 writeFileSync(join(out, 'build.json'), `${JSON.stringify(report, null, 4)}\n`);
 console.log(JSON.stringify(report, null, 4));

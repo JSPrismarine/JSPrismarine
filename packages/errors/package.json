@@ -141,6 +141,11 @@
                 "import": "./dist/molang.js",
                 "module": "./dist/molang.js"
             },
+            "./native-library": {
+                "types": "./dist/native-library.d.ts",
+                "import": "./dist/native-library.js",
+                "module": "./dist/native-library.js"
+            },
             "./native-network": {
                 "types": "./dist/native-network.d.ts",
                 "import": "./dist/native-network.js",
@@ -368,6 +373,10 @@
         "./molang": {
             "jsprismarine:dist": "./dist/molang.js",
             "default": "./src/molang.ts"
+        },
+        "./native-library": {
+            "jsprismarine:dist": "./dist/native-library.js",
+            "default": "./src/native-library.ts"
         },
         "./native-network": {
             "jsprismarine:dist": "./dist/native-network.js",

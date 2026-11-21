@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
-import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
+import { platformKey } from '../../../../packages/native-library/src/platform.ts';
+import { isPublishedPlatform } from '../../../../packages/script-host/src/platform.ts';
 import type { CinnabarClient } from '../client.mts';
 import type { Scenario } from '../scenario.mts';
 import { untilTicks, waitTicks } from '../scenario.mts';
@@ -39,7 +40,7 @@ export const tpsBar: Scenario = {
     serverOptions: { addons: ['tps-bar'] },
     run: async ({ client, server, playerName, artifacts, log }) => {
         // A platform without a published script host build runs no scripts, as script-world-message says.
-        if (!isPublishedPlatform()) {
+        if (!isPublishedPlatform(platformKey())) {
             log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }

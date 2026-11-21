@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import manifestJson from '../native/manifest.json' with { type: 'json' };
+import { NativeLibraryErrors } from '@jsprismarine/errors/native-library';
+
 import { isRecord } from './isRecord';
-import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** One published file: its name in the release, its size and its SHA-256. */
 export interface ManifestFile {
@@ -13,13 +13,13 @@ export interface ManifestFile {
     readonly sha256: string;
 }
 
-/** One platform's builds: the shared library the runtimes load, and the scriptc archive. */
+/** One platform's builds: the shared library the runtimes load, and the scriptc archive when there is one. */
 export interface ManifestPlatform {
     readonly shared: ManifestFile;
     readonly static?: ManifestFile;
 }
 
-/** The builds a version of the package downloads, from `native/manifest.json`. */
+/** The builds a version of a package downloads, from its `native/manifest.json`. */
 export interface NativeManifest {
     /** The native sources' hash the builds were made from; empty before the first publish. */
     readonly build: string;
@@ -39,11 +39,12 @@ const isFile = (value: unknown): value is ManifestFile =>
  * Checks parsed JSON against the manifest's shape.
  * @param value - The parsed file.
  * @returns The manifest.
- * @throws {Error} When a field is missing or of the wrong type.
+ * @throws {NativeLibraryErrors.InvalidNativeManifest} When `build` or `baseUrl` is missing.
+ * @throws {NativeLibraryErrors.InvalidNativeManifestEntry} When a platform's entry is malformed.
  */
 export const parseManifest = (value: unknown): NativeManifest => {
     if (!isRecord(value) || typeof value.build !== 'string' || typeof value.baseUrl !== 'string') {
-        throw new NativeNetworkErrors.InvalidNativeManifest();
+        throw new NativeLibraryErrors.InvalidNativeManifest();
     }
     const platforms = isRecord(value.platforms) ? value.platforms : {};
     const checked: Record<string, ManifestPlatform> = {};
@@ -53,7 +54,7 @@ export const parseManifest = (value: unknown): NativeManifest => {
             !isFile(platform.shared) ||
             (platform.static !== undefined && !isFile(platform.static))
         ) {
-            throw new NativeNetworkErrors.InvalidNativeManifestEntry({ key });
+            throw new NativeLibraryErrors.InvalidNativeManifestEntry({ key });
         }
         checked[key] = { shared: platform.shared, ...(isFile(platform.static) ? { static: platform.static } : {}) };
     }
@@ -67,12 +68,6 @@ export const parseManifest = (value: unknown): NativeManifest => {
  */
 export const readManifest = (packageDir: string): NativeManifest =>
     parseManifest(JSON.parse(readFileSync(join(packageDir, 'native', 'manifest.json'), 'utf8')));
-
-/**
- * The manifest this package was built with. It is imported, not read from disk, so a bundled
- * executable carries it.
- */
-export const bundledManifest = (): NativeManifest => parseManifest(manifestJson);
 
 /**
  * The SHA-256 of bytes, as lowercase hex.

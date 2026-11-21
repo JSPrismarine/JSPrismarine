@@ -8,10 +8,17 @@
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { nativeSourceHash as networkSourceHash } from '../../packages/native-network/src/nativeHash.ts';
-import { PUBLISHED_PLATFORMS as NETWORK_PLATFORMS } from '../../packages/native-network/src/platform.ts';
-import { nativeSourceHash as scriptHostSourceHash } from '../../packages/script-host/src/nativeHash.ts';
-import { PUBLISHED_PLATFORMS as SCRIPT_HOST_PLATFORMS } from '../../packages/script-host/src/platform.ts';
+import { nativeSourceHash } from '../../packages/native-library/src/nativeHash.ts';
+import { BUILD_SCRIPTS as NETWORK_BUILD_SCRIPTS } from '../../packages/native-network/src/nativeHash.ts';
+import {
+    LIBRARY as NETWORK_LIBRARY,
+    PUBLISHED_PLATFORMS as NETWORK_PLATFORMS
+} from '../../packages/native-network/src/platform.ts';
+import { BUILD_SCRIPTS as SCRIPT_HOST_BUILD_SCRIPTS } from '../../packages/script-host/src/nativeHash.ts';
+import {
+    LIBRARY as SCRIPT_HOST_LIBRARY,
+    PUBLISHED_PLATFORMS as SCRIPT_HOST_PLATFORMS
+} from '../../packages/script-host/src/platform.ts';
 
 /** The repository's root. */
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -40,6 +47,11 @@ export interface NativePackage {
     readonly containerPackages: { readonly alpine: string; readonly debian: string };
     /** A module script that loads the library from an npm project, exiting non-zero when it fails. */
     readonly loadScript: string;
+    /**
+     * The files outside `native/` the package's `build:native` reads, relative to the package,
+     * from its `src/nativeHash.ts`. The source hash covers them.
+     */
+    readonly buildScripts: readonly string[];
     /** The hash of the native sources, which names a release of builds. */
     readonly sourceHash: () => string;
 }
@@ -48,7 +60,7 @@ const PACKAGES = {
     'native-network': {
         name: '@jsprismarine/native-network',
         dir: 'packages/native-network',
-        library: 'libjsp_native_network',
+        library: NETWORK_LIBRARY,
         abiSymbol: 'jsp_abi_version',
         platforms: NETWORK_PLATFORMS,
         testPlatforms: ['linux-x64-gnu'],
@@ -57,12 +69,13 @@ const PACKAGES = {
         containerPackages: { alpine: 'build-base cmake git perl linux-headers', debian: 'cmake' },
         loadScript:
             "import('@jsprismarine/native-network').then(async (m) => { const n = await m.NativeNetwork.load(); console.log('loaded queue', n.queue); n.close(); }).catch((e) => { console.log(e.message); process.exit(3); })",
-        sourceHash: () => networkSourceHash(join(repoRoot, 'packages/native-network'))
+        buildScripts: NETWORK_BUILD_SCRIPTS,
+        sourceHash: () => nativeSourceHash(join(repoRoot, 'packages/native-network'), NETWORK_BUILD_SCRIPTS)
     },
     'script-host': {
         name: '@jsprismarine/script-host',
         dir: 'packages/script-host',
-        library: 'libjsp_script_host',
+        library: SCRIPT_HOST_LIBRARY,
         abiSymbol: 'jsh_abi_version',
         platforms: SCRIPT_HOST_PLATFORMS,
         testPlatforms: ['linux-x64-gnu', 'linux-arm64-gnu', 'darwin-arm64', 'win32-x64'],
@@ -73,7 +86,8 @@ const PACKAGES = {
         containerPackages: { alpine: 'build-base git tar xz', debian: '' },
         loadScript:
             "import('@jsprismarine/script-host').then((m) => { const e = m.ScriptHostLibrary.load().createEngine(); console.log('1 + 2 =', e.evaluate('1 + 2')); e.destroy(); }).catch((e) => { console.log(e.message); process.exit(3); })",
-        sourceHash: () => scriptHostSourceHash(join(repoRoot, 'packages/script-host'))
+        buildScripts: SCRIPT_HOST_BUILD_SCRIPTS,
+        sourceHash: () => nativeSourceHash(join(repoRoot, 'packages/script-host'), SCRIPT_HOST_BUILD_SCRIPTS)
     }
 } as const satisfies Record<string, NativePackage>;
 

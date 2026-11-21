@@ -8,7 +8,8 @@
  */
 import assert from 'node:assert/strict';
 
-import { isPublishedPlatform, platformKey } from '../../../../packages/script-host/src/platform.ts';
+import { platformKey } from '../../../../packages/native-library/src/platform.ts';
+import { isPublishedPlatform } from '../../../../packages/script-host/src/platform.ts';
 import { SCRIPT_FEEDBACK_EVENT } from '../jsp-server.mts';
 import type { Scenario } from '../scenario.mts';
 import { sleep } from '../scenario.mts';
@@ -29,7 +30,7 @@ export const scriptClientFeedback: Scenario = {
     description:
         "a behavior pack script's music, property override and camera spline reach the client, which follows the spline",
     run: async ({ client, server, log }) => {
-        if (!isPublishedPlatform()) {
+        if (!isPublishedPlatform(platformKey())) {
             log(`skipped: the script host has no build for ${platformKey()}, so the server runs no scripts`);
             return;
         }

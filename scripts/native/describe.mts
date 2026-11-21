@@ -18,7 +18,7 @@ import { PLATFORM_RUNNERS, nativePackage, repoRoot } from './packages.mts';
 const id = process.argv[2];
 const pkg = nativePackage(id);
 
-// Our own manifest; each package's src/manifest.ts checks its full shape where it loads it.
+// Our own manifest; @jsprismarine/native-library's manifest.ts checks its full shape where it loads it.
 const manifest = JSON.parse(readFileSync(join(repoRoot, pkg.dir, 'native', 'manifest.json'), 'utf8')) as {
     build: string;
 };

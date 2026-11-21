@@ -3,9 +3,21 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { provideEmbeddedLibrary } from './embed';
-import { LIBRARY_ENV, locateLibrary } from './library';
 import type { NativeManifest } from './manifest';
+import { NativeLibrary } from './NativeLibrary';
+import type { LocateOptions } from './NativeLibrary';
+
+const library = new NativeLibrary({
+    packageName: '@jsprismarine/example',
+    library: 'libjsp_example',
+    envPrefix: 'JSP_EXAMPLE',
+    packageDir: tmpdir(),
+    manifest: { build: '', baseUrl: '', platforms: {} },
+    buildScripts: []
+});
+const LIBRARY_ENV = library.libraryEnv;
+const provideEmbeddedLibrary = library.provideEmbedded.bind(library);
+const locateLibrary = (options: LocateOptions) => library.locate(options);
 
 const dirs: string[] = [];
 const cacheDir = () => {
@@ -54,7 +66,7 @@ describe('an executable’s embedded library', () => {
         const manifest: NativeManifest = {
             build: 'published',
             baseUrl: 'https://example.invalid/',
-            platforms: { 'linux-x64': { shared: { file: 'libjsp_native_network.so', bytes: 1, sha256: 'e9945' } } }
+            platforms: { 'linux-x64': { shared: { file: 'libjsp_example.so', bytes: 1, sha256: 'e9945' } } }
         };
 
         const path = provideEmbeddedLibrary(library, cacheDir(), env);
