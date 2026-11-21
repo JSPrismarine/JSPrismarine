@@ -8,7 +8,7 @@ import type { Noise } from '../noise/GradientNoise';
 import type { PositionalRandomFactory, RandomSource } from '../random/RandomSource';
 import type { RandomState } from '../RandomState';
 import type { MaterialRuleNode } from './MaterialRule';
-import type { RuleEvaluator } from './MaterialRuleContext';
+import type { LocalBiomes, RuleEvaluator } from './MaterialRuleContext';
 import { compileMaterialRule, MaterialRuleContext } from './MaterialRuleContext';
 import type { SurfaceChunk } from './SurfaceChunk';
 import type { WorldGenerationContext } from './VerticalAnchor';
@@ -114,6 +114,8 @@ export interface BuildSurfaceOptions {
     readonly sampleContext?: SampleContext;
     /** Every biome the chunk can hold, which lets a `biome` condition fold to a constant. */
     readonly possibleBiomes?: ReadonlySet<string>;
+    /** The biomes of a box inside the chunk; see {@link LocalBiomes}. */
+    readonly localBiomes?: LocalBiomes;
 }
 
 /**
@@ -212,7 +214,8 @@ export class SurfaceSystem {
             biomeClimate: options.biomeClimate,
             generationContext: this.generationContext,
             sampleContext: options.sampleContext ?? new SampleContext(),
-            ...(options.possibleBiomes === undefined ? {} : { possibleBiomes: options.possibleBiomes })
+            ...(options.possibleBiomes === undefined ? {} : { possibleBiomes: options.possibleBiomes }),
+            ...(options.localBiomes === undefined ? {} : { localBiomes: options.localBiomes })
         });
         const rule = compileMaterialRule(options.rule, context);
 
