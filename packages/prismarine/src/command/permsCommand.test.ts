@@ -260,6 +260,13 @@ describe('/perms', () => {
     });
 
     describe('targets', () => {
+        it('refuses a selector the parser did not read to its end', async () => {
+            await run('perms user @a[name=Steve][name=Bob] permission set a.b');
+
+            expect(errors).toEqual([expect.stringContaining('@a[name=Steve][name=Bob] is not a selector')]);
+            expect(permissions.has(steve, 'a.b')).toBe(false);
+        });
+
         it('takes a selector that names one online player', async () => {
             await run('perms user @p permission set minecraft.command.me');
 
@@ -268,12 +275,13 @@ describe('/perms', () => {
         });
 
         it('takes a name the file knows while the player is offline', async () => {
-            await permissions.grantUser({ subject: { kind: 'offline', name: 'Alex' }, name: 'Alex' }, 'a.b');
+            // Casey is in the file and not online, unlike Steve and Alex.
+            await permissions.grantUser({ subject: { kind: 'offline', name: 'Casey' }, name: 'Casey' }, 'a.b');
 
-            await run('perms user Alex info');
+            await run('perms user Casey info');
             await run('perms user Nobody info');
 
-            expect(feedback[0]).toBe('§eAlex§r (offline Alex)');
+            expect(feedback[0]).toBe('§eCasey§r (offline Casey)');
             expect(errors).toEqual([
                 expect.stringContaining('No player named Nobody is online or in permissions.json')
             ]);

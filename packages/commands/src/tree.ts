@@ -189,8 +189,12 @@ export class CommandRegistry<S> {
                 throw new CommandsErrors.CommandAliasIsAlreadyRegistered({ alias });
             }
             // A bare `/tp` has no further input for the redirect to consume, so
-            // the alias carries the same executor as well as the redirect.
-            const aliasBuilder = this.gated(name, literal<S>(alias).redirect(node));
+            // the alias carries the same executor as well as the redirect. The
+            // dispatcher checks the alias node and never the root it redirects
+            // to, so the alias asks the root's requirement, gate included.
+            const aliasBuilder = literal<S>(alias)
+                .redirect(node)
+                .requires((source) => node.canUse(source));
             const command = node.getCommand();
             if (command !== null) aliasBuilder.executes(command);
             this.dispatcher.register(aliasBuilder);

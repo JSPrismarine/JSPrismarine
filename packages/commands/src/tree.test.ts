@@ -52,15 +52,19 @@ describe('CommandRegistry', () => {
             expect(parses(registry, 'execute run give', { allowed: ['execute'] })).toBe(false);
         });
 
-        it('keeps the requirement a builder carries', () => {
+        it('keeps the requirement a builder carries, for the command and for its aliases', () => {
             const registry = new CommandRegistry<Source>({ canUse: () => true });
             registry.register(
                 literal<Source>('stop')
                     .requires((source) => source === undefined)
-                    .executes(ran)
+                    .executes(ran),
+                { aliases: ['halt'] }
             );
             expect(parses(registry, 'stop', undefined)).toBe(true);
+            expect(parses(registry, 'halt', undefined)).toBe(true);
             expect(parses(registry, 'stop', { allowed: ['stop'] })).toBe(false);
+            // The dispatcher checks the alias node, never the root it redirects to.
+            expect(parses(registry, 'halt', { allowed: ['stop'] })).toBe(false);
         });
     });
 
