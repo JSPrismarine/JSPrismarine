@@ -13,6 +13,7 @@
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
@@ -24,6 +25,7 @@ import type HumanInventory from '../inventory/HumanInventory';
 import { restoreInventory, storedInventory } from '../inventory/persistence';
 import { mayFlyIn } from '../entity/playerComponents';
 import type { KeyedPlayer } from '../keyedPlayer';
+import { nbtBase64Of, nbtOfBase64 } from '../nbtBytes';
 import { isRecord } from '../utils/isRecord';
 import type { DimensionType } from './DimensionType';
 import type { StoredSpawnPoint } from './RespawnPoint';
@@ -51,6 +53,11 @@ export interface PlayerRecordSource {
     hasSeenCredits(): boolean;
     /** Ticks since the player last slept or died. */
     getTimeSinceRest(): number;
+    /**
+     * The actor record tags this server does not model, which a script's dynamic properties live
+     * in, or null when the player has none.
+     */
+    readonly persistentNbt: NBTTagCompound | null;
 }
 
 /**
@@ -73,6 +80,8 @@ export interface PlayerRecordTarget {
     setSeenCredits(seen: boolean): void;
     setPortalCooldown(ticks: number): void;
     setTimeSinceRest(ticks: number): void;
+    /** Writes the actor record tags this server does not model, which the player's entity carries into its store. */
+    persistentNbt: NBTTagCompound | null;
 }
 
 /**
@@ -151,6 +160,11 @@ export const playerRecordFrom = (
         seenCredits: player.hasSeenCredits(),
         // Left out at 0, which a record without it reads as, so a rested player's record keeps its old bytes.
         ...(player.getTimeSinceRest() > 0 ? { timeSinceRest: player.getTimeSinceRest() } : {}),
+        // Left out when empty, so a record of a player no script wrote to keeps its old bytes. The
+        // bytes are a copy, so the record shares nothing with the player.
+        ...(player.persistentNbt === null || player.persistentNbt.entries().next().done === true
+            ? {}
+            : { persistentNbt: nbtBase64Of(player.persistentNbt) }),
         savedAt: Date.now()
     } satisfies WorldPlayerData;
 };
@@ -175,7 +189,7 @@ export const playerRecordOf = (
 
 /**
  * Puts a record back into a player: game mode, inventory, attributes, flying, the spawn point,
- * the credits flag and the portal cooldown.
+ * the credits flag, the portal cooldown and the actor tags a script's dynamic properties live in.
  *
  * The attributes go in whole when the record has the table, which is every record written since
  * it existed, and through the separate health, food, saturation and experience fields otherwise.
@@ -230,6 +244,7 @@ export const applyPlayerRecord = (
     player.setSeenCredits(data.seenCredits === true);
     if (data.portalCooldown !== undefined) player.setPortalCooldown(data.portalCooldown);
     player.setTimeSinceRest(data.timeSinceRest ?? 0);
+    player.persistentNbt = data.persistentNbt === undefined ? null : (nbtOfBase64(data.persistentNbt) ?? null);
 };
 
 /** Where a record puts a returning player: the eye and the look. */

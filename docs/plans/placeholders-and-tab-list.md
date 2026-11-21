@@ -282,7 +282,7 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
        condition grammar and the next-change tick.
 7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
        guide.
-8. [ ] [#3405](https://github.com/JSPrismarine/JSPrismarine/issues/3405) **Player dynamic properties survive logout.** The player record carries the actor's
+8. [x] [#3405](https://github.com/JSPrismarine/JSPrismarine/issues/3405) **Player dynamic properties survive logout.** The player record carries the actor's
        `persistentNbt`, so a property a script set is there at the next login and after a restart,
        as on BDS. A parity scenario covers it.
 

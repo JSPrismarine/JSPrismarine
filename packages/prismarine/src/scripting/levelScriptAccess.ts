@@ -205,6 +205,12 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         }
         return undefined;
     };
+    /**
+     * What holds an entity's actor record tags, which its dynamic properties live in: its actor
+     * while it is in a store, and for a player in none, such as one whose first `playerSpawn` runs
+     * before its chunk is ready, the store player, which carries the tags into the store.
+     */
+    const tagHolderOf = (id: string): ActorTagHolder | undefined => actorOf(id) ?? sessionOf(id)?.getPlayer();
     const host = () => server.getCommandManager().getHost();
     const refOf = (actor: StoreActor) => ({
         id: String(actor.getRuntimeId()),
@@ -568,23 +574,23 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         },
         dynamicProperties: (owner, pack) => {
             if (owner === 'world') return level.getDynamicProperties().of(pack);
-            const actor = actorOf(owner.entity);
-            return actor === undefined ? undefined : (actorProperties(actor).get(pack) ?? new Map());
+            const holder = tagHolderOf(owner.entity);
+            return holder === undefined ? undefined : (actorProperties(holder).get(pack) ?? new Map());
         },
         setDynamicProperties: (owner, pack, values) => {
             if (owner === 'world') level.getDynamicProperties().write(pack, values);
             else {
-                const actor = actorOf(owner.entity);
-                if (actor !== undefined) writeActorProperties(actor, pack, values);
+                const holder = tagHolderOf(owner.entity);
+                if (holder !== undefined) writeActorProperties(holder, pack, values);
             }
         },
         clearDynamicProperties: (owner, pack) => {
             if (owner === 'world') level.getDynamicProperties().clear(pack);
             else {
-                const actor = actorOf(owner.entity);
-                const ids = actor === undefined ? [] : [...(actorProperties(actor).get(pack)?.keys() ?? [])];
-                if (actor !== undefined && ids.length > 0) {
-                    writeActorProperties(actor, pack, new Map(ids.map((id) => [id, undefined])));
+                const holder = tagHolderOf(owner.entity);
+                const ids = holder === undefined ? [] : [...(actorProperties(holder).get(pack)?.keys() ?? [])];
+                if (holder !== undefined && ids.length > 0) {
+                    writeActorProperties(holder, pack, new Map(ids.map((id) => [id, undefined])));
                 }
             }
         },
@@ -614,19 +620,22 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
     };
 };
 
+/** What keeps an entity's actor record tags: a store actor, or a store player while it is in no store. */
+type ActorTagHolder = Pick<StoreActor, 'persistentNbt'>;
+
 /**
  * An entity's dynamic properties, which it keeps in its actor record's `DynamicProperties` tag
  * as BDS does. The record's tags this server does not model are a logged field of the entity, so
  * a write reaches the change log and the next save.
  */
-const actorProperties = (actor: StoreActor): DynamicProperties => {
+const actorProperties = (actor: ActorTagHolder): DynamicProperties => {
     const tag = actor.persistentNbt?.getCompound(DYNAMIC_PROPERTIES_TAG, false);
     return tag === null || tag === undefined ? new Map() : dynamicPropertiesFromNbt(tag);
 };
 
 /** Writes some of one pack's dynamic properties of an entity into its actor record. */
 const writeActorProperties = (
-    actor: StoreActor,
+    actor: ActorTagHolder,
     pack: string,
     values: ReadonlyMap<string, DynamicPropertyValue | undefined>
 ): void => {

@@ -16,11 +16,16 @@
  *
  * Item stacks go through `inventory/itemNbt.ts`, which is the one place that states Bedrock's
  * item compound; a container block entity writes its stacks through the same module.
+ *
+ * Every root tag the codec does not write is the player's own, as `EntitySerializer` treats an
+ * actor's: a script's `DynamicProperties`, or what the game wrote into a record it made. They
+ * travel as the record's `persistentNbt` and are written back at the root untouched.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import { itemSlotsFromNbt, itemSlotsToNbt } from '../../../inventory/itemNbt';
+import { nbtBase64Of, nbtOfBase64 } from '../../../nbtBytes';
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
 import type { StoredPlayerAttribute, WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
@@ -239,6 +244,43 @@ const TIME_SINCE_REST_TAG = 'TimeSinceRest';
 const SEEN_CREDITS_TAG = 'HasSeenCredits';
 
 /**
+ * The root tags this codec writes, and therefore the only ones it takes out of the remainder it
+ * hands back as `persistentNbt`. Java's `seenCredits` is read, so it is the codec's too.
+ */
+const WRITTEN_TAGS: ReadonlySet<string> = new Set([
+    'NameTag',
+    'PlayerGameType',
+    'Pos',
+    'Rotation',
+    'Attributes',
+    ...Object.values(CONTAINER_TAGS),
+    'SelectedInventorySlot',
+    'PortalCooldown',
+    SEEN_CREDITS_TAG,
+    'seenCredits',
+    TIME_SINCE_REST_TAG,
+    DIMENSION_TAG,
+    ...Object.values(SPAWN_TAGS),
+    SAVED_TAG
+]);
+
+/** The root tags the codec did not write, as a compound, or undefined when there are none. */
+const remainderOf = (nbt: NBTTagCompound): NBTTagCompound | undefined => {
+    const kept = new NBTTagCompound('');
+    for (const [key, value] of nbt.entries()) if (!WRITTEN_TAGS.has(key)) kept.children.set(key, value);
+    return kept.entries().next().done === true ? undefined : kept;
+};
+
+/** The record's own tags as the root the codec writes into, or an empty root without them. */
+const rootOf = (data: WorldPlayerData): NBTTagCompound => {
+    const root = new NBTTagCompound('');
+    const kept = data.persistentNbt === undefined ? undefined : nbtOfBase64(data.persistentNbt);
+    if (kept !== undefined)
+        for (const [key, value] of kept.entries()) if (!WRITTEN_TAGS.has(key)) root.children.set(key, value);
+    return root;
+};
+
+/**
  * Whether the record says the credits were seen: Bedrock's own tag when it is there, Java's
  * `seenCredits` for a record another writer filed, and undefined for a record naming neither.
  */
@@ -290,7 +332,7 @@ const spawnFromNbt = (
  */
 export const playerDataToNbt = (data: WorldPlayerData, known: KnownDimensions = []): NBTTagCompound => {
     const types = Array.from(known);
-    const root = new NBTTagCompound('');
+    const root = rootOf(data);
     root.addValue('NameTag', new Types.StringVal(data.username ?? ''));
     root.addValue('PlayerGameType', new Types.NumberVal(getGametypeId(data.gamemode)));
     root.addValue('Pos', floatList([data.position.x, data.position.y, data.position.z]));
@@ -371,6 +413,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
         types
     );
     const seenCredits = seenCreditsFromNbt(nbt);
+    const remainder = remainderOf(nbt);
 
     return {
         ...(saved?.has('uuid') ? { uuid: saved.getString('uuid', '') } : {}),
@@ -395,6 +438,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound, known: KnownDimensions = 
         ...(nbt.has('PortalCooldown') ? { portalCooldown: nbt.getNumber('PortalCooldown', 0) } : {}),
         ...(seenCredits === undefined ? {} : { seenCredits }),
         ...(nbt.has(TIME_SINCE_REST_TAG) ? { timeSinceRest: nbt.getNumber(TIME_SINCE_REST_TAG, 0) } : {}),
+        ...(remainder === undefined ? {} : { persistentNbt: nbtBase64Of(remainder) }),
         ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
         ...(legacyAttributes.health === undefined ? {} : { health: legacyAttributes.health }),
