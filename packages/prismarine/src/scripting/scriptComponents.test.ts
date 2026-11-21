@@ -76,7 +76,8 @@ describe('ScriptComponentBridge', () => {
     it('raises onBreak and onPlace from block writes and starts the ticks of a block with minecraft:tick', () => {
         const bridge = new ScriptComponentBridge();
         const ticked: string[] = [];
-        bridge.setScheduler((block, min, max) => ticked.push(`${block.x} ${min}-${max}`));
+        const scheduler = (block: { readonly x: number }, min: number, max: number) =>
+            void ticked.push(`${block.x} ${min}-${max}`);
         const type = scriptComponentType(TICKER, 'minecraft:block');
         if (type === undefined) throw new Error('the ticker names components');
         bridge.addBlock('jsp:ticker', type);
@@ -86,7 +87,7 @@ describe('ScriptComponentBridge', () => {
         expect(ticked).toEqual([]);
 
         const { sink, blocks } = recordingSink();
-        bridge.bind(sink);
+        bridge.bind(sink, { name: 'world', isDefault: true, ownsEntity: () => true, scheduler });
         writes({ x: 1, y: 2, z: 3 }, { name: 'minecraft:air', states: {} }, { name: 'jsp:ticker', states: {} });
         writes({ x: 1, y: 2, z: 3 }, { name: 'jsp:ticker', states: {} }, { name: 'minecraft:stone', states: {} });
         expect(blocks.map((event) => event.hook)).toEqual(['onPlace', 'onBreak']);
@@ -153,5 +154,45 @@ describe('ScriptComponentBridge', () => {
             { hook: 'onRedstoneUpdate', powerLevel: 0, previousPowerLevel: 7, firstUpdate: false },
             { hook: 'onBlockStateChange', previousPermutation: { typeId: 'jsp:ticker', states: { open_bit: true } } }
         ]);
+    });
+
+    it('sends each level’s hooks to the scripts of that level', () => {
+        const blocks = new BehaviorRegistry<BlockHooks>();
+        const items = new BehaviorRegistry<ItemHooks>();
+        const bridge = new ScriptComponentBridge();
+        registerScriptComponentBehaviors({ blocks, items }, bridge);
+        const [bound] = blocks.bind({ identifier: 'jsp:ticker', definition: TICKER });
+        const main = recordingSink();
+        const other = recordingSink();
+        bridge.bind(main.sink, { name: 'world', isDefault: true, ownsEntity: (id) => id === '1' });
+        bridge.bind(other.sink, { name: 'other', isDefault: false, ownsEntity: (id) => id === '2' });
+        const block = (level?: string) => ({
+            identifier: 'jsp:ticker',
+            position: { x: 0, y: 0, z: 0 },
+            dimension: 'minecraft:overworld',
+            states: {},
+            ...(level === undefined ? {} : { level })
+        });
+
+        bound?.handlers.onRandomTick?.({ block: block('other'), tick: 0 });
+        bound?.handlers.onRandomTick?.({ block: block('world'), tick: 0 });
+        // A block that names no level is in the default level.
+        bound?.handlers.onRandomTick?.({ block: block(), tick: 0 });
+        bridge.blockWrites('minecraft:overworld', 'other')(
+            { x: 1, y: 2, z: 3 },
+            { name: 'minecraft:air', states: {} },
+            { name: 'jsp:ticker', states: {} }
+        );
+        bridge.item({
+            hook: 'onUse',
+            components: [],
+            item: { typeId: 'jsp:wand', amount: 1 },
+            source: { id: '2', typeId: 'minecraft:player' }
+        });
+
+        expect(main.blocks.map((event) => event.hook)).toEqual(['onRandomTick', 'onRandomTick']);
+        expect(other.blocks.map((event) => event.hook)).toEqual(['onRandomTick', 'onPlace']);
+        expect(main.items).toEqual([]);
+        expect(other.items.map((event) => event.hook)).toEqual(['onUse']);
     });
 });

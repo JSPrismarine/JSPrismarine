@@ -80,6 +80,7 @@ import { WorldMessages } from './world/WorldMessages';
 import { ChunkCompletionQueue } from './world/ChunkCompletionQueue';
 import { GenerationGovernorDriver } from './world/GenerationGovernorDriver';
 import { DimensionTravel } from './world/portal/DimensionTravel';
+import type { Level } from './world/Level';
 import WorldManager from './world/WorldManager';
 import type { RandomSequencesState } from './command/host/randomSequences';
 
@@ -137,10 +138,10 @@ export default class Server {
     private readonly wallClock: () => number;
     private admittedClock: number;
     /**
-     * The default level's behavior pack scripts and the pack folders they came from, while the
-     * `prismarine:scripts` module runs them; see {@link Server.reloadScripts}.
+     * Each level's behavior pack scripts and the pack folders they came from, by level name, while
+     * the `prismarine:scripts` module runs them; see {@link Server.reloadScripts}.
      */
-    private readonly scriptSlot = new ScriptSlot<LevelScripts>();
+    private readonly scriptSlots = new Map<string, ScriptSlot<LevelScripts>>();
     /** The server's addons, made on first use; see {@link Server.getAddons}. */
     private addons: AddonManager | undefined;
     /** The content settings the last content build read; see {@link Server.getContentSettings}. */
@@ -1005,22 +1006,32 @@ export default class Server {
         return this.replay;
     }
 
-    /** The default level's behavior pack scripts, while they run. */
-    public getScripts(): LevelScripts | undefined {
-        return this.scriptSlot.current;
+    /**
+     * A level's behavior pack scripts, while they run.
+     * @param level - The level; left out, the default level.
+     */
+    public getScripts(level?: Level): LevelScripts | undefined {
+        const name = (level ?? this.getWorldManager().getDefaultLevel()).name;
+        return this.scriptSlots.get(name)?.current;
     }
 
     /**
-     * The default level's scripts and the pack folders they came from, which the
-     * `prismarine:scripts` module starts and stops.
+     * A level's scripts and the pack folders they came from, which the `prismarine:scripts` module
+     * starts and stops.
+     * @param level - The level; left out, the default level.
      * @internal
      */
-    public getScriptSlot(): ScriptSlot<LevelScripts> {
-        return this.scriptSlot;
+    public getScriptSlot(level: Level = this.getWorldManager().getDefaultLevel()): ScriptSlot<LevelScripts> {
+        let slot = this.scriptSlots.get(level.name);
+        if (slot === undefined) {
+            slot = new ScriptSlot<LevelScripts>();
+            this.scriptSlots.set(level.name, slot);
+        }
+        return slot;
     }
 
     /**
-     * Reloads the default level's behavior pack scripts, as Bedrock's `/reload` does: each pack
+     * Reloads every level's behavior pack scripts, as Bedrock's `/reload` does: each pack
      * gets `system.beforeEvents.shutdown`, then runs again from its top level. It reads the pack
      * list again first, so an addon installed or removed since joins or leaves; when the list
      * changed, the scripts close and load again from the new one. Reloads run one at a time.
@@ -1030,12 +1041,16 @@ export default class Server {
      *   which reads each pack's manifest again; an addon replaced in place needs it.
      */
     public async reloadScripts(options: { readonly restart?: boolean } = {}): Promise<void> {
-        const reloaded = await this.scriptSlot.reload(
-            () => this.getWorldPackDirectories(),
-            (packs) => startLevelScripts(this, packs, { autoAttach: false }),
-            options
-        );
-        if (reloaded) this.logger.info('Script files have been reloaded.');
+        const reloads = this.getWorldManager()
+            .getLevels()
+            .map((level) =>
+                this.getScriptSlot(level).reload(
+                    () => this.getWorldPackDirectories(),
+                    (packs) => startLevelScripts(this, level, packs, { autoAttach: false }),
+                    options
+                )
+            );
+        if ((await Promise.all(reloads)).includes(true)) this.logger.info('Script files have been reloaded.');
     }
 
     /**

@@ -118,30 +118,58 @@ const sourceOf = (source: ItemSource): ScriptEntityRef => ({ id: String(source.r
  */
 export type TickScheduler = (block: ScriptBlockLocation, min: number, max: number) => void;
 
+/** One level's scripts, which the bridge sends that level's hooks to. */
+export interface BoundScriptLevel {
+    /** The level's name, as a hook's block names it. */
+    readonly name: string;
+    /** Whether it is the default level, which a hook that names no level is in. */
+    readonly isDefault: boolean;
+    /** Whether an entity is in the level, by runtime id: an item hook goes to its user's level. */
+    readonly ownsEntity: (runtimeId: string) => boolean;
+    /** How a block with `minecraft:tick` in the level schedules its ticks. */
+    readonly scheduler?: TickScheduler;
+}
+
+/** What a bridge used by one level only binds: the default level, which owns every entity. */
+const ONLY_LEVEL: BoundScriptLevel = { name: '', isDefault: true, ownsEntity: () => true };
+
 /**
- * Where the content's adapter behaviors send hooks, and where the scripts bind their sink once
- * they have registered their components. Until then, and with no script host, every hook is
- * dropped at the cost of one check.
+ * Where the content's adapter behaviors send hooks, and where each level's scripts bind their sink
+ * once they have registered their components. The content is the server's, so one bridge serves
+ * every level: a block hook goes to the level its block names, and an item hook to the level of
+ * the entity that used the item. Until a level's scripts bind, and with no script host, that
+ * level's hooks are dropped at the cost of one check.
  */
 export class ScriptComponentBridge {
-    private sink: ScriptComponentSink | undefined;
+    private readonly levels = new Map<
+        string,
+        { readonly sink: ScriptComponentSink; readonly level: BoundScriptLevel }
+    >();
     private readonly blocks = new Map<string, ScriptComponentType>();
-    private scheduler: TickScheduler | undefined;
 
     /**
-     * Sends the hooks to `sink` from now on.
+     * Sends a level's hooks to `sink` from now on.
+     * @param level - The level the scripts run in; left out, the one level of a single-level server.
      * @returns A function that stops it.
      */
-    public bind(sink: ScriptComponentSink): () => void {
-        this.sink = sink;
+    public bind(sink: ScriptComponentSink, level: BoundScriptLevel = ONLY_LEVEL): () => void {
+        const bound = { sink, level };
+        this.levels.set(level.name, bound);
         return () => {
-            if (this.sink === sink) this.sink = undefined;
+            if (this.levels.get(level.name) === bound) this.levels.delete(level.name);
         };
     }
 
-    /** Sets how a block with `minecraft:tick` schedules its ticks. */
-    public setScheduler(scheduler: TickScheduler): void {
-        this.scheduler = scheduler;
+    /** The scripts of the level a hook names, or of the default level when it names none. */
+    private boundTo(level: string | undefined) {
+        if (level !== undefined) {
+            const named = this.levels.get(level);
+            if (named !== undefined) return named;
+        }
+        for (const bound of this.levels.values()) {
+            if (bound.level.isDefault && (level === undefined || bound.level.name === '')) return bound;
+        }
+        return undefined;
     }
 
     /** Records a block type that names custom components, which the block writes are checked against. */
@@ -149,58 +177,76 @@ export class ScriptComponentBridge {
         this.blocks.set(identifier, type);
     }
 
-    /** Raises a block hook. @returns Whether a script canceled it. */
-    public block(event: ScriptBlockHookEvent): boolean {
-        const sink = this.sink;
+    /**
+     * Raises a block hook in a level's scripts.
+     * @param level - The level the block is in, as its {@link HookBlock} names it.
+     * @returns Whether a script canceled it.
+     */
+    public block(event: ScriptBlockHookEvent, level?: string): boolean {
+        const sink = this.boundTo(level)?.sink;
         if (sink === undefined || !sink.handlesBlock(event.components, event.hook)) return false;
         return sink.block(event);
     }
 
-    /** Raises an item hook. */
+    /** Raises an item hook in the scripts of the level of the entity that used the item. */
     public item(event: ScriptItemHookEvent): void {
-        const sink = this.sink;
+        const owner =
+            [...this.levels.values()].find((bound) => bound.level.ownsEntity(event.source.id)) ??
+            this.boundTo(undefined);
+        const sink = owner?.sink;
         if (sink === undefined || !sink.handlesItem(event.components, event.hook)) return;
         sink.item(event);
     }
 
-    /** Whether a script registered one of the components with the hook. */
-    public handlesBlock(uses: readonly ScriptComponentUse[], hook: ScriptBlockHookEvent['hook']): boolean {
-        return this.sink?.handlesBlock(uses, hook) === true;
+    /** Whether a level's scripts registered one of the components with the hook. */
+    public handlesBlock(
+        uses: readonly ScriptComponentUse[],
+        hook: ScriptBlockHookEvent['hook'],
+        level?: string
+    ): boolean {
+        return this.boundTo(level)?.sink.handlesBlock(uses, hook) === true;
     }
 
-    /** Schedules the next tick of a block with `minecraft:tick`, somewhere in its interval. */
-    public scheduleTick(block: ScriptBlockLocation, tick: TickInterval): void {
-        this.scheduler?.(block, tick.min, Math.max(tick.min, tick.max));
+    /** Schedules the next tick of a block with `minecraft:tick` in a level, somewhere in its interval. */
+    public scheduleTick(block: ScriptBlockLocation, tick: TickInterval, level?: string): void {
+        this.boundTo(level)?.level.scheduler?.(block, tick.min, Math.max(tick.min, tick.max));
     }
 
     /**
      * The listener for one world's block writes: `onBreak` for a block that names custom
      * components and is gone, then `onPlace` for one that arrives, which also starts its ticks.
      * @param dimension - The world's dimension, as the scripts name it.
+     * @param level - The world's level; left out, the default level.
      */
-    public blockWrites(dimension: string): BlockWriteListener {
+    public blockWrites(dimension: string, level?: string): BlockWriteListener {
         return (at, previous, next) => {
-            if (this.sink === undefined || previous.name === next.name) return;
+            if (this.boundTo(level) === undefined || previous.name === next.name) return;
             const block: ScriptBlockLocation = { dimension, ...at };
             const before = this.blocks.get(previous.name);
             if (before !== undefined) {
-                this.block({
-                    hook: 'onBreak',
-                    components: before.uses,
-                    block,
-                    brokenBlockPermutation: { typeId: previous.name, states: { ...previous.states } }
-                });
+                this.block(
+                    {
+                        hook: 'onBreak',
+                        components: before.uses,
+                        block,
+                        brokenBlockPermutation: { typeId: previous.name, states: { ...previous.states } }
+                    },
+                    level
+                );
             }
             const after = this.blocks.get(next.name);
             if (after === undefined) return;
-            this.block({
-                hook: 'onPlace',
-                components: after.uses,
-                block,
-                previousBlock: { typeId: previous.name, states: { ...previous.states } }
-            });
-            if (after.tick !== undefined && this.handlesBlock(after.uses, 'onTick')) {
-                this.scheduleTick(block, after.tick);
+            this.block(
+                {
+                    hook: 'onPlace',
+                    components: after.uses,
+                    block,
+                    previousBlock: { typeId: previous.name, states: { ...previous.states } }
+                },
+                level
+            );
+            if (after.tick !== undefined && this.handlesBlock(after.uses, 'onTick', level)) {
+                this.scheduleTick(block, after.tick, level);
             }
         };
     }
@@ -236,94 +282,121 @@ export const registerScriptComponentBehaviors = (
                 onBreak: (event) => {
                     const player = actorOf(event.brokenBy);
                     if (event.brokenBy?.identifier !== 'minecraft:player') return;
-                    bridge.block({
-                        hook: 'onPlayerBreak',
-                        components: uses,
-                        block: locationOf(event.block),
-                        brokenBlockPermutation: permutationOf(event.brokenBlock),
-                        ...(player === undefined ? {} : { player })
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onPlayerBreak',
+                            components: uses,
+                            block: locationOf(event.block),
+                            brokenBlockPermutation: permutationOf(event.brokenBlock),
+                            ...(player === undefined ? {} : { player })
+                        },
+                        event.block.level
+                    );
                 },
                 onPlayerInteract: (event) => {
-                    if (!bridge.handlesBlock(uses, 'onPlayerInteract')) return undefined;
+                    if (!bridge.handlesBlock(uses, 'onPlayerInteract', event.block.level)) return undefined;
                     const player = actorOf(event.player);
-                    bridge.block({
-                        hook: 'onPlayerInteract',
-                        components: uses,
-                        block: locationOf(event.block),
-                        face: event.face === undefined ? 'Up' : SCRIPT_DIRECTIONS[event.face],
-                        ...(event.faceLocation === undefined ? {} : { faceLocation: event.faceLocation }),
-                        ...(player === undefined ? {} : { player })
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onPlayerInteract',
+                            components: uses,
+                            block: locationOf(event.block),
+                            face: event.face === undefined ? 'Up' : SCRIPT_DIRECTIONS[event.face],
+                            ...(event.faceLocation === undefined ? {} : { faceLocation: event.faceLocation }),
+                            ...(player === undefined ? {} : { player })
+                        },
+                        event.block.level
+                    );
                     // The component took the click, so the item in hand is not used on the block.
                     return true;
                 },
                 onRandomTick: (event) =>
-                    void bridge.block({ hook: 'onRandomTick', components: uses, block: locationOf(event.block) }),
+                    void bridge.block(
+                        { hook: 'onRandomTick', components: uses, block: locationOf(event.block) },
+                        event.block.level
+                    ),
                 onStepOn: (event) => {
                     const entity = actorOf(event.entity);
-                    bridge.block({
-                        hook: 'onStepOn',
-                        components: uses,
-                        block: locationOf(event.block),
-                        ...(entity === undefined ? {} : { entity })
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onStepOn',
+                            components: uses,
+                            block: locationOf(event.block),
+                            ...(entity === undefined ? {} : { entity })
+                        },
+                        event.block.level
+                    );
                 },
                 onEntityFallOn: (event) => {
                     const entity = actorOf(event.entity);
-                    bridge.block({
-                        hook: 'onEntityFallOn',
-                        components: uses,
-                        block: locationOf(event.block),
-                        fallDistance: event.fallDistance,
-                        ...(entity === undefined ? {} : { entity })
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onEntityFallOn',
+                            components: uses,
+                            block: locationOf(event.block),
+                            fallDistance: event.fallDistance,
+                            ...(entity === undefined ? {} : { entity })
+                        },
+                        event.block.level
+                    );
                 },
                 onEntity: (event) => {
                     const entitySource = actorOf(event.entitySource);
-                    bridge.block({
-                        hook: 'onEntity',
-                        components: uses,
-                        block: locationOf(event.block),
-                        name: event.name,
-                        blockPermutation: permutationOf(event.block),
-                        ...(entitySource === undefined ? {} : { entitySource })
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onEntity',
+                            components: uses,
+                            block: locationOf(event.block),
+                            name: event.name,
+                            blockPermutation: permutationOf(event.block),
+                            ...(entitySource === undefined ? {} : { entitySource })
+                        },
+                        event.block.level
+                    );
                 },
                 onRedstoneUpdate: (event) => {
                     const block = locationOf(event.block);
-                    const key = `${block.dimension} ${block.x} ${block.y} ${block.z}`;
+                    const key = `${event.block.level ?? ''} ${block.dimension} ${block.x} ${block.y} ${block.z}`;
                     const previous = powers.get(key);
                     powers.set(key, event.power);
-                    bridge.block({
-                        hook: 'onRedstoneUpdate',
-                        components: uses,
-                        block,
-                        powerLevel: event.power,
-                        previousPowerLevel: previous ?? 0,
-                        firstUpdate: previous === undefined
-                    });
+                    bridge.block(
+                        {
+                            hook: 'onRedstoneUpdate',
+                            components: uses,
+                            block,
+                            powerLevel: event.power,
+                            previousPowerLevel: previous ?? 0,
+                            firstUpdate: previous === undefined
+                        },
+                        event.block.level
+                    );
                 },
                 onBlockStateChange: (event) =>
-                    void bridge.block({
-                        hook: 'onBlockStateChange',
-                        components: uses,
-                        block: locationOf(event.block),
-                        previousPermutation: permutationOf({
-                            identifier: event.block.identifier,
-                            states: { ...event.block.states, [event.state]: event.previousValue }
-                        })
-                    }),
+                    void bridge.block(
+                        {
+                            hook: 'onBlockStateChange',
+                            components: uses,
+                            block: locationOf(event.block),
+                            previousPermutation: permutationOf({
+                                identifier: event.block.identifier,
+                                states: { ...event.block.states, [event.state]: event.previousValue }
+                            })
+                        },
+                        event.block.level
+                    ),
                 beforeOnPlayerPlace: (event) => {
                     const player = actorOf(event.player);
-                    const refused = bridge.block({
-                        hook: 'beforeOnPlayerPlace',
-                        components: uses,
-                        block: locationOf(event.block),
-                        face: SCRIPT_DIRECTIONS[event.face],
-                        permutationToPlace: permutationOf(event.block),
-                        ...(player === undefined ? {} : { player })
-                    });
+                    const refused = bridge.block(
+                        {
+                            hook: 'beforeOnPlayerPlace',
+                            components: uses,
+                            block: locationOf(event.block),
+                            face: SCRIPT_DIRECTIONS[event.face],
+                            permutationToPlace: permutationOf(event.block),
+                            ...(player === undefined ? {} : { player })
+                        },
+                        event.block.level
+                    );
                     return refused ? true : undefined;
                 }
             };
@@ -331,8 +404,8 @@ export const registerScriptComponentBehaviors = (
             if (tick !== undefined) {
                 handlers.onTick = (event) => {
                     const block = locationOf(event.block);
-                    bridge.block({ hook: 'onTick', components: uses, block });
-                    if (tick.looping) bridge.scheduleTick(block, tick);
+                    bridge.block({ hook: 'onTick', components: uses, block }, event.block.level);
+                    if (tick.looping) bridge.scheduleTick(block, tick, event.block.level);
                 };
             }
             return handlers;

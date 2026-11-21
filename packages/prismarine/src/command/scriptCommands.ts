@@ -147,7 +147,7 @@ const originOf = (from: CommandSource): ScriptCommandOrigin =>
  */
 const registerOne = (
     registry: CommandRegistry<CommandSource>,
-    set: ScriptCommandSet,
+    setFor: ScriptCommandsOf,
     custom: ScriptCustomCommand,
     enums: ReadonlyMap<string, readonly string[]>
 ): void => {
@@ -160,6 +160,11 @@ const registerOne = (
             const args = parameters
                 .slice(0, count)
                 .map((parameter, index) => kinds[index]!.read(context, parameter.name));
+            const set = setFor(from);
+            if (set?.commands.some((each) => each.name === custom.name) !== true) {
+                from.sendError(`No behavior pack script in this level registered ${custom.name}`);
+                return SCRIPT_COMMAND_FAILED as unknown as number;
+            }
             const outcome = set.run(custom.name, originOf(from), args);
             if (outcome.status === 'failure') {
                 if (outcome.message !== undefined) from.sendError(outcome.message);
@@ -190,11 +195,23 @@ const registerOne = (
 };
 
 /**
- * Adds the scripts' custom commands to a command tree.
- * @param registry - The tree, with every built-in command already in it.
- * @param set - The commands and enums the scripts registered, and the way to run one.
+ * The scripts a custom command runs in: those of the level the command runs in, which registered
+ * their own copy of it, or undefined when that level runs no scripts.
  */
-export const registerScriptCommands = (registry: CommandRegistry<CommandSource>, set: ScriptCommandSet): void => {
+export type ScriptCommandsOf = (from: CommandSource) => ScriptCommandSet | undefined;
+
+/**
+ * Adds the scripts' custom commands to a command tree. The tree is the server's, so it holds the
+ * commands of every level's scripts; each runs in the scripts of the level it is run in.
+ * @param registry - The tree, with every built-in command already in it.
+ * @param set - The commands and enums the scripts registered.
+ * @param setFor - The scripts a command runs in; left out, `set`'s.
+ */
+export const registerScriptCommands = (
+    registry: CommandRegistry<CommandSource>,
+    set: ScriptCommandSet,
+    setFor: ScriptCommandsOf = () => set
+): void => {
     const enums = new Map(set.enums.map((entry) => [entry.name, entry.values] as const));
-    for (const custom of set.commands) registerOne(registry, set, custom, enums);
+    for (const custom of set.commands) registerOne(registry, setFor, custom, enums);
 };

@@ -10,11 +10,13 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import type { GameTestCommand } from '@jsprismarine/script-host/host/WorldScripts';
 
 import type Server from '../Server';
+import { commandLevelOf } from './host/support';
 
 /** Runs one subcommand and prints its reply as feedback or as an error. */
 const run = (context: Context, server: Server, subcommand: GameTestCommand): number => {
     const current = source(context);
-    const scripts = server.getScripts();
+    // The tests of the level the command runs in.
+    const scripts = server.getScripts(commandLevelOf(server, current.dimension));
     if (scripts === undefined) {
         current.sendError('No behavior pack scripts are running, so there are no GameTests');
         return 0;

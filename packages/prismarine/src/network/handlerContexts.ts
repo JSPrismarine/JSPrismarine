@@ -88,8 +88,13 @@ const servicesOf = (server: ContextSource): HandlerServices => ({
         return server.getPacketHandlerRegistry().getIntentHandlers();
     },
     scriptForms: {
+        // The answer goes to the scripts of the level the player is in, whose form it was.
         answerForm: (response) => {
-            const scripts = server.getScripts();
+            const session = server
+                .getSessionManager()
+                .getSessions()
+                .find((each) => String(each.getRuntimeId()) === response.player);
+            const scripts = server.getScripts(session?.getWorld().getLevel());
             scripts?.answerForm(response);
             return scripts !== undefined;
         }

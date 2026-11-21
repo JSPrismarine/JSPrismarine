@@ -37,7 +37,7 @@ import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
 import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
-import { resolvePlayer } from './host/support';
+import { commandLevelOf, resolvePlayer } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
 /**
@@ -282,7 +282,8 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     const scriptEvent = (context: Context, message: string): number => {
         const id = value<string>(context, 'messageId');
         const current = source(context);
-        const scripts = server.getScripts();
+        // The scripts of the level the command runs in, as each Bedrock world's own.
+        const scripts = server.getScripts(commandLevelOf(server, current.dimension));
         if (scripts === undefined) {
             current.sendError('No behavior pack scripts are running to receive the event');
             return 0;

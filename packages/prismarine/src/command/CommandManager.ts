@@ -20,6 +20,7 @@ import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
+import type { Level } from '../world/Level';
 import type { Service } from '../utils/Service';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
 import Timer from '../utils/Timer';
@@ -30,7 +31,7 @@ import type { FunctionContent } from './function/load';
 import { readBehaviorPackFunctions, withBehaviorPackFunctions } from './function/behaviorPackFunctions';
 import { FunctionRuntime } from './function/runtime';
 import { functionContentOf, loadServerFunctions } from './function/load';
-import { dimensionIdOf, entityRefOf, playerSessionOf } from './host/support';
+import { dimensionIdOf, entityRefOf, playerSessionOf, splitCommandDimension } from './host/support';
 import type { ReferencedEntity } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { RandomSequences } from './host/randomSequences';
@@ -38,6 +39,7 @@ import type { RandomSequencesState } from './host/randomSequences';
 import type { ScriptCommandSet } from '@jsprismarine/script-host/host/world';
 
 import { JSPRISMARINE_COMMAND_PERMISSIONS, registerJsprismarineCommands } from './jsprismarineCommands';
+import type { ScriptCommandsOf } from './scriptCommands';
 import { registerScriptCommands, SCRIPT_COMMAND_FAILED } from './scriptCommands';
 import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
 
@@ -110,12 +112,33 @@ const buildCommands = (
     server: Server,
     canUse: CommandRegistryOptions<CommandSource>['canUse'],
     content?: Parameters<typeof buildVanillaCommands>[0],
-    scripts?: ScriptCommandSet
+    scripts?: ScriptCommandSet,
+    scriptsFor?: ScriptCommandsOf
 ) => {
     const registry = buildVanillaCommands(content, canUse);
     registerJsprismarineCommands(registry, server);
-    if (scripts !== undefined) registerScriptCommands(registry, scripts);
+    if (scripts !== undefined) registerScriptCommands(registry, scripts, scriptsFor);
     return registry;
+};
+
+/**
+ * The custom commands of every level's scripts as one set, for the server's one tree. Every level
+ * loads the same packs, so the levels register the same commands; one a level registers on its
+ * own is in the tree too. A command keeps the first level's definition, in load order.
+ */
+const allScriptCommands = (sets: readonly ScriptCommandSet[]): ScriptCommandSet | undefined => {
+    const [first] = sets;
+    if (first === undefined) return undefined;
+    const firstByName = <T extends { readonly name: string }>(entries: readonly T[]): T[] => {
+        const byName = new Map<string, T>();
+        for (const entry of entries) if (!byName.has(entry.name)) byName.set(entry.name, entry);
+        return [...byName.values()];
+    };
+    return {
+        commands: firstByName(sets.flatMap((set) => set.commands)),
+        enums: firstByName(sets.flatMap((set) => set.enums)),
+        run: first.run
+    };
 };
 
 export class CommandManager implements Service {
@@ -157,8 +180,17 @@ export class CommandManager implements Service {
     /** The registry ids the tree validates against, from the content build. */
     private contentIds: Parameters<typeof buildVanillaCommands>[0];
 
-    /** The custom commands behavior pack scripts registered, which the tree holds as well. */
+    /** The custom commands each level's behavior pack scripts registered, by level name. */
+    private readonly levelScriptCommands = new Map<string, ScriptCommandSet>();
+
+    /** Every level's custom commands, which the tree holds as well. */
     private scriptCommands: ScriptCommandSet | undefined;
+
+    /** The custom commands of the level a command runs in, which it runs in. */
+    private readonly scriptCommandsOf: ScriptCommandsOf = (from) =>
+        this.levelScriptCommands.get(
+            splitCommandDimension(from.dimension).level ?? this.server.getWorldManager().getDefaultLevel().name
+        );
 
     public constructor(server: Server, onStopCommandComplete?: (stopped: boolean) => void) {
         this.server = server;
@@ -375,7 +407,13 @@ export class CommandManager implements Service {
         // against what it loaded, so a pack's own entity, block, item or
         // enchantment is spellable.
         this.contentIds = contentRegistryIds(this.server.getContent());
-        this.vanilla = buildCommands(this.server, this.mayUse, this.contentIds, this.scriptCommands);
+        this.vanilla = buildCommands(
+            this.server,
+            this.mayUse,
+            this.contentIds,
+            this.scriptCommands,
+            this.scriptCommandsOf
+        );
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
 
@@ -394,13 +432,25 @@ export class CommandManager implements Service {
     public async disable(): Promise<void> {}
 
     /**
-     * Puts the custom commands behavior pack scripts registered in `startup` into the tree, or
-     * takes them out, and sends every player the commands they may run again.
-     * @param commands - The commands, or undefined to take the last ones out.
+     * Puts the custom commands a level's behavior pack scripts registered in `startup` into the
+     * tree, or takes them out, and sends every player the commands they may run again.
+     * @param commands - The commands, or undefined to take the level's last ones out.
+     * @param level - The level whose scripts registered them; left out, the default level.
      */
-    public setScriptCommands(commands: ScriptCommandSet | undefined): void {
-        this.scriptCommands = commands;
-        this.vanilla = buildCommands(this.server, this.mayUse, this.contentIds, commands);
+    public setScriptCommands(
+        commands: ScriptCommandSet | undefined,
+        level: Pick<Level, 'name'> = this.server.getWorldManager().getDefaultLevel()
+    ): void {
+        if (commands === undefined) this.levelScriptCommands.delete(level.name);
+        else this.levelScriptCommands.set(level.name, commands);
+        this.scriptCommands = allScriptCommands([...this.levelScriptCommands.values()]);
+        this.vanilla = buildCommands(
+            this.server,
+            this.mayUse,
+            this.contentIds,
+            this.scriptCommands,
+            this.scriptCommandsOf
+        );
         this.flattenedVanillaCommands = undefined;
         this.functionParseCache.clear();
         for (const session of this.server.getSessionManager().getSessions()) {

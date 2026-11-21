@@ -30,6 +30,7 @@ import type PlayerSession from '../../network/PlayerSession';
 import type { StoredSpawnPoint } from '../../world/RespawnPoint';
 import type { StoreActor } from '../../entity/data/storeActors';
 import { dimensionByName } from '../../world/DimensionType';
+import type { Level } from '../../world/Level';
 import type { World } from '../../world/World';
 import { deferCommandWork } from '../deferred';
 
@@ -120,6 +121,15 @@ export const javaDimensionIdOf = (dimension: string): string => {
  */
 export const dimensionInLevelOf = (current: string, named: string): string =>
     commandDimension(splitCommandDimension(named).dimension, splitCommandDimension(current).level);
+
+/**
+ * The level a dimension a command carries names, or undefined for the default level, which a
+ * dimension without a level is in.
+ */
+export const commandLevelOf = (server: Server, dimension: string): Level | undefined => {
+    const { level } = splitCommandDimension(dimension);
+    return level === undefined ? undefined : server.getWorldManager().getLevel(level);
+};
 
 /**
  * The world a dimension a command carries names, started if its level has the stem but nobody

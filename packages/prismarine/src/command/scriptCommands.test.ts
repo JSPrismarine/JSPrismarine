@@ -119,4 +119,26 @@ describe('registerScriptCommands', () => {
         expect(registry.getAliasOwner('types')).toBe('jsp:types');
         expect(registry.getMetadata('other:types')?.aliases).toEqual([]);
     });
+
+    it('runs a command in the scripts of the level it runs in, and refuses it in a level without them', () => {
+        const registry = new CommandRegistry<CommandSource>();
+        const main = commandSet();
+        const other = commandSet();
+        const levels = new Map([
+            [undefined, main.set],
+            ['other', other.set]
+        ]);
+        registerScriptCommands(registry, main.set, (from) => levels.get(from.dimension.split('@')[1]));
+        const messages: string[] = [];
+        const dispatcher = registry.getDispatcher();
+        const inDimension = (dimension: string) => sourceWith(2, messages).withDimension(dimension);
+
+        dispatcher.execute('jsp:admin', inDimension('minecraft:overworld@other'));
+        dispatcher.execute('jsp:admin', inDimension('minecraft:overworld'));
+        dispatcher.execute('jsp:admin', inDimension('minecraft:overworld@empty'));
+
+        expect(other.runs).toHaveLength(1);
+        expect(main.runs).toHaveLength(1);
+        expect(messages.at(-1)).toBe('error No behavior pack script in this level registered jsp:admin');
+    });
 });

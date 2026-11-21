@@ -11,8 +11,8 @@ pack in a context of its own. Scripts in one level cannot reach another level, a
 `world` object is the one global that the Script API describes, with the level's worlds as its
 dimensions.
 
-Today only the default level gets a runtime. A server with several levels runs no scripts in the
-others until the host starts one runtime for each.
+Every level the server loads at startup gets a runtime, and every level loads the same packs,
+since the content build is the server's.
 
 A script reaches the world only through the host's bindings. A binding reads through the world's
 getters and writes through its setters, so [ADR 0011](0011-a-world-exchanges-only-plain-data.md)

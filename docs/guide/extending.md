@@ -114,8 +114,11 @@ To install it:
 4. Start the server. For each pack, it logs how much of the Script API the pack's scripts use is
    implemented (see [What is not implemented yet](#what-is-not-implemented-yet)).
 
-Only the world that `level-name` names runs scripts. Its packs share one script engine, and each
-pack gets a JavaScript context of its own, so two packs never share a `globalThis`.
+Every level in `worlds` runs the packs from startup, each in a script engine of its own, so a script in
+one level never sees another level's dimensions, players or dynamic properties. All levels load
+the same packs. Within a level, each pack gets a JavaScript context of its own, so two packs never
+share a `globalThis`. A custom command runs in the scripts of the level it's typed in, and the
+script debugger attaches to the `level-name` level's engine.
 
 `/reload` on the console runs every pack again from the top, as on BDS. `pnpm run dev` sends it
 for you whenever a script in a loaded pack changes, so a script edit takes effect without a
