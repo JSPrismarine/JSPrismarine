@@ -52,7 +52,7 @@ import type Server from '../Server';
 import { commandPermissionOf } from '../command/CommandManager';
 import { PLAYER_SOFT_ENUM } from '../command/jsprismarineCommands';
 import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/CommandEnum';
-import { commandDataOf } from '../command/availableCommands';
+import { commandDataOf, commandNameEnumOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
 import { armorPackets, statusEffectPacket } from './replica/firstSight';
@@ -2308,22 +2308,20 @@ export default class PlayerSession {
 
         const commandManager = this.server.getCommandManager();
         const own = this.getCommandLevel();
-        for (const command of commandManager.getVanillaCommandList()) {
+        const sent = commandManager.getVanillaCommandList().filter((command) => {
             // A command above an operator's level is the console's alone, such as `addon`.
-            if (command.permissionLevel > CommandPermissionLevel.OWNER) continue;
-            if (commandManager.isScriptCommand(command.name)) {
-                // A script's command has no permission node: its level alone decides, as on BDS.
-                if (command.permissionLevel > own) continue;
-            } else if (!this.server.getPermissionManager().can(this).execute(commandPermissionOf(command.name))) {
-                continue;
-            }
-
-            // The level the command declares, capped at the player's own: a
-            // client hides a command whose level is above its own even though
-            // the server would run it, which is what a player granted one
-            // operator command by name would otherwise see.
-            pk.commandData.push(commandDataOf(command, Math.min(command.permissionLevel, own)));
-        }
+            if (command.permissionLevel > CommandPermissionLevel.OWNER) return false;
+            // A script's command has no permission node: its level alone decides, as on BDS.
+            if (commandManager.isScriptCommand(command.name)) return command.permissionLevel <= own;
+            return this.server.getPermissionManager().can(this).execute(commandPermissionOf(command.name));
+        });
+        // The level the command declares, capped at the player's own: a
+        // client hides a command whose level is above its own even though
+        // the server would run it, which is what a player granted one
+        // operator command by name would otherwise see.
+        pk.commandData = sent.map((command) => commandDataOf(command, Math.min(command.permissionLevel, own)));
+        // Without it the client offers no namespaced command, such as a script's `jsp:tpsbar`.
+        pk.hardcodedEnums = [commandNameEnumOf(sent)];
 
         await this.getConnection().sendDataPacket(pk);
     }

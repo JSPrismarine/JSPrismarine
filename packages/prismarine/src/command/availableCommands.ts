@@ -9,6 +9,7 @@
  * where a parameter still names its enum rather than pointing at a table.
  */
 import type { BedrockParameterTypeName, FlattenedCommand, FlattenedParameter } from '@jsprismarine/commands';
+import { aliasEnumName, COMMAND_NAME_ENUM, commandNames } from '@jsprismarine/commands/flatten';
 
 import { CommandChainedSubcommand } from '@jsprismarine/protocol/bedrock/wire/structures/CommandChainedSubcommand';
 import CommandData from '@jsprismarine/protocol/bedrock/wire/structures/CommandData';
@@ -123,7 +124,7 @@ export const commandDataOf = (command: FlattenedCommand, permission: number): Co
     if (command.aliases.length > 0) {
         // Mojang's own commands list the command's own name first, so a client
         // resolving an alias finds the canonical spelling.
-        data.aliases = enumOf(`${command.name}Aliases`, [command.name, ...command.aliases]);
+        data.aliases = enumOf(aliasEnumName(command.name), [command.name, ...command.aliases]);
     }
 
     data.chainedSubcommands = command.chainedSubcommands.map((table) => {
@@ -149,3 +150,11 @@ export const commandDataOf = (command: FlattenedCommand, permission: number): Co
 
     return data;
 };
+
+/**
+ * The `CommandName` enum for the commands one packet carries.
+ *
+ * @param commands - The commands sent to the recipient, after filtering.
+ */
+export const commandNameEnumOf = (commands: readonly FlattenedCommand[]): CommandEnum =>
+    enumOf(COMMAND_NAME_ENUM, commandNames(commands));
