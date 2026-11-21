@@ -7,8 +7,9 @@
 Finds, verifies and installs the prebuilt native libraries JSPrismarine's packages load.
 
 JSPrismarine's packages that call C through `node:ffi`, such as
-[`@jsprismarine/native-network`](../native-network/README.md) and
-[`@jsprismarine/script-host`](../script-host/README.md), publish their library as one prebuilt file
+[`@jsprismarine/native-network`](../native-network/README.md),
+[`@jsprismarine/script-host`](../script-host/README.md) and
+[`@jsprismarine/native-worldgen`](../native-worldgen/README.md), publish their library as one prebuilt file
 per platform on a GitHub release. This package holds what they share to get that file onto a
 machine and check it before it is loaded.
 
@@ -49,6 +50,9 @@ library and write it out on first start.
 
 ## Other modules
 
+- `@jsprismarine/native-library/ffi` opens a library through `node:ffi` under Node.js and
+  `bun:ffi` under Bun, from one table of C signatures, so a package binds its interface once for
+  both runtimes.
 - `@jsprismarine/native-library/platform` names a machine's platform key, such as
   `linux-x64-musl`, and a library's file names on each operating system.
 - `@jsprismarine/native-library/manifest` parses a package's `native/manifest.json`.

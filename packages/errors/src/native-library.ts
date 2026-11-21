@@ -14,6 +14,15 @@ export abstract class NativeLibraryError extends JSPrismarineError {
  */
 export const NativeLibraryErrors = defineErrors('native-library', {
     /**
+     * The Node.js running the server has no `node:ffi`, which native libraries are loaded with. Run
+     * a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
+     */
+    FfiUnavailable: {
+        message:
+            'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.',
+        base: NativeLibraryError
+    },
+    /**
      * Downloading a package's native library failed with that HTTP status. Retry, or point the
      * package's `_LIBRARY` environment variable at a library you built.
      */

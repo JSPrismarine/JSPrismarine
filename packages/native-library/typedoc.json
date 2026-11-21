@@ -1,4 +1,4 @@
 {
-    "entryPoints": ["src/NativeLibrary.ts", "src/manifest.ts", "src/nativeHash.ts", "src/platform.ts"],
+    "entryPoints": ["src/NativeLibrary.ts", "src/ffi.ts", "src/manifest.ts", "src/nativeHash.ts", "src/platform.ts"],
     "readme": "README.md"
 }
