@@ -38,6 +38,51 @@ export interface AddonIndexEntry {
     readonly url: string;
     /** The pack's SHA-256, in lowercase hexadecimal. */
     readonly sha256: string;
+    /**
+     * What the marketplace shows for this version. Versions built before listings existed have
+     * none, and a reader that predates listings drops the key.
+     */
+    readonly listing?: AddonListing;
+}
+
+/** A file a listing names: where it downloads from and its SHA-256. */
+export interface AddonListingFile {
+    /** An `https:` URL. */
+    readonly url: string;
+    /** The file's SHA-256, in lowercase hexadecimal. */
+    readonly sha256: string;
+}
+
+/** A screenshot a listing shows, with the text that describes it. */
+export interface AddonListingScreenshot extends AddonListingFile {
+    readonly alt: string;
+    /** Its path in the addon's folder, such as `media/bar.png`, which the README's images name. */
+    readonly file?: string;
+}
+
+/**
+ * The page content for one published version of an addon, read from its `addon.json`, README and
+ * icon when it was built. The files sit beside the pack on the release and are fixed with it.
+ */
+export interface AddonListing {
+    /** The addon's name for people, such as `TPS Bar`. */
+    readonly title: string;
+    /** The addon's license, as an SPDX expression. */
+    readonly license: string;
+    /** Tags the marketplace filters by. */
+    readonly tags: readonly string[];
+    /** Who wrote the addon, as its author lists them. */
+    readonly authors: readonly string[];
+    /** Why the addon should no longer be installed, when its author has deprecated it. */
+    readonly deprecated?: string;
+    /** The install id of the addon that replaces this one, such as `warps-plus` or `owner/repo/name`. */
+    readonly replacedBy?: string;
+    /** The addon's `README.md`. */
+    readonly readme: AddonListingFile;
+    /** The pack's `pack_icon.png`, when it has one. */
+    readonly icon?: AddonListingFile;
+    /** The screenshots, in the order `addon.json` lists them. */
+    readonly screenshots: readonly AddonListingScreenshot[];
 }
 
 /** A parsed addon index. */
@@ -48,11 +93,26 @@ export interface AddonIndex {
 }
 
 const ADDON_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** `<owner>/<repo>`, as GitHub spells a repository. */
+const REPOSITORY = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
 const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 
 /** Whether a name is an addon name: lowercase letters and digits, with single hyphens between. */
 export const isAddonName = (name: string): boolean => ADDON_NAME.test(name);
+
+/** Whether a string names a GitHub repository, `<owner>/<repo>`. */
+export const isAddonRepository = (repository: string): boolean => REPOSITORY.test(repository);
+
+/**
+ * Whether a string is an addon's install id, the name `addon install` takes without a range: an
+ * addon name such as `tps-bar` for JSPrismarine's own addons, or `<owner>/<repo>/<name>`.
+ */
+export const isAddonInstallId = (id: string): boolean => {
+    const parts = id.split('/');
+    if (parts.length === 1) return isAddonName(id);
+    return parts.length === 3 && isAddonRepository(`${parts[0]}/${parts[1]}`) && isAddonName(parts[2]!);
+};
 
 /**
  * Whether a version is `major.minor.patch` with no leading zeros, the form an index uses. Each part
@@ -121,6 +181,65 @@ export const satisfiesAddonRange = (version: string, range: string): boolean => 
 export const addonVersionsInRange = (index: AddonIndex, name: string, range: string): AddonIndexEntry[] =>
     index.addons.filter((entry) => entry.name === name && satisfiesAddonRange(entry.version, range)).reverse();
 
+/** Whether a string is an `https:` URL. */
+const isHttpsUrl = (url: string): boolean => URL.canParse(url) && new URL(url).protocol === 'https:';
+
+/**
+ * Reads an entry's `listing`. Keys beyond the schema are dropped, as they are on the entry, and a
+ * tag outside today's list is kept, so a newer build's index still reads.
+ */
+const parseListing = (value: unknown, fail: (problem: string) => Error): AddonListing => {
+    if (!isRecord(value)) throw fail('has a listing that is not an object');
+    const text = (record: Record<string, unknown>, key: string, where: string): string => {
+        const field = record[key];
+        if (typeof field !== 'string' || field.length === 0) throw fail(`has no ${where}${key} string`);
+        return field;
+    };
+    const texts = (key: string): string[] => {
+        const field = value[key];
+        if (!Array.isArray(field) || !field.every((item) => typeof item === 'string' && item.length > 0))
+            throw fail(`has a listing.${key} that is not an array of strings`);
+        return field;
+    };
+    const file = (record: unknown, where: string): AddonListingFile => {
+        if (!isRecord(record)) throw fail(`has a ${where} that is not an object`);
+        const url = text(record, 'url', `${where}.`);
+        if (!isHttpsUrl(url)) throw fail(`has the ${where}.url ${url}, not an https URL`);
+        const sha256 = text(record, 'sha256', `${where}.`);
+        if (!SHA256.test(sha256)) throw fail(`has a ${where}.sha256 that is not 64 lowercase hexadecimal digits`);
+        return { url, sha256 };
+    };
+
+    const tags = texts('tags');
+    const bad = tags.find((tag) => !isAddonName(tag));
+    if (bad !== undefined) throw fail(`has the tag ${JSON.stringify(bad)}, which is not a tag name`);
+    const optional = (key: 'deprecated' | 'replacedBy'): string | undefined =>
+        value[key] === undefined ? undefined : text(value, key, 'listing.');
+    const deprecated = optional('deprecated');
+    const replacedBy = optional('replacedBy');
+    if (replacedBy !== undefined && !isAddonInstallId(replacedBy))
+        throw fail(`has the listing.replacedBy ${JSON.stringify(replacedBy)}, which is not an install id`);
+    if (!Array.isArray(value.screenshots)) throw fail('has a listing.screenshots that is not an array');
+    const screenshots = value.screenshots.map((screenshot: unknown, i): AddonListingScreenshot => {
+        const where = `listing.screenshots[${i}]`;
+        if (!isRecord(screenshot)) throw fail(`has a ${where} that is not an object`);
+        const shot = { ...file(screenshot, where), alt: text(screenshot, 'alt', `${where}.`) };
+        return screenshot.file === undefined ? shot : { ...shot, file: text(screenshot, 'file', `${where}.`) };
+    });
+
+    return {
+        title: text(value, 'title', 'listing.'),
+        license: text(value, 'license', 'listing.'),
+        tags,
+        authors: texts('authors'),
+        ...(deprecated === undefined ? {} : { deprecated }),
+        ...(replacedBy === undefined ? {} : { replacedBy }),
+        readme: file(value.readme, 'listing.readme'),
+        ...(value.icon === undefined ? {} : { icon: file(value.icon, 'listing.icon') }),
+        screenshots
+    };
+};
+
 const parseEntry = (value: unknown, index: number): AddonIndexEntry => {
     const fail = (problem: string) =>
         new AddonToolsErrors.InvalidAddonIndex({ problem: `addons[${index}] ${problem}` });
@@ -138,11 +257,12 @@ const parseEntry = (value: unknown, index: number): AddonIndexEntry => {
     const minServer = text('minServer');
     if (!isAddonVersion(minServer)) throw fail(`has the minServer ${JSON.stringify(minServer)}, not major.minor.patch`);
     const url = text('url');
-    if (!URL.canParse(url) || new URL(url).protocol !== 'https:') throw fail(`has the url ${url}, not an https URL`);
+    if (!isHttpsUrl(url)) throw fail(`has the url ${url}, not an https URL`);
     const sha256 = text('sha256');
     if (!SHA256.test(sha256)) throw fail('has a sha256 that is not 64 lowercase hexadecimal digits');
 
-    return { name, version, description: text('description'), minServer, url, sha256 };
+    const entry = { name, version, description: text('description'), minServer, url, sha256 };
+    return value.listing === undefined ? entry : { ...entry, listing: parseListing(value.listing, fail) };
 };
 
 /** Sorts entries by name and then by version, oldest first: the order an index keeps. */
@@ -195,15 +315,20 @@ export interface MergedAddonIndex {
     readonly added: readonly AddonIndexEntry[];
 }
 
+/** The hashes of a listing's files, in a form two listings compare by. */
+const listingHashes = (listing: AddonListing): string =>
+    [listing.readme.sha256, listing.icon?.sha256 ?? '', ...listing.screenshots.map((shot) => shot.sha256)].join(' ');
+
 /**
  * Merges a build's entries into the index already published. Every published version stays, so a
  * lockfile's URL keeps downloading the pack it hashed; a built version that is already listed must
- * match its hash.
+ * match its hash, and its listing files must match theirs. A version published before listings
+ * existed keeps its entry without one.
  *
  * @param published - The index on the release, or undefined before the first release.
  * @param built - One entry for each addon the build packed.
  * @throws {InvalidAddonError} `PublishedVersionChanged` when a built pack's version is published
- * with another hash.
+ * with another hash, and `PublishedListingChanged` when its listing files are published with others.
  */
 export const mergeAddonIndex = (
     published: AddonIndex | undefined,
@@ -216,6 +341,8 @@ export const mergeAddonIndex = (
         const existing = entries.get(key(entry));
         if (existing && existing.sha256 !== entry.sha256)
             throw new AddonToolsErrors.PublishedVersionChanged({ name: entry.name, version: entry.version });
+        if (existing?.listing && entry.listing && listingHashes(existing.listing) !== listingHashes(entry.listing))
+            throw new AddonToolsErrors.PublishedListingChanged({ name: entry.name, version: entry.version });
         if (existing) continue;
         entries.set(key(entry), entry);
         added.push(entry);

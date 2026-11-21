@@ -23,7 +23,7 @@ const recording = (env: Record<string, string> = {}) => {
 };
 
 describe('jsp-addon', () => {
-    it('builds the addons and writes the release tag and new packs as step outputs', async () => {
+    it('builds the addons and writes the release tag, new packs and listing files as step outputs', async () => {
         const { addons } = await copyHello();
         const out = await temporaryDirectory();
         const outputs = path.join(await temporaryDirectory(), 'github-output');
@@ -36,7 +36,7 @@ describe('jsp-addon', () => {
 
         expect(code).toBe(0);
         expect(output.stdout).toContain('hello 1.2.3: new');
-        expect(await readFile(outputs, 'utf8')).toBe('tag=addons\nadded=hello-1.2.3.mcpack\n');
+        expect(await readFile(outputs, 'utf8')).toBe('tag=addons\nadded=hello-1.2.3.mcpack\nlisting=hello-1.2.3.md\n');
         expect(await readFile(path.join(out, 'index.json'), 'utf8')).toContain(
             'https://github.com/owner/repo/releases/download/addons/hello-1.2.3.mcpack'
         );

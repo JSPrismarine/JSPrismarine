@@ -1,12 +1,14 @@
 import { AddonToolsErrors, InvalidAddonIndexError } from '@jsprismarine/errors/addon-tools';
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
-import type { AddonIndexEntry } from './addonIndex';
+import type { AddonIndexEntry, AddonListing } from './addonIndex';
+import { isRecord } from './isRecord';
 import {
     ADDON_INDEX_SCHEMA_VERSION,
     addonVersionsInRange,
     compareAddonVersions,
     createAddonIndex,
+    isAddonInstallId,
     isAddonRange,
     mergeAddonIndex,
     parseAddonIndex,
@@ -21,6 +23,30 @@ const entry = (name: string, version: string, hashDigit = 'a'): AddonIndexEntry 
     minServer: '0.22.0',
     url: `https://github.com/owner/repo/releases/download/addons/${name}-${version}.mcpack`,
     sha256: hashDigit.repeat(64)
+});
+
+const listing = (hashDigit = 'c'): AddonListing => ({
+    title: 'Warps',
+    license: 'MIT',
+    tags: ['gameplay'],
+    authors: ['Ada'],
+    deprecated: 'Use warps-plus instead.',
+    replacedBy: 'owner/repo/warps-plus',
+    readme: { url: 'https://example.com/warps-1.0.0.md', sha256: hashDigit.repeat(64) },
+    icon: { url: 'https://example.com/warps-1.0.0.png', sha256: 'd'.repeat(64) },
+    screenshots: [
+        {
+            url: 'https://example.com/warps-1.0.0-1.png',
+            sha256: 'e'.repeat(64),
+            alt: 'A warp sign.',
+            file: 'media/sign.png'
+        }
+    ]
+});
+
+const listed = (name: string, version: string, hashDigit = 'c'): AddonIndexEntry => ({
+    ...entry(name, version),
+    listing: listing(hashDigit)
 });
 
 describe('parseAddonIndex', () => {
@@ -44,6 +70,40 @@ describe('parseAddonIndex', () => {
         });
 
         expect(index.addons[0]).toEqual(entry('warps', '1.0.0'));
+    });
+
+    it('reads an entry with a listing', () => {
+        const index = parseAddonIndex({
+            schemaVersion: ADDON_INDEX_SCHEMA_VERSION,
+            addons: [listed('warps', '1.0.0')]
+        });
+
+        expect(index.addons[0]).toEqual(listed('warps', '1.0.0'));
+    });
+
+    it('keeps a tag a newer build may list, and drops listing keys beyond the schema', () => {
+        const value = { ...listing(), tags: ['economy'], homepage: 'https://example.com' };
+        const index = parseAddonIndex({
+            schemaVersion: ADDON_INDEX_SCHEMA_VERSION,
+            addons: [{ ...entry('warps', '1.0.0'), listing: value }]
+        });
+
+        expect(index.addons[0]?.listing).toEqual({ ...listing(), tags: ['economy'] });
+    });
+
+    it('stays schema 1, so a reader from before listings gets the same entries', () => {
+        const index = createAddonIndex([listed('warps', '1.0.0'), entry('tps-bar', '1.0.0')]);
+        const text: unknown = JSON.parse(serializeAddonIndex(index));
+        assert(isRecord(text) && Array.isArray(text.addons), 'an index is an object with an addons array');
+        // A reader from before listings keeps the six keys of each entry and drops the rest.
+        const schemaOneKeys = ['name', 'version', 'description', 'minServer', 'url', 'sha256'];
+        const schemaOne = (value: unknown) =>
+            Object.fromEntries(
+                Object.entries(isRecord(value) ? value : {}).filter(([key]) => schemaOneKeys.includes(key))
+            );
+
+        expect(text.schemaVersion).toBe(1);
+        expect(text.addons.map(schemaOne)).toEqual([entry('tps-bar', '1.0.0'), entry('warps', '1.0.0')]);
     });
 
     it('round-trips through the text it serializes to', () => {
@@ -70,12 +130,51 @@ describe('parseAddonIndex', () => {
         ['a version part past the safe integers', withAddons([entry('warps', '1.0.9007199254740992')])],
         ['a minServer that is a range', withAddons([{ ...entry('warps', '1.0.0'), minServer: '^0.22.0' }])],
         ['a name with capitals', withAddons([entry('Warps', '1.0.0')])],
-        ['one version listed twice', withAddons([entry('warps', '1.0.0'), entry('warps', '1.0.0', 'b')])]
+        ['one version listed twice', withAddons([entry('warps', '1.0.0'), entry('warps', '1.0.0', 'b')])],
+        [
+            'a listing without a readme',
+            withAddons([{ ...entry('warps', '1.0.0'), listing: { ...listing(), readme: undefined } }])
+        ],
+        [
+            'a listing file at a plain http URL',
+            withAddons([
+                {
+                    ...entry('warps', '1.0.0'),
+                    listing: { ...listing(), icon: { url: 'http://x.test/a.png', sha256: 'd'.repeat(64) } }
+                }
+            ])
+        ],
+        [
+            'a screenshot without alt text',
+            withAddons([
+                {
+                    ...entry('warps', '1.0.0'),
+                    listing: { ...listing(), screenshots: [{ url: 'https://x.test/a.png', sha256: 'd'.repeat(64) }] }
+                }
+            ])
+        ],
+        [
+            'a replacedBy that is not an install id',
+            withAddons([{ ...entry('warps', '1.0.0'), listing: { ...listing(), replacedBy: 'Warps Plus' } }])
+        ],
+        [
+            'a tag that is not a tag name',
+            withAddons([{ ...entry('warps', '1.0.0'), listing: { ...listing(), tags: ['Game Play'] } }])
+        ]
     ];
 
     it.each(invalid)('refuses %s', (_, value) => {
         expect(() => parseAddonIndex(value)).toThrow(AddonToolsErrors.InvalidAddonIndex);
         expect(() => parseAddonIndex(value)).toThrow(InvalidAddonIndexError);
+    });
+});
+
+describe('isAddonInstallId', () => {
+    it('takes an addon name or owner/repo/name', () => {
+        for (const id of ['warps', 'acme-mc/bedrock-addons/warps', 'Owner/repo.js/warps'])
+            expect(isAddonInstallId(id), id).toBe(true);
+        for (const id of ['Warps', 'owner/warps', 'a/b/c/d', 'owner/repo/Warps', 'owner/repo/warps@1.0.0'])
+            expect(isAddonInstallId(id), id).toBe(false);
     });
 });
 
@@ -107,6 +206,26 @@ describe('mergeAddonIndex', () => {
             index: createAddonIndex(built),
             added: [entry('tps-bar', '1.0.0'), entry('warps', '1.0.0')]
         });
+    });
+
+    it('keeps a version published before listings without one', () => {
+        const published = createAddonIndex([entry('warps', '1.0.0')]);
+
+        expect(mergeAddonIndex(published, [listed('warps', '1.0.0')])).toEqual({ index: published, added: [] });
+    });
+
+    it('accepts a rebuilt version whose listing files are the same', () => {
+        const published = createAddonIndex([listed('warps', '1.0.0')]);
+
+        expect(mergeAddonIndex(published, [listed('warps', '1.0.0')]).added).toEqual([]);
+    });
+
+    it('refuses a published version whose listing files changed', () => {
+        const published = createAddonIndex([listed('warps', '1.0.0')]);
+
+        expect(() => mergeAddonIndex(published, [listed('warps', '1.0.0', 'f')])).toThrow(
+            AddonToolsErrors.PublishedListingChanged
+        );
     });
 
     it('refuses a published version whose pack changed', () => {

@@ -10,8 +10,8 @@ import { buildAddons, fetchPublishedIndex, releaseDownloadUrl } from './build';
 /** The `jsp-addon` usage text. */
 export const USAGE = `Usage: jsp-addon build [options]
 
-Checks every addon under the addons folder, packs each into <name>-<version>.mcpack and writes
-index.json beside the packs.
+Checks every addon under the addons folder, packs each into <name>-<version>.mcpack, writes its
+listing files (README, icon and screenshots) beside the pack, and writes index.json.
 
 Options:
   --addons <dir>          The folder of addons (default: addons)
@@ -20,7 +20,8 @@ Options:
                           (default: $GITHUB_REPOSITORY)
   --base-url <url>        Where the packs download from, in place of the repository's release
   --offline               Skip downloading the published index.json to merge with
-  --github-output <file>  Append the release tag and the added packs as GitHub step outputs
+  --github-output <file>  Append the release tag, the added packs and their listing files as
+                          GitHub step outputs
   --help                  Show this text
 `;
 
@@ -68,7 +69,10 @@ const build = async (args: readonly string[], context: CommandContext): Promise<
 
     if (values['github-output']) {
         const files = result.added.map((entry) => packFileName(entry.name, entry.version));
-        await appendFile(values['github-output'], `tag=${ADDON_RELEASE_TAG}\nadded=${files.join(' ')}\n`);
+        await appendFile(
+            values['github-output'],
+            `tag=${ADDON_RELEASE_TAG}\nadded=${files.join(' ')}\nlisting=${result.addedListingFiles.join(' ')}\n`
+        );
     }
     return 0;
 };

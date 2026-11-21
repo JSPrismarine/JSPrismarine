@@ -10,7 +10,7 @@ import { afterEach, assert, describe, expect, it } from 'vitest';
 
 import { createAddonIndex, parseAddonIndex } from './addonIndex';
 import { buildAddons, fetchPublishedIndex, readAddons, releaseDownloadUrl } from './build';
-import { copyHello, FIXTURE_ADDONS, setHelloVersion, temporaryDirectory } from './fixture.test-utils';
+import { copyHello, FIXTURE_ADDONS, listHello, setHelloVersion, temporaryDirectory } from './fixture.test-utils';
 
 const BASE_URL = releaseDownloadUrl('owner/repo');
 
@@ -22,9 +22,11 @@ describe('buildAddons', () => {
 
         const result = await buildAddons({ addonsDirectory: addons, outDirectory: out, baseUrl: BASE_URL });
 
-        expect((await readdir(out)).sort()).toEqual(['hello-1.2.3.mcpack', 'index.json']);
+        expect((await readdir(out)).sort()).toEqual(['hello-1.2.3.mcpack', 'hello-1.2.3.md', 'index.json']);
         const pack = await readFile(path.join(out, 'hello-1.2.3.mcpack'));
+        const readme = await readFile(path.join(out, 'hello-1.2.3.md'));
         const index = parseAddonIndex(JSON.parse(await readFile(path.join(out, 'index.json'), 'utf8')));
+        const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
         expect(index).toEqual(result.index);
         expect(index.addons).toEqual([
             {
@@ -33,11 +35,66 @@ describe('buildAddons', () => {
                 description: 'Says hello.',
                 minServer: '0.22.0',
                 url: 'https://github.com/owner/repo/releases/download/addons/hello-1.2.3.mcpack',
-                sha256: createHash('sha256').update(pack).digest('hex')
+                sha256: sha256(pack),
+                listing: {
+                    title: 'Hello',
+                    license: 'MIT',
+                    tags: [],
+                    authors: [],
+                    readme: {
+                        url: 'https://github.com/owner/repo/releases/download/addons/hello-1.2.3.md',
+                        sha256: sha256(readme)
+                    },
+                    screenshots: []
+                }
             }
         ]);
         expect([...readZip(pack).keys()]).toEqual(['README.md', 'addon.json', 'manifest.json', 'scripts/main.js']);
         expect(result.added).toEqual(index.addons);
+        expect(result.addedListingFiles).toEqual(['hello-1.2.3.md']);
+    });
+
+    it('writes the icon and screenshots beside the pack, leaving media out of it', async () => {
+        const { addons, addon } = await copyHello();
+        await listHello(addon);
+        const out = await temporaryDirectory();
+
+        const result = await buildAddons({ addonsDirectory: addons, outDirectory: out, baseUrl: BASE_URL });
+
+        expect((await readdir(out)).sort()).toEqual([
+            'hello-1.2.3-1.png',
+            'hello-1.2.3.mcpack',
+            'hello-1.2.3.md',
+            'hello-1.2.3.png',
+            'index.json'
+        ]);
+        expect(await readFile(path.join(out, 'hello-1.2.3-1.png'))).toEqual(
+            await readFile(path.join(addon, 'media', 'wave.png'))
+        );
+        expect([...readZip(await readFile(path.join(out, 'hello-1.2.3.mcpack'))).keys()]).not.toContain(
+            'media/wave.png'
+        );
+        expect(result.addedListingFiles).toEqual(['hello-1.2.3.md', 'hello-1.2.3.png', 'hello-1.2.3-1.png']);
+    });
+
+    it('refuses a published version whose screenshot changed', async () => {
+        const { addons, addon } = await copyHello();
+        await listHello(addon);
+        const first = await buildAddons({
+            addonsDirectory: addons,
+            outDirectory: await temporaryDirectory(),
+            baseUrl: BASE_URL
+        });
+        await writeFile(path.join(addon, 'media', 'wave.png'), 'another image');
+
+        await expect(
+            buildAddons({
+                addonsDirectory: addons,
+                outDirectory: await temporaryDirectory(),
+                baseUrl: BASE_URL,
+                published: first.index
+            })
+        ).rejects.toBeInstanceOf(AddonToolsErrors.PublishedListingChanged);
     });
 
     it('adds nothing for a version already published with the same pack', async () => {
@@ -56,6 +113,7 @@ describe('buildAddons', () => {
         });
 
         expect(again.added).toEqual([]);
+        expect(again.addedListingFiles).toEqual([]);
         expect(again.index).toEqual(first.index);
     });
 
@@ -123,7 +181,7 @@ describe('buildAddons', () => {
             published
         });
 
-        expect(result).toEqual({ index: published, built: [], added: [] });
+        expect(result).toEqual({ index: published, built: [], added: [], addedListingFiles: [] });
     });
 
     it.each([
