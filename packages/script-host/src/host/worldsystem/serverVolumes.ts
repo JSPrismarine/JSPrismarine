@@ -8,6 +8,7 @@
  * a volume reaching an unloaded chunk throws `UnloadedChunksError` with the count, and a clone
  * refuses regions that overlap unless forced and copies only the blocks a filter names.
  */
+import { closestBlocks } from './closestBlocks';
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
 import { ScriptApiError } from '../../errors';
@@ -211,15 +212,19 @@ export const implementVolumes = (implementations: ScriptApiImplementations, host
                 if (center instanceof ScriptHandle) call.engine.free(center);
                 // The engine wrote the string with JSON.stringify.
                 const at: unknown = json === undefined ? undefined : JSON.parse(json);
-                if (isRecord(at)) {
-                    const distance = (each: ScriptVector3) =>
-                        Math.hypot(each.x - Number(at.x), each.y - Number(at.y), each.z - Number(at.z));
-                    found = [...found].sort((one, two) => distance(one) - distance(two));
-                }
                 const closest = call.engine.get(options, 'closest');
                 const farthest = call.engine.get(options, 'farthest');
-                if (typeof closest === 'number') found = found.slice(0, closest);
-                else if (typeof farthest === 'number') found = found.slice(-farthest).reverse();
+                if (isRecord(at) && typeof closest === 'number') {
+                    found = closestBlocks(found, { x: Number(at.x), y: Number(at.y), z: Number(at.z) }, closest);
+                } else {
+                    if (isRecord(at)) {
+                        const distance = (each: ScriptVector3) =>
+                            Math.hypot(each.x - Number(at.x), each.y - Number(at.y), each.z - Number(at.z));
+                        found = [...found].sort((one, two) => distance(one) - distance(two));
+                    }
+                    if (typeof closest === 'number') found = found.slice(0, closest);
+                    else if (typeof farthest === 'number') found = found.slice(-farthest).reverse();
+                }
             }
             return listVolume(call, found);
         })
