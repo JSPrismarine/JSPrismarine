@@ -11,7 +11,7 @@
  * yet: a playing sound's controls need sound handles (issue #3314), a pack's structures and
  * jigsaw placement need Bedrock's placement (issue #3315), the locator bar and waypoints their
  * packets (issue #3313), the point-of-interest classes an index (issue #3312), and
- * `registerCustomDimension` the level's custom dimensions (issue #3316).
+ * `registerCustomDimension` the level's custom dimensions (issue #3624).
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 

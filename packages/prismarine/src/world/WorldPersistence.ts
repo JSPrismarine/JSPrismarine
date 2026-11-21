@@ -13,6 +13,10 @@ import type { RaidRecord } from './raid/RaidManager';
 import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 import { isRecord } from '../utils/isRecord';
+import type { SavedScriptSettings } from './LevelScriptSettings';
+import { savedScriptSettingsOf } from './LevelScriptSettings';
+import type { TickingArea } from './TickingAreas';
+import { savedTickingAreasOf } from './TickingAreas';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** A non-player entity snapshot used by providers without actor storage. */
@@ -104,6 +108,12 @@ export interface WorldPersistenceData {
     dragonFight?: DragonFightState;
     /** The village raids that were running, which carry on after a restart. */
     raids?: SavedRaid[];
+    /** The ticking areas the command and the scripts added. */
+    tickingAreas?: TickingArea[];
+    /** What the scripts set on the world that nothing else keeps; see `LevelScriptSettings`. */
+    scriptSettings?: SavedScriptSettings;
+    /** Whether a script paused the overworld clock. */
+    clockPaused?: boolean;
 }
 
 /**
@@ -125,6 +135,9 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
     const worldGenSettings = worldGenSettingsOf(value['worldGenSettings']);
     const dragonFight = dragonFightOf(value['dragonFight']);
     const raids = raidsOf(value['raids']);
+    const tickingAreas = savedTickingAreasOf(value['tickingAreas']);
+    const scriptSettings = savedScriptSettingsOf(value['scriptSettings']);
+    const clockPaused = typeof value['clockPaused'] === 'boolean' ? value['clockPaused'] : undefined;
 
     return {
         ...(spawn === undefined ? {} : { spawn }),
@@ -133,7 +146,10 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
         ...(entities === undefined ? {} : { entities }),
         ...(worldGenSettings === undefined ? {} : { worldGenSettings }),
         ...(dragonFight === undefined ? {} : { dragonFight }),
-        ...(raids === undefined ? {} : { raids })
+        ...(raids === undefined ? {} : { raids }),
+        ...(tickingAreas === undefined ? {} : { tickingAreas }),
+        ...(scriptSettings === undefined ? {} : { scriptSettings }),
+        ...(clockPaused === undefined ? {} : { clockPaused })
     };
 };
 

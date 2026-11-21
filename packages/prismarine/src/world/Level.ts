@@ -57,6 +57,9 @@ import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 import type { WorldExperiment } from './WorldExperiments';
 import { levelExperiments } from './WorldExperiments';
 import { LevelDynamicProperties } from './dynamicProperties';
+import { LevelScriptSettings } from './LevelScriptSettings';
+import type { TickingArea } from './TickingAreas';
+import { TickingAreas } from './TickingAreas';
 import { Scoreboard } from './Scoreboard';
 import GameRuleChangedEvent from '../events/other/GameRuleChangedEvent';
 import { ADVANCE_TIME, gameRuleValue } from '../content/world/gameRules';
@@ -211,6 +214,12 @@ export class Level {
     /** The dragon fight the save held, handed to the End world's fight when it is created. */
     private storedDragonFight: DragonFightState | undefined;
     private savedRaids: SavedRaid[] = [];
+    /** What the scripts set on the world that nothing else keeps, saved in the level's record. */
+    private readonly scriptSettings = new LevelScriptSettings();
+    /** The ticking areas, made once the saved ones can be added; see {@link Level.getTickingAreas}. */
+    private tickingAreas: TickingAreas | undefined;
+    /** The ticking areas the save held, added when the areas are made. */
+    private storedTickingAreas: readonly TickingArea[] = [];
 
     /** Entity snapshots the save kept outside its chunks, for a provider without actor storage. */
     private legacy: readonly LegacyWorldEntity[] = [];
@@ -725,6 +734,31 @@ export class Level {
         this.clock.setPaused(paused);
     }
 
+    /** What the level's scripts set on the world that nothing else keeps. */
+    public getScriptSettings(): LevelScriptSettings {
+        return this.scriptSettings;
+    }
+
+    /**
+     * The level's ticking areas, which the `/tickingarea` command and the scripts share. Made the
+     * first time they are asked for, which the level does once it has opened, with the areas the
+     * save held. An area's world is started if nobody has entered its dimension yet.
+     */
+    public getTickingAreas(): TickingAreas {
+        if (this.tickingAreas === undefined) {
+            const areas = new TickingAreas((dimension) => {
+                const stem = [...this.stems.keys()].find((id) => this.dimensionTypeOf(id).bedrockName === dimension);
+                if (stem === undefined) return undefined;
+                // Built outside every tick, as `WorldManager.startWorld` builds one.
+                void this.prepareWorld(stem);
+                return this.loadedWorld(stem);
+            });
+            this.tickingAreas = areas;
+            for (const area of this.storedTickingAreas) areas.add(area);
+        }
+        return this.tickingAreas;
+    }
+
     /** The level's game rules, one set for every world of the save. */
     public getGameRuleManager(): GameRuleManager {
         return this.gameRuleManager;
@@ -896,6 +930,8 @@ export class Level {
 
         await this.opened;
         await Promise.all(eager);
+        // The saved ticking areas start loading their chunks, as BDS's do when its world opens.
+        this.getTickingAreas();
     }
 
     /** Opens the provider and puts back what the save held. */
@@ -941,6 +977,8 @@ export class Level {
         if (stored.entities && this.provider.supportsChunkUnload !== true) this.legacy = stored.entities;
         this.storedDragonFight = stored.dragonFight;
         this.savedRaids = stored.raids ?? [];
+        this.storedTickingAreas = stored.tickingAreas ?? [];
+        this.scriptSettings.restore(stored.scriptSettings);
         const records = this.provider.readLevelRecords();
         if (records !== null) {
             this.dynamicProperties.restore(records.dynamicProperties);
@@ -953,6 +991,7 @@ export class Level {
         const gameTime = levelDat?.currentTick ?? levelDat?.time;
         if (gameTime !== undefined) this.setTicks(gameTime);
         if (levelDat?.time !== undefined) this.setDayTime(levelDat.time);
+        if (stored.clockPaused !== undefined) this.setDayTimePaused(stored.clockPaused);
         this.experiments = levelExperiments(this.config.experiments, levelDat?.experiments);
     }
 
@@ -1115,7 +1154,12 @@ export class Level {
                 ...(this.provider.supportsChunkUnload === true ? {} : { entities: this.entitySnapshots() }),
                 worldGenSettings: { seed: this.seed.toString(), dimensions: stems },
                 ...(dragonFight === undefined ? {} : { dragonFight }),
-                ...(raids === undefined ? {} : { raids })
+                ...(raids === undefined ? {} : { raids }),
+                // Written even when empty: the provider keeps a field left out, which would bring
+                // back the last area removed.
+                tickingAreas: this.tickingAreas?.all() ?? [...this.storedTickingAreas],
+                scriptSettings: this.scriptSettings.saved(),
+                clockPaused: this.isDayTimePaused()
             },
             levelDat: {
                 ...(position === undefined ? {} : { spawn: position }),

@@ -11,7 +11,6 @@ import type {
     ScriptBlockKind,
     ScriptDifficulty,
     ScriptFogLayer,
-    ScriptTimeMarker,
     ScriptWorldSystem
 } from '@jsprismarine/script-host/host/worldsystem/seam';
 import type { ScriptItem, ScriptVector3 } from '@jsprismarine/script-host/host/world';
@@ -38,7 +37,6 @@ import { customMusicPacket } from '../../network/customMusic';
 import type PlayerSession from '../../network/PlayerSession';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
-import { tickingAreasOf } from '../../world/TickingAreas';
 import type { World } from '../../world/World';
 
 /** The difficulty names the Script API uses, by the lowercase name the config keeps. */
@@ -165,11 +163,10 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             .filter((session) => session.getWorld().getLevel() === level);
     const overworld = () =>
         [...level.worlds()].find((world) => world.getDimension().bedrockName === 'minecraft:overworld');
-    // The locator bar has no game rule on the wire, and cheats and hardcore no setting here.
-    let playerWaypoints: ScriptGameRuleValue = SCRIPT_GAME_RULES.playerWaypoints.default;
-    let cheats = true;
-    // The clock's markers last as long as the level is loaded. Its pause is the level's own.
-    const markers: ScriptTimeMarker[] = [];
+    // The locator bar has no game rule on the wire, and cheats no setting, so the level keeps
+    // them, and the clock's markers, for its scripts and saves them. The clock's pause is the
+    // level's own clock's.
+    const settings = level.getScriptSettings();
     /** Each player's fog stack as the scripts built it, by entity id. */
     const fogs = new Map<string, readonly ScriptFogLayer[]>();
 
@@ -195,7 +192,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
     let biomes: { readonly content: unknown; readonly list: readonly ScriptBiome[] } | undefined;
 
     const gameRule = (name: ScriptGameRuleName): ScriptGameRuleValue => {
-        if (name === 'playerWaypoints') return playerWaypoints;
+        if (name === 'playerWaypoints') return settings.playerWaypoints;
         return level.getGameRuleManager().findGameRule(name)?.[0] ?? SCRIPT_GAME_RULES[name].default;
     };
 
@@ -214,7 +211,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
         gameRule,
         setGameRule: (name, value) => {
             if (name === 'playerWaypoints') {
-                playerWaypoints = value;
+                if (value === 'Everyone' || value === 'Off') settings.playerWaypoints = value;
                 return;
             }
             if (typeof value === 'string') return;
@@ -222,9 +219,9 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
         },
         isHardcore: () => false,
         seed: () => (overworld() ?? server.getWorldManager().getDefaultWorld()).getSeed().toString(),
-        allowCheats: () => cheats,
+        allowCheats: () => settings.allowCheats,
         setAllowCheats: (allow) => {
-            cheats = allow;
+            settings.allowCheats = allow;
         },
         // BDS sends every player the music packets `Player.playMusic` sends one, and the client keeps the queue.
         playMusic: ({ track, volume, fade, loop, queue }) => {
@@ -347,7 +344,7 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             return [...found];
         },
         tickingAreas: () => {
-            const areas = tickingAreasOf(server, level);
+            const areas = level.getTickingAreas();
             return areas.list('script').map((area) => ({
                 identifier: area.name,
                 dimension: area.dimension,
@@ -356,8 +353,8 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
             }));
         },
         addTickingArea: (identifier, dimension, chunks) =>
-            void tickingAreasOf(server, level).add({ name: identifier, owner: 'script', dimension, chunks }),
-        removeTickingArea: (identifier) => tickingAreasOf(server, level).remove('script', identifier),
+            void level.getTickingAreas().add({ name: identifier, owner: 'script', dimension, chunks }),
+        removeTickingArea: (identifier) => level.getTickingAreas().remove('script', identifier),
         lootTable: (path) => {
             const data = server.getContent().definitions.lootTables.get(path)?.data;
             return data === undefined ? undefined : withCurrentItemNames(data);
@@ -415,11 +412,11 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
         blockTags: (typeId) => blockFromContent(typeId, server.getContent())?.getTags() ?? [],
         clockPaused: () => level.isDayTimePaused(),
         setClockPaused: (paused) => level.setDayTimePaused(paused),
-        timeMarkers: () => markers,
-        addTimeMarker: (marker) => void markers.push(marker),
+        timeMarkers: () => settings.timeMarkers,
+        addTimeMarker: (marker) => void settings.timeMarkers.push(marker),
         removeTimeMarker: (name) => {
-            const at = markers.findIndex((marker) => marker.name === name);
-            if (at >= 0) markers.splice(at, 1);
+            const at = settings.timeMarkers.findIndex((marker) => marker.name === name);
+            if (at >= 0) settings.timeMarkers.splice(at, 1);
         },
         stopSound: (dimension, sound) => {
             for (const session of sessions()) {

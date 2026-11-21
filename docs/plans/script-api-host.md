@@ -604,9 +604,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       the locator bar and waypoints ([#3313](https://github.com/JSPrismarine/JSPrismarine/issues/3313)),
       the point-of-interest classes behind BDS's runtime condition
       ([#3312](https://github.com/JSPrismarine/JSPrismarine/issues/3312)), and `registerClock`
-      and `registerCustomDimension` ([#3316](https://github.com/JSPrismarine/JSPrismarine/issues/3316))
-      have no behavior. Ticking areas, clock markers and world settings are not saved with the
-      level (#3316). Sky light under an overhang differs from BDS
+      and `registerCustomDimension` ([#3624](https://github.com/JSPrismarine/JSPrismarine/issues/3624))
+      have no behavior. Sky light under an overhang differs from BDS
       ([#3311](https://github.com/JSPrismarine/JSPrismarine/issues/3311)), `/gamerule dofiretick`
       does not parse ([#3310](https://github.com/JSPrismarine/JSPrismarine/issues/3310)), and the
       `dimension-volumes` row waits on `BlockVolume`.

@@ -5,10 +5,11 @@
  * BDS keeps the two apart, as the `ticking-areas` scenario of the parity suite recorded: a script
  * lists, counts and removes only its own areas, and the command only the command's, each up to
  * its own limit. An area covers whole chunks, and its world keeps them in through
- * {@link World.setTickingArea}. The areas last as long as the level is loaded; BDS saves them
- * with the world, which this does not yet.
+ * {@link World.setTickingArea}. The level saves its areas in its record, as BDS saves them with
+ * the world, and adds them again when it opens.
  */
 import type Server from '../Server';
+import { isRecord } from '../utils/isRecord';
 import type { Level } from './Level';
 import type { ChunkRectangle, World } from './World';
 
@@ -26,6 +27,8 @@ export interface TickingArea {
     readonly dimension: string;
     /** The chunks it covers. */
     readonly chunks: ChunkRectangle;
+    /** Whether the command marked it to load its chunks as the world starts. */
+    readonly preload?: boolean;
 }
 
 /** How many chunks a rectangle covers. */
@@ -55,6 +58,11 @@ export class TickingAreas {
 
     private static key(owner: TickingAreaOwner, name: string): string {
         return `${owner}:${name}`;
+    }
+
+    /** Every area, in the order they were added, for the level's save. */
+    public all(): TickingArea[] {
+        return [...this.areas.values()];
     }
 
     /** The areas one owner added, in the order it added them. */
@@ -94,27 +102,53 @@ export class TickingAreas {
         return true;
     }
 
+    /** Marks one owner's area to preload or not, and returns whether it had one. */
+    public setPreload(owner: TickingAreaOwner, name: string, preload: boolean): boolean {
+        const key = TickingAreas.key(owner, name);
+        const area = this.areas.get(key);
+        if (area === undefined) return false;
+        const { name: areaName, dimension, chunks } = area;
+        this.areas.set(key, { name: areaName, owner, dimension, chunks, ...(preload ? { preload } : {}) });
+        return true;
+    }
+
     /** Whether every chunk of an area is loaded. */
     public isLoaded(area: TickingArea): boolean {
         return this.worldOf(area.dimension)?.isTickingAreaLoaded(TickingAreas.key(area.owner, area.name)) ?? false;
     }
 }
 
-const levels = new WeakMap<Level, TickingAreas>();
+const isOwner = (value: unknown): value is TickingAreaOwner => value === 'script' || value === 'command';
+
+const chunksOf = (value: unknown): ChunkRectangle | undefined => {
+    if (!isRecord(value)) return undefined;
+    const { minX, maxX, minZ, maxZ } = value;
+    return typeof minX === 'number' && typeof maxX === 'number' && typeof minZ === 'number' && typeof maxZ === 'number'
+        ? { minX, maxX, minZ, maxZ }
+        : undefined;
+};
+
+/** Reads the areas a level's record saved, at the JSON boundary; an entry that does not parse is dropped. */
+export const savedTickingAreasOf = (value: unknown): TickingArea[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    return value.flatMap((entry) => {
+        if (!isRecord(entry) || typeof entry.name !== 'string' || typeof entry.dimension !== 'string') return [];
+        const chunks = chunksOf(entry.chunks);
+        if (!isOwner(entry.owner) || chunks === undefined) return [];
+        return [
+            {
+                name: entry.name,
+                owner: entry.owner,
+                dimension: entry.dimension,
+                chunks,
+                ...(entry.preload === true ? { preload: true } : {})
+            }
+        ];
+    });
+};
 
 /**
- * The ticking areas of a level, made the first time they are asked for, which the command and
- * the scripts share.
+ * The ticking areas of a level, which the command and the scripts share.
+ * @deprecated Use {@link Level.getTickingAreas}.
  */
-export const tickingAreasOf = (server: Server, level: Level): TickingAreas => {
-    let found = levels.get(level);
-    if (found === undefined) {
-        found = new TickingAreas((dimension) =>
-            level === server.getWorldManager().getDefaultLevel()
-                ? server.getWorldManager().startWorld(dimension)
-                : [...level.worlds()].find((world) => world.getDimension().bedrockName === dimension)
-        );
-        levels.set(level, found);
-    }
-    return found;
-};
+export const tickingAreasOf = (_server: Server, level: Level): TickingAreas => level.getTickingAreas();
