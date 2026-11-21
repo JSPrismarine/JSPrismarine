@@ -14,6 +14,7 @@ import type { ServerName, ServerNameSnapshot } from './utils/ServerName';
 import { validateSocketBufferOptions } from './SocketBuffers';
 import type { SocketBufferOptions } from './SocketBuffers';
 import { UDP_HEADER_SIZE } from './Constants';
+import { singleExecutableWorkerUrl } from './singleExecutableWorker';
 import { RaknetErrors } from '@jsprismarine/errors/raknet';
 import { asError } from '@jsprismarine/errors/common';
 
@@ -24,9 +25,19 @@ import { asError } from '@jsprismarine/errors/common';
  */
 declare const JSP_EMBEDDED_RAKNET_WORKER: string | undefined;
 
-/** The embedded socket worker of a compiled Bun executable, or undefined outside one. */
-const embeddedWorker = (): string | undefined =>
-    typeof JSP_EMBEDDED_RAKNET_WORKER === 'undefined' ? undefined : JSP_EMBEDDED_RAKNET_WORKER;
+/**
+ * The SEA asset that holds the socket worker in a Node single executable, defined by
+ * `scripts/package-sea.mts`. That executable has no files beside it, so the worker travels as an
+ * asset and runs from a `data:` URL. Undefined everywhere else.
+ */
+declare const JSP_SEA_RAKNET_WORKER: string | undefined;
+
+/** The embedded socket worker of a compiled executable, or undefined outside one. */
+const embeddedWorker = (): string | undefined => {
+    if (typeof JSP_EMBEDDED_RAKNET_WORKER !== 'undefined') return JSP_EMBEDDED_RAKNET_WORKER;
+    if (typeof JSP_SEA_RAKNET_WORKER !== 'undefined') return singleExecutableWorkerUrl(JSP_SEA_RAKNET_WORKER);
+    return undefined;
+};
 
 const DEFAULT_RING_CAPACITY = 8 * 1024 * 1024;
 const MAX_RECORDS_PER_TICK = 4096;
@@ -154,9 +165,10 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
         // `waitUntilReady` still rejects.
         this.readyPromise.catch(() => {});
 
-        const sourceWorker = import.meta.url.endsWith('.ts') && embeddedWorker() === undefined;
+        const embedded = embeddedWorker();
+        const sourceWorker = import.meta.url.endsWith('.ts') && embedded === undefined;
         const workerUrl = new URL(
-            embeddedWorker() ??
+            embedded ??
                 new URL(
                     sourceWorker ? './WorkerServerSocket.worker.ts' : './WorkerServerSocket.worker.js',
                     import.meta.url

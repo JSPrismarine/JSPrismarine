@@ -93,6 +93,11 @@ export const RaknetErrors = defineErrors('raknet', {
     WorkerExitedWithCode: 'RakNet worker exited with code {code}',
     /** The RakNet worker module was run as a main thread. Only the server starts it. */
     WorkerHasNoParentPort: 'RakNet worker has no parent port',
+    /**
+     * The packaged server's embedded RakNet worker was asked for outside a Node single executable.
+     * This is a bug in how the packager defined the worker.
+     */
+    EmbeddedWorkerOutsideExecutable: 'The embedded RakNet worker requires a Node single executable',
     /** A RakNet worker socket was started twice. */
     WorkerSocketAlreadyStarted: 'Worker RakNet socket has already been started',
     /** Code waited for a RakNet worker socket that was never started. */

@@ -61,6 +61,15 @@ Thrown as `RaknetErrors.DisconnectedBeforeHandshakeCompleted`, which extends `Er
 
 The connection closed before the RakNet handshake finished.
 
+## `RAKNET_EMBEDDED_WORKER_OUTSIDE_EXECUTABLE`
+
+`The embedded RakNet worker requires a Node single executable`
+
+Thrown as `RaknetErrors.EmbeddedWorkerOutsideExecutable`, which extends `Error`.
+
+The packaged server's embedded RakNet worker was asked for outside a Node single executable.
+This is a bug in how the packager defined the worker.
+
 ## `RAKNET_INVALID_FRAGMENT_INDEX`
 
 `Invalid Frame fragment index={fragmentIndex}, count={fragmentSize}`

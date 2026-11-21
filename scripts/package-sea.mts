@@ -36,6 +36,7 @@ if (major! < 25 || (major === 25 && minor! < 5)) {
 const seaDir = path.join(repoRoot, 'dist', 'sea');
 const executable = path.join(repoRoot, 'dist', process.platform === 'win32' ? 'prismarine.exe' : 'prismarine');
 const SEA_TABLE_BUILDER_WORKER = 'leveldb-table-builder-worker';
+const SEA_RAKNET_WORKER = 'raknet-socket-worker';
 const args = process.argv.slice(2);
 const packageArgs = args[0] === '--' ? args.slice(1) : args;
 if (packageArgs.some((argument) => argument !== '--no-code-cache')) {
@@ -54,7 +55,8 @@ const bundle = await rolldown({
             JSP_SEA_GENERATION_WORKER: "'generation-worker'",
             JSP_SEA_CHUNK_PIPELINE: "'chunk-pipeline'",
             JSP_SEA_TERRAIN_PIPELINE: "'terrain-pipeline'",
-            JSP_SEA_TABLE_BUILDER_WORKER: JSON.stringify(SEA_TABLE_BUILDER_WORKER)
+            JSP_SEA_TABLE_BUILDER_WORKER: JSON.stringify(SEA_TABLE_BUILDER_WORKER),
+            JSP_SEA_RAKNET_WORKER: JSON.stringify(SEA_RAKNET_WORKER)
         }
     },
     // The terminal UI loads a native library through `@opentui/core`, whose top-level await
@@ -77,12 +79,13 @@ await bundle.write({
 });
 await bundle.close();
 
-console.log('Bundling generation workers...');
+console.log('Bundling the workers...');
 const workerAssets = [
     ['generation-worker', 'packages/chunkgen/src/singleExecutableWorker.ts'],
     ['chunk-pipeline', 'packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts'],
     ['terrain-pipeline', 'packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts'],
-    [SEA_TABLE_BUILDER_WORKER, 'packages/leveldb/src/db/TableBuilderWorker.ts']
+    [SEA_TABLE_BUILDER_WORKER, 'packages/leveldb/src/db/TableBuilderWorker.ts'],
+    [SEA_RAKNET_WORKER, 'packages/raknet/src/WorkerServerSocket.worker.ts']
 ] as const;
 for (const [name, entry] of workerAssets) {
     const workerBundle = await rolldown({
