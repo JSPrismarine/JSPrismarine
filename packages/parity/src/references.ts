@@ -224,6 +224,13 @@ export const REFERENCES = {
         "Mojang's Bedrock commands with their overloads and enums"
     ),
 
+    /** The `AvailableCommandsPacket` a Bedrock Dedicated Server sends a joining client. */
+    bedrockAvailableCommands: committed(
+        'bedrock-available-commands',
+        `${bedrockCaptureDir()}/wire/0x4c.bin`,
+        'the command list a Bedrock Dedicated Server sends a joining client'
+    ),
+
     /** How a 1.26.51 server's console answers each probe line of the `commands` capture pass. */
     bedrockCommandAnswers: committed(
         'bedrock-command-answers',

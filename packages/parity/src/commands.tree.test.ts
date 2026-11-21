@@ -1,17 +1,23 @@
+import { readFileSync } from 'node:fs';
+
 import {
+    COMMAND_NAME_ENUM,
     JAVA_ONLY_COMMAND_NAMES,
     SHARED_COMMAND_NAMES,
     bedrockCommand,
     bedrockCommandTable,
+    buildAvailableCommands,
     flattenCommandTree,
     registerVanillaCommands
 } from '@jsprismarine/commands';
 import type { EntityTypes } from '@jsprismarine/entities';
 import { buildVanillaCommands, summonableEntityTypes } from '@jsprismarine/prismarine/command/vanillaCommands';
+import AvailableCommandsPacket from '@jsprismarine/protocol/bedrock/packet/AvailableCommandsPacket';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
+import { bedrockCapture, bedrockCaptureProtocol } from './goldens.ts';
 import { describeFamily } from './measure.ts';
 import { reportParityProgress } from './progress.ts';
 import { REFERENCES } from './references.ts';
@@ -167,6 +173,74 @@ describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockCommandMetadata, REFERE
     reportParityCases(FAMILIES.commandsTree, import.meta.filename, cases);
 
     it('offers /summon exactly the entity types their definitions mark summonable', () => {
+        expect(verdict.unexpected, detail.join('\n')).toEqual([]);
+    });
+});
+
+/**
+ * How the published `AvailableCommandsPacket` names its commands for the client, against the one
+ * a Bedrock Dedicated Server sent a joining client.
+ *
+ * The server lists every command name and alias in the `CommandName` enum, and the client offers
+ * a namespaced command, such as a script's `jsp:tpsbar`, only when that enum lists it. Each
+ * alias enum is named after its command, as `teleportCommandAliases`.
+ *
+ * Gap ids: `command-name-enum:<name>` for a name or alias the published `CommandName` enum
+ * leaves out, and `alias-enum:<command>` for an alias enum named otherwise than the server's.
+ */
+const compareCommandNames = (): { gaps: string[]; detail: string[]; cases: ReturnType<typeof parityCase>[] } => {
+    const captured = new AvailableCommandsPacket(
+        Buffer.concat([Buffer.from([0x4c]), readFileSync(bedrockCapture('wire/0x4c.bin'))])
+    );
+    captured.decode({ protocolVersion: bedrockCaptureProtocol() });
+    const capturedAliasEnums = new Map(
+        captured.commandData.flatMap(({ commandName, aliases }) =>
+            aliases === null ? [] : [[commandName, aliases.name] as const]
+        )
+    );
+
+    const { payload } = buildAvailableCommands(registerVanillaCommands());
+    const enumNamed = (name: string) =>
+        payload.enums.find((entry) => entry.name === name)?.valueIndexes.map((index) => payload.enumValues[index]);
+    const listed = new Set(enumNamed(COMMAND_NAME_ENUM));
+
+    const gaps: string[] = [];
+    const detail: string[] = [];
+    const cases = payload.commands.flatMap((command) => {
+        const aliases = command.aliasEnum === -1 ? [] : (payload.enums[command.aliasEnum]?.valueIndexes ?? []);
+        const names = [command.name, ...aliases.map((index) => payload.enumValues[index] ?? '')];
+        const nameListed = names.every((name) => listed.has(name));
+        if (!nameListed) gaps.push(`command-name-enum:${command.name}`);
+        const own = command.aliasEnum === -1 ? undefined : payload.enums[command.aliasEnum]?.name;
+        const expected = capturedAliasEnums.get(command.name);
+        const aliasMatched = own === undefined || expected === undefined || own === expected;
+        if (!aliasMatched) {
+            gaps.push(`alias-enum:${command.name}`);
+            detail.push(`${command.name}: alias enum ${own}, the server's ${expected}`);
+        }
+        return [
+            parityCase(`command-name:${command.name}`, command.name, 'Command name enum', nameListed),
+            ...(own === undefined || expected === undefined
+                ? []
+                : [
+                      parityCase(
+                          `alias-enum:${command.name}`,
+                          `${command.name} aliases`,
+                          'Alias enum name',
+                          aliasMatched
+                      )
+                  ])
+        ];
+    });
+    return { gaps, detail, cases };
+};
+
+describeFamily(FAMILIES.commandsTree, [REFERENCES.bedrockAvailableCommands], () => {
+    const { gaps, detail, cases } = compareCommandNames();
+    const verdict = checkAllowList(FAMILIES.commandsTree, gaps);
+    reportParityCases(FAMILIES.commandsTree, import.meta.filename, cases);
+
+    it('names each command and alias for the client as a Bedrock Dedicated Server does', () => {
         expect(verdict.unexpected, detail.join('\n')).toEqual([]);
     });
 });
