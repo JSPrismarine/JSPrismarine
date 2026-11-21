@@ -3,9 +3,9 @@
  * 26.x were read off the vanilla server's own encoders: `Login (play)` gained `onlineMode`, and
  * `Confirm Teleportation` carries the position and rotation the client accepted.
  */
-import { bool, list, optional, record, uint8 } from '../../wire/fieldTypes';
+import { bool, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import { PACKETS } from '../versions/26.3/packets';
-import { double, float, int, long, optionalVarInt, textComponent, varInt } from '../wire/javaTypes';
+import { double, float, int, javaString, long, optionalVarInt, textComponent, varInt } from '../wire/javaTypes';
 import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
@@ -151,3 +151,45 @@ export const MovePlayerStatusOnly = defineJavaPacket(
 
 /** The move flags' bit for a player standing on the ground. */
 export const MOVE_ON_GROUND = 0x01;
+
+/** `System Chat Message` (clientbound): text the client shows in chat, or over the hotbar when `overlay`. */
+export const SystemChat = defineJavaPacket('System Chat Message', PACKETS.play.clientbound.system_chat, {
+    content: textComponent,
+    overlay: bool
+});
+
+/** A chat signature: 256 bytes, which a server without secure chat reads past. */
+const signature = custom<Buffer>(
+    'Byte Array (256)',
+    (s, v) => s.write(v),
+    (s) => s.read(256)
+);
+
+/** Which recent messages the client has seen, as a fixed 20-bit set in 3 bytes; nothing reads it. */
+const acknowledged = custom<Buffer>(
+    'Fixed BitSet (20)',
+    (s, v) => s.write(v),
+    (s) => s.read(3)
+);
+
+/** `Chat Message` (serverbound): what the player typed, with the secure chat fields this server does not check. */
+export const ChatMessage = defineJavaPacket('Chat Message', PACKETS.play.serverbound.chat, {
+    message: javaString(256),
+    timestamp: long,
+    salt: long,
+    signature: optional(signature),
+    lastSeenOffset: varInt,
+    acknowledged,
+    checksum: uint8
+});
+
+/** `Chat Command` (serverbound): a command the player typed, without its slash. */
+export const ChatCommand = defineJavaPacket('Chat Command', PACKETS.play.serverbound.chat_command, {
+    command: javaString(32_767)
+});
+
+/** `Game Event` 3: the client's own game mode changed, to the value's game mode. */
+export const CHANGE_GAME_MODE = 3;
+
+/** `Player Loaded` (serverbound): the client has the world around it and shows the player. */
+export const PlayerLoaded = defineJavaPacket('Player Loaded', PACKETS.play.serverbound.player_loaded, {});

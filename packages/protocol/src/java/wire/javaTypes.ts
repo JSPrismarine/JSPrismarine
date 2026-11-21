@@ -5,6 +5,7 @@
  * groups, so a negative one takes all five bytes. A string is Bedrock's, a VarInt byte length and
  * then UTF-8, with a longest length in characters that the reader enforces.
  */
+import type BinaryStream from '@jsprismarine/binaryutils';
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 import type { WireType } from '../../wire/fieldTypes';
@@ -98,24 +99,80 @@ export const uuid: WireType<string> = custom<string>(
     (s) => hyphenatedUuid(s.read(16).toString('hex'))
 );
 
+/** Text a Java client shows: plain text, or a translation key with its arguments. */
+export type JavaText = string | { readonly translate: string; readonly with?: readonly JavaText[] };
+
+/** NBT's tag ids, for the text components a packet carries. */
+const NBT_END = 0;
+const NBT_LIST = 9;
+const NBT_COMPOUND = 10;
+
+/** NBT's string payload: an unsigned short byte length, then the bytes. */
+const writeNbtString = (s: BinaryStream, value: string): void => {
+    const bytes = Buffer.from(value, 'utf8');
+    s.writeUnsignedShort(bytes.byteLength);
+    s.write(bytes);
+};
+
+const readNbtString = (s: BinaryStream): string => s.read(s.readUnsignedShort()).toString('utf8');
+
+/** One text component's payload, after its tag id. */
+const writeTextPayload = (s: BinaryStream, text: JavaText): void => {
+    if (typeof text === 'string') {
+        writeNbtString(s, text);
+        return;
+    }
+    s.writeByte(NBT_STRING);
+    writeNbtString(s, 'translate');
+    writeNbtString(s, text.translate);
+    if (text.with !== undefined && text.with.length > 0) {
+        s.writeByte(NBT_LIST);
+        writeNbtString(s, 'with');
+        s.writeByte(NBT_COMPOUND);
+        s.writeInt(text.with.length);
+        // A list holds one tag type, so each argument is a compound: plain text under `text`.
+        for (const argument of text.with) {
+            if (typeof argument === 'string') {
+                s.writeByte(NBT_STRING);
+                writeNbtString(s, 'text');
+                writeNbtString(s, argument);
+                s.writeByte(NBT_END);
+            } else writeTextPayload(s, argument);
+        }
+    }
+    s.writeByte(NBT_END);
+};
+
+const readTextPayload = (s: BinaryStream, tag: number): JavaText => {
+    if (tag === NBT_STRING) return readNbtString(s);
+    if (tag !== NBT_COMPOUND) throw new ProtocolWireErrors.JavaTextComponentNotString({ tag });
+    let text: string | undefined;
+    let translate: string | undefined;
+    const args: JavaText[] = [];
+    for (let field = s.readByte(); field !== NBT_END; field = s.readByte()) {
+        const name = readNbtString(s);
+        if (field === NBT_STRING && name === 'text') text = readNbtString(s);
+        else if (field === NBT_STRING && name === 'translate') translate = readNbtString(s);
+        else if (field === NBT_LIST && name === 'with') {
+            const element = s.readByte();
+            const count = s.readInt();
+            for (let i = 0; i < count; i++) args.push(readTextPayload(s, element));
+        } else throw new ProtocolWireErrors.JavaTextComponentNotString({ tag: field });
+    }
+    if (translate !== undefined) return args.length === 0 ? { translate } : { translate, with: args };
+    return text ?? '';
+};
+
 /**
- * `Text Component` as network NBT, for plain text: a String tag with no name, its length an
- * unsigned short of modified UTF-8 bytes. The configuration and play phases carry text this way;
- * the login phase still carries JSON.
- *
- * Only the plain string form is read and written; a compound component is not.
+ * `Text Component` as network NBT: a String tag with no name for plain text, or a compound with
+ * `translate` and `with` for a translation. The configuration and play phases carry text this way;
+ * the login phase still carries JSON. Other component fields, such as styles, are not read.
  */
-export const textComponent: WireType<string> = custom<string>(
+export const textComponent: WireType<JavaText> = custom<JavaText>(
     'Text Component',
     (s, v) => {
-        const bytes = Buffer.from(v, 'utf8');
-        s.writeByte(NBT_STRING);
-        s.writeUnsignedShort(bytes.byteLength);
-        s.write(bytes);
+        s.writeByte(typeof v === 'string' ? NBT_STRING : NBT_COMPOUND);
+        writeTextPayload(s, v);
     },
-    (s) => {
-        const tag = s.readByte();
-        if (tag !== NBT_STRING) throw new ProtocolWireErrors.JavaTextComponentNotString({ tag });
-        return s.read(s.readUnsignedShort()).toString('utf8');
-    }
+    (s) => readTextPayload(s, s.readByte())
 );

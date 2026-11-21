@@ -50,8 +50,16 @@ describe('Java wire types', () => {
 
     it('writes plain text as an unnamed NBT String tag', () => {
         expect(bytesOf(textComponent, 'Hi')).toEqual([0x08, 0x00, 0x02, 0x48, 0x69]);
-        expect(() => textComponent.read(new BinaryStream(Buffer.from([0x0a, 0x00])))).toThrow(
-            'A text component with NBT tag 10 is not plain text'
+        expect(() => textComponent.read(new BinaryStream(Buffer.from([0x03, 0, 0, 0, 1])))).toThrow(
+            'A text component with NBT tag 3 is not plain text'
         );
+    });
+
+    it('writes a translation as a compound, its arguments as text compounds, and reads it back', () => {
+        const text = { translate: 'chat.type.text', with: ['Steve', 'hello'] };
+        const bytes = bytesOf(textComponent, text);
+
+        expect(bytes.slice(0, 4)).toEqual([0x0a, 0x08, 0x00, 0x09]);
+        expect(textComponent.read(new BinaryStream(Buffer.from(bytes)))).toEqual(text);
     });
 });
