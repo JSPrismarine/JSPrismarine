@@ -29,6 +29,8 @@ packages/minecraft/datagen/snapshot/*
 packages/parity/goldens/*
 packages/script-host/src/generated/*
 tools/docs/site/public/parity-tracker/
+# Written by `pnpm run bench:servers`, and committed as the harness wrote it.
+docs/research/benchmarks/
 
 # Test files
 # Fixture pack JSON exercises lenient parsing (comments, trailing commas), which Prettier rejects.

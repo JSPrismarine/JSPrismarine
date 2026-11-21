@@ -1,0 +1,25 @@
+{
+    "$comment": [
+        "The Pumpkin release the benchmark runs: an official build from the project's GitHub release,",
+        "which is how Pumpkin's quick start tells people to run it. `sha256` is from the release's",
+        "`checksums.sha256`, and the harness checks every download against it. `commit` is the commit",
+        "the tag points at. Each asset is a release build; the plain x86-64 one is used rather than",
+        "`X64-v3`, because Node.js and Bedrock Dedicated Server ship one generic x86-64 build too."
+    ],
+    "tag": "0.2.2+26.3-26.60",
+    "commit": "eda69440e6369c5f8a05c3f69fc809c40dab93a6",
+    "assets": {
+        "linux-x64": {
+            "name": "pumpkin-X64-Linux",
+            "sha256": "3755df414cdece664223388a93421c5c674682f5b9264387416b8a9074cd8d59"
+        },
+        "linux-arm64": {
+            "name": "pumpkin-ARM64-Linux",
+            "sha256": "9882aa350ee8674d12870ee7c9fa6eed387101c32c34a5f3071a9040b1c29fd3"
+        },
+        "darwin-arm64": {
+            "name": "pumpkin-ARM64-macOS",
+            "sha256": "b9fc3db0dfd41867c60abedc901539ec08da54454d2e8550fbd8e43a1c3447e1"
+        }
+    }
+}

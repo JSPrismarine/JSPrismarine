@@ -1,0 +1,201 @@
+name: Server benchmark
+
+env:
+    GIT_CONFIG_COUNT: '1'
+    GIT_CONFIG_KEY_0: init.defaultBranch
+    GIT_CONFIG_VALUE_0: master
+    # At most this many benchmark runs start in any window of this many hours. A push past the
+    # limit finishes in seconds without measuring; the next push or the weekly run after the
+    # window measures the newest master. A dispatch from the Actions tab is never held back.
+    BENCHMARK_MAX_RUNS: '1'
+    BENCHMARK_WINDOW_HOURS: '24'
+
+# Runs JSPrismarine, Pumpkin and the pinned Bedrock Dedicated Server under one bot workload and
+# records what each costs, for the benchmark page on the docs site. A run takes more than an hour,
+# so it never runs on pull requests. It runs when master changes something that can move the
+# figures, weekly, and on demand, no more often than the limit above, and keeps one pull request
+# open with the newest results file. Bedrock Dedicated Server ships for Linux x86-64 only, which
+# is why this runs on a Linux x86-64 runner, where all three servers run natively.
+on:
+    schedule:
+        - cron: '23 3 * * 1'
+    push:
+        branches:
+            - master
+        # What the servers run and what the harness measures. Docs and tests change no figure.
+        paths:
+            - 'packages/**'
+            - '!packages/**/*.md'
+            - '!packages/**/*.test.ts'
+            - 'tools/server-benchmark/**'
+            - 'pnpm-lock.yaml'
+            - '.nvmrc'
+            - '.github/workflows/benchmark.yml'
+    workflow_dispatch:
+        inputs:
+            rounds:
+                description: Rounds to run; each runs every server once per scenario.
+                required: false
+                default: '5'
+                type: string
+
+# One run at a time, and a push never cancels a run that is measuring. GitHub keeps one pending
+# run per group, so pushes that land during a run collapse into the newest.
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+
+# The benchmark job runs downloaded server binaries, so it gets a read-only token; the publish job
+# holds the write token and runs nothing but Git and the GitHub CLI.
+permissions:
+    actions: read
+    contents: read
+
+jobs:
+    benchmark:
+        name: ⏱️ Benchmark the servers
+        # A fixed image rather than `ubuntu-latest`, so runs compare on the same system. The CPU
+        # model still varies between GitHub's machines; every results file records the one it got.
+        runs-on: ubuntu-26.04
+        timeout-minutes: 300
+        env:
+            ROUNDS: ${{ inputs.rounds || '5' }}
+        outputs:
+            measured: ${{ steps.bench.outcome == 'success' }}
+        steps:
+            # A run that benchmarked uploads the `server-benchmark` artifact, so the artifacts this
+            # workflow made in the window are the runs that count toward the limit.
+            - name: 🚦 Check the run limit
+              id: limit
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  EVENT: ${{ github.event_name }}
+              run: |
+                  set -euo pipefail
+                  if [ "$EVENT" = "workflow_dispatch" ]; then
+                      echo "run=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  since="$(date -u -d "-${BENCHMARK_WINDOW_HOURS} hours" +%Y-%m-%dT%H:%M:%SZ)"
+                  recent="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=server-benchmark&per_page=100" \
+                      --jq "[.artifacts[] | select(.created_at >= \"$since\")] | length")"
+                  echo "$recent benchmark runs since $since; the limit is $BENCHMARK_MAX_RUNS."
+                  if [ "$recent" -ge "$BENCHMARK_MAX_RUNS" ]; then
+                      echo "run=false" >> "$GITHUB_OUTPUT"
+                      echo "::notice::Skipped: $recent benchmark runs in the last $BENCHMARK_WINDOW_HOURS hours."
+                  else
+                      echo "run=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              if: steps.limit.outputs.run == 'true'
+              with:
+                  persist-credentials: false
+
+            - name: 📦 Install
+              if: steps.limit.outputs.run == 'true'
+              uses: ./.github/common/install
+
+            # JSPrismarine's default overworld needs Mojang's world generation data, which the Java
+            # data generator writes. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
+            - name: ☕ Setup JDK
+              if: steps.limit.outputs.run == 'true'
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            # The test workflow's keys, so a master run reuses what it stored.
+            - name: Cache the fetched sources
+              if: steps.limit.outputs.run == 'true'
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            - name: ⬇️ Fetch the pinned sources
+              if: steps.limit.outputs.run == 'true'
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            # What `pnpm run dev` prepares before it starts a server: the world generation data and
+            # the pack of entities and other content from the pinned Bedrock Dedicated Server.
+            - name: 🌍 Prepare the server's data
+              if: steps.limit.outputs.run == 'true'
+              run: |
+                  pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
+                  pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack
+
+            - name: 🔨 Build
+              if: steps.limit.outputs.run == 'true'
+              run: pnpm exec turbo run build --filter=@jsprismarine/server --filter=@jsprismarine/client --env-mode=loose
+
+            # Outside the checkout, so an upload never picks up a results file already in the repository.
+            - name: ⏱️ Run the benchmark
+              id: bench
+              if: steps.limit.outputs.run == 'true'
+              run: pnpm run bench:servers --rounds "$ROUNDS" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
+
+            # Only a run whose benchmark step started uploads the artifact the run limit counts, so a
+            # failed install or build does not hold the next run back.
+            - name: 🚚 Upload the results and server logs
+              if: ${{ !cancelled() && steps.bench.outcome != 'skipped' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: server-benchmark
+                  path: |
+                      ${{ runner.temp }}/results/results.json
+                      ${{ runner.temp }}/benchmark/**/*.log
+                  if-no-files-found: warn
+
+    publish:
+        name: 🔀 Publish the results
+        needs: benchmark
+        if: needs.benchmark.outputs.measured == 'true'
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: write
+            pull-requests: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 📥 Download the results
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: server-benchmark
+                  path: ${{ runner.temp }}/artifact
+
+            # One standing pull request: each run replaces its branch with the newest results on top
+            # of master, so results never pile up in pull requests nobody merged. The file goes under
+            # the date the run started, replacing one an earlier run that day wrote.
+            - name: 🔀 Update the results pull request
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  BASE: ${{ github.ref_name }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  set -euo pipefail
+                  source="$(find "$RUNNER_TEMP/artifact" -name results.json -print -quit)"
+                  if [ -z "$source" ]; then
+                      echo "The benchmark wrote no results file."
+                      exit 1
+                  fi
+                  date="$(jq -r '.startedAt[0:10]' "$source")"
+                  results="docs/research/benchmarks/$date/results.json"
+                  mkdir -p "$(dirname "$results")"
+                  cp "$source" "$results"
+                  branch="benchmark/results"
+                  title="docs(benchmarks): record the newest server benchmark"
+                  body="The server benchmark ran in ${RUN_URL} and wrote \`${results}\`. The benchmark page shows the newest results file once this merges. Check the round count and the quiet label on the page preview before merging. Each run replaces this branch."
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git switch -c "$branch"
+                  git add -- "$results"
+                  git commit -m "$title"
+                  git push --force origin "$branch"
+                  if [ -n "$(gh pr list --head "$branch" --base "$BASE" --state open --json number --jq '.[].number')" ]; then
+                      gh pr edit "$branch" --body "$body"
+                  else
+                      gh pr create --base "$BASE" --head "$branch" --title "$title" --body "$body"
+                  fi

@@ -1,0 +1,19 @@
+{
+    "name": "@jsprismarine/server-benchmark",
+    "version": "0.22.0",
+    "private": true,
+    "license": "(MIT OR MPL-2.0)",
+    "description": "Runs JSPrismarine, Pumpkin and Bedrock Dedicated Server under one bot workload and records what each costs",
+    "type": "module",
+    "scripts": {
+        "bench": "node --conditions=jsprismarine:dist src/run.mts",
+        "typecheck": "tsc-ts --noEmit"
+    },
+    "dependencies": {
+        "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/client": "workspace:*",
+        "@jsprismarine/logger": "workspace:*",
+        "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/protocol": "workspace:*"
+    }
+}
