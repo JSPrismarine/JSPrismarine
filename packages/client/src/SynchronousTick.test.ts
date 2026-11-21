@@ -125,7 +125,7 @@ describe('a tick', () => {
         for (const line of ['setblock 3 12 3 minecraft:sand', 'setblock -3 9 -3 minecraft:water']) {
             expect(await commands.dispatchCommand(console, console, line)).toBe(true);
         }
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
 
         const reads: string[] = [];
         let entries = 0;

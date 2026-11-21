@@ -169,7 +169,7 @@ describe('network', () => {
                 getLogger: logger,
                 getSessionManager: sessionManager,
                 getStorePlayers: () => storePlayers,
-                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),
+                getWorldManager: () => stub<WorldManager>({ getEntryWorld: world }),
                 getConfig: config,
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,
@@ -791,7 +791,7 @@ describe('network', () => {
                     const holdingServer = stub<Server>({
                         ...server,
                         getSessionManager: () => sessions,
-                        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => holdingWorld })
+                        getWorldManager: () => stub<WorldManager>({ getEntryWorld: () => holdingWorld })
                     });
                     return {
                         server: holdingServer,

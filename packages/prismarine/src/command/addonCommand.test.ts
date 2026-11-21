@@ -68,8 +68,8 @@ const setUp = async (installed: Awaited<ReturnType<AddonManager['list']>> = []) 
         getPermissionManager: () => stub<PermissionManager>({ can: canExecute }),
         getWorldManager: () =>
             stub<WorldManager>({
-                getDefaultWorld: () => world,
-                getDefaultLevel: () => level,
+                getEntryWorld: () => world,
+                getEntryLevel: () => level,
                 getLevels: () => [level]
             }),
         getAddons: () => stub<AddonManager>({ list, install })

@@ -241,11 +241,11 @@ describe('WorldManager', () => {
         await manager.enable();
 
         expect(manager.getLevels().map((level) => level.name)).toEqual(['main', 'other']);
-        expect(manager.getDefaultLevel().name).toBe('main');
-        expect(manager.getDefaultWorld()).toBe(manager.getDefaultLevel().loadedWorld(OVERWORLD_STEM_ID));
+        expect(manager.getEntryLevel().name).toBe('main');
+        expect(manager.getEntryWorld()).toBe(manager.getEntryLevel().loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getWorldByName('other')).toBe(manager.getLevel('other')?.loadedWorld(OVERWORLD_STEM_ID));
         expect(manager.getLevels().flatMap((level) => [...level.worlds()])).toHaveLength(2);
-        expect(logged).toContain("Loading §b'main'/minecraft:overworld§r as default world!");
+        expect(logged).toContain("Loading §b'main'/minecraft:overworld§r as the entry world!");
 
         await manager.disable();
         expect(manager.getLevels()).toEqual([]);
@@ -257,7 +257,7 @@ describe('WorldManager', () => {
         });
         await manager.enable();
 
-        expect([...manager.getDefaultLevel().getStems().keys()]).toContain(Dimensions.Nether.id);
+        expect([...manager.getEntryLevel().getStems().keys()]).toContain(Dimensions.Nether.id);
         expect(manager.getWorldByDimension(Dimensions.Nether.id)).toBeUndefined();
         expect(builds.has(`${TEST_KIND} ${Dimensions.Nether.id}`)).toBe(false);
 
@@ -290,7 +290,7 @@ describe('WorldManager', () => {
         // back to, which is how `execute in minecraft:nether run fill` wrote into the Overworld.
         const started = manager.startWorld('minecraft:nether');
         expect(started?.getDimension().id).toBe(Dimensions.Nether.id);
-        expect(started).not.toBe(manager.getDefaultWorld());
+        expect(started).not.toBe(manager.getEntryWorld());
 
         const nether = await manager.worldFor(Dimensions.Nether.id);
         expect(nether).toBe(started);
@@ -316,7 +316,7 @@ describe('WorldManager', () => {
             );
             await manager.enable();
 
-            const level = manager.getDefaultLevel();
+            const level = manager.getEntryLevel();
             expect([...level.getStems().keys()].sort()).toEqual(
                 [OVERWORLD_STEM_ID, Dimensions.Nether.id, Dimensions.TheEnd.id].sort()
             );
@@ -338,7 +338,7 @@ describe('WorldManager', () => {
         });
         const first = buildManager('main', { main: both }, contentWithDatapack(datapack));
         await first.manager.enable();
-        const deep = first.manager.getDefaultLevel().getDimensionTypes().get('test:deep')?.bedrockId;
+        const deep = first.manager.getEntryLevel().getDimensionTypes().get('test:deep')?.bedrockId;
         await first.manager.disable();
 
         const second = buildManager(
@@ -349,7 +349,7 @@ describe('WorldManager', () => {
         await second.manager.enable();
 
         expect(deep).toBe(FIRST_CUSTOM_DIMENSION_ID + 1);
-        expect(second.manager.getDefaultLevel().getDimensionTypes().get('test:deep')?.bedrockId).toBe(deep);
+        expect(second.manager.getEntryLevel().getDimensionTypes().get('test:deep')?.bedrockId).toBe(deep);
 
         await second.manager.disable();
     });
@@ -366,7 +366,7 @@ describe('WorldManager', () => {
         );
         await manager.enable();
 
-        const sky = manager.getDefaultLevel().getDimensionTypes().get('test:sky');
+        const sky = manager.getEntryLevel().getDimensionTypes().get('test:sky');
         expect(sky).toMatchObject({ id: 'test:sky', minY: 0, height: 256, custom: true });
 
         const world = await manager.worldFor('test:sky');
@@ -386,7 +386,7 @@ describe('WorldManager', () => {
         expect(other?.isClosed()).toBe(true);
         expect(manager.getLevels().map((level) => level.name)).toEqual(['main']);
         expect(manager.getLevel('other')).toBeUndefined();
-        expect(manager.getDefaultLevel().isClosed()).toBe(false);
+        expect(manager.getEntryLevel().isClosed()).toBe(false);
 
         await manager.disable();
     });
@@ -403,7 +403,7 @@ describe('WorldManager', () => {
         expect(new Set(ids).size).toBe(2);
         expect(second.manager.getLevels().map((level) => level.id)).toEqual(ids);
         const [main, other] = ids;
-        expect(second.manager.getLevelById(main ?? '')).toBe(second.manager.getDefaultLevel());
+        expect(second.manager.getLevelById(main ?? '')).toBe(second.manager.getEntryLevel());
         expect(second.manager.getLevelById((other ?? '').toUpperCase())).toBe(second.manager.getLevel('OTHER'));
 
         await second.manager.disable();
@@ -462,7 +462,7 @@ describe('WorldManager', () => {
         await second.manager.enable();
 
         expect(second.manager.getLevels().map((level) => [level.name, level.id])).toEqual([
-            ['main', second.manager.getDefaultLevel().id],
+            ['main', second.manager.getEntryLevel().id],
             ['arena', arena.id]
         ]);
         expect(second.manager.getLevelOrigin(second.manager.getLevel('arena') ?? arena)).toBe('registry');

@@ -67,8 +67,10 @@ interface SavedLevel {
 }
 
 /**
- * Loads and unloads levels, one per `worlds.<name>` entry, and answers which world of the
- * default level holds a dimension.
+ * The server's levels: it loads the config's `worlds` entries and the attached levels of
+ * `levels.json`, creates, attaches and detaches levels while the server runs, announces each step
+ * of a level's lifecycle, and answers which world of a level holds a dimension
+ * ([ADR 0029](../../../../docs/adr/0029-worlds-are-levels-the-server-manages.md)).
  */
 export default class WorldManager implements Service {
     /** The loaded levels by UUID, in load order. */
@@ -83,8 +85,10 @@ export default class WorldManager implements Service {
     private readonly registry: LevelRegistry;
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
-    private defaultLevel!: Level;
-    private defaultWorld!: World;
+    /** The `level-name` level, which a joining player enters first. */
+    private entryLevel!: Level;
+    /** The entry level's Overworld. */
+    private entryWorld!: World;
     /** The generator kinds, Java worldgen data and terrain cache every level builds from. */
     private readonly worldgen: WorldgenCatalog;
     /** The provider classes a level's entry can name. */
@@ -122,7 +126,7 @@ export default class WorldManager implements Service {
                 .warn(`chunk-host "${invalidHost}" is not process or in-process, so process is used`);
         }
         const defaultName = config.getLevelName();
-        // Throwing rather than warning-and-returning: `getDefaultWorld()` promises a world to
+        // Throwing rather than warning-and-returning: `getEntryWorld()` promises a world to
         // everyone downstream, and returning here would leave that promise unkept while the
         // type said otherwise.
         if (!defaultName) throw new PrismarineWorldErrors.InvalidLevelName();
@@ -133,7 +137,7 @@ export default class WorldManager implements Service {
 
         // Named as the default before it is enabled, not after. Enabling a level generates the
         // Overworld's start region, which at `preload-radius: 24` is minutes, and until this
-        // assignment `getDefaultWorld()` answered `undefined` while its type said `World` - so
+        // assignment `getEntryWorld()` answered `undefined` while its type said `World` - so
         // a command typed at the console meanwhile threw a `TypeError` out of `CommandManager`
         // instead of running. Nothing about the world is missing here except its terrain: it
         // has its game rules, its name and its provider, which is what its callers ask it for.
@@ -146,9 +150,9 @@ export default class WorldManager implements Service {
         const world = prepared.level.loadedWorld(OVERWORLD_STEM_ID);
         if (world === undefined)
             throw new PrismarineWorldErrors.LevelWithoutOverworld({ defaultName, overworldStemId: OVERWORLD_STEM_ID });
-        this.defaultLevel = prepared.level;
-        this.defaultWorld = world;
-        this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
+        this.entryLevel = prepared.level;
+        this.entryWorld = world;
+        this.server.getLogger().info(`Loading ${world.getFormattedName()} as the entry world!`);
         await this.operations.run(() => this.finishLoading(prepared, enabling));
 
         // The other entries after the default, one at a time, so their log lines do not
@@ -345,7 +349,7 @@ export default class WorldManager implements Service {
      *
      * @param worldData - The `worlds.<name>` entry.
      * @param folderName - The folder under `worlds/` the level lives in.
-     * @param options - `overworld` forces the Overworld's load mode, which the default level
+     * @param options - `overworld` forces the Overworld's load mode, which the entry level
      *   needs eager whatever the entry says, since the server names it before anything else.
      * @throws {Error} When the level is already loaded, names a provider that is not
      *   registered, or its stems cannot be resolved.
@@ -519,8 +523,7 @@ export default class WorldManager implements Service {
             const level = this.getLevel(folderName);
             if (level === undefined || this.states.get(level.id) !== 'attached')
                 throw new PrismarineWorldErrors.LevelNotAttached({ name: folderName });
-            if (level === this.defaultLevel)
-                throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
+            if (level === this.entryLevel) throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
             if (this.origins.get(level.id) === 'config')
                 throw new PrismarineWorldErrors.ConfigLevelCannotDetach({ name: level.name });
 
@@ -548,7 +551,7 @@ export default class WorldManager implements Service {
                 .filter((session) => session.getWorld().getLevel() === level);
         const leaving = inLevel();
         if (leaving.length === 0) return;
-        for (const session of leaving) session.setWorld(this.defaultWorld);
+        for (const session of leaving) session.setWorld(this.entryWorld);
         if (inLevel().length === 0) return;
 
         const events = this.server.getKernel().events;
@@ -601,9 +604,13 @@ export default class WorldManager implements Service {
         return Array.from(this.levels.values());
     }
 
-    /** The `level-name` level, which players join and whose dimensions the commands address. */
-    public getDefaultLevel(): Level {
-        return this.defaultLevel;
+    /**
+     * The entry level: the one `level-name` names, which a joining player enters first. It is the
+     * level of the console, the datapack functions and a lookup that names no level, and no other
+     * code should reach for it when it has the level of a player, command or block in hand.
+     */
+    public getEntryLevel(): Level {
+        return this.entryLevel;
     }
 
     /**
@@ -618,8 +625,7 @@ export default class WorldManager implements Service {
      *
      * @param dimension - A Java `dimension_type` id such as `minecraft:the_nether`, or the
      *   Bedrock spelling of a vanilla one, which is how the content runtime keys its worlds.
-     * @param level - The level's folder name, as it keys `worlds.<name>`; left out for the
-     *   default level.
+     * @param level - The level's name; left out for the entry level.
      * @returns The world, or undefined before the level exists or while that dimension is still
      *   lazy.
      */
@@ -648,20 +654,20 @@ export default class WorldManager implements Service {
         return wanted;
     }
 
-    /** A level by folder name, or the default level when none is named. */
+    /** A level by folder name, or the entry level when none is named. */
     private levelOf(level: string | undefined): Level | undefined {
-        return level === undefined ? this.defaultLevel : this.getLevel(level);
+        return level === undefined ? this.entryLevel : this.getLevel(level);
     }
 
     /**
-     * The default level's world of a dimension, built and enabled if it is not yet.
+     * The entry level's world of a dimension, built and enabled if it is not yet.
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
-     * @throws {Error} When no stem of the default level has that dimension, naming the ones
+     * @throws {Error} When no stem of the entry level has that dimension, naming the ones
      *   that do, or when the stem's generator cannot be built.
      */
     public async worldFor(dimension: string): Promise<World> {
-        const level = this.getDefaultLevel();
+        const level = this.getEntryLevel();
         const stemId = this.stemIdOf(level, dimension);
         if (stemId === undefined) {
             throw new PrismarineWorldErrors.UnknownLevelDimension({
@@ -674,7 +680,7 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * A level's world of a dimension, the default level's unless another is named, starting its
+     * A level's world of a dimension, the entry level's unless another is named, starting its
      * build when nobody has entered it.
      *
      * For a caller that cannot wait, such as a command writing blocks. The world answered may
@@ -684,7 +690,7 @@ export default class WorldManager implements Service {
      * Overworld instead.
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
-     * @param levelName - The level's folder name, or undefined for the default level.
+     * @param levelName - The level's folder name, or undefined for the entry level.
      * @returns The world, or undefined when no stem of that level has that dimension, or no
      *   level has that name.
      */
@@ -704,13 +710,13 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * A level's stem of a dimension, the default level's unless another is named, without
+     * A level's stem of a dimension, the entry level's unless another is named, without
      * building its world.
      *
      * @param dimension - A Java `dimension_type` id, or the Bedrock spelling of a vanilla one.
-     * @param levelName - The level's folder name, or undefined for the default level.
-     * @returns The level and the stem's id, or undefined when no stem of the default level has
-     *   that dimension, or no default level is loaded yet.
+     * @param levelName - The level's folder name, or undefined for the entry level.
+     * @returns The level and the stem's id, or undefined when no stem of the entry level has
+     *   that dimension, or no entry level is loaded yet.
      */
     public stemFor(
         dimension: string,
@@ -735,11 +741,10 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * Returns the default world.
-     * @returns {World} the world instance.
+     * The entry level's Overworld, which a joining player enters first.
      */
-    public getDefaultWorld(): World {
-        return this.defaultWorld;
+    public getEntryWorld(): World {
+        return this.entryWorld;
     }
 
     /** The generator kinds this server can build a dimension with. */

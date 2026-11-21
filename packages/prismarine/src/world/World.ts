@@ -3023,7 +3023,7 @@ export class World implements Service {
                 });
             }
 
-            this.spillFromBlock({ x, y, z }, contentDrops ?? broken.getDrops(itemInHand, this.server));
+            this.spillFromBlock({ x, y, z }, contentDrops ?? broken.getDrops(itemInHand, this.server, this));
         }
 
         if (player !== undefined) {

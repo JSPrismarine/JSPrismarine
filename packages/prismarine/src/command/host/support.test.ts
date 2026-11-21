@@ -28,7 +28,7 @@ import {
 const worldIn = (dimension: DimensionType, { named = 'world', isDefault = true } = {}) => {
     const level = stub<Level>({ name: named });
     const defaultLevel = isDefault ? level : stub<Level>({ name: 'world' });
-    const server = stub<Server>({ getWorldManager: () => stub<WorldManager>({ getDefaultLevel: () => defaultLevel }) });
+    const server = stub<Server>({ getWorldManager: () => stub<WorldManager>({ getEntryLevel: () => defaultLevel }) });
     return stub<World>({ getDimension: () => dimension, getLevel: () => level, getServer: () => server });
 };
 
@@ -55,7 +55,7 @@ describe('command entity references', () => {
         const worldManager = stub<WorldManager>({
             // The Nether is a stem nobody has entered: started, and answered while it enables.
             startWorld: (dimension) => (dimension === 'minecraft:the_nether' ? nether : undefined),
-            getDefaultWorld: () => overworld
+            getEntryWorld: () => overworld
         });
         const server = stub<Server>({ getWorldManager: () => worldManager });
 
@@ -63,7 +63,7 @@ describe('command entity references', () => {
         expect(worldOf(server, 'mypack:sky')).toBe(overworld);
     });
 
-    it('offers every stem of the default level as a dimension, built or not', () => {
+    it('offers every stem of the level as a dimension, built or not', () => {
         const debug: GeneratorDefinition = { type: 'minecraft:debug' };
         const level = stub<Level>({
             getStems: () =>
@@ -73,9 +73,7 @@ describe('command entity references', () => {
                     ['mypack:sky', { type: 'minecraft:overworld', generator: debug }]
                 ])
         });
-        const server = stub<Server>({ getWorldManager: () => stub<WorldManager>({ getDefaultLevel: () => level }) });
-
-        expect(loadedDimensions(server)).toEqual(['minecraft:overworld', 'minecraft:the_nether']);
+        expect(loadedDimensions(level)).toEqual(['minecraft:overworld', 'minecraft:the_nether']);
     });
 
     it('reads a dimension argument in either spelling as its Java id', () => {
@@ -111,7 +109,7 @@ describe('command entity references', () => {
                 started.push([dimension, level]);
                 return levelWorld;
             },
-            getDefaultWorld: () => stub<World>({})
+            getEntryWorld: () => stub<World>({})
         });
         const server = stub<Server>({ getWorldManager: () => worldManager });
 

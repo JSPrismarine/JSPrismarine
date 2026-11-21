@@ -93,8 +93,9 @@ describe('command', () => {
                     rules.set(name, [value, editable]);
                 }
             });
-            const world = stub<World>({ getGameRuleManager: () => gameRules });
-            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world });
+            const level: Level = stub<Level>({ loadedWorld: () => world });
+            const world: World = stub<World>({ getGameRuleManager: () => gameRules, getLevel: () => level });
+            const worldManager = stub<WorldManager>({ getEntryWorld: () => world, getEntryLevel: () => level });
 
             return {
                 can,
@@ -282,11 +283,13 @@ describe('command', () => {
             const gameRules = stub<GameRuleManager>({
                 getGameRule: (name: string) => (name === 'sendCommandFeedback' ? [true, true] : null)
             });
-            const world = stub<World>({ getGameRuleManager: () => gameRules });
+            const level: Level = stub<Level>({ loadedWorld: () => world });
+            const world: World = stub<World>({ getGameRuleManager: () => gameRules, getLevel: () => level });
             return new CommandManager(
                 stub<Server>({
                     ...server,
-                    getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world }),
+                    getWorldManager: () =>
+                        stub<WorldManager>({ getEntryWorld: () => world, getEntryLevel: () => level }),
                     ...parts
                 }),
                 onStopCommandComplete
@@ -509,8 +512,8 @@ describe('command', () => {
                     getChatManager: () => stub<ChatManager>({ send: async () => {} }),
                     getWorldManager: () =>
                         stub<WorldManager>({
-                            getDefaultWorld: () => world,
-                            getDefaultLevel: () => level,
+                            getEntryWorld: () => world,
+                            getEntryLevel: () => level,
                             getLevels: () => [level]
                         })
                 });

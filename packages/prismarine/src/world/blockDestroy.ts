@@ -85,7 +85,7 @@ const catalogDrops = (destruction: BlockDestruction): Array<Block | Item> => {
     const block = blockFromContent(standing.name, server.getContent?.());
     if (block === null) return [];
 
-    return block.getDrops(null, server).filter((drop): drop is Block | Item => drop !== null);
+    return block.getDrops(null, server, world).filter((drop): drop is Block | Item => drop !== null);
 };
 
 /**

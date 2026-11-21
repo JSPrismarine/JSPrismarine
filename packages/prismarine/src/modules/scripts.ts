@@ -59,7 +59,7 @@ export const scriptsModule = (server: Server): Module => {
         await server.getScriptSlot(level).start(server.getWorldPackDirectories(), (directories) =>
             startLevelScripts(server, level, directories, {
                 // One debugger, on one port, so it attaches to the default level's runtime.
-                autoAttach: level === worlds.getDefaultLevel()
+                autoAttach: level === worlds.getEntryLevel()
             })
         );
     };
@@ -189,7 +189,7 @@ export const startLevelScripts = async (
                     .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId))),
             commands: (commands) => {
                 // A command's dimension names its level only outside the default level.
-                const name = level === server.getWorldManager().getDefaultLevel() ? undefined : level.name;
+                const name = level === server.getWorldManager().getEntryLevel() ? undefined : level.name;
                 server.getCommandManager().setScriptCommands(commands, name);
                 return () => server.getCommandManager().setScriptCommands(undefined, name);
             },
@@ -237,7 +237,7 @@ const bindScriptComponents = (server: Server, level: Level, sink: ScriptComponen
     const stops = [
         bridge.bind(sink, {
             name: level.name,
-            isDefault: level === server.getWorldManager().getDefaultLevel(),
+            isDefault: level === server.getWorldManager().getEntryLevel(),
             ownsEntity: (runtimeId) => actors.actorOf(runtimeId) !== undefined,
             scheduler: (block, min, max) => {
                 const actions = content.world.blockWorld.at(block.dimension, level.name);

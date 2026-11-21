@@ -5,7 +5,7 @@
  * machine at `preload-radius: 24` that is minutes - and every command path reads the default
  * world, if only for the `sendCommandFeedback` game rule. `WorldManager` used to name the
  * default world after `World.enable` resolved, so the whole preload was a window in which
- * `getDefaultWorld()` answered `undefined` while its type said `World`, and anything typed into
+ * `getEntryWorld()` answered `undefined` while its type said `World`, and anything typed into
  * it came back as `Cannot read properties of undefined (reading 'getGameRuleManager')`.
  *
  * This boots a real server over a generator that never answers, which holds it in that window
@@ -162,7 +162,7 @@ describe('a command typed while the start region is still generating', () => {
     }, 120_000);
 
     it('has a default world to answer with before the start region is generated', () => {
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
 
         expect(world).toBeDefined();
         expect(world.getGameRuleManager()).toBeDefined();

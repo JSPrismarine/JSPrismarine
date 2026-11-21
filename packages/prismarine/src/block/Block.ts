@@ -317,14 +317,14 @@ export class Block {
      * yields the block itself.
      *
      * @param item - What broke it, which the table's predicates read.
-     * @param server - The server, for its content and its source of chance.
+     * @param server - The server, for its content.
+     * @param world - The world it broke in, whose dimension and clock the table's conditions read.
      */
-    public getDrops(item: Item | null, server?: BlockDropServer): Array<Block | Item | null> {
+    public getDrops(item: Item | null, server?: BlockDropServer, world?: LootLevelWorld): Array<Block | Item | null> {
         const content = this.content ?? server?.getContent?.();
         if (!this.isCompatibleWithTool(item, content)) return [];
         if (!content) return [this];
 
-        const world = server?.getWorldManager?.().getDefaultWorld();
         const rolled = rollBlockDrops(
             content,
             { identifier: this.getStateName(), states: this.states },
@@ -370,16 +370,7 @@ export const blockFromContent = (
     return new Block({ name, states, facts, content });
 };
 
-/** What {@link Block.getDrops} reads off the server: its content and its worlds. */
+/** What {@link Block.getDrops} reads off the server: its content. */
 export interface BlockDropServer {
     getContent?(): ServerContent | undefined;
-    /**
-     * The worlds, for the level view the loot conditions read.
-     *
-     * The default one, because a `Block` carries no dimension of its own.
-     * The clock is the only member of that view two dimensions could
-     * disagree about, and Bedrock keeps one time for all of them, so the
-     * answer is the right one until a break can say where it happened.
-     */
-    getWorldManager?(): { getDefaultWorld(): LootLevelWorld | undefined };
 }

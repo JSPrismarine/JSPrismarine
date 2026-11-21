@@ -383,7 +383,7 @@ export class ServerNetworking implements Networking {
         const transport = new TcpTransport(ids, logger);
         const server = this.server;
         const config = server.getConfig();
-        const world = () => server.getWorldManager().getDefaultWorld();
+        const world = () => server.getWorldManager().getEntryWorld();
         const connections = new JavaConnections(transport, {
             status: serverName,
             brand: serverName.getName(),

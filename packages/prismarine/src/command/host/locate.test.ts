@@ -148,8 +148,8 @@ const buildFixture = (): Fixture => {
         getEntityRuntime: () => inertEntityRuntime(),
         getWorldManager: () =>
             stub<WorldManager>({
-                getDefaultWorld: () => worlds.get(Dimensions.Overworld.id)!,
-                getDefaultLevel: () => level,
+                getEntryWorld: () => worlds.get(Dimensions.Overworld.id)!,
+                getEntryLevel: () => level,
                 getWorldByDimension: (dimension) => worlds.get(dimension),
                 startWorld: (dimension) => worlds.get(dimension)
             })

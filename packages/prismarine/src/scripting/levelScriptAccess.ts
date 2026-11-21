@@ -255,7 +255,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
      * is not ready yet, the store player, which carries the tags into the store.
      */
     const tagHolderOf = (id: string): ActorTagHolder | undefined => actorOf(id) ?? sessionOf(id)?.getPlayer();
-    const host = () => server.getCommandManager().getHost();
+    const host = () => server.getCommandManager().getHost(level);
     const refOf = (actor: StoreActor) => ({
         id: String(actor.getRuntimeId()),
         type: actor.getType(),

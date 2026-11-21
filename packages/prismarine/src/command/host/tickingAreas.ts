@@ -7,23 +7,27 @@ import type { CommandTickingArea, TickingAreaCommandHost } from '@jsprismarine/c
 import type Server from '../../Server';
 import type { TickingArea } from '../../world/TickingAreas';
 import { chunksOfBlocks, COMMAND_TICKING_AREA_LIMIT } from '../../world/TickingAreas';
-import { commandLevelOf, worldOf } from './support';
+import type { Level } from '../../world/Level';
+import { commandLevelOf, dimensionInLevel, worldOf } from './support';
 
 /**
  * Builds the ticking area verbs.
  * @param server - The live server, read when a command runs.
+ * @param level - The level the commands run in, whose areas a dimension naming no level means.
  */
-export const tickingAreaCommandHost = (server: Server): TickingAreaCommandHost => {
+export const tickingAreaCommandHost = (
+    server: Server,
+    level: () => Level = () => server.getWorldManager().getEntryLevel()
+): TickingAreaCommandHost => {
     /** The ticking areas of the level a command's dimension is in. */
     const areas = (dimension: string | undefined) =>
-        (
-            (dimension === undefined ? undefined : commandLevelOf(server, dimension)) ??
-            server.getWorldManager().getDefaultLevel()
-        ).getTickingAreas();
+        ((dimension === undefined ? undefined : commandLevelOf(server, dimension)) ?? level()).getTickingAreas();
+    /** The world of a dimension a command names, in the host's level when it names none. */
+    const worldIn = (dimension: string) => worldOf(server, dimensionInLevel(server, dimension, level()));
     /** The Bedrock name of the dimension a command names. */
-    const dimensionOf = (dimension: string): string => worldOf(server, dimension).getDimension().bedrockName;
+    const dimensionOf = (dimension: string): string => worldIn(dimension).getDimension().bedrockName;
     const heightOf = (dimension: string) => {
-        const type = worldOf(server, dimension).getDimension();
+        const type = worldIn(dimension).getDimension();
         return { min: type.minY, max: type.minY + type.height - 1 };
     };
     const reportOf = (area: TickingArea): CommandTickingArea => {

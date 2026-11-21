@@ -115,7 +115,7 @@ describe('a frozen tick', () => {
             await settle();
         }
 
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const swingerId = swinger.getStartGame()?.runtimeEntityId;
         const watcherId = watcher.getStartGame()?.runtimeEntityId;
         if (swingerId === undefined || watcherId === undefined) throw new Error('A client joined without a StartGame');

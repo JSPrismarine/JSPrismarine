@@ -139,7 +139,7 @@ const runSession = async (
     await server.bootstrap('127.0.0.1', 0);
     try {
         expect(server.getScripts()).toBeDefined();
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getEntryWorld();
         const digests: string[] = [];
         const weather: string[] = [];
         for (let tick = 0; tick < TICKS; tick++) {

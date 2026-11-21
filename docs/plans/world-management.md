@@ -75,13 +75,15 @@ Out of scope for now:
        runtime, with their UUID, name, folder, creation parameters and state. Startup attaches the
        config's levels and the registry's attached ones. Attaching a level whose name an attached
        level has is refused, and so is a config level whose name an attached registry level has.
-7. [ ] **Explicit level context.** Command sources, block access, network contexts and the Java
+7. [x] **Explicit level context.** Command sources, block access, network contexts and the Java
        session carry their level, and the `getDefaultWorld()` calls go. `level-name` names the entry
        level only.
 8. [ ] **Player transfer.** Moving between levels as one operation: the player's record saved to
        the old level's player data and read from the new one's, the client given the new level's
        game rules, clock, weather and `DimensionData`, and the two script runtimes told. A
-       returning player joins the level they left from.
+       returning player joins the level they left from. The scoreboard's packets go to the level's
+       players only, and an arriving player is shown the new level's displays: slice 7 put each
+       command on its level's scoreboard, but the packets still go to every player.
 9. [ ] **Shared player data.** A config setting groups levels whose players share a record, and
        each group lists the parts it shares: inventory, armor, offhand, ender chest, experience,
        health, hunger, effects, game mode, abilities, position, spawn point. A part a group leaves

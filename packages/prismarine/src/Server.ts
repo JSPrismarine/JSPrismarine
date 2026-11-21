@@ -434,7 +434,7 @@ export default class Server {
                 // Pools start on first use, and the default world may not exist yet.
                 control: () => {
                     try {
-                        return this.worldManager.getDefaultWorld()?.getGenerator().generationControl?.();
+                        return this.worldManager.getEntryWorld()?.getGenerator().generationControl?.();
                     } catch {
                         return undefined;
                     }
@@ -1014,7 +1014,7 @@ export default class Server {
      * @param level - The level; left out, the default level.
      */
     public getScripts(level?: Level): LevelScripts | undefined {
-        const id = (level ?? this.getWorldManager().getDefaultLevel()).id;
+        const id = (level ?? this.getWorldManager().getEntryLevel()).id;
         return this.scriptSlots.get(id)?.current;
     }
 
@@ -1024,7 +1024,7 @@ export default class Server {
      * @param level - The level; left out, the default level.
      * @internal
      */
-    public getScriptSlot(level: Level = this.getWorldManager().getDefaultLevel()): ScriptSlot<LevelScripts> {
+    public getScriptSlot(level: Level = this.getWorldManager().getEntryLevel()): ScriptSlot<LevelScripts> {
         let slot = this.scriptSlots.get(level.id);
         if (slot === undefined) {
             slot = new ScriptSlot<LevelScripts>();
