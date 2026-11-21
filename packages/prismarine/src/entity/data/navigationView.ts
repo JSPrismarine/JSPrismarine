@@ -24,6 +24,14 @@ const WATER = new Set(['minecraft:water', 'minecraft:flowing_water']);
 /** The two lava identifiers, which only a lava-walking profile enters. */
 const LAVA = new Set(['minecraft:lava', 'minecraft:flowing_lava']);
 
+/** Whether a block identifier is water, as {@link EntityBlockView.isWater} reads a cell. */
+export const isWaterIdentifier = (identifier: string | undefined): boolean =>
+    identifier !== undefined && WATER.has(identifier);
+
+/** Whether a block identifier is lava, as {@link EntityBlockView.isLava} reads a cell. */
+export const isLavaIdentifier = (identifier: string | undefined): boolean =>
+    identifier !== undefined && LAVA.has(identifier);
+
 /** Blocks that hurt anything standing in them, which `avoid_damage_blocks` steers around. */
 const DAMAGING = new Set([
     'minecraft:lava',
@@ -409,14 +417,8 @@ export const navigationViewOf = (
             // unloaded block is impassable, which stops a path from being planned off the edge of
             // the loaded world.
             isPassable: (position) => solidAt(position) === false,
-            isWater: (position) => {
-                const identifier = identifierAt(position);
-                return identifier !== undefined && WATER.has(identifier);
-            },
-            isLava: (position) => {
-                const identifier = identifierAt(position);
-                return identifier !== undefined && LAVA.has(identifier);
-            },
+            isWater: (position) => isWaterIdentifier(identifierAt(position)),
+            isLava: (position) => isLavaIdentifier(identifierAt(position)),
             isDamaging: (position) => {
                 const identifier = identifierAt(position);
                 return identifier !== undefined && DAMAGING.has(identifier);

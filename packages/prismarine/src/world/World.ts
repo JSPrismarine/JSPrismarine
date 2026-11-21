@@ -1725,7 +1725,11 @@ export class World implements Service {
         return block;
     }
 
-    /** The latest block-write version, unique across world instances and monotonic per world. */
+    /**
+     * The latest block-write version, unique across world instances and monotonic per world. It
+     * moves with every block write and every chunk entering or leaving memory, which are all the
+     * ways a block read can come to answer differently.
+     */
     public getBlockWriteVersion(): number {
         return this.blockWriteVersion;
     }
@@ -2106,6 +2110,8 @@ export class World implements Service {
             chunk.packBlockStorage();
             this.chunks.set(index, chunk);
             this.loadedChunksRevision++;
+            // A block read in the chunk now answers its blocks rather than nothing.
+            this.blockWriteVersion = World.nextBlockWriteVersion++;
             this.getPlayerChunkRefCounts().chunkLoaded(chunk);
             this.getPortalIndex().chunkLoaded(chunk);
             this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x, z);
@@ -4375,6 +4381,8 @@ export class World implements Service {
         this.changes.chunkLeft(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
         this.loadedChunksRevision++;
+        // A block read in the chunk now answers nothing, which a cache keyed on the version notices.
+        this.blockWriteVersion = World.nextBlockWriteVersion++;
         this.getPlayerChunkRefCounts().chunkUnloaded(chunk);
         this.portalIndex?.chunkUnloaded(chunk);
         this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), chunk.getX(), chunk.getZ());

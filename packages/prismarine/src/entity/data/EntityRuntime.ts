@@ -243,7 +243,7 @@ import { EyeOfEnderSignals, isEyeOfEnderSignal } from './eyeOfEnderSignals';
 import { PlayerSystems, writeSneaking } from './playerSystems';
 import { itemDropOf } from '../../inventory/persistence';
 import { maxStackSizeOf, resistsDamageOf } from '../../item/Item';
-import { navigationViewOf } from './navigationView';
+import { isLavaIdentifier, isWaterIdentifier, navigationViewOf } from './navigationView';
 import { DEFAULT_BLOCK_FRICTION, DRAG } from './travel';
 import { projectileFlight, velocityAfterMove, velocityBeforeMove } from './projectileFlight';
 import {
@@ -637,6 +637,19 @@ interface MediumCache {
     readonly blockRevision: number;
 }
 
+/**
+ * What a body's box was in at one position, from one walk of the blocks it overlaps, as Java's
+ * `Entity.checkInsideBlocks` makes one walk for every block that reacts to being stood in. Valid
+ * while its position, its box and the world's block revision stay identical: a position is
+ * replaced rather than changed in place, and the revision moves with every block write.
+ */
+interface BodyContents extends MediumCache {
+    readonly water: boolean;
+    readonly lava: boolean;
+    readonly powderSnow: boolean;
+    readonly cobweb: boolean;
+}
+
 /** The fuse length in seconds, sampled when a component declares a range. */
 const fuseLengthSeconds = (params: Record<string, unknown>, random: () => number): number => {
     const length = params['fuse_length'];
@@ -990,6 +1003,8 @@ export class EntityRuntime implements EntityScene {
     private readonly pendingBarters = new WeakSet<DataEntity>();
     /** The last damage tick used by admiration and barter cooldowns. */
     private readonly lastDamagedAt = new WeakMap<DataEntity, number>();
+    /** The last walk of each body's blocks; see {@link EntityRuntime.contentsOf}. */
+    private readonly contentsByEntity = new WeakMap<DataEntity, BodyContents>();
     /** Last area-attack hit time per attacker and target. */
     private readonly areaAttackLastHitTicks = new WeakMap<DataEntity, Map<number, number>>();
     /** Component-derived physics values, valid until an entity rebuilds its active component map. */
@@ -2746,7 +2761,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         const navigation = this.navigation();
-        const [inWater, inLava] = bodyIntersectsMedia(position, box, navigation.isWater, navigation.isLava);
+        const { water: inWater, lava: inLava } = this.contentsOf(entity);
         const head = blockPositionOf({
             x: position.x,
             y: position.y + box.height - MOVEMENT_EPSILON,
@@ -2760,6 +2775,56 @@ export class EntityRuntime implements EntityScene {
         if (blockRevision !== undefined) {
             this.mediumByEntity.set(entity, { position, width: box.width, height: box.height, blockRevision });
         }
+    }
+
+    /**
+     * The liquids, powder snow and cobwebs a body's box is in, read once per position.
+     *
+     * The medium, the cold and the cobweb each asked this of every block the body overlaps on
+     * their own, and the cold and the cobweb read past the navigation view's memo, so a mob read
+     * about twenty blocks a tick to learn it stood in air. A body standing still keeps its answer
+     * until a block is written; without a block revision every call walks the blocks again.
+     */
+    private contentsOf(entity: DataEntity): BodyContents {
+        const position = entity.position;
+        const { width, height } = entity.facts.box;
+        const blockRevision = this.world.blocks.blockRevision?.();
+        const cached = this.contentsByEntity.get(entity);
+        if (
+            cached !== undefined &&
+            blockRevision !== undefined &&
+            cached.position === position &&
+            cached.width === width &&
+            cached.height === height &&
+            cached.blockRevision === blockRevision
+        )
+            return cached;
+
+        const navigation = this.navigation();
+        let water = false;
+        let lava = false;
+        let powderSnow = false;
+        let cobweb = false;
+        bodyTouchesBlock(position, entity.facts.box, (cell) => {
+            const identifier = navigation.blockAt(cell);
+            water ||= isWaterIdentifier(identifier);
+            lava ||= isLavaIdentifier(identifier);
+            powderSnow ||= identifier === POWDER_SNOW;
+            cobweb ||= identifier === COBWEB;
+            return false;
+        });
+        const contents = {
+            position,
+            width,
+            height,
+            blockRevision: blockRevision ?? -1,
+            water,
+            lava,
+            powderSnow,
+            cobweb
+        };
+        if (blockRevision !== undefined) this.contentsByEntity.set(entity, contents);
+        return contents;
     }
 
     /** Rechecks support after AI movement, so packets describe the position clients receive. */
@@ -6972,8 +7037,7 @@ export class EntityRuntime implements EntityScene {
     private tickFreezing(entity: DataEntity, tick: number): void {
         if (javaEntityStats(entity.identifier, this.content().entities.javaStats) === undefined) return;
         const frozen = this.frozenTicks.get(entity.id) ?? 0;
-        const isPowderSnow = (at: EntityPosition) => this.world.blocks.get(at)?.identifier === POWDER_SNOW;
-        const [inSnow] = bodyIntersectsMedia(entity.position, entity.facts.box, isPowderSnow, () => false);
+        const inSnow = this.contentsOf(entity).powderSnow;
         if (!inSnow && frozen === 0) return;
         const canFreeze = !entity.instance.senseDamage({ cause: 'freezing', amount: 1 }).blocked;
         this.setFrozenTicks(entity.id, inSnow && canFreeze ? frozen + 1 : frozen - 2);
@@ -7231,11 +7295,7 @@ export class EntityRuntime implements EntityScene {
         const immunity = entity.instance.componentParams('minecraft:block_movement_slowdown_immunity');
         const immune = isRecord(immunity) && Array.isArray(immunity.blocks) && immunity.blocks.includes(COBWEB);
         if (immune) return false;
-        return bodyTouchesBlock(
-            entity.position,
-            entity.facts.box,
-            (at) => this.world.blocks.get(at)?.identifier === COBWEB
-        );
+        return this.contentsOf(entity).cobweb;
     }
 
     /**
