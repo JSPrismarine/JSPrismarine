@@ -149,6 +149,15 @@ export interface IntentPayloads {
      * client says outright. `container` is the inventory's 36 slots (the hotbar's 9 first),
      * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier.
      */
+    /**
+     * The player used the item in hand on a block: `face` the face clicked, 0 to 5 as both
+     * editions number them, and `faceLocation` where on it, each coordinate from 0 to 1.
+     */
+    readonly useItemOnBlock: {
+        readonly position: { readonly x: number; readonly y: number; readonly z: number };
+        readonly face: number;
+        readonly faceLocation: { readonly x: number; readonly y: number; readonly z: number };
+    };
     readonly setCreativeSlot: {
         readonly container: 'inventory' | 'armor' | 'offhand';
         readonly slot: number;
@@ -203,7 +212,9 @@ export const Intents = {
     // Breaks blocks and times the mining in the world.
     mineBlock: { lane: 'input' },
     // Writes the inventory, which replication shows the players that see the sender.
-    setCreativeSlot: { lane: 'input' }
+    setCreativeSlot: { lane: 'input' },
+    // Places blocks and runs the block's and the item's behaviors in the world.
+    useItemOnBlock: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

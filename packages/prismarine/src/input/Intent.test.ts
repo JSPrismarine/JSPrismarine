@@ -28,7 +28,8 @@ describe('input/Intent', () => {
             'setCreativeSlot',
             'setDefaultGameMode',
             'setPlayerPermission',
-            'setViewDistance'
+            'setViewDistance',
+            'useItemOnBlock'
         ]);
     });
 

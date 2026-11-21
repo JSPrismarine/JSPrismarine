@@ -20,6 +20,7 @@ import SetCreativeSlotHandler from './handlers/SetCreativeSlotHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
+import UseItemOnBlockHandler from './handlers/UseItemOnBlockHandler';
 
 /**
  * The built-in handler of every intent kind, which `IntentHandlerRegistry.enable` registers. A
@@ -47,5 +48,6 @@ export {
     SetCreativeSlotHandler,
     SetDefaultGameModeHandler,
     SetPlayerPermissionHandler,
-    SetViewDistanceHandler
+    SetViewDistanceHandler,
+    UseItemOnBlockHandler
 };

@@ -54,6 +54,7 @@ import {
     PlayerLoaded,
     SetCarriedItem,
     SetCreativeModeSlot,
+    UseItemOn,
     PlayLogin,
     ServerboundKeepAlive,
     SetCenterChunk,
@@ -80,6 +81,7 @@ import type PlayerSession from '../PlayerSession';
 import { javaItemTranslation } from './editionTranslation';
 import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from './javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from './javaMining';
+import { javaUseItemOnIntentOf } from './javaUseItemOn';
 import type { JavaPlayers } from './javaPlayers';
 import { javaGameModeOf } from './JavaPresenter';
 import type { JavaChunkLight } from './javaChunk';
@@ -545,6 +547,13 @@ export class JavaConnections {
             case SetCreativeModeSlot.id: {
                 const intent = javaCreativeSlotIntentOf(expect(SetCreativeModeSlot), this.items);
                 return intent === undefined ? undefined : queue(players.intent(session, intent));
+            }
+            case UseItemOn.id: {
+                const use = expect(UseItemOn);
+                const intent = javaUseItemOnIntentOf(use);
+                const applied = intent === undefined ? Promise.resolve() : players.intent(session, intent);
+                // Answered after the tick's block changes, as a dig is; see below.
+                return queue(applied.then(() => this.send(state, BlockChangedAck, { sequence: use.sequence })));
             }
             case PlayerAction.id: {
                 const action = expect(PlayerAction);
