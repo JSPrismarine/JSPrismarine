@@ -1,55 +1,32 @@
-import type { WorldPreset } from '@jsprismarine/worldgen';
-import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
-
-import type Server from '../Server';
-import type { Service } from '../utils/Service';
-import { withCwd } from '../utils/cwd';
-import { worldSeedOf } from '../utils/Seed';
-import { GeneratorFactories } from './GeneratorFactories';
-import type { TerrainCacheSettings } from './GeneratorFactories';
-import { dimensionByName } from './DimensionType';
-import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
-import { loadJavaWorldgenRegistriesFrom, requireJavaWorldgenSources } from './generators/datadriven/javaWorldgenData';
-import type { JavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
-import { normalizeWorldData, worldDataOf } from '../config/normalizeWorldData';
-import { BUILT_IN_WORLD_PRESETS, dimensionTypesOf, loadOf, resolveStems, worldPresetsOf } from './resolveStems';
-import { contentRandomTickHandlers } from './randomTicks';
-import { contentBlockTickHandlers } from './blockTicks';
-import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
-import { Level } from './Level';
-import type { World } from './World';
-import type BaseProvider from './providers/BaseProvider';
-import type { WorldGenSettings } from './WorldPersistence';
-import type { SavedDimensionNumbers } from './DimensionNumbers';
-
-import LevelDB from './providers/leveldb/LevelDB';
-
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
-import type { WorldData } from '../config/JsonConfigTypes';
+
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+
+import type { WorldData } from '../config/JsonConfigTypes';
+import { normalizeWorldData, worldDataOf } from '../config/normalizeWorldData';
+import type Server from '../Server';
+import { withCwd } from '../utils/cwd';
+import type { Service } from '../utils/Service';
+import { worldSeedOf } from '../utils/Seed';
+import { contentBlockTickHandlers } from './blockTicks';
+import type { SavedDimensionNumbers } from './DimensionNumbers';
+import { dimensionByName } from './DimensionType';
+import type { GeneratorFactories } from './GeneratorFactories';
+import { Level } from './Level';
+import { LevelProviders } from './LevelProviders';
+import type BaseProvider from './providers/BaseProvider';
+import { contentRandomTickHandlers } from './randomTicks';
+import { contentRedstoneUpdateHandlers } from './redstoneUpdates';
+import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
+import type { World } from './World';
+import { WorldgenCatalog } from './WorldgenCatalog';
+import type { WorldGenSettings } from './WorldPersistence';
 
 export type { WorldData } from '../config/JsonConfigTypes';
 
 const WORLDS_FOLDER = 'worlds';
-/**
- * What a world with no `provider` in the config gets, and now the only one worth having: the
- * format the game itself uses, so a world this server creates can be opened in Minecraft and one
- * made there can be opened here.
- *
- * The `Filesystem` provider that used to sit beside it is gone. It wrote chunks as the network
- * payload, one file each, which is not a format anything else reads - and it never wrote the
- * block entities, entities or level metadata that the rest of the server had come to depend on,
- * so worlds saved through it came back missing what made them worlds. A config still naming it
- * is refused loudly rather than quietly downgraded, because the two store their chunks in
- * different places and pretending otherwise would read as data loss.
- */
-const DEFAULT_WORLD_PROVIDER = 'LevelDB';
-
-/**
- * A world provider class the manager instantiates per world with the world folder and server.
- */
-export type ProviderClass = new (folderPath: string, server: Server) => BaseProvider;
 
 /** A level built and registered, and whether its save had no stems or no UUID before this load. */
 interface PreparedLevel {
@@ -79,23 +56,21 @@ export default class WorldManager implements Service {
     private readonly dimensionIds = new Map<string, string>();
     private defaultLevel!: Level;
     private defaultWorld!: World;
-    private readonly generatorFactories = new GeneratorFactories();
-
-    /** Java's worldgen registries, read once for every level that needs them. */
-    private worldgenRegistries: JavaWorldgenRegistries | undefined;
-    /** The world presets a `preset` may name, read once from the pack stack. */
-    private worldPresets: ReadonlyMap<string, WorldPreset> | undefined;
+    /** The generator kinds, Java worldgen data and terrain cache every level builds from. */
+    private readonly worldgen: WorldgenCatalog;
+    /** The provider classes a level's entry can name. */
+    private readonly providers = new LevelProviders();
     private readonly server: Server;
-    private providers = new Map<string, ProviderClass>(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
-        server.getLogger().verbose(`Registered §b${this.generatorFactories.kinds().length}§r generator kind(s)!`);
+        this.worldgen = new WorldgenCatalog(server);
+        server.getLogger().verbose(`Registered §b${this.worldgen.factories.kinds().length}§r generator kind(s)!`);
 
         // Here rather than in a world, because this runs before the shutdown awaits anything -
         // which matters when the thing being given up is the reason the event loop is busy. See
         // {@link Server.releaseOnShutdown} and {@link Generator.stopGenerating}.
-        server.releaseOnShutdown(() => this.generatorFactories.stopGenerating());
+        server.releaseOnShutdown(() => this.worldgen.factories.stopGenerating());
 
         // Create the worlds directory if it doesn't exist.
         if (!fs.existsSync(withCwd(WORLDS_FOLDER))) {
@@ -109,8 +84,6 @@ export default class WorldManager implements Service {
      * @throws {Error} When `level-name` is empty or names no `worlds` entry.
      */
     public async enable(): Promise<void> {
-        this.addProvider('LevelDB', LevelDB);
-
         const config = this.server.getConfig();
         const invalidHost = config.getInvalidChunkHost();
         if (invalidHost !== undefined) {
@@ -162,32 +135,10 @@ export default class WorldManager implements Service {
      */
     public async disable(): Promise<void> {
         await Promise.all([...this.levels.values()].map(async (level) => this.unloadWorld(level.name)));
-        this.providers.clear();
     }
 
-    /**
-     * Add a provider to the internal providers map.
-     *
-     * @param name - the name of the provider CASE SENSITIVE
-     * @param provider - the provider class, constructed per world with its folder path and the server
-     */
-    public addProvider(name: string, provider: ProviderClass) {
-        this.providers.set(name, provider);
-    }
-
-    /**
-     * Remove a provider from the internal providers map.
-     *
-     * @param name - the name of the provider CASE SENSITIVE
-     */
-    public removeProvider(name: string) {
-        this.providers.delete(name);
-    }
-
-    /**
-     * Get all registered provider classes by name.
-     */
-    public getProviders(): Map<string, ProviderClass> {
+    /** The provider classes a level's entry can name, which a plugin can add to. */
+    public getProviders(): LevelProviders {
         return this.providers;
     }
 
@@ -255,7 +206,7 @@ export default class WorldManager implements Service {
         }
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
-        const providerClass = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
+        const providerClass = this.providers.get(worldData.provider);
         if (!providerClass) {
             // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
             // this is the first thing an existing config carrying it will hit, and "invalid
@@ -263,14 +214,14 @@ export default class WorldManager implements Service {
             throw new PrismarineWorldErrors.UnknownWorldProvider({
                 provider: worldData.provider,
                 folderName,
-                providers: [...this.providers.keys()].join(', ')
+                providers: this.providers.names().join(', ')
             });
         }
 
         const logger = this.server.getLogger();
         // A level is built once, so each old key the entry still uses is said once, and the
         // entry is written back in the new spelling so the next start says nothing.
-        const normalized = normalizeWorldData(worldData, this.generatorFactories.kinds());
+        const normalized = normalizeWorldData(worldData, this.worldgen.factories.kinds());
         if (normalized.deprecations.length > 0) {
             for (const deprecation of normalized.deprecations) logger.warn(`World '${folderName}': ${deprecation}`);
             this.server.getConfig().setWorld(folderName, worldDataOf(normalized), true);
@@ -282,7 +233,7 @@ export default class WorldManager implements Service {
         const provider = new providerClass(levelPath, this.server);
         const saved = await this.savedLevel(provider, folderName, seed);
 
-        const stems = resolveStems(normalized, this.presets(), saved.worldGenSettings, (line) => {
+        const stems = resolveStems(normalized, this.worldgen.presets(), saved.worldGenSettings, (line) => {
             logger.warn(`World '${folderName}': ${line}`);
         });
         const load = new Map(loadOf(normalized, stems));
@@ -295,7 +246,7 @@ export default class WorldManager implements Service {
         const dimensionTypeDefinitions = new Map(
             [...content.definitions.dimensionTypes].map(([id, definition]) => [id, definition.data])
         );
-        const registries = () => this.registries();
+        const registries = () => this.worldgen.registries();
         const report = (what: string) => (identifier: string, error: unknown) => {
             logger.error(error);
             logger.error(`§c${identifier}§r threw on ${what}; it will not be reported again`);
@@ -313,12 +264,12 @@ export default class WorldManager implements Service {
             stems,
             dimensionTypes: dimensionTypesOf(stems, () => dimensionTypeDefinitions),
             load,
-            factories: this.generatorFactories,
+            factories: this.worldgen.factories,
             javaTarget: content.javaTarget,
             worldgen: registries,
             chunkWorkers: this.server.getConfig().getChunkWorkers(),
             chunkHost: this.server.getConfig().getChunkHost(),
-            ...this.terrainCacheOption(),
+            ...this.worldgen.terrainCacheOption(),
             config: { ...worldData },
             handlers: (world) => ({
                 randomTickHandlers: contentRandomTickHandlers({ content, world, report: report('a random tick') }),
@@ -359,60 +310,6 @@ export default class WorldManager implements Service {
         } finally {
             await provider.disable();
         }
-    }
-
-    /**
-     * Java's worldgen registries, projected from the server's pack stack the first time a level
-     * needs them.
-     *
-     * The stack is what `ServerContent` composed: the vanilla datapack and every world and
-     * plugin datapack after it, so a `dimension_type` or `noise_settings` document a datapack
-     * adds reaches the stems and the noise factory. The biome parameter reports are no
-     * datapack's content and come from the Java data cache.
-     *
-     * @throws {Error} When the Java data cache is cold, naming what to fetch.
-     */
-    /**
-     * The terrain tile cache from configuration, or nothing when it is turned off.
-     *
-     * One directory serves every level: a record's key holds its seed, so two worlds never read
-     * each other's tiles.
-     */
-    private terrainCacheOption(): { terrainCache: TerrainCacheSettings } | Record<string, never> {
-        const megabytes = this.server.getConfig().getTerrainCacheSizeMb();
-        if (megabytes === 0) return {};
-
-        return {
-            terrainCache: {
-                directory: withCwd('cache', 'terrain'),
-                maxBytes: megabytes * 1024 * 1024,
-                codeVersion: this.server.getVersion()
-            }
-        };
-    }
-
-    private registries(): JavaWorldgenRegistries {
-        const { definitions, javaTarget } = this.server.getContent();
-        // The reports and the templates come from the release the content was loaded for, so a
-        // preview's definitions never meet the default release's biome parameters.
-        return (this.worldgenRegistries ??= loadJavaWorldgenRegistriesFrom(
-            definitions,
-            requireJavaWorldgenSources(javaTarget.release).reports,
-            javaTarget.format[0],
-            javaTarget.release
-        ));
-    }
-
-    /**
-     * The presets a `preset` may name: the two built-in Overworld-only ones, with every
-     * `worldgen/world_preset` the pack stack carries over them. The vanilla datapack's seven
-     * replace both built-ins when the Java data cache is warm.
-     */
-    private presets(): ReadonlyMap<string, WorldPreset> {
-        return (this.worldPresets ??=
-            findJavaWorldgenSources(this.server.getContent().javaTarget.release) === undefined
-                ? BUILT_IN_WORLD_PRESETS
-                : new Map([...BUILT_IN_WORLD_PRESETS, ...worldPresetsOf(this.registries())]));
     }
 
     /** Gives a world somewhere to report its changes. */
@@ -616,6 +513,6 @@ export default class WorldManager implements Service {
 
     /** The generator kinds this server can build a dimension with. */
     public getGeneratorFactories(): GeneratorFactories {
-        return this.generatorFactories;
+        return this.worldgen.factories;
     }
 }
