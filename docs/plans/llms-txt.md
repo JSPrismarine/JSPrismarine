@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phase 1 is built on `feat/docs-llms-markdown-pages`. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 and 2 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -88,33 +88,38 @@ package needs it. `/llms.txt` links it from its `Optional` section.
 
 > <the root package.json description>
 
-<two to four lines of docs facts: the supported Bedrock versions, the start command for the
-prebuilt server, the demo server's address, and that the server runs on Node.js and Bun>
+- <the version and license, the Minecraft releases the server accepts, the platforms the prebuilt
+  executables cover and the Node.js version, and the demo server's address, from loadProject()>
 
-## Guides
-<one list per guide overview group, in the overview's order, from overviewGroups('guide')>
+## Play
+## Host a server
+## Build add-ons and plugins
+## Work on JSPrismarine
+<the guide overview's groups, each a section with the overview's links and descriptions>
 
-## Data-driven engine
 ## Addons
-<the addon guides, then each addon page with its marketplace description>
+## Errors
+## Data-driven engine
+<each section in sections.mts order, its pages in its sidebar's order>
 
 ## Packages
-<each published package: link to its README page, with its manifest description>
-
-## Errors
-<the errors overview and one link per error domain page>
+<each published package in its package area's order: its API reference, with its manifest description>
 
 ## Optional
-- [API reference](/api/llms.txt): ...
-- [Contributing](/contributing.md): ...
-- [<decision title>](/adr/<page>.md): <status>: <summary>
-- [<plan or research title>](/plans/<page>.md): <verb> <date>: <summary>
-...
+- [API reference](/api/): ...
+- <each page of the sections marked optional: brand, decisions, plans and research>
+- <every other page: the section overviews no group links, Packages, Parity, Contributing and so on>
 ```
 
 Each link's text is the page's title from `pageTitle` and its note is the page's summary from
-`pageSummary`, the same text the section index cards show. Links are absolute URLs under the site's
-`homepage`, since a reader of the file may have fetched it without the site around it.
+`pageSummary`, the same text the section index cards show. A guide overview link keeps the
+overview's own text and description. Links are absolute URLs under the site's `homepage`, since a
+reader of the file may have fetched it without the site around it.
+
+`sections.mts` marks a section `optional` to list it under `Optional`, and `dated` to label its
+pages. A page appears in the first place that lists it, so a data-driven page a guide group links is
+not listed again under the data-driven engine. Every page except the landing page and the API
+reference's own pages appears exactly once.
 
 Decisions, plans and research appear in `Optional` with a link per page, each labeled with when it
 was written or whether it still holds. They describe the code as it was when each was written, so a
@@ -122,11 +127,11 @@ model that reads them as current documentation gives wrong answers, but an agent
 repository often needs one by name. The label tells it how old the page is:
 
 - A plan or research note carries the verb and date `pageDate` reads from its opening sentence, such
-  as "Written 2026-11-12: Stats providers and bStats".
-- A decision carries the `Status:` line it opens with, such as "accepted, 2026-11-15" or
-  "superseded".
-- A page with neither is listed without a label, and the test reports it so its source can gain a
-  dated opening sentence or a status line.
+  as "Written 2026-11-12. Report pseudonymous usage statistics ...".
+- A decision carries the `Status:` line it opens with, such as "Status: accepted, 2026-11-15".
+- A page with neither carries the date its source last changed in git, such as "Updated
+  2026-11-02". On 2026-11-21 that was 19 plans and research notes, whose opening sentences say what
+  they cover rather than when.
 
 ### What `/llms-full.txt` contains
 
@@ -192,9 +197,9 @@ The site footer gets a link to `/llms.txt`.
 `llms.test.ts`, run by the docs package's `test` script, checks the generated files against the
 staged site:
 
-- Every staged page is linked from `/llms.txt` exactly once, and every link in `/llms.txt` names a
-  Markdown file the build wrote.
-- Every decision, plan and research link carries its date or status.
+- Every page outside the landing page and the API reference's own pages is linked from `/llms.txt`
+  exactly once, and every link to a staged page names its Markdown copy.
+- Every decision, plan and research link carries its date, status or last change.
 - No generated Markdown contains a fact marker, front matter, a VitePress container or a
   site-absolute link.
 - `/llms.txt` parses as the format asks: one H1, a blockquote, H2 sections of links.
@@ -214,7 +219,7 @@ the built site.
 
 1. Done: `llms.mts` with the page-to-Markdown function and per-page `.md` files for the staged
    sections, the `_headers` entry and the tests for them.
-2. `/llms.txt` from the sections, overview groups and packages, and the footer link.
+2. Done: `/llms.txt` from the sections, overview groups and packages, and the footer link.
 3. `/llms-full.txt` with its byte budget.
 4. Markdown bodies for the component pages: Packages, addons, Releases, Parity and Benchmarks.
 5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
