@@ -14,6 +14,7 @@ import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
+import type { AddonConfigStore } from './addonConfig';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {
@@ -81,6 +82,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             critical?: CriticalException[];
             betaApis?: boolean;
             members?: JsprismarineServerMembers;
+            addonConfig?: AddonConfigStore;
         } = {}
     ) => {
         const world = options.world ?? new MemoryWorld();
@@ -96,6 +98,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             ...(options.watchdog === undefined ? {} : { watchdog: options.watchdog }),
             ...(options.betaApis === undefined ? {} : { betaApis: options.betaApis }),
             ...(options.members === undefined ? {} : { members: options.members }),
+            ...(options.addonConfig === undefined ? {} : { addonConfig: options.addonConfig }),
             onShutdown: (reason) => options.critical?.push(reason)
         });
         runtimes.push(scripts);
@@ -1113,6 +1116,98 @@ system.run(() => {
                 'not a template TypeError: The template node at template must be an object with a rawtext list',
                 'not a player TypeError: placeholders.render takes a Player as its player',
                 'not shorthand TypeError: placeholders.parse takes a string as its shorthand'
+            ]);
+        });
+
+        /** A config store in memory: a value per pack directory, and a way to say the file changed. */
+        class MemoryConfigStore implements AddonConfigStore {
+            public readonly values = new Map<string, unknown>();
+            public readonly writes: string[] = [];
+            public readonly watching = new Map<string, () => void>();
+            public read(pack: ScriptPack): unknown {
+                return this.values.get(pack.directory);
+            }
+            public write(pack: ScriptPack, value: unknown): void {
+                this.writes.push(`${pack.name} ${JSON.stringify(value)}`);
+                this.values.set(pack.directory, value);
+                this.watching.get(pack.directory)?.();
+            }
+            public watch(pack: ScriptPack, changed: () => void): () => void {
+                this.watching.set(pack.directory, changed);
+                return () => this.watching.delete(pack.directory);
+            }
+            /** The file changed on disk to a value. */
+            public changedOnDisk(pack: ScriptPack, value: unknown): void {
+                this.values.set(pack.directory, value);
+                this.watching.get(pack.directory)?.();
+            }
+        }
+
+        it('reads, writes and follows the config file through the store, one event per flush, until the scripts stop', () => {
+            const store = new MemoryConfigStore();
+            const members = new RecordingMembers();
+            const pack = writePack(`import { system, world } from '@minecraft/server';
+                const show = (label, call) => {
+                    try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                };
+                let jsp;
+                import('@jsprismarine/server').then((module) => { jsp = module; });
+                const seen = (event) => show('change', () => [event.value, Object.isFrozen(event.value), Object.isFrozen(event)]);
+                system.runTimeout(() => {
+                    show('absent', () => [jsp.config.value, 'config' in jsp]);
+                    jsp.config.afterEvents.change.subscribe(seen);
+                    const other = jsp.config.afterEvents.change.subscribe((event) => show('other', () => event.value));
+                    jsp.config.afterEvents.change.unsubscribe(other);
+                    jsp.config.write({ interval: 40, groups: { vip: 'x' } });
+                    show('after write', () => [jsp.config.value, Object.isFrozen(jsp.config.value.groups)]);
+                }, 1);
+                system.runTimeout(() => {
+                    show('bad write', () => jsp.config.write(undefined));
+                    show('bad callback', () => jsp.config.afterEvents.change.subscribe(7));
+                }, 3);`);
+            const { scripts, log } = start([pack], { members, addonConfig: store });
+            scripts.flush();
+            scripts.flush();
+            // Two changes in one tick give one event, with the value read then.
+            store.changedOnDisk(pack, { interval: 10 });
+            store.changedOnDisk(pack, { interval: 15 });
+            scripts.flush();
+            store.changedOnDisk(pack, undefined);
+            scripts.flush();
+            scripts.reload();
+            store.changedOnDisk(pack, { interval: 99 });
+            scripts.flush();
+            scripts.flush();
+
+            // The second runtime's tick 1 writes again, as the first did.
+            expect(store.writes).toEqual(Array<string>(2).fill('probe {"interval":40,"groups":{"vip":"x"}}'));
+            expect(log.printed()).toEqual([
+                'absent [null,true]',
+                'after write [{"interval":40,"groups":{"vip":"x"}},true]',
+                'change [{"interval":40,"groups":{"vip":"x"}},true,true]',
+                'change [{"interval":15},true,true]',
+                'bad write TypeError: config.write takes a value JSON can carry as its value',
+                'bad callback TypeError: config.afterEvents.change.subscribe takes a function as its callback',
+                'change [null,true,true]',
+                // The new runtime subscribes again at its own tick 1, after the change at 99 came in.
+                'absent [{"interval":99},true]',
+                'after write [{"interval":40,"groups":{"vip":"x"}},true]',
+                'change [{"interval":40,"groups":{"vip":"x"}},true,true]'
+            ]);
+            expect(store.watching.size).toBe(1);
+            scripts.shutdown();
+            expect(store.watching.size).toBe(0);
+        });
+
+        it('leaves config out when the server keeps no config files', () => {
+            const { scripts, log } = startWithMembers(`
+                system.runTimeout(() => show('config', () => ['config' in jsp, Object.keys(jsp)]), 1);`);
+            scripts.flush();
+            scripts.flush();
+
+            // A module namespace lists its exports in name order.
+            expect(log.printed()).toEqual([
+                'config [false,["bossBars","getPing","jsprismarine","performance","placeholders"]]'
             ]);
         });
 
