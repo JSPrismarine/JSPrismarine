@@ -36,6 +36,14 @@ _Avoid_: shadow state, mirror, cache
 The tick boundary whose authoritative state one save pass writes.
 _Avoid_: checkpoint, snapshot point
 
+**Decoder**:
+A pure function, one per edition and packet, that turns a serverbound packet into the intents it means, reading only a session's view and writing nothing.
+_Avoid_: packet handler (for a packet with game meaning), translator
+
+**Presenter**:
+The part of a network session that turns what the server asks a session to show into one edition's packets.
+_Avoid_: renderer, view, adapter
+
 **Intent**:
 Plain data that describes an attempted action before anything has validated it.
 _Avoid_: request, command

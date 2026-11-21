@@ -1,6 +1,6 @@
 # Packet handlers share one shape in both directions, and serverbound handlers run in the input step
 
-Status: accepted
+Status: accepted. Amended by [ADR 0027](0027-player-inputs-are-decoded-into-intents.md): a serverbound packet with game meaning is decoded into an intent, and one handler per intent runs in the input step. The shared shape below still describes connection-lane handlers and the client.
 
 Packet handlers register by packet name and session phase, in one shape defined in `@jsprismarine/protocol` that the server and the client package both use. Each side supplies its own context type and keeps its own execution contract.
 
