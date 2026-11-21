@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { reportProgress } from '../../../../.test/reportProgress';
 
 import { WorldgenRandom } from '../placement/WorldgenRandom';
@@ -134,6 +134,27 @@ describe('ore', () => {
                 expect(Math.abs(position.z)).toBeLessThanOrEqual(8);
             }
         }
+    });
+
+    it("reads a candidate's six neighbors through one moving position, as Java's MutableBlockPos", () => {
+        const world = stoneWorld();
+        const reads = vi.spyOn(world, 'getBlock');
+        // Every candidate checks for air, and solid stone makes it read all six neighbors.
+        build({ ...diamondOre, size: 16, discard_chance_on_air_exposure: 1 }).place(world, new WorldgenRandom(9n), {
+            x: 0,
+            y: 20,
+            z: 0
+        });
+
+        // A candidate is read through a position of its own and its neighbors through one shared
+        // position moved between them. Before, each of the six neighbor reads made a new one.
+        const readsPerPosition = new Map<BlockPos, number>();
+        for (const [position] of reads.mock.calls) {
+            readsPerPosition.set(position, (readsPerPosition.get(position) ?? 0) + 1);
+        }
+        const reused = [...readsPerPosition.values()].filter((count) => count > 1);
+        expect(reused).toHaveLength(1);
+        expect(reused[0]).toBeGreaterThanOrEqual(6);
     });
 
     it('scatters loose ore instead of a vein', () => {
