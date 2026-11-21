@@ -86,9 +86,9 @@ then, every CI job that installs the repository builds the library for its own r
 request that changes the native sources runs its tests without publishing anything. Publishing to
 npm refuses to run while the manifest does not match the sources.
 
-## The libjuice patch
+## The libjuice patches
 
-The patch adds two functions to libjuice's mux mode, and nothing else:
+`libjuice-mux-hooks.patch` adds two functions to libjuice's mux mode, and nothing else:
 
 - `juice_mux_set_hooks`, which binds a mux port and keeps it open with no peer on it, with a filter
   that sees each datagram before the address lookup and a callback for each datagram no peer
@@ -96,3 +96,9 @@ The patch adds two functions to libjuice's mux mode, and nothing else:
 - `juice_mux_sendto`, which sends a datagram from a mux port's socket.
 
 The classifier itself lives in this library, so the patch stays generic.
+
+`libjuice-recoverable-binding-errors.patch` ignores a connectivity check's error response with code
+401, 420 or 500 and keeps checking, as libwebrtc does, where libjuice would fail the candidate
+pair. Such a response carries no message integrity. Bedrock Dedicated Server answers a check on
+its shared port from more than one of its agents: a success from the one the check was for and a
+401 from another. Without the patch, that 401 failed the pair a few seconds after a client joined.

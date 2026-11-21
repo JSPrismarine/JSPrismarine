@@ -12,7 +12,7 @@
         "url": "https://codeload.github.com/paullouisageneau/libjuice/tar.gz/b89c792e3612faf2f12cf35bcc56857313a06be3",
         "sha256": "713b22174e8cb2e06538fa9bac2650bda21b83c86f5128813ab4dcf8f5bea9ed",
         "into": "libdatachannel/deps/libjuice",
-        "patches": ["patches/libjuice-mux-hooks.patch"]
+        "patches": ["patches/libjuice-mux-hooks.patch", "patches/libjuice-recoverable-binding-errors.patch"]
     },
     "usrsctp": {
         "version": "fec583d54493f879d2ae44a743423bf8a04371ab",
