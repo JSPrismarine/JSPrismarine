@@ -2,6 +2,8 @@
 title: Guides
 description: Where to start, whether you play on, host, extend or work on a JSPrismarine server.
 aside: false
+# The cards are the outline, so a phone gets no "On this page" list either.
+outline: false
 pageClass: is-wide
 lastUpdated: false
 # The cards are the way on; a lone Next link under them would only repeat the first.
