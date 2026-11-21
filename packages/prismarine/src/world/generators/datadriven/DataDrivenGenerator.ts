@@ -2373,6 +2373,8 @@ export class DataDrivenGenerator implements Generator {
             tiles
         );
 
+        if (biomes === undefined) this.rememberChunkBiomes(cx, cz, tiles, pipeline);
+
         view.beginWriteTracking();
         this.decorate(cx, cz, view, pipeline, biomeCells);
         return view.takeTrackedPatches();
@@ -2874,6 +2876,29 @@ export class DataDrivenGenerator implements Generator {
             }
         }
         return palette;
+    }
+
+    /**
+     * Keeps each tile's biome palette from the cells it carries, which are every cell of its chunk
+     * sampled from the same source {@link chunkBiomes} reads.
+     *
+     * Read one cell at a time instead, the nine chunks cost a decoration pass 13824 memo lookups,
+     * and the cells the direct-mapped memo had lost to collisions over a thousand climate searches.
+     */
+    private rememberChunkBiomes(
+        cx: number,
+        cz: number,
+        tiles: readonly GenerationRegion[],
+        pipeline: SeededPipeline
+    ): void {
+        // The tiles come in `FEATURE_VIEW_TILES` order around the chunk being decorated.
+        for (const [index, [dx, dz]] of FEATURE_VIEW_TILES.entries()) {
+            const cells = tiles[index]?.biomeCells();
+            const key = this.chunkKey(cx + dx, cz + dz);
+            if (cells === undefined || pipeline.chunkBiomes.has(key)) continue;
+            pipeline.chunkBiomes.set(key, new Set(cells.palette));
+        }
+        this.trimCache(pipeline.chunkBiomes);
     }
 
     /**

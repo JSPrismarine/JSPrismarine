@@ -14,7 +14,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseWorldPreset } from '@jsprismarine/worldgen';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { MultiNoiseBiomeSource } from '@jsprismarine/worldgen/biome/BiomeSource';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
@@ -618,6 +619,35 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         },
         CHUNK_TIMEOUT * 4
     );
+
+    it('reads the biomes of a feature pass from the cells its terrain tiles carry', async () => {
+        const center = { x: 10, z: 4 };
+        const builder = new DataDrivenGenerator({ registries });
+        const tiles = [];
+        for (const dx of [-1, 0, 1]) {
+            for (const dz of [-1, 0, 1]) {
+                tiles.push((await builder.buildTerrainTile(center.x + dx, center.z + dz, SEED, [])).payload);
+            }
+        }
+
+        // A tile far from the nine builds the generator's pipeline, which binds the biome source,
+        // so the climate lookups its memo does not answer can be counted from then on.
+        const generator = new DataDrivenGenerator({ registries });
+        const bound = vi.spyOn(MultiNoiseBiomeSource.prototype, 'resolver');
+        await generator.buildTerrainTile(center.x + 64, center.z, SEED, []);
+        const source = bound.mock.contexts[0];
+        bound.mockRestore();
+        if (!(source instanceof MultiNoiseBiomeSource)) throw new Error('the overworld bound no climate source');
+        const searches = vi.spyOn(source.parameters, 'find');
+
+        generator.buildFeatureTile(center.x, center.z, SEED, tiles);
+
+        // The nine tiles carry every cell of their chunks. Read cell by cell, the biome palette
+        // of the nine missed the memo for over a thousand of them; what is left is the jittered biome
+        // lookups that reach past the tiles.
+        const cellsPerChunk = (Dimensions.Overworld.height / 4) * 16;
+        expect(searches.mock.calls.length).toBeLessThan(cellsPerChunk / 8);
+    });
 
     it(
         'refuses a request made after the shutdown, for a world it had never been asked about',
