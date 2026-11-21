@@ -651,7 +651,9 @@ and each group's parents behind it. The first node that names the query decides 
 specific node beats a wildcard and a negation beats a grant of the same specificity. `prefix`,
 `suffix` and any other meta resolve the same way.
 
-The server reads the file again on `/reload` and when it changes on disk. A file written before
+`/perms` edits the file from the console or from a player who holds its nodes; the
+[command reference](commands.md#permissions) lists its subcommands. The server reads the file
+again on `/reload`, on `/perms reload` and when it changes on disk. A file written before
 `schemaVersion` existed migrates at the next start: `defaultPermissions` becomes the `default`
 group's nodes, `defaultOperatorPermissions` the `operator` group's, and each `players` entry waits
 under `pending` with its UUID as `legacyUuid` until a login with that UUID claims it. The old file

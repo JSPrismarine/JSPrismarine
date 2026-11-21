@@ -221,8 +221,9 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
        command level reading the new data. The fresh file no longer grants a hard-coded owner
        UUID `*`; a server owner uses `/op` from the console, and a migrated owner entry waits
        under `pending` like any other.
-4. [ ] [#3369](https://github.com/JSPrismarine/JSPrismarine/issues/3369) **The `/perms` command.** Every subcommand with its node, target resolution and the
-       qualified form.
+4. [x] [#3369](https://github.com/JSPrismarine/JSPrismarine/issues/3369) **The `/perms` command.** Every subcommand with its node, target resolution and the
+       qualified form. `[expires]` also takes a duration from now, such as `30d`, which the file
+       holds as the instant it ends at.
 5. [ ] [#3370](https://github.com/JSPrismarine/JSPrismarine/issues/3370) **The script module.** `permissions` in `@jsprismarine/server` and `script-types`, the
        change event, and the `perms` placeholder namespace once slice 2 of the placeholders plan
        has landed.
