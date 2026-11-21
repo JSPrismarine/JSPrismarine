@@ -57,11 +57,13 @@ jobs:
     build-docs:
         name: 📖 Build Docs
         # A closed pull request only has its preview removed. A fork's token cannot push a preview.
+        # The release pull request changes only versions and changelogs, so it builds no preview.
         if: >-
             github.event_name == 'push' ||
             github.event_name == 'workflow_dispatch' ||
             (github.event.action != 'closed' &&
-            github.event.pull_request.head.repo.full_name == github.repository)
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            github.head_ref != 'changeset-release/master')
         # runs-on: blacksmith-4vcpu-ubuntu-2404
         runs-on: ubuntu-latest
         env:
