@@ -225,6 +225,7 @@ export class SurfaceSystem {
             ...(options.biomeCellAt === undefined ? {} : { biomeCellAt: options.biomeCellAt })
         });
         const rule = new MaterialRuleInterpreter(compileMaterialRuleProgram(options.rule), context);
+        const column = new Array<string>(chunk.maxY - chunk.minY + 1);
 
         for (let localX = 0; localX < CHUNK_SIZE; localX++) {
             for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
@@ -242,7 +243,7 @@ export class SurfaceSystem {
                     this.surfaceGradientX(chunk, localX, localZ),
                     this.surfaceGradientZ(chunk, localX, localZ)
                 );
-                this.buildColumn(chunk, context, rule, blockX, blockZ, startingHeight);
+                this.buildColumn(chunk, context, rule, column, blockX, blockZ, startingHeight);
 
                 if (FROZEN_OCEANS.has(surfaceBiome)) {
                     this.frozenOceanExtension(
@@ -279,6 +280,7 @@ export class SurfaceSystem {
         chunk: SurfaceChunk,
         context: MaterialRuleContext,
         rule: MaterialRuleInterpreter,
+        column: string[],
         blockX: number,
         blockZ: number,
         startingHeight: number
@@ -287,9 +289,16 @@ export class SurfaceSystem {
         let waterHeight = Number.NEGATIVE_INFINITY;
         let nextCeilingStoneY = Number.POSITIVE_INFINITY;
         const endY = chunk.minY;
+        const maxY = chunk.maxY;
+
+        // The walk writes only at the y it stands on and reads only there and below, so a copy
+        // taken before it starts reads the same blocks as the chunk would.
+        if (chunk.readColumn !== undefined) chunk.readColumn(blockX & 15, blockZ & 15, column);
+        else for (let y = endY; y <= maxY; y++) column[y - endY] = chunk.getBlock(blockX, y, blockZ);
+        const blockAt = (y: number): string => (y < endY || y > maxY ? AIR : (column[y - endY] as string));
 
         for (let y = startingHeight; y >= endY; y--) {
-            const old = chunk.getBlock(blockX, y, blockZ);
+            const old = blockAt(y);
             if (old === AIR) {
                 stoneAboveDepth = 0;
                 waterHeight = Number.NEGATIVE_INFINITY;
@@ -304,7 +313,7 @@ export class SurfaceSystem {
                 // Java's DimensionType.WAY_BELOW_MIN_Y, the sentinel for "no opening below".
                 nextCeilingStoneY = -2048;
                 for (let lookahead = y - 1; lookahead >= endY - 1; lookahead--) {
-                    const next = chunk.getBlock(blockX, lookahead, blockZ);
+                    const next = blockAt(lookahead);
                     if (!isStone(next)) {
                         nextCeilingStoneY = lookahead + 1;
                         break;

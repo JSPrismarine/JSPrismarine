@@ -21,6 +21,7 @@ import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { MATERIAL_CONDITION_TYPES, MATERIAL_RULE_TYPES, MaterialRuleData } from './MaterialRule';
 import { BlockArraySurfaceChunk } from './SurfaceChunk';
+import type { SurfaceChunk } from './SurfaceChunk';
 import { SurfaceSystem } from './SurfaceSystem';
 
 const SEED = BigInt(columnVectors.seed);
@@ -100,7 +101,8 @@ const runPass = (
     built: ReturnType<typeof buildChunk>,
     rule: ReturnType<MaterialRuleData['parseRule']>,
     withOwnCells = false,
-    withCandidateCells = false
+    withCandidateCells = false,
+    blockByBlock = false
 ) => {
     const chunk = new BlockArraySurfaceChunk({
         chunkX: columnVectors.chunkX,
@@ -112,8 +114,26 @@ const runPass = (
     const resolver = source.resolver(createClimateSampler(built.randomState, new SampleContext()));
     const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(SEED));
     let lookups = 0;
+    let reads = 0;
+    // The pass's view of the chunk, which counts single-block reads and offers column reads
+    // unless the run asks for the block-by-block fallback.
+    const view: SurfaceChunk = {
+        chunkX: chunk.chunkX,
+        chunkZ: chunk.chunkZ,
+        minY: chunk.minY,
+        maxY: chunk.maxY,
+        getBlock: (x, y, z) => {
+            reads++;
+            return chunk.getBlock(x, y, z);
+        },
+        setBlock: (x, y, z, state) => chunk.setBlock(x, y, z, state),
+        surfaceHeight: (localX, localZ) => chunk.surfaceHeight(localX, localZ),
+        ...(blockByBlock
+            ? {}
+            : { readColumn: (localX: number, localZ: number, out: string[]) => chunk.readColumn(localX, localZ, out) })
+    };
     const pass = new SurfaceSystem(built.randomState).buildSurface({
-        chunk,
+        chunk: view,
         rule,
         biomeAt: (x, y, z) => {
             lookups++;
@@ -124,7 +144,7 @@ const runPass = (
         ...(withOwnCells ? { localBiomes: ownCellsBox(built, resolver) } : {}),
         ...(withCandidateCells ? { biomeCellAt: (x: number, y: number, z: number) => biomes.cellBiome(x, y, z) } : {})
     });
-    return { chunk, pass, lookups };
+    return { chunk, pass, lookups, reads };
 };
 
 /**
@@ -260,9 +280,13 @@ describe('the surface pass over whole columns', () => {
             let lookups: number;
             let withOwnCells: ReturnType<typeof runPass>;
             let withCandidateCells: ReturnType<typeof runPass>;
+            let byColumn: ReturnType<typeof runPass>;
+            let blockByBlock: ReturnType<typeof runPass>;
             beforeAll(() => {
                 const built = buildChunk(dimension.settings, dimension.biomeSource);
-                ({ chunk, lookups } = runPass(built, materialRuleData.rule(dimension.materialRule)));
+                byColumn = runPass(built, materialRuleData.rule(dimension.materialRule));
+                ({ chunk, lookups } = byColumn);
+                blockByBlock = runPass(built, materialRuleData.rule(dimension.materialRule), false, false, true);
                 withOwnCells = runPass(built, materialRuleData.rule(dimension.materialRule), true);
                 withCandidateCells = runPass(built, materialRuleData.rule(dimension.materialRule), true, true);
             }, 120_000);
@@ -291,6 +315,17 @@ describe('the surface pass over whole columns', () => {
                 const columns = 16 * 16;
                 if (lookups > columns) expect(withOwnCells.lookups).toBeLessThan(lookups / 2);
                 else expect(withOwnCells.lookups).toBe(lookups);
+            });
+
+            it('places the same blocks reading a chunk without column reads one block at a time', () => {
+                for (const column of dimension.columns.entries) {
+                    expect(runsOf(blockByBlock.chunk, column.x, column.z)).toEqual(column.runs);
+                }
+                // Each column's walk reads every block of it at least once; through column reads it
+                // reads none, and only the badlands and iceberg extensions still ask per block.
+                const blocks = 16 * 16 * (byColumn.chunk.maxY - byColumn.chunk.minY + 1);
+                expect(blockByBlock.reads).toBeGreaterThanOrEqual(blocks);
+                expect(byColumn.reads).toBeLessThan(blockByBlock.reads / 10);
             });
 
             it('places the same block as Java in every column, from bedrock to sky', () => {

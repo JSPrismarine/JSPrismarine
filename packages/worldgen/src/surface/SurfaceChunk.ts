@@ -25,6 +25,12 @@ export interface SurfaceChunk {
     /** Writes a block state; a y outside the chunk is ignored, as it is in Java. */
     setBlock(x: number, y: number, z: number, state: string): void;
     /**
+     * Copies one column's block state identifiers into `out`, `minY` first. The surface pass reads
+     * a column through this once instead of calling {@link getBlock} about twice per block; a
+     * chunk without it is read one {@link getBlock} at a time.
+     */
+    readColumn?(localX: number, localZ: number, out: string[]): void;
+    /**
      * The y of the highest block in a column that is not air, or `minY - 1` when the column is
      * empty. This is Java's `WORLD_SURFACE_WG` heightmap, frozen at the end of the terrain fill.
      */
@@ -106,6 +112,12 @@ export class BlockArraySurfaceChunk implements SurfaceChunk {
     public setBlock(x: number, y: number, z: number, state: string): void {
         if (y < this.minY || y > this.maxY) return;
         this.column(x, z)[y - this.minY] = state;
+    }
+
+    /** @inheritDoc */
+    public readColumn(localX: number, localZ: number, out: string[]): void {
+        const column = this.column(localX, localZ);
+        for (let index = 0; index < column.length; index++) out[index] = column[index] as string;
     }
 
     /** @inheritDoc */
