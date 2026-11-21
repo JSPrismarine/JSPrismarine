@@ -1,0 +1,303 @@
+# Java Edition clients over one world
+
+Plan, 2026-11-21. The server speaks Bedrock over RakNet and NetherNet, holds three Bedrock protocol
+versions at once and accepts a window of them ([ADR 0025](../adr/0025-older-protocols-are-a-window-relative-to-the-newest-release.md)).
+Nothing speaks to a Java Edition client. This plan adds Java as a second protocol family over the
+same world ([ADR 0026](../adr/0026-java-is-a-second-protocol-family-over-one-world.md)), and
+rebuilds packet handling so that game behavior exists once for both editions
+([ADR 0027](../adr/0027-player-inputs-are-decoded-into-intents.md)). The work lands as a series of
+pull requests that each merge on their own with the Bedrock client suite green.
+
+The values below are as they were on this date and stay unmarked, as the repository rules say for
+dated plans.
+
+## Progress
+
+Branch `docs/java-multiprotocol-plan`, 2026-11-21.
+
+| PR | Slice | State |
+| --- | --- | --- |
+| 1 | This plan, ADR 0026 and ADR 0027 | In review |
+| 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/`, empty `java/` | Not started |
+| 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Not started |
+| 4 | Remaining Bedrock handlers migrated, one PR per area: movement, inventory, interaction, the rest | Not started |
+| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | Not started |
+| 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
+| 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
+| 8 | Java login, Mojang session verification, configuration phase, registries and tags | Not started |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
+| 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
+| 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
+
+Issues for the slices after PR 9 are opened when PR 1 merges and linked from this table.
+
+## 1. What exists today
+
+The Bedrock side is layered, and each layer is a seam the Java side can use or has to split.
+
+| Layer | Where | What it knows about Bedrock |
+| --- | --- | --- |
+| Transport | `packages/prismarine/src/network/transport/` | Nothing. A frame is opaque bytes; `TransportNames` lists `raknet` and `nethernet`. |
+| Framing, compression, encryption | `MinecraftSession`, `BatchCodec`, `EncryptionCodec` | Everything. The `0xFE` batch id, zlib and Snappy, AES-GCM with the Bedrock counter. |
+| Codecs | `packages/protocol/src/ProtocolCodec.ts`, `prismarine/src/network/codec/Codec2193.ts` and siblings | A codec is a protocol number, packet ids and a `ProtocolContext` of captured tables. Three releases are registered: 2193, 2225 and the 2259 preview. |
+| Phases | `SessionPhase.ts` | `handshake`, `login`, `encryption`, `resourcePacks`, `play`. |
+| Handlers | `prismarine/src/network/handler/`, 74 files | One handler per packet, registered by packet name, declaring its phases and lane ([ADR 0014](../adr/0014-handlers-share-a-shape-and-run-in-the-input-step.md)). Most validate and then call one `PlayerSession` method. |
+| Session | `PlayerSession.ts`, about 140 public methods | Most build Bedrock packets: `sendInventory`, `openBlockContainer`, `sendAvailableCommands`, `sendGamemode`. |
+| Replication | `NetworkWorldReplicator.ts` | Reads each sealed tick of the change log ([ADR 0016](../adr/0016-replication-reads-the-change-log.md)), decides who sees what, encodes once per Bedrock codec and broadcasts shared batches. |
+| Light | `@jsprismarine/lighting` | Sky and block light per block, used by spawning, crops and daylight detectors and never sent, because no Bedrock packet carries light. |
+| Content | `@jsprismarine/mapping` | Four total functions from Java identifiers to Bedrock ones, and one inverse for biomes. |
+| Identity | `playerIdentity.ts`, and the `Subject` union in [the permissions plan](https://github.com/JSPrismarine/JSPrismarine/pull/3377), which adds `docs/plans/permissions.md` | Keyed by XUID or name. The permissions plan adds a `java` kind with no producer yet. |
+| Java releases | `javaServer` in `packages/bedrock-data/sources.json` | One default release, 26.3, and one preview, 26.4-snapshot-10, with the jar, its data generator output and per-release derived data ([the datapack plan](java-datapack-version-support.md)). |
+
+The Java client itself differs from the Bedrock client in four ways the design has to answer. It
+connects over TCP with a length-prefixed frame, zlib above a threshold and AES-CFB8 after login. It
+has no server-authoritative movement: it sends positions and accepts teleports. It computes no
+light: the chunk packet carries sky and block light arrays. And it is told the registries it will
+use during a configuration phase before play: dimension types, biomes, damage types, chat types and
+tags.
+
+## 2. The protocol package
+
+`@jsprismarine/protocol` holds both editions. The edition-neutral modules stay at the root:
+`NetworkPacket`, `FieldNetworkPacket`, `NetworkBinaryStream`, `NetworkStructure`, `ProtocolCodec`,
+`ProtocolCodecRegistry`, `PacketIdentifier`, `handler/` and the `wire/` machinery (`define.ts`,
+`WireLayout.ts`, `fieldTypes.ts`, `structureTypes.ts`, `wireGates.ts`). Everything that names a
+Bedrock packet moves under `src/bedrock/`: `packet/`, `structure/`, `payload/`, `wire/definitions/`,
+`wire/structures/`, `wire/versions/`, `ProtocolVersion.ts`, `BatchCodec`, `CompressionCodec`,
+`EncryptionCodec`, `HandshakeCodec`, `Snappy` and `BlockRuntimeId`. `src/java/` starts empty in
+PR 2 and gains the same shape from PR 7.
+
+Every import of `@jsprismarine/protocol/packet/X` across the repository becomes
+`@jsprismarine/protocol/bedrock/packet/X`, and the package's `exports` map, the packet-codec baseline
+and the wire-layout baseline move with them. PR 2 changes no behavior and carries a major Changeset.
+Bedrock stops being the unnamed default: a reader of an import path sees which edition it belongs
+to.
+
+A Java codec has the same `ProtocolCodec` interface. Its `protocolVersion` is Java's protocol number
+(777 for release 26.3), its `minecraftVersions` the release ids, and its `ProtocolContext` the
+per-release tables of section 6. A snapshot's protocol number has bit 30 set, so the existing rule
+that a preview is newer than every release holds without a special case.
+
+## 3. Inbound: intents and decoders
+
+### The table
+
+`packages/prismarine/src/input/intents.ts` declares every intent:
+
+```ts
+export const Intents = {
+    Move: { lane: 'input', fields: ... },
+    Chat: { lane: 'read', fields: ... },
+    OpenInventory: { lane: 'input', fields: ... },
+    ...
+} as const satisfies IntentTable;
+```
+
+`Intent` is the union derived from the table, each member carrying its `kind`. The intent handler
+registry keys on `kind`, the dispatcher reads the lane from the table, and a `never` check over the
+union fails the build when a kind has no handler. The directory is `input/`, not `network/`,
+because a script, a command block or a replay can produce an intent without a packet behind it.
+
+### Decoders
+
+A decoder is one pure function per edition and packet:
+
+```ts
+decode(packet: InteractPacket, view: SessionView): readonly Intent[]
+```
+
+`SessionView` is read-only: the player's runtime id, the actors they have been shown, the open
+window, the game mode and the view distance. The interact handler's two checks today, that an
+inventory open names the sender and that an NPC open targets a shown actor within reach, move into
+its decoder. A check that reads the world, such as whether a block is loaded, stays in the intent
+handler. A decoder that returns an empty list drops the packet, and logs why through the view's
+logger.
+
+Connection-lane handlers do not decode. Network settings, login, the encryption handshake and the
+resource pack exchange on Bedrock, and the handshake, status, login and configuration phases on
+Java, stay as handlers in ADR 0014's shape, per edition.
+
+### Plugins
+
+`PacketHandlerRegistry` keeps its packet-name registration, now per edition, and a plugin's packet
+handler merges with the built-in decoder as `appendHandler` merges handlers today. A second
+registry takes intent handlers by kind with the same merge rule. The scripting and addon surfaces
+that expose packet events keep working through the first; behavior written once goes through the
+second.
+
+### Migration
+
+PR 3 lands the table, the decoder shape, the dispatcher change and three migrated handlers chosen
+for their spread: `InteractHandler` (input lane, view-only checks), `CommandRequestHandler` (read
+lane) and `AnimateHandler` (broadcast through the replicator). PR 4 migrates the remaining 71 in
+four pull requests, grouped by area, so a regression names its area. Each PR runs the Bedrock
+client e2e suite, and the replay traces under `packages/prismarine` keep producing the same
+digests, since a decoder plus an intent handler does what the handler did.
+
+### Movement
+
+`Move` is one intent. It carries the claimed position, rotation and on-ground flag from both
+editions, and the input bits and client tick when the edition sends them, which Bedrock does
+through `PlayerAuthInputPacket` and Java does not. One validator applies the physics check, with the
+tolerance keyed by edition: Java's "moved too quickly" distance per tick, Bedrock's rewind window.
+The correction is the presenter's: Bedrock sends a prediction correction for the client tick, Java
+a position synchronization with a teleport id the client echoes.
+
+## 4. Outbound: presenters
+
+`PlayerSession` becomes edition-neutral and owns a `presenter`. The presenter implements the
+outbound contract: what the world, the command host and the intent handlers ask a session to show.
+PR 5 names the contract by extracting what `PlayerSession` does today into a `BedrockPresenter`,
+method by method, and leaves every caller calling the session. No Java presenter exists until PR 9,
+and the contract grows slice by slice from what each Java slice needs, rather than all 140 methods
+before the first Java client connects.
+
+The order the first milestone needs is chunks, position and look, chat and system messages, time,
+game mode and abilities, the player list, and keep-alive. Entities, windows, inventories, block
+changes, forms, trade, maps, books and camera follow in PR 10's slices.
+
+Composition rather than subclassing: a subclass per edition would push edition checks into every
+session method that calls another, and a presenter keeps the edition in one field.
+
+## 5. Replication
+
+`NetworkWorldReplicator` stays one replicator. It reads the sealed tick, decides the audience of
+each change once, and hands each change to an encoder keyed by edition and codec. An encoder caches
+one shared encoding per key per tick, so a block change seen by five Bedrock 2225 sessions and two
+Java 777 sessions is encoded twice. PR 6 introduces the encoder seam with Bedrock only, and the
+replica tests assert encode counts per key, as [Measuring performance](../../AGENTS.md#measuring-performance)
+asks. Two replicators, one per edition, would compute the audience twice and were not chosen.
+
+## 6. The Java transport, login and tables
+
+### Transport
+
+`TransportNames` gains `tcp`. A Java frame is a VarInt length prefix, then a VarInt packet id and
+the payload, with zlib above the threshold the server sets after login and AES-CFB8 after the
+encryption response. `TransportConnection` already treats a frame as opaque bytes, so the TCP
+transport hands the session layer the frames and a Java `MinecraftSession` counterpart owns the
+compression and cipher, the way the Bedrock one owns the batch and `EncryptionCodec`. The listener
+opens on `java-port`, default 25565, only when `java-enabled` is true.
+
+### Phases
+
+Java's conversation is handshake, then status or login, then configuration, then play. The server's
+`SessionPhase` gains `status` and `configuration`, and each Java handler declares the phases it
+accepts, as Bedrock's do. The status handler answers the server list ping with the MOTD, the
+advertised Java version and the count of players of both editions. The login handler runs the
+Mojang session server check when `online-mode` is on, derives the offline UUID from the name when
+it is off, and produces a `java` `Subject` for the permissions plan's identity.
+
+### Configuration
+
+The configuration phase sends the registries the client needs before it can decode play packets:
+dimension types, biomes, damage types, chat types, wolf and cat variants, painting variants and the
+tags over blocks, items, fluids and entity types. Their contents come from the pinned jar's data
+generator output, which the repository already runs per Java release for the datapack. The known
+packs exchange says the server has none.
+
+### Tables and bring-up
+
+Per-release Java wire tables live under `packages/protocol/src/java/versions/<release>/`: packet ids
+per phase and direction, the block state id order, item ids, entity type ids and the registry
+contents above. A `dump:java` script beside `dump:bedrock` generates them from the data generator
+output and from a capture of the vanilla client talking to the pinned vanilla server jar, which
+`ensure:worldgen` already downloads. Packet layouts are declarative ([ADR 0003](../adr/0003-declarative-wire-layouts.md)),
+written from the community protocol page and checked against the capture, as the Bedrock layouts
+are checked against a Bedrock Dedicated Server capture. No third-party data dump is a source, which
+is [ADR 0019](../adr/0019-bedrock-data-comes-from-bds.md)'s rule applied to Java.
+
+The [java-bringup skill](../../.agents/skills/java-bringup/SKILL.md) gains a protocol stage that
+diffs packet ids, re-captures and updates the layouts. The protocol-bringup skill stays Bedrock's,
+and its description says so.
+
+## 7. Content for a Java client
+
+### The inverse mapping
+
+The world stores Bedrock block states, and a Java client has to be told Java ones. The forward table
+in `@jsprismarine/mapping` is total from Java to Bedrock and lossy: 35723 Java states collapse onto
+15953 Bedrock states. PR 11 derives the inverse from the forward table, one canonical Java state per
+Bedrock state, picks `waterlogged` from the second block storage layer, and records every Bedrock
+state with no Java candidate, such as Bedrock-only blocks, in the loss list with a substitute. The
+same inverse is generated for items and entity types, where the forward mapping is nearly one to
+one, and the biome inverse already exists.
+
+### The content setting
+
+The window becomes per edition: `bedrock-protocol-window` and `java-protocol-window`, each counted
+back from that edition's newest release, defaults of 1. `protocol-content` keeps its two values and
+applies across editions:
+
+- `newest` keeps the newest Bedrock release's content in the world. A Java session gets the loss
+  list's substitute for a block, item or entity it cannot express, and the server logs at startup
+  which content that affects, as it does today for an older Bedrock session.
+- `oldest` sets the content floor to the content every accepted release of both windows has, so no
+  session of either edition sees a substitute. A minigame server that wants every client to see the
+  same world picks this.
+
+A per-world narrowing of the setting, which ADR 0025 already leaves room for, stays open and gets
+an issue with PR 1.
+
+### Light
+
+The Java chunk packet carries the sky and block light arrays from `@jsprismarine/lighting` from
+PR 9, so a world is lit on arrival. Incremental light updates after block changes go with the
+blocks slice in PR 10. The lighting README's statement that its light never reaches a player is
+rewritten in PR 9.
+
+## 8. Identity
+
+Who a player is across editions is decided in [the permissions plan](https://github.com/JSPrismarine/JSPrismarine/pull/3377), which adds `docs/plans/permissions.md`: a `Subject`
+is `xbox` by XUID, `java` by Mojang UUID or `offline` by name, and nothing from an `offline` entry
+applies to an `xbox` or `java` subject of the same name. The Java login in PR 8 is the first producer
+of the `java` kind. This plan adds no identity design of its own.
+
+## 9. Verification
+
+### The milestone
+
+PR 9 is done when, on a flat world, a Java client at the pinned release:
+
+- joins and receives the chunks around spawn, lit;
+- stands and walks without receiving a position correction;
+- sends a chat message a Bedrock player sees, and sees one the Bedrock player sends;
+- sees the Bedrock player's entity.
+
+The last item is in because it proves the replicator encoders, which is the architectural risk.
+
+### Drivers
+
+Two drivers, for two jobs. For scripted CI, HeadlessMC with HMC-Specifics runs the real pinned Java
+client with LWJGL stubbed, offline accounts allowed for that use, driven over its console. A small
+TypeScript harness in `tools/client-e2e` wraps it with `connect`, `chat` and `wait_for`, and world
+state is asserted server-side, as the Bedrock scenarios already do. For visual checks and pull
+request recordings, mcpfabric runs on a windowed Fabric client: its MCP tools (screenshot with
+entity markers, state, entities, chat, movement, interaction) match cinnabar's, and the
+[pr-recordings skill](../../.agents/skills/pr-recordings/SKILL.md) gains a Java mode. mcpfabric
+releases about seven weeks after a Java release and has no snapshot builds, so a bring-up carries a
+local build.
+
+Not chosen, with the reasons as of this date: `@jsprismarine/client` growing a Java mode would test
+our codecs against our codecs. azalea's 26.3 branch has been open for two months. mineflayer and
+node-minecraft-protocol stop at 26.1, and a vanilla 26.3 server kicks mineflayer. MCProtocolLib is
+current but is a packet library with no client behavior.
+
+### CI
+
+The `client-e2e` workflow gains a Java pin beside the cinnabar pins, one HeadlessMC and
+HMC-Specifics version per Java release, running once per Java release and gated by a path filter on
+`packages/protocol/src/java`, `packages/prismarine/src/input` and `packages/prismarine/src/network`.
+A pull request push that touches none of them starts the same jobs as today. Each PR that touches
+the workflow records the before and after job counts in its description.
+
+## 10. Out of scope
+
+- Chat signing, secure profiles and chat session keys. The server accepts unsigned chat and sends
+  chat as system messages. This is not deferred and has no issue: there is no plan to add it.
+- A Java-shaped world model, and translating Java packets into Bedrock packets at the connection.
+  Both rejected in ADR 0026 and ADR 0027.
+- Resource packs for Java clients, server-side rendering of Bedrock-only blocks through a Java
+  resource pack, and Java-side plugin messaging channels.
+- Per-world `protocol-content`, inventory, blocks, forms, trade, maps, books and camera for Java
+  sessions, and incremental light updates. These are PR 10's slices and the follow-up issues.
