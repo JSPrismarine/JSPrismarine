@@ -179,6 +179,76 @@ Thrown as `NbtErrors.ExpectedTagHeader`, which extends `Error`.
 
 The NBT data ended where the next tag's header should be, so it is truncated.
 
+## `NBT_NBT_PATH_EXPECTED_LIST`
+
+`Expected list, got: {got}`
+
+Thrown as `NbtErrors.NbtPathExpectedList`, which extends `Error`.
+
+`/data modify … append`, `prepend` or `insert` named a tag that is not a list or an array.
+
+## `NBT_NBT_PATH_EXPECTED_OBJECT`
+
+`Expected object, got: {got}`
+
+Thrown as `NbtErrors.NbtPathExpectedObject`, which extends `Error`.
+
+`/data modify … merge` named a tag that is not a compound.
+
+## `NBT_NBT_PATH_INVALID_INDEX`
+
+`Invalid list index: {index}`
+
+Thrown as `NbtErrors.NbtPathInvalidIndex`, which extends `Error`.
+
+`/data modify … insert` named an index outside the list, or a typed array was given a
+value it cannot hold, such as a string in an int array.
+
+## `NBT_NBT_PATH_MULTIPLE`
+
+`Only one element allowed, but path {path} matched {count}`
+
+Thrown as `NbtErrors.NbtPathMultiple`, which extends `Error`.
+
+A command that reads one value got a path that matched several, such as `Items[]`.
+Narrow the path to one element with an index or a pattern.
+
+## `NBT_NBT_PATH_NOT_NUMERIC`
+
+`Can't get {path}; only numeric tags are allowed`
+
+Thrown as `NbtErrors.NbtPathNotNumeric`, which extends `Error`.
+
+A command asked for a number at a path that holds something else, such as `/data get` with a
+scale on a compound.
+
+## `NBT_NBT_PATH_NOTHING_FOUND`
+
+`Found no elements matching {path}`
+
+Thrown as `NbtErrors.NbtPathNothingFound`, which extends `Error`.
+
+An NBT path matched nothing in the data a command read. Check the path against the data.
+
+## `NBT_NBT_PATH_SYNTAX`
+
+`Invalid NBT path {path} at position {position}: {reason}`
+
+Thrown as `NbtErrors.NbtPathSyntax`, which extends `Error`.
+
+A command's NBT path is not well formed, such as an unclosed `[` or a key that ends in `.`.
+Fix the path at the position the message names.
+
+## `NBT_NBT_PATH_TOO_DEEP`
+
+`Resulting NBT too deeply nested`
+
+Thrown as `NbtErrors.NbtPathTooDeep`, which extends `Error`.
+
+`/data modify … set`, `merge`, `append`, `prepend` or `insert` would nest the data deeper
+than the 512 levels an SNBT read accepts, so the edited data could not be read back. Use a
+shorter path or a value that nests less.
+
 ## `NBT_NEGATIVE_BYTE_ARRAY_LENGTH`
 
 `Invalid NBT Data: Negative byte array length`
@@ -219,6 +289,15 @@ order.
 Thrown as `NbtErrors.NotListTag`, which extends `Error`.
 
 The NBT data was read as a list, but it does not start with a list tag.
+
+## `NBT_SNBT_SYNTAX`
+
+`Invalid SNBT at position {position}: {reason}`
+
+Thrown as `NbtErrors.SnbtSyntax`, which extends `Error`.
+
+A command's SNBT text is not well formed, such as an unclosed brace or a number too large
+for its suffix. Fix the text at the position the message names.
 
 ## `NBT_UNKNOWN_LIST_TYPE`
 
