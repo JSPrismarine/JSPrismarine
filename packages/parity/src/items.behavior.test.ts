@@ -251,6 +251,24 @@ const javaCookingNumber = (node: unknown, fast: boolean, kind: 'int' | 'float'):
 
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
     {
+        name: 'stacks-like-java',
+        aspects: () => ['stacking'],
+        java: 'An item with no behavior of its own, such as a diamond or a stick, stacks to its Java max_stack_size.',
+        reference: 'Java DataComponents.MAX_STACK_SIZE and ItemStack.getMaxStackSize',
+        // Only the items nothing else measures: an item with components or hooks of its own has
+        // rows for them, and its stack size is the items.components family's data comparison.
+        subjects: () => javaItems().filter((item) => itemAspects(item.javaId).length === 0),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const runtimeId = content.items.registry.idOf(subject.bedrock);
+            if (runtimeId === undefined) return `the server has no item ${subject.bedrock}`;
+            const server = content.items.facts.maxStackSize[runtimeId];
+            const java = subject.components['minecraft:max_stack_size'];
+            return server === java ? undefined : `it stacks to ${String(server)}, Java ${String(java)}`;
+        }
+    },
+    {
         name: 'fuel-burns',
         aspects: () => ['minecraft:cooking_fuel'],
         java: "A fuel burns its provider's ticks in a furnace and in a smoker or blast furnace, and speeds the cooking by its multiplier.",
