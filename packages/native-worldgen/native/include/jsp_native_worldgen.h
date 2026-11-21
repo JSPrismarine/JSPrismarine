@@ -186,4 +186,34 @@ JWG_EXPORT double jwg_climate_find(
  */
 JWG_EXPORT double jwg_biome_jitter(double seed_hi, double seed_lo, double x, double y, double z);
 
+/* The 32-bit words of one cell program record: the operation, then up to five operands. */
+#define JWG_CELL_WORDS 6
+
+/*
+ * Registers a cell program: node_count records of JWG_CELL_WORDS words as
+ * @jsprismarine/worldgen's CellProgram lays them out, root first, the constants they name, and
+ * how many interpolated cells they read. Returns its handle, or 0 when a record names something
+ * out of range, a record runs a TypeScript fallback, the cell holds more than 4096 values, or
+ * memory runs out.
+ */
+JWG_EXPORT double jwg_cell_create(
+    const int32_t *nodes,
+    int32_t node_count,
+    const double *constants,
+    int32_t constant_count,
+    int32_t cell_count,
+    int32_t xz,
+    int32_t y
+);
+
+/* Frees a cell program. A handle of 0 is ignored. */
+JWG_EXPORT void jwg_cell_destroy(double handle);
+
+/*
+ * Fills out with the tree's value at every block of one cell, x-major, then z, then y. corners
+ * holds eight corner values per interpolated cell, in CellProgram's corner order. Hook records
+ * take their neutral constant, so call this only for a context with no hook set.
+ */
+JWG_EXPORT void jwg_cell_fill(double handle, const double *corners, double *out);
+
 #endif

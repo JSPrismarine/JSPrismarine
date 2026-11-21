@@ -81,6 +81,10 @@ export class RandomState {
                 if (library === undefined || program === undefined) return undefined;
                 const native = library.createProgram(program);
                 return (x, y, z) => native.eval(x, y, z);
+            },
+            cellProgram: (records) => {
+                const native = this.nativeLibrary?.createCellProgram(records);
+                return native === undefined ? undefined : (corners, out) => native.fill(corners, out);
             }
         };
         this.compiler = new DensityFunctionCompiler(environment, options);

@@ -33,6 +33,10 @@ worldgen package's closures.
 `native.createClimate(tree)` registers a biome climate search tree as the worldgen package flattens
 it, and `find(candidate, ...target)` returns the nearest leaf.
 
+`native.createCellProgram(records)` registers the records `@jsprismarine/worldgen`'s `CellProgram`
+lays a density tree out as, and `fill(corners, out)` fills a whole interpolation cell from its
+`interpolated` cells' corners with the same bits as the TypeScript interpreter.
+
 `native.biomeJitter(seedHi, seedLo, x, y, z)` returns the jitter bits Java's `BiomeManager` draws
 for one biome lattice point, packed into one number.
 
