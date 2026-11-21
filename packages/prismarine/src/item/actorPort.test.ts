@@ -317,7 +317,9 @@ describe('the item actor port', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
         const chestplate = new Item({ name: 'minecraft:diamond_chestplate' }).withDisplay('Held plate');
-        inventory.container('inventory').set(0, chestplate.withCount(count));
+        const held = chestplate.withCount(count);
+        held.stackNetworkId = 7;
+        inventory.container('inventory').set(0, held);
         if (worn !== undefined) inventory.container('armor').set(ArmorSlot.TORSO, worn);
         const player = sessionOnPrototype(
             {
@@ -345,6 +347,7 @@ describe('the item actor port', () => {
 
         expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
         expect(worn?.getCustomName()).toBe('Held plate');
+        expect(worn?.stackNetworkId).toBe(7);
         expect(inventory.container('inventory').isEmpty(0)).toBe(true);
     });
 
@@ -367,6 +370,9 @@ describe('the item actor port', () => {
 
         expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
         expect(inventory.container('inventory').get(0)?.getAmount()).toBe(1);
+        // The piece worn is a new stack; the hand keeps the id.
+        expect(worn?.stackNetworkId).toBe(0);
+        expect(inventory.container('inventory').get(0)?.stackNetworkId).toBe(7);
         expect(
             inventory
                 .container('inventory')
@@ -380,6 +386,8 @@ describe('the item actor port', () => {
 
         expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
         expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_chestplate');
+        expect(worn?.stackNetworkId).toBe(0);
+        expect(inventory.equipment('mainhand')?.stackNetworkId).toBe(7);
     });
 
     it('wears the held tool by writing a worn copy into the hand slot', () => {
