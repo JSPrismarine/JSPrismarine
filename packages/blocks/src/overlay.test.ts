@@ -137,6 +137,20 @@ describe('the committed overlay pack', () => {
         expect(table.friction).toHaveLength(resolved.states.length);
     });
 
+    it('lights each state at its own Java level: a lit candle by its count, an unlit campfire not at all', () => {
+        const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
+        const resolved = resolveBlocks(definitions.blocks.values());
+        const table = flattenBlockStates(resolved);
+        const light = (identifier: string, states: Record<string, string | number | boolean>) =>
+            table.lightEmission[resolved.types.get(identifier)!.state(states).runtimeId];
+
+        expect(light('minecraft:candle', { candles: 0, lit: false })).toBe(0);
+        expect(light('minecraft:candle', { candles: 0, lit: true })).toBe(3);
+        expect(light('minecraft:candle', { candles: 3, lit: true })).toBe(12);
+        expect(light('minecraft:campfire', { extinguished: false })).toBe(15);
+        expect(light('minecraft:campfire', { extinguished: true })).toBe(0);
+    });
+
     it('does not make water or lava solid in the flattened collision table', () => {
         const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
         const resolved = resolveBlocks(definitions.blocks.values());

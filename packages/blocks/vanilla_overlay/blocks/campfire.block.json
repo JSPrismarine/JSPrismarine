@@ -30,6 +30,32 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('extinguished') == 1) && (query.block_state('minecraft:cardinal_direction') == 'north')",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('extinguished') == 1) && (query.block_state('minecraft:cardinal_direction') == 'south')",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('extinguished') == 1) && (query.block_state('minecraft:cardinal_direction') == 'west')",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            },
+            {
+                "condition": "(query.block_state('extinguished') == 1) && (query.block_state('minecraft:cardinal_direction') == 'east')",
+                "components": {
+                    "minecraft:light_emission": 0
+                }
+            }
+        ]
     }
 }

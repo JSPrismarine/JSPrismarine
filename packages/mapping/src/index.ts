@@ -28,6 +28,7 @@ export {
     BLOCK_PROPERTY_CONFLICTS,
     BLOCK_PROPERTY_VERSIONS,
     bedrockBlockPropertiesOf,
+    bedrockBlockStateOverridesOf,
     type BedrockBlockProperties
 } from './blockProperties';
 export { bedrockDimensionOverlay, javaDimensionTypeOf, type BedrockDimensionOverlay } from './dimensionMapping';

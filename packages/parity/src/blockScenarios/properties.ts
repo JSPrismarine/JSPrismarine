@@ -323,11 +323,6 @@ export const blockPropertyScenarios: readonly BehaviorScenario<BlockStateSubject
         java: 'A light-emitting block lights its own position at its Java light level, in each state.',
         reference: "Java's block light level property and LightEngine",
         aspects: () => ['light'],
-        classify: () => ({
-            kind: 'defect',
-            reason: "The light table gives this block one level for every state, where Java's level depends on the state.",
-            reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3502'
-        }),
         subjects: () =>
             subjectsVarying(['lightEmission'], (row) => anyState(row, 'lightEmission', (value) => value > 0)),
         idOf: titleOf,

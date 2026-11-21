@@ -123,3 +123,15 @@ export const bedrockBlockPropertiesOf = (
     }
     return merged;
 };
+
+/**
+ * The per-state overrides of a Bedrock block's Java-sourced properties, keyed by the Bedrock state
+ * values each applies to (`candles=1,lit=1`), or `undefined` when every state takes the base row.
+ * A later key folds over an earlier one where both match, as {@link bedrockBlockPropertiesOf} folds
+ * them.
+ * @param {string} name - The namespaced Bedrock block identifier.
+ * @returns {Readonly<Record<string, Partial<BedrockBlockProperties>>> | undefined} The overrides.
+ */
+export const bedrockBlockStateOverridesOf = (
+    name: string
+): Readonly<Record<string, Partial<BedrockBlockProperties>>> | undefined => table.blocks[name]?.stateOverrides;

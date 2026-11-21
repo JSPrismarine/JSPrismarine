@@ -55,7 +55,8 @@ const identifiers = Object.keys(blockSchemas.blocks).sort();
 const pack = generateVanillaOverlay(
     {
         bedrockOnly: new Set(table.bedrockOnly),
-        propertiesOf: (identifier) => table.blocks[identifier]?.base
+        propertiesOf: (identifier) => table.blocks[identifier]?.base,
+        stateOverridesOf: (identifier) => table.blocks[identifier]?.stateOverrides
     },
     identifiers
 );

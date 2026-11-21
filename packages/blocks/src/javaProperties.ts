@@ -1,4 +1,4 @@
-import { BEDROCK_ONLY_BLOCKS, bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
+import { BEDROCK_ONLY_BLOCKS, bedrockBlockPropertiesOf, bedrockBlockStateOverridesOf } from '@jsprismarine/mapping';
 
 import type { BlockPropertySource } from './overlay';
 
@@ -7,12 +7,12 @@ import type { BlockPropertySource } from './overlay';
  * 1295 rows `@jsprismarine/mapping` flattened out of the Java 26.3 jar dump,
  * plus the 182 Bedrock-only identifiers it publishes no row for.
  *
- * The generator takes a block's base row only, with no state values, because
- * one overlay file covers every state of its block. The per-state overrides a
- * lit candle or an extended piston needs come from the behavior family, not
- * from the pack.
+ * One overlay file covers every state of its block, so the generator writes a
+ * block's base row as its components and a lit candle's or an unlit
+ * campfire's light as a permutation from the per-state overrides.
  */
 export const JAVA_BLOCK_PROPERTIES: BlockPropertySource = {
     bedrockOnly: BEDROCK_ONLY_BLOCKS,
-    propertiesOf: (identifier) => bedrockBlockPropertiesOf(identifier)
+    propertiesOf: (identifier) => bedrockBlockPropertiesOf(identifier),
+    stateOverridesOf: (identifier) => bedrockBlockStateOverridesOf(identifier)
 };

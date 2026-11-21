@@ -58,6 +58,30 @@
                         "size": [6, 6, 5]
                     }
                 }
+            },
+            {
+                "condition": "(query.block_state('candles') == 0) && (query.block_state('lit') == 1)",
+                "components": {
+                    "minecraft:light_emission": 3
+                }
+            },
+            {
+                "condition": "(query.block_state('candles') == 1) && (query.block_state('lit') == 1)",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('candles') == 2) && (query.block_state('lit') == 1)",
+                "components": {
+                    "minecraft:light_emission": 9
+                }
+            },
+            {
+                "condition": "(query.block_state('candles') == 3) && (query.block_state('lit') == 1)",
+                "components": {
+                    "minecraft:light_emission": 12
+                }
             }
         ]
     }

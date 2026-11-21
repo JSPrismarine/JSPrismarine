@@ -26,6 +26,56 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('ominous') == 1) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'north') && (query.block_state('ominous') == 0) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'south') && (query.block_state('ominous') == 1) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'south') && (query.block_state('ominous') == 0) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'west') && (query.block_state('ominous') == 1) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'west') && (query.block_state('ominous') == 0) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'east') && (query.block_state('ominous') == 1) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            },
+            {
+                "condition": "(query.block_state('minecraft:cardinal_direction') == 'east') && (query.block_state('ominous') == 0) && (query.block_state('vault_state') == 'inactive')",
+                "components": {
+                    "minecraft:light_emission": 6
+                }
+            }
+        ]
     }
 }

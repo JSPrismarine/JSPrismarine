@@ -48,6 +48,14 @@
                 "push_reaction": "push_pull",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('cauldron_liquid') == 'lava') && (query.block_state('fill_level') == 6)",
+                "components": {
+                    "minecraft:light_emission": 15
+                }
+            }
+        ]
     }
 }

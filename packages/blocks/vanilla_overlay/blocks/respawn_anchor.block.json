@@ -26,6 +26,32 @@
                 "push_reaction": "immovable",
                 "source": "java"
             }
-        }
+        },
+        "permutations": [
+            {
+                "condition": "(query.block_state('respawn_anchor_charge') == 1)",
+                "components": {
+                    "minecraft:light_emission": 3
+                }
+            },
+            {
+                "condition": "(query.block_state('respawn_anchor_charge') == 2)",
+                "components": {
+                    "minecraft:light_emission": 7
+                }
+            },
+            {
+                "condition": "(query.block_state('respawn_anchor_charge') == 3)",
+                "components": {
+                    "minecraft:light_emission": 11
+                }
+            },
+            {
+                "condition": "(query.block_state('respawn_anchor_charge') == 4)",
+                "components": {
+                    "minecraft:light_emission": 15
+                }
+            }
+        ]
     }
 }

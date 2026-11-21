@@ -31,7 +31,27 @@ export interface BlockPropertySource {
     readonly bedrockOnly: ReadonlySet<string>;
     /** The Java-sourced row for one block, or undefined for a Bedrock-only one. */
     propertiesOf(identifier: string): BedrockBlockProperties | undefined;
+    /**
+     * The per-state overrides of that row, keyed by the Bedrock state values each applies to, such
+     * as a lit candle's light. Undefined when every state takes the row.
+     */
+    stateOverridesOf?(identifier: string): Readonly<Record<string, Partial<BedrockBlockProperties>>> | undefined;
 }
+
+/**
+ * A `query.block_state` condition matching a state key such as `candles=1,lit=1`: a number as a
+ * number, which is how the palette holds booleans too, and anything else as a string.
+ */
+const stateKeyCondition = (stateKey: string): string =>
+    stateKey
+        .split(',')
+        .map((pair) => {
+            const separator = pair.indexOf('=');
+            const value = pair.slice(separator + 1);
+            const literal = /^-?\d+$/.test(value) ? value : `'${value}'`;
+            return `(query.block_state('${pair.slice(0, separator)}') == ${literal})`;
+        })
+        .join(' && ');
 
 /** The pack identifier the overlay declares, which is also its folder name. */
 export const OVERLAY_PACK_NAME = 'jsprismarine_vanilla';
@@ -344,6 +364,16 @@ export const generateVanillaOverlay = (
                 collisionPermutationBlockCount += 1;
                 collisionPermutationCount += permutations.length;
             }
+        }
+
+        // A state that lights differently from its block, such as a lit candle or an unlit
+        // campfire, carries its own level, which the light engine reads per state.
+        for (const [stateKey, override] of Object.entries(properties.stateOverridesOf?.(identifier) ?? {})) {
+            if (override.lightEmission === undefined) continue;
+            permutations.push({
+                condition: stateKeyCondition(stateKey),
+                components: { 'minecraft:light_emission': override.lightEmission }
+            });
         }
 
         components['jsprismarine:behavior'] = behavior;
