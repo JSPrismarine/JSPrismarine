@@ -468,6 +468,14 @@ Thrown as `ScriptHostErrors.InvalidPlayerHandle`, which extends `Error`.
 A script closed the forms of a player who has left. The script sees Bedrock Dedicated
 Server's `Error`.
 
+## `SCRIPT_HOST_JSP_MEMBER_UNAVAILABLE`
+
+`{member} of @jsprismarine/server is not available on this server`
+
+Thrown as `ScriptHostErrors.JspMemberUnavailable`, which extends `Error`.
+
+A pack called a member of `@jsprismarine/server` this server does not provide, which it should have checked for with `in`.
+
 ## `SCRIPT_HOST_JSP_MODULE_ARGUMENT`
 
 `{member} takes {expected} as its {argument}`

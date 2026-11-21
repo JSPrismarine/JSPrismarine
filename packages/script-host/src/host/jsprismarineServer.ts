@@ -171,6 +171,65 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'string'
             }
         }
+    },
+    permissions: {
+        kind: 'methods',
+        summary:
+            'The groups, nodes and meta of `permissions.json`, resolved as the server resolves them for a command. A write persists to the file as `/perms` would, and `afterEvents.permissionsChange` fires after any write, from a script, `/perms`, `/op` or an edit of the file.',
+        properties: {
+            afterEvents: {
+                type: 'PermissionsAfterEvents',
+                summary: 'The events the permission files raise.'
+            }
+        },
+        methods: {
+            has: {
+                summary:
+                    "Whether the player holds the node after resolution: their own nodes, then their groups heaviest first and each group's parents, where a specific node beats a wildcard and a negation wins a tie. An operator holds every node.",
+                parameters: 'player: Player, node: string',
+                returns: 'boolean'
+            },
+            groupsOf: {
+                summary:
+                    "The groups the player holds directly, heaviest first, `default` and an operator's `operator` included.",
+                parameters: 'player: Player',
+                returns: 'readonly string[]'
+            },
+            primaryGroupOf: {
+                summary: 'The heaviest group the player holds directly, or `default`.',
+                parameters: 'player: Player',
+                returns: 'string'
+            },
+            metaOf: {
+                summary:
+                    "The resolved value of a meta key such as `prefix`, `suffix` or `level`: the player's own, then their groups' in resolution order. `undefined` when nothing sets it.",
+                parameters: 'player: Player, key: string',
+                returns: 'string | undefined'
+            },
+            grant: {
+                summary:
+                    'Adds a node to a player, or to a group named by its name. Throws a `RangeError` for a node not spelled as `scope.name`, `scope.*` or `*` with at most one leading `-`, or for an expiry that is not an ISO 8601 instant in the future, and an `Error` for a group the file does not have.',
+                parameters: 'subject: Player | string, node: string, expires?: string',
+                returns: 'void'
+            },
+            revoke: {
+                summary:
+                    'Removes a node from a player, or from a group named by its name. Does nothing when they do not have it.',
+                parameters: 'subject: Player | string, node: string',
+                returns: 'void'
+            },
+            addToGroup: {
+                summary:
+                    'Adds a player to a group, until `expires` when one is given. Throws an `Error` for a group the file does not have.',
+                parameters: 'player: Player, group: string, expires?: string',
+                returns: 'void'
+            },
+            removeFromGroup: {
+                summary: 'Removes a player from a group. Does nothing when they are not in it.',
+                parameters: 'player: Player, group: string',
+                returns: 'void'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -272,6 +331,47 @@ export const JSPRISMARINE_TYPES = {
             namespace: { type: 'string', summary: 'Its name, the part of a token before the colon.' },
             keys: { type: 'readonly string[]', summary: 'The keys its provider answers.' }
         }
+    },
+    PermissionsAfterEvents: {
+        kind: 'interface',
+        summary: 'The events the permission files raise, after the fact.',
+        properties: {
+            permissionsChange: {
+                type: 'PermissionsChangeSignal',
+                summary:
+                    'Fires after any write to the permission files, whoever made it, and after the files are read again on `/reload` or a change on disk.'
+            }
+        }
+    },
+    PermissionsChangeSignal: {
+        kind: 'interface',
+        summary: 'Where a pack subscribes to permission changes.',
+        properties: {},
+        methods: {
+            subscribe: {
+                summary:
+                    "Calls `callback` after each change, with the player and the group it touched, and returns the callback. A pack's subscriptions end when its scripts stop.",
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: '(event: PermissionsChangeEvent) => void'
+            },
+            unsubscribe: {
+                summary: 'Stops calling a callback `subscribe` returned.',
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: 'void'
+            }
+        }
+    },
+    PermissionsChangeEvent: {
+        kind: 'interface',
+        summary: 'What a permission change touched. Both are absent after a reload, which may have changed anything.',
+        properties: {
+            player: {
+                type: 'Player',
+                optional: true,
+                summary: 'The player whose own record or operator status changed, when they are online.'
+            },
+            group: { type: 'string', optional: true, summary: 'The group that changed.' }
+        }
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -308,14 +408,24 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'register',
     'unregister',
     'resolve',
-    'namespaces'
+    'namespaces',
+    'hasPermission',
+    'groupsOf',
+    'primaryGroupOf',
+    'metaOf',
+    'grant',
+    'revoke',
+    'addToGroup',
+    'removeFromGroup',
+    'onPermissionsChange'
 ] as const;
 
 /**
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
  * `host.read(name, index)` answers a property of `performance`, one entry of a list at a time,
- * `host.namespaces()` answers the registered namespaces as JSON, and the others are named for
- * what they do.
+ * `host.namespaces()` answers the registered namespaces as JSON, `host.groupsOf(player)` a
+ * player's groups as JSON, `host.onPermissionsChange(dispatch)` keeps the function the host calls
+ * with each change's player and group, and the others are named for what they do.
  */
 const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, string>> = {
     getPing: 'freeze((player) => host.ping(player))',
@@ -344,6 +454,30 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        get namespaces() { return namespaces(); }',
         '    });',
         '})()'
+    ].join('\n'),
+    permissions: [
+        '(() => {',
+        '    const subscribers = new Set();',
+        '    host.onPermissionsChange((player, group) => {',
+        '        const event = freeze({ player, group });',
+        '        for (const callback of [...subscribers]) callback(event);',
+        '    });',
+        '    const permissionsChange = freeze({',
+        '        subscribe(callback) { subscribers.add(callback); return callback; },',
+        '        unsubscribe(callback) { subscribers.delete(callback); }',
+        '    });',
+        '    return freeze({',
+        '        has: (player, node) => host.hasPermission(player, node),',
+        '        groupsOf: (player) => freeze(JSON.parse(host.groupsOf(player))),',
+        '        primaryGroupOf: (player) => host.primaryGroupOf(player),',
+        '        metaOf: (player, key) => host.metaOf(player, key),',
+        '        grant: (subject, node, expires) => host.grant(subject, node, expires),',
+        '        revoke: (subject, node) => host.revoke(subject, node),',
+        '        addToGroup: (player, group, expires) => host.addToGroup(player, group, expires),',
+        '        removeFromGroup: (player, group) => host.removeFromGroup(player, group),',
+        '        afterEvents: freeze({ permissionsChange })',
+        '    });',
+        '})()'
     ].join('\n')
 };
 
@@ -360,6 +494,27 @@ const liveSource = (properties: Readonly<Record<string, LiveProperty>>): string 
     return `freeze({ ${getters.join(', ')} })`;
 };
 
+/** The host functions behind `permissions`, installed only on a server that has the permission files. */
+export const PERMISSION_HOST_FUNCTIONS = [
+    'hasPermission',
+    'groupsOf',
+    'primaryGroupOf',
+    'metaOf',
+    'grant',
+    'revoke',
+    'addToGroup',
+    'removeFromGroup',
+    'onPermissionsChange'
+] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
+
+/**
+ * The host function a member needs, when a host may lack it: a server that cannot give the member
+ * installs none of its functions, and the module leaves the member out as an older server would.
+ */
+const MEMBER_HOST_FUNCTION: Readonly<Partial<Record<LiveMember, (typeof JSPRISMARINE_HOST_FUNCTIONS)[number]>>> = {
+    permissions: 'hasPermission'
+};
+
 /**
  * The script that evaluates to a function making the module's namespace, run in the pack's
  * context. Called with nothing, the function makes `jsprismarine` alone; called with an object of
@@ -370,6 +525,7 @@ const liveSource = (properties: Readonly<Record<string, LiveProperty>>): string 
 export const jsprismarineServerSource = (info: JsprismarineServerInfo): string => {
     const supplied: Readonly<Record<string, string | number>> = info;
     const callable: Readonly<Record<string, string | undefined>> = CALLABLE_SOURCES;
+    const needs: Readonly<Record<string, string | undefined>> = MEMBER_HOST_FUNCTION;
     const members = Object.entries(JSPRISMARINE_SERVER).map(([name, member]) => {
         const key = JSON.stringify(name);
         if (member.kind === 'values') {
@@ -382,7 +538,10 @@ export const jsprismarineServerSource = (info: JsprismarineServerInfo): string =
             return `    namespace[${key}] = freeze(${JSON.stringify(values)});`;
         }
         const source = member.kind === 'live' ? liveSource(member.properties) : callable[name];
-        return `    if (host !== undefined) namespace[${key}] = ${source};`;
+        const required = needs[name];
+        const condition =
+            required === undefined ? 'host !== undefined' : `host !== undefined && ${JSON.stringify(required)} in host`;
+        return `    if (${condition}) namespace[${key}] = ${source};`;
     });
     return [
         '((host) => {',
