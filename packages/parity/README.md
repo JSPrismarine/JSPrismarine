@@ -47,8 +47,15 @@ server's real handlers, and returns what differed.
     `minecraft:is_*` state markers;
   - an item's are the Java components it carries, apart from the ones every item carries and the
     ones that only change how it looks, plus placing its block when it names one;
-  - a block's are its drops when Java gives it a loot table, its random tick when Java random-ticks
-    it, and the behavior of its server family when that family is more than a plain block.
+  - a block's come from Java alone, never from what the server implements: its drops when Java
+    gives it a loot table, its random tick when Java random-ticks it, its mining time, blast
+    resistance and piston reaction, its light, fire odds and movement factors when Java's
+    property dump gives it any, and one row for each kind of behavior its Java class adds to the
+    plain block. [`src/javaBlockClasses.ts`](src/javaBlockClasses.ts) reads that class from the
+    pinned jar's `Blocks` registrations, and a kind is there when the class overrides one of its
+    `BlockBehaviour` hooks (`useWithoutItem` for `interaction`, `canSurvive` for `support`,
+    `getSignal` for `redstone`, and so on) or implements its interface (`EntityBlock` for
+    `block-entity`).
 - A scenario names the aspects it compares (`aspects`). An aspect row passes when every scenario
   that compared it agreed with Java, and fails when one did not. A scenario that compares an
   aspect the data did not list adds that row.

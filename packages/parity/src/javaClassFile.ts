@@ -151,6 +151,7 @@ export const OPCODES = {
     GOTO: 0xa7,
     IRETURN: 0xac,
     DRETURN: 0xaf,
+    PUTSTATIC: 0xb3,
     GETFIELD: 0xb4,
     INVOKEVIRTUAL: 0xb6,
     INVOKESPECIAL: 0xb7,
@@ -535,7 +536,6 @@ export type JavaOperation =
     | { readonly kind: 'number'; readonly value: number };
 
 const GETSTATIC = 0xb2;
-const PUTSTATIC = 0xb3;
 const PUTFIELD = 0xb5;
 
 /**
@@ -555,7 +555,7 @@ export const javaOperations = (method: Pick<JavaMethod, 'instructions'>): readon
                 {
                     kind: 'field',
                     target,
-                    write: instruction.opcode === PUTSTATIC || instruction.opcode === PUTFIELD
+                    write: instruction.opcode === OPCODES.PUTSTATIC || instruction.opcode === PUTFIELD
                 }
             ];
         if (instruction.opcode >= OPCODES.INVOKEVIRTUAL && instruction.opcode <= OPCODES.INVOKEINTERFACE)

@@ -214,6 +214,1986 @@
             "kind": "intentional",
             "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
             "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
+        },
+        "light-emission:minecraft:black_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:black_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:blue_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:brown_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=east,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=east,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=east,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=east,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=north,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=north,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=north,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=north,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=south,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=south,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=south,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=south,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=west,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=west,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=west,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:campfire[facing=west,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:cyan_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:exposed_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:glow_lichen": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:gray_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:green_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lava_cauldron": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_blue_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:light_gray_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:lime_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:magenta_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:orange_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:oxidized_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:pink_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:purple_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:red_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:respawn_anchor[charges=1]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:respawn_anchor[charges=2]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:respawn_anchor[charges=3]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:respawn_anchor[charges=4]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:sea_pickle": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:sea_pickle[pickles=2,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:sea_pickle[pickles=3,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:sea_pickle[pickles=4,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=east,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=east,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=east,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=east,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=north,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=north,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=north,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=north,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=south,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=south,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=south,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=south,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=west,lit=false,signal_fire=false,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=west,lit=false,signal_fire=false,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=west,lit=false,signal_fire=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:soul_campfire[facing=west,lit=false,signal_fire=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:trial_spawner": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:trial_spawner[ominous=false,trial_spawner_state=waiting_for_players]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:trial_spawner[ominous=true,trial_spawner_state=waiting_for_players]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:vault": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:waxed_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:waxed_exposed_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:waxed_oxidized_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:waxed_weathered_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:weathered_copper_bulb": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:white_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle_cake": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=1,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=1,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=2,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=2,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=3,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=3,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=4,lit=true,waterlogged=false]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "light-emission:minecraft:yellow_candle[candles=4,lit=true,waterlogged=true]": {
+            "kind": "defect",
+            "reason": "The light table gives this block one level for every state, where Java's level depends on the state.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3502"
+        },
+        "mining-time:minecraft:acacia_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:azalea_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:bamboo": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_sword takes 1 ticks, Java 0; minecraft:diamond_sword takes 1 ticks, Java 0; minecraft:golden_sword takes 1 ticks, Java 0 and 4 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:bamboo_sapling": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_sword takes 1 ticks, Java 0; minecraft:diamond_sword takes 1 ticks, Java 0; minecraft:golden_sword takes 1 ticks, Java 0 and 4 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:bee_nest": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_axe takes 1 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:big_dripleaf": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_axe takes 1 ticks, Java 0; minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:big_dripleaf_stem": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_axe takes 1 ticks, Java 0; minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:birch_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:brown_mushroom_block": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:cherry_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:chorus_flower": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_axe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:chorus_plant": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_axe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:cocoa": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:crimson_nylium": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_pickaxe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:dark_oak_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:daylight_detector": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:flowering_azalea_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:glow_lichen": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:jungle_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:ladder": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_axe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:mangrove_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:moss_block": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_hoe takes 1 ticks, Java 0; minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:moss_carpet": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_hoe takes 1 ticks, Java 0; minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:mushroom_stem": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:netherrack": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_pickaxe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:oak_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:orange_poplar_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:pale_moss_block": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_hoe takes 1 ticks, Java 0; minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:pale_moss_carpet": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_hoe takes 1 ticks, Java 0; minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:pale_oak_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:red_mushroom_block": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:red_poplar_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:sculk": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:sculk_vein": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:snow": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:copper_shovel takes 1 ticks, Java 0; minecraft:diamond_shovel takes 1 ticks, Java 0; minecraft:golden_shovel takes 1 ticks, Java 0 and 3 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:snow_block": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_shovel takes 1 ticks, Java 0; minecraft:golden_shovel takes 1 ticks, Java 0; minecraft:iron_shovel takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:spruce_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:straw_bed": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:suspicious_gravel": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_shovel takes 1 ticks, Java 0; minecraft:golden_shovel takes 1 ticks, Java 0; minecraft:netherite_shovel takes 1 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:suspicious_sand": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_shovel takes 1 ticks, Java 0; minecraft:golden_shovel takes 1 ticks, Java 0; minecraft:netherite_shovel takes 1 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:vine": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_axe takes 1 ticks, Java 0; minecraft:golden_axe takes 1 ticks, Java 0; minecraft:iron_axe takes 2 ticks, Java 0 and 1 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:warped_nylium": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:golden_pickaxe takes 2 ticks, Java 0.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "mining-time:minecraft:yellow_poplar_leaves": {
+            "kind": "defect",
+            "reason": "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool. Observed: minecraft:diamond_hoe takes 1 ticks, Java 0; minecraft:golden_hoe takes 1 ticks, Java 0; minecraft:iron_hoe takes 2 ticks, Java 0 and 2 more tools differ.",
+            "reference": "Java's getDestroyProgress, Player.getDestroySpeed and Tool.getMiningSpeed"
+        },
+        "piston-reaction:minecraft:acacia_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:acacia_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:acacia_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:acacia_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:acacia_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bamboo_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bamboo_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bamboo_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bamboo_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bamboo_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:barrel": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:beacon": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:bee_nest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:beehive": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:birch_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:birch_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:birch_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:birch_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:birch_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:black_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:black_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:blast_furnace": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:blue_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:blue_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:brewing_stand": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:brown_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:brown_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:calibrated_sculk_sensor": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:campfire": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:chain_command_block": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cherry_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cherry_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cherry_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cherry_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cherry_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:chiseled_bookshelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:command_block": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:conduit": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crafter": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:creaking_heart": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crimson_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crimson_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crimson_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crimson_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:crimson_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cyan_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:cyan_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dark_oak_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dark_oak_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dark_oak_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dark_oak_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dark_oak_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:daylight_detector": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dispenser": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:dropper": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:enchanting_table": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:end_portal_frame": {
+            "kind": "defect",
+            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
+        },
+        "piston-reaction:minecraft:ender_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:exposed_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:furnace": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:gray_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:gray_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:green_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:green_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:hopper": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jigsaw": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jukebox": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jungle_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jungle_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jungle_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jungle_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:jungle_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:lectern": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:light": {
+            "kind": "defect",
+            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
+        },
+        "piston-reaction:minecraft:light_blue_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:light_blue_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:light_gray_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:light_gray_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:lime_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:lime_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:magenta_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:magenta_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:mangrove_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:mangrove_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:mangrove_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:mangrove_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:mangrove_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oak_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oak_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oak_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oak_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oak_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:orange_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:orange_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:oxidized_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pale_oak_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pale_oak_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pale_oak_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pale_oak_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pale_oak_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pink_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:pink_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:piston": {
+            "kind": "defect",
+            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
+        },
+        "piston-reaction:minecraft:poplar_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:poplar_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:poplar_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:poplar_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:poplar_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:potent_sulfur": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:purple_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:purple_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:red_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:red_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:repeating_command_block": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:sculk_catalyst": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:sculk_sensor": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:sculk_shrieker": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:smoker": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:soul_campfire": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spawner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spruce_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spruce_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spruce_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spruce_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:spruce_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:sticky_piston": {
+            "kind": "defect",
+            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
+        },
+        "piston-reaction:minecraft:structure_block": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:trapped_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:trial_spawner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:vault": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:warped_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:warped_shelf": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:warped_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:warped_wall_hanging_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:warped_wall_sign": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:waxed_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:waxed_exposed_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:waxed_oxidized_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:waxed_weathered_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:weathered_copper_chest": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:white_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:white_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:yellow_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "piston-reaction:minecraft:yellow_wall_banner": {
+            "kind": "intentional",
+            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
+            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         }
     },
     "commands.answers": {},

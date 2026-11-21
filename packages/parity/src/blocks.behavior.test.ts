@@ -6,7 +6,7 @@ import { spreadLiquid } from '@jsprismarine/block-behaviors/rules/fluid';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import { blockProperties } from '@jsprismarine/blocks/components';
 import { faceOccludesIn } from '@jsprismarine/blocks/geometry';
-import { DEFAULT_BLOCK_BEHAVIOR, behaviorFor } from '@jsprismarine/blocks';
+import { behaviorFor } from '@jsprismarine/blocks';
 import type { BlockFace } from '@jsprismarine/blocks';
 import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blocksTable } from '@jsprismarine/mapping/tables';
@@ -18,7 +18,8 @@ import { expect, it } from 'vitest';
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
-import { loadJavaBlockProperties } from './goldens.ts';
+import { blockPropertyScenarios, javaBlockRows } from './blockScenarios/properties.ts';
+import { javaBlockBehaviors, javaBlockIsA } from './javaBlockClasses.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 import { serverContent } from './serverStack.ts';
@@ -875,59 +876,131 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     }
 ];
-/** The scenarios that compare what a block does on a random tick; every other one compares its family's behavior. */
-const RANDOM_TICK_SCENARIOS: ReadonlySet<string> = new Set([
-    'copper-oxidizes',
-    'crop-growth',
-    'grass-spread',
-    'growing-plant-head',
-    'ice-melts-in-light',
-    'leaves-decay',
-    'sapling-grows-tree',
-    'stalk-grows-upward'
-]);
+/**
+ * The aspects each block scenario compares, by the Java behavior kind it exercises: the hooks of
+ * the Java class it names in its reference, or the property it reads.
+ */
+const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
+    'family-matches-java-group': [],
+    'hand-toggle': ['interaction'],
+    'button-pulse': ['interaction', 'scheduled-tick'],
+    'pressure-plate-trigger': ['entity-contact', 'scheduled-tick'],
+    'plant-needs-ground': ['support'],
+    'mushroom-needs-dark-or-mycelium': ['support'],
+    'door-needs-ground': ['support'],
+    'falls-without-support': ['falling'],
+    'crop-growth': ['random-tick'],
+    'waterlogged-by-two-sources': ['waterlogging'],
+    'bottom-slab-holds-water': ['waterlogging'],
+    'grass-spread': ['random-tick'],
+    'growing-plant-head': ['random-tick'],
+    'leaves-decay': ['random-tick'],
+    'lamp-follows-power': ['neighbor-update'],
+    'concrete-powder-hardens': ['neighbor-update'],
+    'tnt-ignites-on-power': ['neighbor-update'],
+    'stalk-grows-upward': ['random-tick'],
+    'sapling-grows-tree': ['random-tick'],
+    'cake-bites': ['interaction'],
+    'lever-toggles': ['interaction'],
+    'copper-oxidizes': ['random-tick'],
+    'copper-waxes': ['waxing'],
+    'candle-lights': ['interaction'],
+    'water-spreads-seven': ['fluid-flow'],
+    'lava-spreads-three': ['fluid-flow'],
+    'composter-chance': ['interaction'],
+    'sponge-absorbs-water': ['neighbor-update'],
+    'ice-melts-in-light': ['random-tick'],
+    'piston-pushes': ['neighbor-update'],
+    'breaking-drops-loot': ['drops'],
+    'observer-pulse-delay': ['neighbor-update'],
+    'torch-inversion-delay': ['neighbor-update'],
+    'lamp-off-delay': ['neighbor-update', 'scheduled-tick']
+};
 
-/** The aspect a block scenario compares, unless it names its own. */
-const aspectOfScenario = (name: string): string =>
-    name === 'breaking-drops-loot' ? 'drops' : RANDOM_TICK_SCENARIOS.has(name) ? 'random-tick' : 'behavior';
+const scenarios: readonly BehaviorScenario<BlockSubject>[] = blockScenarios.map((scenario) => {
+    const aspects = SCENARIO_ASPECTS[scenario.name];
+    if (aspects === undefined) throw new Error(`block scenario ${scenario.name} names no aspect in SCENARIO_ASPECTS`);
+    return { ...scenario, aspects: scenario.aspects ?? (() => aspects) };
+});
 
-const scenarios: readonly BehaviorScenario<BlockSubject>[] = blockScenarios.map((scenario) => ({
-    ...scenario,
-    aspects: scenario.aspects ?? (() => [aspectOfScenario(scenario.name)])
-}));
+/** Java's defaults for the movement properties, which only a block that changes one has a row for. */
+const MOVEMENT_DEFAULTS: Readonly<Record<string, number>> = {
+    friction: 0.6,
+    speedFactor: 1,
+    jumpFactor: 1,
+    bounceRestitution: 0,
+    fallDistanceReduction: 0
+};
 
 /**
- * The behaviors one Java block has that full parity has to compare with Java: what breaking it
- * drops when Java gives it a loot table, what a random tick does when Java random-ticks any of its
- * states, and the behavior of its server family when that family is more than a plain block.
+ * The behaviors one Java block has that full parity has to compare with Java, all read from Java's
+ * own data rather than from what the server implements:
+ *
+ * - its drops when Java gives it a loot table, and its random tick when Java random-ticks a state;
+ * - how long it takes to mine, what a blast does to it, and how a piston moves it, for every block
+ *   a player can target;
+ * - the light it gives, fire's odds on it and how it changes an entity's movement, when Java's
+ *   property dump gives it any;
+ * - each behavior kind its Java class adds to the plain block: the `BlockBehaviour` hooks it
+ *   overrides (using it, its scheduled tick, its support, its neighbor updates, its placement,
+ *   its redstone signal, entity contact, projectiles, breaking) and the interfaces it implements
+ *   (a block entity, bone meal, falling, holding water). See `javaBlockClasses.ts`.
  */
-let javaBlockProperties: ReturnType<typeof loadJavaBlockProperties> | undefined;
-
 const blockAspects = (javaId: string): readonly BehaviorAspect[] => {
-    javaBlockProperties ??= loadJavaBlockProperties();
+    const java = javaBlockRows()[javaId];
+    const states = [java?.base ?? {}, ...Object.values(java?.stateOverrides ?? {})];
+    const any = (field: string, test: (value: unknown) => boolean) => states.some((values) => test(values[field]));
     const aspects: BehaviorAspect[] = [];
     const lootTable = `minecraft:blocks/${javaId.replace('minecraft:', '')}`;
     if (serverContent().definitions.lootTablesJava.has(lootTable)) {
         aspects.push({ id: 'drops', description: `what breaking it drops, against Java's ${lootTable}` });
     }
-    const java = javaBlockProperties[javaId];
-    const ticks =
-        java?.base.randomTick === true ||
-        Object.values(java?.stateOverrides ?? {}).some((state) => state.randomTick === true);
-    if (ticks) aspects.push({ id: 'random-tick', description: 'what a random tick does to it, against Java' });
-    const mapping = javaBlockStateToBedrock(javaId);
-    const family = mapping.kind === 'mapped' ? behaviorFor(mapping.bedrock.name) : DEFAULT_BLOCK_BEHAVIOR;
-    if (family !== DEFAULT_BLOCK_BEHAVIOR) {
+    if (any('randomTick', (value) => value === true)) {
+        aspects.push({ id: 'random-tick', description: 'what a random tick does to it, against Java' });
+    }
+    if (!javaBlockIsA(javaId, 'AirBlock')) {
+        if (!javaBlockIsA(javaId, 'LiquidBlock')) {
+            aspects.push(
+                {
+                    id: 'mining',
+                    description: 'how many ticks it takes to break by hand and with each tool, against Java'
+                },
+                { id: 'explosion', description: 'what a blast does to it, against Java' }
+            );
+        }
+        aspects.push({ id: 'piston', description: 'whether a piston moves, destroys or stops at it, against Java' });
+    }
+    if (any('lightEmission', (value) => typeof value === 'number' && value > 0)) {
+        aspects.push({ id: 'light', description: 'the light it gives in each state, against Java' });
+    }
+    if (
+        any('igniteOdds', (value) => typeof value === 'number' && value > 0) ||
+        any('burnOdds', (value) => typeof value === 'number' && value > 0)
+    ) {
         aspects.push({
-            id: 'behavior',
-            description: `its placement, update and interaction behavior (${family}), against Java`
+            id: 'flammability',
+            description: "fire's odds of catching on it and burning it away, against Java"
         });
+    }
+    if (
+        Object.entries(MOVEMENT_DEFAULTS).some(([field, value]) =>
+            any(field, (actual) => typeof actual === 'number' && actual !== value)
+        )
+    ) {
+        aspects.push({
+            id: 'movement',
+            description: 'how it changes the speed, jump, sliding or fall of an entity on it, against Java'
+        });
+    }
+    for (const { kind, evidence } of javaBlockBehaviors(javaId)) {
+        aspects.push({ id: kind.aspect, description: `${kind.description} (${evidence.join(', ')}), against Java` });
     }
     return aspects;
 };
 
 const REFERENCES_NEEDED = [
     REFERENCES.javaBlockRegistry,
+    REFERENCES.javaServerJar,
     REFERENCES.bedrockBehaviorPack,
     REFERENCES.javaWorldgenData
 ] as const;
@@ -957,7 +1030,12 @@ describeFamily(FAMILIES.blocksBehavior, REFERENCES_NEEDED, () => {
     });
 
     it('exercises each Java block behavior against the server block families', { timeout: 180_000 }, () => {
-        const rows = measureScenarios(FAMILIES.blocksBehavior, import.meta.filename, scenarioGroup(scenarios));
+        const rows = measureScenarios(
+            FAMILIES.blocksBehavior,
+            import.meta.filename,
+            scenarioGroup(scenarios),
+            scenarioGroup(blockPropertyScenarios)
+        );
 
         reportCoverage(
             FAMILIES.blocksBehavior,
