@@ -1,5 +1,7 @@
 # Slice 5: the throughput candidate the profile picks first
 
+Superseded 2026-11-21 by [worldgen-rearchitecture.md](worldgen-rearchitecture.md), after the profile this note asked for was taken ([worldgen-cost-structure.md](../research/worldgen-cost-structure.md)). The range analysis it picked landed as cell bounds (#3452); the rest of the pick, generated code, lost to a volume runtime.
+
 Slice 5 of [worldgen-decoupling.md](worldgen-decoupling.md) is decided by slice 0's profile, and the plan's rule is that the profile's largest remaining cost goes first. The figures come from [worldgen-decoupling-baseline.md](../research/worldgen-decoupling-baseline.md): `bench:chunks` with the `stages` arm, one worker, 64 chunks, three runs, load average 3.9 to 4.8.
 
 ## What the profile shows
