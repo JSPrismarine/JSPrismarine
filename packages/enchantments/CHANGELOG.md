@@ -1,5 +1,13 @@
 # @jsprismarine/enchantments
 
+## 0.24.0
+
+### Patch Changes
+
+- [`0ccb258`](https://github.com/JSPrismarine/JSPrismarine/commit/0ccb2586e8dd1a6f9cfd27b93356cbcc818257d3) Thanks [@filiphsps](https://github.com/filiphsps)! - Repair an item on an anvil with the materials its `minecraft:repairable` names. The registry's repair check now resolves a tag-named material through the host's item tags, and every vanilla material is named by a tag, while the server's stacks now carry their type's `minecraft:repairable` for the anvil rule to read. Before, no item repaired with its material.
+- Updated dependencies [[`70ee4ea`](https://github.com/JSPrismarine/JSPrismarine/commit/70ee4eae4e88857c368ca2ca9c298cb8491c7b72)]:
+  - @jsprismarine/predicates@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

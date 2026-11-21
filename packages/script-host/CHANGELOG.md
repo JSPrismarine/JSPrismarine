@@ -1,5 +1,46 @@
 # @jsprismarine/script-host
 
+## 0.24.0
+
+### Minor Changes
+
+- [#3558](https://github.com/JSPrismarine/JSPrismarine/pull/3558) [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca) Thanks [@filiphsps](https://github.com/filiphsps)! - `@jsprismarine/native-network` now binds its library through `@jsprismarine/native-library/ffi`'s `bindNative`, and `@jsprismarine/script-host` loads `node:ffi` through its new `nodeFfi()`. Each package had kept its own copy of that code.
+  
+  Breaking: `NativeNetworkErrors.FfiUnavailable` and `ScriptHostErrors.FfiUnavailable` are removed. A runtime without `node:ffi` now throws `NativeLibraryErrors.FfiUnavailable`, which is still a `NativeLibraryError`, so an `instanceof NativeLibraryError` check still catches it.
+
+- [#3513](https://github.com/JSPrismarine/JSPrismarine/pull/3513) [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `@jsprismarine/native-library`, which finds, checks and installs a package's prebuilt native library. `@jsprismarine/native-network` and `@jsprismarine/script-host` now load their libraries through it, so both behave the same way.
+  
+  Breaking changes:
+  
+  - The errors for a missing, unverified or undownloadable library, and for a malformed native manifest (`InvalidNativeManifest`, `InvalidNativeManifestEntry`), moved from `NativeNetworkErrors` and `ScriptHostErrors` to `NativeLibraryErrors` in `@jsprismarine/errors/native-library`, and their codes now start with `NATIVE_LIBRARY_`.
+  - `NativeLibraryError` is now exported only from `@jsprismarine/errors/native-library`, so one `instanceof` check catches loading errors from either package.
+  - `@jsprismarine/script-host/library` no longer exports `localBuildDigest`, `recordLocalBuild` or the `LocateOptions` type. `LocateOptions` comes from `@jsprismarine/native-library`, and `NativeLibrary` covers what the other two did.
+  - `@jsprismarine/script-host/manifest` is removed. Import the manifest parser from `@jsprismarine/native-library/manifest`.
+  - In a checkout, `@jsprismarine/native-network` on a platform without a published build now says how to build the library instead of saying no build is published.
+  
+  A packager's `libraryForPlatform` now replaces an installed file that fails its digest check with the published build instead of throwing. In a checkout whose native sources differ from the published builds, nothing is downloaded, so it still throws there.
+
+### Patch Changes
+
+- [#3494](https://github.com/JSPrismarine/JSPrismarine/pull/3494) [`8dde963`](https://github.com/JSPrismarine/JSPrismarine/commit/8dde963472d7658bbe16a0ca764e98f9cd1af06a) Thanks [@filiphsps](https://github.com/filiphsps)! - Pick the blocks `Dimension.getBlocks` returns for `closest` as the pinned Bedrock Dedicated Server does when several lie at one distance: it walks the volume x, then z, then y, and keeps the nearest in a max-heap of the size asked for.
+
+- [`e1f36b8`](https://github.com/JSPrismarine/JSPrismarine/commit/e1f36b83616149c2e27f4276d423cdb6f43e3ed6) Thanks [@filiphsps](https://github.com/filiphsps)! - The native source hash now covers what `@jsprismarine/native-library`'s naming helpers return instead of the text of their module, and leaves out the modules that only compute the hash. Editing those modules without changing a build no longer publishes new builds, and in a checkout no longer makes the library build locally. `nativeSourceHash` takes the helpers' output as a third argument, from the new `namingAnswers` in `@jsprismarine/native-library/platform`.
+
+- [#3511](https://github.com/JSPrismarine/JSPrismarine/pull/3511) [`bcb6f22`](https://github.com/JSPrismarine/JSPrismarine/commit/bcb6f224d2c9063b19c0c08be23f00354f258ded) Thanks [@filiphsps](https://github.com/filiphsps)! - Script music, property overrides, client messages and camera splines now reach the player's client, with the packets a Bedrock Dedicated Server sends. `Player.playMusic`, `queueMusic` and `stopMusic`, and `World`'s, send `LevelEventGenericPacket` music events instead of a sound. `Player.setPropertyOverrideForEntity` and its siblings send `PlayerUpdateEntityOverridesPacket`, `Player.postClientMessage` sends `ScriptMessagePacket`, and `Camera.playAnimation` sends a spline camera instruction. `Camera.playAnimation` refuses a spline with too few control points or key frames that do not start at time 0, and `Player.playMusic` and `queueMusic` refuse a negative fade, with BDS's errors. `@jsprismarine/protocol` now exports `LevelEventGenericPacket` and `PlayerUpdateEntityOverridesPacket`.
+
+- [`161a61b`](https://github.com/JSPrismarine/JSPrismarine/commit/161a61b5616c448f063b0e665ceac4dd623eaeb7) Thanks [@filiphsps](https://github.com/filiphsps)! - The script host binds its library through `bun:ffi` under Bun as well as `node:ffi` under Node.js, and the prebuilt executables embed that library, so they run behavior pack scripts.
+
+- [`4de5241`](https://github.com/JSPrismarine/JSPrismarine/commit/4de52412be150c7e3edeaaad8b11b05ac7e18cfb) Thanks [@filiphsps](https://github.com/filiphsps)! - A Node single executable from `pnpm run package` embeds the script host's library and writes it to its cache on first run, so behavior pack scripts run in it. `@jsprismarine/script-host/embed` exports `libraryForPlatform` and `provideEmbeddedLibrary` for a packager, as `@jsprismarine/native-network` does.
+
+- [#3548](https://github.com/JSPrismarine/JSPrismarine/pull/3548) [`29e511d`](https://github.com/JSPrismarine/JSPrismarine/commit/29e511d282e71a407198ad099e3cdbf455230360) Thanks [@filiphsps](https://github.com/filiphsps)! - `world.afterEvents.playerInputPermissionCategoryChange` can be subscribed to, and fires in the next script flush when `Player.inputPermissions.setPermissionCategory` changes a category, with the category, whether it is enabled and the player, as on a Bedrock Dedicated Server. Setting a category to the value it already has raises nothing and sends the client nothing.
+
+- [#3492](https://github.com/JSPrismarine/JSPrismarine/pull/3492) [`0875ffb`](https://github.com/JSPrismarine/JSPrismarine/commit/0875ffb40a4dc2e04cd4596e3e6dfb6ce100ab66) Thanks [@filiphsps](https://github.com/filiphsps)! - Report the legacy block states BDS's Script API still lists, such as an oak log's `old_log_type` and a slab's `top_slot_bit`, in `BlockPermutation.getAllStates` and `getState`, and accept them in `BlockPermutation.resolve`. The captured `block-types` table records how each state follows another, and `ScriptWorld` gains an optional `legacyStates` the script host reads them from.
+
+- [#3540](https://github.com/JSPrismarine/JSPrismarine/pull/3540) [`7607ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/7607ea87fba31edd33f24bfd408dd2571fdd9a82) Thanks [@filiphsps](https://github.com/filiphsps)! - `Block.liquidCanFlowFromDirection` answers as on a Bedrock Dedicated Server instead of throwing. `@jsprismarine/bedrock-data` captures a new `block-liquid-flow` table, the sides each permutation of a slab, stairs, shelf, sculk sensor or heavy core stops water from, and exports it as `scriptBlockLiquidFlow`; every other block lets water in from every side.
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`e1f36b8`](https://github.com/JSPrismarine/JSPrismarine/commit/e1f36b83616149c2e27f4276d423cdb6f43e3ed6), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/native-library@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes
