@@ -22,13 +22,13 @@ import { Position } from '../world/Position';
 import { CommandManager } from './CommandManager';
 
 /** A command manager over a server whose addons are a spy, and what the server logged. */
-const setUp = async () => {
+const setUp = async (installed: Awaited<ReturnType<AddonManager['list']>> = []) => {
     const logged: string[] = [];
     const listed: number[] = [];
     const installs: [spec: string, as?: string][] = [];
     const list: AddonManager['list'] = async () => {
         listed.push(1);
-        return [];
+        return installed;
     };
     const install: AddonManager['install'] = async (spec, as) => {
         installs.push(as === undefined ? [spec] : [spec, as]);
@@ -102,6 +102,31 @@ describe('addon', () => {
 
         expect(listed).toHaveLength(1);
         expect(logged).toContain('No addons are installed; addon install <name> installs one');
+    });
+
+    it('lists each addon and marks one its author deprecated', async () => {
+        const locked = { source: 'someone/packs', version: '1.0.0', url: 'https://example.com/a.mcpack' };
+        const { commands, server, logged } = await setUp([
+            {
+                key: 'warps',
+                request: { source: 'someone/packs', version: '^1.0.0' },
+                locked: { ...locked, name: 'warps', sha256: '0'.repeat(64), deprecated: 'Use warps-plus instead.' }
+            },
+            {
+                key: 'homes',
+                request: { source: 'someone/packs', version: '^1.0.0' },
+                locked: { ...locked, name: 'homes', sha256: '1'.repeat(64) }
+            }
+        ]);
+        const console = new Console(server);
+
+        await commands.dispatchCommand(console, console, 'addon list');
+
+        expect(logged).toEqual([
+            '§62 addon(s):',
+            '- §ewarps§r 1.0.0 from someone/packs/warps@^1.0.0, §cdeprecated§r: Use warps-plus instead.',
+            '- §ehomes§r 1.0.0 from someone/packs/homes@^1.0.0'
+        ]);
     });
 
     it('hands install the addon and the local name after as', async () => {

@@ -72,6 +72,14 @@ interface Resolved {
     readonly folder?: string;
 }
 
+/** The warning for a deprecated addon, or undefined when its lock says nothing of one. */
+export const deprecationWarning = (key: string, locked: LockedAddon): string | undefined => {
+    if (!isSourceLock(locked) || locked.deprecated === undefined) return undefined;
+    const replacement =
+        locked.replacedBy === undefined ? '' : ` Install its replacement with addon install ${locked.replacedBy}.`;
+    return `${key} ${locked.version} is deprecated: "${locked.deprecated}"${replacement}`;
+};
+
 /** Where an addon came from, as the console reports it. */
 const originOf = (locked: LockedAddon): string => {
     if (isSourceLock(locked)) return `${locked.source}, checked against its index's SHA-256`;
@@ -182,6 +190,7 @@ export class AddonManager {
             const keys = key === undefined ? Object.keys(requested.addons).sort() : [key];
             const locks = { ...lock.addons };
             const changed: string[] = [];
+            let relocked = false;
             try {
                 for (const each of keys) {
                     const resolved = await this.resolve(each, requested.addons[each]!);
@@ -192,6 +201,12 @@ export class AddonManager {
                         (await this.isPresent(each, before))
                     ) {
                         this.options.log.info(`${each} ${before.version} is up to date`);
+                        this.warnDeprecated(each, resolved.locked);
+                        // A lock an older server wrote lacks the deprecation the index now gives.
+                        if (JSON.stringify(before) !== JSON.stringify(resolved.locked)) {
+                            locks[each] = resolved.locked;
+                            relocked = true;
+                        }
                         continue;
                     }
                     const outgoing = await this.summaryOf(each);
@@ -204,10 +219,8 @@ export class AddonManager {
             } finally {
                 // What was replaced is locked and loaded even when a later addon fails, so the
                 // lock always names what the folders hold.
-                if (changed.length > 0) {
-                    await this.write(requested, { ...lock, addons: locks });
-                    await this.reload();
-                }
+                if (changed.length > 0 || relocked) await this.write(requested, { ...lock, addons: locks });
+                if (changed.length > 0) await this.reload();
             }
             return changed;
         });
@@ -340,9 +353,16 @@ export class AddonManager {
         this.reloadPending = false;
     }
 
-    /** Logs an install, where it came from and what in it waits for a restart. */
+    /** Warns when an addon's author has deprecated the version it locks. */
+    private warnDeprecated(key: string, locked: LockedAddon): void {
+        const warning = deprecationWarning(key, locked);
+        if (warning !== undefined) this.options.log.warn(warning);
+    }
+
+    /** Logs an install, where it came from, whether it is deprecated and what in it waits for a restart. */
     private report(verb: string, key: string, { locked, summary }: Resolved): void {
         this.options.log.info(`${verb} ${key} ${locked.version} from ${originOf(locked)}`);
+        this.warnDeprecated(key, locked);
         if (summary.needsRestart.length > 0)
             this.options.log.warn(
                 `${key} also has ${summary.needsRestart.join(', ')}, which load when the server restarts`
@@ -400,12 +420,16 @@ export class AddonManager {
                     minServer: newest.minServer,
                     server: releaseOf(this.options.serverVersion)
                 });
+            // Servers before listings install the same entry without the warning.
+            const { deprecated, replacedBy } = entry.listing ?? {};
             const locked: LockedAddon = {
                 source: request.source,
                 name,
                 version: entry.version,
                 url: entry.url,
-                sha256: entry.sha256
+                sha256: entry.sha256,
+                ...(deprecated === undefined ? {} : { deprecated }),
+                ...(deprecated === undefined || replacedBy === undefined ? {} : { replacedBy })
             };
             return this.download(key, locked, `the index of ${request.source}`);
         }
@@ -557,8 +581,15 @@ const own = <T>(record: Readonly<Record<string, T>>, key: string): T | undefined
 const sameKeys = (a: readonly string[], b: readonly string[]): boolean =>
     a.length === b.length && a.every((key, index) => key === b[index]);
 
+/** A lock without what it says about deprecation, which does not change the pack it pins. */
+const pinOf = (locked: LockedAddon): LockedAddon => {
+    if (!isSourceLock(locked)) return locked;
+    const { deprecated: _deprecated, replacedBy: _replacedBy, ...pin } = locked;
+    return pin;
+};
+
 /** Whether two locks pin the same pack from the same place. */
-const sameLock = (a: LockedAddon, b: LockedAddon): boolean => JSON.stringify(a) === JSON.stringify(b);
+const sameLock = (a: LockedAddon, b: LockedAddon): boolean => JSON.stringify(pinOf(a)) === JSON.stringify(pinOf(b));
 
 /** A record without one key. */
 const without = <T>(record: Readonly<Record<string, T>>, key: string): Record<string, T> =>
