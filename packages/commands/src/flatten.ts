@@ -106,6 +106,26 @@ export interface FlattenedCommand {
     readonly chainedSubcommands: readonly ChainedSubcommandTable[];
 }
 
+/**
+ * The hard enum a Bedrock Dedicated Server lists every command name and alias in. A client only
+ * offers a namespaced command, such as a script's `jsp:tpsbar`, when its name is in this enum.
+ */
+export const COMMAND_NAME_ENUM = 'CommandName';
+
+/**
+ * The name of a command's alias enum, as a Bedrock Dedicated Server writes it: `teleportCommandAliases`.
+ * @param name - The command's own name.
+ */
+export const aliasEnumName = (name: string): string => `${name}CommandAliases`;
+
+/**
+ * The values of {@link COMMAND_NAME_ENUM}: each command's name, then its aliases.
+ * @param commands - The commands the packet carries.
+ */
+export const commandNames = (commands: readonly FlattenedCommand[]): string[] => [
+    ...new Set(commands.flatMap((command) => [command.name, ...command.aliases]))
+];
+
 /** A flattened tree and everything the flattening cost. */
 export interface FlattenResult {
     readonly commands: readonly FlattenedCommand[];

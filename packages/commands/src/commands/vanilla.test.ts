@@ -96,7 +96,9 @@ describe('the command set', () => {
         // 1.26.60 blocks, entities, biome and effect.
         // `/tickingarea` then joined the Bedrock-only commands.
         // `/gamerule dofiretick` and `doFireTick` then took a boolean, as Bedrock's enum lists them.
-        expect(digest).toBe('35e71b6a652dcb51530e10f3f7ddeed00d24170e');
+        // The packet then listed every command name and alias in `CommandName` and named each
+        // alias enum `<command>CommandAliases`, as a Bedrock Dedicated Server sends them.
+        expect(digest).toBe('ab64c00e535cd6118f66983666a5b201343b51a1');
     });
 });
 

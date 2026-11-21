@@ -25,7 +25,7 @@
  * enums share is written into `Enum Values` once.
  */
 import type { FlattenNote, FlattenOptions, FlattenResult, FlattenedParameter } from './flatten';
-import { flattenCommandTree, literalEnumName } from './flatten';
+import { aliasEnumName, COMMAND_NAME_ENUM, commandNames, flattenCommandTree, literalEnumName } from './flatten';
 import {
     ParameterOption,
     basicParseSymbol,
@@ -255,7 +255,9 @@ const encode = (
         // Mojang's own commands list the command's own name first in its alias
         // enum, so a client resolving an alias finds the canonical spelling.
         const aliasEnum =
-            command.aliases.length === 0 ? -1 : addEnum(`${command.name}Aliases`, [command.name, ...command.aliases]);
+            command.aliases.length === 0
+                ? -1
+                : addEnum(aliasEnumName(command.name), [command.name, ...command.aliases]);
 
         const overloads = command.overloads.map((overload) => ({
             isChaining: overload.chaining,
@@ -294,6 +296,7 @@ const encode = (
             overloads
         };
     });
+    addEnum(COMMAND_NAME_ENUM, commandNames(flattened.commands));
 
     return {
         enumValues: enumValues.list(),

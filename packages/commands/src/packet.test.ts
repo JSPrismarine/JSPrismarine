@@ -97,6 +97,26 @@ describe('building the AvailableCommandsPacket payload', () => {
         ]);
     });
 
+    it('names each alias enum as a Bedrock Dedicated Server does', () => {
+        const { payload } = buildAvailableCommands(buildRegistry());
+        const teleport = payload.commands.find((command) => command.name === 'teleport')!;
+
+        expect(payload.enums[teleport.aliasEnum]?.name).toBe('teleportCommandAliases');
+    });
+
+    it('lists every command name and alias in the CommandName enum', () => {
+        const { payload } = buildAvailableCommands(buildRegistry());
+        const names = payload.enums.find((entry) => entry.name === 'CommandName');
+
+        expect(names?.valueIndexes.map((index) => payload.enumValues[index])).toEqual([
+            'data',
+            'schedule',
+            'scoreboard',
+            'teleport',
+            'tp'
+        ]);
+    });
+
     it('gives a command with no aliases the int32 -1 the packet uses for "none"', () => {
         const { payload } = buildAvailableCommands(buildRegistry());
 
@@ -114,10 +134,11 @@ describe('building the AvailableCommandsPacket payload', () => {
 
         const { payload } = buildAvailableCommands(registry);
 
-        expect(payload.enumValues).toEqual(['on', 'off', 'auto']);
+        expect(payload.enumValues).toEqual(['on', 'off', 'auto', 'one', 'two']);
         expect(payload.enums).toEqual([
             { name: 'First', valueIndexes: [0, 1] },
-            { name: 'Second', valueIndexes: [1, 2] }
+            { name: 'Second', valueIndexes: [1, 2] },
+            { name: 'CommandName', valueIndexes: [3, 4] }
         ]);
     });
 
