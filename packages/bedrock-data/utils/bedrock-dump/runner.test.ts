@@ -277,6 +277,15 @@ describe('createLauncher', () => {
         expect(launcher.launch('/cache/run', { clientConnects: false }).args).not.toContain('-p');
     });
 
+    it('publishes the port a staged server listens on when it is not the default', () => {
+        const launcher = createLauncher({ kind: 'container', runtime: docker, emulated: true });
+        const published = launcher.launch('/cache/run', { clientConnects: true, serverPort: 29132 }).args;
+        expect(published).toContain('127.0.0.1:29132:29132/udp');
+        expect(published).toContain('127.0.0.1:29133:29133/udp');
+        expect(published).toContain('127.0.0.1:29132:29132/tcp');
+        expect(published).not.toContain('127.0.0.1:19132:19132/udp');
+    });
+
     it('pulls the image only when the host does not already have it', () => {
         const { run, calls } = scriptedProbe({ docker: { status: 0, stdout: '', stderr: '' } });
         createLauncher({ kind: 'container', runtime: docker, emulated: true }, { run }).ensureImage();
