@@ -1,5 +1,13 @@
 # @jsprismarine/features
 
+## 0.23.1
+
+### Patch Changes
+
+- Updated dependencies [[`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f), [`8876fae`](https://github.com/JSPrismarine/JSPrismarine/commit/8876faec0d0cbd4232446e5081338461e420450e), [`6afe243`](https://github.com/JSPrismarine/JSPrismarine/commit/6afe2434c34f74ce16494876b4722365b416388f)]:
+  - @jsprismarine/errors@0.23.1
+  - @jsprismarine/worldgen@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes

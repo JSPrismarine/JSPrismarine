@@ -1,5 +1,13 @@
 # @jsprismarine/item-behaviors
 
+## 0.23.1
+
+### Patch Changes
+
+- Updated dependencies [[`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f)]:
+  - @jsprismarine/items@0.23.1
+  - @jsprismarine/content@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes

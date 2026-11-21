@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/color-parser",
-    "version": "0.23.0",
+    "version": "0.23.1",
     "description": "Turns Minecraft § color and format codes into terminal colors",
     "sideEffects": false,
     "publishConfig": {

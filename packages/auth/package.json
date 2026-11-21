@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/auth",
-    "version": "0.23.0",
+    "version": "0.23.1",
     "description": "Minecraft: Bedrock Edition login identity, for both ends: offline and Xbox Live providers for a client, and login verification for a server",
     "sideEffects": false,
     "publishConfig": {
