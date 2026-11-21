@@ -159,6 +159,11 @@ export interface ScriptModuleConfig {
 export interface ScriptConfig {
     /** What applies to the script module with this UUID. */
     module(moduleUuid: string): ScriptModuleConfig;
+    /**
+     * Reads the folder again, as `@minecraft/server-admin`'s `reloadScriptingConfig` asks. Left
+     * out, a reload keeps what was read.
+     */
+    reload?(): ScriptConfig;
 }
 
 const readJsonObject = (path: string): Record<string, unknown> | undefined => {
@@ -212,6 +217,7 @@ export const readScriptConfig = (
     // A module's folder is named by its UUID; anything else in the manifest could reach outside `config/`.
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return {
+        reload: () => readScriptConfig(directory, warn),
         module: (moduleUuid) => {
             if (!uuidPattern.test(moduleUuid)) return defaults;
             return {

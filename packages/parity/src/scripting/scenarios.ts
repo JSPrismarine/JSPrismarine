@@ -833,6 +833,19 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'admin-server',
+        family: 'scripting.admin',
+        description:
+            "dedicatedServer's allow list adds, finds and removes players by name, xuid or Player, opPlayer, deopPlayer " +
+            'and kickPlayer act on a player with fixed errors for a second op or deop, the reloads return nothing, and ' +
+            'stopServer stops the server.',
+        reference: '#3633, #3634, #3635',
+        packs: ['admin'],
+        experiments: ['gametest'],
+        gametestAfter: { event: 'ready for /gametest', commands: ['gametest run jsp:server'] },
+        needs: 'server'
+    },
+    {
         id: 'debug-shapes',
         family: 'scripting.debug',
         description:

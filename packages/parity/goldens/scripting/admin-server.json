@@ -1,0 +1,356 @@
+{
+    "$comment": [
+        "What the scripts of scenario `admin-server` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.admin",
+    "scenario": "admin-server",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "admin",
+            "seq": 1,
+            "tick": 0,
+            "event": "dedicatedServer in early execution",
+            "value": "DedicatedServerUtils"
+        },
+        {
+            "pack": "admin",
+            "seq": 2,
+            "tick": 0,
+            "event": "allowList in early execution",
+            "error": "ReferenceError: Native property getter [DedicatedServerUtils::allowList] cannot be used in early execution."
+        },
+        {
+            "pack": "admin",
+            "seq": 3,
+            "tick": 0,
+            "event": "reloadPermissions in early execution",
+            "error": "ReferenceError: Native function [DedicatedServerUtils::reloadPermissions] cannot be used in early execution."
+        },
+        {
+            "pack": "admin",
+            "seq": 4,
+            "tick": 0,
+            "event": "allowList class",
+            "value": "AllowList"
+        },
+        {
+            "pack": "admin",
+            "seq": 5,
+            "tick": 0,
+            "event": "levelStorage class",
+            "value": "LevelStorage"
+        },
+        {
+            "pack": "admin",
+            "seq": 6,
+            "tick": 0,
+            "event": "enabled",
+            "value": false
+        },
+        {
+            "pack": "admin",
+            "seq": 7,
+            "tick": 0,
+            "event": "entries at the start",
+            "value": []
+        },
+        {
+            "pack": "admin",
+            "seq": 8,
+            "tick": 0,
+            "event": "contains Steve",
+            "value": false
+        },
+        {
+            "pack": "admin",
+            "seq": 9,
+            "tick": 0,
+            "event": "add Steve",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 10,
+            "tick": 0,
+            "event": "contains Steve after add",
+            "value": true
+        },
+        {
+            "pack": "admin",
+            "seq": 11,
+            "tick": 0,
+            "event": "contains steve in lower case",
+            "value": false
+        },
+        {
+            "pack": "admin",
+            "seq": 12,
+            "tick": 0,
+            "event": "add Steve again",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 13,
+            "tick": 0,
+            "event": "add Alex ignoring the player limit",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 14,
+            "tick": 0,
+            "event": "add by xuid",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 15,
+            "tick": 0,
+            "event": "add with neither name nor xuid",
+            "error": "InvalidArgumentError: Invalid value passed to argument [0]. Missing or empty: Entry data must contain a name and/or a xuid"
+        },
+        {
+            "pack": "admin",
+            "seq": 16,
+            "tick": 0,
+            "event": "contains by xuid",
+            "value": true
+        },
+        {
+            "pack": "admin",
+            "seq": 17,
+            "tick": 0,
+            "event": "entries after the adds",
+            "value": [
+                {
+                    "name": "Steve",
+                    "ignoresPlayerLimit": false
+                },
+                {
+                    "name": "Alex",
+                    "ignoresPlayerLimit": true
+                },
+                {
+                    "xuid": "2535400000000001",
+                    "ignoresPlayerLimit": false
+                }
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 18,
+            "tick": 0,
+            "event": "remove Steve",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 19,
+            "tick": 0,
+            "event": "remove Steve again",
+            "error": "AllowListModificationError: Unable to remove player 'Steve' from allow list"
+        },
+        {
+            "pack": "admin",
+            "seq": 20,
+            "tick": 0,
+            "event": "set enabled",
+            "value": true
+        },
+        {
+            "pack": "admin",
+            "seq": 21,
+            "tick": 0,
+            "event": "clear enabled",
+            "value": false
+        },
+        {
+            "pack": "admin",
+            "seq": 22,
+            "tick": 0,
+            "event": "reloadFile",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 23,
+            "tick": 0,
+            "event": "entries after reloadFile",
+            "value": [
+                {
+                    "name": "Alex",
+                    "ignoresPlayerLimit": true
+                },
+                {
+                    "xuid": "2535400000000001",
+                    "ignoresPlayerLimit": false
+                }
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 24,
+            "tick": 0,
+            "event": "clear",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 25,
+            "tick": 0,
+            "event": "entries after clear",
+            "value": []
+        },
+        {
+            "pack": "admin",
+            "seq": 26,
+            "tick": 0,
+            "event": "reloadPermissions",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 27,
+            "tick": 0,
+            "event": "reloadScriptingConfig",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 28,
+            "tick": 0,
+            "event": "reloadCDNConfig",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 29,
+            "tick": 0,
+            "event": "opPlayer without a player",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: Player"
+        },
+        {
+            "pack": "admin",
+            "seq": 30,
+            "tick": 0,
+            "event": "kickPlayer without a player",
+            "error": "InvalidArgumentError: Invalid type passed to argument [0]. Expected type: Player"
+        },
+        {
+            "pack": "admin",
+            "seq": 31,
+            "tick": 0,
+            "event": "ready for /gametest"
+        },
+        {
+            "pack": "admin",
+            "seq": 32,
+            "tick": 0,
+            "event": "spawned"
+        },
+        {
+            "pack": "admin",
+            "seq": 33,
+            "tick": 0,
+            "event": "permission level at the start",
+            "value": 1
+        },
+        {
+            "pack": "admin",
+            "seq": 34,
+            "tick": 0,
+            "event": "opPlayer",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 35,
+            "tick": 0,
+            "event": "permission level after opPlayer",
+            "value": 2
+        },
+        {
+            "pack": "admin",
+            "seq": 36,
+            "tick": 0,
+            "event": "opPlayer again",
+            "error": "PlayerAlreadyOpError: Player already has op permissions"
+        },
+        {
+            "pack": "admin",
+            "seq": 37,
+            "tick": 0,
+            "event": "deopPlayer",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 38,
+            "tick": 0,
+            "event": "permission level after deopPlayer",
+            "value": 1
+        },
+        {
+            "pack": "admin",
+            "seq": 39,
+            "tick": 0,
+            "event": "deopPlayer again",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 40,
+            "tick": 0,
+            "event": "allowList add a player",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 41,
+            "tick": 0,
+            "event": "allowList contains the player",
+            "value": true
+        },
+        {
+            "pack": "admin",
+            "seq": 42,
+            "tick": 0,
+            "event": "allowList entries with the player",
+            "value": [
+                {
+                    "name": "Admin",
+                    "ignoresPlayerLimit": false
+                }
+            ]
+        },
+        {
+            "pack": "admin",
+            "seq": 43,
+            "tick": 0,
+            "event": "allowList remove the player",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 44,
+            "tick": 0,
+            "event": "kickPlayer",
+            "value": "undefined"
+        },
+        {
+            "pack": "admin",
+            "seq": 45,
+            "tick": 5,
+            "event": "isValid after the kick",
+            "value": true
+        }
+    ]
+}

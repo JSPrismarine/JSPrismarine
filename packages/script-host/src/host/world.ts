@@ -1059,6 +1059,17 @@ export interface ScriptComponentSink {
     item(event: ScriptItemHookEvent): void;
 }
 
+/**
+ * The dedicated server `@minecraft/server-admin`'s `dedicatedServer` and its functions reach,
+ * which is the server's, not one world's.
+ */
+export interface ScriptAdminServer {
+    /** Stops the server, as `/stop` does, once the script that asked has returned. */
+    stopServer(): void;
+    /** Reads the server's permission files again. */
+    reloadPermissions(): void;
+}
+
 /** What the script host reads and writes of one world. */
 export interface ScriptWorld {
     /** The world's dimensions, as Bedrock names them, such as `minecraft:overworld`. */

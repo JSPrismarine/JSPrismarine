@@ -18,6 +18,7 @@ import { levelWorldEvents } from '../scripting/events/worldEvents';
 import { levelActors } from '../scripting/levelActors';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { AddonConfigFiles } from '../scripting/addonConfig';
+import { scriptAdminServer } from '../scripting/adminServer';
 import { scriptServerMembers } from '../scripting/serverMembers';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
@@ -178,6 +179,7 @@ export const startLevelScripts = async (
             worldEvents: levelWorldEvents(server, level)
         },
         members: scriptServerMembers(server),
+        admin: scriptAdminServer(server),
         addonConfig: new AddonConfigFiles({ log: { warn: (message) => server.getLogger().warn(message) } }),
         maxPlayers: server.getConfig().getMaxPlayers(),
         seed: overworld.getSeed(),

@@ -76,7 +76,7 @@ import type { ScriptDeferred } from './serverGametest';
 import { GAMETEST_TAG, gametestImplementations } from './serverGametest';
 import type { EntityKey } from './serverObjects';
 import { entityKeyOf, PLAYER, TAG } from './serverObjects';
-import type { ScriptConfig, ScriptPack } from './pack';
+import type { ScriptConfig, ScriptModuleConfig, ScriptPack } from './pack';
 import { packLabel, packScripts, readPackBytes, readPackFile } from './pack';
 import { PackForms, SERVER_UI } from './PackForms';
 import { ScriptForms } from './ScriptForms';
@@ -97,6 +97,7 @@ import type {
     ItemUseIntent,
     ScriptBlockHook,
     ScriptBlockHookEvent,
+    ScriptAdminServer,
     ScriptCommandArgument,
     ScriptCommandOrigin,
     ScriptCommandOutcome,
@@ -189,6 +190,11 @@ export interface WorldScriptsOptions {
      */
     readonly members?: JsprismarineServerMembers;
     /**
+     * The server `@minecraft/server-admin`'s `dedicatedServer` and its functions reach. Without
+     * it, those members do nothing.
+     */
+    readonly admin?: ScriptAdminServer;
+    /**
      * The packs' config files, which `@jsprismarine/server`'s `config` reads, writes and
      * follows. Without it, the module leaves `config` out.
      */
@@ -252,6 +258,8 @@ interface LoadedPack {
     jsp?: ScriptHandle;
     /** Its `@jsprismarine/placeholders` namespace, made the first time it imports the module. */
     placeholders?: ScriptHandle;
+    /** What the `config/` folder said about its script module when it loaded, or when it was last reloaded. */
+    moduleConfig: ScriptModuleConfig;
     /** Its `config.afterEvents.change` callbacks, in subscription order. */
     configListeners?: ScriptHandle[];
     /** Makes a `change` event from the file's JSON, with the intrinsics its module captured. */
@@ -336,6 +344,8 @@ export class WorldScripts {
     private readonly options: WorldScriptsOptions;
     private engine: ScriptEngine;
     private loaded: LoadedPack[] = [];
+    /** The `config/` folder as last read; `reloadScriptingConfig` reads it again. */
+    private config: ScriptConfig;
     private readonly byContext = new Map<ScriptContextId, LoadedPack>();
     private subscriptions: Subscription[] = [];
     private tasks = new TaskQueue<TaskCallback>();
@@ -422,6 +432,7 @@ export class WorldScripts {
                 this.loaded.map((each) => readPackBytes(each.pack, path)).find((bytes) => bytes !== undefined),
             free: (handle) => this.engine.free(handle)
         });
+        this.config = options.config;
         this.custom = this.customContent();
         this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
         this.playerListNames = options.members === undefined ? undefined : new ScriptPlayerListNames(options.members);
@@ -606,6 +617,15 @@ export class WorldScripts {
         this.tick++;
     }
 
+    /**
+     * Reads the `config/` folder again, as `@minecraft/server-admin`'s `reloadScriptingConfig`
+     * asks, so every pack's `variables` and `secrets` read the files as they are now.
+     */
+    public reloadScriptingConfig(): void {
+        this.config = this.config.reload?.() ?? this.config;
+        for (const entry of this.loaded) entry.moduleConfig = this.config.module(entry.pack.moduleUuid);
+    }
+
     /** The registries of one run, which add the custom dimensions they take to the world. */
     private customContent(): CustomContent<LoadedPack> {
         const world = this.options.world;
@@ -744,7 +764,7 @@ export class WorldScripts {
 
     /** Loads one pack, or logs why BDS would refuse it and returns undefined, or `no-context`. */
     private loadPack(pack: ScriptPack, lifecycle: 1 | 2): LoadedPack | 'no-context' | undefined {
-        const config = this.options.config.module(pack.moduleUuid);
+        const config = this.config.module(pack.moduleUuid);
         const { allowedModules } = config;
         const shapes: ModuleShape[] = [];
         for (const dependency of pack.dependencies) {
@@ -827,6 +847,7 @@ export class WorldScripts {
             api,
             implementations,
             lifecycle,
+            moduleConfig: config,
             modules: new Map(),
             shapes,
             instances: new Map(),
@@ -872,8 +893,10 @@ export class WorldScripts {
         };
         if (shapes.some((shape) => shape.module === SERVER_ADMIN)) {
             serverAdminImplementations(implementations, {
-                config,
+                config: () => entry.moduleConfig,
                 world: this.options.world,
+                ...(this.options.admin === undefined ? {} : { server: this.options.admin }),
+                reloadScriptingConfig: () => this.reloadScriptingConfig(),
                 create: (className, tag, state) => api.create(SERVER_ADMIN, className, tag, state),
                 parse,
                 player: (value) => this.formPlayer(entry, value)

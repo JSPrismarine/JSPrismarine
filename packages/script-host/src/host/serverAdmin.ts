@@ -1,9 +1,13 @@
 /**
  * The behavior of `@minecraft/server-admin` for one pack: `variables` and `secrets`, which read the
  * pack's `config/<script module uuid>/variables.json` and `secrets.json` ({@link readScriptConfig}),
- * `SecretString`, and `transferPlayer`. The allow list, the level storage, the async join event
- * and the operator and kick functions are present and throw `NotImplementedError`
+ * `SecretString`, `transferPlayer`, and `dedicatedServer`'s `stopServer` and reloads. The allow
+ * list, the level storage, the async join event and the operator and kick functions are present
+ * and throw `NotImplementedError`
  * ([ADR 0022](../../../../docs/adr/0022-the-script-api-surface-is-generated.md)).
+ *
+ * The `admin-server` scenario recorded `dedicatedServer`: its reloads return nothing, and
+ * `reloadCDNConfig` has nothing to read on a server without a CDN config.
  *
  * The `admin-config` scenario of the parity suite's `scripting.admin` family recorded what the
  * pinned Bedrock Dedicated Server does: `variables.get` returns a copy whose object keys are in
@@ -20,7 +24,7 @@ import { ScriptHandle } from '../values';
 import type { FormPlayer } from './minecraftServerUi';
 import type { ScriptModuleConfig } from './pack';
 import { COMMON } from './serverObjects';
-import type { ScriptTransferTarget, ScriptWorld } from './world';
+import type { ScriptAdminServer, ScriptTransferTarget, ScriptWorld } from './world';
 
 /** The module the implementations here belong to. */
 export const SERVER_ADMIN = '@minecraft/server-admin';
@@ -33,9 +37,13 @@ export const ADMIN_TAG = {
 
 /** What one pack's `@minecraft/server-admin` reaches of the runtime and the world. */
 export interface AdminPackHost {
-    /** What the pack's `config/` folder says about its script module. */
-    readonly config: ScriptModuleConfig;
+    /** What the pack's `config/` folder says about its script module, as last read. */
+    config(): ScriptModuleConfig;
     readonly world: ScriptWorld;
+    /** The server `dedicatedServer` reaches. Without it, `stopServer` and `reloadPermissions` do nothing. */
+    readonly server?: ScriptAdminServer;
+    /** Reads every pack's `config/` folder again. */
+    reloadScriptingConfig(): void;
     /** Makes an instance of one of this module's classes, which the caller frees or releases. */
     create(className: string, tag: number, state: string): ScriptHandle;
     /**
@@ -107,43 +115,63 @@ export const serverAdminImplementations = (
     implementations: ScriptApiImplementations,
     host: AdminPackHost
 ): ScriptApiImplementations => {
-    const { variables, secrets } = host.config;
-
-    return implementations
-        .implement(SERVER_ADMIN, 'ServerVariables', 'get', (call) => {
-            const name = String(call.args[0]);
-            if (!Object.hasOwn(variables, name)) return undefined;
-            const value = variables[name];
-            if (value === null || typeof value !== 'object') return primitive(value);
-            const parsed = host.parse(JSON.stringify(sortedJson(value)));
-            return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
-        })
-        .implement(SERVER_ADMIN, 'ServerVariables', 'names', { get: () => JSON.stringify(Object.keys(variables)) })
-        .implement(SERVER_ADMIN, 'ServerSecrets', 'get', (call) => {
-            const name = String(call.args[0]);
-            const text = Object.hasOwn(secrets, name) ? secrets[name] : undefined;
-            if (text === undefined) return undefined;
-            return call.engine.release(host.create('SecretString', ADMIN_TAG.secret, secretState(text)));
-        })
-        .implement(SERVER_ADMIN, 'ServerSecrets', 'names', { get: () => JSON.stringify(Object.keys(secrets)) })
-        .implement(SERVER_ADMIN, 'SecretString', 'constructor', (call) => secretState(String(call.args[0])))
-        .implement(
-            SERVER_ADMIN,
-            '',
-            'transferPlayer',
-            (call) => {
-                const player = host.player(call.args[0]);
-                if (player === undefined) {
-                    throw new ScriptApiError(
-                        COMMON,
-                        'InvalidArgumentError',
-                        'Invalid type passed to argument [0]. Expected type: Player'
-                    );
-                }
-                const target = transferTarget(call);
-                if (player.present) host.world.transferPlayer?.(player.id, target);
+    return (
+        implementations
+            .implement(SERVER_ADMIN, 'ServerVariables', 'get', (call) => {
+                const name = String(call.args[0]);
+                const { variables } = host.config();
+                if (!Object.hasOwn(variables, name)) return undefined;
+                const value = variables[name];
+                if (value === null || typeof value !== 'object') return primitive(value);
+                const parsed = host.parse(JSON.stringify(sortedJson(value)));
+                return parsed instanceof ScriptHandle ? call.engine.release(parsed) : parsed;
+            })
+            .implement(SERVER_ADMIN, 'ServerVariables', 'names', {
+                get: () => JSON.stringify(Object.keys(host.config().variables))
+            })
+            .implement(SERVER_ADMIN, 'ServerSecrets', 'get', (call) => {
+                const name = String(call.args[0]);
+                const { secrets } = host.config();
+                const text = Object.hasOwn(secrets, name) ? secrets[name] : undefined;
+                if (text === undefined) return undefined;
+                return call.engine.release(host.create('SecretString', ADMIN_TAG.secret, secretState(text)));
+            })
+            .implement(SERVER_ADMIN, 'ServerSecrets', 'names', {
+                get: () => JSON.stringify(Object.keys(host.config().secrets))
+            })
+            .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'stopServer', () => {
+                host.server?.stopServer();
                 return undefined;
-            },
-            { converts: ['player', 'options'] }
-        );
+            })
+            .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'reloadPermissions', () => {
+                host.server?.reloadPermissions();
+                return undefined;
+            })
+            .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'reloadScriptingConfig', () => {
+                host.reloadScriptingConfig();
+                return undefined;
+            })
+            // A server without a CDN config has nothing to read again.
+            .implement(SERVER_ADMIN, 'DedicatedServerUtils', 'reloadCDNConfig', () => undefined)
+            .implement(SERVER_ADMIN, 'SecretString', 'constructor', (call) => secretState(String(call.args[0])))
+            .implement(
+                SERVER_ADMIN,
+                '',
+                'transferPlayer',
+                (call) => {
+                    const player = host.player(call.args[0]);
+                    if (player === undefined) {
+                        throw new ScriptApiError(
+                            COMMON,
+                            'InvalidArgumentError',
+                            'Invalid type passed to argument [0]. Expected type: Player'
+                        );
+                    }
+                    const target = transferTarget(call);
+                    if (player.present) host.world.transferPlayer?.(player.id, target);
+                    return undefined;
+                },
+                { converts: ['player', 'options'] }
+            )
+    );
 };

@@ -106,6 +106,16 @@ describe('readScriptConfig', () => {
         expect(config.module('aac52733-889b-4c87-abcb-f064ea7735a2').allowedModules).toEqual(['@minecraft/server']);
     });
 
+    it('reads the folder again when reloaded, as reloadScriptingConfig asks', () => {
+        const directory = temporary();
+        writeJson(join(directory, 'default', 'variables.json'), { greeting: 'hello' });
+        const config = readScriptConfig(directory);
+        writeJson(join(directory, 'default', 'variables.json'), { greeting: 'goodbye' });
+
+        expect(config.module(MODULE_UUID).variables).toEqual({ greeting: 'hello' });
+        expect(config.reload?.().module(MODULE_UUID).variables).toEqual({ greeting: 'goodbye' });
+    });
+
     it('allows what the pinned BDS ships when there is no config folder', () => {
         expect(readScriptConfig(undefined).module(MODULE_UUID).allowedModules).toEqual(DEFAULT_ALLOWED_MODULES);
     });

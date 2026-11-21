@@ -784,6 +784,9 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `variables.get` copies the value with object keys in byte order, `secrets.get` makes a new
       `SecretString` each time, a secret that is not a string is dropped with a warning, and
       `transferPlayer` checks its options as a whole, a port past 65535 included.
+    - Done (#3635): `dedicatedServer.stopServer`, `reloadPermissions`, `reloadScriptingConfig`,
+      which reads the `config/` folder again for every pack, and `reloadCDNConfig`, which has
+      nothing to read. The `admin-server` scenario records them on BDS.
     - Left: `variables.names` lists the file's order, where BDS lists its hash map's
       ([#3249](https://github.com/JSPrismarine/JSPrismarine/issues/3249)); a NetherNet
       `transferPlayer` sends nothing, as its packet is not captured; the replay trace does not
@@ -791,8 +794,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226)); these throw
       `NotImplementedError`: the allow list
       ([#3633](https://github.com/JSPrismarine/JSPrismarine/issues/3633)), the operator and kick
-      functions ([#3634](https://github.com/JSPrismarine/JSPrismarine/issues/3634)), `stopServer`
-      and the reloads ([#3635](https://github.com/JSPrismarine/JSPrismarine/issues/3635)), the
+      functions ([#3634](https://github.com/JSPrismarine/JSPrismarine/issues/3634)), the
       level storage ([#3636](https://github.com/JSPrismarine/JSPrismarine/issues/3636)),
       `asyncPlayerJoin` ([#3637](https://github.com/JSPrismarine/JSPrismarine/issues/3637)),
       `HttpResponse.deserialize` and the request limits
