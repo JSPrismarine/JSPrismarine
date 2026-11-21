@@ -144,6 +144,16 @@ export interface IntentPayloads {
         readonly serverTimed: boolean;
         readonly breaksIfInstant: boolean;
     };
+    /**
+     * A creative player put a stack in a slot of its own inventory, or emptied it, as a Java
+     * client says outright. `container` is the inventory's 36 slots (the hotbar's 9 first),
+     * `armor` (head first) or `offhand`; `item` names the stack by its Bedrock identifier.
+     */
+    readonly setCreativeSlot: {
+        readonly container: 'inventory' | 'armor' | 'offhand';
+        readonly slot: number;
+        readonly item: { readonly name: string; readonly count: number } | null;
+    };
 }
 
 /** What the table declares about one intent. */
@@ -191,7 +201,9 @@ export const Intents = {
     // Writes the hand slot, which replication shows the players that see the sender.
     selectHotbarSlot: { lane: 'input' },
     // Breaks blocks and times the mining in the world.
-    mineBlock: { lane: 'input' }
+    mineBlock: { lane: 'input' },
+    // Writes the inventory, which replication shows the players that see the sender.
+    setCreativeSlot: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

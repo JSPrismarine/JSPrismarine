@@ -25,6 +25,7 @@ describe('input/Intent', () => {
             'runCommand',
             'scriptMessage',
             'selectHotbarSlot',
+            'setCreativeSlot',
             'setDefaultGameMode',
             'setPlayerPermission',
             'setViewDistance'

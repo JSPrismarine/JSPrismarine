@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest';
+
+import type { EditionTranslation } from './editionTranslation';
+import { containerSlotOf, javaCreativeSlotIntentOf, javaHotbarIntentOf } from './javaInventory';
+import { javaWindowSlotOf } from './JavaPresenter';
+
+/** Java item 1 is stone, and nothing else is known. */
+const items: EditionTranslation<string, number | undefined> = {
+    toJava: (name) => (name === 'minecraft:stone' ? 1 : undefined),
+    toBedrock: (id) => (id === 1 ? 'minecraft:stone' : 'minecraft:air')
+};
+
+describe('the Java inventory window', () => {
+    it('numbers every container slot so the client and the server agree both ways', () => {
+        const slots = [
+            ...Array.from({ length: 36 }, (_, slot) => ({ container: 'inventory' as const, slot })),
+            ...Array.from({ length: 4 }, (_, slot) => ({ container: 'armor' as const, slot })),
+            { container: 'offhand' as const, slot: 0 }
+        ];
+        const windowSlots = slots.map(({ container, slot }) => javaWindowSlotOf(container, slot));
+
+        expect(new Set(windowSlots).size).toBe(slots.length);
+        expect(windowSlots.map(containerSlotOf)).toEqual(slots);
+        // The hotbar sits at the bottom of the window, below the 27 slots the server numbers after it.
+        expect(javaWindowSlotOf('inventory', 0)).toBe(36);
+        expect(javaWindowSlotOf('armor', 0)).toBe(5);
+    });
+
+    it('has no container slot for the crafting grid or a stack thrown out of the screen', () => {
+        expect([0, 1, 4, -1, 46].map(containerSlotOf)).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    });
+});
+
+describe('Java inventory decoders', () => {
+    it('decodes a creative slot into the container slot and the Bedrock item', () => {
+        expect(javaCreativeSlotIntentOf({ slot: 36, item: { item: 1, count: 64 } }, items)).toEqual({
+            kind: 'setCreativeSlot',
+            container: 'inventory',
+            slot: 0,
+            item: { name: 'minecraft:stone', count: 64 }
+        });
+        expect(javaCreativeSlotIntentOf({ slot: 45, item: null }, items)?.item).toBeNull();
+        expect(javaCreativeSlotIntentOf({ slot: -1, item: { item: 1, count: 1 } }, items)).toBeUndefined();
+    });
+
+    it('takes a hotbar slot from 0 to 8 and nothing else', () => {
+        expect(javaHotbarIntentOf(8)).toEqual({ kind: 'selectHotbarSlot', slot: 8 });
+        expect(javaHotbarIntentOf(9)).toBeUndefined();
+        expect(javaHotbarIntentOf(-1)).toBeUndefined();
+    });
+});

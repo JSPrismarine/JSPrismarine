@@ -52,6 +52,8 @@ import {
     PlayDisconnect,
     PlayerAction,
     PlayerLoaded,
+    SetCarriedItem,
+    SetCreativeModeSlot,
     PlayLogin,
     ServerboundKeepAlive,
     SetCenterChunk,
@@ -75,6 +77,8 @@ import { Vector3 } from '@jsprismarine/math';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
+import { javaItemTranslation } from './editionTranslation';
+import { javaCreativeSlotIntentOf, javaHotbarIntentOf } from './javaInventory';
 import { isBlockStatus, javaMiningIntentOf } from './javaMining';
 import type { JavaPlayers } from './javaPlayers';
 import { javaGameModeOf } from './JavaPresenter';
@@ -196,6 +200,8 @@ export class JavaConnections {
     private readonly sessionId = randomUUID();
     /** The world's chunks as Java clients are sent them. */
     private readonly chunks = new JavaChunkTranslator();
+    /** Java item ids to the world's items, for the stacks a creative client sends. */
+    private readonly items = javaItemTranslation();
 
     /**
      * Subscribes to the transport's connections and makes the RSA key the logins encrypt with.
@@ -532,6 +538,14 @@ export class JavaConnections {
             case MovePlayerRot.id:
             case MovePlayerStatusOnly.id:
                 return this.move(state, session, world, packetId, expect);
+            case SetCarriedItem.id: {
+                const intent = javaHotbarIntentOf(expect(SetCarriedItem).slot);
+                return intent === undefined ? undefined : queue(players.intent(session, intent));
+            }
+            case SetCreativeModeSlot.id: {
+                const intent = javaCreativeSlotIntentOf(expect(SetCreativeModeSlot), this.items);
+                return intent === undefined ? undefined : queue(players.intent(session, intent));
+            }
             case PlayerAction.id: {
                 const action = expect(PlayerAction);
                 const intent = javaMiningIntentOf(action, session.getPlayer().gamemode);

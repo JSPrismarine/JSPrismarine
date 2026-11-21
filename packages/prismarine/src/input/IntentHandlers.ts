@@ -16,6 +16,7 @@ import RespawnHandler from './handlers/RespawnHandler';
 import RunCommandHandler from './handlers/RunCommandHandler';
 import ScriptMessageHandler from './handlers/ScriptMessageHandler';
 import SelectHotbarSlotHandler from './handlers/SelectHotbarSlotHandler';
+import SetCreativeSlotHandler from './handlers/SetCreativeSlotHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
@@ -43,6 +44,7 @@ export {
     RunCommandHandler,
     ScriptMessageHandler,
     SelectHotbarSlotHandler,
+    SetCreativeSlotHandler,
     SetDefaultGameModeHandler,
     SetPlayerPermissionHandler,
     SetViewDistanceHandler
