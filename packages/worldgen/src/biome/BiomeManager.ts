@@ -155,14 +155,27 @@ export class BiomeManager {
         return new BiomeManager(resolver, this.zoomSeed, this.options);
     }
 
+    /**
+     * The cell a block's lookup starts from along one axis. {@link getBiome} picks this cell or
+     * the next one along each axis, so a block's biome is one of eight cells' biomes.
+     */
+    public static parentCell(block: number): number {
+        return (block - 2) >> 2;
+    }
+
+    /** The biome of one cell, which {@link getBiome} picks among after its jitter. */
+    public cellBiome(quartX: number, quartY: number, quartZ: number): string {
+        return this.resolver(quartX, quartY, quartZ);
+    }
+
     /** Returns the biome identifier at one block position. */
     public getBiome(x: number, y: number, z: number): string {
         const absX = x - 2;
         const absY = y - 2;
         const absZ = z - 2;
-        const parentX = absX >> 2;
-        const parentY = absY >> 2;
-        const parentZ = absZ >> 2;
+        const parentX = BiomeManager.parentCell(x);
+        const parentY = BiomeManager.parentCell(y);
+        const parentZ = BiomeManager.parentCell(z);
         const fractY = (absY & 3) / 4;
         const fractionX = absX & 3;
         const fractionZ = absZ & 3;

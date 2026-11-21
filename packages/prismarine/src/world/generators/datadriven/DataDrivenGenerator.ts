@@ -2673,6 +2673,7 @@ export class DataDrivenGenerator implements Generator {
             chunk: region.surfaceChunk(),
             rule: pipeline.materialRule,
             biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
+            biomeCellAt: (quartX, quartY, quartZ) => biomes.cellBiome(quartX, quartY, quartZ),
             biomeClimate: pipeline.climateOf,
             sampleContext: sampler.context,
             possibleBiomes: pipeline.possibleBiomes,

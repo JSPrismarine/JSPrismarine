@@ -109,6 +109,11 @@ export interface BuildSurfaceOptions {
     readonly rule: MaterialRuleNode;
     /** The biome at a block position, which has to vary per column. */
     readonly biomeAt: (x: number, y: number, z: number) => string;
+    /**
+     * The unjittered biome of one cell, when `biomeAt` reads a `BiomeManager` over these
+     * cells. It lets a `biome` condition answer for a block whose candidate cells all agree.
+     */
+    readonly biomeCellAt?: (quartX: number, quartY: number, quartZ: number) => string;
     /** The climate of a biome, which the `temperature` condition and icebergs read. */
     readonly biomeClimate: BiomeClimateLookup;
     /** The memo slots the compiled density functions share; one per chunk. */
@@ -216,7 +221,8 @@ export class SurfaceSystem {
             generationContext: this.generationContext,
             sampleContext: options.sampleContext ?? new SampleContext(),
             ...(options.possibleBiomes === undefined ? {} : { possibleBiomes: options.possibleBiomes }),
-            ...(options.localBiomes === undefined ? {} : { localBiomes: options.localBiomes })
+            ...(options.localBiomes === undefined ? {} : { localBiomes: options.localBiomes }),
+            ...(options.biomeCellAt === undefined ? {} : { biomeCellAt: options.biomeCellAt })
         });
         const rule = new MaterialRuleInterpreter(compileMaterialRuleProgram(options.rule), context);
 
