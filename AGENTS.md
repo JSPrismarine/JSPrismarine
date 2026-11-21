@@ -66,7 +66,8 @@ commit messages and comments.
     it to `tsconfig.build.json`. Run `pnpm install` afterwards to link it.
   - `pnpm exec turbo gen Addon --args <name> <title> <description> <minServer>` writes
     `addons/<name>/` with fresh UUIDs. Run `pnpm run docs:facts` afterwards to list it in the
-    addon catalog.
+    addon catalog, and `node scripts/script-debug-server.mts --update` to give it a VS Code launch
+    configuration.
   - `pnpm exec turbo gen Tool --args <name> <description>` writes `tools/<name>/`, a private
     workspace that runs from source and is never published. Run `pnpm install` afterwards to link it.
 
