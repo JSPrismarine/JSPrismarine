@@ -26,7 +26,7 @@ import {
 } from './benchmark.mts';
 import { readInputs } from './inputs.mts';
 import { RESULTS_SCHEMA, SCENARIO_IDS, SERVER_IDS, mergeSettings } from './results.mts';
-import { DEFAULT_PORT, REPO, SERVERS, bdsPin } from './servers.mts';
+import { DEFAULT_PORT, REPO, SERVERS, bdsPin, useJspExecutable } from './servers.mts';
 import { isQuietLoad, quietLoadLimit } from './summary.mts';
 
 import type {
@@ -56,6 +56,8 @@ const HELP = `Usage: pnpm run bench:servers [options]
   --skip-unavailable      Leave out a server this host cannot run instead of stopping.
   --out <file>            Results file (docs/research/benchmarks/<date>/results.json).
   --work <dir>            Directory for the servers' data (a new temporary directory).
+  --jsp-executable <file> Benchmark this packaged JSPrismarine executable instead of the built
+                          entry under Node.js, as CI does with the Bun AOT build.
 `;
 
 const OPTIONS = {
@@ -73,6 +75,7 @@ const OPTIONS = {
     cooldown: { type: 'string', default: '180' },
     'skip-unavailable': { type: 'boolean', default: false },
     out: { type: 'string' },
+    'jsp-executable': { type: 'string' },
     work: { type: 'string' },
     help: { type: 'boolean', short: 'h', default: false }
 } as const;
@@ -131,6 +134,7 @@ const main = async (): Promise<void> => {
         process.stdout.write(HELP);
         return;
     }
+    if (values['jsp-executable'] !== undefined) useJspExecutable(values['jsp-executable']);
     const rounds = positiveInteger(values.rounds, 'rounds');
     const scenarioIds = listOf<ScenarioId>(values.scenarios, SCENARIO_IDS, 'scenarios');
     const requested = listOf<ServerId>(values.servers, SERVER_IDS, 'servers');

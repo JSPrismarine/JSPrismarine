@@ -24,6 +24,9 @@ export const INPUT_GLOBS = [
     '!packages/**/*.md',
     '!packages/**/*.test.ts',
     'tools/server-benchmark/**',
+    '.github/scripts/build-aot.mjs',
+    'scripts/data-bundle.mts',
+    'scripts/native/**',
     'pnpm-lock.yaml',
     '.nvmrc',
     '.github/workflows/benchmark.yml'

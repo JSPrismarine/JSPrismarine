@@ -198,6 +198,14 @@ const laneLabel = (server: ServerId, metric: MetricId, values: MetricSummary) =>
 
 const rounds = (count: number) => `${count} round${count === 1 ? '' : 's'}`;
 const date = computed(() => results.value?.startedAt.slice(0, 10) ?? '');
+/**
+ * Whether this file measured JSPrismarine's packaged executable, which the harness runs with
+ * `--jsp-executable`, rather than its build on Node.js. The command line it recorded says which.
+ */
+const jspExecutable = computed(() => {
+    const command = results.value?.servers['jsprismarine-raknet']?.command ?? '';
+    return command !== '' && !/(^|\s)node\s/.test(command);
+});
 const fileUrl = computed(() => (props.data ? `${repository}/blob/master/${props.data.file}` : repository));
 const memory = computed(() =>
     results.value ? `${number(0).format(results.value.environment.memoryBytes / 1024 ** 3)} GiB` : ''
@@ -650,7 +658,12 @@ const ratioCaption = (metric: MetricId) =>
                     or place blocks. A world with mobs, redstone and players building costs every server more than this
                     one.
                 </li>
-                <li>
+                <li v-if="jspExecutable">
+                    JSPrismarine runs as the Bun AOT executable the nightly ships, compiled from the measured commit, so
+                    it is what a user runs. Pumpkin runs as its published release build, and Bedrock Dedicated Server as
+                    Mojang ships it.
+                </li>
+                <li v-else>
                     JSPrismarine runs from this repository's build on Node.js, as <code>pnpm start</code> runs it, not
                     as the prebuilt executable. Pumpkin runs as its published release build, and Bedrock Dedicated
                     Server as Mojang ships it.

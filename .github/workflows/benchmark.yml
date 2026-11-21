@@ -30,6 +30,9 @@ on:
             - '!packages/**/*.md'
             - '!packages/**/*.test.ts'
             - 'tools/server-benchmark/**'
+            - '.github/scripts/build-aot.mjs'
+            - 'scripts/data-bundle.mts'
+            - 'scripts/native/**'
             - 'pnpm-lock.yaml'
             - '.nvmrc'
             - '.github/workflows/benchmark.yml'
@@ -152,11 +155,33 @@ jobs:
               if: steps.inputs.outputs.measure == 'true'
               run: pnpm exec turbo run build --filter=@jsprismarine/server --filter=@jsprismarine/client --env-mode=loose
 
+            # Users run the executable, so the benchmark measures the Bun AOT build the nightly ships,
+            # compiled from this commit with the same Bun the executables workflow uses.
+            - name: 🐰 Setup Bun
+              if: steps.inputs.outputs.measure == 'true'
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: canary
+
+            # Writes the BUILD_* stamps to the environment of the steps after it.
+            - name: 🏷️ Set build metadata
+              if: steps.inputs.outputs.measure == 'true'
+              env:
+                  BUILD_TYPE: nightly
+                  BUILD_VERSION: 0.0.0-benchmark.${{ github.sha }}
+              run: node .github/scripts/set-build-metadata.mjs
+
+            - name: 🗃️ Compile the executable
+              if: steps.inputs.outputs.measure == 'true'
+              run: |
+                  bun --version
+                  node .github/scripts/build-aot.mjs bun-linux-x64 "$RUNNER_TEMP/prismarine"
+
             # Outside the checkout, so an upload never picks up a results file already in the repository.
             - name: ⏱️ Run the benchmark
               id: bench
               if: steps.inputs.outputs.measure == 'true'
-              run: pnpm run bench:servers --rounds "$ROUNDS" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
+              run: pnpm run bench:servers --rounds "$ROUNDS" --jsp-executable "$RUNNER_TEMP/prismarine" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
 
             # Only a run whose benchmark step started uploads the artifact the run limit counts, so a
             # failed install or build does not hold the next run back.
