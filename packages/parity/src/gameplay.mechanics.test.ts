@@ -272,6 +272,58 @@ const hurtExhaustionScenario: BehaviorScenario<GameplaySubject> = {
     }
 };
 
+/** Java's `Player.hurtServer` scaling of a mob's blow, per difficulty. */
+const JAVA_DIFFICULTY_SCALING: Readonly<Record<Difficulty, (amount: number) => number>> = {
+    peaceful: () => 0,
+    easy: (amount) => Math.min(amount / 2 + 1, amount),
+    normal: (amount) => amount,
+    hard: (amount) => (amount * 3) / 2
+};
+
+const difficultyScenario: BehaviorScenario<GameplaySubject> = {
+    name: 'mob-blow-difficulty',
+    java: "A mob's blow to a player is 0 on Peaceful, min(d / 2 + 1, d) on Easy, d on Normal and 1.5 d on Hard, unrounded.",
+    reference:
+        'Java Player.hurtServer and DamageSource.scalesWithDifficulty; data/minecraft/damage_type/mob_attack.json',
+    subjects: () => [subject('mechanic', 'difficulty')],
+    idOf: (entry) => entry.id,
+    aspects: () => ['behavior'],
+    run: () => {
+        const { runtime, world } = realStack();
+        const player = runtime.spawn('minecraft:player', { x: 42_000.5, y: 64, z: 42_000.5 });
+        const zombie = runtime.spawn('minecraft:zombie', { x: 42_002.5, y: 64, z: 42_000.5 });
+        const before = world.difficulty;
+        try {
+            if (player === undefined || zombie === undefined) return 'the server spawned no player or zombie';
+            for (const difficulty of javaDifficulties) {
+                world.difficulty = difficulty;
+                for (const amount of [1, 3, 7]) {
+                    player.instance.attributes.set('health', 20);
+                    runtime.damage({
+                        target: player.id,
+                        attacker: zombie.id,
+                        cause: 'entity_attack',
+                        amount,
+                        source: { route: 'command' }
+                    });
+                    const taken = 20 - (player.instance.attributes.get('health')?.current ?? 20);
+                    const java = JAVA_DIFFICULTY_SCALING[difficulty](amount);
+                    if (Math.abs(taken - java) > 1e-6) {
+                        return `a zombie's ${amount} takes ${taken} on ${difficulty}, Java ${java}`;
+                    }
+                }
+            }
+            return undefined;
+        } finally {
+            world.difficulty = before;
+            for (const entity of [player, zombie]) {
+                if (entity !== undefined && entity.removed === undefined)
+                    runtime.remove(entity.id, 'parity difficulty scenario complete');
+            }
+        }
+    }
+};
+
 let advertised: ReadonlySet<string> | undefined;
 
 /** The ids of the recipes the server advertises to a joining client, which are the ones a client can make. */
@@ -381,7 +433,8 @@ describeFamily(
                 scenarioGroup([professionScenario]),
                 scenarioGroup(playerScenarios),
                 scenarioGroup([recipeScenario]),
-                scenarioGroup([hurtExhaustionScenario])
+                scenarioGroup([hurtExhaustionScenario]),
+                scenarioGroup([difficultyScenario])
             );
 
             reportCoverage(

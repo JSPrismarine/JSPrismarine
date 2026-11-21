@@ -22,7 +22,8 @@
  * 8. Game rules: `fireDamage` for a burning entity.
  * 9. Before-hooks, which a host adds.
  *
- * Modifier slots, lowest priority first: what a raised shield blocks, the grace period's
+ * Modifier slots, lowest priority first: a player's blow scaled for the difficulty, what a raised
+ * shield blocks, the grace period's
  * difference, armor, protection enchantments, resistance, absorption, the dragon's scaling and the
  * damage sensor's multiplier.
  */
@@ -77,6 +78,11 @@ export interface DamageStageReads {
     witchResists?(cause: string): boolean;
     /** How much of a blow of `amount` the target's raised shield blocks, 0 when it blocks none. */
     blocked?(target: DataEntity, intent: DamageIntent, amount: number): number;
+    /**
+     * A blow scaled for the difficulty, or undefined when the difficulty does not reach it: only a
+     * player's blows, of a damage type that scales, are.
+     */
+    difficultyScaled?(intent: DamageIntent, amount: number): number | undefined;
 }
 
 /**
@@ -255,6 +261,19 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
         return target === undefined ? undefined : reads.mitigation?.(target, intent);
     };
     return [
+        {
+            // Java's `Player.hurtServer` scales the blow for the difficulty before
+            // `LivingEntity.hurtServer` takes any part of it.
+            name: 'difficulty',
+            priority: 10,
+            modifier: (intent, amount) => {
+                if (amount <= 0) return undefined;
+                const scaled = reads.difficultyScaled?.(intent, amount);
+                return scaled === undefined || scaled === amount
+                    ? undefined
+                    : { operation: 'add', value: scaled - amount };
+            }
+        },
         {
             // Java's `LivingEntity.hurtServer` takes what `applyItemBlocking` blocks off first.
             name: ITEM_BLOCKING,

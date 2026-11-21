@@ -271,7 +271,8 @@ import { DamageSensingSlot, ITEM_BLOCKING, damageGuards, damageModifiers } from 
 import { INVULNERABILITY_TICKS } from '../Damage';
 import type { DamageCause } from '../DamageCause';
 import { damageCauseOf } from '../DamageCause';
-import { damageCauseOfType, damageCausesInTag, foodExhaustionOf } from '../damageTypes';
+import { damageCauseOfType, damageCausesInTag, damageScalingOf, foodExhaustionOf } from '../damageTypes';
+import { scaleForDifficulty } from '../Difficulty';
 import { damageTagsOf } from '../mobLoot';
 import type { HitGrace } from './damageStages';
 import { BASE_KNOCKBACK, KNOCKBACK_PER_LEVEL, behind, livingKnockback } from '../knockback';
@@ -1227,7 +1228,8 @@ export class EntityRuntime implements EntityScene {
                 return this.witchResistedCauses.has(damageCauseOf(cause));
             },
             blocked: (target: DataEntity, intent: DamageIntent, amount: number) =>
-                this.blockedBy(target, intent, amount)
+                this.blockedBy(target, intent, amount),
+            difficultyScaled: (intent: DamageIntent, amount: number) => this.difficultyScaled(intent, amount)
         };
         this.damageSensing = new DamageSensingSlot(damageReads);
         this.damagePipeline = new DamagePipeline({
@@ -3587,6 +3589,25 @@ export class EntityRuntime implements EntityScene {
             if (before === undefined) this.vehicleDamage.delete(id);
             else this.vehicleDamage.set(id, before);
         });
+    }
+
+    /**
+     * A blow to a player scaled for the difficulty, when its damage type scales: `always`, or
+     * `when_caused_by_living_non_player` for a blow a living mob is answerable for. Java's
+     * `DamageSource.scalesWithDifficulty`.
+     */
+    private difficultyScaled(intent: DamageIntent, amount: number): number | undefined {
+        const target = this.store.get(intent.target);
+        if (target === undefined || !clientOwnsMovement(target.identifier)) return undefined;
+        const scaling = damageScalingOf(this.content(), intent.cause, intent.source.damageType);
+        const attacker = intent.attacker === undefined ? undefined : this.store.get(intent.attacker);
+        const scales =
+            scaling === 'always' ||
+            (scaling === 'when_caused_by_living_non_player' &&
+                attacker !== undefined &&
+                !clientOwnsMovement(attacker.identifier) &&
+                attacker.instance.attributes.get('health') !== undefined);
+        return scales ? scaleForDifficulty(amount, DIFFICULTY_IDS[this.world.level.difficulty()]) : undefined;
     }
 
     /**

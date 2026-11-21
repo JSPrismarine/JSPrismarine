@@ -104,6 +104,10 @@ const TYPE_BY_CAUSE: Readonly<Record<string, string>> = {
     self_destruct: 'minecraft:generic_kill'
 };
 
+/** The declaration of the Java damage type a blow names, or the one its cause stands for. */
+const damageTypeData = (content: ServerContent, cause: string, damageType?: string): unknown =>
+    content.definitions.damageTypes.get(damageType ?? TYPE_BY_CAUSE[cause] ?? 'minecraft:generic')?.data;
+
 /**
  * The food exhaustion a blow that takes a player's health costs, Java's
  * `DamageSource.getFoodExhaustion`: the `exhaustion` its damage type declares, 0.1 for a blow and
@@ -113,8 +117,24 @@ const TYPE_BY_CAUSE: Readonly<Record<string, string>> = {
  * @param damageType - The Java damage type the blow names, when it names one.
  */
 export const foodExhaustionOf = (content: ServerContent, cause: string, damageType?: string): number => {
-    const data = content.definitions.damageTypes.get(damageType ?? TYPE_BY_CAUSE[cause] ?? 'minecraft:generic')?.data;
+    const data = damageTypeData(content, cause, damageType);
     return isRecord(data) && typeof data.exhaustion === 'number' ? data.exhaustion : 0;
+};
+
+/** How a damage type scales with the difficulty, Java's `DamageScaling`. */
+export type DamageScaling = 'never' | 'always' | 'when_caused_by_living_non_player';
+
+/**
+ * Whether a blow scales with the difficulty, by the `scaling` its damage type declares: `never`,
+ * `always`, or `when_caused_by_living_non_player`, which is every mob attack.
+ * @param content - The content build, for the damage type definitions.
+ * @param cause - The cause name the blow carries.
+ * @param damageType - The Java damage type the blow names, when it names one.
+ */
+export const damageScalingOf = (content: ServerContent, cause: string, damageType?: string): DamageScaling => {
+    const data = damageTypeData(content, cause, damageType);
+    const scaling = isRecord(data) ? data.scaling : undefined;
+    return scaling === 'always' || scaling === 'when_caused_by_living_non_player' ? scaling : 'never';
 };
 
 /** Where `/damage` says a blow came from. */
