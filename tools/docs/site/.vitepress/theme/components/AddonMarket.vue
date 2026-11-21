@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 import AddonIcon from '../AddonIcon.vue';
 import type { Market, MarketAddon } from '../addonMarket';
 import { tagLabel } from '../addonMarket';
+import { plural } from '../plural';
 import BrandButton from './BrandButton.vue';
 import PrismMark from './PrismMark.vue';
 
@@ -46,7 +47,6 @@ const shown = computed(() =>
 );
 const only = computed(() => (shown.value.length === 1 ? shown.value[0] : undefined));
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 const countLine = computed(() => {
     const total = showDeprecated.value
         ? props.market.addons.length
