@@ -8,7 +8,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowIds } from '../../inventory/WindowIds';
 import type { Item } from '../../item/Item';
-import { consumeTicksOf, useItemInAir, useItemOnBlock, useItemOnEntity } from '../../item/interaction';
+import { consumeTicksOf, useItemInAir, useItemOnEntity } from '../../item/interaction';
 import type { InteractingPlayer, InteractionResult, InteractionRotation } from '../../item/interaction';
 import type InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
 import type {
@@ -27,8 +27,10 @@ import {
     ItemUseOnActorActionType
 } from '@jsprismarine/protocol';
 import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
+import type { ContentHooks } from './contentUseOnBlock';
+import { contentUseOnBlock } from './contentUseOnBlock';
 import { EyeOfEnderEcho } from './eyeOfEnderEcho';
-import type { HandlerLog, HandlerServices, InputContext } from './HandlerContext';
+import type { InputContext } from './HandlerContext';
 import type { InputLaneHandler } from './SessionHandler';
 import PlayerAttackEntityEvent from '../../events/player/PlayerAttackEntityEvent';
 import { endItemUse, HELD_USE_TICKS, startItemUse } from '../../item/itemUse';
@@ -61,56 +63,6 @@ const EYE_ECHO_TICKS = 2;
 
 /** The eye of ender block uses whose air-use echo is still due. */
 const eyeEcho = new EyeOfEnderEcho(EYE_ECHO_TICKS);
-
-/** What the content hooks are offered a click through: the content, its actors and the log. */
-interface ContentHooks {
-    readonly services: Pick<HandlerServices, 'content' | 'contentWorld'>;
-    readonly log: HandlerLog;
-}
-
-/**
- * One right click on a block, offered to the content hooks.
- *
- * @returns Whether a behavior family or a placement consumed the click. A behavior that throws
- *   is logged and declines.
- */
-const contentUse = (
-    { services, log }: ContentHooks,
-    player: InteractingPlayer,
-    data: UseItemData,
-    rotation?: InteractionRotation
-): InteractionResult => {
-    const { content } = services;
-    const actors = services.contentWorld.actorsAt(
-        player.getWorld().getDimension().name,
-        player.getWorld().getLevel().name
-    );
-
-    try {
-        return useItemOnBlock({
-            content,
-            actors,
-            player,
-            position: {
-                x: data.blockPosition.getX(),
-                y: data.blockPosition.getY(),
-                z: data.blockPosition.getZ()
-            },
-            face: data.blockFace,
-            faceLocation: {
-                x: data.clickPosition.getX(),
-                y: data.clickPosition.getY(),
-                z: data.clickPosition.getZ()
-            },
-            ...(rotation === undefined ? {} : { rotation })
-        });
-    } catch (error: unknown) {
-        // A behavior that throws must not take the packet handler down with it, and it must
-        // not go unreported either. The throw reaches the log and the click goes unanswered.
-        log.error(error);
-        return 'declined';
-    }
-};
 
 /**
  * One right click on an entity, offered to the content hooks.
@@ -547,7 +499,24 @@ export default class InventoryTransactionHandler implements InputLaneHandler<Inv
                     if (player.getInventory().getItemInHand().getName() === ENDER_EYE) {
                         eyeEcho.usedOnBlock(session.runtimeId, step.tick);
                     }
-                    contentUse(context, session, data, interactionRotation);
+                    contentUseOnBlock(
+                        context,
+                        session,
+                        {
+                            position: {
+                                x: data.blockPosition.getX(),
+                                y: data.blockPosition.getY(),
+                                z: data.blockPosition.getZ()
+                            },
+                            face: data.blockFace,
+                            faceLocation: {
+                                x: data.clickPosition.getX(),
+                                y: data.clickPosition.getY(),
+                                z: data.clickPosition.getZ()
+                            }
+                        },
+                        interactionRotation
+                    );
                     return;
                 }
 
