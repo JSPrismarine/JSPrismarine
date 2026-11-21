@@ -19,53 +19,13 @@
  * slot of a block's container. Nothing here reads or writes an item; the caller does that, so
  * `/replaceitem`, `/item`, `/loot replace` and the parity suite read the same slot for one name.
  */
-import type { ENTITY_EQUIPMENT_SLOTS } from '@jsprismarine/commands';
-import type { EntityEquipmentSlot } from '@jsprismarine/entities';
+import { BLOCK_EQUIPMENT_SLOTS } from '@jsprismarine/commands';
 
 import type { EquippableSlot } from '../entity/data/equippable';
 import type { MobEquipmentSlot } from '../entity/equipment';
+import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf } from '../entity/equipment';
 import type { EntityInventory, SlotAddress } from './EntityInventory';
 import { HOTBAR_SIZE } from './EntityInventory';
-
-/** One of Bedrock's entity slot groups, as the client's `EntityEquipmentSlot` enum spells it. */
-export type BedrockEntitySlotGroup = (typeof ENTITY_EQUIPMENT_SLOTS)[number];
-
-/** The one slot group Bedrock gives a block, its `BlockEquipmentSlot` enum's only value. */
-export const BLOCK_CONTAINER_GROUP = 'slot.container';
-
-/**
- * Bedrock's fully qualified name for each equipment slot, which components such as
- * `minecraft:on_equipment_changed` and `minecraft:burns_in_daylight` use, and the slot group
- * `/replaceitem` names it by.
- */
-export const BEDROCK_EQUIPMENT_SLOT_NAMES = {
-    mainhand: 'slot.weapon.mainhand',
-    offhand: 'slot.weapon.offhand',
-    head: 'slot.armor.head',
-    chest: 'slot.armor.chest',
-    legs: 'slot.armor.legs',
-    feet: 'slot.armor.feet',
-    body: 'slot.armor.body'
-} as const satisfies Record<MobEquipmentSlot, EntityEquipmentSlot & BedrockEntitySlotGroup>;
-
-/** Whether a bare name is one of the equipment slots, such as `head`. */
-const isEquipmentSlot = (name: string): name is MobEquipmentSlot => Object.hasOwn(BEDROCK_EQUIPMENT_SLOT_NAMES, name);
-
-/** The equipment slot a fully qualified Bedrock name or a bare slot name means. */
-const EQUIPMENT_SLOT_NAMED = new Map<string, MobEquipmentSlot>();
-for (const [slot, name] of Object.entries(BEDROCK_EQUIPMENT_SLOT_NAMES)) {
-    if (!isEquipmentSlot(slot)) continue;
-    EQUIPMENT_SLOT_NAMED.set(slot, slot);
-    EQUIPMENT_SLOT_NAMED.set(name, slot);
-}
-
-/**
- * The equipment slot a name means: a bare one (`head`), as an item's `minecraft:equippable`
- * spells it, or a fully qualified one (`slot.armor.head`), as an entity component spells it.
- *
- * @returns The slot, or undefined for any other name, such as `slot.armor.saddle` or `armor`.
- */
-export const equipmentSlotNamed = (name: string): MobEquipmentSlot | undefined => EQUIPMENT_SLOT_NAMED.get(name);
 
 /** Where one named slot is: a container slot of an entity, or a slot of a block's container. */
 export type HeldSlot =
@@ -136,9 +96,7 @@ const JAVA_SADDLE = 106;
 
 /** The equipment slot each of Java's equipment numbers names. */
 const EQUIPMENT_OF_JAVA_ID = new Map<number, MobEquipmentSlot>();
-for (const [slot, id] of Object.entries(JAVA_EQUIPMENT_IDS)) {
-    if (isEquipmentSlot(slot)) EQUIPMENT_OF_JAVA_ID.set(id, slot);
-}
+for (const slot of MOB_EQUIPMENT_SLOTS) EQUIPMENT_OF_JAVA_ID.set(JAVA_EQUIPMENT_IDS[slot], slot);
 
 /** Every Java slot name with the numbers it stands for, in `SlotRanges.SLOTS` order. */
 const JAVA_SLOT_NAMES = new Map<string, readonly number[]>();
@@ -296,13 +254,14 @@ const javaSlotOn = (holder: SlotHolder, id: number): SlotLookup => {
 /** Every slot of one Bedrock group on a holder, in index order. */
 const bedrockGroupSlots = (holder: SlotHolder, group: string): readonly SlotLookup[] => {
     if (holder.kind === 'block') {
-        return group === BLOCK_CONTAINER_GROUP
+        // Bedrock's `BlockEquipmentSlot` enum has one value, `slot.container`.
+        return BLOCK_EQUIPMENT_SLOTS.some((name) => name === group)
             ? Array.from({ length: holder.size }, (_unused, slot) => ({ container: 'block', slot }) as const)
             : [];
     }
 
     const { inventory } = holder;
-    const equipment = equipmentSlotNamed(group);
+    const equipment = mobEquipmentSlotOf(group);
     if (equipment !== undefined) {
         const slot =
             holder.kind === 'mob' ? mobEquipmentSlot(holder, equipment) : inventory.equipmentAddress(equipment);

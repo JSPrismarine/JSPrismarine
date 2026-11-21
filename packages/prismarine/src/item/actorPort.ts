@@ -22,7 +22,8 @@ import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import type { AdvancementPlayer } from '../advancement/triggers';
-import { ArmorSlot } from '@jsprismarine/minecraft';
+import { mobEquipmentSlotOf } from '../entity/equipment';
+import { mobEquipmentAddress } from '../inventory/EntityInventory';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { damageCauseOf } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
@@ -150,12 +151,14 @@ const UNWRITTEN_SYSTEMS = {
 const isUnwritten = (kind: ItemWorldActionKind): kind is keyof typeof UNWRITTEN_SYSTEMS =>
     Object.hasOwn(UNWRITTEN_SYSTEMS, kind);
 
-/** The armor inventory index each `minecraft:equippable` slot name writes into. */
-const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
-    head: ArmorSlot.HEAD,
-    chest: ArmorSlot.TORSO,
-    legs: ArmorSlot.LEGS,
-    feet: ArmorSlot.FEET
+/**
+ * The armor container slot a `minecraft:equippable` slot name writes into: the one a mob's
+ * `head`, `chest`, `legs` or `feet` reads, or undefined for a hand or the body.
+ */
+const armorIndexOf = (slot: EquipmentSlot): number | undefined => {
+    const equipment = mobEquipmentSlotOf(slot);
+    const address = equipment === undefined ? undefined : mobEquipmentAddress(equipment);
+    return address?.container === 'armor' ? address.slot : undefined;
 };
 
 /**
@@ -439,7 +442,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const entity = playerOf(source);
         if (entity === undefined) return false;
 
-        const armorIndex = ARMOR_INDEX[slot];
+        const armorIndex = armorIndexOf(slot);
         if (fromHand && armorIndex !== undefined) return swapFromHand(entity, armorIndex);
 
         const item = itemOf(stack);

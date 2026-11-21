@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { EquippableSlot } from '../entity/data/equippable';
 import { EntityInventory, PLAYER_LAYOUT, mobLayout } from './EntityInventory';
 import type { SlotHolder } from './slotAddress';
-import { equipmentSlotNamed, javaSlotIds, resolveSlotName } from './slotAddress';
+import { javaSlotIds, resolveSlotName } from './slotAddress';
 
 const player = (): SlotHolder => ({ kind: 'player', inventory: new EntityInventory(PLAYER_LAYOUT) });
 
@@ -154,14 +154,5 @@ describe("Bedrock's slot groups", () => {
         expect(slotsOf('slot.saddle', player(), 0)).toBe('A player has no slot.saddle slots');
         expect(slotsOf('slot.enderchest', mob(), 0)).toBe('That entity has no slot.enderchest slots');
         expect(slotsOf('slot.hotbar', { kind: 'block', size: 27 }, 0)).toBe('That block has no slot.hotbar slots');
-    });
-});
-
-describe('equipment slot names', () => {
-    it('read the bare and the fully qualified spelling', () => {
-        expect(equipmentSlotNamed('head')).toBe('head');
-        expect(equipmentSlotNamed('slot.armor.head')).toBe('head');
-        expect(equipmentSlotNamed('slot.weapon.offhand')).toBe('offhand');
-        expect(equipmentSlotNamed('slot.armor.saddle')).toBeUndefined();
     });
 });
