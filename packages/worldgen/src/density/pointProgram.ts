@@ -90,6 +90,14 @@ export interface PointProgramSource {
     ignoresY(node: DensityFunctionNode): boolean;
 }
 
+/** The structure and blending hooks a tree reaches, each answered neutrally by its program. */
+export interface PointProgramHooks {
+    readonly beardifier: boolean;
+    readonly blendAlpha: boolean;
+    readonly blendOffset: boolean;
+    readonly blendDensity: boolean;
+}
+
 /** A tree laid out as point program records, for `NativeWorldgen.createProgram`. */
 export interface PointProgram {
     readonly nodes: Int32Array;
@@ -97,6 +105,11 @@ export interface PointProgram {
     readonly links: Int32Array;
     readonly stacks: readonly NativeNoiseStack[];
     readonly cacheSlots: number;
+    /**
+     * The hooks the tree reaches. A sample whose context sets one of them has to run the closure,
+     * which reads the hook; a hook the tree never reaches does not matter.
+     */
+    readonly hooks: PointProgramHooks;
 }
 
 /** A node the native interpreter has no operation for, which keeps the tree in TypeScript. */
@@ -123,7 +136,8 @@ export const encodePointProgram = (root: DensityFunctionNode, source: PointProgr
         constants: Float64Array.from(encoder.constantValues),
         links: Int32Array.from(encoder.linkValues),
         stacks: encoder.stacks,
-        cacheSlots: encoder.cacheSlots
+        cacheSlots: encoder.cacheSlots,
+        hooks: { ...encoder.hooks }
     };
 };
 
@@ -133,6 +147,7 @@ class Encoder {
     public readonly linkValues: number[] = [];
     public readonly stacks: NativeNoiseStack[] = [];
     public cacheSlots = 0;
+    public readonly hooks = { beardifier: false, blendAlpha: false, blendOffset: false, blendDensity: false };
     private readonly indices = new Map<DensityFunctionNode | SplineNode, number>();
     private readonly stackIndices = new Map<NativeNoiseStack, number>();
 
@@ -199,11 +214,16 @@ class Encoder {
             case 'constant':
                 return [PointOp.constant, this.constants(f32(node.value))];
             case 'beardifier':
+                this.hooks.beardifier = true;
+                return [PointOp.neutralHook, this.constants(0)];
             case 'blend_offset':
+                this.hooks.blendOffset = true;
                 return [PointOp.neutralHook, this.constants(0)];
             case 'blend_alpha':
+                this.hooks.blendAlpha = true;
                 return [PointOp.neutralHook, this.constants(1)];
             case 'blend_density':
+                this.hooks.blendDensity = true;
                 return [PointOp.blendDensity, this.node(node.input)];
             case 'cache': {
                 const input = this.node(node.input);

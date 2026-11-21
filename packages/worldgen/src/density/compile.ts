@@ -7,7 +7,7 @@ import {
 } from '../noise/BlendedNoise';
 import type { Noise } from '../noise/GradientNoise';
 import type { NoiseStack } from '../noise/NoiseStack';
-import type { PointProgram } from './pointProgram';
+import type { PointProgram, PointProgramHooks } from './pointProgram';
 import { encodePointProgram } from './pointProgram';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
@@ -1012,9 +1012,17 @@ export class DensityFunctionCompiler {
      * The evaluator ignores structure and blending hooks, so call it only where none is set.
      */
     public nativeSampler(node: DensityFunctionNode): ((x: number, y: number, z: number) => number) | undefined {
+        return this.nativeProgram(node)?.evaluate;
+    }
+
+    /** A tree's point program in the environment and the hooks it reaches, or undefined. */
+    private nativeProgram(
+        node: DensityFunctionNode
+    ): { evaluate: (x: number, y: number, z: number) => number; hooks: PointProgramHooks } | undefined {
         const environment = this.environment;
-        return environment.pointProgram?.(() =>
-            encodePointProgram(node, {
+        let encoded: PointProgram | undefined;
+        const evaluate = environment.pointProgram?.(() => {
+            encoded = encodePointProgram(node, {
                 noise: (id) => environment.noise(id),
                 blendedNoise: (blended) => {
                     const fbm = createBlendedNoiseFbmSet(environment.random(BLENDED_NOISE_SEED), blended);
@@ -1025,8 +1033,10 @@ export class DensityFunctionCompiler {
                     };
                 },
                 ignoresY: (input) => (this.domainAxes(input) & Y_AXIS) === 0
-            })
-        );
+            });
+            return encoded;
+        });
+        return evaluate === undefined || encoded === undefined ? undefined : { evaluate, hooks: encoded.hooks };
     }
 
     /**
@@ -1042,17 +1052,26 @@ export class DensityFunctionCompiler {
         return created;
     }
 
-    /** A closure that hands each sample to the tree's point program, where one runs and no hook is set. */
+    /**
+     * A closure that hands each sample to the tree's point program where one runs, unless the
+     * context sets a hook the tree reaches. The program answers its hooks neutrally, and a hook the
+     * tree never reaches, such as a structure's beard outside the trees under `interpolated`, does
+     * not change its value.
+     */
     private withNativeProgram(node: DensityFunctionNode, closure: DensitySampler): DensitySampler {
-        const evaluate = this.nativeSampler(node);
-        if (evaluate === undefined) return closure;
+        const program = this.nativeProgram(node);
+        if (program === undefined) return closure;
+        const { evaluate, hooks } = program;
+        if (!hooks.beardifier && !hooks.blendAlpha && !hooks.blendOffset && !hooks.blendDensity) {
+            return (_context, x, y, z) => evaluate(x, y, z);
+        }
         return (context, x, y, z) =>
-            context.beardifier === undefined &&
-            context.blendAlpha === undefined &&
-            context.blendOffset === undefined &&
-            context.blendDensity === undefined
-                ? evaluate(x, y, z)
-                : closure(context, x, y, z);
+            (hooks.beardifier && context.beardifier !== undefined) ||
+            (hooks.blendAlpha && context.blendAlpha !== undefined) ||
+            (hooks.blendOffset && context.blendOffset !== undefined) ||
+            (hooks.blendDensity && context.blendDensity !== undefined)
+                ? closure(context, x, y, z)
+                : evaluate(x, y, z);
     }
 
     private cacheId(node: DensityFunctionNode): number {

@@ -295,4 +295,47 @@ describe.runIf(available)('density programs in the native library', () => {
 
         expect(counted).toBe(0);
     });
+
+    describe('with a structure or blending hook set', () => {
+        const state = new RandomState(vanillaData, 1234n, vanillaData.settings('minecraft:overworld'));
+        const beardedContext = () => {
+            const context = state.createContext();
+            context.beardifier = () => 1;
+            return context;
+        };
+
+        it("keeps a corner tree that reaches no hook in the native library while a structure's beard is set", () => {
+            const trees = interpolatedNodes(state.settings.noiseRouter.finalDensity).flatMap((node) =>
+                node.type === 'interpolated' ? [node.input] : []
+            );
+            const context = beardedContext();
+            const noise = vi.spyOn(NativeStackNoise.prototype, 'get3');
+            for (const tree of trees) {
+                const sample = state.densitySampler(tree);
+                for (const [x, y, z] of positions(50, -64, 384)) sample(context, x, y, z);
+            }
+            const counted = noise.mock.calls.length;
+            noise.mockRestore();
+
+            expect(trees.length).toBeGreaterThan(0);
+            expect(counted).toBe(0);
+        });
+
+        it('runs a tree that reaches the beard on its closure, so the beard counts', () => {
+            const tree = parseDensityFunction(
+                {
+                    type: 'minecraft:add',
+                    left: { type: 'minecraft:noise', noise: 'minecraft:ridge', xz_scale: 0.25, y_scale: 0.5 },
+                    right: { type: 'minecraft:beardifier' }
+                },
+                (id) => vanillaData.densityFunction(id)
+            );
+            const context = beardedContext();
+            const closure = state.sampler(tree);
+            const sample = state.densitySampler(tree);
+            for (const [x, y, z] of positions(50, -64, 384)) {
+                expect(sample(context, x, y, z)).toBe(closure(context, x, y, z));
+            }
+        });
+    });
 });
