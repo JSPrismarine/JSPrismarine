@@ -456,10 +456,8 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       scenario records `mirror`.
       `getPackStructureIds` and a pack's `.mcstructure` files have no behavior. The palette lacks
       `stone_type`, `wood_type`, `old_log_type` and `dirt_type`
-      ([#3237](https://github.com/JSPrismarine/JSPrismarine/issues/3237)), a mob has no default
-      underwater speed ([#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264)), and
-      a mob at 0 health leaves the script world at once
-      ([#3263](https://github.com/JSPrismarine/JSPrismarine/issues/3263)). An interaction raises
+      ([#3237](https://github.com/JSPrismarine/JSPrismarine/issues/3237)), and a mob has no default
+      underwater speed ([#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264)). An interaction raises
       one event a click, so `isFirstEvent` is always true. `ScreenDisplay`'s HUD members,
       `SoundInstance.stop`, `ItemEnchantableComponent` and other item components, and
       `world.afterEvents.playerInventoryItemChange` still have no behavior. Next by corpus use:

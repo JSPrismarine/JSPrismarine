@@ -357,7 +357,8 @@ export const reactionScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                     feederHolding('minecraft:cookie')
                 );
                 sandbox.tick(3);
-                return sandbox.stack.runtime.byId(sandbox.entity.id) === undefined;
+                // Dead, though its body stays for its death animation.
+                return (sandbox.entity.instance.attributes.get('health')?.current ?? 0) <= 0;
             });
             if (typeof dead === 'string') return dead;
             return dead

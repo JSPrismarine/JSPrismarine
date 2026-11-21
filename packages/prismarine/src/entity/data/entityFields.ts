@@ -76,6 +76,7 @@ const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) =
     invulnerable: booleanField('invulnerable'),
     fuseTicks: optionalNumberField('fuseTicks'),
     fireTicks: numberField('fireTicks'),
+    deathTime: numberField('deathTime'),
     owner: optionalNumberField('owner'),
     statusEffectClock: (value) => (value === null ? undefined : statusEffectClockIn(value)),
     actorTags: (value) =>

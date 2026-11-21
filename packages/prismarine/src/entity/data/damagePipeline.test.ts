@@ -214,18 +214,25 @@ describe('the damage pipeline', () => {
     });
 
     describe('a death', () => {
-        it('runs in the commit and removes the entity with one membership entry in the same tick', () => {
+        it('runs in the commit, and removes the entity with one membership entry once its death is over', () => {
             const { runtime, removed } = entityFixture();
             const cow = runtime.spawn('minecraft:cow', GROUND);
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
 
             let outcome: ReturnType<typeof runtime.damage> | undefined;
-            const entries = logged(runtime.store, () => (outcome = runtime.damage(blow(cow.id, 20))));
+            const blowEntries = logged(runtime.store, () => (outcome = runtime.damage(blow(cow.id, 20))));
 
             expect(outcome).toMatchObject({ committed: true, died: true });
+            // Java's `LivingEntity.tickDeath`: the body stays for its death animation.
+            expect(runtime.byId(cow.id)).toBe(cow);
+            expect(blowEntries.filter((entry) => entry.kind === 'membership')).toEqual([]);
+
+            const deathEntries = logged(runtime.store, () => {
+                for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
+            });
             expect(runtime.byId(cow.id)).toBeUndefined();
             expect(removed).toEqual([{ entity: cow, reason: 'death' }]);
-            const memberships = entries.filter((entry) => entry.kind === 'membership');
+            const memberships = deathEntries.filter((entry) => entry.kind === 'membership');
             expect(memberships).toHaveLength(1);
             expect(memberships[0]).toMatchObject({ change: 'leave', entity: BigInt(cow.id) });
         });

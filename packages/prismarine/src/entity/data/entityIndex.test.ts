@@ -169,7 +169,7 @@ describe('EntityIndex', () => {
         const { index } = runtime;
 
         runtime.hurt(dying, undefined, 'entity_attack', 1000);
-        runtime.tick(1);
+        for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
         expect(dying.removed).toBeDefined();
         runtime.remove(despawning.id, 'despawn');
         runtime.remove(unloading.id, 'chunk unload');

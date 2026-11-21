@@ -105,6 +105,8 @@ export interface DataEntityRecord {
     readonly fuseTicks?: number;
     /** Remaining ticks an entity stays on fire. */
     readonly fireTicks?: number;
+    /** Ticks since a living entity died, Java's `DeathTime`, for one saved during its death. */
+    readonly deathTime?: number;
     /** Flight state for an entity carrying `minecraft:projectile`. */
     readonly projectile?: {
         readonly velocity: EntityPosition;
@@ -179,6 +181,7 @@ export const dataEntityRecordOf = (
         ...(body.invulnerable ? { invulnerable: true } : {}),
         ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
         ...(body.fireTicks <= 0 ? {} : { fireTicks: body.fireTicks }),
+        ...(body.deathTime <= 0 ? {} : { deathTime: body.deathTime }),
         ...(instance.hasComponent('minecraft:projectile')
             ? {
                   projectile: {
@@ -434,6 +437,9 @@ export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefi
         ...(typeof parsed['fireTicks'] === 'number' && Number.isFinite(parsed['fireTicks'])
             ? { fireTicks: Math.max(0, Math.trunc(parsed['fireTicks'])) }
             : {}),
+        ...(typeof parsed['deathTime'] === 'number' && Number.isFinite(parsed['deathTime'])
+            ? { deathTime: Math.max(0, Math.trunc(parsed['deathTime'])) }
+            : {}),
         ...(projectile === undefined ? {} : { projectile }),
         ...(merchant === undefined ? {} : { merchant }),
         ...(spawnData === undefined ? {} : { spawnData })
@@ -497,6 +503,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.invulnerable = record.invulnerable === true;
     body.fuseTicks = record.fuseTicks;
     body.fireTicks = record.fireTicks ?? 0;
+    body.deathTime = record.deathTime ?? 0;
     if (body.fireTicks > 0) body.conditions.add('on_fire');
     else body.conditions.delete('on_fire');
     if (record.projectile !== undefined) {

@@ -3151,15 +3151,20 @@ describe('EntityRuntime', () => {
             expect(receiver.instance.attackTarget?.id?.()).toBe(target.id);
         });
 
-        it('removes a lethal hit immediately when no death event was queued', () => {
+        it("drops a lethal hit's loot at once and removes the mob after Java's 20 ticks of dying", () => {
             const { runtime, world } = runtimeOf();
             const cow = runtime.spawn('minecraft:cow', GROUND);
             if (cow === undefined) throw new Error('the fixture declares no cow');
 
             runtime.hurt(cow, undefined, 'entity_attack', 10);
 
-            expect(runtime.entities().toArray()).not.toContain(cow);
             expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
+            for (let tick = 1; tick < 20; tick++) runtime.tick(tick);
+            expect(runtime.entities().toArray()).toContain(cow);
+            expect(cow.body.deathTime).toBe(19);
+            runtime.tick(20);
+            expect(runtime.entities().toArray()).not.toContain(cow);
+            expect(cow.removed).toBe('death');
         });
     });
 
@@ -3430,7 +3435,30 @@ describe('EntityRuntime', () => {
             runtime.kill(cow!);
 
             expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
+            for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
             expect(runtime.entities().toArray()).toHaveLength(0);
+        });
+
+        it('saves a mob in its death animation and brings it back dying, where it finishes', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = runtimeOf(world);
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no cow');
+            runtime.kill(cow);
+            for (let tick = 1; tick <= 5; tick++) runtime.tick(tick);
+
+            const saved = dataEntityRecordOf(cow, undefined);
+            runtime.remove(cow.id, 'test save');
+            expect(saved.deathTime).toBe(5);
+            const restored = runtime.restore(saved, GROUND);
+            if (restored === undefined) throw new Error('the fixture could not restore the cow');
+
+            // Java's `DeathTime`: it goes on from where it was, and leaves after the rest of it.
+            for (let tick = 6; tick < 20; tick++) runtime.tick(tick);
+            expect(restored.removed).toBeUndefined();
+            runtime.tick(20);
+            expect(restored.removed).toBe('death');
+            expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
         });
 
         it('rolls nothing with doMobLoot off, and still takes the entity', () => {
@@ -3441,6 +3469,7 @@ describe('EntityRuntime', () => {
             runtime.kill(cow!);
 
             expect(world.drops).toHaveLength(0);
+            for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
             expect(runtime.entities().toArray()).toHaveLength(0);
         });
     });
@@ -3699,7 +3728,7 @@ describe('EntityRuntime', () => {
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
 
             runtime.hurt(cow, PLAYER_ID, 'entity_attack', 100);
-            runtime.tick(1);
+            for (let tick = 1; tick <= 20; tick++) runtime.tick(tick);
 
             expect(cow.removed).toBe('death');
             expect(world.deathAnimations).toEqual([]);

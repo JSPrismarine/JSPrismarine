@@ -252,7 +252,7 @@ const compareDeathDrops = (subject: EntitySubject, table: string): string | unde
     const server: Map<string, number>[] = [];
     const java: Map<string, number>[] = [];
     withWorld(playerAt(1), () => {
-        const { world } = realStack();
+        const { world, runtime } = realStack();
         for (let kill = 0; kill < KILLS; kill += 1) {
             world.drops.length = 0;
             const entity = spawn(subject.bedrock);
@@ -261,7 +261,11 @@ const compareDeathDrops = (subject: EntitySubject, table: string): string | unde
             // `LivingEntity.shouldDropLoot` drops nothing for a baby, but a `Monster` overrides it.
             const javaDrops = !entity.instance.hasComponent('minecraft:is_baby') || isMonster(subject.javaId);
             killByPlayer(entity);
-            if (entity.removed === undefined) throw new Error(`a killing blow left ${subject.bedrock} alive`);
+            if (entity.removed === undefined && (entity.instance.attributes.get('health')?.current ?? 0) > 0)
+                throw new Error(`a killing blow left ${subject.bedrock} alive`);
+            // A dead mob stays for its death animation; its loot has fallen, so the next kill
+            // does not need its body.
+            if (entity.removed === undefined) runtime.remove(entity.id, 'parity death-loot kill complete');
             server.push(tally(world.drops.map((drop) => drop.item).filter((item) => !equipped.has(item.identifier))));
             for (let roll = 0; roll < JAVA_ROLLS_PER_KILL; roll += 1)
                 java.push(javaDrops ? javaDeathRoll(table, self) : new Map());
