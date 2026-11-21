@@ -35,6 +35,36 @@ const JUST_UNDER_3 = {
 };
 
 describe('withJavaGoals', () => {
+    it("adds the goals Java's class registers and the file leaves out, in the base components only", () => {
+        const data = withJavaGoals(
+            entityFile(
+                'minecraft:endermite',
+                { 'minecraft:physics': {}, 'minecraft:behavior.float': { priority: 0 } },
+                { 'minecraft:baby': { 'minecraft:physics': {} } }
+            ),
+            javaGoalRulings()
+        );
+
+        expect(declared(data, 'minecraft:endermite')).toEqual(
+            expect.arrayContaining([
+                'minecraft:behavior.look_at_player',
+                'minecraft:behavior.random_look_around',
+                'minecraft:behavior.hurt_by_target'
+            ])
+        );
+        expect(data).not.toMatchObject({
+            'minecraft:entity': {
+                component_groups: { 'minecraft:baby': { 'minecraft:behavior.look_at_player': expect.anything() } }
+            }
+        });
+    });
+
+    it("gives a fish the panic Java's AbstractFish registers", () => {
+        const data = withJavaGoals(entityFile('minecraft:cod', { 'minecraft:physics': {} }), javaGoalRulings());
+
+        expect(declared(data, 'minecraft:cod')).toContain('minecraft:behavior.panic');
+    });
+
     it("gives a creeper Java's strict SwellGoal distances in its goal and in the sensor that lights the fuse", () => {
         const data = withJavaGoals(
             entityFile(

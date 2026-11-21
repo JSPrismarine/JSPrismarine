@@ -37,8 +37,11 @@ interface JavaGoalRuling {
     readonly entity: string;
     /** The Bedrock goal the ruling rewrites. */
     readonly component: string;
-    /** Builds the components that replace the declared body; an empty record removes the goal. */
-    readonly java: (body: Record<string, unknown>) => Readonly<Record<string, Record<string, unknown>>>;
+    /**
+     * Builds the components that replace the declared body, in the base components when `group`
+     * is undefined and otherwise in that component group; an empty record removes the goal.
+     */
+    readonly java: (body: Record<string, unknown>, group?: string) => Readonly<Record<string, Record<string, unknown>>>;
 }
 
 /**
@@ -54,6 +57,23 @@ const tuned =
             ...Object.fromEntries(Object.entries(parameters).filter(([name]) => name in body))
         }
     });
+
+/**
+ * Adds goals Java's class registers and the file leaves out, beside a component the file declares
+ * in its base components, so they run whichever component groups are active.
+ */
+const beside =
+    (anchor: string, goals: Readonly<Record<string, Record<string, unknown>>>) =>
+    (body: Record<string, unknown>, group?: string): Readonly<Record<string, Record<string, unknown>>> =>
+        group === undefined ? { [anchor]: body, ...goals } : { [anchor]: body };
+
+/** The component every vanilla mob file declares in its base components, which added goals sit beside. */
+const PHYSICS = 'minecraft:physics';
+
+/** Java `AbstractFish.registerGoals`: `PanicGoal(this, 1.25)` at priority 1, which the files leave out. */
+const FISH_PANIC = beside(PHYSICS, {
+    'minecraft:behavior.panic': { priority: 1, speed_multiplier: 1.25 }
+});
 
 /** Takes a goal off, because Java's class registers nothing that does its job. */
 const absent = (): Readonly<Record<string, Record<string, unknown>>> => ({});
@@ -313,6 +333,35 @@ const JAVA_GOAL_RULINGS: readonly JavaGoalRuling[] = [
             }
         })
     },
+    {
+        // Java `Blaze.registerGoals` adds `LookAtPlayerGoal(this, Player.class, 8.0F)` at 8.
+        entity: 'minecraft:blaze',
+        component: PHYSICS,
+        java: beside(PHYSICS, {
+            'minecraft:behavior.look_at_player': { priority: 8, look_distance: 8, probability: 0.02 }
+        })
+    },
+    {
+        // Java `Endermite.registerGoals` looks at players at 7, looks around at 8 and, with
+        // `HurtByTargetGoal(this).setAlertOthers()`, turns on what hurt it and calls its kind.
+        entity: 'minecraft:endermite',
+        component: PHYSICS,
+        java: beside(PHYSICS, {
+            'minecraft:behavior.look_at_player': { priority: 7, look_distance: 8, probability: 0.02 },
+            'minecraft:behavior.random_look_around': { priority: 8 },
+            'minecraft:behavior.hurt_by_target': { priority: 1, alert_same_type: true }
+        })
+    },
+    {
+        // Java `Wolf.registerGoals` adds `RandomLookAroundGoal` at 10.
+        entity: 'minecraft:wolf',
+        component: PHYSICS,
+        java: beside(PHYSICS, { 'minecraft:behavior.random_look_around': { priority: 10 } })
+    },
+    { entity: 'minecraft:cod', component: PHYSICS, java: FISH_PANIC },
+    { entity: 'minecraft:salmon', component: PHYSICS, java: FISH_PANIC },
+    { entity: 'minecraft:pufferfish', component: PHYSICS, java: FISH_PANIC },
+    { entity: 'minecraft:tropical_fish', component: PHYSICS, java: FISH_PANIC },
     {
         // Java `WitherBoss.registerGoals` targets with `HurtByTargetGoal`, which takes the last attacker.
         entity: 'minecraft:wither',
