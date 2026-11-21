@@ -51,7 +51,16 @@ import { userCacheDir } from '../../packages/server/src/packaged/userCache.ts';
 import { BETA_APIS, WORLD_EXPERIMENTS } from '../../packages/prismarine/src/world/WorldExperiments.ts';
 import { DEFAULT_DEBUGGER_PORT } from '../../packages/script-host/src/debugger/protocol.ts';
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
-import { JSPRISMARINE_SERVER, JSPRISMARINE_TYPES } from '../../packages/script-host/src/host/jsprismarineServer.ts';
+import type { MemberDefinition, TypeDefinition } from '../../packages/script-host/src/host/jsprismarineServer.ts';
+import { PLACEHOLDER_NAME } from '../../packages/script-host/src/host/placeholders.ts';
+import { CONDITION_JOINERS, CONDITION_OPERATORS } from '../../packages/script-host/src/host/templates.ts';
+import { DEFAULT_SETTLE_MS } from '../../packages/prismarine/src/scripting/addonConfig.ts';
+import {
+    JSPRISMARINE_PLACEHOLDER_TYPES,
+    JSPRISMARINE_PLACEHOLDERS,
+    JSPRISMARINE_SERVER,
+    JSPRISMARINE_TYPES
+} from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
 import { STEPS_PER_MILLISECOND } from '../../packages/script-host/src/host/WorldScripts.ts';
 import { PUBLISHED_PLATFORMS } from '../../packages/script-host/src/platform.ts';
@@ -130,7 +139,9 @@ const list = (items: readonly string[]) =>
     items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
 
 /** A Markdown table with padded columns, matching how Prettier formats one. */
-function table(header: readonly string[], rows: readonly (readonly string[])[]) {
+function table(header: readonly string[], rawRows: readonly (readonly string[])[]) {
+    // A pipe inside a cell, even in inline code, would end the cell, so every cell escapes its pipes.
+    const rows = rawRows.map((row) => row.map((cell) => cell.replaceAll('|', '\\|')));
     const widths = header.map((cell, column) => Math.max(cell.length, ...rows.map((row) => row[column].length)));
     const line = (cells: readonly string[]) =>
         `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(' | ')} |`;
@@ -415,55 +426,66 @@ function scriptingFacts() {
         );
     /** A property's type as the table writes it. A union would break the table, so none is one. */
     const typeCell = (type: string) => (['string', 'number', 'boolean'].includes(type) ? type : inlineCode(type));
-    const members = Object.entries(JSPRISMARINE_SERVER).flatMap(([name, member]): string[][] => {
-        if (member.kind === 'function') return [[call(name, member.parameters), 'function', member.summary]];
-        if (member.kind === 'methods') {
+    /** The member table's rows of one module. */
+    const memberRows = (definitions: Readonly<Record<string, MemberDefinition>>): string[][] =>
+        Object.entries(definitions).flatMap(([name, member]): string[][] => {
+            if (member.kind === 'function') return [[call(name, member.parameters), 'function', member.summary]];
+            if (member.kind === 'methods') {
+                return [
+                    [inlineCode(name), 'object', member.summary],
+                    ...Object.entries(member.properties ?? {}).map(([key, property]) => [
+                        inlineCode(`${name}.${key}`),
+                        typeCell(property.type),
+                        property.summary
+                    ]),
+                    ...Object.entries(member.methods).map(([key, method]) => [
+                        call(`${name}.${key}`, method.parameters),
+                        'function',
+                        method.summary
+                    ])
+                ];
+            }
             return [
                 [inlineCode(name), 'object', member.summary],
-                ...Object.entries(member.methods).map(([key, method]) => [
+                ...Object.entries<{ readonly type: string; readonly summary: string; readonly value?: string }>(
+                    member.properties
+                ).map(([key, property]) => [
+                    inlineCode(`${name}.${key}`),
+                    property.value !== undefined
+                        ? inlineCode(JSON.stringify(property.value))
+                        : typeCell(property.type === 'numbers' ? 'readonly number[]' : property.type),
+                    property.summary
+                ])
+            ];
+        });
+    /** The type table's rows of one module. */
+    const typeRows = (definitions: Readonly<Record<string, TypeDefinition>>): string[][] =>
+        Object.entries(definitions).flatMap(([name, type]): string[][] => {
+            // A union of objects would break the table, so the summary says what the alias holds.
+            if (type.kind === 'alias') return [[inlineCode(name), 'type', type.summary]];
+            if (type.kind === 'union') {
+                return [
+                    [
+                        inlineCode(name),
+                        'string',
+                        `${type.summary} One of ${type.values.map((value) => inlineCode(value)).join(', ')}.`
+                    ]
+                ];
+            }
+            return [
+                [inlineCode(name), 'interface', type.summary],
+                ...Object.entries(type.properties).map(([key, property]) => [
+                    inlineCode(`${name}.${key}${property.optional === true ? '?' : ''}`),
+                    typeCell(property.type),
+                    property.summary
+                ]),
+                ...Object.entries(type.methods ?? {}).map(([key, method]) => [
                     call(`${name}.${key}`, method.parameters),
                     'function',
                     method.summary
                 ])
             ];
-        }
-        return [
-            [inlineCode(name), 'object', member.summary],
-            ...Object.entries<{ readonly type: string; readonly summary: string; readonly value?: string }>(
-                member.properties
-            ).map(([key, property]) => [
-                inlineCode(`${name}.${key}`),
-                property.value !== undefined
-                    ? inlineCode(JSON.stringify(property.value))
-                    : typeCell(property.type === 'numbers' ? 'readonly number[]' : property.type),
-                property.summary
-            ])
-        ];
-    });
-    const types = Object.entries(JSPRISMARINE_TYPES).flatMap(([name, type]): string[][] => {
-        if (type.kind === 'union') {
-            return [
-                [
-                    inlineCode(name),
-                    'string',
-                    `${type.summary} One of ${type.values.map((value) => inlineCode(value)).join(', ')}.`
-                ]
-            ];
-        }
-        return [
-            [inlineCode(name), 'interface', type.summary],
-            ...Object.entries<{ readonly type: string; readonly summary: string; readonly optional?: true }>(
-                type.properties
-            ).map(([key, property]) => [
-                inlineCode(`${name}.${key}${property.optional === true ? '?' : ''}`),
-                typeCell(property.type),
-                property.summary
-            ]),
-            ...Object.entries<{ readonly parameters: string; readonly summary: string }>(
-                'methods' in type ? type.methods : {}
-            ).map(([key, method]) => [call(`${name}.${key}`, method.parameters), 'function', method.summary])
-        ];
-    });
+        });
     return {
         'scripting.serverBeta': beta,
         // A whole phrase, since the declared major version follows the newest one served.
@@ -474,8 +496,21 @@ function scriptingFacts() {
         )}\n`,
         'scripting.stepsPerMillisecond': String(STEPS_PER_MILLISECOND),
         'scripting.buildPlatforms': list(PUBLISHED_PLATFORMS.map(platformName)),
-        'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], members)}\n`,
-        'scripting.jspModule.types': `\n${table(['Type', 'Kind', 'What it is'], types)}\n`
+        'scripting.jspModule.table': `\n${table(['Member', 'Type', 'What it is'], memberRows(JSPRISMARINE_SERVER))}\n`,
+        'scripting.jspModule.types': `\n${table(['Type', 'Kind', 'What it is'], typeRows(JSPRISMARINE_TYPES))}\n`,
+        'scripting.placeholdersModule.table': `\n${table(
+            ['Member', 'Type', 'What it is'],
+            memberRows(JSPRISMARINE_PLACEHOLDERS)
+        )}\n`,
+        'scripting.placeholdersModule.types': `\n${table(
+            ['Type', 'Kind', 'What it is'],
+            typeRows(JSPRISMARINE_PLACEHOLDER_TYPES)
+        )}\n`,
+        // The pattern a namespace or key matches, as the registry tests it.
+        'scripting.placeholderName': inlineCode(PLACEHOLDER_NAME.source.replace(/^\^|\$$/g, '')),
+        'scripting.conditionOperators': list(CONDITION_OPERATORS.map(inlineCode)),
+        'scripting.conditionJoiners': list(CONDITION_JOINERS.map(inlineCode)),
+        'scripting.configSettleMs': String(DEFAULT_SETTLE_MS)
     };
 }
 
@@ -1090,6 +1125,22 @@ async function tpsBarFacts() {
     };
 }
 
+/** The standard placeholders addon's namespaces and keys, read from the module that lists them. */
+async function standardPlaceholdersFacts() {
+    const module: object = await import(
+        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'standard-placeholders', 'scripts', 'placeholders.js')).href
+    );
+    const namespaces: unknown = Reflect.get(module, 'PLACEHOLDERS');
+    if (typeof namespaces !== 'object' || namespaces === null) {
+        throw new Error('the standard placeholders addon exports no PLACEHOLDERS table');
+    }
+    const rows = Object.entries(namespaces).flatMap(([namespace, keys]) => {
+        if (typeof keys !== 'object' || keys === null) throw new Error(`${namespace} lists no keys`);
+        return Object.entries(keys).map(([key, summary]) => [inlineCode(`{${namespace}:${key}}`), String(summary)]);
+    });
+    return { 'addons.standard-placeholders.keys': `\n${table(['Token', 'What it renders'], rows)}\n` };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -1199,6 +1250,7 @@ export async function loadFacts(): Promise<Facts> {
             ...prismarineEntryFacts(),
             ...(await addonFacts()),
             ...(await tpsBarFacts()),
+            ...(await standardPlaceholdersFacts()),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),

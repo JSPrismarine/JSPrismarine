@@ -135,6 +135,7 @@ const load = async (
             chat: { addGuard: () => () => {} },
             clock: () => 0
         },
+        maxPlayers: 10,
         seed: 1n,
         watchdog: { enableShutdown: false, hangThreshold: 10_000, memoryLimit: 0 },
         log: {

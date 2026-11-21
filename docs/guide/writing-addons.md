@@ -125,13 +125,43 @@ world.afterEvents.worldLoad.subscribe(async () => {
 ```
 
 Leave the module out of `manifest.json`: BDS refuses a pack that declares a module it doesn't
-know. [The JSPrismarine script module](jsprismarine-module.md) explains each part of the pattern
-and lists every member with its types.
+know. Placeholders live in a second module, `@jsprismarine/placeholders`, loaded the same way; an
+addon that provides or renders them imports both. [The JSPrismarine script module](jsprismarine-module.md)
+explains each part of the pattern and lists every member of both modules with its types.
 
 Two checks keep an addon working on servers of different ages. `minServer` is the floor: a server
 older than it never installs the addon. Checking for a member with `in`, as above, covers the
 servers newer than `minServer` that still lack a member a later release added, and lets the addon
 turn that feature off instead of failing.
+
+## Configure it
+
+An owner configures an addon in a JSON file the server owns: `addons/<name>.config.json`, beside
+the addon's folder, so the tab list installed as `addons/tab-list/` reads
+`addons/tab-list.config.json`. `config` in `@jsprismarine/server` reads it, writes it and says
+when it changes:
+
+```js
+world.afterEvents.worldLoad.subscribe(async () => {
+    const jsp = await loadJsprismarine();
+    if (jsp === undefined || !('config' in jsp)) return;
+    const apply = (value) => {
+        // The member only parses; the addon checks the shape and falls back to its defaults.
+        const interval = typeof value?.interval === 'number' ? value.interval : 20;
+        // ...
+    };
+    apply(jsp.config.value);
+    jsp.config.afterEvents.change.subscribe(({ value }) => apply(value));
+});
+```
+
+`config.value` is the parsed JSON of the file, frozen, or `undefined` while there is no file.
+The server watches the file and raises `change` on the flush after it changes on disk, with the
+new value. A file that fails to parse keeps the last value, and the content log says so once.
+`config.write(value)` rewrites the file, so an addon's command and the owner's editor change the
+same thing, and `change` fires for it too. On Bedrock Dedicated Server the member does not
+exist, so an addon that needs settings there keeps its defaults or reads
+`config/<module uuid>/variables.json` through `@minecraft/server-admin`.
 
 ## Test it on a server
 

@@ -11,7 +11,7 @@ Two addons and the module members they need.
 
 Placeholders are tokens such as `{player:ping}` that any pack can provide and any pack can render.
 A registry in `@jsprismarine/server` holds them, so a sidebar, a chat format or a tab list reads
-the same values without talking to the pack that computes them. The `placeholders` addon ships the
+the same values without talking to the pack that computes them. The `standard-placeholders` addon ships the
 providers every server wants.
 
 The tab list addon renames entries in the player list from a template, with a template per
@@ -19,12 +19,13 @@ player, per permission group, or for everyone. Other packs assign templates over
 
 What done looks like:
 
-- `placeholders` in `@jsprismarine/server` registers a namespace with a resolver and a list of
-  keys, resolves a text for a player, and lists what is registered. A namespace belongs to the pack
-  that registered it and goes when the pack's scripts stop, as boss bars do.
+- `@jsprismarine/placeholders`, a second JSPrismarine module beside `@jsprismarine/server`,
+  registers a namespace with a resolver and a list of keys, resolves a text for a player, and lists
+  what is registered. A namespace belongs to the pack that registered it and goes when the pack's
+  scripts stop, as boss bars do.
 - `playerList.setDisplayName(player, name)` and `playerList.reset(player)` change what every
   client shows for a player in its player list, and nothing else.
-- `addon install placeholders` gives a server the `player`, `server` and `world` namespaces and
+- `addon install standard-placeholders` gives a server the `player`, `server` and `world` namespaces and
   `/placeholders list` and `/placeholders parse <text>`.
 - `addon install tab-list`, then `/tablist format {player:name} &7{player:ping}ms`, and every
   entry in the pause menu's player list shows the name and ping, refreshed once a second.
@@ -39,7 +40,8 @@ Out of scope for now:
 - Hiding players, ordering the list, or a header and footer. Bedrock's list shows a name, a skin
   and a platform, and the server controls only the name.
 - Dependencies between addons in the installer. The tab list README says to install
-  placeholders first, and the addon warns on the console when the `player` namespace is missing.
+  `standard-placeholders` first, and the addon warns on the console when the `player` namespace is
+  missing.
 
 ## What we know
 
@@ -91,7 +93,7 @@ namespace rather than every tick.
 
 ### The standard providers
 
-The `placeholders` addon registers:
+The `standard-placeholders` addon registers:
 
 | Namespace | Keys                                                                         |
 | --------- | ---------------------------------------------------------------------------- |
@@ -270,18 +272,36 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
-       and `script-types`, the fact tables on the module page, and the parity row.
-3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
-       tests.
+2. [x] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
+       and `script-types`, the fact tables on the module page, and the parity row. In review the
+       registry moved to a module of its own, `@jsprismarine/placeholders`, whose exports are the
+       registry's members at top level, since `@jsprismarine/server` holds what reads or changes
+       the running server and a feature with a type vocabulary of its own gets its own module. The registry is
+       `ScriptPlaceholders` in the script host, which knows nothing of the engine: the runtime
+       wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
+       lets the server register under an owner of its own. A token's key must be in the provider's
+       `keys`, so the list is what the registry answers. A player who left renders as no player.
+3. [x] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
+       tests. The addon is `standard-placeholders`, so `addon install standard-placeholders` and
+       `import('@jsprismarine/placeholders')` are not the same word for two things. `/placeholders` is one command whose first word is an enum, and a text with spaces
+       is quoted, since a `String` parameter reads one word or a quoted phrase. `time` renders as
+       the in-game clock and `uptime` counts from `worldLoad`, so a `/reload` starts it over.
 4. [x] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
 5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
        the script-event API, the README, its tests and the client-e2e scenario.
-6. [ ] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
-       condition grammar and the next-change tick.
-7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
-       guide.
+6. [x] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
+       condition grammar and the next-change tick. The renderer gives text, so the rawtext kinds
+       render on the server: `translate` as its key, since the server has no language table,
+       `score` from the scoreboard and `selector` as player names. A gradient colors each
+       character with the nearest of Bedrock's `§` colors and ends with `§r`. A `with` on a
+       `translate` is checked and dropped.
+7. [x] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
+       guide. The server's `Watcher` is the dev supervisor's, so `AddonConfigFiles` in prismarine
+       watches the `addons/` folder itself with `fs.watch` and settles an editor's burst of events
+       into one change. The file is `<folder>.config.json` beside any pack's folder, which is
+       `addons/<name>.config.json` for an addon. `change` also has `unsubscribe`, as every signal
+       does.
 8. [x] [#3405](https://github.com/JSPrismarine/JSPrismarine/issues/3405) **Player dynamic properties survive logout.** The player record carries the actor's
        `persistentNbt`, so a property a script set is there at the next login and after a restart,
        as on BDS. A parity scenario covers it.

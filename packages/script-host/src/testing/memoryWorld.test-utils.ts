@@ -649,6 +649,43 @@ export class MemoryWorld implements ScriptWorld {
             ? undefined
             : { typeId, maxStackSize, ...(maxDurability === undefined ? {} : { maxDurability }) };
     }
+    /**
+     * A selector as a test reads one: the bases, `[type=...]`, `[name=...]` and `[tag=...]`, and a
+     * player's name. Anything else does not parse.
+     */
+    public selectEntities(selector: string, player: string | undefined): readonly string[] | undefined {
+        const match = /^(@[aeprs])(?:\[([a-z]+)=([^\]]*)\])?$/.exec(selector);
+        if (match === null) {
+            if (selector.startsWith('@') || selector.includes('[')) return undefined;
+            return [...this.live.values()].filter((entity) => entity.name === selector).map(({ id }) => id);
+        }
+        const [, base, argument, value] = match;
+        const all = [...this.live.values()];
+        const own = player === undefined ? undefined : this.live.get(player);
+        // The server runs no command as itself, so `@s` from the console names nobody.
+        let chosen: MemoryEntity[] =
+            base === '@e'
+                ? all
+                : base === '@s'
+                  ? own === undefined
+                      ? []
+                      : [own]
+                  : all.filter((entity) => entity.typeId === 'minecraft:player');
+        // The filter comes first, as the server's matcher applies it before it sorts and limits.
+        // A type without a namespace is Minecraft's, as a command reads it.
+        const typeId = value === undefined || value.includes(':') ? value : `minecraft:${value}`;
+        if (argument === 'type') chosen = chosen.filter((entity) => entity.typeId === typeId);
+        else if (argument === 'name') chosen = chosen.filter((entity) => entity.name === value);
+        else if (argument === 'tag') chosen = chosen.filter((entity) => entity.tags.includes(value ?? ''));
+        else if (argument !== undefined) return undefined;
+        // `@p` and `@r` take one: the source player when the filter kept them, else the first kept.
+        if (base === '@p' || base === '@r') {
+            const nearest = chosen.find((entity) => entity === own) ?? chosen[0];
+            chosen = nearest === undefined ? [] : [nearest];
+        }
+        return chosen.map(({ id }) => id);
+    }
+
     public runCommand(command: string, source: ScriptCommandSource): ScriptCommandResult {
         this.commands.push(`${'entity' in source ? source.entity : source.dimension}: ${command}`);
         const [name, id, ...message] = command.split(' ');

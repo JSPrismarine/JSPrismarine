@@ -51,17 +51,31 @@ const describe = (jsp) => ({
     version: typeof jsp.jsprismarine.version,
     minecraftVersion: typeof jsp.jsprismarine.minecraftVersion,
     protocolVersion: typeof jsp.jsprismarine.protocolVersion,
+    maxPlayers: typeof jsp.jsprismarine.maxPlayers,
     frozen: Object.isFrozen(jsp.jsprismarine),
     performance: 'performance' in jsp ? typesOf(jsp.performance) : 'absent',
     getPing: 'getPing' in jsp ? typeof jsp.getPing : 'absent',
     bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
+    config: 'config' in jsp ? typesOf(jsp.config) : 'absent',
     playerList: 'playerList' in jsp ? typesOf(jsp.playerList) : 'absent',
     allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });
 
+/**
+ * `@jsprismarine/placeholders`, the second JSPrismarine module, loaded the same way, as the type of
+ * each export; or the rejection, which Bedrock Dedicated Server gives.
+ */
+const describePlaceholders = () =>
+    import('@jsprismarine/placeholders').then(
+        (module) => typesOf(module),
+        (error) => String(error)
+    );
+
 world.afterEvents.worldLoad.subscribe(async () => {
     const jsp = await loadJsprismarine();
-    record('server', { value: jsp === undefined ? 'fallback' : describe(jsp) });
+    record('server', {
+        value: jsp === undefined ? 'fallback' : { ...describe(jsp), placeholders: await describePlaceholders() }
+    });
     await import('./static.js').then(
         ({ serverName }) => record('import ./static.js', { value: serverName }),
         (error) => record('import ./static.js', { error: String(error) })

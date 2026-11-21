@@ -58,6 +58,7 @@ const options = (packDirectories: string[], lines: string[], onShutdown = () => 
         chat: { addGuard: () => () => {} },
         clock: () => 0
     },
+    maxPlayers: 10,
     seed: 1n,
     watchdog: { enableShutdown: true, hangThreshold: 4, memoryLimit: 0 },
     log: {

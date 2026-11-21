@@ -1908,6 +1908,9 @@ importers:
       '@jsprismarine/script-host':
         specifier: workspace:*
         version: link:../script-host
+      '@minecraft/server':
+        specifier: 2.11.0
+        version: 2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)
       rimraf:
         specifier: 6.1.4
         version: 6.1.4
@@ -2853,6 +2856,18 @@ packages:
   '@manypkg/tools@2.1.2':
     resolution: {integrity: sha512-6QEf6yqFbETdwGITKq57aYoPfX/3K8XFNwsAlx0C1M7o8cb79sv1M3w+tWuWvIcSbNqrLF7OD7YpZMVVz335hQ==}
     engines: {node: '>=20.0.0'}
+
+  '@minecraft/common@1.3.0':
+    resolution: {integrity: sha512-GLT8USFhvEyeTTFHZAgszbrnoT007hmXmK+aO4l+2A1up9/zwZ+4e8R8F0KcKrCWDjLEqkOJtPow0hQCcNJ++Q==}
+
+  '@minecraft/server@2.11.0':
+    resolution: {integrity: sha512-w3iTWtltjahU95RSIkGXtFxf9gABY8OGMzruLq5A5WnLbrA2lwwsdA47ymXo0F4z290wuK8lOs9Emsv2yAg4Yg==}
+    peerDependencies:
+      '@minecraft/common': ^1.2.0
+      '@minecraft/vanilla-data': '>=1.20.70'
+
+  '@minecraft/vanilla-data@1.26.60':
+    resolution: {integrity: sha512-6ARh4/fbNRA4XRRrMO3ys0ldO208ipcpyLAf4tpc3KXw/E6EUeaFKuFqJ2ESMQ6sSUUIfK1dNXm9MtFdWj9BPg==}
 
   '@modelcontextprotocol/sdk@1.32.2':
     resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
@@ -6572,6 +6587,15 @@ snapshots:
       jju: 1.4.0
       tinyglobby: 0.2.17
       yaml: 2.9.1
+
+  '@minecraft/common@1.3.0': {}
+
+  '@minecraft/server@2.11.0(@minecraft/common@1.3.0)(@minecraft/vanilla-data@1.26.60)':
+    dependencies:
+      '@minecraft/common': 1.3.0
+      '@minecraft/vanilla-data': 1.26.60
+
+  '@minecraft/vanilla-data@1.26.60': {}
 
   '@modelcontextprotocol/sdk@1.32.2(supports-color@10.2.2)(zod@3.25.76)':
     dependencies:

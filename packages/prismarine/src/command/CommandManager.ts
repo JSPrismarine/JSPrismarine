@@ -9,6 +9,10 @@ import type {
 } from '@jsprismarine/commands';
 import { argumentWords, bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
 import { bedrockSyntaxError } from '@jsprismarine/commands/syntaxError';
+import { select } from '@jsprismarine/commands/commands/support';
+import type { EntityRef } from '@jsprismarine/commands/host';
+import { parseSelector } from '@jsprismarine/commands/selector';
+import { SelectorSyntaxError } from '@jsprismarine/errors/commands';
 import { MinecraftErrors } from '@jsprismarine/errors/minecraft';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
@@ -754,6 +758,42 @@ export class CommandManager implements Service {
      * @param input - The command without its slash.
      * @param source - The entity it runs as, `@s`, or the dimension it runs in.
      * @returns How many times it succeeded, or the message of the error that stopped it.
+     */
+    /**
+     * The entities a target selector matches for a script, read by the Bedrock grammar as a
+     * command of `source` would read it.
+     * @returns The matched entities, or undefined for a selector that does not parse.
+     */
+    public selectForScript(
+        selector: string,
+        source: { readonly entity: ReferencedEntity } | { readonly dimension: string }
+    ): readonly EntityRef[] | undefined {
+        let parsed: ReturnType<typeof parseSelector>;
+        try {
+            parsed = parseSelector(selector, 'bedrock');
+        } catch (error: unknown) {
+            if (error instanceof SelectorSyntaxError) return undefined;
+            throw error;
+        }
+        // The parser stops at the first character it cannot read, so `@a[tag=vip]junk` parses as
+        // `@a[tag=vip]`; a selector must be the whole text, trailing whitespace aside.
+        if (parsed.length !== selector.trimEnd().length) return undefined;
+        const model = parsed.selector;
+        const commandSource = createCommandSource({
+            host: this.host,
+            ...('entity' in source ? { entity: entityRefOf(source.entity) } : { dimension: source.dimension }),
+            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
+            silent: true,
+            dialect: 'bedrock',
+            onError: () => {}
+        });
+        return select(commandSource, model);
+    }
+
+    /**
+     * Runs a command for a script, as `Dimension.runCommand` and `Entity.runCommand` do, with the
+     * permission a game director has and without a chat line for its output.
+     * @returns How many contexts the command succeeded in, or the first error when it failed.
      */
     public runScriptCommand(
         input: string,

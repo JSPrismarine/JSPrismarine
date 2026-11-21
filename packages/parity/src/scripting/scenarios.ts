@@ -246,11 +246,12 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             server: {
                 observed: {
                     value: {
-                        exports: ['bossBars', 'getPing', 'jsprismarine', 'performance', 'playerList'],
+                        exports: ['bossBars', 'config', 'getPing', 'jsprismarine', 'performance', 'playerList'],
                         name: 'JSPrismarine',
                         version: 'string',
                         minecraftVersion: 'string',
                         protocolVersion: 'number',
+                        maxPlayers: 'number',
                         frozen: true,
                         performance: {
                             averageTickMs: 'number',
@@ -261,13 +262,21 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         getPing: 'function',
                         bossBars: { show: 'function' },
                         playerList: { reset: 'function', setDisplayName: 'function' },
+                        placeholders: {
+                            namespaces: 'function',
+                            parse: 'function',
+                            register: 'function',
+                            render: 'function',
+                            resolve: 'function'
+                        },
+                        config: { afterEvents: 'object', value: 'undefined', write: 'function' },
                         allFrozen: true
                     }
                 },
                 because:
-                    'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars and playerList ' +
-                    'included, ' +
-                    'and takes the fallback only where the import rejects',
+                    'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList ' +
+                    'and config included, and @jsprismarine/placeholders beside it, and takes the fallback only ' +
+                    'where the import rejects',
                 reference: 'docs/guide/jsprismarine-module.md'
             },
             'import ./static.js': {

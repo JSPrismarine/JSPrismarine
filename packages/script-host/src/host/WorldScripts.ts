@@ -46,10 +46,22 @@ import { GAMETEST, GameTests } from './gametest';
 import type { ComponentKind } from './customContent';
 import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
+import type { AddonConfigStore } from './addonConfig';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
-import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
+import {
+    JSPRISMARINE_CONFIG_FUNCTIONS,
+    JSPRISMARINE_HOST_FUNCTIONS,
+    JSPRISMARINE_MODULE,
+    JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS,
+    JSPRISMARINE_PLACEHOLDERS_MODULE,
+    jsprismarineServerSource,
+    placeholdersModuleSource
+} from './jsprismarineServer';
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
 import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames } from './jsprismarineMembers';
+import { ScriptPlaceholders } from './placeholders';
+import type { TemplateHost } from './templates';
+import { parseShorthand, renderTemplate, templateOf } from './templates';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -175,6 +187,11 @@ export interface WorldScriptsOptions {
      * would.
      */
     readonly members?: JsprismarineServerMembers;
+    /**
+     * The packs' config files, which `@jsprismarine/server`'s `config` reads, writes and
+     * follows. Without it, the module leaves `config` out.
+     */
+    readonly addonConfig?: AddonConfigStore;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog?: WatchdogSettings;
@@ -232,6 +249,18 @@ interface LoadedPack {
     setNow?: ScriptHandle;
     /** Its `@jsprismarine/server` namespace, made the first time it imports the module. */
     jsp?: ScriptHandle;
+    /** Its `@jsprismarine/placeholders` namespace, made the first time it imports the module. */
+    placeholders?: ScriptHandle;
+    /** Its `config.afterEvents.change` callbacks, in subscription order. */
+    configListeners?: ScriptHandle[];
+    /** Makes a `change` event from the file's JSON, with the intrinsics its module captured. */
+    configEventMaker?: ScriptHandle;
+    /** A `change` the flush budget cut short: the value as JSON and the callbacks still due. */
+    configDelivery?: { readonly json: string | undefined; readonly remaining: ScriptHandle[] };
+    /** Stops the watch on its config file, once `config` has started one. */
+    stopConfigWatch?: () => void;
+    /** Whether its config file changed since the last flush looked. */
+    configChanged?: boolean;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
     /**
@@ -281,6 +310,23 @@ const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPla
 
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
 const unrecognized = (name: string): ReferenceError => new ScriptHostErrors.UnrecognizedModule({ name });
+
+/** A template as the pack's `JSON.stringify` wrote it, parsed; the renderer checks its shape after. */
+const templateJson = (source: string): unknown => {
+    try {
+        // The pack's own JSON.stringify wrote it, so only a value JSON cannot carry fails here.
+        return JSON.parse(source) as unknown;
+    } catch {
+        throw new ScriptHostErrors.TemplateInvalid({ where: 'template', problem: 'must be an object JSON can carry' });
+    }
+};
+
+/** A thrown value as the content log shows it: a script's error with its stack, anything else as text. */
+const describeThrown = (error: unknown): string => {
+    if (!(error instanceof ScriptError)) return String(error);
+    const stack = error.scriptStack.trim();
+    return `${error.message}${stack === '' ? '' : `    ${stack}`}`;
+};
 
 /** The script runtime of one world. */
 export class WorldScripts {
@@ -340,9 +386,24 @@ export class WorldScripts {
     private readonly bossBars: ScriptBossBars | undefined;
     /** The player list names the packs set through `@jsprismarine/server`. */
     private readonly playerListNames: ScriptPlayerListNames | undefined;
+    /**
+     * The placeholder namespaces the packs register through `@jsprismarine/server`, and the ones
+     * the server registers under an owner of its own. A reload ends the packs' registrations and
+     * keeps the server's.
+     */
+    public readonly placeholders: ScriptPlaceholders;
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
+        this.placeholders = new ScriptPlaceholders({
+            failed: (owner, namespace, error) =>
+                this.options.log.error(
+                    `[Scripting] [${owner.name}] The placeholder provider of ${namespace} threw, and its tokens stay as written: ${describeThrown(error)}`
+                ),
+            // The watchdog's errors end the render, so a resolver that hangs charges the script
+            // that renders, as the budget says.
+            fatal: (error) => error instanceof ScriptTerminatedError || error instanceof ScriptOutOfMemoryError
+        });
         this.engine = this.createEngine();
         this.gametests = new GameTests<LoadedPack>({
             world: options.world,
@@ -482,6 +543,7 @@ export class WorldScripts {
                 },
                 () => withinBudget() && !this.stopped
             );
+            work += this.dispatchConfigChanges(() => withinBudget() && !this.stopped);
             const events = [...this.lifecycleEvents.splice(0), ...this.options.world.takeEvents()];
             let dispatched = 0;
             for (const group of groupByType(events)) {
@@ -587,6 +649,11 @@ export class WorldScripts {
         this.bossBars?.hideAll();
         this.playerListNames?.resetAll();
         for (const loaded of this.loaded) {
+            // So does a placeholder namespace, whose resolver is one of the pack's functions.
+            this.placeholders.release(loaded.pack);
+            loaded.stopConfigWatch?.();
+            for (const listener of loaded.configListeners ?? []) this.engine.free(listener);
+            if (loaded.configEventMaker !== undefined) this.engine.free(loaded.configEventMaker);
             loaded.forms?.destroy();
             loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
@@ -594,6 +661,7 @@ export class WorldScripts {
             if (loaded.setNow !== undefined) this.engine.free(loaded.setNow);
             if (loaded.parseJson !== undefined) this.engine.free(loaded.parseJson);
             if (loaded.jsp !== undefined) this.engine.free(loaded.jsp);
+            if (loaded.placeholders !== undefined) this.engine.free(loaded.placeholders);
             loaded.api.destroy();
         }
         this.loaded = [];
@@ -865,6 +933,10 @@ export class WorldScripts {
             loaded.jsp ??= this.jsprismarineNamespace(loaded);
             return loaded.jsp;
         }
+        if (name === JSPRISMARINE_PLACEHOLDERS_MODULE) {
+            loaded.placeholders ??= this.placeholdersNamespace(loaded);
+            return loaded.placeholders;
+        }
         if (name.startsWith('@')) throw unrecognized(name);
         return readPackFile(loaded.pack, name);
     }
@@ -906,14 +978,9 @@ export class WorldScripts {
         const host = engine.evaluate('({})');
         if (!(host instanceof ScriptHandle))
             throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/server host' });
-        /** The player a pack passed, or a `TypeError` naming the member it called. */
-        const playerOf = (value: ScriptValue, member: string) => {
-            const player = this.formPlayer(loaded, value);
-            if (player === undefined)
-                throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player', argument: 'player' });
-            return player;
-        };
+        const playerOf = (value: ScriptValue, member: string) => this.playerArgument(loaded, value, member);
         const barId = (value: ScriptValue): number => (typeof value === 'number' ? value : 0);
+        const store = this.options.addonConfig;
         const functions: Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> =
             {
                 read: (name, index) => {
@@ -954,14 +1021,366 @@ export class WorldScripts {
                 resetListName: (value) => {
                     names.reset(playerOf(value, 'playerList.reset').id);
                     return undefined;
+                },
+                readConfig: () => {
+                    const value = store?.read(loaded.pack);
+                    return value === undefined ? undefined : JSON.stringify(value);
+                },
+                writeConfig: (json) => {
+                    if (typeof json !== 'string' || store === undefined) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.write',
+                            expected: 'a value JSON can carry',
+                            argument: 'value'
+                        });
+                    }
+                    // The pack's own JSON.stringify wrote it, so it parses.
+                    store.write(loaded.pack, JSON.parse(json) as unknown);
+                    return undefined;
+                },
+                onConfigChange: (callback) => {
+                    if (!(callback instanceof ScriptHandle) || !this.isFunction(loaded, callback)) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.afterEvents.change.subscribe',
+                            expected: 'a function',
+                            argument: 'callback'
+                        });
+                    }
+                    this.watchConfig(loaded);
+                    (loaded.configListeners ??= []).push(engine.duplicate(callback));
+                    return undefined;
+                },
+                offConfigChange: (callback) => {
+                    if (callback instanceof ScriptHandle) this.unsubscribeConfig(loaded, callback);
+                    return undefined;
+                },
+                setConfigEventMaker: (maker) => {
+                    if (!(maker instanceof ScriptHandle)) return undefined;
+                    if (loaded.configEventMaker !== undefined) engine.free(loaded.configEventMaker);
+                    loaded.configEventMaker = engine.duplicate(maker);
+                    return undefined;
                 }
             };
+        const configFunctions: readonly string[] = JSPRISMARINE_CONFIG_FUNCTIONS;
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
+            // Without a store the module leaves `config` out, which it tells by the functions' absence.
+            if (store === undefined && configFunctions.includes(name)) continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
         }
         return host;
+    }
+
+    /** The player a pack passed, or a `TypeError` naming the member it called. */
+    private playerArgument(loaded: LoadedPack, value: ScriptValue, member: string): FormPlayer {
+        const player = this.formPlayer(loaded, value);
+        if (player === undefined) {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player', argument: 'player' });
+        }
+        return player;
+    }
+
+    /** Starts following a pack's config file, once, so the next flush after a change raises its event. */
+    private watchConfig(loaded: LoadedPack): void {
+        const store = this.options.addonConfig;
+        if (store === undefined || loaded.stopConfigWatch !== undefined) return;
+        loaded.stopConfigWatch = store.watch(loaded.pack, () => {
+            loaded.configChanged = true;
+        });
+    }
+
+    /** Takes a callback off a pack's `config.afterEvents.change`, when it is subscribed. */
+    /**
+     * Takes every subscription of a callback off a pack's `config.afterEvents.change`. With the
+     * last one gone the watch stops and a change not yet delivered is dropped, so a pack that
+     * subscribes again later starts from the file as it is then.
+     */
+    private unsubscribeConfig(loaded: LoadedPack, callback: ScriptHandle): void {
+        const listeners = loaded.configListeners ?? [];
+        const same = this.engine.evaluate('(a, b) => a === b');
+        if (!(same instanceof ScriptHandle)) return;
+        try {
+            for (let index = listeners.length - 1; index >= 0; index--) {
+                const listener = listeners[index];
+                if (listener === undefined || this.engine.call(same, undefined, listener, callback) !== true) continue;
+                listeners.splice(index, 1);
+                const due = loaded.configDelivery?.remaining ?? [];
+                if (due.includes(listener)) due.splice(due.indexOf(listener), 1);
+                this.engine.free(listener);
+            }
+        } finally {
+            this.engine.free(same);
+        }
+        if (listeners.length > 0) return;
+        loaded.stopConfigWatch?.();
+        loaded.stopConfigWatch = undefined;
+        loaded.configChanged = false;
+        loaded.configDelivery = undefined;
+    }
+
+    /**
+     * Raises `config.afterEvents.change` for each pack whose file changed since the last flush,
+     * with the file's value read now, so several changes in one tick give one event. Each callback
+     * counts as one entry of the flush, and the ones the budget leaves run on the next flush, with
+     * the value that was read, before any later change is read.
+     * @param allowed - Whether the flush has room for another callback.
+     * @returns How many callbacks ran.
+     */
+    private dispatchConfigChanges(allowed: () => boolean): number {
+        const store = this.options.addonConfig;
+        if (store === undefined) return 0;
+        let delivered = 0;
+        for (const loaded of this.loaded) {
+            if (loaded.configDelivery === undefined && loaded.configChanged === true) {
+                loaded.configChanged = false;
+                const listeners = loaded.configListeners ?? [];
+                if (listeners.length === 0) continue;
+                const value = store.read(loaded.pack);
+                const json = value === undefined ? undefined : JSON.stringify(value);
+                loaded.configDelivery = { json, remaining: [...listeners] };
+            }
+            const delivery = loaded.configDelivery;
+            const maker = loaded.configEventMaker;
+            if (delivery === undefined || maker === undefined) continue;
+            while (delivery.remaining.length > 0 && allowed()) {
+                const listener = delivery.remaining.shift();
+                if (listener === undefined) break;
+                delivered++;
+                // The event is made inside the pack's error boundary, as the callback runs.
+                this.guarded(loaded, () => {
+                    const event = this.engine.inContext(loaded.context, () =>
+                        this.engine.call(maker, undefined, delivery.json)
+                    );
+                    if (!(event instanceof ScriptHandle)) return;
+                    try {
+                        this.invoke(loaded, listener, 'default', [event]);
+                    } finally {
+                        this.engine.free(event);
+                    }
+                });
+            }
+            if (delivery.remaining.length === 0) loaded.configDelivery = undefined;
+        }
+        return delivered;
+    }
+
+    /** What a render reads from the world, for the player the text is for. */
+    private templateHost(player: string | undefined): TemplateHost {
+        const world = this.options.world;
+        const nameOf = (id: string): string | undefined => {
+            const entity = world.entity(id);
+            return entity?.name ?? (entity === undefined ? undefined : entity.nameTag);
+        };
+        return {
+            tick: this.tick,
+            placeholder: (namespace, key) => this.placeholders.value(namespace, key, player),
+            score: (name, objective) => {
+                const scoreboard = world.scoreboard;
+                if (scoreboard.objective(objective) === undefined) return undefined;
+                const ref =
+                    name === '*' || name === '@s' ? (player === undefined ? undefined : { entity: player }) : { name };
+                const participant = ref === undefined ? undefined : scoreboard.participant(ref);
+                return participant === undefined ? undefined : scoreboard.score(objective, participant.id);
+            },
+            selector: (selector) => {
+                // The world's own grammar, so `@a[tag=vip]` matches what a command's would.
+                const matched = world.selectEntities?.(selector, player);
+                if (matched === undefined) return undefined;
+                return matched
+                    .map(nameOf)
+                    .filter((name) => name !== undefined)
+                    .join(', ');
+            }
+        };
+    }
+
+    /**
+     * Makes a pack's `@jsprismarine/placeholders` namespace in its context. The registry is the
+     * runtime's, so every pack reaches it, with or without the members that reach the server.
+     */
+    private placeholdersNamespace(loaded: LoadedPack): ScriptHandle {
+        const engine = this.engine;
+        const make = engine.evaluate(placeholdersModuleSource(), '<jsprismarine/placeholders>');
+        if (!(make instanceof ScriptHandle)) throw new ScriptHostErrors.NotAFunction({ what: 'The module maker' });
+        const host = this.placeholdersHost(loaded);
+        try {
+            const namespace = engine.call(make, undefined, host);
+            if (!(namespace instanceof ScriptHandle)) {
+                throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/placeholders namespace' });
+            }
+            return namespace;
+        } finally {
+            engine.free(make);
+            engine.free(host);
+        }
+    }
+
+    /** The host functions a pack's `@jsprismarine/placeholders` members call, on one object. */
+    private placeholdersHost(loaded: LoadedPack): ScriptHandle {
+        const engine = this.engine;
+        const host = engine.evaluate('({})');
+        if (!(host instanceof ScriptHandle)) {
+            throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/placeholders host' });
+        }
+        const functions: Record<
+            (typeof JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS)[number],
+            (...args: ScriptValue[]) => ScriptValue
+        > = {
+            register: (namespace, provider) => this.registerPlaceholders(loaded, namespace, provider),
+            unregister: (id) => {
+                if (typeof id === 'number') this.placeholders.unregister(id, loaded.pack);
+                return undefined;
+            },
+            resolve: (text, value) => {
+                if (typeof text !== 'string') {
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'resolve',
+                        expected: 'a string',
+                        argument: 'text'
+                    });
+                }
+                const player = value === undefined ? undefined : this.playerArgument(loaded, value, 'resolve');
+                return this.placeholders.resolve(text, player?.present === true ? player.id : undefined);
+            },
+            namespaces: () => JSON.stringify(this.placeholders.namespaces()),
+            parseTemplate: (shorthand) => {
+                if (typeof shorthand !== 'string') {
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'parse',
+                        expected: 'a string',
+                        argument: 'shorthand'
+                    });
+                }
+                return JSON.stringify(parseShorthand(shorthand));
+            },
+            renderTemplate: (source, shorthand, value) => {
+                if (typeof source !== 'string') {
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'render',
+                        expected: 'a template or a string',
+                        argument: 'template'
+                    });
+                }
+                const player = value === undefined ? undefined : this.playerArgument(loaded, value, 'render');
+                const template = shorthand === true ? parseShorthand(source) : templateOf(templateJson(source));
+                return JSON.stringify(
+                    renderTemplate(template, this.templateHost(player?.present === true ? player.id : undefined))
+                );
+            }
+        };
+        for (const name of JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS) {
+            const fn = engine.hostFunction(name, functions[name]);
+            engine.set(host, name, fn);
+            engine.free(fn);
+        }
+        return host;
+    }
+
+    /**
+     * `register` of `@jsprismarine/placeholders` for a pack: checks the provider's shape, keeps its `resolve` and
+     * registers it under the pack, which owns the registration until it unregisters or its scripts
+     * stop.
+     * @returns The registration's id, which the pack's `unregister` passes back.
+     */
+    private registerPlaceholders(loaded: LoadedPack, namespace: ScriptValue, provider: ScriptValue): number {
+        const engine = this.engine;
+        const member = 'register';
+        if (typeof namespace !== 'string') {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a string', argument: 'namespace' });
+        }
+        if (!(provider instanceof ScriptHandle)) {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'an object', argument: 'provider' });
+        }
+        const keys = this.placeholderKeys(provider, member);
+        const resolve = engine.get(provider, 'resolve');
+        if (!(resolve instanceof ScriptHandle) || !this.isFunction(loaded, resolve)) {
+            if (resolve instanceof ScriptHandle) engine.free(resolve);
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a function', argument: 'resolve' });
+        }
+        const self = engine.duplicate(provider);
+        const dispose = () => {
+            engine.free(self);
+            engine.free(resolve);
+        };
+        try {
+            return this.placeholders.register(loaded.pack, namespace, {
+                keys,
+                resolve: (key, player) => this.resolvePlaceholder(loaded, self, resolve, key, player),
+                dispose
+            });
+        } catch (error) {
+            dispose();
+            throw error;
+        }
+    }
+
+    /** The `keys` of a provider a pack passed, each a string. */
+    private placeholderKeys(provider: ScriptHandle, member: string): string[] {
+        const engine = this.engine;
+        const refuse = () =>
+            new ScriptHostErrors.JspModuleArgument({ member, expected: 'a list of strings', argument: 'keys' });
+        const list = engine.get(provider, 'keys');
+        if (!(list instanceof ScriptHandle)) throw refuse();
+        /** A property's value, or a refusal, with a handle the value came as freed either way. */
+        const plain = (value: ScriptValue): string | number | boolean | null | undefined => {
+            if (!(value instanceof ScriptHandle)) return value;
+            engine.free(value);
+            throw refuse();
+        };
+        try {
+            const length = plain(engine.get(list, 'length'));
+            if (typeof length !== 'number') throw refuse();
+            const keys: string[] = [];
+            for (let index = 0; index < length; index++) {
+                const key = plain(engine.get(list, String(index)));
+                if (typeof key !== 'string') throw refuse();
+                keys.push(key);
+            }
+            return keys;
+        } finally {
+            engine.free(list);
+        }
+    }
+
+    /** Whether a pack's value is a function, asked in the pack's realm. */
+    private isFunction(loaded: LoadedPack, value: ScriptHandle): boolean {
+        const engine = this.engine;
+        return engine.inContext(loaded.context, () => {
+            const check = engine.evaluate('(value) => typeof value === "function"');
+            if (!(check instanceof ScriptHandle)) return false;
+            try {
+                return engine.call(check, undefined, value) === true;
+            } finally {
+                engine.free(check);
+            }
+        });
+    }
+
+    /**
+     * Calls a pack's placeholder resolver with a key and, for a player, the pack's own object for
+     * them, in the pack's context as its callbacks run. A value that is not a string or a number
+     * answers as undefined, which leaves the token.
+     */
+    private resolvePlaceholder(
+        loaded: LoadedPack,
+        self: ScriptHandle,
+        resolve: ScriptHandle,
+        key: string,
+        player: string | undefined
+    ): string | number | undefined {
+        if (this.stopped) return undefined;
+        const engine = this.engine;
+        return engine.inContext(loaded.context, () => {
+            const args: ScriptValue[] =
+                player === undefined ? [key] : [key, this.entityObject(loaded, { id: player, typeId: PLAYER })];
+            const value = engine.call(resolve, self, ...args);
+            if (value instanceof ScriptHandle) {
+                engine.free(value);
+                return undefined;
+            }
+            return typeof value === 'string' || typeof value === 'number' ? value : undefined;
+        });
     }
 
     private instance(loaded: LoadedPack, className: string, tag: number, state = ''): ScriptHandle {

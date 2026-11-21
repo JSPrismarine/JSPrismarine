@@ -16,6 +16,7 @@ import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelWorldEvents } from '../scripting/events/worldEvents';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
+import { AddonConfigFiles } from '../scripting/addonConfig';
 import { scriptServerMembers } from '../scripting/serverMembers';
 import { LevelScripts } from '../scripting/LevelScripts';
 import { withCwd } from '../utils/cwd';
@@ -142,6 +143,8 @@ export const startLevelScripts = async (
             worldEvents: levelWorldEvents(server, level)
         },
         members: scriptServerMembers(server),
+        addonConfig: new AddonConfigFiles({ log: { warn: (message) => server.getLogger().warn(message) } }),
+        maxPlayers: server.getConfig().getMaxPlayers(),
         seed: server.getWorldManager().getDefaultWorld().getSeed(),
         watchdog: server.getConfig().getScriptWatchdog(),
         experiments: level.getExperiments(),

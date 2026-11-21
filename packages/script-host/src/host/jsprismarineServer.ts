@@ -13,6 +13,13 @@
 /** The name a pack imports the module by. */
 export const JSPRISMARINE_MODULE = '@jsprismarine/server';
 
+/**
+ * The name a pack imports the placeholders by. `@jsprismarine/server` holds the members that read
+ * or change the running server and its players; a feature with a type vocabulary of its own, one
+ * that would stand as a library by itself, gets a module of its own, and placeholders are the first.
+ */
+export const JSPRISMARINE_PLACEHOLDERS_MODULE = '@jsprismarine/placeholders';
+
 /** A property of an object of plain values that stay the same while the server runs. */
 interface ValueProperty {
     readonly type: 'string' | 'number';
@@ -44,8 +51,8 @@ interface InterfaceProperty {
     readonly optional?: true;
 }
 
-/** One export of the module. */
-type MemberDefinition =
+/** One export of a module. */
+export type MemberDefinition =
     /** A frozen object of plain values that stay the same for the server's whole run. */
     | {
           readonly kind: 'values';
@@ -55,16 +62,19 @@ type MemberDefinition =
     /** A frozen object whose properties read the server each time. */
     | { readonly kind: 'live'; readonly summary: string; readonly properties: Readonly<Record<string, LiveProperty>> }
     | ({ readonly kind: 'function' } & FunctionDefinition)
-    /** A frozen object of functions. */
+    /** A frozen object of functions, and of properties the script reads from the server. */
     | {
           readonly kind: 'methods';
           readonly summary: string;
+          readonly properties?: Readonly<Record<string, InterfaceProperty>>;
           readonly methods: Readonly<Record<string, FunctionDefinition>>;
       };
 
-/** A type the module's members take or give. */
-type TypeDefinition =
+/** A type a module's members take or give. */
+export type TypeDefinition =
     | { readonly kind: 'union'; readonly summary: string; readonly values: readonly string[] }
+    /** A type alias written in TypeScript, for a shape an interface cannot say, such as a union of objects. */
+    | { readonly kind: 'alias'; readonly summary: string; readonly type: string }
     | {
           readonly kind: 'interface';
           readonly summary: string;
@@ -94,6 +104,10 @@ export const JSPRISMARINE_SERVER = {
             protocolVersion: {
                 type: 'number',
                 summary: 'The Bedrock network protocol version of `minecraftVersion`.'
+            },
+            maxPlayers: {
+                type: 'number',
+                summary: "How many players may be online at once, the server's `max-players` setting."
             }
         }
     },
@@ -159,6 +173,27 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'void'
             }
         }
+    },
+    config: {
+        kind: 'methods',
+        summary:
+            "The pack's config file: `<folder>.config.json` beside the pack's folder, which for an addon installed as `addons/<name>/` is `addons/<name>.config.json`. The owner edits it and the pack reads it. The server parses it; the pack checks the shape itself.",
+        properties: {
+            value: {
+                type: 'unknown',
+                summary:
+                    'The parsed JSON of the file, as a new frozen value each read, or `undefined` while there is no file. A file that fails to parse keeps the last value, and the content log says so once.'
+            },
+            afterEvents: { type: 'AddonConfigEvents', summary: 'What the file does.' }
+        },
+        methods: {
+            write: {
+                summary:
+                    "Rewrites the file with the value as JSON, so the pack's commands and the owner's editor change the same thing. `change` fires for it as for an edit. Throws a `TypeError` for a value JSON cannot carry.",
+                parameters: 'value: unknown',
+                returns: 'void'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -220,6 +255,174 @@ export const JSPRISMARINE_TYPES = {
                 returns: 'void'
             }
         }
+    },
+    AddonConfigEvents: {
+        kind: 'interface',
+        summary: "Events about the pack's config file.",
+        properties: {
+            change: {
+                type: 'AddonConfigChangeSignal',
+                summary:
+                    "Fires on the first flush after the server's watch reports the settled change to the file, by an editor or by `config.write`. The watch waits for a burst of writes to settle, so one save gives one event."
+            }
+        }
+    },
+    AddonConfigChangeSignal: {
+        kind: 'interface',
+        summary: 'Subscribes to changes of the config file, as a `@minecraft/server` signal does.',
+        properties: {},
+        methods: {
+            subscribe: {
+                summary:
+                    'Calls the callback after each change, with the new value. Gives the callback back, for `unsubscribe`.',
+                parameters: 'callback: (event: AddonConfigChangeEvent) => void',
+                returns: '(event: AddonConfigChangeEvent) => void'
+            },
+            unsubscribe: {
+                summary: 'Stops calling a callback `subscribe` took.',
+                parameters: 'callback: (event: AddonConfigChangeEvent) => void',
+                returns: 'void'
+            }
+        }
+    },
+    AddonConfigChangeEvent: {
+        kind: 'interface',
+        summary: 'A change of the config file.',
+        properties: {
+            value: {
+                type: 'unknown',
+                summary:
+                    'The parsed JSON of the file after the change, frozen, or `undefined` when the file is gone. A file that fails to parse gives the last value.'
+            }
+        }
+    }
+} as const satisfies Readonly<Record<string, TypeDefinition>>;
+
+/**
+ * The members of `@jsprismarine/placeholders`, by export name: the registry every pack shares.
+ * Tokens such as `{player:ping}` that any pack can provide and any pack can render; a namespace
+ * belongs to the pack that registered it and goes when the pack's scripts stop, as on `/reload`.
+ * A host module's exports are copied when the module links, so `namespaces` is a function rather
+ * than a getter.
+ */
+export const JSPRISMARINE_PLACEHOLDERS = {
+    register: {
+        kind: 'function',
+        summary:
+            'Registers a namespace. Throws a `TypeError` for a namespace or key that is not lowercase letters, digits and underscores starting with a letter, or for a provider with no keys, and an `Error` for a namespace that is registered already.',
+        parameters: 'namespace: string, provider: PlaceholderProvider',
+        returns: 'PlaceholderRegistration'
+    },
+    resolve: {
+        kind: 'function',
+        summary:
+            "Replaces each `{namespace:key}` in the text with its value, for the player when one is given. A token nobody provides, or whose provider gives `undefined` or throws, stays as written, and so does any other text between braces. The watchdog's errors are the exception: a resolver that runs out of the budget ends the render.",
+        parameters: 'text: string, player?: Player',
+        returns: 'string'
+    },
+    namespaces: {
+        kind: 'function',
+        summary: 'Every registered namespace with its keys, oldest first, as a new frozen list each call.',
+        parameters: '',
+        returns: 'readonly PlaceholderNamespace[]'
+    },
+    parse: {
+        kind: 'function',
+        summary:
+            'Parses the shorthand `{player:name} &7{player:ping}ms` into a template: each token a `placeholder` node, the rest `text` nodes, and `&` before a format code `§`.',
+        parameters: 'shorthand: string',
+        returns: 'Template'
+    },
+    render: {
+        kind: 'function',
+        summary:
+            'Renders a template, or a shorthand string, for the player when one is given: the text, and the tick an animation in it next changes the text. Throws a `TypeError` for a node the renderer does not know or a condition that does not parse.',
+        parameters: 'template: Template | string, player?: Player',
+        returns: 'RenderedTemplate'
+    }
+} as const satisfies Readonly<Record<string, MemberDefinition>>;
+
+/**
+ * The types `@jsprismarine/placeholders` takes and gives. `Player` is `@jsprismarine/server`'s
+ * compatibility type, what the members read of a player they are given; `MinecraftPlayer` is
+ * `@minecraft/server`'s, what a provider gets, since the runtime hands it the pack's own object.
+ */
+export const JSPRISMARINE_PLACEHOLDER_TYPES = {
+    PlaceholderProvider: {
+        kind: 'interface',
+        summary: 'What a pack registers for a namespace: the keys it answers, and the function that answers them.',
+        properties: {
+            keys: {
+                type: 'readonly string[]',
+                summary:
+                    'The keys the provider answers, each lowercase letters, digits and underscores starting with a letter. A token with another key stays as written.'
+            }
+        },
+        methods: {
+            resolve: {
+                summary:
+                    "The value of one key, for the player when the text is rendered for one: the pack's own `Player` of `@minecraft/server`, with every member it has. A number renders through `String()`. `undefined` leaves the token as written, and so does a throw, which the content log reports once per namespace. It runs inside the budget of the script that renders, and the watchdog's errors end the render rather than leaving the token.",
+                parameters: 'key: string, player?: MinecraftPlayer',
+                returns: 'string | number | undefined'
+            }
+        }
+    },
+    PlaceholderRegistration: {
+        kind: 'interface',
+        summary: 'A namespace a pack registered.',
+        properties: {},
+        methods: {
+            unregister: {
+                summary:
+                    "Takes the namespace out of the registry, so its tokens stay as written. A pack's namespaces go on their own when its scripts stop.",
+                parameters: '',
+                returns: 'void'
+            }
+        }
+    },
+    PlaceholderNamespace: {
+        kind: 'interface',
+        summary: 'One registered namespace.',
+        properties: {
+            namespace: { type: 'string', summary: 'Its name, the part of a token before the colon.' },
+            keys: { type: 'readonly string[]', summary: 'The keys its provider answers.' }
+        }
+    },
+    Template: {
+        kind: 'interface',
+        summary:
+            "A template: a tree in the shape of Bedrock's rawtext, the format `/tellraw` takes, with a few more node kinds. `placeholders.parse` makes one from shorthand, and a file or a script can hold one.",
+        properties: { rawtext: { type: 'readonly TemplateNode[]', summary: 'The nodes, rendered in order.' } }
+    },
+    TemplateNode: {
+        kind: 'alias',
+        summary:
+            "One node of a template: a `text`; a `placeholder` named `namespace:key`; an `if` with a condition over placeholders and literals (`==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, joined by `&&` and `||`, with parentheses; two sides that both parse as numbers compare as numbers) and its `then` and `else` nodes; an `animate` with `frames` and an `interval` in ticks; a `gradient` with `#rrggbb` colors over its `rawtext`, each character in the nearest `§` color; and rawtext's `translate`, which renders as its key, `score`, which reads the scoreboard, and `selector`, which reads as the names of the entities the server's selector grammar matches, so `@a[tag=vip]` works. A bare string is a `text` node.",
+        type: [
+            '',
+            '        | { readonly text: string }',
+            '        | { readonly placeholder: string }',
+            '        | { readonly if: string; readonly then: readonly TemplateNode[]; readonly else?: readonly TemplateNode[] }',
+            '        | { readonly animate: { readonly interval: number; readonly frames: readonly (readonly TemplateNode[])[] } }',
+            '        | { readonly gradient: { readonly colors: readonly string[]; readonly rawtext: readonly TemplateNode[] } }',
+            '        | { readonly translate: string; readonly with?: readonly string[] | Template }',
+            '        | { readonly score: { readonly name: string; readonly objective: string } }',
+            '        | { readonly selector: string }',
+            '        | string'
+        ].join('\n')
+    },
+    RenderedTemplate: {
+        kind: 'interface',
+        summary: 'What `placeholders.render` gave.',
+        properties: {
+            text: { type: 'string', summary: 'The rendered text.' },
+            nextChangeTick: {
+                type: 'number',
+                optional: true,
+                summary:
+                    'The tick at which an animation in the template next changes the text, so a consumer that refreshes on an interval renders again then. Absent when the template holds no animation with more than one frame.'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -254,7 +457,39 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'hideBar',
     'barValid',
     'setListName',
-    'resetListName'
+    'resetListName',
+    'readConfig',
+    'writeConfig',
+    'onConfigChange',
+    'offConfigChange',
+    'setConfigEventMaker'
+] as const;
+
+/**
+ * The functions `@jsprismarine/placeholders` calls, which the embedder makes in the pack's
+ * context: `host.namespaces()` answers the registered namespaces as JSON, `host.parseTemplate` and
+ * `host.renderTemplate` take and give templates as JSON, and the others are named for what they
+ * do.
+ */
+export const JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS = [
+    'register',
+    'unregister',
+    'resolve',
+    'namespaces',
+    'parseTemplate',
+    'renderTemplate'
+] as const;
+
+/**
+ * The host functions a server gives only when it keeps config files for the packs, and the
+ * member that needs them: without the first, the module leaves the member out.
+ */
+export const JSPRISMARINE_CONFIG_FUNCTIONS = [
+    'readConfig',
+    'writeConfig',
+    'onConfigChange',
+    'offConfigChange',
+    'setConfigEventMaker'
 ] as const;
 
 /**
@@ -280,7 +515,28 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '    setDisplayName: (player, name) => host.setListName(player, name),',
         '    reset: (player) => host.resetListName(player)',
         '})'
+    ].join('\n'),
+    config: [
+        '(() => {',
+        '    const change = freeze({',
+        '        subscribe(callback) { host.onConfigChange(callback); return callback; },',
+        '        unsubscribe(callback) { host.offConfigChange(callback); }',
+        '    });',
+        '    // The event is made here, with the intrinsics this module captured, not with whatever the',
+        '    // pack has put on its globals since.',
+        '    host.setConfigEventMaker((json) => freeze({ value: json === undefined ? undefined : deepFreeze(parse(json)) }));',
+        '    return freeze({',
+        '        get value() { const json = host.readConfig(); return json === undefined ? undefined : deepFreeze(parse(json)); },',
+        '        write(value) { host.writeConfig(stringify(value)); },',
+        '        afterEvents: freeze({ change })',
+        '    });',
+        '})()'
     ].join('\n')
+};
+
+/** A member the host object must have more than its existence for, by the check its source makes. */
+const MEMBER_GUARDS: Readonly<Record<string, string>> = {
+    config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`
 };
 
 /** The getters of a member whose properties read the server, each through `host.read`. */
@@ -318,17 +574,62 @@ export const jsprismarineServerSource = (info: JsprismarineServerInfo): string =
             return `    namespace[${key}] = freeze(${JSON.stringify(values)});`;
         }
         const source = member.kind === 'live' ? liveSource(member.properties) : callable[name];
-        return `    if (host !== undefined) namespace[${key}] = ${source};`;
+        const guard = MEMBER_GUARDS[name];
+        return `    if (host !== undefined${guard === undefined ? '' : ` && ${guard}`}) namespace[${key}] = ${source};`;
     });
     return [
         '((host) => {',
         '    const freeze = Object.freeze;',
+        '    const parse = JSON.parse;',
+        '    const stringify = JSON.stringify;',
+        '    const deepFreeze = (value) => {',
+        '        if (typeof value === "object" && value !== null) {',
+        '            for (const key of Object.keys(value)) deepFreeze(value[key]);',
+        '            freeze(value);',
+        '        }',
+        '        return value;',
+        '    };',
         '    const namespace = {};',
         ...members,
         '    return freeze(namespace);',
         '})'
     ].join('\n');
 };
+
+/**
+ * The script that evaluates to a function making the `@jsprismarine/placeholders` namespace, run
+ * in the pack's context with an object of the {@link JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS}.
+ * @returns A script whose value is that function. The namespace and every object in it are frozen.
+ */
+export const placeholdersModuleSource = (): string =>
+    [
+        '((host) => {',
+        '    const freeze = Object.freeze;',
+        '    const parse = JSON.parse;',
+        '    const stringify = JSON.stringify;',
+        '    const deepFreeze = (value) => {',
+        '        if (typeof value === "object" && value !== null) {',
+        '            for (const key of Object.keys(value)) deepFreeze(value[key]);',
+        '            freeze(value);',
+        '        }',
+        '        return value;',
+        '    };',
+        '    return freeze({',
+        '        register: (namespace, provider) => {',
+        '            const id = host.register(namespace, provider);',
+        '            return freeze({ unregister() { host.unregister(id); } });',
+        '        },',
+        '        resolve: (text, player) => host.resolve(text, player),',
+        '        namespaces: () =>',
+        '            freeze(parse(host.namespaces()).map(({ namespace, keys }) => freeze({ namespace, keys: freeze(keys) }))),',
+        '        parse: (shorthand) => deepFreeze(parse(host.parseTemplate(shorthand))),',
+        '        render: (template, player) => {',
+        '            const shorthand = typeof template === "string";',
+        '            return deepFreeze(parse(host.renderTemplate(shorthand ? template : stringify(template), shorthand, player)));',
+        '        }',
+        '    });',
+        '})'
+    ].join('\n');
 
 const docComment = (summary: string, indent: string): string => `${indent}/** ${summary} */`;
 
@@ -362,7 +663,7 @@ const memberLines = (name: string, member: MemberDefinition): string[] => {
     }
     const properties: Readonly<Record<string, { readonly summary: string; readonly type: string }>> =
         member.kind === 'methods'
-            ? {}
+            ? (member.properties ?? {})
             : Object.fromEntries(
                   Object.entries<ValueProperty | LiveProperty>(member.properties).map(([key, property]) => [
                       key,
@@ -379,6 +680,7 @@ const typeLines = (name: string, type: TypeDefinition): string[] => {
     if (type.kind === 'union') {
         return [comment, `    export type ${name} = ${type.values.map((value) => JSON.stringify(value)).join(' | ')};`];
     }
+    if (type.kind === 'alias') return [comment, `    export type ${name} =${type.type};`];
     return [
         comment,
         `    export interface ${name} {`,
@@ -392,24 +694,59 @@ const typeLines = (name: string, type: TypeDefinition): string[] => {
  * project that names the typings package in its `types` gets them for the module name.
  * @returns The contents of the typings package's `index.d.ts`.
  */
-export const jsprismarineServerTypings = (): string => {
-    const members = Object.entries<MemberDefinition>(JSPRISMARINE_SERVER).flatMap(([name, member]) =>
-        memberLines(name, member)
-    );
-    const types = Object.entries<TypeDefinition>(JSPRISMARINE_TYPES).flatMap(([name, type]) => typeLines(name, type));
-    return [
+/** The lines of one module's ambient declaration. */
+const moduleLines = (
+    name: string,
+    summary: readonly string[],
+    members: Readonly<Record<string, MemberDefinition>>,
+    types: Readonly<Record<string, TypeDefinition>>,
+    imports: readonly string[] = []
+): string[] => [
+    '/**',
+    ...summary.map((line) => ` * ${line}`.trimEnd()),
+    ' */',
+    `declare module '${name}' {`,
+    ...imports.map((line) => `    ${line}`),
+    ...Object.entries(members).flatMap(([member, definition]) => memberLines(member, definition)),
+    ...Object.entries(types).flatMap(([type, definition]) => typeLines(type, definition)),
+    '}'
+];
+
+/**
+ * The declarations a pack's TypeScript sees for `@jsprismarine/server` and
+ * `@jsprismarine/placeholders`: one ambient module each, so a project that names the typings
+ * package in its `types` gets them for the module names.
+ * @returns The contents of the typings package's `index.d.ts`.
+ */
+export const jsprismarineServerTypings = (): string =>
+    [
         '// Generated from packages/script-host/src/host/jsprismarineServer.ts by the build of',
         '// @jsprismarine/script-types. Edit the definition there, not this file.',
         '',
-        '/**',
-        ' * The JSPrismarine-only module. Leave it out of the manifest and load it with',
-        " * `await import('@jsprismarine/server')` inside `try`: on Bedrock Dedicated Server the import",
-        ' * rejects, and the pack takes its fallback.',
-        ' */',
-        `declare module '${JSPRISMARINE_MODULE}' {`,
-        ...members,
-        ...types,
-        '}',
+        ...moduleLines(
+            JSPRISMARINE_MODULE,
+            [
+                'The JSPrismarine-only module. Leave it out of the manifest and load it with',
+                "`await import('@jsprismarine/server')` inside `try`: on Bedrock Dedicated Server the import",
+                'rejects, and the pack takes its fallback.'
+            ],
+            JSPRISMARINE_SERVER,
+            JSPRISMARINE_TYPES
+        ),
+        '',
+        ...moduleLines(
+            JSPRISMARINE_PLACEHOLDERS_MODULE,
+            [
+                'The placeholder registry every pack shares. Load it as `@jsprismarine/server`:',
+                "`await import('@jsprismarine/placeholders')` inside `try`, since Bedrock Dedicated Server",
+                'rejects the import.'
+            ],
+            JSPRISMARINE_PLACEHOLDERS,
+            JSPRISMARINE_PLACEHOLDER_TYPES,
+            [
+                "import type { Player } from '@jsprismarine/server';",
+                "import type { Player as MinecraftPlayer } from '@minecraft/server';"
+            ]
+        ),
         ''
     ].join('\n');
-};

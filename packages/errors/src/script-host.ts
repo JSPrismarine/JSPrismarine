@@ -405,12 +405,47 @@ export const ScriptHostErrors = defineErrors('script-host', {
         base: TypeError
     },
     /**
-     * A pack called a member of `@jsprismarine/server` with an argument of the wrong type, such as
-     * an object that is not a player where the member takes a `Player`, or a boss bar color the
-     * module does not name. The script sees a `TypeError`. Pass what the module's declarations in
-     * `@jsprismarine/script-types` name.
+     * A pack called a member of `@jsprismarine/server` or `@jsprismarine/placeholders` with an
+     * argument of the wrong type, such as an object that is not a player where the member takes a
+     * `Player`, or a boss bar color the module does not name. The script sees a `TypeError`. Pass
+     * what the modules' declarations in `@jsprismarine/script-types` name.
      */
     JspModuleArgument: { message: '{member} takes {expected} as its {argument}', base: TypeError },
+    /**
+     * A pack registered a placeholder namespace or key that is not a name: lowercase letters,
+     * digits and underscores, starting with a letter, so that `{namespace:key}` in a text is
+     * unmistakably a token. The script sees a `TypeError`. Rename the namespace or the key.
+     */
+    PlaceholderName: {
+        message:
+            '{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter',
+        base: TypeError
+    },
+    /**
+     * A pack registered a placeholder namespace with no keys, so no token could ever reach its
+     * resolver. The script sees a `TypeError`. List every key the resolver answers in `keys`.
+     */
+    PlaceholderNoKeys: { message: 'The placeholder namespace {namespace} lists no keys', base: TypeError },
+    /**
+     * A pack registered a placeholder namespace that another registration holds, its own or another
+     * pack's. The script sees an `Error`. Unregister the first registration, or pick another name;
+     * `placeholders.namespaces` lists the names in use.
+     */
+    PlaceholderNamespaceTaken: 'The placeholder namespace {namespace} is registered already',
+    /**
+     * A pack passed `render` of `@jsprismarine/placeholders` a template with a node the renderer
+     * does not know, a node whose property is of the wrong type or value, or a tree nested too
+     * deep. `where` is the path to the node in the template. The script sees a `TypeError`. Give
+     * each node the shape the module's `TemplateNode` type declares.
+     */
+    TemplateInvalid: { message: 'The template node at {where} {problem}', base: TypeError },
+    /**
+     * An `if` node's condition did not parse, or is longer or nests parentheses deeper than the
+     * renderer allows: comparisons with `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains` and
+     * `startsWith` between placeholders and literals, joined by `&&` and `||`, with parentheses.
+     * The script sees a `TypeError`. Fix the condition where the message says.
+     */
+    TemplateCondition: { message: 'The condition {condition} {problem}', base: TypeError },
     /**
      * A script closed the forms of a player who has left. The script sees Bedrock Dedicated
      * Server's `Error`.

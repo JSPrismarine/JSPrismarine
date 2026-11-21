@@ -18,6 +18,7 @@ import type { GameTestCommand, ScriptLog, WorldScripts } from '@jsprismarine/scr
 import type { ScriptFormResponse } from '@jsprismarine/script-host/host/world';
 import type { DebuggerStat } from '@jsprismarine/script-host/debugger/protocol';
 import type { JsprismarineServerMembers } from '@jsprismarine/script-host/host/jsprismarineMembers';
+import type { AddonConfigStore } from '@jsprismarine/script-host/host/addonConfig';
 
 import { about } from '../about';
 import type { ScriptDebuggerConfig, ScriptWatchdogConfig } from '../config/Config';
@@ -40,6 +41,10 @@ export interface LevelScriptsOptions {
      * of the server. The module leaves them out when absent.
      */
     readonly members?: JsprismarineServerMembers;
+    /** The packs' config files, which `@jsprismarine/server`'s `config` reaches. The module leaves it out when absent. */
+    readonly addonConfig?: AddonConfigStore;
+    /** How many players may be online at once, which `jsprismarine.maxPlayers` tells the packs. */
+    readonly maxPlayers: number;
     /** The level's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog: ScriptWatchdogConfig;
@@ -210,8 +215,9 @@ export class LevelScripts {
             config: host.readScriptConfig(options.configDirectory, (message) => log.warn(message)),
             betaApis: options.experiments?.includes(BETA_APIS) === true,
             log,
-            server: { version, minecraftVersion, protocolVersion },
+            server: { version, minecraftVersion, protocolVersion, maxPlayers: options.maxPlayers },
             ...(options.members === undefined ? {} : { members: options.members }),
+            ...(options.addonConfig === undefined ? {} : { addonConfig: options.addonConfig }),
             seed: options.seed,
             watchdog: host.watchdogSettings({
                 'script-watchdog-enable-shutdown': String(options.watchdog.enableShutdown),
