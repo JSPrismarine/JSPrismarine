@@ -160,7 +160,7 @@ export function pageUrl(page: string, siteUrl: string) {
  * included. A fence closes, as CommonMark has it, on a line of only the opening fence's character, at
  * least as many of them, so a shorter fence or the other character inside it is part of the code.
  */
-function* fenceLines(lines: readonly string[], from: number): Generator<{ index: number; fenced: boolean }> {
+export function* fenceLines(lines: readonly string[], from: number): Generator<{ index: number; fenced: boolean }> {
     let fence: string | undefined;
     for (let index = from; index < lines.length; index++) {
         const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(lines[index])?.slice(1);

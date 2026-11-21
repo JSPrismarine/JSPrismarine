@@ -19,6 +19,8 @@
 import MarkdownIt from 'markdown-it';
 import type { Token } from 'markdown-it';
 
+import { fenceLines } from './sections.mts';
+
 /** Options for {@link renderAddonReadme}. */
 export interface AddonReadmeOptions {
     /** Whether the README is another repository's, whose links get `rel="ugc nofollow noopener"`. */
@@ -238,4 +240,40 @@ export function renderAddonReadme(markdown: string, options: AddonReadmeOptions)
     }
 
     return { html: md.renderer.render(tokens, md.options, {}), shown };
+}
+
+/**
+ * A README as Markdown for the addon page's Markdown copy (see `llms.mts`): its first heading dropped
+ * and the rest shifted, as on the page, and each relative link or image pointed where the page's
+ * points. The copy is served as text, never rendered, so its HTML stays as written.
+ */
+export function addonReadmeMarkdown(markdown: string, resolveLink: (href: string) => string): string {
+    const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+    const headings: number[] = [];
+    for (const { index, fenced } of fenceLines(lines, 0)) {
+        if (!fenced && /^#{1,6} /.test(lines[index] ?? '')) headings.push(index);
+    }
+    const [first, ...rest] = headings;
+    const depth = (index: number) => /^#+/.exec(lines[index] ?? '')?.[0].length ?? 1;
+    // The page's title is the copy's only H1, so the README's shallowest heading becomes an H2.
+    const shift = rest.length > 0 ? 2 - Math.min(...rest.map(depth)) : 0;
+    const fenced = new Set<number>();
+    for (const line of fenceLines(lines, 0)) if (line.fenced) fenced.add(line.index);
+    return lines
+        .flatMap((line, index) => {
+            if (index === first) return [];
+            if (fenced.has(index)) return [line];
+            const shifted = rest.includes(index)
+                ? `${'#'.repeat(Math.min(6, Math.max(2, depth(index) + shift)))}${line.replace(/^#+/, '')}`
+                : line;
+            return [
+                shifted.replace(
+                    /\]\(([^)\s]+)\)/g,
+                    (_link, href: string) => `](${isRelative(href) ? resolveLink(href) : href})`
+                )
+            ];
+        })
+        .join('\n')
+        .trim()
+        .concat('\n');
 }

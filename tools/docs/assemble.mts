@@ -18,6 +18,7 @@ import { committedInputs, isKnownCommit, runStep } from './build-cache.mts';
 import { loadErrors } from './code-data.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { loadListingsLock } from './listings.mts';
+import { ADDON_COPIES_FILE, addonMarkdown, marketMarkdown } from './llmsPages.mts';
 import { loadProject } from './project.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
@@ -249,12 +250,17 @@ const frontMatter = (fields: Record<string, unknown>) =>
 const addonsDir = path.join(siteDir, 'addons');
 mkdirSync(addonsDir, { recursive: true });
 writeFileSync(path.join(addonsDir, 'market.json'), JSON.stringify(marketBuild.market));
+const marketDescription =
+    'Behavior packs you add to a running JSPrismarine server from its console: find one, copy its install command, or list your own.';
+/** The Markdown copy of each addons page, which `buildEnd` publishes beside the page (see `llmsPages.mts`). */
+const addonCopies: Record<string, string> = {
+    'addons/index.md': marketMarkdown(marketBuild.market, marketDescription)
+};
 writeFileSync(
     path.join(addonsDir, 'index.md'),
     `${frontMatter({
         title: 'Addons',
-        description:
-            'Behavior packs you add to a running JSPrismarine server from its console: find one, copy its install command, or list your own.',
+        description: marketDescription,
         layout: 'page',
         sidebar: false,
         aside: false
@@ -275,6 +281,7 @@ for (const addonPage of marketBuild.pages) {
         );
     mkdirSync(path.dirname(page), { recursive: true });
     // The data goes in a file of its own: a README's text in the page itself could close its script tag.
+    addonCopies[`${relative}.md`] = addonMarkdown(addonPage, marketBuild.readmes.get(addonPage.id));
     writeFileSync(`${page.slice(0, -'.md'.length)}.addon.json`, JSON.stringify(addonPage));
     writeFileSync(
         page,
@@ -295,6 +302,7 @@ import addon from './${path.basename(relative)}.addon.json';
     );
     pages++;
 }
+writeFileSync(path.join(siteDir, ADDON_COPIES_FILE), JSON.stringify(addonCopies));
 for (const { source, page } of rootPages) {
     const sourceFile = path.join(repoRoot, source);
     writeFileSync(path.join(siteDir, page), stagePage(sourceFile));
