@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compare, countCauses, slackFor } from './check-aot-explain.mts';
+import { accessesByNameOf, compare, countCauses, slackFor } from './check-aot-explain.mts';
 
 const cause = (fields: Record<string, unknown>): string =>
     JSON.stringify({ rank: 1, reason: 'unknown-object', inDependency: false, ...fields });
@@ -63,5 +63,21 @@ describe('compare', () => {
         expect(compare(found, baseline).removed).toEqual([
             { file: 'packages/raknet', rule: 'unknown-object', allowed: 1000, found: 990 }
         ]);
+    });
+});
+
+describe('accessesByNameOf', () => {
+    it("reads the summary line's own-code accesses looked up by name", () => {
+        const report = [
+            '  [1.23s]  bundle  2,530 modules',
+            JSON.stringify({ accesses: { byName: 44126, tested: 1 }, dependencyAccesses: { byName: 9 }, causes: 1 }),
+            cause({ file: 'packages/protocol/src/define.ts' })
+        ].join('\n');
+
+        expect(accessesByNameOf(report)).toBe(44126);
+    });
+
+    it('rejects a report with no summary line', () => {
+        expect(() => accessesByNameOf(cause({ file: 'packages/protocol/src/define.ts' }))).toThrow(/summary/);
     });
 });
