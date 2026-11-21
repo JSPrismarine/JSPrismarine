@@ -562,6 +562,15 @@ Thrown as `PrismarineServerErrors.UnknownBlockProperty`, which extends `Error`.
 
 Code read or set a block property the block does not have. The message lists the ones it has.
 
+## `PRISMARINE_UNKNOWN_INVENTORY_CONTAINER`
+
+`This inventory has no {container} container`
+
+Thrown as `PrismarineServerErrors.UnknownInventoryContainer`, which extends `TypeError`.
+
+Code asked an entity's inventory for a container its layout does not have. This is a bug in
+the server; report it with the stack trace.
+
 ## `PRISMARINE_UNKNOWN_SELECTOR_TYPE`
 
 `type "{type}" is invalid. Expected "a", "e", "p", "r" or "s"`
