@@ -256,44 +256,68 @@ const isHole = (world: WorldActions, at: BlockPosition, kind: LiquidState['kind'
     return fluidAt(world, belowAt)?.kind === kind || canFluidOccupy(world, world.getBlock(belowAt));
 };
 
-/** Searches sideways for the nearest hole, without doubling back. */
+/** What one slope search remembers: whether a cell is a hole, and what a branch found. */
+interface SlopeSearch {
+    readonly keyOf: (at: BlockPosition) => number | string;
+    readonly holes: Map<number | string, boolean>;
+    /** Each branch's answer by cell, the face it came from, and its depth; see {@link branchKeyOf}. */
+    readonly branches: Map<number | string, number>;
+}
+
+/** A branch's key: its cell's key with the face it came from and its depth, a number for a near cell. */
+const branchKeyOf = (cell: number | string, from: BlockFace, pass: number): number | string =>
+    typeof cell === 'number' ? (cell * 8 + FACE_INDEX[from]) * 16 + pass : `${cell}:${from}:${pass}`;
+
+/** A small number per face, for {@link branchKeyOf}. */
+const FACE_INDEX: Readonly<Record<BlockFace, number>> = { north: 0, south: 1, west: 2, east: 3, up: 4, down: 5 };
+
+/** Whether the fluid could fall at a position, answered once per cell of a search. */
+const isHoleIn = (search: SlopeSearch, world: WorldActions, at: BlockPosition, kind: LiquidState['kind']): boolean => {
+    const key = search.keyOf(at);
+    let hole = search.holes.get(key);
+    if (hole === undefined) {
+        hole = isHole(world, at, kind);
+        search.holes.set(key, hole);
+    }
+    return hole;
+};
+
+/**
+ * Searches sideways for the nearest hole, without doubling back.
+ *
+ * Java's `getSlopeDistance` walks every path and answers the shortest. A branch's answer depends
+ * only on its cell, the face it came from and its depth, and the search writes nothing, so a
+ * branch the walk reaches again by another path answers from the first time.
+ */
 const slopeDistance = (
     world: WorldActions,
     at: BlockPosition,
     pass: number,
     from: BlockFace,
     kind: LiquidState['kind'],
-    dimension: string,
     limit: number,
-    holeCache: Map<string, boolean>
+    search: SlopeSearch
 ): number => {
+    const branchKey = branchKeyOf(search.keyOf(at), from, pass);
+    const known = search.branches.get(branchKey);
+    if (known !== undefined) return known;
+
     let lowest = 1000;
     for (const direction of HORIZONTAL_FACES) {
         if (direction === from) continue;
         const testAt = offset(at, direction);
         if (!canMaybePassThrough(world, at, testAt, kind)) continue;
 
-        const key = `${testAt.x},${testAt.y},${testAt.z}`;
-        let hole = holeCache.get(key);
-        if (hole === undefined) {
-            hole = isHole(world, testAt, kind);
-            holeCache.set(key, hole);
+        if (isHoleIn(search, world, testAt, kind)) {
+            lowest = pass;
+            break;
         }
-        if (hole) return pass;
         if (pass < limit) {
-            const found = slopeDistance(
-                world,
-                testAt,
-                pass + 1,
-                opposite(direction),
-                kind,
-                dimension,
-                limit,
-                holeCache
-            );
+            const found = slopeDistance(world, testAt, pass + 1, opposite(direction), kind, limit, search);
             if (found < lowest) lowest = found;
         }
     }
+    search.branches.set(branchKey, lowest);
     return lowest;
 };
 
@@ -306,9 +330,13 @@ const SEARCH_SPAN = SEARCH_REACH * 2 + 1;
  *
  * The slope search visits the same few dozen cells many times over, and each visit reads a cell
  * and its neighbors again. Java's `FlowingFluid.getSpread` keeps the same per-search cache of
- * block states.
+ * block states. What the host says about a block it read, whether it is a full cube and how fluid
+ * reacts to it, is kept beside it, since the host works that out from the block's state each time.
  */
-const searchView = (world: WorldActions, origin: BlockPosition): WorldActions => {
+const searchView = (
+    world: WorldActions,
+    origin: BlockPosition
+): { readonly view: WorldActions; readonly keyOf: (at: BlockPosition) => number | string } => {
     const blocks = new Map<number | string, HookBlock | undefined>();
     const liquids = new Map<number | string, HookBlock | undefined>();
     // The search stays a few blocks from where it started, so a cell's key is its small offset
@@ -335,13 +363,27 @@ const searchView = (world: WorldActions, origin: BlockPosition): WorldActions =>
         cache.set(key, block);
         return block;
     };
+    /** One answer per block object, which the caches above hand out once per cell. */
+    const perBlock = <T>(answer: (block: HookBlock) => T): ((block: HookBlock) => T) => {
+        const answers = new Map<HookBlock, T>();
+        return (block) => {
+            if (answers.has(block)) return answers.get(block) as T;
+            const value = answer(block);
+            answers.set(block, value);
+            return value;
+        };
+    };
     const getLiquid = world.getLiquid;
+    const isFullCubeOf = world.isFullCube;
+    const reactionOf = world.liquidReactionOf;
     // The prototype keeps every other action the host's world answers, bound to the host as before.
     const view: WorldActions = Object.create(world);
     view.getBlock = (at) => remembered(blocks, at, (position) => world.getBlock(position));
     if (getLiquid !== undefined)
         view.getLiquid = (at) => remembered(liquids, at, (position) => getLiquid.call(world, position));
-    return view;
+    if (isFullCubeOf !== undefined) view.isFullCube = perBlock((block) => isFullCubeOf.call(world, block));
+    if (reactionOf !== undefined) view.liquidReactionOf = perBlock((block) => reactionOf.call(world, block));
+    return { view, keyOf };
 };
 
 /** Finds the lowest-scoring horizontal routes toward holes below the fluid. */
@@ -351,10 +393,10 @@ const fluidSpreadDirections = (
     kind: LiquidState['kind'],
     dimension: string
 ): Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState> => {
-    const world = searchView(host, at);
+    const { view: world, keyOf } = searchView(host, at);
     const rates = ratesFor(kind, dimension);
     const result = new Map<Extract<BlockFace, 'north' | 'south' | 'east' | 'west'>, LiquidState>();
-    const holeCache = new Map<string, boolean>();
+    const search: SlopeSearch = { keyOf, holes: new Map(), branches: new Map() };
     let lowest = 1000;
 
     for (const direction of HORIZONTAL_FACES) {
@@ -363,15 +405,9 @@ const fluidSpreadDirections = (
         const next = newLiquidAt(world, testAt, kind, dimension);
         if (next === undefined) continue;
 
-        const key = `${testAt.x},${testAt.y},${testAt.z}`;
-        let hole = holeCache.get(key);
-        if (hole === undefined) {
-            hole = isHole(world, testAt, kind);
-            holeCache.set(key, hole);
-        }
-        const distance = hole
+        const distance = isHoleIn(search, world, testAt, kind)
             ? 0
-            : slopeDistance(world, testAt, 1, opposite(direction), kind, dimension, rates.slopeFindDistance, holeCache);
+            : slopeDistance(world, testAt, 1, opposite(direction), kind, rates.slopeFindDistance, search);
         if (distance < lowest) result.clear();
         if (distance <= lowest) {
             if (canBeReplacedWith(fluidAt(world, testAt), kind, direction)) {

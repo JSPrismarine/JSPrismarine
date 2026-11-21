@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createVoxelWorld } from '../voxelWorld';
+import type { WorldActions } from '../world';
 import {
     applyLavaWaterReaction,
     depthStep,
@@ -67,6 +68,32 @@ describe('spreadLiquid', () => {
         expect(spreadLiquid(counting, world.block(source)).sides).toHaveLength(4);
         // The search reads 126 cells. Without its cache, each visit read them again: 1979 reads.
         expect(reads).toBeLessThan(cells.size * 1.2);
+    });
+
+    it('asks the host about each block of its slope search once', () => {
+        const world = createVoxelWorld().overworld;
+        world.fill({ x: -6, y: 0, z: -6 }, { x: 6, y: 0, z: 6 }, 'minecraft:stone');
+        world.set(source, 'minecraft:water');
+        let questions = 0;
+        const cells = new Set<string>();
+        const counting: WorldActions = Object.create(world);
+        counting.getBlock = (at) => {
+            cells.add(`${at.x},${at.y},${at.z}`);
+            return world.getBlock(at);
+        };
+        counting.liquidReactionOf = () => {
+            questions++;
+            return undefined;
+        };
+        counting.isFullCube = (block) => {
+            questions++;
+            return block.identifier === 'minecraft:stone';
+        };
+
+        expect(spreadLiquid(counting, world.block(source)).sides).toHaveLength(4);
+        // The search walks every path to a depth of four; asked per visit, the same 126 cells
+        // drew 513 questions, 453 of them how fluid reacts to the block.
+        expect(questions).toBeLessThan(cells.size * 1.2);
     });
 
     it('stops once the depth would pass the maximum', () => {
