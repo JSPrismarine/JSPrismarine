@@ -140,7 +140,7 @@ export default class Server {
     private readonly wallClock: () => number;
     private admittedClock: number;
     /**
-     * Each level's behavior pack scripts and the pack folders they came from, by level name, while
+     * Each level's behavior pack scripts and the pack folders they came from, by level UUID, while
      * the `prismarine:scripts` module runs them; see {@link Server.reloadScripts}.
      */
     private readonly scriptSlots = new Map<string, ScriptSlot<LevelScripts>>();
@@ -1014,8 +1014,8 @@ export default class Server {
      * @param level - The level; left out, the default level.
      */
     public getScripts(level?: Level): LevelScripts | undefined {
-        const name = (level ?? this.getWorldManager().getDefaultLevel()).name;
-        return this.scriptSlots.get(name)?.current;
+        const id = (level ?? this.getWorldManager().getDefaultLevel()).id;
+        return this.scriptSlots.get(id)?.current;
     }
 
     /**
@@ -1025,10 +1025,10 @@ export default class Server {
      * @internal
      */
     public getScriptSlot(level: Level = this.getWorldManager().getDefaultLevel()): ScriptSlot<LevelScripts> {
-        let slot = this.scriptSlots.get(level.name);
+        let slot = this.scriptSlots.get(level.id);
         if (slot === undefined) {
             slot = new ScriptSlot<LevelScripts>();
-            this.scriptSlots.set(level.name, slot);
+            this.scriptSlots.set(level.id, slot);
         }
         return slot;
     }

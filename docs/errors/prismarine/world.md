@@ -145,6 +145,15 @@ A sub-chunk's single-block storage has no block in its palette. The world on dis
 or was written by a tool that writes the format differently; open it in the game to let it
 repair what it can, or restore a backup.
 
+## `PRISMARINE_ENTRY_LEVEL_CANNOT_DETACH`
+
+`Level {name} is the level players join first, so it cannot be detached`
+
+Thrown as `PrismarineWorldErrors.EntryLevelCannotDetach`, which extends `Error`.
+
+The level players join first, the one `level-name` names, cannot be detached while the
+server runs. Name another level in `level-name` and restart the server first.
+
 ## `PRISMARINE_GENERATION_STOPPED`
 
 `Chunk {cx},{cz} was not generated: the generator has stopped`
@@ -441,6 +450,14 @@ Thrown as `PrismarineWorldErrors.LevelHasNoOverworld`, which extends `Error`.
 
 The world has no overworld, where Bedrock keeps the spawn point and the clock. Add one to its
 dimensions.
+
+## `PRISMARINE_LEVEL_NOT_ATTACHED`
+
+`No attached level is named {name}`
+
+Thrown as `PrismarineWorldErrors.LevelNotAttached`, which extends `Error`.
+
+No attached level has that name or UUID. `/world list` shows the attached levels.
 
 ## `PRISMARINE_LEVEL_NOT_OPENED`
 

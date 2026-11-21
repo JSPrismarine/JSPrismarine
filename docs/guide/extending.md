@@ -680,7 +680,7 @@ public on purpose.
 
 ### Events
 
-`server.on(name, listener)` takes one of these <!-- fact:events.count -->62<!-- /fact --> events, and
+`server.on(name, listener)` takes one of these <!-- fact:events.count -->65<!-- /fact --> events, and
 `server.once`, `server.removeListener` and `server.removeAllListeners` take the same names. They
 subscribe on the kernel's event bus, `server.getKernel().events`, which the server raises every
 event on.
@@ -702,6 +702,9 @@ event on.
 | Event                      | Listener receives               |
 | -------------------------- | ------------------------------- |
 | `chat`                     | `ChatEvent`                     |
+| `levelAttached`            | `LevelAttachedEvent`            |
+| `levelDetaching`           | `LevelDetachingEvent`           |
+| `levelDetached`            | `LevelDetachedEvent`            |
 | `tick`                     | `TickEvent`                     |
 | `explosion`                | `ExplosionEvent`                |
 | `exploded`                 | `ExplodedEvent`                 |

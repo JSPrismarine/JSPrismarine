@@ -280,6 +280,13 @@ export const PrismarineWorldErrors = defineErrors('prismarine/world', {
      */
     LegacyWorldDataMustBeObject: 'Legacy world data must be an object',
     /**
+     * The level players join first, the one `level-name` names, cannot be detached while the
+     * server runs. Name another level in `level-name` and restart the server first.
+     */
+    EntryLevelCannotDetach: 'Level {name} is the level players join first, so it cannot be detached',
+    /** No attached level has that name or UUID. `/world list` shows the attached levels. */
+    LevelNotAttached: 'No attached level is named {name}',
+    /**
      * The world loaded without an overworld, which every world needs. Check its dimensions in
      * `config.json`.
      */
