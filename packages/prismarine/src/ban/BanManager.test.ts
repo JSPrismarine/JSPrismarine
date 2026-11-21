@@ -73,7 +73,7 @@ describe('ban', () => {
                 // Creating the list is what a first start does, so it is no warning.
                 expect(logger.warn).not.toHaveBeenCalled();
                 expect(readFileSync(file, 'utf8')).toContain('// JSPrismarine schema:');
-                expect(banManager['banned'].size).toBe(0);
+                expect(banManager.isBanned(identityNamed('player1'))).toBe(false);
             });
 
             it('should skip entries that are not bans and keep the rest', async () => {
@@ -82,7 +82,7 @@ describe('ban', () => {
                 await banManager.enable();
 
                 expect(banManager.isBanned(identityNamed('player1'))).toBe('r');
-                expect(banManager['bannedNames'].size).toBe(1);
+                expect(banManager.isBanned(identityNamed('junk'))).toBe(false);
             });
 
             it('should report a file that does not parse without throwing', async () => {
@@ -91,20 +91,20 @@ describe('ban', () => {
                 await banManager.enable();
 
                 expect(logger.error).toHaveBeenCalled();
-                expect(banManager['banned'].size).toBe(0);
+                expect(banManager.isBanned(identityNamed('player1'))).toBe(false);
             });
         });
 
         describe('onDisable', () => {
-            it('should clear the banned map', async () => {
-                banManager['bannedNames'].set('player1', { reason: 'reason1' });
+            it('should clear the banned list', async () => {
+                await banManager.setBanned({ name: 'player1' }, 'reason1');
                 await banManager.disable();
-                expect(banManager['bannedNames'].size).toBe(0);
+                expect(banManager.isBanned(identityNamed('player1'))).toBe(false);
             });
         });
 
         describe('setBanned', () => {
-            it('bans an online player by their subject without touching the other lines', async () => {
+            it('bans an online player by name and account without touching the other lines', async () => {
                 writeFileSync(file, BAN_FILE);
                 await banManager.enable();
 
@@ -121,7 +121,7 @@ describe('ban', () => {
                 ]);
             });
 
-            it('bans an offline name on every platform until a login claims it', async () => {
+            it('bans an offline name on every platform', async () => {
                 await banManager.enable();
 
                 await banManager.setBanned({ name: 'player3' }, 'alts');
@@ -133,13 +133,18 @@ describe('ban', () => {
                 ]);
             });
 
-            it('keeps an offline ban apart from the Xbox account of the same name', async () => {
+            it('matches a ban with an account by the name and by the account, so a renamed account stays banned', async () => {
                 await banManager.enable();
 
-                await banManager.setBanned({ name: 'player3', subject: { kind: 'offline', name: 'player3' } }, 'alts');
+                await banManager.setBanned(
+                    { name: 'player3', subject: { kind: 'xbox', xuid: '2535400000000003' } },
+                    'alts'
+                );
 
                 expect(banManager.isBanned(identityNamed('player3'))).toBe('alts');
-                expect(banManager.isBanned(xboxPlayer('player3', '2535400000000003'))).toBe(false);
+                expect(banManager.isBanned(xboxPlayer('renamed', '2535400000000003'))).toBe('alts');
+                expect(banManager.isBanned(xboxPlayer('player3', '2535400000000009'))).toBe('alts');
+                expect(banManager.isBanned(xboxPlayer('other', '2535400000000009'))).toBe(false);
             });
 
             it('should replace an existing ban in place', async () => {
@@ -156,6 +161,34 @@ describe('ban', () => {
                 ]);
             });
 
+            it('replaces every ban of the name in the file, so a restart does not bring an old account back', async () => {
+                writeFileSync(
+                    file,
+                    `[
+    // two accounts once held the name
+    { "name": "player1", "kind": "xbox", "id": "1", "reason": "a" },
+    { "name": "player2", "reason": "" },
+    { "name": "player1", "kind": "xbox", "id": "2", "reason": "b" }
+]
+`
+                );
+                await banManager.enable();
+
+                await banManager.setBanned({ name: 'player1', subject: { kind: 'xbox', xuid: '3' } }, 'c');
+
+                const text = readFileSync(file, 'utf8');
+                expect(text).toContain('// two accounts once held the name');
+                expect(parseConfigDocument(text).get([])).toStrictEqual([
+                    { name: 'player1', kind: 'xbox', id: '3', reason: 'c' },
+                    { name: 'player2', reason: '' }
+                ]);
+                const reloaded = new BanManager(server);
+                await reloaded.enable();
+                expect(reloaded.isBanned(xboxPlayer('renamed', '1'))).toBe(false);
+                expect(reloaded.isBanned(xboxPlayer('renamed', '2'))).toBe(false);
+                expect(reloaded.isBanned(xboxPlayer('renamed', '3'))).toBe('c');
+            });
+
             it('should start a file from nothing', async () => {
                 await banManager.setBanned({ name: 'player1' });
 
@@ -166,7 +199,7 @@ describe('ban', () => {
         });
 
         describe('claimLegacy', () => {
-            it('writes the subject of the player a name-only ban turns away, where the entry was', async () => {
+            it('adds the account of the player a name-only ban turns away, where the entry was, and keeps matching the name', async () => {
                 writeFileSync(file, BAN_FILE);
                 await banManager.enable();
                 const steve = xboxPlayer('player1', '2535400000000001');
@@ -174,8 +207,9 @@ describe('ban', () => {
                 expect(await banManager.claimLegacy(steve)).toBe(true);
 
                 expect(banManager.isBanned(steve)).toBe('reason1');
-                // The entry names one account now, so another platform's player1 may join.
-                expect(banManager.isBanned(identityNamed('player1'))).toBe(false);
+                // The name match stays, so a ban never lapses; the account match is added to it.
+                expect(banManager.isBanned(identityNamed('player1'))).toBe('reason1');
+                expect(banManager.isBanned(xboxPlayer('renamed', '2535400000000001'))).toBe('reason1');
                 const text = readFileSync(file, 'utf8');
                 expect(text).toContain('// Griefed spawn twice; appeal denied.');
                 expect(parseConfigDocument(text).get([])).toStrictEqual([
@@ -215,8 +249,8 @@ describe('ban', () => {
         });
 
         describe('isBanned', () => {
-            it('should return the reason if player is banned', () => {
-                banManager['bannedNames'].set('player1', { reason: 'reason1' });
+            it('should return the reason if player is banned', async () => {
+                await banManager.setBanned({ name: 'player1' }, 'reason1');
                 expect(banManager.isBanned(identityNamed('player1'))).toBe('reason1');
             });
 

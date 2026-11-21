@@ -643,10 +643,12 @@ An entry in `ops.json` or `banned-players.json` names a player by `kind` and
 `Steve` is never the Xbox account named `Steve`. An operator entry written
 before this, keyed by a login `uuid`, waits in the file until a login with that
 UUID claims it, which rewrites the entry with its `kind` and `id`; the server
-logs each waiting entry at startup. A ban with a name alone bans every player
-of that name until one logs in and the entry takes their `kind` and `id`.
-`/ban` on a player who is online names their account; on a name nobody online
-holds, it writes the name alone.
+logs each waiting entry at startup. A ban matches a login by its `name`, and by
+its `kind` and `id` as well once it has them, so a ban written before this keeps
+matching the name it was written for; the first login it turns away adds the
+account's `kind` and `id` to the entry, and the name match stays. `/ban` on a
+player who is online writes their name and account; on a name nobody online
+holds, it writes the name alone. `/pardon` lifts every ban on a name.
 
 The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that
