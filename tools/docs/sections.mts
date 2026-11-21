@@ -18,6 +18,16 @@ export interface DocSection {
      * `docs/<dir>/`. Those pages are the build's own Markdown, so they may use Vue components.
      */
     generated?: boolean;
+    /**
+     * Whether `/llms.txt` lists the section under `Optional`, which a reader short on context may skip,
+     * rather than in a section of its own.
+     */
+    optional?: boolean;
+    /**
+     * Whether the section's pages are dated records, such as plans, which describe the code as it was
+     * when each was written. `/llms.txt` labels each with its date or status.
+     */
+    dated?: boolean;
     title: string;
 }
 
@@ -29,13 +39,15 @@ export const sections = [
     { dir: 'addons', title: 'Addons', generated: true },
     { dir: 'errors', title: 'Errors' },
     // The site serves no copy of the logo and icon files, so the guide's links to them go to GitHub.
-    { dir: 'brand', title: 'Brand', unpublished: ['assets/'] },
+    { dir: 'brand', title: 'Brand', unpublished: ['assets/'], optional: true },
     { dir: 'data-driven', title: 'Data-driven engine' },
-    { dir: 'adr', title: 'Decisions' },
-    { dir: 'plans', title: 'Plans' },
+    { dir: 'adr', title: 'Decisions', optional: true, dated: true },
+    { dir: 'plans', title: 'Plans', optional: true, dated: true },
     {
         dir: 'research',
         title: 'Research',
+        optional: true,
+        dated: true,
         // The console TUI decision's working papers: the ballot, the judges' votes and the review
         // rounds. Their outcome is in plan.md; they are a record, not reading for the site.
         unpublished: [
