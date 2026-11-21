@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { INTENT_KINDS, Intents, isIntentKind, laneOfIntents, PLAYER_ANIMATIONS } from './Intent';
 
 describe('input/Intent', () => {
-    it('lists every kind in the table once', () => {
-        expect(INTENT_KINDS).toEqual(Object.keys(Intents));
-        expect(new Set(INTENT_KINDS).size).toBe(INTENT_KINDS.length);
+    it('lists the supported kinds, each once', () => {
+        // A literal list, so a kind dropped from the table fails here rather than passing by
+        // comparing the table with itself.
+        expect([...INTENT_KINDS].sort()).toEqual(['animate', 'openInventory', 'openNpc', 'queryBossBar']);
     });
 
     it('declares a lane for every kind', () => {

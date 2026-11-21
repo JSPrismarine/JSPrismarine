@@ -12,13 +12,22 @@ import type { InputContext, SessionContext } from '../network/handler/HandlerCon
 import * as IntentHandlers from './IntentHandlers';
 import type { Intent, IntentKind } from './Intent';
 import { Intents, isIntentKind } from './Intent';
-import type { IntentContext, IntentHandler } from './IntentHandler';
+import type { IntentHandler } from './IntentHandler';
 
 /**
  * A registered handler, with the kind's lane erased: the registry checks a kind's lane once when
- * it dispatches, and the handler takes the context that lane gives.
+ * it dispatches, and the handler takes the context that lane gives and returns what that lane
+ * allows.
  */
-type AnyHandler = IntentHandler<IntentKind>;
+interface AnyHandler {
+    handle(intent: Intent, context: SessionContext | InputContext): undefined | void | Promise<void>;
+}
+
+/** A built-in handler class, as the table of them is read. */
+interface BuiltInHandlerClass {
+    readonly Kind: IntentKind;
+    new (): AnyHandler;
+}
 
 /** The built-in and plugin handlers of every intent kind. */
 export class IntentHandlerRegistry {
@@ -29,9 +38,19 @@ export class IntentHandlerRegistry {
         this.logger = logger;
     }
 
-    /** Registers the built-in handler of every kind in the intent table. */
+    /**
+     * Installs the built-in handler of every kind in the table. A handler a plugin appended before
+     * the server started runs after the built-in one, as one appended later does.
+     */
     public enable(): void {
-        for (const Handler of Object.values(IntentHandlers)) this.register(Handler.Kind, new Handler());
+        const classes: readonly BuiltInHandlerClass[] = Object.values(IntentHandlers);
+        for (const Handler of classes) {
+            const kind = Handler.Kind;
+            const builtIn = new Handler();
+            const appended = this.handlers.get(kind);
+            this.handlers.set(kind, appended === undefined ? builtIn : this.merge(kind, builtIn, appended));
+            this.logger.debug(`Intent handler §b${Handler.name}§r registered for ${kind}`);
+        }
         this.logger.verbose(`Registered §b${this.handlers.size}§r intent handler(s)`);
     }
 
@@ -64,24 +83,7 @@ export class IntentHandlerRegistry {
             this.register(kind, handler);
             return;
         }
-        const parts = [current, widen(handler)];
-        const merged: AnyHandler =
-            Intents[kind].lane === 'input'
-                ? {
-                      handle: (intent, context) => {
-                          for (const part of parts) {
-                              const result = part.handle(intent, context);
-                              if (result instanceof Promise) inputStepOf(context).step.output(result);
-                          }
-                          return undefined;
-                      }
-                  }
-                : {
-                      handle: async (intent, context) => {
-                          for (const part of parts) await part.handle(intent, context);
-                      }
-                  };
-        this.handlers.set(kind, merged);
+        this.handlers.set(kind, this.merge(kind, current, widen(handler)));
     }
 
     /** Whether any handler is registered for `kind`. */
@@ -105,6 +107,27 @@ export class IntentHandlerRegistry {
         if (handler === undefined) throw new PrismarineInputErrors.NoIntentHandler({ kind: intent.kind });
         return handler.handle(intent, context);
     }
+
+    /** One handler that runs `first` and then `second`, in the kind's lane. */
+    private merge(kind: IntentKind, first: AnyHandler, second: AnyHandler): AnyHandler {
+        const parts = [first, second];
+        if (Intents[kind].lane === 'input') {
+            return {
+                handle: (intent, context) => {
+                    for (const part of parts) {
+                        const result = part.handle(intent, context);
+                        if (result instanceof Promise) inputStepOf(context).step.output(result);
+                    }
+                    return undefined;
+                }
+            };
+        }
+        return {
+            handle: async (intent, context) => {
+                for (const part of parts) await part.handle(intent, context);
+            }
+        };
+    }
 }
 
 /**
@@ -118,7 +141,7 @@ const widen = <K extends IntentKind>(handler: IntentHandler<K>): AnyHandler => h
  * The input context a merged input-lane handler was given. The dispatcher hands an input-lane
  * handler an input context, so a context without a step here is a caller's bug.
  */
-const inputStepOf = (context: IntentContext<IntentKind>): InputContext => {
+const inputStepOf = (context: SessionContext | InputContext): InputContext => {
     if (!isInputContext(context)) throw new PrismarineInputErrors.InputContextWithoutStep();
     return context;
 };

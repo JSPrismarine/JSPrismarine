@@ -84,6 +84,28 @@ describe('IntentHandlerRegistry', () => {
         expect(order).toEqual(['first 3', 'second 3']);
     });
 
+    it('runs a handler appended before the server started after the built-in one', () => {
+        const registry = new IntentHandlerRegistry(new Logger());
+        const order: string[] = [];
+        registry.append('openInventory', {
+            handle: () => {
+                order.push('plugin');
+                return undefined;
+            }
+        });
+
+        registry.enable();
+        const { context } = inputContext(
+            stub<PlayerSession>({
+                identity: identityNamed('tester'),
+                openMainInventory: async () => void order.push('built-in')
+            })
+        );
+        registry.handle({ kind: 'openInventory' }, context);
+
+        expect(order).toEqual(['built-in', 'plugin']);
+    });
+
     it('registers an appended handler outright when the kind has none yet', () => {
         const registry = new IntentHandlerRegistry(new Logger());
         registry.append('openInventory', { handle: () => undefined });
