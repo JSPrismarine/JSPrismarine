@@ -15,7 +15,7 @@
         "check:brand": "vitest run --root . --dir . brand-assets.test.ts",
         "test": "vitest run --root . --dir .",
         "check:facts": "vitest run --root . --dir . facts.test.ts addons.test.ts && node --import tsx facts-cli.mts --check",
-        "docs:api": "typedoc && node fix-typedoc-media-links.mts && node api-index.mts",
+        "docs:api": "node --import tsx build-cache-cli.mts run api typedoc && node fix-typedoc-media-links.mts && node api-index.mts",
         "docs:content": "concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage pnpm:docs:api pnpm:docs:icons",
         "docs": "pnpm run docs:sources && pnpm run docs:generate && pnpm run docs:content && vitepress build site",
         "docs:check": "pnpm run docs:generate && concurrently --prefix '{name}' --kill-others-on-fail pnpm:docs:stage \"typedoc --emit none\" pnpm:test",

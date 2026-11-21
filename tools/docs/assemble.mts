@@ -3,7 +3,7 @@
  * its README, and a parity tracker snapshot from the full suite. Each staged page gets the current
  * docs facts in place of its marked values (see `facts.mts`), so the site never quotes a value the
  * code has moved past. The suite reads the generated bedrock-data, which `pnpm run docs:generate`
- * writes first.
+ * writes first, and is skipped when its inputs are unchanged (see `build-cache.mts`).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { addonPage, loadAddons } from './addons.mts';
+import { runStep } from './build-cache.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
@@ -34,11 +35,14 @@ const trackerDir = path.join(publicDir, 'parity-tracker');
 /** Cloudflare Pages rejects files over 25 MiB; each case chunk stays well under it. */
 const trackerChunkBytes = 8 * 1024 * 1024;
 
-execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard'], {
-    cwd: repoRoot,
-    env: { ...process.env, GITHUB_STEP_SUMMARY: '' },
-    stdio: ['ignore', 'ignore', 'inherit']
-});
+// The suite runs only when something it reads changed since the tracker was last built.
+runStep('tracker', () =>
+    execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard'], {
+        cwd: repoRoot,
+        env: { ...process.env, GITHUB_STEP_SUMMARY: '' },
+        stdio: ['ignore', 'ignore', 'inherit']
+    })
+);
 mkdirSync(publicDir, { recursive: true });
 // This generated JSON uses the schema produced by the parity dashboard.
 const tracker = JSON.parse(
