@@ -454,9 +454,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       store entities in structures read back nothing. A placement ignores `integrity` and
       `waterlogged`, and turns only `pillar_axis` and the cardinal and facing direction states; no
       scenario records `mirror`.
-      `getPackStructureIds` and a pack's `.mcstructure` files have no behavior. The palette lacks
-      `stone_type`, `wood_type`, `old_log_type` and `dirt_type`
-      ([#3237](https://github.com/JSPrismarine/JSPrismarine/issues/3237)), and a mob has no default
+      `getPackStructureIds` and a pack's `.mcstructure` files have no behavior. A mob has no default
       underwater speed ([#3264](https://github.com/JSPrismarine/JSPrismarine/issues/3264)). An interaction raises
       one event a click, so `isFirstEvent` is always true. `ScreenDisplay`'s HUD members,
       `SoundInstance.stop`, `ItemEnchantableComponent` and other item components, and

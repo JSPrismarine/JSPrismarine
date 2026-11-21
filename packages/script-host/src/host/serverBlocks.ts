@@ -7,6 +7,7 @@
  * block type are values: each carries its type and states. The errors and edge cases follow the
  * `blocks` scenario recorded on BDS.
  */
+import { withLegacyStates, withoutLegacyStates } from './legacyStates';
 import type { ScriptApiImplementations, ScriptCall } from '../shape/implementations';
 import { ScriptHandle } from '../values';
 import type { PackHost } from './minecraftServer';
@@ -133,9 +134,13 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
                     }
                 }
             }
-            const resolved = world.resolveBlock(typeId, states);
+            const defaults = world.resolveBlock(typeId, {});
+            if (defaults === undefined) throw plainError(`Failed to resolve block "${typeId}".`);
+            const resolved = world.resolveBlock(
+                typeId,
+                withoutLegacyStates(world.legacyStates?.(typeId), defaults.states, states)
+            );
             if (resolved !== undefined) return permutationObject(resolved);
-            if (world.resolveBlock(typeId, {}) === undefined) throw plainError(`Failed to resolve block "${typeId}".`);
             // BDS ends this message with a line break.
             throw plainError(`Failed to resolve block "${typeId}" with properties: ${JSON.stringify(states)}\n`);
         })
@@ -143,14 +148,13 @@ export const implementBlocks = (implementations: ScriptApiImplementations, host:
             get: (call) =>
                 host.engine.release(host.create('BlockType', TAG.blockType, permutationOf(call.state).typeId))
         })
-        .implement(SERVER, 'BlockPermutation', 'getAllStates', (call) =>
-            JSON.stringify(permutationOf(call.state).states)
-        )
-        .implement(
-            SERVER,
-            'BlockPermutation',
-            'getState',
-            (call) => permutationOf(call.state).states[String(call.args[0])]
-        )
+        .implement(SERVER, 'BlockPermutation', 'getAllStates', (call) => {
+            const { typeId, states } = permutationOf(call.state);
+            return JSON.stringify(withLegacyStates(world.legacyStates?.(typeId), states));
+        })
+        .implement(SERVER, 'BlockPermutation', 'getState', (call) => {
+            const { typeId, states } = permutationOf(call.state);
+            return withLegacyStates(world.legacyStates?.(typeId), states)[String(call.args[0])];
+        })
         .implement(SERVER, 'BlockType', 'id', { get: (call) => call.state });
 };

@@ -1763,7 +1763,7 @@
         },
         "bds-record:block-members": {
             "kind": "defect",
-            "reason": "JSPrismarine's palette has no old_log_type on minecraft:oak_log (issue #3237), so getAllStates and withState give one state fewer. Block.getLightLevel and getSkyLightLevel read the world's light, where BDS answers 0 for every block of a chunk only a ticking area loads (issue #3298). getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). setWaterlogged writes nothing, so isWaterlogged stays false (issue #3300). Every neighbor, tag, localization key, item, liquid answer, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
+            "reason": "Block.getLightLevel and getSkyLightLevel read the world's light, where BDS answers 0 for every block of a chunk only a ticking area loads (issue #3298). getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). setWaterlogged writes nothing, so isWaterlogged stays false (issue #3300). Every neighbor, tag, localization key, item, liquid answer, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
             "reference": "issue #3298"
         },
         "bds-record:block-world-components": {
@@ -1771,20 +1771,10 @@
             "reason": "The sign, piston, jukebox and cauldron components (issue #3302), the redstone producer and note block instrument components (issue #3303), liquidCanFlowFromDirection (issue #3304) and a bundle's item container (issue #3305) throw NotImplementedError on JSPrismarine, which gives the script host no seam to those systems yet. canPlace matches BDS.",
             "reference": "issue #3302"
         },
-        "bds-record:blocks": {
-            "kind": "defect",
-            "reason": "JSPrismarine's block palette has no old_log_type state on minecraft:oak_log and no stone_type on minecraft:stone, which the pinned BDS still lists, so getAllStates returns fewer states. Every block read, write and error matches BDS.",
-            "reference": "docs/plans/script-api-host.md slice 10"
-        },
         "bds-record:dimension-volumes": {
             "kind": "defect",
             "reason": "getBlocks with closest breaks distance ties in the volume's x, y, z order, so of two blocks the same distance away it returns 2 20 1 where BDS returns 2 21 0 (issue #3317). Every fill, find, biome and clone matches BDS.",
             "reference": "issue #3317"
-        },
-        "bds-record:structures": {
-            "kind": "defect",
-            "reason": "JSPrismarine's block palette has no stone_type on minecraft:stone, wood_type on minecraft:oak_planks, old_log_type on minecraft:oak_log or dirt_type on minecraft:dirt, which the pinned BDS still lists, so a structure's getBlockPermutation returns fewer states. Every copy, read, write, placement, turn, save, list, delete and error matches BDS.",
-            "reference": "issue #3237"
         }
     },
     "scripting.commands": {
