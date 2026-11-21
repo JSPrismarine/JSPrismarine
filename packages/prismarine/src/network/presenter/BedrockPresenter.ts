@@ -130,6 +130,9 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends nothing: the session sends a Bedrock client its slots, with the stack ids it names stacks by. */
     public async showOwnSlot(): Promise<void> {}
 
+    /** Sends nothing: a Bedrock client's entity data goes in the replicator's shared batches. */
+    public async showEntityState(): Promise<void> {}
+
     /** Sends nothing: a Bedrock client's equipment goes in the replicator's shared batches. */
     public async showEquipment(): Promise<void> {}
 

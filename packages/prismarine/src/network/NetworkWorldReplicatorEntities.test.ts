@@ -34,7 +34,7 @@ import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
-import type { SessionPresenter, ShownEquipment } from './presenter/SessionPresenter';
+import type { SessionPresenter, ShownEntityState, ShownEquipment } from './presenter/SessionPresenter';
 
 /**
  * Who is shown what, as entities come and go.
@@ -499,6 +499,26 @@ describe('network', () => {
                 await tick(() => entity!.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } }));
 
                 expect(shown).toStrictEqual([{ mainhand: { name: 'minecraft:stick', count: 1 } }]);
+                expect(watching.spy.frames).toHaveLength(0);
+            });
+
+            it('shows a Java tracker a mob catching fire through its presenter, and no Bedrock packets', async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                const states: ShownEntityState[] = [];
+                Object.assign(watching.player, {
+                    presenter: stub<SessionPresenter>({
+                        edition: 'java',
+                        showEntityState: async (_runtimeId, state) => void states.push(state)
+                    })
+                });
+                watching.spy.frames.length = 0;
+
+                await tick(() => (entity!.body.fireTicks = 100));
+
+                expect(states.at(-1)?.onFire).toBe(true);
                 expect(watching.spy.frames).toHaveLength(0);
             });
 

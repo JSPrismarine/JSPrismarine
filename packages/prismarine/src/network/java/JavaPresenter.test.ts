@@ -264,6 +264,48 @@ describe('JavaPresenter', () => {
         });
     });
 
+    it("sends an entity's flags and pose when they change, and nothing for a state the client already has", async () => {
+        const { sent, java } = presenter();
+        const standing = {
+            onFire: false,
+            sneaking: false,
+            sprinting: false,
+            swimming: false,
+            invisible: false,
+            gliding: false,
+            sleeping: false
+        };
+
+        await java.showEntityState(9n, standing);
+        await java.showEntityState(9n, { ...standing, sneaking: true, onFire: true });
+        await java.showEntityState(9n, { ...standing, sneaking: true, onFire: true });
+        await java.showEntityState(9n, { ...standing, sleeping: true, sneaking: true });
+
+        expect(sent).toEqual([
+            {
+                name: 'Set Entity Metadata',
+                value: {
+                    entityId: 9,
+                    entries: [
+                        { index: 0, serializer: 0, value: 0x03 },
+                        { index: 6, serializer: 20, value: 5 }
+                    ]
+                }
+            },
+            {
+                name: 'Set Entity Metadata',
+                value: {
+                    entityId: 9,
+                    // Asleep wins the pose; the crouch stays a flag.
+                    entries: [
+                        { index: 0, serializer: 0, value: 0x02 },
+                        { index: 6, serializer: 20, value: 2 }
+                    ]
+                }
+            }
+        ]);
+    });
+
     it('shows a mob under the Java type its Bedrock one comes from, and nothing for what it has no facts of', async () => {
         const { sent, java } = presenter();
         const mob = (describe: () => ShownEntityFacts | undefined): ShownEntity => ({

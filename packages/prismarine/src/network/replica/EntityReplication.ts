@@ -55,6 +55,7 @@ import type { EntityRef, HeldEntity, MembershipChange, PlayerIdOf, ShownKind } f
 import type { EntityReplica } from './EntityReplica';
 import { equipmentPackets, firstSightPackets } from './firstSight';
 import type { SessionPresenter } from '../presenter/SessionPresenter';
+import { shownEntityStateOf } from '../presenter/shownEntityState';
 import { shownEquipmentOf } from '../presenter/shownInventory';
 import type { FirstSight, SightIdentity } from './firstSight';
 import { allSent } from '../allSent';
@@ -409,6 +410,11 @@ export class EntityReplication {
                 return [packet];
             })
         ];
+        sends.push(
+            this.ports.presentToTracked(entity, (presenter) =>
+                presenter.showEntityState(entity, shownEntityStateOf(metadata))
+            )
+        );
         const own = this.ports.viewerOf(entity);
         if (own !== undefined)
             sends.push(
@@ -541,6 +547,7 @@ export class EntityReplication {
                     type: held.shownIdentifier,
                     feet: { x: view.pose.x, y: view.pose.y, z: view.pose.z },
                     equipment: shownEquipmentOf(equipment),
+                    ...(known === undefined ? {} : { state: shownEntityStateOf(known.metadata) }),
                     yaw: view.pose.yaw,
                     pitch: view.pose.pitch,
                     headYaw: view.pose.yaw,

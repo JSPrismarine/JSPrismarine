@@ -99,6 +99,17 @@ export type ShownEquipment = Partial<
     Record<'mainhand' | 'offhand' | 'head' | 'chest' | 'legs' | 'feet' | 'body', ShownStack>
 >;
 
+/** How an entity carries itself, as every edition draws it. */
+export interface ShownEntityState {
+    readonly onFire: boolean;
+    readonly sneaking: boolean;
+    readonly sprinting: boolean;
+    readonly swimming: boolean;
+    readonly invisible: boolean;
+    readonly gliding: boolean;
+    readonly sleeping: boolean;
+}
+
 /** The containers of a player's own inventory that a client shows. */
 export type ShownContainer = 'inventory' | 'armor' | 'offhand';
 
@@ -247,6 +258,15 @@ export interface SessionPresenter {
      * @param equipment - Everything it holds and wears; every other slot is empty.
      */
     showEquipment(runtimeId: bigint, equipment: ShownEquipment): Promise<void>;
+
+    /**
+     * Shows how an entity the client sees carries itself now, for a client the replicator's
+     * Bedrock packets do not reach.
+     *
+     * @param runtimeId - The entity.
+     * @param state - Its state.
+     */
+    showEntityState(runtimeId: bigint, state: ShownEntityState): Promise<void>;
 
     /**
      * Shows the player its own health, food and saturation, for a client the session's Bedrock

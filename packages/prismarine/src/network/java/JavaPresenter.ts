@@ -25,8 +25,13 @@ import {
     PlayerInfoRemove,
     RemoveEntities,
     RotateHead,
+    JavaEntityDataIndex,
+    JavaEntityDataSerializer,
+    JavaEntityFlag,
     JavaEquipmentSlot,
+    JavaPose,
     SectionBlocksUpdate,
+    SetEntityData,
     SetEquipment,
     SetHeldSlot,
     SynchronizePlayerPosition,
@@ -44,6 +49,7 @@ import type {
     ShownContainer,
     ShownDeath,
     ShownEntityMove,
+    ShownEntityState,
     ShownEquipment,
     ShownInventory,
     ShownMessage,
@@ -91,6 +97,35 @@ const JAVA_EQUIPMENT_SLOTS: readonly (readonly [keyof ShownEquipment, JavaEquipm
     ['feet', JavaEquipmentSlot.Feet],
     ['body', JavaEquipmentSlot.Body]
 ];
+
+/**
+ * An entity's state as Java's shared flags byte and pose.
+ * @param state - The state.
+ * @returns The two entity data entries.
+ */
+export const javaEntityDataOf = (state: ShownEntityState) => {
+    const flags =
+        (state.onFire ? JavaEntityFlag.OnFire : 0) |
+        (state.sneaking ? JavaEntityFlag.Crouching : 0) |
+        (state.sprinting ? JavaEntityFlag.Sprinting : 0) |
+        (state.swimming ? JavaEntityFlag.Swimming : 0) |
+        (state.invisible ? JavaEntityFlag.Invisible : 0) |
+        (state.gliding ? JavaEntityFlag.FallFlying : 0);
+    // The pose draws the body; one state wins, in the order a client would show them.
+    const pose = state.sleeping
+        ? JavaPose.Sleeping
+        : state.gliding
+          ? JavaPose.FallFlying
+          : state.swimming
+            ? JavaPose.Swimming
+            : state.sneaking
+              ? JavaPose.Crouching
+              : JavaPose.Standing;
+    return [
+        { index: JavaEntityDataIndex.SharedFlags, serializer: JavaEntityDataSerializer.Byte, value: flags },
+        { index: JavaEntityDataIndex.Pose, serializer: JavaEntityDataSerializer.Pose, value: pose }
+    ];
+};
 
 /** Sends one Java packet to the session's client. */
 export type JavaSend = <T>(definition: JavaPacketDefinition<T>, value: T) => void;
@@ -167,6 +202,8 @@ export class JavaPresenter implements SessionPresenter {
     /** The players the client was shown, by entity, whose profiles leave its tab list with them. */
     private readonly shownPlayers = new Map<bigint, string>();
     private readonly entities = javaEntityTranslation();
+    /** The shared flags and pose each shown entity was last sent, as `flags,pose`. */
+    private readonly entityData = new Map<bigint, string>();
 
     /**
      * @param send - Sends to the session's client.
@@ -273,6 +310,21 @@ export class JavaPresenter implements SessionPresenter {
         // Only what it has: a client shows an entity it was just told of with empty hands.
         const equipment = this.javaEquipmentOf(facts.equipment ?? {}).filter(({ item }) => item !== null);
         if (equipment.length > 0) this.send(SetEquipment, { entityId: Number(runtimeId), equipment });
+        this.entityData.delete(runtimeId);
+        if (facts.state !== undefined) await this.showEntityState(runtimeId, facts.state);
+    }
+
+    /**
+     * Sends `Set Entity Metadata` with the shared flags and the pose, when they differ from what
+     * the client was last sent; a client shows a new entity standing, with no flags. Bedrock's
+     * metadata changes for much a Java client does not show, such as the air a player has left.
+     */
+    public async showEntityState(runtimeId: bigint, state: ShownEntityState): Promise<void> {
+        const entries = javaEntityDataOf(state);
+        const shown = entries.map(({ value }) => value).join(',');
+        if ((this.entityData.get(runtimeId) ?? '0,0') === shown) return;
+        this.entityData.set(runtimeId, shown);
+        this.send(SetEntityData, { entityId: Number(runtimeId), entries });
     }
 
     /** Every slot, so one emptied since the last send is cleared, in Java's slots and items. */
@@ -287,6 +339,7 @@ export class JavaPresenter implements SessionPresenter {
 
     /** Sends `Remove Entities`, and takes a player off the tab list too. */
     public async hideEntity(runtimeId: bigint): Promise<void> {
+        this.entityData.delete(runtimeId);
         this.send(RemoveEntities, { entityIds: [Number(runtimeId)] });
         const uuid = this.shownPlayers.get(runtimeId);
         if (uuid === undefined) return;
