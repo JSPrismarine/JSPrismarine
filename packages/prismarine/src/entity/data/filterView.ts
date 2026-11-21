@@ -27,7 +27,7 @@ import { bestNeighborSignal, isSignalSource, ownSignalOf } from '@jsprismarine/e
 import { trustedBy } from '@jsprismarine/entities/components/trust';
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
-import { itemOfDrop } from '../../inventory/persistence';
+import type { Item } from '../../item/Item';
 import { defaultGameRule } from '../../world/GameRuleManager';
 import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
@@ -62,38 +62,31 @@ const equipmentSlotsFor = (slot: EquipmentSlot): readonly MobEquipmentSlot[] | u
     }
 };
 
-/** What an entity filter reads from one equipment or inventory slot. */
-const itemViewOf = (drop: MobBody['containerSlots'][number], scene: EntityScene): FilterItemView | undefined => {
-    if (drop === undefined) return undefined;
-    const item = itemOfDrop(drop, scene.content());
-    return {
-        identifier: () => drop.identifier,
-        data: () => item?.getMeta() ?? drop.meta ?? 0,
-        ...(item === null
-            ? {}
-            : {
-                  tags: () => item.getTags(),
-                  enchantment: (name: string) => item.getEnchantmentLevel(name),
-                  hasComponent: (name: string) => item.hasComponent(name)
-              }),
-        damaged: () =>
-            item === null
-                ? (drop.damage ?? 0) > 0
-                : item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
-    };
-};
+/** What an entity filter reads from one equipment or inventory slot that holds a stack. */
+export const filterItemOf = (item: Item | null | undefined): FilterItemView | undefined =>
+    item === undefined || item === null
+        ? undefined
+        : {
+              identifier: () => item.getName(),
+              data: () => item.getMeta(),
+              tags: () => item.getTags(),
+              enchantment: (name) => item.getEnchantmentLevel(name),
+              hasComponent: (name) => item.hasComponent(name),
+              damaged: () => item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
+          };
 
-/** The stack at one indexed filter slot, or undefined when it is empty or out of range. */
-const dropAt = (body: MobBody, slot: EquipmentSlot, index: number): MobBody['containerSlots'][number] => {
-    if (slot === 'inventory') return body.containerSlots[index];
+/** The stack at one indexed filter slot, or null when it is empty or out of range. */
+const stackAt = (body: MobBody, slot: EquipmentSlot, index: number): Item | null => {
+    const { inventory } = body;
+    if (slot === 'inventory') return inventory.container('inventory').get(index);
     if (slot === 'any') {
         const equipment = MOB_EQUIPMENT_SLOTS[index];
         return equipment === undefined
-            ? body.containerSlots[index - MOB_EQUIPMENT_SLOTS.length]
-            : body.equipment[equipment];
+            ? inventory.container('inventory').get(index - MOB_EQUIPMENT_SLOTS.length)
+            : inventory.equipment(equipment);
     }
     const equipment = equipmentSlotsFor(slot)?.[index];
-    return equipment === undefined ? undefined : body.equipment[equipment];
+    return equipment === undefined ? null : inventory.equipment(equipment);
 };
 
 /** How many slots one filter domain exposes. */
@@ -108,7 +101,7 @@ const slotFillOf = (body: MobBody, slot: EquipmentSlot): SlotFill => {
     const capacity = capacityOf(body, slot);
     let filled = 0;
     for (let index = 0; index < capacity; index += 1) {
-        if (dropAt(body, slot, index) !== undefined) filled += 1;
+        if (stackAt(body, slot, index) !== null) filled += 1;
     }
     return { filled, capacity };
 };
@@ -162,11 +155,14 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
         }
         return undefined;
     },
-    equipment: (slot, index) => itemViewOf(dropAt(body, slot, index), scene),
+    equipment: (slot, index) => filterItemOf(stackAt(body, slot, index)),
     slotFill: (slot) => slotFillOf(body, slot),
     carries: (matches) =>
-        [...MOB_EQUIPMENT_SLOTS.map((slot) => body.equipment[slot]), ...body.containerSlots].some((drop) => {
-            const item = itemViewOf(drop, scene);
+        [
+            ...MOB_EQUIPMENT_SLOTS.map((slot) => body.inventory.equipment(slot)),
+            ...body.inventory.container('inventory').items()
+        ].some((stack) => {
+            const item = filterItemOf(stack);
             return item !== undefined && matches(item);
         }),
     vehicle: () => viewOf(scene.vehicleOf(body)?.id, scene),

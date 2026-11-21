@@ -10,6 +10,7 @@ import type { Probe, ProbeOptions } from './goalProbe.ts';
 import { withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring, mappedEntity } from './subjects.ts';
+import { equipmentOf, heldOf, hold } from './mobSlots.ts';
 
 /**
  * The scenarios for the mob-specific AI goals: every `minecraft:behavior.*` goal fewer than four
@@ -730,7 +731,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                             for (let y = 0; y <= 3; y += 1) if (x !== 0 || z !== 0) probe.block(x, y, z, block);
                     probe.tick(40);
                     return (
-                        probe.entity.carried !== undefined ||
+                        heldOf(probe.entity.body) !== undefined ||
                         probe.entity.instance.hasComponent('minecraft:is_carrying_block')
                     );
                 });
@@ -777,7 +778,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             'Java PiglinAi.initFightActivity (CrossbowAttack, and MeleeAttack, which refuses while the mob holds a projectile weapon it can fire) and CrossbowAttack.crossbowAttack (CrossbowItem.getChargeDuration 25, attackDelay 20 + nextInt(20))',
         run: (subject) =>
             withProbe(subject.bedrock, {}, (probe) => {
-                probe.entity.body.carried = 'minecraft:crossbow';
+                hold(probe.entity.body, 'minecraft:crossbow');
                 const player = probe.player(6, 0, 0);
                 const origin = probe.at(0, 0, 0);
                 const arrows = new Map<number, number>();
@@ -827,9 +828,9 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 const horses = near.filter((other) => other.identifier === 'minecraft:skeleton_horse');
                 const skeletons = near.filter((other) => other.identifier === 'minecraft:skeleton');
                 const unridden = horses.filter((horse) => probe.runtime.ridersOf(horse.body).length !== 1).length;
-                const bare = skeletons.filter((skeleton) => skeleton.body.equipment.head === undefined).length;
+                const bare = skeletons.filter((skeleton) => equipmentOf(skeleton.body).head === undefined).length;
                 const unenchanted = skeletons.filter((skeleton) =>
-                    [skeleton.body.equipment.mainhand, skeleton.body.equipment.head].some(
+                    [equipmentOf(skeleton.body).mainhand, equipmentOf(skeleton.body).head].some(
                         (item) => item === undefined || Object.keys(item.enchantments ?? {}).length === 0
                     )
                 ).length;
@@ -1810,9 +1811,9 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 const player = probe.player(3, 0, 0);
                 probe.world.held.set(player, 'minecraft:emerald');
                 probe.tick(100);
-                return probe.entity.carried === undefined
+                return heldOf(probe.entity.body) === undefined
                     ? undefined
-                    : `it held out ${probe.entity.carried} to a player holding an emerald`;
+                    : `it held out ${heldOf(probe.entity.body)} to a player holding an emerald`;
             })
     }),
     goalScenario({
@@ -1919,7 +1920,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                         probe.world.drops
                             .slice(before)
                             .filter((drop) => drop.item.identifier === 'minecraft:sweet_berries').length +
-                        (probe.entity.carried === 'minecraft:sweet_berries' ? 1 : 0);
+                        (heldOf(probe.entity.body) === 'minecraft:sweet_berries' ? 1 : 0);
                     return differences([
                         growth !== 1 && `the ripe berry bush 3 blocks away was left at growth ${String(growth)}, not 1`,
                         growth === 1 &&
@@ -2054,8 +2055,8 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 ['eat_carried_item'],
                 { groups: ['minecraft:fox_with_item'], random: [0.01] },
                 (probe) => {
-                    probe.entity.carried = 'minecraft:sweet_berries';
-                    const ate = probe.until(() => probe.entity.carried === undefined, 800);
+                    hold(probe.entity.body, 'minecraft:sweet_berries');
+                    const ate = probe.until(() => heldOf(probe.entity.body) === undefined, 800);
                     return ate === undefined
                         ? 'it never ate the berries in its mouth'
                         : ate < 590
@@ -2085,7 +2086,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 const lying = probe.runtime
                     .items(probe.at(0, 0, 0), 8)
                     .filter((item) => item.identifier() === 'minecraft:bamboo');
-                return lying.length === 0 || probe.entity.carried === 'minecraft:bamboo'
+                return lying.length === 0 || heldOf(probe.entity.body) === 'minecraft:bamboo'
                     ? undefined
                     : 'it left the bamboo 2 blocks away on the ground';
             })
@@ -2385,7 +2386,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         entities: ['minecraft:enderman'],
         run: (subject) =>
             probeGoals(subject, ['place_block'], { random: [0.00001, 0.5, 0.9] }, (probe) => {
-                probe.entity.carried = 'minecraft:dirt';
+                hold(probe.entity.body, 'minecraft:dirt');
                 probe.tick(200);
                 let placed = 0;
                 for (let x = -1; x <= 1; x += 1)
@@ -2394,7 +2395,7 @@ export const mobGoalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 return differences([
                     placed === 0 && 'it never put down the dirt it carried',
                     placed > 1 && `it put down ${placed} dirt blocks from one carried block`,
-                    probe.entity.carried !== undefined && placed > 0 && 'it still carries the block it put down'
+                    heldOf(probe.entity.body) !== undefined && placed > 0 && 'it still carries the block it put down'
                 ]);
             })
     }),

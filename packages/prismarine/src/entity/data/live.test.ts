@@ -2992,7 +2992,7 @@ describe('the data-driven entity runtime over a live world', () => {
             // item and a breeding cooldown the type's definition says nothing about.
             saved.instance.attributes.set('health', 4);
             saved.body.home = { x: 2, y: GROUND_Y, z: 3 };
-            saved.body.carried = 'minecraft:wheat';
+            saved.body.inventory.setEquipment('mainhand', new Item({ name: 'minecraft:wheat', count: 1 }));
             saved.body.breedCooldown = 120;
             saved.body.yaw = 45;
 
@@ -3011,7 +3011,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(restored[0]?.instance.goals.names()).toContain('minecraft:behavior.random_stroll');
             expect(restored[0]?.instance.attributes.get('health')?.current).toBe(4);
             expect(restored[0]?.body.home).toEqual({ x: 2, y: GROUND_Y, z: 3 });
-            expect(restored[0]?.body.carried).toBe('minecraft:wheat');
+            expect(restored[0]?.body.inventory.equipment('mainhand')?.getName()).toBe('minecraft:wheat');
             expect(restored[0]?.body.breedCooldown).toBe(120);
             expect(restored[0]?.body.yaw).toBe(45);
             expect(restored[0]?.position).toEqual({ x: 2.5, y: GROUND_Y, z: 3.5 });

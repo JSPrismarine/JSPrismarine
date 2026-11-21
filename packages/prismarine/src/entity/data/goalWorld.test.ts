@@ -6,6 +6,7 @@ import type { DataEntity } from './DataEntity';
 import { goalWorldOf } from './goalWorld';
 import type { EntityFixture, ExtraEntities } from './testing';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
+import { carriedOf, give, heldOf } from '../../testing/mobSlots.test-utils';
 
 /**
  * The goal world against the real runtime.
@@ -193,7 +194,7 @@ describe('the goal world over the entity runtime', () => {
 
             expect(entity?.body.owner).toBe(caster.id);
             expect(fixture.runtime.ridersOf(mount.body).map((seated) => seated.id)).toEqual([rider?.id]);
-            expect(entity?.body.equipment.head?.identifier).toBe('minecraft:iron_helmet');
+            expect(entity?.body.inventory.equipment('head')?.getName()).toBe('minecraft:iron_helmet');
             expect(entity?.body.velocity.x).toBe(0.5);
         });
     });
@@ -715,7 +716,7 @@ describe('the goal world over the entity runtime', () => {
 
             run(fixture, 20);
 
-            expect(collector.body.inventory).toEqual(['minecraft:wheat', 'minecraft:wheat']);
+            expect(carriedOf(collector.body)).toEqual(['minecraft:wheat', 'minecraft:wheat']);
             expect(world.host.items?.()).toEqual([]);
         });
 
@@ -723,12 +724,12 @@ describe('the goal world over the entity runtime', () => {
             const fixture = fixtureOf();
             const giver = spawned(fixture, 'jsprismarine:giver', groundAt(0, 0));
             const taker = spawned(fixture, 'jsprismarine:collector', groundAt(2, 0));
-            giver.body.setInventory([...giver.body.inventory, 'minecraft:bread']);
+            give(giver.body, ['minecraft:bread'], fixture.runtime.content());
 
             run(fixture, 20);
 
-            expect(taker.body.inventory).toEqual(['minecraft:bread']);
-            expect(giver.body.inventory).toEqual([]);
+            expect(carriedOf(taker.body)).toEqual(['minecraft:bread']);
+            expect(carriedOf(giver.body)).toEqual([]);
         });
     });
 
@@ -741,7 +742,7 @@ describe('the goal world over the entity runtime', () => {
 
             run(fixture, 3);
 
-            expect(enderman.carried).toBe('minecraft:redstone_lamp');
+            expect(heldOf(enderman.body)).toBe('minecraft:redstone_lamp');
             expect(world.world.blocks.get({ x: 2, y: FLOOR_Y + 1, z: 0 })?.identifier).toBe('minecraft:air');
         });
 

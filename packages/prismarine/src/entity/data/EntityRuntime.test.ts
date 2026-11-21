@@ -12,6 +12,7 @@ import { mergeStatusEffect } from '../StatusEffect';
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
 import { entityFixture, entityFixtureStack, FLOOR_Y, TestEntityWorld } from './testing';
+import { carriedOf, containerOf, equip, equipmentOf, give, setContainerSlot } from '../../testing/mobSlots.test-utils';
 
 /** A runtime over the entity fixture, with the world a test can poke at. */
 const runtimeOf = (world = new TestEntityWorld()) => entityFixture(world);
@@ -258,13 +259,13 @@ describe('EntityRuntime', () => {
             );
             const entity = runtime.spawn('jsprismarine:dropper', GROUND);
             if (entity === undefined) throw new Error('the fixture declares no entity with a drop event');
-            entity.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } });
+            equip(entity.body, { mainhand: { identifier: 'minecraft:stick', count: 1 } }, runtime.content());
 
             entity.instance.fire('jsprismarine:drop_hand');
             runtime.tick(1);
 
             expect(world.drops).toEqual([{ position: GROUND, item: { identifier: 'minecraft:stick', count: 1 } }]);
-            expect(entity.body.equipment.mainhand).toBeUndefined();
+            expect(equipmentOf(entity.body).mainhand).toBeUndefined();
             expect(reports).toEqual([]);
         });
 
@@ -1148,20 +1149,25 @@ describe('EntityRuntime', () => {
             );
             const entity = runtime.spawn('jsprismarine:item_repairer', GROUND);
             if (entity === undefined) throw new Error('the fixture declares no item repairer');
-            entity.body.setContainerSlot(0, {
-                identifier: 'minecraft:diamond_pickaxe',
-                count: 1,
-                damage: 7,
-                customName: 'Field tool',
-                enchantments: { 'minecraft:efficiency': 2 }
-            });
+            setContainerSlot(
+                entity.body,
+                0,
+                {
+                    identifier: 'minecraft:diamond_pickaxe',
+                    count: 1,
+                    damage: 7,
+                    customName: 'Field tool',
+                    enchantments: { 'minecraft:efficiency': 2 }
+                },
+                runtime.content()
+            );
 
             expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
                 consumeItem: false,
                 swing: true
             });
-            expect(entity.body.containerSlots[0]).toEqual({
+            expect(containerOf(entity.body)[0]).toEqual({
                 identifier: 'minecraft:diamond_pickaxe',
                 count: 1,
                 damage: 3,
@@ -1173,7 +1179,7 @@ describe('EntityRuntime', () => {
         it('takes the entity main-hand stack into an empty player hand', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
-                {},
+                { itemDefinitions: vanillaItemDefinitions() },
                 {
                     'jsprismarine:item_taker': {
                         components: {
@@ -1193,8 +1199,7 @@ describe('EntityRuntime', () => {
                 customName: 'Returned sword',
                 enchantments: { 'minecraft:sharpness': 2 }
             };
-            entity.body.setContainerSlot(0, item);
-            entity.body.setEquipment({ mainhand: item });
+            setContainerSlot(entity.body, 0, item, runtime.content());
             entity.body.equipmentInventorySlots.set('mainhand', 0);
             const emptyHand: FilterEntityView = { equipment: () => undefined };
 
@@ -1204,8 +1209,8 @@ describe('EntityRuntime', () => {
                     count: 0
                 })
             ).toEqual({ accepted: true, consumeItem: false, takenItem: item, swing: true });
-            expect(entity.body.equipment.mainhand).toBeUndefined();
-            expect(entity.body.containerSlots[0]).toBeUndefined();
+            expect(equipmentOf(entity.body).mainhand).toBeUndefined();
+            expect(containerOf(entity.body)[0]).toBeUndefined();
         });
 
         it('checks healable filters and lets force_use accept an item at full health', () => {
@@ -1471,20 +1476,29 @@ describe('EntityRuntime', () => {
                         : undefined
             };
             const heldItem = { identifier: 'minecraft:iron_horse_armor', count: 1, meta: 0 };
-            horse.body.setContainerSlot(0, {
-                identifier: 'minecraft:diamond_pickaxe',
-                count: 1,
-                damage: 3,
-                enchantments: { 'minecraft:efficiency': 1 }
-            });
+            setContainerSlot(
+                horse.body,
+                0,
+                {
+                    identifier: 'minecraft:diamond_pickaxe',
+                    count: 1,
+                    damage: 3,
+                    enchantments: { 'minecraft:efficiency': 1 }
+                },
+                runtime.content()
+            );
 
             expect(runtime.interactWithItem(horse.id, 42, heldItem.identifier, playerView, heldItem)).toEqual({
                 accepted: true,
                 consumeItem: true,
                 swing: true
             });
-            expect(horse.body.containerSlots[1]).toEqual(heldItem);
-            expect(horse.body.equipment.body).toEqual(heldItem);
+            // Kept as a stack, which leaves out an aux value of zero.
+            const kept = { identifier: 'minecraft:iron_horse_armor', count: 1 };
+            expect(containerOf(horse.body)[1]).toEqual(kept);
+            expect(equipmentOf(horse.body).body).toEqual(kept);
+            // One stack: the body slot reads the inventory slot, and its own slot stays empty.
+            expect(horse.body.inventory.container('body').get(0)).toBeNull();
             expect(horse.body.equipmentInventorySlots.get('body')).toBe(1);
             expect(horse.instance.filterContext().self.equipment?.('inventory', 1)?.identifier()).toBe(
                 'minecraft:iron_horse_armor'
@@ -1496,11 +1510,18 @@ describe('EntityRuntime', () => {
                 consumeItem: false,
                 swing: true
             });
-            expect(horse.body.containerSlots[1]).toBeUndefined();
-            expect(horse.body.equipment.body).toBeUndefined();
-            expect(world.drops).toEqual([
-                { position: { x: GROUND.x, y: GROUND.y + 0.75, z: GROUND.z }, item: heldItem }
-            ]);
+            expect(containerOf(horse.body)[1]).toBeUndefined();
+            expect(equipmentOf(horse.body).body).toBeUndefined();
+            expect(world.drops).toEqual([{ position: { x: GROUND.x, y: GROUND.y + 0.75, z: GROUND.z }, item: kept }]);
+
+            // The body slot still points at the empty inventory slot: equipping into it keeps the armor.
+            horse.body.equipmentInventorySlots.set('body', 1);
+            expect(runtime.interactWithItem(horse.id, 42, heldItem.identifier, playerView, heldItem).accepted).toBe(
+                true
+            );
+            expect(containerOf(horse.body)[1]).toEqual(kept);
+            expect(equipmentOf(horse.body).body).toEqual(kept);
+            expect(world.drops).toHaveLength(1);
             expect(reports).toEqual([]);
         });
 
@@ -1520,7 +1541,7 @@ describe('EntityRuntime', () => {
             );
             const entity = runtime.spawn('jsprismarine:item_giver', GROUND);
             if (entity === undefined) throw new Error('the fixture declares no item-giving entity');
-            entity.body.setEquipment({ mainhand: { identifier: 'minecraft:bow', count: 1 } });
+            equip(entity.body, { mainhand: { identifier: 'minecraft:bow', count: 1 } }, runtime.content());
 
             expect(
                 runtime.interactWithItem(entity.id, 42, 'minecraft:stick', undefined, {
@@ -1529,7 +1550,7 @@ describe('EntityRuntime', () => {
                     customName: 'Given stick'
                 })
             ).toEqual({ accepted: true, consumeItem: true, swing: true });
-            expect(entity.body.equipment.mainhand).toEqual({
+            expect(equipmentOf(entity.body).mainhand).toEqual({
                 identifier: 'minecraft:stick',
                 count: 1,
                 customName: 'Given stick'
@@ -3073,7 +3094,7 @@ describe('EntityRuntime', () => {
             const attacker = runtime.spawn('minecraft:cow', GROUND);
             const empty = runtime.spawn('minecraft:sulfur_cube', { ...GROUND, x: GROUND.x + 2 });
             const carrying = runtime.spawn('minecraft:sulfur_cube', { ...GROUND, x: GROUND.x + 2, z: GROUND.z + 5 });
-            carrying!.body.setEquipment({ mainhand: { identifier: 'minecraft:stone', count: 1 } });
+            equip(carrying!.body, { mainhand: { identifier: 'minecraft:stone', count: 1 } }, runtime.content());
             const hit = (target: number) => {
                 runtime.store.get(target)!.body.velocity = { x: 0, y: 0, z: 0 };
                 runtime.damage({
@@ -3218,7 +3239,8 @@ describe('EntityRuntime', () => {
                     'minecraft:movement': { value: 2 },
                     'minecraft:collision_box': { width: 0.6, height: 1.9 },
                     'minecraft:physics': {},
-                    'minecraft:navigation.walk': {}
+                    'minecraft:navigation.walk': {},
+                    'minecraft:inventory': { inventory_size: 8, private: true }
                 }
             }
         };
@@ -3249,16 +3271,11 @@ describe('EntityRuntime', () => {
             world.setBlock(composterAt, 'minecraft:composter');
             const villager = runtime.spawn('minecraft:villager_v2', GROUND);
             if (villager === undefined) throw new Error('the fixture declares no minecraft:villager_v2');
-            villager.body.setInventory([
-                ...villager.body.inventory,
-                'minecraft:wheat',
-                'minecraft:wheat',
-                'minecraft:wheat'
-            ]);
+            give(villager.body, ['minecraft:wheat', 'minecraft:wheat', 'minecraft:wheat'], runtime.content());
 
             expect(runtime.villagerTask(villager.body, 'work_at_composter', composterAt)).toBe(true);
 
-            expect(villager.body.inventory).toEqual(['minecraft:bread']);
+            expect(carriedOf(villager.body)).toEqual(['minecraft:bread']);
         });
 
         it('has a child only when both are fed, grown and a bed is free', () => {
@@ -3267,7 +3284,7 @@ describe('EntityRuntime', () => {
             const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
             if (first === undefined || second === undefined) throw new Error('no villagers');
             for (const villager of [first, second])
-                villager.body.setInventory([...villager.body.inventory, ...Array(3).fill('minecraft:bread')]);
+                give(villager.body, [...Array(3).fill('minecraft:bread')], runtime.content());
             const before = runtime.entities().toArray().length;
 
             expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(false);
@@ -3278,7 +3295,7 @@ describe('EntityRuntime', () => {
             expect(runtime.villagerTask(first.body, 'make_love', second.id)).toBe(true);
 
             expect(runtime.entities().toArray()).toHaveLength(before + 1);
-            expect(first.body.inventory).toEqual([]);
+            expect(carriedOf(first.body)).toEqual([]);
             expect(runtime.villagerCanBreed(first.body, second.id)).toBe(false);
         });
 
@@ -3319,11 +3336,11 @@ describe('EntityRuntime', () => {
             const first = runtime.spawn('minecraft:villager_v2', GROUND);
             const second = runtime.spawn('minecraft:villager_v2', { ...GROUND, x: 1.5 });
             if (first === undefined || second === undefined) throw new Error('no villagers');
-            first.body.setInventory([...first.body.inventory, ...Array(4).fill('minecraft:bread')]);
+            give(first.body, [...Array(4).fill('minecraft:bread')], runtime.content());
 
             expect(runtime.villagerTask(first.body, 'trade_with_villager', second.id)).toBe(true);
 
-            expect(second.body.inventory).toEqual(['minecraft:bread', 'minecraft:bread']);
+            expect(carriedOf(second.body)).toEqual(['minecraft:bread', 'minecraft:bread']);
         });
     });
 

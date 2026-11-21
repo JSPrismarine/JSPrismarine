@@ -33,6 +33,7 @@ import type { RealStack } from '../serverStack.ts';
 import { javaClassChain, javaEntityClassName, javaMethodOf, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
 import { componentValues, entitiesDeclaring, field, groupsDeclaring, javaEntityIds, mappedEntity } from './subjects.ts';
+import { containerOf, equipmentOf, hold } from './mobSlots.ts';
 
 /**
  * Scenarios for what a mob leaves behind and when it leaves: its death loot and experience,
@@ -214,7 +215,7 @@ const javaDeathRoll = (table: string, self: EntityView): Map<string, number> => 
 
 /** Every item the mob holds or wears, which a death may drop beside its table and the table does not cover. */
 const equippedItems = (entity: DataEntity): ReadonlySet<string> =>
-    new Set(Object.values(entity.body.equipment).flatMap((drop) => (drop === undefined ? [] : [drop.identifier])));
+    new Set(Object.values(equipmentOf(entity.body)).flatMap((drop) => (drop === undefined ? [] : [drop.identifier])));
 
 /** A class's simple name, such as `Monster` for `net/minecraft/world/entity/monster/Monster`. */
 const simpleName = (javaClass: JavaClass): string => javaClass.name.slice(javaClass.name.lastIndexOf('/') + 1);
@@ -394,7 +395,7 @@ const collectOrbs = (): number => {
 
 /** The equipped hand and armor slots, which `EquipmentSlot.canIncreaseExperience` counts. */
 const equippedCount = (entity: DataEntity): number =>
-    Object.entries(entity.body.equipment).filter(([slot, item]) => slot !== 'body' && item !== undefined).length;
+    Object.entries(equipmentOf(entity.body)).filter(([slot, item]) => slot !== 'body' && item !== undefined).length;
 
 /** Compares `KILLS` server deaths' experience with Java's distribution for each of those deaths. */
 const compareDeathExperience = (subject: EntitySubject): string | undefined => {
@@ -793,7 +794,7 @@ const compareSpawnGear = (subject: EntitySubject): string | undefined => {
     withWorld(undefined, () => {
         for (let index = 0; index < SPAWNS; index += 1) {
             const entity = spawn(subject.bedrock);
-            for (const [slot, item] of Object.entries(entity.body.equipment)) {
+            for (const [slot, item] of Object.entries(equipmentOf(entity.body))) {
                 if (item === undefined || slot === 'body') continue;
                 server.set(key(slot, item.identifier), (server.get(key(slot, item.identifier)) ?? 0) + 1);
             }
@@ -937,7 +938,7 @@ const serverTakesGear = (bedrock: string, item: string): boolean =>
         // A store player holding the item, so the definition's has_equipment filters see it.
         const holder = runtime.spawnPlayer(HOLDER_ID, { ...ORIGIN, x: ORIGIN.x + 1 });
         if (holder === undefined) throw new Error('the runtime refused to spawn a player');
-        holder.body.setEquipment({ mainhand: { identifier: item, count: 1 } });
+        hold(holder.body, item);
         const entity = tamedAdult(bedrock);
         runtime.setOwner(entity.id, HOLDER_ID);
         // The live server hands the interacting player's own filter view, which knows whether the
@@ -949,7 +950,7 @@ const serverTakesGear = (bedrock: string, item: string): boolean =>
             flag: (name) => (name === 'is_sneaking' ? false : view.flag?.(name))
         };
         const result = runtime.interactWithItem(entity.id, HOLDER_ID, item, standing);
-        const held = [...entity.body.containerSlots, ...Object.values(entity.body.equipment)];
+        const held = [...containerOf(entity.body), ...Object.values(equipmentOf(entity.body))];
         return result.accepted && held.some((drop) => drop?.identifier === item);
     });
 
@@ -1070,7 +1071,7 @@ const serverPickup = (
     item: string
 ): { readonly slot: 'mainhand' | 'head' | 'taken' | undefined; readonly holder: PickupHolder } => {
     const { runtime, world } = realStack();
-    const equipment = entity.body.equipment;
+    const equipment = equipmentOf(entity.body);
     const holder: PickupHolder = {
         mainhand: equipment.mainhand?.identifier,
         offhand: equipment.offhand?.identifier,
@@ -1082,7 +1083,7 @@ const serverPickup = (
     const lying = (world.host.items?.() ?? []).some((stack) => stack.item.identifier === item);
     clearLyingItems();
     if (lying || entity.removed !== undefined) return { slot: undefined, holder };
-    const now = entity.body.equipment;
+    const now = equipmentOf(entity.body);
     const slot =
         now.head?.identifier === item && holder.head !== item
             ? 'head'
@@ -1174,7 +1175,7 @@ const compareHopperCollecting = (subject: EntitySubject): string | undefined =>
                 (stack) => Math.abs(stack.position.x - ORIGIN.x) < 4 && Math.abs(stack.position.z - ORIGIN.z) < 4
             );
         const lying = (): number => near().filter((stack) => stack.item.identifier !== 'minecraft:diamond').length;
-        const held = (): number => cart.body.containerSlots.reduce((sum, stack) => sum + (stack?.count ?? 0), 0);
+        const held = (): number => containerOf(cart.body).reduce((sum, stack) => sum + stack.count, 0);
         const differences: string[] = [];
         runTicks(1);
         if (lying() !== stacks.length - 1)

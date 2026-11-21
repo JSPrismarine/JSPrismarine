@@ -5,6 +5,7 @@ import type { DataEntity } from './DataEntity';
 import type { EntityFixture } from './testing';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { VEHICLE_BREAK_DAMAGE, VEHICLE_DAMAGE_PER_POINT, boatItemOf } from './vehicleDamage';
+import { containerOf, setContainerSlot } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 const PLAYER = 9001;
@@ -105,7 +106,7 @@ describe('a boat under blows', () => {
     it('drops a chest boat and what its chest held', () => {
         const { fixture, world } = fixtureOf();
         const boat = spawned(fixture, 'minecraft:chest_boat', { variant: 'bamboo' });
-        boat.body.setContainerSlot(3, { identifier: 'minecraft:diamond', count: 2 });
+        setContainerSlot(boat.body, 3, { identifier: 'minecraft:diamond', count: 2 }, fixture.runtime.content());
 
         punch(fixture, boat, 10);
         expect(world.drops.map((drop) => drop.item)).toEqual([
@@ -156,7 +157,7 @@ describe('an equippable slot no interaction fills', () => {
 
         const result = fixture.runtime.interactWithItem(mount.id, PLAYER, 'minecraft:red_carpet', standing);
         expect(result.accepted).toBe(true);
-        expect(mount.body.containerSlots[0]).toEqual({ identifier: 'minecraft:red_carpet', count: 1 });
+        expect(containerOf(mount.body)[0]).toEqual({ identifier: 'minecraft:red_carpet', count: 1 });
 
         // The slot is full now, so a second carpet stays in the hand.
         expect(fixture.runtime.interactWithItem(mount.id, PLAYER, 'minecraft:blue_carpet', standing).accepted).toBe(
@@ -177,6 +178,6 @@ describe('an equippable slot no interaction fills', () => {
             false
         );
         expect(fixture.runtime.interactWithItem(tamed.id, PLAYER, 'minecraft:saddle', standing).accepted).toBe(false);
-        expect(tamed.body.containerSlots).toEqual([]);
+        expect(containerOf(tamed.body).every((slot) => slot === undefined)).toBe(true);
     });
 });

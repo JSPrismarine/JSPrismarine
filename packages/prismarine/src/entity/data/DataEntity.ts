@@ -20,11 +20,18 @@ import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 import type { SchoolMembership } from '@jsprismarine/entity-goals/world';
 import { randomUUID } from 'node:crypto';
 
-import type { ContentItemDrop } from '../../content/world/adapter';
+import type { ServerContent } from '../../content/ServerContent';
+import { EntityInventory, mobLayout } from '../../inventory/EntityInventory';
+import type { InventoryContainer, MobInventoryContainer } from '../../inventory/EntityInventory';
+import { slotCountOf } from '../../inventory/ItemContainer';
+import type { Item } from '../../item/Item';
+import type { SlotValue } from '../../inventory/slotLog';
+import type { PlainData } from '../../world/changelog/PlainData';
+import { samePlain } from '../../world/changelog/PlainData';
 import { DamageLog } from './damageLog';
 import type { StatusEffect } from '../StatusEffect';
-import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
-import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
+import type { MobEquipmentSlot } from '../equipment';
+import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
 import { moveOnAxis, stepUp } from './collision';
@@ -164,9 +171,12 @@ export interface LoggedBodyState {
      * instead of gliding there.
      */
     teleports: number;
-    equipment: MobEquipmentSet;
-    inventory: readonly string[];
-    containerSlots: readonly (ContentItemDrop | undefined)[];
+    /**
+     * How many slots the `inventory` container has, which the active `minecraft:inventory`
+     * decides. Logged so that undoing a shrink gives the slots back before the slot entries that
+     * emptied them are written back into them.
+     */
+    inventorySize: number;
 }
 
 /**
@@ -196,6 +206,14 @@ export type LoggedBodyField =
 /** What {@link MobBody.onWrite} receives: one field, with its value before and after a change. */
 export type BodyWriteObserver = (field: LoggedBodyField, before: unknown, after: unknown) => void;
 
+/** What {@link MobBody.onSlotWrite} receives: one slot the body carries, with its value before and after. */
+export type BodySlotObserver = (
+    container: InventoryContainer,
+    slot: number,
+    before: SlotValue,
+    after: SlotValue
+) => void;
+
 /**
  * Whether two values of a logged field are the same, comparing positions by coordinates, and
  * numbers with `Object.is`, so a zero that changes sign is a change.
@@ -211,17 +229,6 @@ const sameValue = (left: unknown, right: unknown): boolean => {
         Object.keys(left).length === 3 &&
         Object.keys(right).length === 3
     );
-};
-
-/**
- * Freezes a stack, or a set or list of stacks, all the way down before a body stores it. The body
- * keeps the object it is given, so a caller that changed its own stack afterwards would change
- * the slot without a write, and the log and the next save would disagree about it.
- */
-const frozenStacks = <T>(value: T): T => {
-    if (value === null || typeof value !== 'object') return value;
-    for (const item of Object.values(value)) frozenStacks(item);
-    return Object.isFrozen(value) ? value : Object.freeze(value);
 };
 
 /**
@@ -420,124 +427,122 @@ export class MobBody {
     }
 
     /**
-     * What the entity is holding and wearing, rolled from `minecraft:equipment` at spawn.
+     * What the entity holds and wears and carries, laid out by `mobLayout`: one slot each for the
+     * main hand, the off hand and the body, four armor slots and an `inventory` container of the
+     * size its `minecraft:inventory` gives ({@link MobBody.containerCapacity}).
      *
-     * The main hand of this is what {@link MobBody.carried} reads and writes, so the goals'
-     * one-identifier view of a held item and the body's full set are the same state rather
-     * than two that can disagree. See `entity/equipment.ts`. Written through
-     * {@link MobBody.setEquipment}.
+     * Every slot write reaches {@link MobBody.onSlotWrite}, and a write to a slot an equipment
+     * slot reads moves {@link MobBody.equipmentRevision} and calls
+     * {@link MobBody.onEquipmentChanged}. A store player's body leaves it empty: the player's own
+     * inventory is the store player's.
      */
-    public get equipment(): MobEquipmentSet {
-        return this.logged.equipment;
-    }
+    public readonly inventory = new EntityInventory<MobInventoryContainer>(mobLayout(0));
 
     /**
-     * How many times {@link MobBody.equipment} has been written.
+     * Told about every write to a slot of {@link MobBody.inventory}, with the slot's logged value
+     * before and after it. `EntityRuntime` sets it to log an `inventory-slot` entry.
+     */
+    public onSlotWrite: BodySlotObserver | undefined;
+
+    /**
+     * How many times an equipment slot has changed, by a slot write, an alias or an undo.
      *
-     * Read by the entity's store actor before it rebuilds the equipment it shows: comparing a
-     * counter is what keeps a tick that changed nothing from encoding five items per mob just
-     * to find that out. Equipment changes a handful of times in a mob's life, so the steady
-     * state is this number not moving.
+     * A reader that caches what a mob shows compares this counter rather than encoding five
+     * items per mob to find out whether anything changed. Equipment changes a handful of times
+     * in a mob's life, so the steady state is this number not moving.
      */
     public equipmentRevision = 0;
 
-    /** Called after default equipment changes, once the entity's component state is active. */
-    public onEquipmentChanged: ((previous: MobEquipmentSet, next: MobEquipmentSet) => void) | undefined;
-
     /**
-     * What the entity holds in its main hand, as an item identifier.
-     *
-     * The goals' view of {@link MobBody.equipment}: a villager's trade offer, an enderman's
-     * carried block and whatever `pickup_items` picked up are all written through here. An
-     * accessor rather than a field so that a goal setting a held item and a spawn roll putting
-     * a bow in the same hand are one piece of state, which is what makes the single write
-     * funnel possible.
+     * Called after an equipment slot changes, once the entity's component state is active, with
+     * whether the slot holds something now. An undo does not call it.
      */
-    public get carried(): string | undefined {
-        return this.equipment.mainhand?.identifier;
-    }
+    public onEquipmentChanged: ((slot: MobEquipmentSlot, equipped: boolean) => void) | undefined;
 
-    public set carried(identifier: string | undefined) {
-        if (identifier === this.carried) return;
-
-        this.setEquipment(
-            identifier === undefined
-                ? { ...this.equipment, mainhand: undefined }
-                : { ...this.equipment, mainhand: { identifier, count: 1 } }
-        );
+    /** How many slots the `inventory` container has, which the active `minecraft:inventory` decides. */
+    public get containerCapacity(): number {
+        return this.logged.inventorySize;
     }
 
     /**
-     * Replaces everything the entity is holding and wearing.
+     * Resizes the `inventory` container, as a llama's capacity follows its strength.
      *
-     * Drops a write that changes nothing, which is the same guard
-     * `blockentity/blockEntityWrite.ts` applies to a block entity and for the same reason: a
-     * write nobody could see is a packet nobody needs. A restored entity is the case that hits
-     * it, because a save holds what the spawn roll already produced.
-     *
-     * @param equipment - The new set, replacing the old one whole.
-     * @returns Whether anything changed.
+     * The slots a shrink takes away are emptied first, each a logged slot write, and the size is
+     * logged after them, so an undo restores the size before it writes the stacks back.
+     * @param size - The new number of slots.
+     * @returns The stacks that were in the slots that went, which the caller drops.
      */
-    public setEquipment(equipment: MobEquipmentSet): boolean {
-        if (sameEquipment(this.equipment, equipment)) return false;
-
-        const previous = this.equipment;
-
-        for (const slot of MOB_EQUIPMENT_SLOTS) {
-            if (!sameEquipment({ [slot]: this.equipment[slot] }, { [slot]: equipment[slot] }))
-                this.equipmentInventorySlots.delete(slot);
-        }
-
-        this.write('equipment', frozenStacks(equipment));
-        this.equipmentRevision += 1;
-        this.onEquipmentChanged?.(previous, equipment);
-
-        return true;
-    }
-
-    /** What the entity carries that is not in its hand, as item identifiers. */
-    public get inventory(): readonly string[] {
-        return this.logged.inventory;
-    }
-
-    /** Replaces what the entity carries outside its hand. */
-    public setInventory(inventory: readonly string[]): void {
-        if (
-            inventory.length === this.inventory.length &&
-            inventory.every((item, index) => item === this.inventory[index])
-        )
-            return;
-        this.write('inventory', [...inventory]);
-    }
-
-    /** Item stacks in the entity container declared by `minecraft:inventory`. */
-    public get containerSlots(): readonly (ContentItemDrop | undefined)[] {
-        return this.logged.containerSlots;
+    public setContainerCapacity(size: number): Item[] {
+        const target = slotCountOf(size);
+        if (target === this.logged.inventorySize) return [];
+        const dropped = this.inventory.container('inventory').resize(target);
+        this.write('inventorySize', target);
+        return dropped;
     }
 
     /**
-     * Puts a stack in one container slot, or empties it.
-     *
-     * @param index - The slot. A slot past the end grows the container with empty slots.
-     * @param item - The stack, or undefined to empty the slot.
+     * Equipment slots read and written through an `inventory` slot, such as a horse's armor or a
+     * llama's carpet, by the container index. Logged as a field, and kept in step with
+     * {@link MobBody.inventory}'s aliases.
      */
-    public setContainerSlot(index: number, item: ContentItemDrop | undefined): void {
-        if (this.containerSlots[index] === item && index < this.containerSlots.length) return;
-        const slots = [...this.containerSlots];
-        slots[index] = item;
-        this.write('containerSlots', frozenStacks(slots));
-    }
-
-    /** Replaces every container slot. */
-    public setContainerSlots(slots: readonly (ContentItemDrop | undefined)[]): void {
-        this.write('containerSlots', frozenStacks([...slots]));
-    }
-
-    /** Capacity of the active `minecraft:inventory` component, for filters and slot validation. */
-    public containerCapacity = 0;
-
-    /** Inventory indices projected into wearable equipment slots by an interaction. */
     public readonly equipmentInventorySlots = new ObservedMap<MobEquipmentSlot, number>();
+
+    /**
+     * Writes a logged value back into one slot without calling {@link MobBody.onSlotWrite} or
+     * {@link MobBody.onEquipmentChanged}, which is how the entity store undoes a slot write.
+     * @param container - The container an `inventory-slot` entry names.
+     * @param content - The content build, which decides the item's maximum durability.
+     * @returns Whether the body has that container and slot.
+     */
+    public restoreSlot(container: string, slot: number, value: PlainData, content?: ServerContent): boolean {
+        this.restoring = true;
+        try {
+            return this.inventory.restoreSlot(container, slot, value, content);
+        } finally {
+            this.restoring = false;
+        }
+    }
+
+    /**
+     * Writes the alias map back without reporting it, which is how the entity store undoes a
+     * change to {@link MobBody.equipmentInventorySlots}.
+     */
+    public restoreEquipmentInventorySlots(entries: Iterable<readonly [MobEquipmentSlot, number]>): void {
+        this.restoring = true;
+        try {
+            this.equipmentInventorySlots.replace(entries);
+            this.syncAliases();
+        } finally {
+            this.restoring = false;
+        }
+    }
+
+    /** Points the inventory's aliases at the map, and reports each equipment slot that reads something else now. */
+    private syncAliases(): void {
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            const before = this.inventory.equipment(slot);
+            const index = this.equipmentInventorySlots.get(slot);
+            this.inventory.setAlias(slot, index === undefined ? undefined : { container: 'inventory', slot: index });
+            const after = this.inventory.equipment(slot);
+            if (after !== before) this.equipmentChanged(slot, after !== null);
+        }
+    }
+
+    /** Hears one slot write, logs it, and reports the equipment slots that read it. */
+    private slotWritten(container: InventoryContainer, slot: number, before: SlotValue, after: SlotValue): void {
+        if (!this.restoring) this.onSlotWrite?.(container, slot, before, after);
+        if (samePlain(before, after)) return;
+        for (const equipment of MOB_EQUIPMENT_SLOTS) {
+            const address = this.inventory.equipmentAddress(equipment);
+            if (address?.container === container && address.slot === slot)
+                this.equipmentChanged(equipment, after !== null);
+        }
+    }
+
+    private equipmentChanged(slot: MobEquipmentSlot, equipped: boolean): void {
+        this.equipmentRevision += 1;
+        if (!this.restoring) this.onEquipmentChanged?.(slot, equipped);
+    }
 
     /** Who has hurt the entity, with the running total each has dealt. */
     public readonly damage = new DamageLog();
@@ -726,9 +731,7 @@ export class MobBody {
             projectileAge: 0,
             projectileStuck: false,
             teleports: 0,
-            equipment: NO_EQUIPMENT,
-            inventory: [],
-            containerSlots: []
+            inventorySize: 0
         };
         this.live = typeFacts;
         this.tags.observer = (before) => this.report('tags', before, [...this.tags]);
@@ -738,8 +741,15 @@ export class MobBody {
                 before.map(([, effect]) => effect),
                 [...this.statusEffects.values()]
             );
-        this.equipmentInventorySlots.observer = (before) =>
+        this.equipmentInventorySlots.observer = (before) => {
+            this.syncAliases();
             this.report('equipmentInventorySlots', before, [...this.equipmentInventorySlots]);
+        };
+        this.inventory.observe({
+            slot: (container, slot, before, after) => this.slotWritten(container, slot, before, after),
+            // A mob's layout has no hotbar, so its hand never moves.
+            handSlot: () => undefined
+        });
         this.conditions.observer = (condition, present) => {
             const shown = SHOWN_CONDITIONS.find((name) => name === condition);
             if (shown !== undefined) this.report(conditionField(shown), !present, present);
@@ -748,8 +758,7 @@ export class MobBody {
 
     /**
      * Writes a saved value back into one field without running the setter's side effects: no
-     * {@link MobBody.onWrite} report, no equipment hook, and no change to the inventory slots
-     * that a new equipment set would clear. A position still refiles the body in its index,
+     * {@link MobBody.onWrite} report and no slot report. A position still refiles the body in its index,
      * because the index is derived from the position, and a home still reaches the instance that
      * keeps it. This is how the entity store undoes a change.
      */
@@ -757,7 +766,7 @@ export class MobBody {
         this.restoring = true;
         try {
             this.logged[field] = value;
-            if (field === 'equipment') this.equipmentRevision += 1;
+            if (field === 'inventorySize') this.inventory.container('inventory').resize(this.logged.inventorySize);
             if (field === 'position') this.onMove?.();
             // The instance holds the home the goals and filters read, so it goes back with the body.
             if (field === 'home') this.instance?.setHomePosition(this.logged.home);
@@ -1213,20 +1222,6 @@ export class DataEntity {
 
     public set target(id: number | undefined) {
         this.body.target = id;
-    }
-
-    /** What the entity holds in its main hand. */
-    public get carried(): string | undefined {
-        return this.body.carried;
-    }
-
-    public set carried(identifier: string | undefined) {
-        this.body.carried = identifier;
-    }
-
-    /** Everything the entity is holding and wearing. */
-    public get equipment(): MobEquipmentSet {
-        return this.body.equipment;
     }
 
     /** Where the entity is now. */

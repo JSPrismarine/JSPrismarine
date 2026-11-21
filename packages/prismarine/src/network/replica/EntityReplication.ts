@@ -31,7 +31,7 @@ import { ITEM_STATE_FIELD, itemStackOfState } from '../../entity/data/droppedIte
 import { HANGING_STATE_FIELD, paintingSightOf } from '../../entity/data/hangingEntities';
 import { PAINTING, PAINTING_STATE_FIELD } from '../../entity/data/paintings';
 import { boxOf } from '../../entity/data/facts';
-import { sameEquipmentItems, viewableEquipmentOf } from '../../entity/equipment';
+import { sameEquipmentItems } from '../../entity/equipment';
 import { breathWorthSending } from '../../entity/playerBreath';
 import type { ShownBreath } from '../../entity/playerBreath';
 import { mayFlyIn } from '../../entity/playerComponents';
@@ -327,8 +327,8 @@ export class EntityReplication {
         if (view === undefined) return undefined;
         const player = known.kind === 'player' ? this.replica.player(held) : undefined;
 
-        if (known.kind !== 'item' && this.equipmentWritten(known.kind, fields, slots, player)) {
-            const worn = this.equipmentOf(held, view, player);
+        if (known.kind !== 'item' && this.equipmentWritten(held, fields, slots, player)) {
+            const worn = this.equipmentOf(held, player);
             if (!sameEquipmentItems(known.equipment, worn)) {
                 const offhandEmptied = known.equipment.offhand !== undefined && worn.offhand === undefined;
                 known.equipment = worn;
@@ -460,26 +460,43 @@ export class EntityReplication {
         this.ports.queueMove(packet);
     }
 
-    /** Whether a tick wrote what an entity is shown holding and wearing. */
+    /**
+     * Whether a tick wrote what an entity is shown holding and wearing: a slot one of its
+     * equipment slots reads, a mob's aliases, or a player's hand.
+     */
     private equipmentWritten(
-        kind: ShownKind,
+        held: EntityRef,
         fields: ReadonlySet<string>,
         slots: ReadonlySet<string>,
         player: ShownPlayerState | undefined
     ): boolean {
-        if (kind !== 'player' || player === undefined) return fields.has('equipment');
+        if (player === undefined) {
+            if (fields.has('equipmentInventorySlots')) return true;
+            if (slots.size === 0) return false;
+            const read = new Set(
+                [...(this.replica.equipmentAddresses(held)?.values() ?? [])].map((at) => slotKey(at.container, at.slot))
+            );
+            return some(slots, (slot) => read.has(slot));
+        }
         return (
             fields.has(HAND_SLOT_FIELD) ||
             some(slots, (slot) => slot === slotKey('inventory', player.handSlot) || !slot.startsWith('inventory:'))
         );
     }
 
-    /** What an entity is shown holding and wearing: a player's from its slots, a mob's from its body. */
-    private equipmentOf(held: EntityRef, view: EntityView, player: ShownPlayerState | undefined): ViewableEquipment {
+    /** What an entity is shown holding and wearing, from the slots the replica holds. */
+    private equipmentOf(held: EntityRef, player: ShownPlayerState | undefined): ViewableEquipment {
         const content = this.ports.content();
-        if (player === undefined) return viewableEquipmentOf(view.equipment, content);
         const item = (container: string, slot: number) =>
             itemOfSlotValue(this.replica.slot(held, container, slot) ?? null, content) ?? undefined;
+        if (player === undefined) {
+            const worn: ViewableEquipment = {};
+            for (const [slot, at] of this.replica.equipmentAddresses(held) ?? []) {
+                const found = item(at.container, at.slot);
+                if (found !== undefined) worn[slot] = found;
+            }
+            return worn;
+        }
         return {
             mainhand: item('inventory', player.handSlot),
             offhand: item('offhand', 0),
@@ -509,7 +526,7 @@ export class EntityReplication {
             pose: view.pose,
             headYaw: player?.headYaw,
             health: view.health,
-            equipment: kind === 'item' ? {} : this.equipmentOf(held, view, player),
+            equipment: kind === 'item' ? {} : this.equipmentOf(held, player),
             breath: undefined
         };
         applyActorMetadataProjection(shown, projection);
@@ -542,7 +559,7 @@ export class EntityReplication {
                     kind === 'item'
                         ? {}
                         : (known?.equipment ??
-                          this.equipmentOf(held, view, kind === 'player' ? this.replica.player(held) : undefined));
+                          this.equipmentOf(held, kind === 'player' ? this.replica.player(held) : undefined));
                 return {
                     type: held.shownIdentifier,
                     feet: { x: view.pose.x, y: view.pose.y, z: view.pose.z },

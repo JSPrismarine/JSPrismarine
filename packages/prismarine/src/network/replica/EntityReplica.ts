@@ -27,12 +27,17 @@ import {
     attributeIn,
     bodyFieldValue,
     booleanField,
+    equipmentInventorySlotsIn,
     identityIn,
     propertyIn,
     statusEffectsIn,
     stringsIn
 } from '../../entity/data/entityFields';
 import { loggedFieldsOfSavedForm, loggedSlotsOfSavedForm } from '../../entity/data/savedForm';
+import { MOB_EQUIPMENT_SLOTS } from '../../entity/equipment';
+import type { MobEquipmentSlot } from '../../entity/equipment';
+import { mobEquipmentAddress } from '../../inventory/EntityInventory';
+import type { SlotAddress } from '../../inventory/EntityInventory';
 import { shownPlayerStateIn, slotKey } from '../../entity/playerShown';
 import type { ShownPlayerState } from '../../entity/playerShown';
 import type { EntityId } from '../../world/changelog/ChangeEntry';
@@ -309,9 +314,28 @@ export class EntityReplica {
             metadata,
             health: shownHealth,
             properties: syncedPropertiesOf(propertiesOf(type?.entity.description.properties, held.fields)),
-            statusEffects: statusEffectsIn(value('statusEffects')),
-            equipment: bodyFieldValue('equipment', value('equipment'))
+            statusEffects: statusEffectsIn(value('statusEffects'))
         };
+    }
+
+    /**
+     * Which slot each of a mob's equipment slots reads: its own container slot, or the
+     * `inventory` slot the aliases the replica holds point it at.
+     * @returns The slots, or undefined when the replica does not hold the entity.
+     */
+    public equipmentAddresses(entity: EntityRef): ReadonlyMap<MobEquipmentSlot, SlotAddress> | undefined {
+        const held = this.resolve(entity);
+        if (held === undefined) return undefined;
+        const aliases = new Map(equipmentInventorySlotsIn(held.fields.get('equipmentInventorySlots') ?? []));
+        return new Map(
+            MOB_EQUIPMENT_SLOTS.map((slot): [MobEquipmentSlot, SlotAddress] => {
+                const index = aliases.get(slot);
+                return [
+                    slot,
+                    index === undefined ? mobEquipmentAddress(slot) : { container: 'inventory', slot: index }
+                ];
+            })
+        );
     }
 
     /** What the replica holds and what it has done. */

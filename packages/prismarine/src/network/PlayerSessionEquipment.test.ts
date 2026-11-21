@@ -109,8 +109,7 @@ const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Dev
         metadata: { flags: [], properties: [] },
         health: { current: 20, max: 20 },
         properties: new SyncedProperties(),
-        statusEffects: [],
-        equipment: {}
+        statusEffects: []
     },
     metadata: new Metadata(),
     player: {

@@ -29,6 +29,7 @@ import {
     stringList,
     withNamespace
 } from './subjects.ts';
+import { equip } from './mobSlots.ts';
 
 /** The golden foods Java's `AbstractHorse.handleEating` puts a tamed adult horse or donkey in love with. */
 const HORSE_BREEDING_FOOD = ['minecraft:golden_carrot', 'minecraft:golden_apple', 'minecraft:enchanted_golden_apple'];
@@ -421,7 +422,7 @@ export const coreScenarios: readonly BehaviorScenario<EntitySubject>[] = [
             const burned = withEntity(subject.bedrock, DRY_LAND, (mob) => {
                 const at = mob.position;
                 // Bare-headed, since a helmet shades a mob from the sun in both editions.
-                mob.body.setEquipment({});
+                equip(mob.body, {});
                 for (let tick = 0; tick < SUNLIGHT_TICKS; tick += 1) {
                     mob.body.position = at;
                     mob.body.velocity = { x: 0, y: 0, z: 0 };

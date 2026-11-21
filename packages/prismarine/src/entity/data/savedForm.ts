@@ -9,11 +9,16 @@
  */
 import { ATTRIBUTES } from '@jsprismarine/entities';
 
+import { mobEquipmentAddress } from '../../inventory/EntityInventory';
+import { storedItemDrop } from '../../inventory/persistence';
+import { slotKey } from '../playerShown';
 import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
-import { isPlainList, isPlainRecord } from '../../world/changelog/PlainData';
+import { isPlainList, isPlainRecord, plainOf } from '../../world/changelog/PlainData';
+import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { LoggedBodyState } from './DataEntity';
 import { conditionField, SHOWN_CONDITIONS } from './DataEntity';
 import type { DataEntityRecord } from './persistence';
+import { savedDropOf } from './persistence';
 import { MERCHANT_FIELD } from './trading';
 
 /** The body fields a record holds under the same name. */
@@ -33,10 +38,7 @@ const RECORD_BODY_FIELDS = [
     'showBottom',
     'invulnerable',
     'fuseTicks',
-    'fireTicks',
-    'equipment',
-    'inventory',
-    'containerSlots'
+    'fireTicks'
 ] as const satisfies readonly (keyof LoggedBodyState & keyof DataEntityRecord)[];
 
 /** What a record leaves out of a body field, which `applyDataEntityRecord` writes as the default. */
@@ -72,6 +74,7 @@ export const loggedFieldsOfSavedForm = (saved: PlainRecord): Map<string, PlainDa
     const shown = conditions !== undefined && isPlainList(conditions) ? conditions : [];
     for (const condition of SHOWN_CONDITIONS) fields.set(conditionField(condition), shown.includes(condition));
 
+    fields.set('equipmentInventorySlots', Object.entries(aliasesIn(record)));
     fields.set('groups', record['componentGroups'] ?? []);
     fields.set('leash', record['leashHolderIdentity'] ?? null);
     fields.set(MERCHANT_FIELD, record['merchant'] ?? null);
@@ -92,12 +95,42 @@ export const loggedFieldsOfSavedForm = (saved: PlainRecord): Map<string, PlainDa
 
 /**
  * The container slots a saved form holds, by `container:slot`: a store player's shown slots, and
- * none for any other entity.
+ * for any other entity the slots its record's `containerSlots` and `equipment` hold, each as an
+ * `inventory-slot` entry logs it. An equipment slot an alias reads is its container slot, so the
+ * record's copy of it is not read.
  * @param saved - A membership entry's saved form.
  */
 export const loggedSlotsOfSavedForm = (saved: PlainRecord): Map<string, PlainRecord | null> => {
     const slots = new Map<string, PlainRecord | null>();
     for (const [key, value] of Object.entries(recordIn(recordIn(saved['player'])['slots'])))
         slots.set(key, value !== null && isPlainRecord(value) ? value : null);
+    if (saved['player'] !== undefined) return slots;
+
+    const record = recordIn(saved['record']);
+    const container = record['containerSlots'];
+    if (container !== undefined && isPlainList(container))
+        for (const [slot, drop] of container.entries()) slots.set(slotKey('inventory', slot), slotValueOfDrop(drop));
+    const aliases = aliasesIn(record);
+    const equipment = recordIn(record['equipment']);
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        if (aliases[slot] !== undefined) continue;
+        const { container: name, slot: index } = mobEquipmentAddress(slot);
+        slots.set(slotKey(name, index), slotValueOfDrop(equipment[slot] ?? null));
+    }
     return slots;
+};
+
+/** A record's alias map, `equipmentInventorySlots`, with anything that is not a slot index left out. */
+const aliasesIn = (record: PlainRecord): Record<string, number> => {
+    const aliases: Record<string, number> = {};
+    for (const [slot, index] of Object.entries(recordIn(record['equipmentInventorySlots'])))
+        if (typeof index === 'number') aliases[slot] = index;
+    return aliases;
+};
+
+/** A drop a record holds, as the logged value of the slot that holds it, or null for an empty slot. */
+const slotValueOfDrop = (value: PlainData): PlainRecord | null => {
+    const drop = savedDropOf(value);
+    const plain = drop === undefined ? undefined : plainOf(storedItemDrop(drop));
+    return plain !== undefined && isPlainRecord(plain) ? plain : null;
 };

@@ -127,6 +127,8 @@ export interface EntityScene {
     leashHolderOf(entity: MobBody): GoalMob | undefined;
     /** Who rides an entity, in the order they got on. */
     ridersOf(vehicle: MobBody): readonly GoalMob[];
+    /** Puts one of an item in a mob's main hand, or empties the hand for undefined. */
+    setHeldItem(body: MobBody, identifier: string | undefined): void;
     /** Takes an item stack lying in the world into an entity's inventory. */
     pickUp(taker: MobBody, item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Whether a mob that picks up by chance may pick up at all, rolled once per mob. */

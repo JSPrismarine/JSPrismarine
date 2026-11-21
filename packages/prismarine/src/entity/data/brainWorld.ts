@@ -121,11 +121,11 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
             return entity.conditions;
         },
         get mainHandItem() {
-            const identifier = entity.carried;
+            const identifier = entity.body.inventory.equipment('mainhand')?.getName();
             return identifier === undefined ? undefined : brainItemOf(identifier, scene);
         },
         get offHandItem() {
-            const identifier = entity.body.equipment.offhand?.identifier;
+            const identifier = entity.body.inventory.equipment('offhand')?.getName();
             return identifier === undefined ? undefined : brainItemOf(identifier, scene);
         }
     };
