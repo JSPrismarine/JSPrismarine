@@ -103,6 +103,11 @@ export const megaMenus = [
                         description: 'Behavior checked against the vanilla server.',
                         link: '/parity'
                     },
+                    {
+                        text: 'Benchmarks',
+                        description: 'JSPrismarine, Pumpkin and Bedrock Dedicated Server under one workload.',
+                        link: '/benchmarks'
+                    },
                     { text: 'Releases', description: 'Release notes for every version.', link: '/releases' },
                     {
                         text: 'Versioning policy',

@@ -209,6 +209,7 @@ export default defineConfig({
             // Root pages take their menu section's groups as a sidebar, so every doc page shares one column.
             '/packages': menuSidebar('Build'),
             '/parity': menuSidebar('Project'),
+            '/benchmarks': menuSidebar('Project'),
             '/releases': menuSidebar('Project'),
             '/brand-kit': menuSidebar('Project'),
             '/api/': apiSidebar()
@@ -231,6 +232,7 @@ export default defineConfig({
                 })),
                 project: [
                     { text: 'Parity tracker', href: '/parity' },
+                    { text: 'Benchmarks', href: '/benchmarks' },
                     { text: 'Packages', href: '/packages' },
                     { text: 'Releases', href: '/releases' },
                     { text: 'Brand kit', href: '/brand-kit' },

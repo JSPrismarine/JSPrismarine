@@ -27,7 +27,8 @@ export type MetricKind =
 export interface MetricDefinition {
     readonly id: string;
     readonly kind: MetricKind;
-    readonly better: 'lower' | 'higher';
+    /** Which way is better; `neither` for a count that only checks the servers did the same work. */
+    readonly better: 'lower' | 'higher' | 'neither';
     /** The value for one run, or null when that run cannot give one. */
     readonly measure: (run: RunResult) => number | null;
 }
@@ -91,7 +92,7 @@ export const METRICS = [
             return phase === null || phase.columns === 0 ? null : phase.bytesReceived / phase.columns;
         }
     },
-    { id: 'columns', kind: 'count', better: 'higher', measure: (run) => travel(run)?.columns ?? null },
+    { id: 'columns', kind: 'count', better: 'neither', measure: (run) => travel(run)?.columns ?? null },
     {
         id: 'startupCpuSeconds',
         kind: 'cpu',
