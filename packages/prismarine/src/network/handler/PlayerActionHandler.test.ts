@@ -88,7 +88,7 @@ const fakeSession = (
         getLoadedChunk: () => (chunksLoaded ? stub<Chunk>({}) : null),
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
         loadedBlockRuntimeIdAt: () => standing.runtimeId,
-        loadedBlock: () => stub<Block>({ getBreakTime: () => breakSeconds }),
+        loadedBlock: () => stub<Block>({ getBreakTicks: () => Math.ceil(breakSeconds * 20) }),
         sendWorldEvent: (where: Vector3 | null) => {
             if (where) cracking.push(`event ${at(where)}`);
         },

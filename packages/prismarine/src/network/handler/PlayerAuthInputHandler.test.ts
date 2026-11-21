@@ -60,7 +60,7 @@ const fake = ({ serverAuthoritativeBreaking = false, changingDimension = false, 
         loadedBlockAt: () => ({ name: 'minecraft:stone', states: {} }),
         // A block that gives way at once, so a predicted break needs no mining timed first,
         // which is why `startBlockCracking` below starts none.
-        loadedBlock: () => stub<Block>({ getBreakTime: () => 0 }),
+        loadedBlock: () => stub<Block>({ getBreakTicks: () => 0 }),
         sendWorldEvent: () => {},
         startBlockCracking: (position, face) => {
             calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);

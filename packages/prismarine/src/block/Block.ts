@@ -1,5 +1,6 @@
 import { blockProperties, replaceable } from '@jsprismarine/blocks';
 import { isFullCube } from '@jsprismarine/engine-systems';
+import { destroyProgress } from '@jsprismarine/item-behaviors';
 import type { BlockStateValue, BlockType } from '@jsprismarine/blocks';
 import { bedrockBlockPropertiesOf, bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 
@@ -177,30 +178,37 @@ export class Block {
     }
 
     /**
-     * How long, in seconds, the block takes to break.
+     * How many ticks the block takes to break, or `Infinity` when it never does.
      *
-     * Hardness on its own is not that time. Vanilla scales it by whether the
-     * tool in hand can actually harvest the block - 1.5x when it can, 5x when
-     * it cannot, which is why dirt takes 0.75s by hand and stone 7.5s - and
-     * then divides by how fast the tool mines. Those two factors are Java's
-     * `destroyProgress` written the other way up: `speed / hardness / 30` for
-     * a correct tool and `/ 100` for anything else, in progress per tick.
+     * Hardness on its own is not that time. Java's `getDestroyProgress` is the share of the block
+     * one tick breaks, `speed / hardness / 30` with a tool that harvests it and `/ 100` with
+     * anything else, which is why dirt takes 15 ticks by hand and stone 150. A block whose
+     * progress reaches a whole block in one tick, such as leaves under a hoe or bamboo under a
+     * sword, breaks on the tick it is hit, so it takes 0.
      *
-     * The divisor is what Efficiency moves: the enchantment is an `add_value`
-     * on `minecraft:mining_efficiency`, which Java adds to the tool's speed.
+     * The speed is what Efficiency moves: the enchantment is an `add_value` on
+     * `minecraft:mining_efficiency`, which Java adds to the tool's speed.
      *
      * @param item - What is in hand, or null for a bare fist.
      */
-    public getBreakTime(item: Item | null, _server?: unknown): number {
+    public getBreakTicks(item: Item | null): number {
         const hardness = this.getHardness();
         // Negative hardness is Java's marker for the unbreakable blocks:
         // bedrock, barriers, portals. They never give way.
         if (hardness < 0) return Number.POSITIVE_INFINITY;
 
-        const scale = this.isCompatibleWithTool(item) ? 1.5 : 5;
         const speed = Math.max(1, item?.getMiningSpeed(this.getName()) ?? 1);
+        const progress = destroyProgress(speed, hardness, this.isCompatibleWithTool(item));
+        return progress >= 1 ? 0 : Math.ceil(1 / progress);
+    }
 
-        return (hardness * scale) / speed;
+    /**
+     * How long, in seconds, the block takes to break: {@link getBreakTicks} at 20 ticks a second.
+     *
+     * @param item - What is in hand, or null for a bare fist.
+     */
+    public getBreakTime(item: Item | null, _server?: unknown): number {
+        return this.getBreakTicks(item) / 20;
     }
 
     /** Java's explosion resistance. */

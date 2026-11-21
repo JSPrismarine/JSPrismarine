@@ -5,6 +5,7 @@ import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { Item } from '../item/Item';
+import { stub } from '../testing/stub.test.helper';
 import { Block, javaBlockFactsOf } from './Block';
 
 /** A block in its default state, with no content build behind it. */
@@ -94,6 +95,15 @@ describe('block', () => {
                 const stone = needsATool('minecraft:stone', buildServerContent(fixtureContentOptions()));
 
                 expect(stone.getBreakTime(null)).toBeCloseTo(7.5, 10);
+            });
+
+            it('breaks at once when one tick of progress is a whole block', () => {
+                // Oak leaves: 0.2 hardness, and an iron hoe's speed of 6 is exactly one block a
+                // tick, which Java breaks on the tick it is hit rather than the tick after.
+                const hoe = stub<Item>({ getMiningSpeed: () => 6 });
+
+                expect(named('minecraft:oak_leaves').getBreakTicks(hoe)).toBe(0);
+                expect(named('minecraft:oak_leaves').getBreakTicks(null)).toBe(6);
             });
 
             it('never finishes breaking the unbreakable', () => {

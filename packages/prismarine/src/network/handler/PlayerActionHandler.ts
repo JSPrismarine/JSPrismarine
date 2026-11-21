@@ -227,7 +227,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
 
                 // A block that gives way instantly has no progress to animate, and the
                 // 65535/0 the client would be handed is not a number this packet can carry.
-                const breakTime = Math.ceil(block.getBreakTime(tool) * 20);
+                const breakTime = block.getBreakTicks(tool);
 
                 // The first swing, heard by everyone near but the player, whose client plays its
                 // own. The rest arrive as `CRACK_BLOCK`.
@@ -235,7 +235,7 @@ export default class PlayerActionHandler implements InputLaneHandler<PlayerActio
                 if (breakTime <= 0) return;
 
                 // The client is told how much progress a tick is worth, not how long the block
-                // takes, so this is only ever as right as `getBreakTime` is.
+                // takes, so this is only ever as right as `getBreakTicks` is.
                 world.sendWorldEvent(blockPosition, LevelEvent.START_BLOCK_CRACKING, Math.floor(65535 / breakTime));
                 return;
             }
@@ -453,6 +453,6 @@ const refusePrediction = (
     // No mining to time, which is right only for a block that gives way at once.
     const block = world.loadedBlock(x, y, z);
     if (block === undefined) return 'the block is not loaded';
-    const breakTicks = Math.ceil(block.getBreakTime(player.getInventory().getItemInHand()) * 20);
+    const breakTicks = block.getBreakTicks(player.getInventory().getItemInHand());
     return breakTicks <= 0 ? null : 'it is not the block being mined';
 };

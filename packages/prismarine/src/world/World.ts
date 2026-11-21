@@ -2389,7 +2389,7 @@ export class World implements Service {
 
         const block = this.loadedBlock(x, y, z);
         if (block === undefined) return null;
-        const breakTicks = Math.ceil(block.getBreakTime(tool, this.server) * 20);
+        const breakTicks = block.getBreakTicks(tool);
 
         // A block that gives way instantly has no progress to animate, and the 65535/0 the
         // client would be handed is not a number this event can carry.

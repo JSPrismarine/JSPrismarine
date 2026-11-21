@@ -27,8 +27,8 @@ const fakeWorld = (initial: BlockState, breakSeconds: number) => {
             loadedBlockRuntimeIdAt: () => (at.loaded ? BlockRuntimeIds.get(at.state) : undefined),
             loadedBlock: () =>
                 stub<Block>({
-                    getBreakTime: (tool) =>
-                        tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5
+                    getBreakTicks: (tool) =>
+                        Math.ceil((tool?.getName() === 'minecraft:iron_pickaxe' ? breakSeconds : breakSeconds * 5) * 20)
                 })
         },
         { getTick: () => clock.tick }
