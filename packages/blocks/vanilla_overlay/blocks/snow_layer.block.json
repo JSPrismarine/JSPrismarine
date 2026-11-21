@@ -91,6 +91,12 @@
                         "size": [16, 14, 16]
                     }
                 }
+            },
+            {
+                "condition": "(query.block_state('covered_bit') == 0) && (query.block_state('height') == 7)",
+                "components": {
+                    "minecraft:light_dampening": 15
+                }
             }
         ]
     }

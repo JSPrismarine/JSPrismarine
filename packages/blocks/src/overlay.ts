@@ -367,13 +367,15 @@ export const generateVanillaOverlay = (
         }
 
         // A state that lights differently from its block, such as a lit candle or an unlit
-        // campfire, carries its own level, which the light engine reads per state.
+        // campfire, carries its own level, and one that lets light through differently, such as a
+        // full snow layer or a live sea pickle, its own dampening. The light engine reads both
+        // per state.
         for (const [stateKey, override] of Object.entries(properties.stateOverridesOf?.(identifier) ?? {})) {
-            if (override.lightEmission === undefined) continue;
-            permutations.push({
-                condition: stateKeyCondition(stateKey),
-                components: { 'minecraft:light_emission': override.lightEmission }
-            });
+            const light: Record<string, number> = {};
+            if (override.lightEmission !== undefined) light['minecraft:light_emission'] = override.lightEmission;
+            if (override.lightDampening !== undefined) light['minecraft:light_dampening'] = override.lightDampening;
+            if (Object.keys(light).length === 0) continue;
+            permutations.push({ condition: stateKeyCondition(stateKey), components: light });
         }
 
         components['jsprismarine:behavior'] = behavior;

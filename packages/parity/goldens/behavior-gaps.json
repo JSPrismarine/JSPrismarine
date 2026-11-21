@@ -215,6 +215,66 @@
             "reason": "Bedrock merges a vine or kelp body into its head block, and both tables drop the same item.",
             "reference": "Java block loot tables, data/minecraft/loot_table/blocks; issue #2914"
         },
+        "light-dampening:minecraft:piston[extended=true,facing=down]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:piston[extended=true,facing=east]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:piston[extended=true,facing=north]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:piston[extended=true,facing=south]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:piston[extended=true,facing=up]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:piston[extended=true,facing=west]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=down]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=east]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=north]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=south]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=up]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "light-dampening:minecraft:sticky_piston[extended=true,facing=west]": {
+            "kind": "deferred",
+            "reason": "Bedrock's piston keeps whether it is extended in its block entity, not its state, so the light table dampens an extended piston as a full block.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
         "piston-reaction:minecraft:acacia_hanging_sign": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
@@ -899,6 +959,31 @@
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
+        },
+        "waterlogged-light-dampening:minecraft:lantern[hanging=true,waterlogged=true]": {
+            "kind": "deferred",
+            "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "waterlogged-light-dampening:minecraft:oak_fence[east=true,north=true,south=true,waterlogged=true,west=true]": {
+            "kind": "deferred",
+            "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "waterlogged-light-dampening:minecraft:oak_sign[rotation=0,waterlogged=true]": {
+            "kind": "deferred",
+            "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "waterlogged-light-dampening:minecraft:oak_slab[type=top,waterlogged=true]": {
+            "kind": "deferred",
+            "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
+        },
+        "waterlogged-light-dampening:minecraft:oak_stairs[facing=north,half=top,shape=straight,waterlogged=true]": {
+            "kind": "deferred",
+            "reason": "A Bedrock world keeps the water of a waterlogged block in the liquid layer, which the light view does not read, so the block dampens light as if it were dry.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3553"
         }
     },
     "commands.answers": {},
