@@ -360,11 +360,6 @@
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
-        "piston-reaction:minecraft:chain_command_block": {
-            "kind": "intentional",
-            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
-            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
         "piston-reaction:minecraft:cherry_hanging_sign": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
@@ -396,11 +391,6 @@
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
         "piston-reaction:minecraft:chiseled_bookshelf": {
-            "kind": "intentional",
-            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
-            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
-        "piston-reaction:minecraft:command_block": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
@@ -505,11 +495,6 @@
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
-        "piston-reaction:minecraft:end_portal_frame": {
-            "kind": "defect",
-            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
-        },
         "piston-reaction:minecraft:ender_chest": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
@@ -550,11 +535,6 @@
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
-        "piston-reaction:minecraft:jigsaw": {
-            "kind": "intentional",
-            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
-            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
         "piston-reaction:minecraft:jukebox": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
@@ -589,11 +569,6 @@
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
-        "piston-reaction:minecraft:light": {
-            "kind": "defect",
-            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
         },
         "piston-reaction:minecraft:light_blue_banner": {
             "kind": "intentional",
@@ -735,11 +710,6 @@
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
-        "piston-reaction:minecraft:piston": {
-            "kind": "defect",
-            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
-        },
         "piston-reaction:minecraft:poplar_hanging_sign": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
@@ -786,11 +756,6 @@
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
         "piston-reaction:minecraft:red_wall_banner": {
-            "kind": "intentional",
-            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
-            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
-        "piston-reaction:minecraft:repeating_command_block": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
@@ -846,16 +811,6 @@
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
         "piston-reaction:minecraft:spruce_wall_sign": {
-            "kind": "intentional",
-            "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
-            "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
-        },
-        "piston-reaction:minecraft:sticky_piston": {
-            "kind": "defect",
-            "reason": "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3503"
-        },
-        "piston-reaction:minecraft:structure_block": {
             "kind": "intentional",
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"

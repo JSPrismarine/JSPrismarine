@@ -35,6 +35,14 @@ describe('planPush', () => {
         expect(planPush(world, piston, 'east')).toMatchObject({ blocked: true });
     });
 
+    it('pushes a retracted piston whatever its push reaction, as Java does', () => {
+        const world = createVoxelWorld().overworld;
+        world.defineProperties('minecraft:sticky_piston', { pushReaction: 'immovable' });
+        world.set({ x: 1, y: 0, z: 0 }, 'minecraft:sticky_piston', { facing_direction: 1 });
+
+        expect(planPush(world, piston, 'east')).toMatchObject({ blocked: false, moved: [{ x: 1, y: 0, z: 0 }] });
+    });
+
     it('breaks a block whose push reaction is popped instead of moving it', () => {
         const world = createVoxelWorld().overworld;
         world.defineProperties('minecraft:torch', { pushReaction: 'popped' });

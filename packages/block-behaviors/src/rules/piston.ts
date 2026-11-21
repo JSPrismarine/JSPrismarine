@@ -79,6 +79,9 @@ const isPushable = (
     if (samePosition(at, piston)) return false;
     if (isReplaceable(block.identifier) || isLiquid(block.identifier)) return true;
     if (isExtendedPiston(world, block)) return false;
+    // Java's `isPushable` reads no push reaction for a piston: a retracted one moves like any block.
+    const name = bareName(block.identifier);
+    if (name === 'piston' || name === 'sticky_piston') return true;
 
     switch (world.propertiesOf(block.identifier).pushReaction) {
         case 'immovable':

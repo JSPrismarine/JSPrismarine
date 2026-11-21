@@ -293,9 +293,9 @@ export const generateVanillaOverlay = (
     for (const identifier of identifiers) {
         const bedrockOnly = properties.bedrockOnly.has(identifier);
         const row = properties.propertiesOf(identifier) ?? BEDROCK_ONLY_FALLBACK;
-        // Bedrock's mining restriction does not govern piston movement.
-        const movement =
-            identifier === 'minecraft:bedrock' ? 'immovable' : (MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull');
+        // Java's `PistonBaseBlock.isPushable` refuses a block that never breaks (bedrock, an end
+        // portal frame, a light block) whatever its push reaction says.
+        const movement = row.hardness < 0 ? 'immovable' : (MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull');
         const behavior = behaviorFor(identifier);
         behaviorCounts.set(behavior, (behaviorCounts.get(behavior) ?? 0) + 1);
 

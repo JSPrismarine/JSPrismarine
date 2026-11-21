@@ -370,19 +370,15 @@ export const blockPropertyScenarios: readonly BehaviorScenario<BlockStateSubject
         java: 'A piston pushing into a block moves it, destroys it or is blocked by it as Java decides from its push reaction, hardness and block entity.',
         reference: 'Java PistonBaseBlock.isPushable and PistonStructureResolver',
         aspects: () => ['piston'],
+        // Bedrock's piston moves a block with its block entity, and the server keeps that on
+        // purpose; any other difference from Java's piston is a defect.
         classify: (subject, difference) =>
-            // Bedrock's piston moves a block with its block entity, and the server keeps that on
-            // purpose; any other difference from Java's piston is a defect.
             javaBlockHasBlockEntity(subject.javaId) && difference.endsWith('moved, Java blocked')
                 ? {
                       kind: 'intentional',
                       reason: "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity."
                   }
-                : {
-                      kind: 'defect',
-                      reason: "The server's piston does not push a retracted piston, and moves the end portal frame and the light block, whose hardness of -1 makes Java's piston refuse them.",
-                      reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3503'
-                  },
+                : undefined,
         subjects: () => subjectsVarying([], (_, javaId) => !javaBlockIsA(javaId, 'AirBlock')),
         idOf: titleOf,
         covers: (subject) => subject.javaId,
