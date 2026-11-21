@@ -4289,7 +4289,10 @@ export class World implements Service {
         }
 
         const savedTicks = saveContext.pendingTicks?.byChunk.get(index) ?? [];
-        const leave = () => this.leaveChunk(chunk, savedTicks);
+        const savedEntities = new Set(
+            (saveContext.entitiesByChunk.get(index) ?? []).map((entity) => Number(entity.getRuntimeId()))
+        );
+        const leave = () => this.leaveChunk(chunk, savedTicks, savedEntities);
         const admissions = this.admissions;
         if (admissions === undefined) return { left: Promise.resolve(leave()) };
         return {
@@ -4304,15 +4307,17 @@ export class World implements Service {
     /**
      * Takes a saved chunk, the non-player entities it holds and its scheduled fluid ticks out of
      * the world, unless something wants it again: a load, a change since the save, a fluid tick
-     * the save did not write, or a player who came back.
+     * the save did not write, an entity that entered it after the save, or a player who came back.
+     * A chunk that stays is saved again by a later unload pass, with what entered it.
      *
      * The block and fluid ticks leave with the chunk as Java's `LevelTicks.removeContainer` takes
      * them: the save wrote them to its `PendingTicks` record and a reload schedules them again.
      *
      * @param savedTicks - The chunk's scheduled ticks as the save wrote them.
+     * @param savedEntities - The runtime ids of the non-player entities the save wrote with it.
      * @returns Whether it left.
      */
-    private leaveChunk(chunk: Chunk, savedTicks: readonly TickToSave[]): boolean {
+    private leaveChunk(chunk: Chunk, savedTicks: readonly TickToSave[], savedEntities: ReadonlySet<number>): boolean {
         const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.getPlayerChunkRefCounts().synchronize(this.players);
         if (
@@ -4326,11 +4331,16 @@ export class World implements Service {
 
         const live = this.dataEntities();
         const entities = this.getEntityIndex();
-        for (const entity of entities.storeInChunk(chunk.getX(), chunk.getZ()))
-            if (entity.identifier !== PLAYER_IDENTIFIER) live.runtime.remove(entity.id, 'chunk unload');
-        // The stacks the save wrote with the chunk, which a reload brings back.
-        for (const item of entities.itemsInChunk(chunk.getX(), chunk.getZ()))
-            live.runtime.remove(item.id, 'chunk unload');
+        // The stacks lie in their own cells, and the save wrote them with the chunk too, so a
+        // reload brings them back.
+        const leaving = [
+            ...entities
+                .storeInChunk(chunk.getX(), chunk.getZ())
+                .filter((entity) => entity.identifier !== PLAYER_IDENTIFIER),
+            ...entities.itemsInChunk(chunk.getX(), chunk.getZ())
+        ];
+        if (leaving.some((entity) => !savedEntities.has(entity.id))) return false;
+        for (const entity of leaving) live.runtime.remove(entity.id, 'chunk unload');
 
         this.getEntityStore().chunk('leave', chunk.getX(), chunk.getZ());
         for (const kind of TICK_KINDS) this.systems.ticks.list(kind).clearChunk(chunk.getX(), chunk.getZ());

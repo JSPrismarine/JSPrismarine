@@ -614,12 +614,14 @@ describe('a chunk that unloads with ticks still due', () => {
         overworld.getSystems().ticks.list('fluid').schedule({ x: 35, y: 100, z: 3 }, 'minecraft:water', due);
 
         // The save's list did not hold the tick, so leaving now would lose it.
-        expect(overworld['leaveChunk'](chunk, [])).toBe(false);
+        expect(overworld['leaveChunk'](chunk, [], new Set())).toBe(false);
         expect(overworld.getLoadedChunk(2, 0)).toBe(chunk);
         expect(
-            overworld['leaveChunk'](chunk, [
-                { x: 35, y: 100, z: 3, triggerTick: due, kind: 'fluid' as const, type: 'minecraft:water' }
-            ])
+            overworld['leaveChunk'](
+                chunk,
+                [{ x: 35, y: 100, z: 3, triggerTick: due, kind: 'fluid' as const, type: 'minecraft:water' }],
+                new Set()
+            )
         ).toBe(true);
         await level.disable();
     });
@@ -638,7 +640,7 @@ describe('a chunk that unloads with ticks still due', () => {
         };
 
         // The record holds a tick no longer queued, so a reload would run it again.
-        expect(overworld['leaveChunk'](chunk, [spent])).toBe(false);
+        expect(overworld['leaveChunk'](chunk, [spent], new Set())).toBe(false);
         expect(overworld.getLoadedChunk(2, 0)).toBe(chunk);
         await level.disable();
     });
