@@ -192,6 +192,17 @@ export interface Generator {
     spawnChunk?(seed?: bigint): SpawnChunkResult;
 
     /**
+     * True when the generator builds every chunk on the calling thread from a fixed, small amount
+     * of work, such as stacking a flat world's layers, with no worker pool behind it.
+     *
+     * The chunk scheduler holds deliveries that need generation to twice the worker count, so a
+     * pool is never handed more requests than it can start. A chunk that needs no worker does not
+     * wait for that depth; the scheduler bounds those by the count one input step admits instead.
+     * Optional, and false when absent, which is right for any generator that samples noise.
+     */
+    readonly generatesInline?: boolean;
+
+    /**
      * The y this generator floods to, Java's `ChunkGenerator.getSeaLevel`.
      *
      * A noise generator answers its settings' `sea_level`; the flat generator answers Java's

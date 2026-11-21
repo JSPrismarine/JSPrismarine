@@ -877,8 +877,9 @@ export default class PlayerSession {
 
     /** Queues a resident chunk without entering the generation and disk-read depth gate. */
     public tryDeliverLoaded(x: number, z: number): CachedChunkDelivery {
-        const chunk = this.getWorld().getLoadedChunk(x, z);
-        if (chunk === null) return { kind: 'not-loaded' };
+        const world = this.getWorld();
+        const chunk = world.getLoadedChunk(x, z);
+        if (chunk === null) return { kind: 'not-loaded', inline: world.getGenerator().generatesInline === true };
 
         const queued = this.prepareQueuedChunk(chunk);
         const queuedBytes = queued.memoryBytes;

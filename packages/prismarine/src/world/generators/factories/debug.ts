@@ -105,6 +105,9 @@ export class DebugGenerator implements Generator {
     private readonly floorId: number;
     private grid: DebugGrid | undefined;
 
+    /** @inheritDoc */
+    public readonly generatesInline = true;
+
     public constructor(options: DebugGeneratorOptions) {
         this.dimension = options.dimension;
         this.logger = options.logger;

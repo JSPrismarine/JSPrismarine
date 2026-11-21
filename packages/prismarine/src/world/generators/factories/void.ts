@@ -27,6 +27,7 @@ export const voidGeneratorFactory: GeneratorFactory = {
         const dimension = context.dimension;
         return {
             generateChunk: async (cx, cz) => new Chunk(cx, cz, undefined, dimension),
+            generatesInline: true,
             // An empty dimension has a surface nowhere, which is what undefined says.
             surfaceAt: () => undefined
         };

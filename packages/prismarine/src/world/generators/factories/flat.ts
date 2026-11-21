@@ -55,6 +55,9 @@ export class FlatGenerator extends BaseGenerator {
     /** @inheritDoc */
     public readonly seaLevel = FLAT_SEA_LEVEL;
 
+    /** @inheritDoc */
+    public readonly generatesInline = true;
+
     private readonly settings: FlatGeneratorSettings;
     private readonly dimension: DimensionType;
 

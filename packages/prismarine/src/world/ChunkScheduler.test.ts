@@ -325,6 +325,74 @@ describe('world', () => {
             expect(generationCalls).toBe(0);
         });
 
+        it('starts chunks a generator builds inline past the worker depth, up to the inline depth', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1, 4);
+            const sender = new ChunkSender();
+            for (let x = 0; x < 10; x++) sender.enqueue(x, 0);
+            const pending: Array<() => void> = [];
+            const recipient: ChunkRecipient = {
+                sender,
+                tryDeliverLoaded: () => ({ kind: 'not-loaded', inline: true }),
+                deliver: () => new Promise<void>((resolve) => void pending.push(resolve)),
+                flush: async () => {},
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            expect(await scheduler.tick()).toBe(4);
+            expect(sender.size).toBe(6);
+
+            // The next tick starts as many as finished, never more than the inline depth.
+            for (const resolve of pending.splice(0, 2)) resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+            expect(await scheduler.tick()).toBe(2);
+
+            for (const resolve of pending.splice(0)) resolve();
+            await scheduler.close();
+        });
+
+        it('keeps chunks that need a worker at the worker depth while inline ones fill theirs', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1, 3);
+            const inlineSender = new ChunkSender();
+            const pooledSender = new ChunkSender();
+            for (let x = 0; x < 5; x++) {
+                inlineSender.enqueue(x, 0);
+                pooledSender.enqueue(x, 10);
+            }
+            const pending: Array<() => void> = [];
+            const deliver = () => new Promise<void>((resolve) => void pending.push(resolve));
+            const started = { inline: 0, pooled: 0 };
+            scheduler.add({
+                sender: inlineSender,
+                tryDeliverLoaded: () => {
+                    started.inline++;
+                    return { kind: 'not-loaded', inline: true };
+                },
+                deliver,
+                flush: async () => {},
+                isConnected: () => true
+            });
+            scheduler.add({
+                sender: pooledSender,
+                tryDeliverLoaded: () => {
+                    started.pooled++;
+                    return { kind: 'not-loaded' };
+                },
+                deliver,
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            // Three inline deliveries and the one a worker depth of one allows.
+            expect(await scheduler.tick()).toBe(4);
+            expect(inlineSender.size).toBe(2);
+            expect(pooledSender.size).toBe(4);
+
+            for (const resolve of pending.splice(0)) resolve();
+            await scheduler.close();
+        });
+
         it('keeps resident delivery inside the tick budget while exceeding generation depth', async () => {
             const clock = { now: 0 };
             const scheduler = new ChunkScheduler(5, () => {}, 1);

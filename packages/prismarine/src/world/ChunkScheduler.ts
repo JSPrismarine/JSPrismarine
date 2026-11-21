@@ -1,3 +1,4 @@
+import { CHUNK_ADMISSION_BUDGET_PER_TICK } from './ChunkAdmissions';
 import type { TickWaitTracker } from './TickWaits';
 import { trackTickWaits } from './TickWaits';
 import { chunkWorkerCount } from './generators/chunkConcurrency';
@@ -10,9 +11,14 @@ export interface SchedulableSender {
     enqueue?(x: number, z: number): void;
 }
 
-/** Whether a recipient could queue a loaded chunk without waiting for generation capacity. */
+/**
+ * Whether a recipient could queue a loaded chunk without waiting for generation capacity.
+ *
+ * `inline` on a chunk that is not loaded says its world's generator builds it on this thread
+ * with no worker pool, so the delivery waits for the inline depth rather than the worker depth.
+ */
 export type CachedChunkDelivery =
-    { kind: 'queued'; queuedBytes: number } | { kind: 'not-loaded' } | { kind: 'backpressure' };
+    { kind: 'queued'; queuedBytes: number } | { kind: 'not-loaded'; inline?: boolean } | { kind: 'backpressure' };
 
 /** What the scheduler needs of a player: a queue, and a way to deliver one chunk. */
 export interface ChunkRecipient {
@@ -43,6 +49,15 @@ export const DEFAULT_BUDGET_MS = 5;
  * the work itself.
  */
 export const DEFAULT_DEPTH = Math.max(1, chunkWorkerCount()) * 2;
+
+/**
+ * How many deliveries of chunks a generator builds inline may be in flight.
+ *
+ * No worker pool waits behind them, so the worker depth does not apply. Each one waits for the
+ * input step after its chunk is ready, and one step admits at most this many, so starting more
+ * per tick would only lengthen the wait.
+ */
+export const DEFAULT_INLINE_DEPTH = CHUNK_ADMISSION_BUDGET_PER_TICK;
 
 /**
  * Told about a chunk that could not be produced or sent. `coord` is absent when the failure
@@ -77,6 +92,9 @@ export class ChunkScheduler {
     /** Deliveries still generating, shared across ticks so the server loop never waits for them. */
     private readonly inFlight = new Set<Promise<void>>();
 
+    /** How many of {@link inFlight} are chunks a generator builds inline, which the inline depth holds. */
+    private inlineInFlight = 0;
+
     /** Recipients with completed chunks that need their partial batch dispatched. */
     private readonly readyToFlush = new Set<ChunkRecipient>();
 
@@ -98,7 +116,8 @@ export class ChunkScheduler {
     public constructor(
         private budgetMs: number = DEFAULT_BUDGET_MS,
         private readonly onFailure: ChunkFailureHandler = () => {},
-        private depth: number = DEFAULT_DEPTH
+        private depth: number = DEFAULT_DEPTH,
+        private readonly inlineDepth: number = DEFAULT_INLINE_DEPTH
     ) {}
 
     public add(recipient: ChunkRecipient): void {
@@ -203,7 +222,7 @@ export class ChunkScheduler {
             if (this.readyToFlush.has(recipient)) this.flushRecipient(recipient);
         }
 
-        const begin = (recipient: ChunkRecipient, coord: { x: number; z: number }): void => {
+        const begin = (recipient: ChunkRecipient, coord: { x: number; z: number }, inline: boolean): void => {
             // The delivery can park before its task exists, so count those waits until it does.
             let started: Promise<void> | undefined;
             let earlyParks = 0;
@@ -235,11 +254,13 @@ export class ChunkScheduler {
                 )
                 .finally(() => {
                     this.inFlight.delete(task);
+                    if (inline) this.inlineInFlight--;
                     this.parkTask(task, -(this.parkedTasks.get(task) ?? 0));
                 });
 
             started = task;
             this.inFlight.add(task);
+            if (inline) this.inlineInFlight++;
             if (earlyParks > 0) this.parkTask(task, earlyParks);
         };
 
@@ -269,7 +290,11 @@ export class ChunkScheduler {
             // lap of nothing but deferrals ends the pass. Resetting the count here kept two or
             // more deferring players alternating forever once the depth was reached, and under
             // a clock that does not move the loop never left.
-            if (cached?.kind === 'backpressure' || this.inFlight.size >= this.depth) {
+            const inline = cached?.kind === 'not-loaded' && cached.inline === true;
+            const atDepth = inline
+                ? this.inlineInFlight >= this.inlineDepth
+                : this.inFlight.size - this.inlineInFlight >= this.depth;
+            if (cached?.kind === 'backpressure' || atDepth) {
                 if (recipient.sender.enqueue) recipient.sender.enqueue(next.x, next.z);
                 else {
                     // Back to the front, so the nearest chunk is still the next one tried.
@@ -281,7 +306,7 @@ export class ChunkScheduler {
                 continue;
             }
 
-            begin(recipient, next);
+            begin(recipient, next, inline);
             deliveriesStarted++;
             emptyInARow = 0;
         }
