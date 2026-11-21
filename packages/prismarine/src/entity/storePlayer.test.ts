@@ -4,7 +4,10 @@
  * slot and carried slot write, which the runtime undoes. Asserted as state and change log entries.
  */
 import { Gametype } from '@jsprismarine/minecraft';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
+
+import { nbtBytesOf } from '../nbtBytes';
 
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
@@ -58,6 +61,28 @@ describe('a store player', () => {
             expect([player.yaw, player.pitch, player.headYaw]).toEqual([90, 10, 45]);
         });
 
+        it('holds the actor tags a record gives it, and enters its first store with them', () => {
+            const fixture = storePlayerFixture();
+            const player = loggedInStorePlayer(fixture);
+            expect(player.persistentNbt).toBeNull();
+            const tags = new NBTTagCompound('');
+            tags.addValue('jsp:visits', new Types.DoubleVal(1));
+
+            const entries = logged(fixture.runtime, () => {
+                player.persistentNbt = tags;
+            });
+            expect(entries).toEqual([]);
+            expect(player.persistentNbt?.getDouble('jsp:visits', 0)).toBe(1);
+
+            enterStore(fixture.runtime, new StorePlayers(), player);
+            expect(player.persistentNbt?.getDouble('jsp:visits', 0)).toBe(1);
+            expect(player.entity?.body.actorTags).toBeDefined();
+
+            player.persistentNbt = null;
+            expect(player.persistentNbt).toBeNull();
+            expect(player.entity?.body.actorTags).toBeUndefined();
+        });
+
         it('enters a store with what it held, under its own id, as one membership entry', () => {
             const fixture = storePlayerFixture();
             const player = loggedInStorePlayer(fixture);
@@ -103,6 +128,24 @@ describe('a store player', () => {
             expect(arrived?.instance.attributes.get('health')?.current).toBe(9);
             expect([...(arrived?.body.tags ?? [])]).toEqual(['traveler']);
             expect(players.of(player.id)).toBe(player);
+        });
+
+        it("carries the actor tags a script's dynamic properties live in to the next store", () => {
+            const overworld = storePlayerFixture();
+            const nether = storePlayerFixture();
+            const { player } = enteredStorePlayer(overworld);
+            const tags = new NBTTagCompound('');
+            tags.addValue('jsp:visits', new Types.DoubleVal(2));
+            player.persistentNbt = tags;
+            expect(player.entity?.body.actorTags).toBeDefined();
+
+            leaveStore(overworld.runtime, player, 'changed dimension');
+            expect(player.entity).toBeUndefined();
+            expect(player.persistentNbt?.getDouble('jsp:visits', 0)).toBe(2);
+
+            const arrived = enterStore(nether.runtime, new StorePlayers(), player);
+            expect(arrived?.body.actorTags).toEqual(nbtBytesOf(tags));
+            expect(player.persistentNbt?.getDouble('jsp:visits', 0)).toBe(2);
         });
 
         it('ends an unfinished meal on leaving, since the next store keeps another clock', () => {

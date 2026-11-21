@@ -71,6 +71,15 @@ export const SCRIPT_LOOK_EVENT = 'e2e:look';
 /** Where the client e2e script turns a player to look: `x` the pitch, `y` the yaw, in degrees. */
 export const SCRIPT_LOOK_ROTATION = { x: 30, y: 90 } as const;
 
+/**
+ * What the client e2e script pack tells a player at each first spawn of a login, followed by how
+ * many logins the dynamic property it keeps on the player has counted, this one included.
+ */
+export const SCRIPT_VISITS_MESSAGE = 'client-e2e script: visit ';
+
+/** The player dynamic property the client e2e script counts logins in. */
+export const SCRIPT_VISITS_PROPERTY = 'e2e:visits';
+
 /** Ports reserved by servers this process is starting or running. */
 const reservedUdpPorts = new Set<number>();
 
@@ -542,6 +551,15 @@ export const startServer = async (
             '    for (const player of world.getAllPlayers()) {',
             `        player.setRotation({ x: ${SCRIPT_LOOK_ROTATION.x}, y: ${SCRIPT_LOOK_ROTATION.y} });`,
             '    }',
+            '});',
+            '',
+            'world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {',
+            '    if (!initialSpawn) return;',
+            `    const visits = (player.getDynamicProperty('${SCRIPT_VISITS_PROPERTY}') ?? 0) + 1;`,
+            `    player.setDynamicProperty('${SCRIPT_VISITS_PROPERTY}', visits);`,
+            // Through the world, and without the name: the player's own members are invalid until its
+            // entity enters its store (#3422). The properties go through the store player meanwhile.
+            `    world.sendMessage(\`${SCRIPT_VISITS_MESSAGE}\${visits}\`);`,
             '});',
             '',
             'world.afterEvents.weatherChange.subscribe((event) => {',

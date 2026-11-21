@@ -510,6 +510,13 @@ export interface WorldPlayerData {
      */
     spawn?: StoredSpawnPoint;
     /**
+     * The actor record tags this server does not model, as network NBT in base64: a script's
+     * `DynamicProperties` live there, as they do on the player's actor on Bedrock Dedicated
+     * Server. Absent when the player has none. The LevelDB provider writes the tags at the
+     * record's root, where the game keeps them; this form is the fallback JSON file's.
+     */
+    persistentNbt?: string;
+    /**
      * Ticks left before the player may enter a portal again, Bedrock's `PortalCooldown`.
      *
      * Set when a player changes dimension, so logging out inside the arrival portal and back

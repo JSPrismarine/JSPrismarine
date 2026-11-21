@@ -4,7 +4,20 @@ import { describe, expect, it } from 'vitest';
 import type { WorldPlayerData } from '../../../config/JsonConfigTypes';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from '../../DimensionType';
 import { VANILLA_DIMENSION_TYPES } from '../../vanillaDimensionTypes';
+import { nbtBase64Of, nbtOfBase64 } from '../../../nbtBytes';
 import { playerDataFromNbt, playerDataToNbt } from './PlayerCodec';
+
+/** A player's own tags: a script's dynamic properties, as Bedrock keeps them on the actor. */
+const ownTags = (): NBTTagCompound => {
+    const properties = new NBTTagCompound('DynamicProperties');
+    const pack = new NBTTagCompound('35579972-c85f-41ef-afae-6f7fd4ce0a02');
+    pack.addValue('jsp:visits', new Types.DoubleVal(2));
+    properties.addChild(pack);
+    const tags = new NBTTagCompound('');
+    tags.addChild(properties);
+    tags.addValue('Air', new Types.ShortVal(300));
+    return tags;
+};
 
 /** A level's dimension types with one custom type at the first custom id. */
 const SKY = dimensionTypeOf(
@@ -23,6 +36,60 @@ const record = (extra: Partial<WorldPlayerData> = {}): WorldPlayerData => ({
 
 describe('world', () => {
     describe('PlayerCodec', () => {
+        describe('persistentNbt', () => {
+            it("writes the player's own tags at the root, where the game keeps them, and reads them back", () => {
+                const data = record({ persistentNbt: nbtBase64Of(ownTags()) });
+                const nbt = playerDataToNbt(data);
+
+                expect(
+                    nbt
+                        .getCompound('DynamicProperties', false)
+                        ?.getCompound('35579972-c85f-41ef-afae-6f7fd4ce0a02', false)
+                        ?.getDouble('jsp:visits', 0)
+                ).toBe(2);
+                expect(nbt.getShort('Air', 0)).toBe(300);
+                expect(nbt.getCompound('JSPrismarine', false)?.has('DynamicProperties')).toBe(false);
+                expect(playerDataFromNbt(nbt)).toEqual(data);
+            });
+
+            it('never lets an own tag shadow one the codec writes, and leaves the field out when there are none', () => {
+                const shadow = new NBTTagCompound('');
+                shadow.addValue('PlayerGameType', new Types.NumberVal(3));
+                shadow.addValue('NameTag', new Types.StringVal('Impostor'));
+                const data = record({ persistentNbt: nbtBase64Of(shadow) });
+                const nbt = playerDataToNbt(data);
+
+                expect(nbt.getNumber('PlayerGameType', -1)).toBe(0);
+                expect(nbt.getString('NameTag', '')).toBe('Player');
+                expect(playerDataFromNbt(nbt)).toEqual(record());
+                expect(playerDataFromNbt(playerDataToNbt(record()))).toEqual(record());
+            });
+
+            it("reads the tags of a record the game wrote as the player's own, and writes them back", () => {
+                // As the game writes a player: Bedrock's tags at the root and no JSPrismarine compound.
+                const written = new NBTTagCompound('');
+                written.addValue('PlayerGameType', new Types.NumberVal(1));
+                written.addValue(
+                    'Pos',
+                    new Set([new Types.FloatVal(1.5), new Types.FloatVal(64), new Types.FloatVal(-2.5)])
+                );
+                written.addValue('Air', new Types.ShortVal(300));
+                written.addChild(ownTags().getCompound('DynamicProperties', false)!);
+
+                const data = playerDataFromNbt(written);
+                const own = nbtOfBase64(data.persistentNbt ?? '');
+                expect(own?.getShort('Air', 0)).toBe(300);
+                expect(own?.has('DynamicProperties')).toBe(true);
+                expect(own?.has('Pos')).toBe(false);
+                expect(own?.has('PlayerGameType')).toBe(false);
+                expect(data.gamemode).toBe('Creative');
+
+                const back = playerDataToNbt(data);
+                expect(back.getShort('Air', 0)).toBe(300);
+                expect(back.has('DynamicProperties')).toBe(true);
+            });
+        });
+
         it("writes the portal cooldown under Bedrock's PortalCooldown tag", () => {
             const nbt = playerDataToNbt(record({ portalCooldown: 7 }));
 

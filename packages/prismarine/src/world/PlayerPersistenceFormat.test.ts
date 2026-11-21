@@ -30,6 +30,7 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PlayerAdvancements } from '@jsprismarine/advancements';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import { advancementsOf, forgetAdvancements, loadAdvancements } from '../advancement/progress';
 import type { Config } from '../config/Config';
@@ -46,6 +47,7 @@ import { connectedSession, sessionsWith } from '../testing/playerSession.test.he
 import type { PermissionManager } from '../permission/PermissionManager';
 import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
+import { nbtBase64Of } from '../nbtBytes';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { testLevel } from '../testing/level';
 import { stub } from '../testing/stub.test.helper';
@@ -451,7 +453,67 @@ describe.each([
     });
 });
 
+/** A script's dynamic properties as the player's actor keeps them, under the pack's header UUID. */
+const dynamicProperties = (visits: number): NBTTagCompound => {
+    const properties = new NBTTagCompound('DynamicProperties');
+    const pack = new NBTTagCompound('c3de07fa-bc74-4c08-bdd1-330b9fdc5200');
+    pack.addValue('e2e:visits', new Types.DoubleVal(visits));
+    properties.addChild(pack);
+    const tags = new NBTTagCompound('');
+    tags.addChild(properties);
+    return tags;
+};
+
+/** The visits a player's actor tags hold, which a script wrote as a dynamic property. */
+const visitsOf = (player: StorePlayer): number | undefined =>
+    player.persistentNbt
+        ?.getCompound('DynamicProperties', false)
+        ?.getCompound('c3de07fa-bc74-4c08-bdd1-330b9fdc5200', false)
+        ?.getDouble('e2e:visits', 0);
+
+describe.each([
+    { form: 'LevelDB value', fileRecords: false },
+    { form: 'fallback JSON file', fileRecords: true }
+])("a store player's dynamic properties in a $form", ({ fileRecords }) => {
+    it('come back at the next login, as on Bedrock Dedicated Server', async () => {
+        const player = buildStorePlayer();
+        giveStoreState(player);
+        player.persistentNbt = dynamicProperties(1);
+        const name = fileRecords ? 'properties-file' : 'properties-leveldb';
+        await writeStoreRecord(player, fileRecords, name);
+
+        const level = buildLevel(testServer(), path.join(scratch, name), fileRecords);
+        await level.enable();
+        const data = await level.getPlayerData(KEY);
+        await level.disable();
+        if (data === null) throw new Error(`no record under ${KEY}`);
+
+        const returning = buildStorePlayer();
+        applyPlayerRecord(returning, data, 'survival', testContent());
+        expect(visitsOf(returning)).toBe(1);
+        // The tags are a copy: what the returning player writes stays out of the record it read.
+        returning.persistentNbt = dynamicProperties(2);
+        expect(data.persistentNbt).toBe(nbtBase64Of(dynamicProperties(1)));
+    });
+});
+
 describe('a store player record', () => {
+    it('carries the actor tags a script wrote, and leaves the field out of a record without any', () => {
+        const player = buildStorePlayer();
+        giveStoreState(player);
+        expect(playerRecordFrom(player, fixtureServices(), Dimensions.Overworld).persistentNbt).toBeUndefined();
+
+        player.persistentNbt = dynamicProperties(3);
+        const record = playerRecordFrom(player, fixtureServices(), Dimensions.Overworld);
+        expect(record.persistentNbt).toBe(nbtBase64Of(dynamicProperties(3)));
+
+        const returning = buildStorePlayer();
+        applyPlayerRecord(returning, record, 'survival', testContent());
+        expect(visitsOf(returning)).toBe(3);
+        applyPlayerRecord(returning, { ...record, persistentNbt: 'not nbt' }, 'survival', testContent());
+        expect(returning.persistentNbt).toBeNull();
+    });
+
     // A save cut under ADR 0018 holds records until a later commit, so nothing the player does
     // after its record was taken may reach what gets written.
     it('shares nothing with the store player it was built from', () => {

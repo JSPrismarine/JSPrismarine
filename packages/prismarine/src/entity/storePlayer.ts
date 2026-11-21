@@ -20,6 +20,7 @@
  * Every live player is one: the session holds its store player from the login on.
  */
 import type { Gametype } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
@@ -35,6 +36,7 @@ import { itemOfSlotValue, playerContainerNamed } from '../inventory/slotLog';
 import type Device from '../utils/Device';
 import type { PlainData } from '../world/changelog/PlainData';
 import type { PlayerRecordSource, PlayerRecordTarget, RecordedPosition } from '../world/playerRecord';
+import { nbtBytesOf, nbtOfBytes } from '../nbtBytes';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { StatusEffect } from './StatusEffect';
 import type { DataEntity } from './data/DataEntity';
@@ -74,6 +76,12 @@ export interface HeldEntity {
     readonly record: DataEntityRecord | undefined;
     readonly tags: readonly string[];
     readonly statusEffects: readonly StatusEffect[];
+    /**
+     * The actor record tags this server does not model, as network NBT bytes, which a script's
+     * dynamic properties live in. Carried from a store to the next, and from a saved record to the
+     * first store.
+     */
+    readonly actorTags?: Uint8Array;
 }
 
 /** A store player, with its entity while one is in a store. */
@@ -184,6 +192,8 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
             entity.body.tags.replace(tags);
             entity.body.statusEffects.replace(statusEffects.map((effect) => [effect.id, effect]));
         }
+        // The actor tags come from the last store or from the saved record, either way before the entity's first store.
+        if (this.held.actorTags !== undefined) entity.body.actorTags = this.held.actorTags;
         this.attached = entity;
         this.restoreHealth(health);
         this.log = systems?.attach(entity, {
@@ -209,13 +219,15 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
         const entity = this.attached;
         if (entity === undefined) return false;
         const health = this.getHealth();
+        const actorTags = entity.body.actorTags;
         this.held = {
             position: { ...entity.position },
             yaw: entity.body.yaw,
             pitch: entity.body.pitch,
             record,
             tags: [...entity.body.tags],
-            statusEffects: [...entity.body.statusEffects.values()].map((effect) => ({ ...effect }))
+            statusEffects: [...entity.body.statusEffects.values()].map((effect) => ({ ...effect })),
+            ...(actorTags === undefined ? {} : { actorTags })
         };
         this.log = undefined;
         this.attached = undefined;
@@ -348,6 +360,26 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** The player's logged component state, which the survival rules write through. */
     public getComponents(): PlayerComponents {
         return this.components;
+    }
+
+    /**
+     * The actor record tags this server does not model, which a script's dynamic properties live
+     * in: the entity's while the player is in a store, and what the player holds for the next
+     * store otherwise. A new compound on every read; change one by assigning it back.
+     */
+    public get persistentNbt(): NBTTagCompound | null {
+        const tags = this.attached === undefined ? this.held.actorTags : this.attached.body.actorTags;
+        return tags === undefined ? null : nbtOfBytes(tags);
+    }
+
+    public set persistentNbt(tags: NBTTagCompound | null) {
+        const bytes = tags === null ? undefined : nbtBytesOf(tags);
+        if (this.attached !== undefined) {
+            this.attached.body.actorTags = bytes;
+            return;
+        }
+        const { actorTags: _dropped, ...held } = this.held;
+        this.held = bytes === undefined ? held : { ...held, actorTags: bytes };
     }
 
     /** The `/tag` tags the player carries, the entity's while it is in a store. */

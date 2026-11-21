@@ -18,3 +18,18 @@ export const nbtBytesOf = (tags: NBTTagCompound): Uint8Array => {
 /** The compound network NBT bytes hold, as a new compound each call. */
 export const nbtOfBytes = (bytes: Uint8Array): NBTTagCompound =>
     NBTTagCompound.readFromStream(new BinaryStream(Buffer.from(bytes)), ByteOrder.LITTLE_ENDIAN, true);
+
+/** A compound's tags as network NBT bytes in base64, for a record kept as JSON. */
+export const nbtBase64Of = (tags: NBTTagCompound): string => Buffer.from(nbtBytesOf(tags)).toString('base64');
+
+/**
+ * The compound a base64 text of network NBT bytes holds, or undefined for text that is not one:
+ * a hand-edited record costs its tags and nothing else.
+ */
+export const nbtOfBase64 = (text: string): NBTTagCompound | undefined => {
+    try {
+        return nbtOfBytes(Buffer.from(text, 'base64'));
+    } catch {
+        return undefined;
+    }
+};

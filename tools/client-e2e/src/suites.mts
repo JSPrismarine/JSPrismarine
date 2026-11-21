@@ -42,6 +42,7 @@ import { movementFanout } from './scenarios/movement-fanout.mts';
 import { frozenWorld } from './scenarios/frozen-world.mts';
 import { duplicateLogin } from './scenarios/duplicate-login.mts';
 import { rejoin } from './scenarios/rejoin.mts';
+import { playerProperties } from './scenarios/player-properties.mts';
 import { movementRotation } from './scenarios/movement-rotation.mts';
 import { naturalSpawnPlacement } from './scenarios/natural-spawn-placement.mts';
 import { naturalSpawnUnderCanopy } from './scenarios/natural-spawn-under-canopy.mts';
@@ -103,6 +104,7 @@ export const suites: ScenarioSuite[] = [
             frozenWorld,
             duplicateLogin,
             rejoin,
+            playerProperties,
             movementRotation,
             chat,
             commandSyntaxError
