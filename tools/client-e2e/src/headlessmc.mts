@@ -53,7 +53,7 @@ export const ensureHeadlessMc = async (release: string): Promise<{ jar: string; 
     const mods = path.join(home, 'minecraft', `fabric-${release}-${pin.fabricLoader}`, 'mods');
     await ensurePinned(pin.specifics.url, pin.specifics.sha256, path.join(mods, `hmc-specifics-${release}-fabric.jar`));
     // A fresh game directory opens on the accessibility onboarding screen, which waits for a click.
-    // The headless client presses keyboard keys only, so attack moves off the mouse onto one.
+    // The headless client presses keyboard keys only, so attack and use move off the mouse.
     const options = path.join(path.dirname(mods), 'options.txt');
     const settings = new Map(
         (fs.existsSync(options) ? fs.readFileSync(options, 'utf8') : '')
@@ -63,12 +63,16 @@ export const ensureHeadlessMc = async (release: string): Promise<{ jar: string; 
     );
     settings.set('onboardAccessibility', 'false');
     settings.set('key_key.attack', `key.keyboard.${ATTACK_KEY}`);
+    settings.set('key_key.use', `key.keyboard.${USE_KEY}`);
     fs.writeFileSync(options, [...settings].map(([key, value]) => `${key}:${value}\n`).join(''));
     return { jar, home, mods };
 };
 
 /** The keyboard key the client attacks with, which a scenario presses with `key`. */
 export const ATTACK_KEY = 'r';
+
+/** The keyboard key the client uses the item in hand with, which a scenario presses with `key`. */
+export const USE_KEY = 't';
 
 /** A running headless Java client and its console. */
 export interface JavaClient {
