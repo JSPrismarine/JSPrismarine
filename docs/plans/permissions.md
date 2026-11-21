@@ -115,7 +115,9 @@ so the result is the same on every run. A tier is one holder's set of nodes: the
 direct group with its parents. The first node that decides the query wins, where a specific node
 decides before a wildcard in the same tier, and a negation decides before a grant at the same
 specificity in the same tier. So a denial in the lighter of two groups never overrides a grant in
-the heavier, and a grant and a denial of the same node at equal weight resolve by name order. Expired nodes and memberships are skipped and pruned on the next write. The primary
+the heavier. Within one tier the negation rule decides first, so a group that grants a node and
+inherits a parent that denies it is denied whatever its name. Name order decides only between
+separate tiers of equal weight. Expired nodes and memberships are skipped and pruned on the next write. The primary
 group is the heaviest group the user holds directly.
 
 Meta resolves in the same order: the user's own meta, then each direct group by weight with its
@@ -184,8 +186,10 @@ command or a script goes through the same code path the config files use, so com
 stored on each user. When it matches more than one kind, the command refuses and shows the
 qualified forms it accepts, `xbox:Steve`, `java:Steve` or `offline:Steve`. Two stored users of
 one kind can carry the same last-seen name, so the qualified form also takes the key itself,
-`xbox:2535428842768200`, and the refusal lists each candidate with its key. The qualified form is
-command syntax only and never appears in a file or an API.
+`xbox:2535428842768200`, and the refusal lists each candidate with its key. A qualified value is
+read as a key first: when it is the key of a stored user, that user is the target and no name is
+tried; only a value that is nobody's key resolves as a name. The qualified form is command syntax
+only and never appears in a file or an API.
 
 ### The script module
 
