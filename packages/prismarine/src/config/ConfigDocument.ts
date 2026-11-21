@@ -2,13 +2,22 @@ import {
     applyEdits,
     createScanner,
     findNodeAtLocation,
+    getNodeValue,
     modify,
-    parse,
     parseTree,
     printParseErrorCode
 } from 'jsonc-parser';
 import type { Node as JsonNode, ParseError } from 'jsonc-parser';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+
+/** The value with every prototype-less object of the parse rebuilt as an ordinary one, keys kept as keys. */
+const withOrdinaryObjects = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(withOrdinaryObjects);
+    if (typeof value === 'object' && value !== null) {
+        return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, withOrdinaryObjects(entry)]));
+    }
+    return value;
+};
 
 /** The keys from the root to one value: object keys as strings, list indices as numbers. */
 export type ConfigPath = readonly (string | number)[];
@@ -157,9 +166,12 @@ class JsonConfigDocument implements ConfigDocument {
 
     public get(path: ConfigPath): unknown {
         if (this.text.trim() === '') return undefined;
-        // `parse` builds ordinary objects; `getNodeValue` builds prototype-less ones, which
-        // callers comparing against literals would trip over.
-        let current: unknown = parse(this.text, undefined, { allowTrailingComma: true });
+        const tree = parseTree(this.text, undefined, { allowTrailingComma: true });
+        if (tree === undefined) return undefined;
+        // `getNodeValue` keeps a `__proto__` member as a key, where `parse` would make it the
+        // prototype; its prototype-less objects become ordinary ones, which callers comparing
+        // against literals expect.
+        let current: unknown = withOrdinaryObjects(getNodeValue(tree));
         for (const key of path) {
             if (!isTree(current) || !Object.hasOwn(current, key)) return undefined;
             current = current[key];

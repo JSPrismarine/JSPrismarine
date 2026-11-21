@@ -231,6 +231,40 @@ describe('permission', () => {
                 });
             });
 
+            it('retries a claim whose write failed at the next login, and lets a revocation made meanwhile stand', async () => {
+                writeFileSync(permissionsFile(), LEGACY);
+                await manager.enable();
+                const alice = identityNamed('Alice', '00000000-0000-0000-0000-000000000002');
+                const carol = identityNamed('Carol', '00000000-0000-0000-0000-000000000003');
+
+                // The claims' writes fail; the players hold their grants and the entries wait on.
+                mkdirSync(temporaryPathOf(permissionsFile()));
+                expect(manager.claimLegacy(alice)).toBe(true);
+                expect(manager.claimLegacy(carol)).toBe(true);
+                await manager.reload();
+                rmSync(temporaryPathOf(permissionsFile()), { recursive: true });
+                expect(manager.has(alice, 'minecraft.command.kick')).toBe(true);
+                expect(manager.has(carol, 'minecraft.command.ban')).toBe(true);
+                expect(permissions()).toMatchObject({ pending: [expect.anything(), expect.anything()] });
+
+                // An administrator revokes Alice's grant: the write takes her pending entry with it.
+                expect(await manager.revokeUser(alice, 'minecraft.command.kick')).toBe(true);
+                expect(manager.claimLegacy(alice)).toBe(false);
+                expect(manager.has(alice, 'minecraft.command.kick')).toBe(false);
+                // Carol logs in again: the claim is written as it stands.
+                expect(manager.claimLegacy(carol)).toBe(true);
+                await manager.disable();
+                expect(permissions()).toMatchObject({
+                    pending: [],
+                    users: {
+                        offline: {
+                            Alice: { nodes: [] },
+                            Carol: { nodes: [{ node: 'minecraft.command.ban' }] }
+                        }
+                    }
+                });
+            });
+
             it.each(['3', '"2"', '1.5'])(
                 'refuses a file whose schemaVersion is %s rather than the number 2, without rewriting it',
                 async (version) => {
@@ -282,7 +316,12 @@ describe('permission', () => {
                                 name: 'old',
                                 legacyUuid: 'u-1',
                                 groups: [{ group: 'vip' }],
-                                nodes: [{ node: 'a.b', expires: PAST }],
+                                // A permanent copy before an expired one within one record stays too.
+                                nodes: [
+                                    { node: 'a.b', expires: PAST },
+                                    { node: 'e.f' },
+                                    { node: 'e.f', expires: PAST }
+                                ],
                                 meta: {}
                             },
                             {
@@ -302,13 +341,19 @@ describe('permission', () => {
                 expect(manager.claimLegacy(bob)).toBe(false);
                 expect(manager.has(bob, 'a.b')).toBe(true);
                 expect(manager.has(bob, 'c.d')).toBe(true);
+                expect(manager.has(bob, 'e.f')).toBe(true);
                 expect(manager.groupsOf(bob)).toEqual(['vip', 'default']);
 
                 await manager.disable();
                 expect(permissions()).toMatchObject({
                     pending: [],
                     users: {
-                        offline: { Bob: { groups: [{ group: 'vip' }], nodes: [{ node: 'a.b' }, { node: 'c.d' }] } }
+                        offline: {
+                            Bob: {
+                                groups: [{ group: 'vip' }],
+                                nodes: [{ node: 'a.b' }, { node: 'e.f' }, { node: 'c.d' }]
+                            }
+                        }
                     }
                 });
             });
@@ -456,6 +501,52 @@ describe('permission', () => {
                 expect(manager.groupOf('a')?.weight).toBe(0);
             });
 
+            it('keeps a meta key such as `__proto__` as a key like any other', async () => {
+                await manager.enable();
+                await manager.createGroup('vip');
+
+                await manager.setUserMeta(steve, '__proto__', 'own');
+                await manager.setGroupMeta('vip', '__proto__', 'group');
+                expect(manager.metaOf(steve, '__proto__')).toBe('own');
+                expect(manager.userOf(steve.subject)?.meta).toEqual({ ['__proto__']: 'own' });
+                expect(permissions()).toMatchObject({
+                    users: { offline: { Steve: { meta: { ['__proto__']: 'own' } } } },
+                    groups: { vip: { meta: { ['__proto__']: 'group' } } }
+                });
+
+                await manager.setUserMeta(steve, '__proto__', undefined);
+                expect(manager.metaOf(steve, '__proto__')).toBeUndefined();
+                expect(Object.keys(manager.userOf(steve.subject)?.meta ?? {})).toEqual([]);
+            });
+
+            it('decides whether a parent link is there when the edit runs, behind a removal queued before it', async () => {
+                await manager.enable();
+                await manager.createGroup('staff');
+                await manager.createGroup('vip');
+                await manager.addParent('staff', 'vip');
+
+                const removing = manager.removeParent('staff', 'vip');
+                const adding = manager.addParent('staff', 'vip');
+                expect(await removing).toBe(true);
+                await adding;
+
+                expect(manager.groupOf('staff')?.parents).toEqual(['vip']);
+                expect(permissions()).toMatchObject({ groups: { staff: { parents: ['vip'] } } });
+            });
+
+            it('knows the bytes a hand-edited file holds, so a file without `$schema` is not read as changed', async () => {
+                writeFileSync(
+                    permissionsFile(),
+                    JSON.stringify({ schemaVersion: 2, groups: {}, users: { offline: {} } }, null, 4)
+                );
+                await manager.enable();
+
+                await manager.grantUser(steve, 'a.b');
+
+                expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('changed on disk'));
+                expect(permissions()).toMatchObject({ users: { offline: { Steve: { nodes: [{ node: 'a.b' }] } } } });
+            });
+
             it('changes memory only once the file is written, so a failed write leaves the edit to make again', async () => {
                 await manager.enable();
                 await manager.grantUser(steve, 'a.b');
@@ -478,6 +569,8 @@ describe('permission', () => {
                 expect(await manager.revokeUser(steve, 'a.b')).toBe(true);
                 expect(manager.has(steve, 'a.b')).toBe(false);
                 expect(existsSync(temporaryPathOf(permissionsFile()))).toBe(false);
+                // The failed write recorded nothing, so the file as it stayed was not read as a change.
+                expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('changed on disk'));
             });
 
             it('writes a complete file again when the one on disk is gone', async () => {
@@ -565,6 +658,49 @@ describe('permission', () => {
                 expect(manager.has(steve, 'x.y')).toBe(true);
                 expect(manager.has(steve, 'a.b')).toBe(false);
                 expect(manager.groupsOf(steve)).toEqual(['default']);
+            });
+
+            it('arms the next expiry before the sends for the one before it, so a deadline the sends outlast is not missed', async () => {
+                vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+                try {
+                    // Once `holding`, a send waits until the test lets it through.
+                    let holding = false;
+                    const held: (() => void)[] = [];
+                    const sent: string[] = [];
+                    online = [
+                        stub<PlayerSession>({
+                            identity: steve,
+                            sendAvailableCommands: () =>
+                                new Promise<void>((resolve) => {
+                                    sent.push('commands');
+                                    if (holding) held.push(resolve);
+                                    else resolve();
+                                }),
+                            announceSettings: async () => void sent.push('settings')
+                        })
+                    ];
+                    await manager.enable();
+                    const FIRST = '2026-11-21T12:00:01.000Z';
+                    const SECOND = '2026-11-21T12:00:02.000Z';
+                    await manager.grantUser(steve, 'a.b', FIRST);
+                    await manager.grantUser(steve, 'c.d', SECOND);
+                    sent.length = 0;
+                    holding = true;
+
+                    // The send for the first expiry is still pending when the second one passes.
+                    now = Date.parse(FIRST);
+                    await vi.advanceTimersByTimeAsync(1000);
+                    expect(sent).toEqual(['commands']);
+                    now = Date.parse(SECOND);
+                    await vi.advanceTimersByTimeAsync(1000);
+                    expect(sent).toEqual(['commands', 'commands']);
+                    for (const release of held.splice(0)) release();
+                    await vi.advanceTimersByTimeAsync(0);
+
+                    expect(sent).toEqual(['commands', 'commands', 'settings', 'settings']);
+                } finally {
+                    vi.useRealTimers();
+                }
             });
 
             it('sends every player their command list and abilities again when a membership or node expires', async () => {
@@ -694,6 +830,33 @@ describe('permission', () => {
                 await reloading;
 
                 expect(heard).toEqual([]);
+            });
+
+            it('keeps an operator change made while an edit reads a file that changed on disk', async () => {
+                const session = stub<PlayerSession>({
+                    identity: steve,
+                    sendAvailableCommands: async () => {},
+                    announceSettings: async () => {}
+                });
+                const kernelServer = new PermissionManager(
+                    { ...server(), getKernel: () => kernelPosting(() => {}) },
+                    { now: () => now, watch: false }
+                );
+                await kernelServer.enable();
+                writeFileSync(permissionsFile(), edited(['groups', 'default', 'meta'], { prefix: 'D' }));
+
+                const editing = kernelServer.grantUser(steve, 'a.b');
+                const told = kernelServer.setOpNow(session, true);
+                await editing;
+                await told;
+
+                expect(kernelServer.isOp(steve.subject)).toBe(true);
+                expect(kernelServer.groupOf('default')?.meta).toEqual({ prefix: 'D' });
+                expect(kernelServer.has(steve, 'a.b')).toBe(true);
+                await kernelServer.disable();
+                expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toContainEqual(
+                    expect.objectContaining({ name: 'Steve', kind: 'offline', id: 'Steve' })
+                );
             });
 
             it('keeps a legacy operator claim made while a reload reads the files, with the UUID no longer waiting', async () => {

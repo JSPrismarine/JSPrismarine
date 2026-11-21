@@ -2,6 +2,7 @@
 import type { Scenario } from './scenario.mts';
 import { chat } from './scenarios/chat.mts';
 import { commandSyntaxError } from './scenarios/command-syntax-error.mts';
+import { permissionsReload } from './scenarios/permissions-reload.mts';
 import { scriptForm } from './scenarios/script-form.mts';
 import { scriptRotation } from './scenarios/script-rotation.mts';
 import { scriptTeleport } from './scenarios/script-teleport.mts';
@@ -107,7 +108,8 @@ export const suites: ScenarioSuite[] = [
             playerProperties,
             movementRotation,
             chat,
-            commandSyntaxError
+            commandSyntaxError,
+            permissionsReload
         ]
     },
     {
