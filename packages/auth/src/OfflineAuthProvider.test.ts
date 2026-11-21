@@ -94,6 +94,27 @@ describe('OfflineAuthProvider', () => {
         expect(decode(clientData).ServerAddress).toBe('example.org:19133');
     });
 
+    it('carries the device fields a retail client sends', async () => {
+        // Pumpkin refuses a login whose client data lacks any of them.
+        const auth = new OfflineAuthProvider({ displayName: 'Steve' });
+        const data = decode((await auth.createLoginCredentials(REQUEST)).clientData);
+
+        for (const field of [
+            'ClientRandomId',
+            'DeviceOS',
+            'DeviceId',
+            'GameVersion',
+            'LanguageCode',
+            'CurrentInputMode',
+            'DefaultInputMode',
+            'UIProfile',
+            'ServerAddress',
+            'MaxViewDistance'
+        ]) {
+            expect(data, `missing ${field}`).toHaveProperty(field);
+        }
+    });
+
     it('carries every skin field the server dereferences without checking', async () => {
         // `Skin.fromJWT` reads all of these unconditionally, so a client that omits one
         // crashes the login handler rather than being politely refused.
