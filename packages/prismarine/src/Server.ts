@@ -34,7 +34,6 @@ import type { StorePlayers } from './entity/data/storePlayers';
 import type { ServerWorldHandle } from './content/world/serverSource';
 import { CommandManager } from './command/CommandManager';
 import { CreativeInventory } from './inventory/CreativeInventory';
-import { describeSupportedProtocols } from './network/codec/describeCodecs';
 import { joinContentPayloads } from './network/contentPayloads';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
@@ -90,6 +89,8 @@ import type { RemoteConsole } from './console/RemoteConsole';
 import type { Logger } from '@jsprismarine/logger';
 import { errorMessage } from './utils/errorMessage';
 import { serverVersion, softwareLabel } from './version';
+import type { ProtocolProvider } from './protocolProviders';
+import { bedrockProtocolProvider, describeProtocolProviders, javaProtocolProvider } from './protocolProviders';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
 /** The active random streams held by a server at one replay boundary. */
@@ -277,6 +278,9 @@ export default class Server {
     /** Whether this server replays a recorded session; see {@link Server.isReplay}. */
     private readonly replay: boolean;
 
+    /** The editions this server speaks; see {@link Server.getProtocolProviders}. */
+    private readonly protocolProviders: readonly ProtocolProvider[];
+
     /**
      * Creates a new server instance.
      * @param {object} options - The options.
@@ -299,6 +303,8 @@ export default class Server {
      *   `performance.now` by default. Nothing a tick simulates reads it.
      * @param {StatsProvider[]} [options.statsProviders] - Stats providers to run beside the
      *   built-in bStats one, started after it on every kernel start and stopped before it.
+     * @param [options.protocolProviders] - Editions the embedder speaks beside the built-in ones,
+     *   which every version surface lists after them.
      * @param [options.wallClock] - The wall clock each input step admits once for behavior pack
      *   scripts, `Date.now` by default. A replay harness gives one that returns the recorded values.
      * @param [options.replay] - Whether the server replays a recorded session. A replay never opens
@@ -319,6 +325,7 @@ export default class Server {
         onStopCommandComplete,
         tickClock,
         statsProviders = [],
+        protocolProviders = [],
         wallClock = Date.now,
         replay = false,
         scriptHttpTransport
@@ -334,6 +341,7 @@ export default class Server {
         onStopCommandComplete?: (stopped: boolean) => void;
         tickClock?: () => number;
         statsProviders?: readonly StatsProvider[];
+        protocolProviders?: readonly ProtocolProvider[];
         wallClock?: () => number;
         replay?: boolean;
         scriptHttpTransport?: ScriptHttpTransport;
@@ -356,9 +364,16 @@ export default class Server {
         this.replay = replay;
         this.networking = new ServerNetworking(this, inboundPacketRecorder, outboundPacketRecorder, transport);
 
-        const protocols = describeSupportedProtocols();
+        // Bedrock always; Java when it is switched on; then the embedder's.
+        this.protocolProviders = [
+            bedrockProtocolProvider,
+            ...(config.getJavaEnabled() ? [javaProtocolProvider] : []),
+            ...protocolProviders
+        ];
         logger.info(
-            `Starting ${softwareLabel(true)} for Minecraft: Bedrock Edition on ${protocols.length} protocol version${protocols.length === 1 ? '' : 's'}:${protocols.map((protocol) => `\n  ${protocol}`).join('')}`
+            `Starting ${softwareLabel(true)} for Minecraft:${describeProtocolProviders(this.protocolProviders, true)
+                .map((edition) => `\n  ${edition}`)
+                .join('')}`
         );
 
         this.logger = logger;
@@ -1329,6 +1344,15 @@ export default class Server {
      */
     public getConfig(): Config {
         return this.config;
+    }
+
+    /**
+     * The editions this server speaks, which every version surface lists: Bedrock, Java when
+     * `java-enabled` is on, then any the embedder passed as `protocolProviders`.
+     * @returns The providers, in that order.
+     */
+    public getProtocolProviders(): readonly ProtocolProvider[] {
+        return this.protocolProviders;
     }
 
     /**

@@ -2,7 +2,7 @@ import { DisconnectReason, PacketCompressionAlgorithm } from '@jsprismarine/mine
 import Codec2193 from '@jsprismarine/prismarine/network/codec/Codec2193';
 import Codec2225 from '@jsprismarine/prismarine/network/codec/Codec2225';
 import { advertisedCodec, latestCodec, registeredCodecs } from '@jsprismarine/prismarine/network/codec/CodecRegistry';
-import { describeSupportedProtocols } from '@jsprismarine/prismarine/network/codec/describeCodecs';
+import { bedrockProtocolProvider, describeProtocolProviders } from '@jsprismarine/prismarine/protocolProviders';
 import { resolveProtocolPolicy } from '@jsprismarine/prismarine/network/codec/ProtocolPolicy';
 import { about } from '@jsprismarine/prismarine/about';
 import HandshakeCodec from '@jsprismarine/prismarine/network/codec/HandshakeCodec';
@@ -397,7 +397,7 @@ describe(FAMILIES.protocolNegotiation, () => {
     });
 
     it('the versions the server reports are exactly the ones a client can negotiate', async () => {
-        const described = describeSupportedProtocols().join('\n');
+        const described = describeProtocolProviders([bedrockProtocolProvider], true).join('\n');
         const cases: ReturnType<typeof parityCase>[] = [];
 
         for (const codec of registeredCodecs) {

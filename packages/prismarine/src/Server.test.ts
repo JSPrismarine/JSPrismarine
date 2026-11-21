@@ -7,6 +7,8 @@ import { memoryLinkPair } from '@jsprismarine/console-protocol';
 import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protocol';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
+import type { ProtocolProvider } from './protocolProviders';
+import { bedrockProtocolProvider, describeProtocolProviders, javaProtocolProvider } from './protocolProviders';
 import { Config } from './config/Config';
 import { RemoteConsole } from './console/RemoteConsole';
 import { RemoteLogTransport } from './console/RemoteLogTransport';
@@ -48,9 +50,16 @@ describe('Server', () => {
      * One folder per test keeps each startup independent. LevelDB takes a directory lock, so
      * two servers must not open the same world at once.
      */
-    const debugConfig = (levelName: string, options: { ticking?: boolean; processTitle?: boolean } = {}) =>
+    const debugConfig = (
+        levelName: string,
+        options: { ticking?: boolean; processTitle?: boolean; java?: boolean } = {}
+    ) =>
         new (class DebugConfig extends Config {
             public override async enable() {}
+
+            public override getJavaEnabled() {
+                return options.java ?? false;
+            }
 
             public override getServerIp() {
                 return '0.0.0.0';
@@ -116,24 +125,33 @@ describe('Server', () => {
             }
         })();
 
-    it('announces every protocol version it registered a codec for', async () => {
-        const { registeredCodecs } = await import('./network/codec/CodecRegistry');
-        const logger = new Logger();
-        const lines: string[] = [];
-        vi.spyOn(logger, 'info').mockImplementation((message) => {
-            lines.push(String(message));
-        });
-
-        new Server({ logger, config: debugConfig('test-world-banner') });
-
-        const banner = lines.join('\n');
-        expect(banner).toContain(`on ${registeredCodecs.length} protocol versions:`);
-        for (const codec of registeredCodecs) {
-            expect(banner).toContain(String(codec.protocolVersion));
-            for (const version of codec.minecraftVersions) expect(banner).toContain(version);
+    it("announces each edition it speaks: Bedrock, Java once it is on, then the embedder's", async () => {
+        const banners: string[] = [];
+        const custom: ProtocolProvider = {
+            edition: 'Pocket Edition',
+            protocols: () => [{ protocolVersion: 8, minecraftVersions: ['8.0'], advertised: true, preview: false }]
+        };
+        for (const java of [false, true]) {
+            const logger = new Logger();
+            const lines: string[] = [];
+            vi.spyOn(logger, 'info').mockImplementation((message) => void lines.push(String(message)));
+            const server = new Server({
+                logger,
+                config: debugConfig(`test-world-banner-${java}`, { java }),
+                protocolProviders: [custom]
+            });
+            banners.push(lines.join('\n'));
+            expect(server.getProtocolProviders()).toEqual(
+                java ? [bedrockProtocolProvider, javaProtocolProvider, custom] : [bedrockProtocolProvider, custom]
+            );
         }
-        // Only the newest is in the MOTD, so only it carries the marker.
-        expect(banner.match(/advertised in the MOTD/g)).toHaveLength(1);
+
+        const [bedrockOnly, withJava] = banners;
+        for (const edition of describeProtocolProviders([bedrockProtocolProvider, custom], true)) {
+            expect(bedrockOnly).toContain(edition);
+        }
+        expect(bedrockOnly).not.toContain('Java Edition');
+        expect(withJava).toContain(describeProtocolProviders([javaProtocolProvider], true)[0]);
     });
 
     it('reports a failed chunk send but not one a stopped generator refused', async () => {
