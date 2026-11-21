@@ -50,13 +50,33 @@ const headers: Record<string, string> = {
     ...(token && { Authorization: `Bearer ${token}` })
 };
 
+/**
+ * Fetches again when the request fails before any response, such as a connection the runner's
+ * network dropped during the TLS handshake. A response GitHub sent, an error status included,
+ * comes back as is.
+ */
+async function fetchWithRetry(url: string, init: () => RequestInit, attempts = 3): Promise<Response> {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await fetch(url, init());
+        } catch (error) {
+            if (attempt >= attempts) throw error;
+            console.warn(`${url} failed (${error}); trying again.`);
+            await new Promise((resolve) => setTimeout(resolve, attempt * 2_000));
+        }
+    }
+}
+
 async function fetchContributors() {
     const people: GitHubContributor[] = [];
     for (let page = 1; ; page++) {
-        const response = await fetch(`${GITHUB_API}/repos/${repo}/contributors?per_page=100&page=${page}`, {
-            headers,
-            signal: AbortSignal.timeout(30_000)
-        });
+        const response = await fetchWithRetry(
+            `${GITHUB_API}/repos/${repo}/contributors?per_page=100&page=${page}`,
+            () => ({
+                headers,
+                signal: AbortSignal.timeout(30_000)
+            })
+        );
         if (response.status === 204) break;
         if (!response.ok) {
             throw new Error(`GitHub contributor lookup failed (${response.status}). Set GITHUB_TOKEN if rate limited.`);

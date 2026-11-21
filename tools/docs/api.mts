@@ -135,8 +135,11 @@ for (const pkg of packages) {
     rmSync(stamp, { force: true });
     stale.push({ pkg, hash });
 }
+// Named, since a change to a package every other one depends on converts its largest dependents too,
+// and the slowest of them sets how long this takes.
+const staleNames = stale.length > 0 ? ` (${stale.map(({ pkg }) => pkg.folder).join(', ')})` : '';
 console.error(
-    `Converting ${stale.length} of ${packages.length} packages, ${parallelism} at a time; the rest are unchanged.`
+    `Converting ${stale.length} of ${packages.length} packages${staleNames}, ${parallelism} at a time; the rest are unchanged.`
 );
 await inPool(stale, parallelism, async ({ pkg, hash }) => {
     await convert(pkg, path.join(cacheDir, `${pkg.folder}.json`));

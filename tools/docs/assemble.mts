@@ -53,6 +53,13 @@ runStep('tracker', () => {
             : undefined;
     const changed = since !== undefined && isKnownCommit(since) ? ['--', `--changed=${since}`] : [];
     rmSync(trackerCommitFile, { force: true });
+    // The suite prints only when it is done, and it runs beside TypeDoc, so say up front what the
+    // build is waiting on.
+    console.error(
+        changed.length > 0
+            ? `Running the parity files the changes since ${since} reach; this takes minutes when a widely used package changed.`
+            : 'Running the whole parity suite: no earlier run left inputs to build on.'
+    );
     execFileSync('pnpm', ['--filter', '@jsprismarine/parity', 'run', 'dashboard', ...changed], {
         cwd: repoRoot,
         env: { ...process.env, GITHUB_STEP_SUMMARY: '' },
