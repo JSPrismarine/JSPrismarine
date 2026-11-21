@@ -13,7 +13,14 @@ import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import type { WorldGenerationContext } from '../surface/VerticalAnchor';
 import type { CarverConfig } from './Carver';
-import { carveChunk, carversFromNoiseBiome, isStartChunk, largeFeatureRandom, parseCarver } from './Carver';
+import {
+    carveChunk,
+    carversFromNoiseBiome,
+    createCarverStarts,
+    isStartChunk,
+    largeFeatureRandom,
+    parseCarver
+} from './Carver';
 import { CarvingMask } from './CarvingMask';
 
 const SEED = BigInt(carverVectors.seed);
@@ -135,6 +142,39 @@ describe('carver determinism and distribution, which cannot be compared with Bed
         expect(fraction).toBeLessThan(0.05);
         expect(volumes.filter((volume) => volume > 0).length).toBeGreaterThanOrEqual(12);
     }, 120_000);
+});
+
+describe('the carver start memory', () => {
+    it('opens the same blocks while asking each source chunk for its carvers once', () => {
+        const listed = [carverNamed('minecraft:cave'), carverNamed('minecraft:canyon')];
+        let asked = 0;
+        const carversAt = (): readonly CarverConfig[] => {
+            asked++;
+            return listed;
+        };
+        const starts = createCarverStarts(SEED, carversAt);
+        const side = 2;
+        for (let chunkX = 0; chunkX < side; chunkX++) {
+            for (let chunkZ = 0; chunkZ < side; chunkZ++) {
+                const alone = CarvingMask.forChunk(context);
+                carveChunk({ seed: SEED, chunkX, chunkZ, carversAt: () => listed, context, output: alone });
+                const shared = CarvingMask.forChunk(context);
+                carveChunk({ seed: SEED, chunkX, chunkZ, carversAt, context, output: shared, starts });
+                expect(shared.carvedCount).toBe(alone.carvedCount);
+                for (let y = context.minGenY; y < context.minGenY + context.genDepth; y++) {
+                    for (let local = 0; local < 256; local++) {
+                        expect(shared.isCarved(local >> 4, y, local & 15)).toBe(
+                            alone.isCarved(local >> 4, y, local & 15)
+                        );
+                    }
+                }
+            }
+        }
+        // Each chunk sweeps the 17 by 17 source chunks around it; the memory asks each one once.
+        const sourceChunks = (side + 16) * (side + 16);
+        expect(asked).toBe(sourceChunks);
+        expect(asked).toBeLessThan(side * side * 17 * 17);
+    });
 });
 
 describe('the carving mask', () => {

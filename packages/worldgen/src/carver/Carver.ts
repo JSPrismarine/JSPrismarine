@@ -494,7 +494,60 @@ export interface CarveChunkOptions {
     readonly context: WorldGenerationContext;
     /** Where the openings are recorded. */
     readonly output: CarverOutput;
+    /**
+     * Which carvers start in each source chunk, kept across calls for the same seed and
+     * `carversAt`. Without it the sweep decides all 289 source chunks afresh.
+     */
+    readonly starts?: CarverStarts;
 }
+
+/** The carvers one source chunk lists, and which of them start there. */
+export interface SourceChunkCarvers {
+    readonly carvers: readonly CarverConfig[];
+    /** Indices into {@link carvers} of the ones whose start draw succeeds, in list order. */
+    readonly started: readonly number[];
+}
+
+/** Remembers {@link SourceChunkCarvers} per source chunk. */
+export interface CarverStarts {
+    at(sourceChunkX: number, sourceChunkZ: number): SourceChunkCarvers;
+}
+
+/** Source chunks a {@link CarverStarts} holds, direct-mapped on the low six bits of x and z. */
+const CARVER_START_SLOTS = 64 * 64;
+
+/**
+ * Creates the memory {@link carveChunk} reads which carvers start where.
+ *
+ * Each source chunk's start draws are a function of the seed, the carver's index and the chunk
+ * alone, and every chunk within eight of it sweeps it again: up to 289 times, each a BigInt
+ * random per carver. A colliding chunk evicts the slot, and the stored coordinates are compared
+ * before an answer is reused, so an eviction costs a recomputation and never an answer.
+ */
+export const createCarverStarts = (seed: bigint, carversAt: CarveChunkOptions['carversAt']): CarverStarts => {
+    const keyX = new Int32Array(CARVER_START_SLOTS);
+    const keyZ = new Int32Array(CARVER_START_SLOTS);
+    const entries = new Array<SourceChunkCarvers | undefined>(CARVER_START_SLOTS);
+    return {
+        at: (sourceChunkX, sourceChunkZ) => {
+            const slot = (sourceChunkX & 63) | ((sourceChunkZ & 63) << 6);
+            const cached = entries[slot];
+            if (cached !== undefined && keyX[slot] === sourceChunkX && keyZ[slot] === sourceChunkZ) return cached;
+
+            const carvers = carversAt(sourceChunkX, sourceChunkZ);
+            const started: number[] = [];
+            for (let index = 0; index < carvers.length; index++) {
+                const random = largeFeatureRandom(asLong(seed + BigInt(index)), sourceChunkX, sourceChunkZ);
+                if (isStartChunk(carvers[index] as CarverConfig, random)) started.push(index);
+            }
+            const entry = { carvers, started };
+            keyX[slot] = sourceChunkX;
+            keyZ[slot] = sourceChunkZ;
+            entries[slot] = entry;
+            return entry;
+        }
+    };
+};
 
 /**
  * Picks a source chunk's carvers from its noise biome, the way Java's
@@ -531,15 +584,17 @@ export const carversFromNoiseBiome =
  * undocumented. They do match Java Edition exactly, and that is what the tests assert.
  */
 export const carveChunk = (options: CarveChunkOptions): void => {
+    const starts = options.starts ?? createCarverStarts(options.seed, options.carversAt);
     for (let dx = -8; dx <= 8; dx++) {
         for (let dz = -8; dz <= 8; dz++) {
             const sourceChunkX = options.chunkX + dx;
             const sourceChunkZ = options.chunkZ + dz;
-            const carvers = options.carversAt(sourceChunkX, sourceChunkZ);
-            for (let index = 0; index < carvers.length; index++) {
+            const { carvers, started } = starts.at(sourceChunkX, sourceChunkZ);
+            for (const index of started) {
                 const config = carvers[index] as CarverConfig;
+                // The carver draws on from where its start draw left the random.
                 const random = largeFeatureRandom(asLong(options.seed + BigInt(index)), sourceChunkX, sourceChunkZ);
-                if (!isStartChunk(config, random)) continue;
+                isStartChunk(config, random);
                 if (config.type === 'cave') {
                     carveCave(
                         config,
