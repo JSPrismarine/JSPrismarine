@@ -4,6 +4,7 @@
  * blocks that open a screen.
  */
 import type { BlockPosition } from '@jsprismarine/blocks';
+import { DEFAULT_PROVIDER_CONTEXT, evaluateNumberProvider } from '@jsprismarine/items';
 
 import { defineFamily } from '../family';
 import { compassDirectionOf, HORIZONTAL_FACES, offset, opposite } from '../geometry';
@@ -270,22 +271,19 @@ export const cauldronFamily = defineFamily(
     }
 );
 
-/** The layer chance Java's number provider references name, by reference. */
-const COMPOST_CHANCES: Readonly<Record<string, number>> = {
-    'minecraft:compostable/low': 0.3,
-    'minecraft:compostable/medium': 0.5,
-    'minecraft:compostable/high': 0.65,
-    'minecraft:compostable/very_high': 0.85,
-    'minecraft:compostable/guaranteed': 1
-};
-
-/** The chance an item adds a composter layer, or undefined when it is not compostable. */
+/**
+ * The chance an item adds a composter layer, or undefined when it is not compostable.
+ *
+ * Java's `minecraft:compostable` names a `context_int_provider` such as
+ * `minecraft:compostable/low`, a weighted list of one layer or none whose mean is the chance. An
+ * empty composter is the dispatcher's case that always adds one, which the family handles itself.
+ */
 const compostChance = (item: { get(name: string): unknown } | undefined): number | undefined => {
     const component = item?.get('minecraft:compostable');
     if (typeof component !== 'object' || component === null) return undefined;
     const layers: unknown = Reflect.get(component, 'layers');
-    if (typeof layers === 'number') return layers;
-    return typeof layers === 'string' ? COMPOST_CHANCES[layers] : undefined;
+    if (layers === undefined) return undefined;
+    return evaluateNumberProvider(layers, DEFAULT_PROVIDER_CONTEXT);
 };
 
 /** The composter, which turns a stack of plant matter into bone meal. */

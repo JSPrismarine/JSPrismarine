@@ -444,6 +444,9 @@ importers:
       '@jsprismarine/errors':
         specifier: workspace:*
         version: link:../errors
+      '@jsprismarine/items':
+        specifier: workspace:*
+        version: link:../items
       '@jsprismarine/mapping':
         specifier: workspace:*
         version: link:../mapping

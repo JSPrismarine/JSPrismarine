@@ -312,7 +312,7 @@ describe('composterFamily', () => {
         harness.dimension.set(origin, 'minecraft:composter', { composter_fill_level: 0 });
 
         const wheat = heldItem('minecraft:wheat', {
-            'minecraft:compostable': { layers: 'minecraft:compostable/guaranteed' }
+            'minecraft:compostable': { layers: 'minecraft:compostable/always_add_one' }
         });
         for (let use = 0; use <= COMPOSTER_FULL; use += 1) harness.interact(origin, { itemStack: wheat });
 
@@ -341,6 +341,25 @@ describe('composterFamily', () => {
         harness.dimension.queueRandom(0.1);
         harness.interact(origin, { itemStack: seeds });
         expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(2);
+    });
+
+    it("rolls each of Java's compostable chances, read from its context_int_provider", () => {
+        const harness = bindFamily(composterFamily, 'minecraft:composter');
+        harness.dimension.set(origin, 'minecraft:composter', { composter_fill_level: 1 });
+        const holding = (layers: string) => heldItem('minecraft:wheat', { 'minecraft:compostable': { layers } });
+
+        // Java's medium is 65 of 100, so a roll of 0.6 lands and 0.7 does not.
+        harness.dimension.queueRandom(0.6);
+        harness.interact(origin, { itemStack: holding('minecraft:compostable/medium') });
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(2);
+        harness.dimension.queueRandom(0.7);
+        harness.interact(origin, { itemStack: holding('minecraft:compostable/medium') });
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(2);
+
+        // medium_high is 85 of 100.
+        harness.dimension.queueRandom(0.8);
+        harness.interact(origin, { itemStack: holding('minecraft:compostable/medium_high') });
+        expect(harness.dimension.stateAt(origin, 'composter_fill_level')).toBe(3);
     });
 });
 

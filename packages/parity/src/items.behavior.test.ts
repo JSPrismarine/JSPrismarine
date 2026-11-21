@@ -1,3 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { VANILLA_BLOCK_FAMILIES, bindFamily, heldItem } from '@jsprismarine/block-behaviors';
+import { behaviorFor } from '@jsprismarine/blocks';
 import { BehaviorRegistry } from '@jsprismarine/content';
 import {
     deferredItemFactory,
@@ -23,6 +28,7 @@ import { expect, it } from 'vitest';
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
 import { measureScenarios, reportCoverage, scenarioGroup } from './behaviorScenarios.ts';
 import { FAMILIES } from './families.ts';
+import { unpackVanillaDatapack } from './javaDatapack.ts';
 import { javaItemBehaviors } from './javaItemClasses.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
@@ -165,7 +171,66 @@ const javaTagIncludes = (blocks: unknown, javaId: string): boolean => {
     return Array.isArray(blocks) && blocks.includes(javaId);
 };
 
+/**
+ * The chance a Java `context_int_provider` gives a composter layer, read from the vanilla datapack:
+ * a number, or a dispatcher whose default is a weighted list of one layer or none.
+ */
+const javaCompostChance = (reference: string): number => {
+    const file = join(
+        unpackVanillaDatapack(),
+        'data',
+        'minecraft',
+        'context_int_provider',
+        `${reference.replace('minecraft:', '')}.json`
+    );
+    // Parsed JSON boundary: a vanilla provider file.
+    const provider: unknown = JSON.parse(readFileSync(file, 'utf-8'));
+    if (typeof provider === 'number') return provider;
+    const distribution = field(field(provider, 'default'), 'distribution');
+    if (!Array.isArray(distribution)) return Number.NaN;
+    let total = 0;
+    let layers = 0;
+    for (const option of distribution) {
+        const weight = Number(field(option, 'weight'));
+        total += weight;
+        layers += weight * Number(field(option, 'data'));
+    }
+    return layers / total;
+};
+
+/** Whether the server's composter adds a layer for an item on one random roll, over a composter with a layer. */
+const compostsOn = (subject: ItemSubject, roll: number): boolean => {
+    const family = VANILLA_BLOCK_FAMILIES.find((candidate) => candidate.name === behaviorFor('minecraft:composter'));
+    if (family === undefined) throw new Error('the server registers no composter family');
+    const harness = bindFamily(family, 'minecraft:composter');
+    const at = { x: 0, y: 5, z: 0 };
+    harness.dimension.set(at, 'minecraft:composter', { composter_fill_level: 1 });
+    harness.dimension.queueRandom(roll);
+    harness.interact(at, { itemStack: heldItem(subject.bedrock, subject.components) });
+    return harness.dimension.stateAt(at, 'composter_fill_level') === 2;
+};
+
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
+    {
+        name: 'composts-at-chance',
+        aspects: () => ['minecraft:compostable'],
+        java: 'Putting an item in a composter that has a layer adds another with the chance its compostable provider gives.',
+        reference: 'Java ComposterBlock.addItem and data/minecraft/context_int_provider/compostable',
+        subjects: () => withComponent('minecraft:compostable'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const layers = field(subject.components['minecraft:compostable'], 'layers');
+            if (typeof layers !== 'string') return 'its compostable component names no provider';
+            const chance = javaCompostChance(layers);
+            if (!compostsOn(subject, Math.max(0, chance - 0.01))) {
+                return `a roll under Java's ${chance} chance added no layer`;
+            }
+            if (chance < 1 && compostsOn(subject, chance + 0.01)) {
+                return `a roll over Java's ${chance} chance still added a layer`;
+            }
+            return undefined;
+        }
+    },
     {
         name: 'food-feeds',
         aspects: () => ['minecraft:food'],
