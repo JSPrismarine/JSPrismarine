@@ -3,7 +3,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { type IndexSource, llmsIndex, llmsText, markdownPages, pageMarkdown, writeMarkdownPages } from './llms.mts';
+import {
+    FULL_TEXT_BUDGET,
+    type IndexSource,
+    llmsFullText,
+    llmsIndex,
+    llmsText,
+    markdownPages,
+    pageMarkdown,
+    writeLlmsFiles,
+    writeMarkdownPages
+} from './llms.mts';
 import { loadProject } from './project.mts';
 import type { DocSection } from './sections.mts';
 
@@ -160,6 +170,8 @@ describe('llmsIndex', () => {
         'guide/running.md': '# Running JSPrismarine\n\nDownload the server.\n',
         'data-driven/index.md': '# Data-driven engine\n\nHow vanilla behavior comes from data.\n',
         'data-driven/molang.md': '# Molang\n\nExpressions in packs.\n',
+        'errors/index.md': '# Errors\n\nEvery error the server throws.\n',
+        'errors/nbt.md': '# NBT errors\n\nWhat the NBT reader throws.\n',
         'adr/0001-stats.md':
             '# Stats live on the entity\n\nStatus: accepted, 2026-11-15\n\nEach entity owns its stats.\n',
         'plans/dated.md': '# Faster CI\n\nWritten 2026-11-01 on `ci`. Shorten the wait for checks.\n',
@@ -172,6 +184,7 @@ describe('llmsIndex', () => {
     const sections: DocSection[] = [
         { dir: 'guide', title: 'Guides' },
         { dir: 'data-driven', title: 'Data-driven engine' },
+        { dir: 'errors', title: 'Errors', lookup: true },
         { dir: 'adr', title: 'Decisions', optional: true, dated: true },
         { dir: 'plans', title: 'Plans', optional: true, dated: true }
     ];
@@ -218,6 +231,8 @@ describe('llmsIndex', () => {
             '/guide/running',
             '/data-driven/molang',
             '/data-driven/',
+            '/errors/',
+            '/errors/nbt',
             '/api/',
             '/adr/0001-stats',
             '/plans/dated',
@@ -234,13 +249,19 @@ describe('llmsIndex', () => {
         expect(index.sections.map(({ title }) => title)).toEqual([
             'Host a server',
             'Data-driven engine',
+            'Errors',
             'Packages',
             'Optional'
         ]);
         const [host] = index.sections;
         expect(host?.links).toEqual([
-            { title: 'Run it', link: '/guide/running#start', note: 'Download and start.' },
-            { title: 'Molang', link: '/data-driven/molang', note: 'Expressions in packs.' }
+            { title: 'Run it', link: '/guide/running#start', note: 'Download and start.', page: 'guide/running.md' },
+            {
+                title: 'Molang',
+                link: '/data-driven/molang',
+                note: 'Expressions in packs.',
+                page: 'data-driven/molang.md'
+            }
         ]);
     });
 
@@ -264,5 +285,33 @@ describe('llmsIndex', () => {
         expect(note('/adr/0001-stats')).toBe('Status: accepted, 2026-11-15. Each entity owns its stats.');
         expect(note('/plans/undated')).toBe('Updated 2026-11-02. The decision is elsewhere.');
         expect(note('/packages')).toBe('Every package on npm.');
+    });
+
+    it("holds each documentation page's copy once, in order, and leaves out lookup sections and Optional", () => {
+        const input = source();
+        const full = llmsFullText(llmsIndex(input), input);
+        const urls = [...full.matchAll(/^url: (.+)$/gm)].map(([, url]) => url);
+        expect(urls).toEqual([
+            'https://docs.example/guide/running',
+            'https://docs.example/data-driven/molang',
+            'https://docs.example/data-driven/'
+        ]);
+        expect(full).toContain(
+            '---\nurl: https://docs.example/guide/running\n---\n\n# Running JSPrismarine\n\nDownload the server.\n'
+        );
+        expect(full).not.toContain('# NBT errors');
+        expect(full).not.toContain('# Faster CI');
+    });
+
+    it('fails the build rather than write a full text over its budget', () => {
+        const input = source();
+        writeFileSync(
+            path.join(input.srcDir, 'data-driven/molang.md'),
+            `# Molang\n\n${'x'.repeat(FULL_TEXT_BUDGET)}\n`
+        );
+        const outDir = path.join(input.srcDir, 'out');
+        mkdirSync(outDir);
+        expect(() => writeLlmsFiles({ ...input, outDir })).toThrow(/over its budget/);
+        expect(existsSync(path.join(outDir, 'llms-full.txt'))).toBe(false);
     });
 });

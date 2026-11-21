@@ -2,7 +2,8 @@
  * The site's pages as plain Markdown for language models and the tools built on them, as
  * `docs/plans/llms-txt.md` plans. Each page staged from the repository gets a copy at its route with
  * `.md` appended, so `/guide/running` is also `/guide/running.md` and `/guide/` is `/guide/index.md`,
- * and `/llms.txt` lists the site's pages in the format https://llmstxt.org/ describes.
+ * `/llms.txt` lists the site's pages in the format https://llmstxt.org/ describes, and
+ * `/llms-full.txt` holds the text of the documentation it lists outside `Optional` in one file.
  *
  * The copies start from the staged Markdown, which already has its docs facts filled in and its
  * relative links pointed at site routes (see `assemble.mts`). This module only takes off what a model
@@ -133,12 +134,16 @@ export interface IndexLink {
     /** A site-absolute link, such as `/guide/running#worlds`, or a URL. */
     link: string;
     note: string;
+    /** The page the link opens, by its file under `site/`, when it is a page of the site. */
+    page?: string;
 }
 
 /** A second-level section of `/llms.txt` and its links. */
 export interface IndexSection {
     title: string;
     links: IndexLink[];
+    /** Whether `/llms-full.txt` holds the text of the section's pages. */
+    fullText?: boolean;
 }
 
 /** What `/llms.txt` says, before its links are made absolute. */
@@ -228,7 +233,8 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
             {
                 title: given.title || pageTitle(copy, pageRoute(page) || page),
                 link,
-                note: label && summary ? `${label}. ${summary}` : label || summary
+                note: label && summary ? `${label}. ${summary}` : label || summary,
+                page
             }
         ];
     };
@@ -243,14 +249,15 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
                     title: group.text,
                     links: group.items.flatMap((item) =>
                         pageLink(item.link, { title: item.text, note: item.description })
-                    )
+                    ),
+                    fullText: !section.lookup
                 });
             }
             continue;
         }
         const links = source.sectionLinks(section).flatMap((link) => pageLink(link, {}, section.dated));
         if (section.optional) optional.push(...links);
-        else core.push({ title: section.title, links });
+        else core.push({ title: section.title, links, fullText: !section.lookup });
     }
     core.push({
         title: 'Packages',
@@ -278,12 +285,54 @@ export function llmsIndex(source: IndexSource): LlmsIndex {
     };
 }
 
-/** Writes `/llms.txt` into the built site. */
-export function writeLlmsText(source: IndexSource & { outDir: string }) {
+/**
+ * `/llms-full.txt`: the Markdown copy of each page in the sections marked for it, in the order
+ * `/llms.txt` lists them, each under a block giving its URL. A page linked twice, such as once per
+ * heading, is written once.
+ */
+export function llmsFullText(
+    index: LlmsIndex,
+    { srcDir, siteUrl, pages }: Pick<IndexSource, 'srcDir' | 'siteUrl' | 'pages'>
+) {
+    const published = markdownPages(pages);
+    const written = new Set<string>();
+    const blocks: string[] = [];
+    for (const { links } of index.sections.filter(({ fullText }) => fullText)) {
+        for (const { page } of links) {
+            if (page === undefined || !published.has(page) || written.has(page)) continue;
+            written.add(page);
+            const copy = pageMarkdown(readFileSync(path.join(srcDir, page), 'utf8'), {
+                page,
+                siteUrl,
+                markdownPages: published
+            });
+            blocks.push(`---\nurl: ${pageUrl(page, siteUrl)}\n---\n\n${copy.trim()}\n`);
+        }
+    }
+    return blocks.join('\n');
+}
+
+/**
+ * The most bytes `/llms-full.txt` may hold: about 200,000 tokens at four bytes a token, which a
+ * model with a 200k context can still read whole. On 2026-11-21 the file was about 560 kB. When the
+ * documentation outgrows it, the build fails and a maintainer decides what to split off or move to
+ * `Optional`; see `docs/plans/llms-txt.md`.
+ */
+export const FULL_TEXT_BUDGET = 800_000;
+
+/** Writes `/llms.txt` and `/llms-full.txt` into the built site, and returns what each holds. */
+export function writeLlmsFiles(source: IndexSource & { outDir: string }) {
     const index = llmsIndex(source);
     writeFileSync(
         path.join(source.outDir, 'llms.txt'),
         llmsText(index, { siteUrl: source.siteUrl, markdownPages: markdownPages(source.pages) })
     );
-    return index.sections.reduce((count, { links }) => count + links.length, 0);
+    const full = llmsFullText(index, source);
+    const bytes = Buffer.byteLength(full);
+    if (bytes > FULL_TEXT_BUDGET)
+        throw new Error(
+            `llms-full.txt is ${bytes} bytes, over its budget of ${FULL_TEXT_BUDGET}: split a section off or move one to Optional (docs/plans/llms-txt.md).`
+        );
+    writeFileSync(path.join(source.outDir, 'llms-full.txt'), full);
+    return { links: index.sections.reduce((count, { links }) => count + links.length, 0), fullTextBytes: bytes };
 }
