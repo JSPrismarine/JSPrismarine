@@ -111,16 +111,16 @@ to.
   switched it to the volume order, and the `worldgen.terrain` family now holds the cell walk to
   `sampleVolume` and the per-block path to `sampleValue` in every section. One corpus block moved
   from air to stone, where Java has stone.
-- Still to do: read `InterpolatedFunction$Sampler.sampleVolume` and
-  `RangeChoiceFunction$Sampler.sampleVolume` in the jar to record whether Java computes corners for
-  every interpolated node (the 6,125 figure) or skips the noodle nodes.
-- Add the deterministic proxies as tests in `packages/worldgen`: closure or indirect calls per block
-  sample (13.4 today), positions per node dispatch (1 today), `Math.fround` calls per Perlin octave
-  sample (64 today) and per tile (7.15 million), climate searches per chunk in translation (943),
-  material-rule compilations per tile (1 today, per tile), region reads per feature pass (120,410).
-  Check in the counting harness the cost-structure note describes so the note reproduces on its own.
-- Add `chunks generated per sent column` to `tools/server-benchmark`, so the policy half of the
-  comparison is visible.
+- Read from the jar: Java's `range_choice` volume path samples its input and both branches over the
+  whole volume, then selects per position, so Java computes every interpolated node's corners over
+  the whole lattice (the 6,125 figure holds). A branch's value at a position does not depend on
+  which branch other positions took, so phase 1 may fill a branch only where it is taken, or skip
+  it when the input's bound decides the whole volume, and stay bit-identical.
+- The count proxies land with the phase that moves each count, as that phase's test with its bound:
+  a count asserted before anything changes it only restates today's number.
+- Chunks generated per sent column is not added to `tools/server-benchmark`: the harness sees each
+  server from outside, so it could count only ours. Pumpkin's policy is read from its source in
+  the Pumpkin note, and phase 5 makes ours an explicit, tested number.
 
 ### Phase 1: the density volume runtime
 
@@ -194,9 +194,8 @@ a heap-sampling test and bounded; output bits unchanged.
   go from 1 to 0.
 - Terrain tiles reach a features task as transferred or shared buffers, not structured-clone copies:
   bytes copied per features task from about 2.4 MB to 0.
-- Generation policy: report chunks generated per sent column (phase 0), and set the ring the server
-  generates ahead of a player as an explicit, tested number rather than a side effect of the
-  dependency radii.
+- Generation policy: set the ring the server generates ahead of a player as an explicit, tested
+  number rather than a side effect of the dependency radii.
 - Startup: the spawn region moves out of the join path. The server accepts players while the
   preload runs at `idle` priority, as Pumpkin and BDS do, or `preload-radius` gets a smaller default.
   Which of the two is a product decision this plan leaves to the owner; either is a one-line change
@@ -251,7 +250,7 @@ Counts: boundary crossings per chunk at most 1 per status; output bits unchanged
 
 ## Order of work
 
-Phase 0 first; the vector exists (#3474), and the proxies and the benchmark column come next. Then phase 1, with phase 3 and phase 5's
+Phase 0 is done (#3474). Then phase 1, with phase 3 and phase 5's
 registry snapshot beside it. Phase 2 after 1. Phase 4 after 3. Phase 6 is decided, not scheduled.
 Each phase lands as pull requests of one validated slice with a Changeset, as the earlier
 performance rounds did.
