@@ -95,7 +95,7 @@ const COMMENTS = {
     'server-authoritative-block-breaking':
         'Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.',
     'fluid-replacement':
-        "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag and keeps out of waterloggable blocks, bedrock follows each block's Bedrock liquid reaction.",
+        "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag, keeps flowing fluids out of waterloggable blocks and lets a water source waterlog one, bedrock follows each block's Bedrock liquid reaction.",
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode':
@@ -1020,7 +1020,8 @@ export class Config {
      * Which edition decides what a flowing fluid destroys.
      *
      * `java`, the default, follows Java 26.3's `FlowingFluid.canHoldFluid`: a fluid washes away
-     * what `#minecraft:washed_away_by_fluids` lists and keeps out of every waterloggable block.
+     * what `#minecraft:washed_away_by_fluids` lists and keeps out of every waterloggable block,
+     * which only a water source enters, waterlogging it.
      * `bedrock` follows each block's Bedrock `liquidReactionOnTouch`. Any other value is treated
      * as the default.
      *

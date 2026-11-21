@@ -74,6 +74,10 @@ const sealedTick = (entries: ChangeEntry[]): SealedTick => ({ tick: ++ticks, ent
 export const sealBlockWrite = (sink: Pick<WorldChangeSink, 'tickSealed'>, at: At, block: number): void =>
     sink.tickSealed(sealedTick([blockEntry(at, block)]));
 
+/** Hands a sink one sealed tick holding `entries`, in order. */
+export const sealEntries = (sink: Pick<WorldChangeSink, 'tickSealed'>, entries: ChangeEntry[]): void =>
+    sink.tickSealed(sealedTick(entries));
+
 /** Hands a sink one sealed tick that changes the block entity at a position from `before` to `after`. */
 export const sealBlockEntityWrite = (
     sink: Pick<WorldChangeSink, 'tickSealed'>,

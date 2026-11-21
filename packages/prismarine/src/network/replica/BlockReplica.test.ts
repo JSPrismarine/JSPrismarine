@@ -22,7 +22,7 @@ describe('the block replica', () => {
     it('keeps the last runtime id of each block in the order each was first written, and shown blocks with them', () => {
         const replica = new BlockReplica();
 
-        const { blocks, blockEntities } = replica.read({
+        const { blocks, liquids, blockEntities } = replica.read({
             tick: 1,
             entries: [
                 blockEntry({ x: 1, y: 64, z: 1 }, 5),
@@ -38,6 +38,8 @@ describe('the block replica', () => {
             { x: 2, y: 64, z: 2, block: 6 },
             { x: 4, y: 64, z: 4, block: 9 }
         ]);
+        // The second layer, a waterlogged block's water, apart from the blocks.
+        expect([...liquids.values()]).toEqual([{ x: 3, y: 64, z: 3, block: 8 }]);
         expect(blockEntities.size).toBe(0);
     });
 

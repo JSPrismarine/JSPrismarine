@@ -12,6 +12,7 @@ import { bedrockBlockEntityDyeIndexOf, javaBlockStateToBedrock } from '@jsprisma
 import { blocksTable } from '@jsprismarine/mapping/tables';
 import { blockLootTableOf } from '@jsprismarine/prismarine/block/blockLoot';
 import { DYE_INDEX_FIELD } from '@jsprismarine/prismarine/blockentity/contentRecord';
+import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { expect, it } from 'vitest';
 
 import type { BehaviorAspect, BehaviorScenario } from './behaviorScenarios.ts';
@@ -96,7 +97,9 @@ const fluidWorld = () => {
         isFullCube: (block: Block) => isFullCube({ name: block.identifier, states: block.states }),
         // The server's own answer, from the captured collision shapes.
         faceOccludes: (block: Block, neighbor: Block, face: BlockFace) =>
-            faceOccludesIn(serverContent().blocks.types, block, neighbor, face)
+            faceOccludesIn(serverContent().blocks.types, block, neighbor, face),
+        // The server's Java fluid rule, which the server follows by default.
+        holdsWater: (block: Block) => isJavaLiquidContainer(block)
     });
 };
 

@@ -342,6 +342,19 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
         const liquid = world()?.loadedLiquidAt(position.x, position.y, position.z);
         return liquid && { identifier: liquid.name, states: liquid.states };
     },
+    writeLiquid: (position, liquid) => {
+        const runtimeId =
+            liquid === undefined
+                ? BlockRuntimeIds.getByName('minecraft:air')
+                : BlockRuntimeIds.tryGetByState(liquid.identifier, liquid.states);
+        if (runtimeId === null) {
+            throw new PrismarineWorldErrors.UnknownCatalogBlock({
+                identifier: liquid?.identifier ?? '',
+                states: JSON.stringify(liquid?.states ?? {})
+            });
+        }
+        world()?.setLoadedLiquidRuntimeId(position.x, position.y, position.z, runtimeId, false);
+    },
     write: (position, block) => {
         const runtimeId = BlockRuntimeIds.tryGetByState(block.identifier, block.states);
         if (runtimeId === null) {

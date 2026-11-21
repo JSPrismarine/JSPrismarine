@@ -205,6 +205,18 @@ export interface WorldActions {
      */
     getLiquid?(position: BlockPosition): HookBlock | undefined;
     /**
+     * Puts a liquid in a position's second storage layer, beside its block, or takes it away for
+     * `minecraft:air`. Neighbors are not notified; the caller does that.
+     */
+    setLiquid?(position: BlockPosition, identifier: string, states?: BlockStates): void;
+    /**
+     * Whether a block holds water beside itself rather than giving way to it, Java's
+     * `LiquidBlockContainer`: a block with a `waterlogged` property, kelp or seagrass. A water
+     * source that spreads into one waterlogs it. A host without it, or without
+     * {@link setLiquid}, has fluids treat every block by its liquid reaction alone.
+     */
+    holdsWater?(block: HookBlock): boolean;
+    /**
      * Replaces the block at a position.
      *
      * @param states - The whole state record, not a patch. Absent means the

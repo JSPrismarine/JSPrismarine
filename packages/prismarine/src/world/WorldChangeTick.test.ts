@@ -610,6 +610,33 @@ describe("a world's blocks and block entities in its change log", () => {
         ]);
     });
 
+    it("logs a waterlogged block's water on the second layer, beside the block, and undoes it", async () => {
+        const { world, air, stone } = await worldWithChunk();
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        world.setLoadedBlockRuntimeId(1, 64, 1, stone);
+        settle(world);
+        beginMeasuredChangeTick(world);
+
+        world.setLoadedLiquidRuntimeId(1, 64, 1, water);
+        // Writing the water that is already there changes nothing.
+        world.setLoadedLiquidRuntimeId(1, 64, 1, water);
+        world.sealChangeTick();
+
+        expect(blockEntries(world)).toEqual([
+            { kind: 'field', field: 'block', address: { x: 1, y: 64, z: 1, layer: 1 }, before: air, after: water }
+        ]);
+        expect(world.loadedBlockAt(1, 64, 1)?.name).toBe('minecraft:stone');
+        expect(world.loadedLiquidAt(1, 64, 1)?.name).toBe('minecraft:water');
+
+        beginMeasuredChangeTick(world);
+        world.getEntityStore().unit(() => {
+            world.setLoadedLiquidRuntimeId(1, 64, 1, air);
+            throw new Error('planned');
+        });
+        world.sealChangeTick();
+        expect(world.loadedLiquidAt(1, 64, 1)?.name).toBe('minecraft:water');
+    });
+
     it.each([1, 16, 100])('appends %i entries for as many block writes', async (count) => {
         const { world, stone } = await worldWithChunk();
         beginMeasuredChangeTick(world);

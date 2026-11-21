@@ -103,6 +103,11 @@ export interface ContentBlockAccess {
      * waterlogged block's water, or undefined when there is none or its chunk is not loaded.
      */
     liquid?(at: ContentPosition): ContentBlock | undefined;
+    /**
+     * Writes the liquid a position holds in its second storage layer, or takes it away for
+     * undefined, notifying no neighbor; the caller does that once it has written everything.
+     */
+    setLiquid?(at: ContentPosition, liquid: ContentBlock | undefined): void;
     /** The dimension's monotonic block-write version, when the host can provide one. */
     blockRevision?(): number;
     /** The loaded chunk object holding a block, for caches that span ticks. */

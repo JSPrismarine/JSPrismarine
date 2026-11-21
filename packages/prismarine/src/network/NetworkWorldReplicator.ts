@@ -43,7 +43,10 @@ import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/E
 import BlockActorDataPacket from '@jsprismarine/protocol/bedrock/packet/BlockActorDataPacket';
 import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
+import UpdateBlockPacket, {
+    UpdateBlockFlagsType,
+    UpdateBlockLayerType
+} from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
 import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateSubChunkBlocksPacket';
 import UpdateSubChunkNetworkBlockInfo from '@jsprismarine/protocol/bedrock/structure/UpdateSubChunkNetworkBlockInfo';
 import Vec3 from '@jsprismarine/protocol/bedrock/structure/Vec3';
@@ -74,6 +77,8 @@ const SOUND_ACTOR_TYPE: Partial<Record<LevelSoundEvent, string>> = {
 interface BlockChange {
     position: Vector3;
     blockRuntimeId: number;
+    /** The storage layer: 0 for the block, 1 for the liquid a waterlogged block holds. */
+    layer: 0 | 1;
 }
 
 /** A packet grouped for the wire, with a stable identity for this flush's encoding cache. */
@@ -150,8 +155,20 @@ const subChunkOrigin = (position: Vector3): BlockPos =>
     );
 
 /** Identifies a change including the fixed flags carried by its wire packet. */
-const blockChangeKey = ({ position, blockRuntimeId }: BlockChange): string =>
-    `${position.getX()},${position.getY()},${position.getZ()},${blockRuntimeId >>> 0},${BLOCK_UPDATE_FLAGS}`;
+const blockChangeKey = ({ position, blockRuntimeId, layer }: BlockChange): string =>
+    `${position.getX()},${position.getY()},${position.getZ()},${blockRuntimeId >>> 0},${BLOCK_UPDATE_FLAGS},${layer}`;
+
+/** One change as an entry of a sub chunk's batch, whichever layer it lists the change under. */
+const subChunkBlockInfo =
+    (toClient: (runtimeId: number) => number) =>
+    ({ position, blockRuntimeId }: BlockChange): UpdateSubChunkNetworkBlockInfo =>
+        new UpdateSubChunkNetworkBlockInfo(
+            new BlockPos(position.getX(), position.getY(), position.getZ()),
+            toClient(blockRuntimeId),
+            BLOCK_UPDATE_FLAGS,
+            0n,
+            0
+        );
 
 /** The level events whose data is a block runtime id, which the particles are textured with. */
 const BLOCK_DATA_EVENTS: ReadonlySet<LevelEvent> = new Set([LevelEvent.PARTICLES_DESTROY_BLOCK, ...CRACK_PARTICLES]);
@@ -161,7 +178,7 @@ const BLOCK_DATA_EVENTS: ReadonlySet<LevelEvent> = new Set([LevelEvent.PARTICLES
  * @param toClient - The id the viewers' release writes for the world's.
  */
 const updateBlockPacket = (
-    { position, blockRuntimeId }: BlockChange,
+    { position, blockRuntimeId, layer }: BlockChange,
     toClient: (runtimeId: number) => number
 ): UpdateBlockPacket => {
     const packet = new UpdateBlockPacket();
@@ -170,6 +187,7 @@ const updateBlockPacket = (
     packet.z = position.getZ();
     packet.blockRuntimeId = toClient(blockRuntimeId);
     packet.flags = BLOCK_UPDATE_FLAGS;
+    packet.layer = layer === 1 ? UpdateBlockLayerType.Liquid : UpdateBlockLayerType.Normal;
     return packet;
 };
 
@@ -192,6 +210,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * settles, and only where it ended up is worth a packet.
      */
     private readonly pendingBlocks = new Map<BlockPositionKey, BlockChange>();
+    /** The same as {@link pendingBlocks}, for the second layer, which holds a waterlogged block's water. */
+    private readonly pendingLiquids = new Map<BlockPositionKey, BlockChange>();
 
     /**
      * Block entities whose fields the change log changed since the last flush, keyed by position.
@@ -329,12 +349,14 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** @inheritdoc */
     public tickSealed(sealed: SealedTick): void {
-        const { blocks, blockEntities } = this.blocks.read(sealed);
+        const { blocks, liquids, blockEntities } = this.blocks.read(sealed);
         // Keyed by position, so a block written twice before a flush - which liquid physics does
         // constantly, and a cascade of falling sand does by nature - travels once, as whatever it
         // finally settled on.
         for (const [key, { x, y, z, block }] of blocks)
-            this.pendingBlocks.set(key, { position: new Vector3(x, y, z), blockRuntimeId: block });
+            this.pendingBlocks.set(key, { position: new Vector3(x, y, z), blockRuntimeId: block, layer: 0 });
+        for (const [key, { x, y, z, block }] of liquids)
+            this.pendingLiquids.set(key, { position: new Vector3(x, y, z), blockRuntimeId: block, layer: 1 });
         for (const [key, at] of blockEntities) this.pendingBlockEntities.set(key, at);
         // Read, and sent by `flushEntities` after the seal.
         this.entities.read(sealed);
@@ -477,10 +499,11 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * Twenty bytes of block update also compress far better in company than alone.
      */
     public flushBlockChanges(): void {
-        if (this.pendingBlocks.size === 0) return;
+        if (this.pendingBlocks.size === 0 && this.pendingLiquids.size === 0) return;
 
-        const changes = [...this.pendingBlocks.values()];
+        const changes = [...this.pendingBlocks.values(), ...this.pendingLiquids.values()];
         this.pendingBlocks.clear();
+        this.pendingLiquids.clear();
 
         const viewers = this.world.getViewers();
         if (viewers.length === 0) return;
@@ -690,19 +713,9 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 packet: new UpdateSubChunkBlocksPacket({
                     subChunkBlockPosition: subChunkOrigin(firstChange.position),
                     blocksChanged: {
-                        standards: bucket.map(
-                            ({ position, blockRuntimeId }) =>
-                                new UpdateSubChunkNetworkBlockInfo(
-                                    new BlockPos(position.getX(), position.getY(), position.getZ()),
-                                    toClient(blockRuntimeId),
-                                    BLOCK_UPDATE_FLAGS,
-                                    0n,
-                                    0
-                                )
-                        ),
-                        // The second layer is waterlogging, and a pending change only ever
-                        // carries the first.
-                        extras: []
+                        standards: bucket.filter(({ layer }) => layer === 0).map(subChunkBlockInfo(toClient)),
+                        // The second layer, the water a waterlogged block holds.
+                        extras: bucket.filter(({ layer }) => layer === 1).map(subChunkBlockInfo(toClient))
                     }
                 })
             });

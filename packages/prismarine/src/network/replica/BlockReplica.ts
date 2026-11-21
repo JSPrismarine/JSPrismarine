@@ -37,9 +37,14 @@ export type ShownBlock = BlockAt & { readonly block: number };
 export type BlockTickChanges = {
     /**
      * The last runtime id of every block the tick wrote or showed, by position, in the order each
-     * position was first written. Only the block layer: the world writes no other.
+     * position was first written. Only the block layer; {@link liquids} has the second.
      */
     readonly blocks: ReadonlyMap<BlockPositionKey, ShownBlock>;
+    /**
+     * The last runtime id the tick wrote into each position's second layer, which holds a
+     * waterlogged block's water, by position, in the order each was first written.
+     */
+    readonly liquids: ReadonlyMap<BlockPositionKey, ShownBlock>;
     /**
      * The block entities whose fields the tick changed, by position, in the order each was first
      * changed. One whose block entity is gone is still listed; {@link BlockReplica.compound}
@@ -105,6 +110,7 @@ export class BlockReplica {
      */
     public read(sealed: SealedTick): BlockTickChanges {
         const blocks = new Map<BlockPositionKey, ShownBlock>();
+        const liquids = new Map<BlockPositionKey, ShownBlock>();
         const blockEntities = new Map<BlockPositionKey, BlockAt>();
         for (const entry of sealed.entries) {
             if (entry.kind === 'occurrence') {
@@ -118,7 +124,8 @@ export class BlockReplica {
             if (entry.field === 'block') {
                 this.entriesRead++;
                 const { x, y, z, layer } = entry.address;
-                if (layer === 0) blocks.set(blockPositionKey(x, y, z), { x, y, z, block: entry.after });
+                const written = layer === 0 ? blocks : layer === 1 ? liquids : undefined;
+                written?.set(blockPositionKey(x, y, z), { x, y, z, block: entry.after });
                 continue;
             }
             if (entry.field !== 'block-entity') continue;
@@ -127,7 +134,7 @@ export class BlockReplica {
             if (this.write({ x, y, z }, field, blockEntityValueOf(entry.after)))
                 blockEntities.set(blockPositionKey(x, y, z), { x, y, z });
         }
-        return { blocks, blockEntities };
+        return { blocks, liquids, blockEntities };
     }
 
     /**
