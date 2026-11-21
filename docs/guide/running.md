@@ -651,10 +651,11 @@ the server skips it and drops it at the next write. The <!-- fact:permissions.le
 `ops.json`.
 
 A check walks the player's own nodes, then one tier per group they hold directly, from the
-heaviest down. A group's tier is its own nodes followed by its parents' depth first, so an
-inherited node decides with the weight of the group that inherits it. The first tier that names
-the query decides it; in one tier a specific node beats a wildcard and a negation beats a grant of
-the same specificity. `prefix`, `suffix` and any other meta resolve in the same order. A group
+heaviest down, groups of equal weight in name order. A group's tier is its own nodes followed by
+its parents' depth first, so an inherited node decides with the weight of the group that inherits
+it. The first tier that names the query decides it; in one tier a specific node beats a wildcard
+and a negation beats a grant of the same specificity, so a denial in a lighter group never
+overrides a grant in a heavier one. `prefix`, `suffix` and any other meta resolve in the same order. A group
 cannot be its own ancestor: `/perms group <group> parent add` refuses the parent that would close
 the cycle, and the server drops such a parent from a hand-edited file with a log line.
 

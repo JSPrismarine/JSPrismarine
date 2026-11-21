@@ -25,7 +25,7 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
 import type { Subject, SubjectKind } from '../identity/Subject';
-import { isSubjectKind, sameSubject, subjectKey } from '../identity/Subject';
+import { isSubjectKind, parseSubject, sameSubject, subjectKey } from '../identity/Subject';
 import type { NamedSubject } from '../permission/PermissionManager';
 import type { Group, Membership, Node, User } from '../permission/model';
 import { isExpired } from '../permission/model';
@@ -92,8 +92,11 @@ export const expiryOf = (raw: string, now: number): string => {
     return new Date(now + Number(amount) * (DURATION_UNITS[unit] ?? 0)).toISOString();
 };
 
-/** The qualified form a name takes to pick one platform: `xbox:Steve`, `java:Steve` or `offline:Steve`. */
-const qualified = (kind: SubjectKind, name: string): string => `${kind}:${name}`;
+/**
+ * The qualified form a target takes to pick one platform, `xbox:Steve`, or one account of a
+ * platform by its key, `xbox:2535428842768200`. An offline player's key is their name.
+ */
+const qualified = (kind: SubjectKind, key: string): string => `${kind}:${key}`;
 
 /** Where the command was typed by nobody in particular: the console, or a function it runs. */
 const isConsole = (current: CommandSource): boolean => current.caller === undefined;
@@ -156,7 +159,8 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
 
     /**
      * The player a `<target>` names: an online player by selector or by name, or a name the file
-     * knows, in the qualified form when the name is on more than one platform.
+     * knows, in the qualified form when the name names more than one player: `kind:Name`, or
+     * `kind:key` for two stored users of one kind that share a name.
      */
     const targetOf = (current: CommandSource, raw: string): NamedSubject => {
         if (raw.startsWith('@')) {
@@ -168,6 +172,10 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
         }
         const split = splitQualified(raw);
         const name = split?.name ?? raw;
+        // `xbox:2535428842768200`: the key itself, for two stored users of one kind that share a name.
+        const keyed = split === undefined ? undefined : parseSubject(split.kind, split.name);
+        const stored = keyed === undefined ? undefined : permissions().userOf(keyed);
+        if (keyed !== undefined && stored !== undefined) return { subject: keyed, name: stored.name };
         const online = server
             .getSessionManager()
             .getSessions()
@@ -189,8 +197,9 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
                     : `No ${split.kind} player named ${name} is online or in permissions.json`
             );
         }
-        const forms = candidates.map(({ subject }) => qualified(subject.kind, name)).join(', ');
-        return refuse(`${name} is on more than one platform; name one of ${forms}`);
+        // Each candidate by its key, which tells two accounts of one kind apart where the name cannot.
+        const forms = candidates.map(({ subject }) => qualified(subject.kind, subjectKey(subject))).join(', ');
+        return refuse(`${name} names more than one player; name one of ${forms}`);
     };
 
     const expiry = (context: Context): string | undefined => {

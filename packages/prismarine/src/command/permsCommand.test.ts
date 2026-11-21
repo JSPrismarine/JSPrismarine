@@ -279,13 +279,33 @@ describe('/perms', () => {
             await run('perms user java:Steve info');
 
             expect(errors).toEqual([
-                expect.stringContaining('Steve is on more than one platform; name one of offline:Steve, xbox:Steve'),
+                expect.stringContaining(
+                    'Steve names more than one player; name one of offline:Steve, xbox:2535400000000001'
+                ),
                 expect.stringContaining('No java player named Steve is online or in permissions.json')
             ]);
             expect(feedback.filter((line) => line.startsWith('§e'))).toEqual([
                 '§eSteve§r (xbox 2535400000000001)',
                 '§eSteve§r (offline Steve)'
             ]);
+        });
+    });
+
+    describe('targets', () => {
+        it('takes the key in the qualified form, and lists each candidate by key when two stored users of one kind share a name', async () => {
+            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '111' }, name: 'Alex' }, 'a.b');
+            await permissions.grantUser({ subject: { kind: 'xbox', xuid: '222' }, name: 'Alex' }, 'c.d');
+
+            await run('perms user Alex info');
+            await run('perms user xbox:Alex info');
+            await run('perms user xbox:222 info');
+
+            expect(errors).toEqual([
+                expect.stringContaining('Alex names more than one player; name one of xbox:111, xbox:222'),
+                expect.stringContaining('Alex names more than one player; name one of xbox:111, xbox:222')
+            ]);
+            expect(feedback.filter((line) => line.startsWith('§e'))).toEqual(['§eAlex§r (xbox 222)']);
+            expect(feedback).toContain('  c.d');
         });
     });
 

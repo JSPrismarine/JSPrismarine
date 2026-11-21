@@ -39,9 +39,11 @@ a datapack, see [Commands and functions](../data-driven/commands.md).
 
 `/perms` manages the groups and users of `permissions.json`, which
 [the running guide](running.md#permissions) describes. A target is a selector that names one online
-player, such as `@p`, or a name: an online player's, or one the file knows. A name on more than one
-platform is refused with the forms the command takes instead, `xbox:Steve`, `java:Steve` or
-`offline:Steve`; that spelling is command syntax only and never appears in a file. `[expires]` is an
+player, such as `@p`, or a name: an online player's, or one the file knows. A name that names more
+than one player is refused with the forms the command takes instead: `xbox:Steve`, `java:Steve` or
+`offline:Steve` picks a platform, and `xbox:2535428842768200`, the key itself, picks one of two
+stored accounts of one kind that share a name. The refusal lists each candidate by its key. That
+spelling is command syntax only and never appears in a file. `[expires]` is an
 ISO 8601 instant such as `2027-01-01T00:00:00Z`, or a duration from now: `90s`, `45m`, `12h`, `30d`
 or `2w`.
 
