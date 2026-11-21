@@ -1,6 +1,6 @@
 /**
  * The commands this server adds to the vanilla set: `/tps`, `/version`, `/debug`, `/ban`,
- * `/pardon`, the console's `addon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest`
+ * `/pardon`, `/perms`, the console's `addon`, and Bedrock Dedicated Server's `/script debugger`, `/gametest`
  * and `/scriptevent`, which the shared command set leaves out because only a server that runs
  * behavior pack scripts has a debugger to attach, GameTests to run and scripts to send an event to.
  *
@@ -35,6 +35,7 @@ import { softwareLabel } from '../version';
 import { registerAddonCommand } from './addonCommand';
 import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
+import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
 import { resolvePlayer } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
@@ -51,7 +52,8 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
     debug: 'jsprismarine.command.debug',
     ban: 'minecraft.command.ban',
     pardon: 'minecraft.command.pardon',
-    addon: 'jsprismarine.command.addon'
+    addon: 'jsprismarine.command.addon',
+    perms: PERMS_COMMAND_PERMISSION
 };
 
 /**
@@ -398,4 +400,5 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
 
     registerGametestCommand(registry, server);
     registerAddonCommand(registry, server);
+    registerPermsCommand(registry, server);
 };
