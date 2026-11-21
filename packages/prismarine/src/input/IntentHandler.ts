@@ -17,9 +17,11 @@ export type IntentContext<K extends IntentKind> = IntentLane<K> extends 'input' 
 /**
  * What a handler of intent kind `K` returns. An input-lane handler returns `undefined` and not
  * `void`, for the reason the packet handler shape gives: a function returning a promise can stand
- * in for one returning `void`, and the input step must never be handed one.
+ * in for one returning `void`, and the input step must never be handed one. A handler registered
+ * for several kinds returns `undefined` as soon as one of them is an input, since it then runs
+ * in the input step for that kind.
  */
-export type IntentResult<K extends IntentKind> = IntentLane<K> extends 'input' ? undefined : void | Promise<void>;
+export type IntentResult<K extends IntentKind> = 'input' extends IntentLane<K> ? undefined : void | Promise<void>;
 
 /** A handler for one intent kind. */
 export interface IntentHandler<K extends IntentKind> {
