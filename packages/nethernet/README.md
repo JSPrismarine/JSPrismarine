@@ -21,7 +21,8 @@ implements it, for a server and a client:
   server's status and `POST /v1/join/{networkId}` to trade an SDP offer for an answer.
 - `lookupPublicIp` asks the web services in `PUBLIC_IP_SERVICES`, one after another, for the
   host's public address. `withAdvertisedCandidates` adds the configured and dialed addresses to an
-  answer, and uses a looked-up address when the answer has no public candidate.
+  answer, and a fallback address beside them, which `HttpSignaling` asks for through `sign` when
+  a client's last answer reached it at no address.
 - `NetherNetIdentity`, which signs the `a=identity` a client requires on every answer, and the SDP
   helpers it is built on.
 - `encodeLanAdvertisement` and `decodeLanAdvertisement`, the advertisement a server answers LAN

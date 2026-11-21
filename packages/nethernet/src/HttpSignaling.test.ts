@@ -7,6 +7,7 @@ import { BEDROCK_CURVE } from './es384';
 import { HttpSignaling } from './HttpSignaling';
 import type { NetherNetOfferAnswerer } from './HttpSignaling';
 import { identityProofOf, NetherNetIdentity } from './NetherNetIdentity';
+import { fakePeer } from './testing/fakePeer.test-utils';
 
 const OFFER = 'v=0\r\na=identity:client-token\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n';
 
@@ -189,6 +190,45 @@ describe('HttpSignaling', () => {
             expect(seen).toHaveLength(1);
             expect(dialed).toBeUndefined();
         });
+    });
+
+    it("tells sign when a client's last answer reached it at no address, until a join of its own connects", async () => {
+        const peers: ReturnType<typeof fakePeer>[] = [];
+        const connections = new Map<bigint, { close(): void; peer: ReturnType<typeof fakePeer>['peer'] }>();
+        const answerer: NetherNetOfferAnswerer = {
+            connections,
+            handleOffer: async (signal, respond) => {
+                const fake = fakePeer();
+                peers.push(fake);
+                connections.set(signal.connectionId, { close: () => {}, peer: fake.peer });
+                respond(new SignalStructure(SignalType.ConnectResponse, signal.connectionId, 'v=0\r\n'));
+            }
+        };
+        const told: (boolean | undefined)[] = [];
+        const unreached: string[] = [];
+        const signaling = new HttpSignaling({
+            answerer,
+            status: () => '{}',
+            sign: (answer, _dialed, unreachedBefore) => {
+                told.push(unreachedBefore);
+                return answer;
+            },
+            onUnreached: (client) => unreached.push(client),
+            logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }
+        });
+        running.push(signaling);
+        const base = `http://127.0.0.1:${await signaling.listen(0, '127.0.0.1')}`;
+
+        await post(`${base}/v1/join/1`, OFFER);
+        // No connectivity check passed: the client reached no address in the answer.
+        peers[0]!.state('failed');
+        await post(`${base}/v1/join/1`, OFFER);
+        peers[1]!.ice('connected');
+        peers[1]!.state('connected');
+        await post(`${base}/v1/join/1`, OFFER);
+
+        expect(told).toStrictEqual([false, true, false]);
+        expect(unreached).toStrictEqual(['127.0.0.1']);
     });
 
     it('picks a connection ID no live peer has for every offer', async () => {

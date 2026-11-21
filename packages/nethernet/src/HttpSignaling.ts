@@ -35,6 +35,13 @@ const RESOLVE_TIMEOUT_MS = 1_000;
 const RESOLVED_TTL_MS = 60_000;
 const RESOLVED_LIMIT = 64;
 
+/**
+ * How long a client address whose last answer it could not reach is remembered, and how many
+ * are: long enough for the player to try again, few enough that nobody can grow the list.
+ */
+const UNREACHED_TTL_MS = 10 * 60_000;
+const UNREACHED_LIMIT = 256;
+
 /** A hostname as DNS allows one, which keeps anything else in a `Host` header from being looked up. */
 const HOSTNAME = /^(?=.{1,253}$)[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.?$/i;
 
@@ -70,8 +77,12 @@ export interface HttpSignalingOptions {
     /**
      * Adds the server's `a=identity` to an answer; the client refuses one without it. `dialed` is
      * where the client sent its offer, for `withDialedCandidates` to add to the answer first.
+     * `unreachedBefore` is true when the last answer this client's address got reached it at no
+     * address it offered, so this answer may need an address the last one lacked.
      */
-    readonly sign: (answer: string, dialed?: DialedAddress) => string | Promise<string>;
+    readonly sign: (answer: string, dialed?: DialedAddress, unreachedBefore?: boolean) => string | Promise<string>;
+    /** Told each time a client reaches no address in its answer, with the client's address. */
+    readonly onUnreached?: (client: string) => void;
     /**
      * Resolves a hostname a client dialed to its IP addresses; the system resolver when absent.
      * The name comes from the request's `Host` header, so anyone who can reach signaling picks it.
@@ -104,6 +115,8 @@ export class HttpSignaling {
     private readonly answerTimeoutMs: number;
     /** What each hostname clients dialed resolved to, and until when that holds. */
     private readonly resolved = new Map<string, { readonly addresses: readonly string[]; readonly until: number }>();
+    /** Client addresses whose last answer reached them at no address it offered, and until when that holds. */
+    private readonly unreached = new Map<string, number>();
 
     public constructor(private readonly options: HttpSignalingOptions) {
         this.answerTimeoutMs = options.answerTimeoutMs ?? DEFAULT_ANSWER_TIMEOUT_MS;
@@ -172,9 +185,14 @@ export class HttpSignaling {
         );
 
         const started = Date.now();
-        const result = await this.negotiate(offer);
+        const client = unmapped(request.socket.remoteAddress ?? '');
+        const result = await this.negotiate(offer, (reached) => this.settled(client, reached));
         if ('answer' in result) {
-            const answer = await this.options.sign(result.answer, await this.dialedBy(request));
+            const answer = await this.options.sign(
+                result.answer,
+                await this.dialedBy(request),
+                this.unreachedBefore(client)
+            );
             logger.debug(
                 `NetherNet join from ${from} answered in ${Date.now() - started} ms as connection ${result.connectionId}, offering ${describeCandidates(answer).join(', ') || 'no candidates'}`
             );
@@ -241,8 +259,30 @@ export class HttpSignaling {
         return this.resolved.get(name)?.addresses ?? [];
     }
 
-    /** Hands the offer to the answerer under a fresh connection ID and waits for its answer. */
-    private negotiate(offer: string): Promise<Negotiation> {
+    /** Whether the last answer `client` got reached it at no address, within the time that is remembered. */
+    private unreachedBefore(client: string): boolean {
+        const until = this.unreached.get(client);
+        if (until === undefined) return false;
+        if (until > Date.now()) return true;
+        this.unreached.delete(client);
+        return false;
+    }
+
+    /** Records whether `client` reached its answer, so its next join knows. */
+    private settled(client: string, reached: boolean): void {
+        this.unreached.delete(client);
+        if (reached || client === '') return;
+        // The oldest entry makes room: a Map keeps its keys in the order they were set.
+        if (this.unreached.size >= UNREACHED_LIMIT) this.unreached.delete(this.unreached.keys().next().value ?? client);
+        this.unreached.set(client, Date.now() + UNREACHED_TTL_MS);
+        this.options.onUnreached?.(client);
+    }
+
+    /**
+     * Hands the offer to the answerer under a fresh connection ID and waits for its answer.
+     * @param settled - Told once whether the client reached an address in the answer.
+     */
+    private negotiate(offer: string, settled: (reached: boolean) => void): Promise<Negotiation> {
         const { answerer } = this.options;
         let connectionId = randomUint64();
         while (answerer.connections.has(connectionId)) connectionId = randomUint64();
@@ -263,10 +303,13 @@ export class HttpSignaling {
                     // From here the join is WebRTC's: report each state change until it settles.
                     const peer = answerer.connections.get(connectionId)?.peer;
                     if (peer !== undefined) {
-                        tracePeerConnection(peer, (line, failed) =>
-                            this.options.logger[failed ? 'warn' : 'debug'](
-                                `NetherNet connection ${connectionId}: ${line}`
-                            )
+                        tracePeerConnection(
+                            peer,
+                            (line, failed) =>
+                                this.options.logger[failed ? 'warn' : 'debug'](
+                                    `NetherNet connection ${connectionId}: ${line}`
+                                ),
+                            settled
                         );
                     }
                     settle({ answer: signal.data, connectionId });

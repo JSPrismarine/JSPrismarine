@@ -241,7 +241,7 @@ describe('withAdvertisedCandidates', () => {
     const added = (answer: string) => answer.split('\r\n').filter((line) => line.includes('srflx'));
     const unset = parseUdpPorts('');
 
-    it('offers the fallback address when the answer would carry no public address', () => {
+    it("offers the fallback address beside the answer's own", () => {
         const local = { addresses: ['172.21.0.15'], port: 19132, localPort: 19132 };
 
         expect(added(withAdvertisedCandidates(ANSWER, unset, local, '203.0.113.9'))).toStrictEqual([
@@ -266,14 +266,19 @@ describe('withAdvertisedCandidates', () => {
         expect(added(withMappedCandidates(ipv6Only, ports.mappings))).toHaveLength(1);
     });
 
-    it('leaves the fallback out when the client dialed a public address or server-public-ip names one', () => {
+    it('adds the fallback beside a dialed or configured public address, and once', () => {
         const dialed = { addresses: ['198.51.100.4'], port: 19132, localPort: 19132 };
         const configured = parseUdpPorts('', '192.0.2.1');
 
-        expect(withAdvertisedCandidates(ANSWER, unset, dialed, '203.0.113.9')).toBe(
-            withDialedCandidates(ANSWER, dialed)
-        );
-        expect(withAdvertisedCandidates(ANSWER, configured, undefined, '203.0.113.9')).toBe(
+        expect(added(withAdvertisedCandidates(ANSWER, unset, dialed, '203.0.113.9'))).toStrictEqual([
+            'a=candidate:2f 1 UDP 1686109695 203.0.113.9 19132 typ srflx raddr 172.21.0.15 rport 19132',
+            'a=candidate:2d 1 UDP 1686109695 198.51.100.4 19132 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+        expect(added(withAdvertisedCandidates(ANSWER, configured, undefined, '203.0.113.9'))).toStrictEqual([
+            'a=candidate:2f 1 UDP 1686109695 203.0.113.9 19132 typ srflx raddr 172.21.0.15 rport 19132',
+            'a=candidate:2m 1 UDP 1686109695 192.0.2.1 19132 typ srflx raddr 172.21.0.15 rport 19132'
+        ]);
+        expect(withAdvertisedCandidates(ANSWER, configured, undefined, '192.0.2.1')).toBe(
             withMappedCandidates(ANSWER, [], '192.0.2.1')
         );
     });

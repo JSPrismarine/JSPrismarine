@@ -7,9 +7,12 @@ export const describeCandidates = (description: string): string[] =>
             `${address}:${port} ${type}${protocol?.toLowerCase() === 'udp' ? '' : ` ${protocol}`}`
     );
 
+/** Whether ICE got as far as a working pair: the client reached an address in the answer. */
+const reachedAt = (ice: IceState): boolean => ice !== 'new' && ice !== 'checking' && ice !== 'failed';
+
 /** What an ICE state says about a peer that closed before it connected. */
 const stalledAt = (ice: IceState): string => {
-    if (ice === 'new' || ice === 'checking' || ice === 'failed') {
+    if (!reachedAt(ice)) {
         return `ICE was ${ice}: no connectivity check passed, so the client reached no address in the answer`;
     }
     return `ICE was ${ice}: the client reached the server, and the handshake after it did not finish`;
@@ -23,19 +26,34 @@ const stalledAt = (ice: IceState): string => {
  * @param peer - The peer.
  * @param log - Where each change goes, as one line. `failed` marks the line for a peer that ended
  *   before it connected, which is worth a warning; the rest is detail for debugging.
+ * @param settled - Told once whether the client reached an address in the answer: true when the
+ *   peer connects, or ends after ICE found a pair; false when it ends before any check passed.
  */
-export const tracePeerConnection = (peer: DriverPeer, log: (line: string, failed: boolean) => void): void => {
+export const tracePeerConnection = (
+    peer: DriverPeer,
+    log: (line: string, failed: boolean) => void,
+    settled?: (reached: boolean) => void
+): void => {
     // ICE reports `closed` when the peer is torn down, which says nothing about how far it got.
     let ice = peer.iceState;
     let connected = peer.state === 'connected';
     peer.onIceStateChange((state) => {
         if (state !== 'closed') ice = state;
     });
+    let told = false;
+    const tell = (reached: boolean): void => {
+        if (told) return;
+        told = true;
+        settled?.(reached);
+    };
     peer.onStateChange((state) => {
         if (state === 'connected') connected = true;
         const ended = state === 'closed' || state === 'failed';
-        if (ended && !connected) log(`connection ${state} before it connected; ${stalledAt(ice)}`, true);
-        else log(`connection ${state}`, false);
+        if (ended && !connected) {
+            log(`connection ${state} before it connected; ${stalledAt(ice)}`, true);
+            tell(reachedAt(ice));
+        } else log(`connection ${state}`, false);
+        if (connected) tell(true);
         if (state !== 'connected') return;
         const local = peer.localAddress();
         const remote = peer.remoteAddress();

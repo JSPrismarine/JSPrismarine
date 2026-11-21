@@ -1,46 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { tracePeerConnection } from './tracePeerConnection';
-import type { DriverPeer, IceState, PeerState } from './WebRtcDriver';
-
-/** A peer whose states a test sets, with the listeners a trace installs. */
-const fakePeer = () => {
-    const onState: ((state: PeerState) => void)[] = [];
-    const onIce: ((state: IceState) => void)[] = [];
-    let state: PeerState = 'connecting';
-    let iceState: IceState = 'checking';
-    const peer: DriverPeer = {
-        get state() {
-            return state;
-        },
-        get iceState() {
-            return iceState;
-        },
-        setRemoteDescription: () => {},
-        addRemoteCandidate: () => {},
-        createDataChannel: () => {
-            throw new Error('The trace opens no channel');
-        },
-        localDescription: async () => '',
-        onDataChannel: () => {},
-        onStateChange: (listener) => void onState.push(listener),
-        onIceStateChange: (listener) => void onIce.push(listener),
-        remoteAddress: () => ({ address: '198.51.100.7', port: 50_000 }),
-        localAddress: () => ({ address: '203.0.113.9', port: 19_132 }),
-        close: () => {}
-    };
-    return {
-        peer,
-        ice: (next: IceState) => {
-            iceState = next;
-            for (const listener of onIce) listener(next);
-        },
-        state: (next: PeerState) => {
-            state = next;
-            for (const listener of onState) listener(next);
-        }
-    };
-};
+import { fakePeer } from './testing/fakePeer.test-utils';
 
 describe('tracePeerConnection', () => {
     it('says no check passed when a peer closes while ICE is still checking', () => {
@@ -86,5 +47,27 @@ describe('tracePeerConnection', () => {
             'connection disconnected',
             'connection closed'
         ]);
+    });
+
+    it('tells once whether the client reached an address in the answer', () => {
+        type Fake = ReturnType<typeof fakePeer>;
+        const outcome = (...steps: ((fake: Fake) => void)[]) => {
+            const fake = fakePeer();
+            const told: boolean[] = [];
+            tracePeerConnection(
+                fake.peer,
+                () => {},
+                (reached) => told.push(reached)
+            );
+            for (const step of steps) step(fake);
+            return told;
+        };
+        const ice = (state: Parameters<Fake['ice']>[0]) => (fake: Fake) => fake.ice(state);
+        const peer = (state: Parameters<Fake['state']>[0]) => (fake: Fake) => fake.state(state);
+
+        expect(outcome(ice('failed'), peer('failed'))).toStrictEqual([false]);
+        expect(outcome(ice('connected'), ice('closed'), peer('closed'))).toStrictEqual([true]);
+        expect(outcome(ice('connected'), peer('connected'), peer('closed'))).toStrictEqual([true]);
+        expect(outcome()).toStrictEqual([]);
     });
 });

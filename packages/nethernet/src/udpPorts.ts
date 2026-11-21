@@ -355,14 +355,14 @@ const withReflexiveAddresses = (
 
 /**
  * The answer with every address the server offers: the mapped and public candidates
- * `server-udp-ports` and `server-public-ip` give, then the address the client dialed. When that
- * leaves no candidate a host elsewhere on the internet can send to, a fallback public address,
- * such as one looked up at startup, is added beside them: after each host of its family, on the
+ * `server-udp-ports` and `server-public-ip` give, then the address the client dialed, then a
+ * fallback public address, such as a looked-up one, when the answer does not list it already. The
+ * fallback goes beside the others, never in place of them: after each host of its family, on the
  * public port a mapping gives the host's port, else on the host's own port.
  * @param answer - The SDP answer, with its host candidates.
  * @param ports - What `server-udp-ports` and `server-public-ip` say.
  * @param dialed - Where the client sent its offer, when the request said.
- * @param fallbackPublicIp - The address to offer when the answer would carry no public one.
+ * @param fallbackPublicIp - Another address to offer, such as to a client the last answer did not reach.
  * @returns The answer.
  */
 export const withAdvertisedCandidates = (
@@ -376,7 +376,7 @@ export const withAdvertisedCandidates = (
         dialed,
         ports.mappings
     );
-    if (fallbackPublicIp === undefined || hasPublicCandidate(answered)) return answered;
+    if (fallbackPublicIp === undefined) return answered;
     // Added to what the answer offers rather than in place of it, so a host of the other family
     // keeps its mapped candidates.
     return withReflexiveAddresses(
