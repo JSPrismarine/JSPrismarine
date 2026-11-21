@@ -183,10 +183,11 @@ command or a script goes through the same code path the config files use, so com
 ```
 
 `<target>` is an entity selector for online players or a name. A name resolves against the `name`
-stored on each user. When it matches more than one kind, the command refuses and shows the
-qualified forms it accepts, `xbox:Steve`, `java:Steve` or `offline:Steve`. Two stored users of
-one kind can carry the same last-seen name, so the qualified form also takes the key itself,
-`xbox:2535428842768200`, and the refusal lists each candidate with its key. A qualified value is
+stored on each user. When it matches more than one stored user, whether across kinds or within one kind, the command
+refuses and lists every candidate as a qualified key, such as `xbox:2535428842768200` or
+`offline:Steve`, and the operator repeats the command with one of them. A qualified value is a
+kind, a colon and either a last-seen name or a subject key, so `xbox:Steve` works when exactly one
+Xbox user is called Steve and the key form works always. A qualified value is
 read as a key first: when it is the key of a stored user, that user is the target and no name is
 tried; only a value that is nobody's key resolves as a name. The qualified form is command syntax
 only and never appears in a file or an API.
