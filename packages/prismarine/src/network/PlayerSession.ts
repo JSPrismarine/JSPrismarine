@@ -2197,9 +2197,12 @@ export default class PlayerSession {
 
     /**
      * Send gamemode to a client.
+     *
+     * Async so that a player who has left rejects the promise rather than throwing at the call,
+     * which the input step routes only as a rejection.
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
-    public sendGamemode(gamemode?: Gametype): Promise<void> {
+    public async sendGamemode(gamemode?: Gametype): Promise<void> {
         return this.presenter.sendGamemode(gamemode ?? this.own().gamemode);
     }
 

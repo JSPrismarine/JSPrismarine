@@ -173,3 +173,14 @@ describe('PlayerSession.announceSettings', () => {
         expect(elsewhere.sent).toEqual([]);
     });
 });
+
+describe('PlayerSession.sendGamemode', () => {
+    it('rejects, rather than throws, once the player has left', async () => {
+        const { session } = sessionFor(playerIn({ gamemode: Gametype.SURVIVAL }));
+        Object.assign(session, { players: { of: () => undefined, delete: () => true } });
+
+        const sending = session.sendGamemode();
+
+        await expect(sending).rejects.toMatchObject({ code: 'PRISMARINE_PLAYER_HAS_LEFT' });
+    });
+});
