@@ -15,8 +15,10 @@ on:
                 type: string
 
 # Let an active release finish because it may publish packages or create a release.
+# A manual run, which only rebuilds a published release's executables, has a group of its own, so
+# a push to master that waits behind the same group cannot replace it.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id) || github.ref }}
     cancel-in-progress: false
 
 env:

@@ -56,6 +56,10 @@ on:
 # A newer pull request push, or the pull request closing, supersedes its builds still going. A push
 # and a manual run have a group of their own, so this changes nothing for them; their jobs keep the
 # groups they set below.
+#
+# A group holds one running job and one waiting job, and a newer waiting job cancels the one that
+# waited before it, even with cancel-in-progress off. So each job of a manual run takes a group of
+# its own: otherwise the next push to master cancels a nightly someone asked for.
 concurrency:
     group: nightly-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -75,7 +79,9 @@ jobs:
         # merged before it built the same code. Skipping this job skips the builds.
         if: ${{ github.head_ref != 'changeset-release/master' && github.event.action != 'closed' }}
         concurrency:
-            group: nightly-version-${{ github.event.pull_request.number || github.ref }}
+            group: >-
+                nightly-version-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id) ||
+                github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
         # runs-on: blacksmith-2vcpu-ubuntu-2404
         runs-on: ubuntu-latest
@@ -138,7 +144,9 @@ jobs:
         needs: nightly-version
         if: ${{ needs.nightly-version.outputs.build == 'true' }}
         concurrency:
-            group: nightly-build-${{ github.event.pull_request.number || github.ref }}
+            group: >-
+                nightly-build-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id) ||
+                github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
         permissions:
             contents: read
@@ -155,7 +163,10 @@ jobs:
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') }}
         runs-on: ubuntu-latest
         concurrency:
-            group: jsprismarine-nightly-release
+            # A manual nightly publishes whatever the interval says, so it needs no turn after a push's.
+            group: >-
+                jsprismarine-nightly-release${{ github.event_name == 'workflow_dispatch' &&
+                format('-dispatch-{0}', github.run_id) || '' }}
             cancel-in-progress: false
         permissions:
             contents: write

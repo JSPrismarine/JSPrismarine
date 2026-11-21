@@ -35,8 +35,10 @@ on:
                 required: false
                 type: string
 
+# A manual run has a group of its own. A group holds one waiting run, and a newer one cancels it
+# even with cancel-in-progress off, so a run someone started could otherwise be dropped unseen.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.inputs.protocol || github.ref }}
+    group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id) || github.ref }}
     cancel-in-progress: true
 
 permissions:
