@@ -32,16 +32,20 @@ const readJson = (path: string): unknown => JSON.parse(readFileSync(path, 'utf-8
 
 const bedrockDataRoot = packageRoot('@jsprismarine/bedrock-data');
 
+/** The protocol version `sources.json` builds the package's unversioned exports from. */
+export const bedrockCaptureProtocol = (): number => {
+    // Parsed JSON has no type the compiler can see; this is the one field read here.
+    const sources = readJson(join(bedrockDataRoot, 'sources.json')) as { bds: { defaultProtocolVersion: number } };
+    return sources.bds.defaultProtocolVersion;
+};
+
 /**
  * The Bedrock captures live under a directory per protocol version, the same shape as the
  * datagen snapshots. The comparisons read the version the package builds its unversioned
  * exports from, which `sources.json` names.
  */
-export const bedrockCapture = (file: string): string => {
-    // Parsed JSON has no type the compiler can see; this is the one field read here.
-    const sources = readJson(join(bedrockDataRoot, 'sources.json')) as { bds: { defaultProtocolVersion: number } };
-    return join(bedrockDataRoot, 'src/jsp', `v${sources.bds.defaultProtocolVersion}`, file);
-};
+export const bedrockCapture = (file: string): string =>
+    join(bedrockDataRoot, 'src/jsp', `v${bedrockCaptureProtocol()}`, file);
 
 /** One line the `commands` capture pass typed at the console, and the line the server answered it with. */
 export interface CommandAnswer {
