@@ -224,14 +224,14 @@ const compareDensityVolumes = (): {
     chunks: number;
     sections: number;
     valueRegressions: string[];
-    cases: (TerrainParityCase & { sections: number })[];
+    cases: (TerrainParityCase & { regressed: boolean })[];
 } => {
     const vectors = loadJavaDensityVolumes();
     const data = vanillaWorldgenData();
     const seed = BigInt(vectors.seed);
     const gaps: string[] = [];
     const valueRegressions: string[] = [];
-    const cases: (TerrainParityCase & { sections: number })[] = [];
+    const cases: (TerrainParityCase & { regressed: boolean })[] = [];
     let sections = 0;
 
     for (const chunk of vectors.chunks) {
@@ -244,7 +244,9 @@ const compareDensityVolumes = (): {
 
         const fromValue = differingSections(perBlock, chunk.sampleValue);
         if (fromValue.length > 0) {
-            valueRegressions.push(`${at} differs from sampleValue in sections ${fromValue.join(', ')}`);
+            const regression = `${at} differs from sampleValue in sections ${fromValue.join(', ')}`;
+            valueRegressions.push(regression);
+            caseDetails.push(regression);
         }
 
         const fromVolume = differingSections(filled, chunk.sampleVolume);
@@ -263,7 +265,9 @@ const compareDensityVolumes = (): {
             context: "Java's sampleVolume bits, per 16-block section",
             gaps: caseGaps,
             details: caseDetails,
-            sections: filled.length
+            // The per-block path has no allow-list entry to fall back on: matching sampleValue is
+            // what the generator already does, so losing it fails the row whatever the volume gap.
+            regressed: fromValue.length > 0
         });
     }
 
@@ -303,17 +307,20 @@ describeFamily(
                     };
                 })
                 .concat(
-                    density.cases.map(({ id, title, context, gaps: caseGaps, details }): ParityTrackerRecord => ({
-                        id,
-                        title,
-                        context,
-                        status: caseGaps.some((gap) => unexpected.has(gap))
-                            ? 'failed'
-                            : caseGaps.length > 0
-                              ? 'deferred'
-                              : 'passed',
-                        ...(details.length === 0 ? {} : { details: details.join('; ') })
-                    }))
+                    density.cases.map(
+                        ({ id, title, context, gaps: caseGaps, details, regressed }): ParityTrackerRecord => ({
+                            id,
+                            title,
+                            context,
+                            status:
+                                regressed || caseGaps.some((gap) => unexpected.has(gap))
+                                    ? 'failed'
+                                    : caseGaps.length > 0
+                                      ? 'deferred'
+                                      : 'passed',
+                            ...(details.length === 0 ? {} : { details: details.join('; ') })
+                        })
+                    )
                 )
         );
 
