@@ -207,8 +207,8 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
     };
     /**
      * What holds an entity's actor record tags, which its dynamic properties live in: its actor
-     * while it is in a store, and for a player in none, such as one whose first `playerSpawn` runs
-     * before its chunk is ready, the store player, which carries the tags into the store.
+     * while it is in a store, and for a player in none, such as one who has joined but whose chunk
+     * is not ready yet, the store player, which carries the tags into the store.
      */
     const tagHolderOf = (id: string): ActorTagHolder | undefined => actorOf(id) ?? sessionOf(id)?.getPlayer();
     const host = () => server.getCommandManager().getHost();

@@ -15,6 +15,7 @@ import { levelWorldSystem } from '../scripting/worldsystem/levelWorldSystem';
 import { levelPlayerActions } from '../scripting/scriptPlayerActions';
 import { levelEntityEvents } from '../scripting/scriptEntityEvents';
 import { levelWorldEvents } from '../scripting/events/worldEvents';
+import { levelActors } from '../scripting/levelActors';
 import { levelSimulatedPlayers } from '../scripting/levelSimulatedPlayers';
 import { AddonConfigFiles } from '../scripting/addonConfig';
 import { scriptServerMembers } from '../scripting/serverMembers';
@@ -69,6 +70,7 @@ export const startLevelScripts = async (
     options: { readonly autoAttach: boolean }
 ): Promise<LevelScripts | undefined> => {
     const level = server.getWorldManager().getDefaultLevel();
+    const actors = levelActors(server, level);
     /** The wire's id of one of the level's dimensions, by its Bedrock name. */
     const dimensionId = (name: string): number | undefined =>
         [...level.getStems().keys()]
@@ -88,6 +90,8 @@ export const startLevelScripts = async (
                     .map((session) => ({
                         id: String(session.getRuntimeId()),
                         name: session.identity.name,
+                        // The session joins before `World.addPlayer` puts its entity in the store.
+                        spawned: actors.actorOf(String(session.getRuntimeId())) !== undefined,
                         sendMessage: (message) =>
                             void session
                                 .sendMessage(message)
