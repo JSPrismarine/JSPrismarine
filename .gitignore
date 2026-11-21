@@ -89,3 +89,4 @@ packages/bedrock-data/src/jsp/v*/packets/
 
 # Temporary bundles written by scripts/run-ts.mjs
 .jsp-run-*/
+vitest-report.json
