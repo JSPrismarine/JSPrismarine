@@ -158,11 +158,13 @@ export class FunctionRuntime {
      * @param source - What `/function` was typed with. Every line runs with it
      *   made silent, as Java runs a function's output.
      * @param argumentText - The macro argument compound, as SNBT.
+     * @param stored - Whether the compound is a stored one printed back, as `/function … with`
+     *   passes it, so a printed non-finite number reads back as one.
      * @returns What `/function` reports and whether `execute if function`
      *   matches. A function that does not exist ran nothing and matched
      *   nothing.
      */
-    public run(reference: string, source: CommandSource, argumentText?: string): FunctionRunOutcome {
+    public run(reference: string, source: CommandSource, argumentText?: string, stored = false): FunctionRunOutcome {
         if (this.depth >= MAX_NESTED_FUNCTION_DISPATCH) {
             this.report({
                 severity: 'error',
@@ -174,7 +176,7 @@ export class FunctionRuntime {
 
         let macroArguments: Record<string, unknown> | undefined;
         if (argumentText !== undefined && argumentText.trim().length > 0) {
-            macroArguments = readMacroArguments(argumentText);
+            macroArguments = readMacroArguments(argumentText, stored);
             if (macroArguments === undefined) {
                 this.report({
                     severity: 'error',

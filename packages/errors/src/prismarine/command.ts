@@ -1,9 +1,4 @@
-import { defineErrors, JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
-
-/** Why a compound in a function macro's arguments did not read. */
-export abstract class SnbtSyntaxError extends JSPrismarineError {
-    public override name = 'SnbtSyntaxError';
-}
+import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the command code of `@jsprismarine/prismarine` throws. */
 export const PrismarineCommandErrors = defineErrors('prismarine/command', {
@@ -62,18 +57,5 @@ export const PrismarineCommandErrors = defineErrors('prismarine/command', {
      * The command acts on the player who runs it, so the console cannot run it. Run it in game, or
      * use `/execute as` with a player.
      */
-    CommandCannotRunFromConsole: "This command can't be run from the console",
-    /**
-     * A function macro's arguments miss a character SNBT needs here, such as a closing brace or a
-     * colon.
-     */
-    SnbtExpectedCharacter: { message: "expected '{character}'", base: SnbtSyntaxError },
-    /** A function macro's arguments end inside an escape. */
-    SnbtStringEndsInBackslash: { message: 'the string ends in a backslash', base: SnbtSyntaxError },
-    /** A function macro's arguments open a quote they never close. */
-    SnbtUnterminatedString: { message: 'unterminated string', base: SnbtSyntaxError },
-    /** A function macro's arguments have a key without a value. */
-    SnbtExpectedValue: { message: 'expected a value', base: SnbtSyntaxError },
-    /** A function macro's arguments continue after the closing brace of the compound. */
-    SnbtTextAfterCompound: { message: 'there is text after the compound', base: SnbtSyntaxError }
+    CommandCannotRunFromConsole: "This command can't be run from the console"
 });

@@ -326,8 +326,10 @@ entries are ignored; a missing one reports
 `the macro arguments have no entry for '<name>'` and skips the whole call, as Java does.
 
 Substitution is textual. A string value goes in raw, with no quoting and no escaping, so a value
-carrying a quote can produce a line that no longer parses. Numbers go in without the NBT type
-suffix; a nested compound or list is rendered as SNBT, where the suffixes come back because the
+carrying a quote can produce a line that no longer parses. A number goes in without its NBT type
+suffix, and a float or a double goes in as Java's `DecimalFormat` prints it, with at most 15
+fraction digits and no zero before the point, so `1b` becomes `1`, `1.0d` becomes `1` and `0.5d`
+becomes `.5`. A compound, a list or an array goes in as SNBT, where the suffixes come back because the
 text is NBT again. Each macro function caches its 8 most recent argument sets, matching
 `MAX_CACHE_ENTRIES` in Java's `MacroFunction`.
 

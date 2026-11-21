@@ -86,6 +86,28 @@ describe('the function runtime over a datapack', () => {
         expect(lines).toEqual(['setblock 4 70 -7 minecraft:stone']);
     });
 
+    it('substitutes a decimal from a compound `/function … with` printed, as Java prints it', () => {
+        const { runtime, lines } = runtimeOver(
+            datapack({ 'data/fixture/function/say.mcfunction': '$say $(n) $(name) $(at)\n' })
+        );
+
+        runtime.run('fixture:say', source(), '{at: {x: 1}, n: 1.0d, name: "Steve"}');
+        expect(lines).toEqual(['say 1 Steve {x: 1}']);
+    });
+
+    it('dispatches a `function … with` line as a command, since the dispatcher has the world to read', () => {
+        const { runtime, lines, diagnostics } = runtimeOver(
+            datapack({
+                'data/fixture/function/outer.mcfunction': 'function fixture:say with storage fixture:args\n',
+                'data/fixture/function/say.mcfunction': '$say $(n)\n'
+            })
+        );
+
+        runtime.run('fixture:outer', source());
+        expect(lines).toEqual(['function fixture:say with storage fixture:args']);
+        expect(diagnostics).toEqual([]);
+    });
+
     it('skips a macro call whose compound is missing an entry, and says which', () => {
         const { runtime, lines, diagnostics } = runtimeOver(
             datapack({ 'data/fixture/function/place.mcfunction': '$say $(who)\n' })
