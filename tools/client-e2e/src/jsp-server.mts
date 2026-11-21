@@ -193,6 +193,9 @@ export const answersRakNetPing = (port: number): Promise<boolean> =>
 /** The second level's `worlds` key, when a suite asks for one with `secondLevel`. */
 export const SECOND_LEVEL = 'e2e_other';
 
+/** The bread a farmer gives for one emerald in its only novice trade, which the fixture datapack sets. */
+export const FARMER_BREAD = 4;
+
 /**
  * The format part of the fixture datapack's `pack.mcmeta`, for the Java release the server loads
  * its content under, so the fixture loads without a format mismatch.
@@ -323,6 +326,27 @@ export const startServer = async (
             4
         )}\n`
     );
+
+    // A novice farmer draws 2 of Java's 5 novice trades from the world's random state when a player
+    // first uses it, so the trade screen showed different offers in different rows from run to run.
+    // One trade for the whole tier gives the villager-trade scenario an offer it can count on.
+    const farmerTrade = path.join(datapack, 'data', 'client_e2e', 'villager_trade', 'farmer_bread.json');
+    const farmerTier = path.join(datapack, 'data', 'minecraft', 'trade_set', 'farmer', 'level_1.json');
+    fs.mkdirSync(path.dirname(farmerTrade), { recursive: true });
+    fs.mkdirSync(path.dirname(farmerTier), { recursive: true });
+    fs.writeFileSync(
+        farmerTrade,
+        `${JSON.stringify(
+            {
+                gives: { count: FARMER_BREAD, id: 'minecraft:bread' },
+                max_uses: 16,
+                wants: { id: 'minecraft:emerald' }
+            },
+            null,
+            4
+        )}\n`
+    );
+    fs.writeFileSync(farmerTier, `${JSON.stringify({ amount: 1, trades: 'client_e2e:farmer_bread' }, null, 4)}\n`);
 
     const behaviorPack = path.join(dir, 'client-e2e-behavior-pack');
     fs.mkdirSync(path.join(behaviorPack, 'entities'), { recursive: true });

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
+import { FARMER_BREAD } from '../jsp-server.mts';
 import { lookTo, sleep, waitTicks } from '../scenario.mts';
 import type { Scenario } from '../scenario.mts';
 
@@ -40,7 +41,8 @@ export const villagerTrade: Scenario = {
         await client.screenshot(path.join(artifacts, 'villager-trade-open.png'));
         log(`the client opened: ${JSON.stringify(screens)}`);
 
-        // Choose the offer, put one emerald in the first payment slot, and take the bread.
+        // The fixture datapack gives a novice farmer one trade, bread for an emerald. Choose it, put
+        // one emerald in the first payment slot, and take the bread.
         await click(client, [460, 237]);
         await click(client, [636, 497]);
         await click(client, [645, 285]);
@@ -55,14 +57,14 @@ export const villagerTrade: Scenario = {
         await client.waitForScreenAbsent('Container', 5_000);
         await waitTicks(server, 15);
 
-        // The trade handed over four bread and cost one emerald; the other one went back to the
+        // The trade handed over the bread and cost one emerald; the other one went back to the
         // inventory when the screen closed.
         const emeralds = server.waitForLine(/Removed \d+ items/, 10_000);
         server.command(`clear ${playerName} minecraft:emerald 64`);
         assert.match(await emeralds, /Removed 1 items/, 'the unspent emerald came back on close');
         const bread = server.waitForLine(/Removed \d+ items/, 10_000);
         server.command(`clear ${playerName} minecraft:bread 64`);
-        assert.match(await bread, /Removed 4 items/, 'the trade handed over four bread');
-        log('took four bread from the villager for an emerald');
+        assert.match(await bread, new RegExp(`Removed ${FARMER_BREAD} items`), 'the trade handed over the bread');
+        log(`took ${FARMER_BREAD} bread from the villager for an emerald`);
     }
 };
