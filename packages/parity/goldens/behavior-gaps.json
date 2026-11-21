@@ -960,22 +960,7 @@
             "reason": "A piston moves a block together with its block entity, as Bedrock's does; Java's piston refuses any block with a block entity.",
             "reference": "Java PistonBaseBlock.isPushable and PistonStructureResolver"
         },
-        "pops-without-support:minecraft:bell": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:bubble_column": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:cocoa": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:grindstone": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
@@ -996,11 +981,6 @@
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
         "pops-without-support:minecraft:sulfur_spike": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:tripwire_hook": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
