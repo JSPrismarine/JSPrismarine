@@ -412,6 +412,27 @@ export const ScriptHostErrors = defineErrors('script-host', {
      */
     JspModuleArgument: { message: '{member} takes {expected} as its {argument}', base: TypeError },
     /**
+     * A pack registered a placeholder namespace or key that is not a name: lowercase letters,
+     * digits and underscores, starting with a letter, so that `{namespace:key}` in a text is
+     * unmistakably a token. The script sees a `TypeError`. Rename the namespace or the key.
+     */
+    PlaceholderName: {
+        message:
+            '{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter',
+        base: TypeError
+    },
+    /**
+     * A pack registered a placeholder namespace with no keys, so no token could ever reach its
+     * resolver. The script sees a `TypeError`. List every key the resolver answers in `keys`.
+     */
+    PlaceholderNoKeys: { message: 'The placeholder namespace {namespace} lists no keys', base: TypeError },
+    /**
+     * A pack registered a placeholder namespace that another registration holds, its own or another
+     * pack's. The script sees an `Error`. Unregister the first registration, or pick another name;
+     * `placeholders.namespaces` lists the names in use.
+     */
+    PlaceholderNamespaceTaken: 'The placeholder namespace {namespace} is registered already',
+    /**
      * A script closed the forms of a player who has left. The script sees Bedrock Dedicated
      * Server's `Error`.
      */

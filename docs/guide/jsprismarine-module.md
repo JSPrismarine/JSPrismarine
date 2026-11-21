@@ -61,45 +61,58 @@ any other `@jsprismarine/` name rejects with the same message BDS gives.
 ## What the module holds
 
 Every export is frozen. `jsprismarine` holds plain values that stay the same while the server
-runs. `performance`, `getPing` and `bossBars` reach the running server: each property of
-`performance` reads the server when the script reads it, so a script that wants the numbers for
-the current tick reads them again.
+runs. `performance`, `getPing`, `bossBars` and `placeholders` reach the running server: each
+property of `performance` reads the server when the script reads it, so a script that wants the
+numbers for the current tick reads them again.
 
 <!-- fact:scripting.jspModule.table -->
-| Member                           | Type                | What it is                                                                                                                                                         |
-| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `jsprismarine`                   | object              | The server the pack runs on.                                                                                                                                       |
-| `jsprismarine.name`              | `"JSPrismarine"`    | The server software, always `JSPrismarine`.                                                                                                                        |
-| `jsprismarine.version`           | string              | The JSPrismarine version, such as `0.22.0`, without a leading `v`.                                                                                                 |
-| `jsprismarine.minecraftVersion`  | string              | The newest Minecraft Bedrock release the server speaks, the one it advertises.                                                                                     |
-| `jsprismarine.protocolVersion`   | number              | The Bedrock network protocol version of `minecraftVersion`.                                                                                                        |
-| `performance`                    | object              | How fast the server ticks. Each property reads the server when the script reads it.                                                                                |
-| `performance.tps`                | number              | Ticks per second over the last second. The server aims for 20, and runs above it while it catches up.                                                              |
-| `performance.tpsAverages`        | `readonly number[]` | Ticks per second averaged over the windows `/tps` reports, shortest first.                                                                                         |
-| `performance.lastTickMs`         | number              | How long the last tick's work took, in milliseconds, without the wait before the next tick. Zero before the first tick.                                            |
-| `performance.averageTickMs`      | number              | How long a tick's work has taken lately, in milliseconds, as a moving average over the recent ticks. Zero before the first tick.                                   |
-| `getPing(player)`                | function            | The player's round trip time in milliseconds, or `undefined` while their connection has no sample, after they leave, or when their transport measures none.        |
-| `bossBars`                       | object              | Boss bars on one player's screen. A bar belongs to the pack that showed it and goes away when the player leaves or the pack's scripts stop, as on `/reload`.       |
-| `bossBars.show(player, options)` | function            | Shows a boss bar to one player. A player sees the bar shown last, and the one before it again once that one is hidden. A bar for a player who left is never valid. |
+| Member                                       | Type                              | What it is                                                                                                                                                                                                                                  |
+| -------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsprismarine`                               | object                            | The server the pack runs on.                                                                                                                                                                                                                |
+| `jsprismarine.name`                          | `"JSPrismarine"`                  | The server software, always `JSPrismarine`.                                                                                                                                                                                                 |
+| `jsprismarine.version`                       | string                            | The JSPrismarine version, such as `0.22.0`, without a leading `v`.                                                                                                                                                                          |
+| `jsprismarine.minecraftVersion`              | string                            | The newest Minecraft Bedrock release the server speaks, the one it advertises.                                                                                                                                                              |
+| `jsprismarine.protocolVersion`               | number                            | The Bedrock network protocol version of `minecraftVersion`.                                                                                                                                                                                 |
+| `jsprismarine.maxPlayers`                    | number                            | How many players may be online at once, the server's `max-players` setting.                                                                                                                                                                 |
+| `performance`                                | object                            | How fast the server ticks. Each property reads the server when the script reads it.                                                                                                                                                         |
+| `performance.tps`                            | number                            | Ticks per second over the last second. The server aims for 20, and runs above it while it catches up.                                                                                                                                       |
+| `performance.tpsAverages`                    | `readonly number[]`               | Ticks per second averaged over the windows `/tps` reports, shortest first.                                                                                                                                                                  |
+| `performance.lastTickMs`                     | number                            | How long the last tick's work took, in milliseconds, without the wait before the next tick. Zero before the first tick.                                                                                                                     |
+| `performance.averageTickMs`                  | number                            | How long a tick's work has taken lately, in milliseconds, as a moving average over the recent ticks. Zero before the first tick.                                                                                                            |
+| `getPing(player)`                            | function                          | The player's round trip time in milliseconds, or `undefined` while their connection has no sample, after they leave, or when their transport measures none.                                                                                 |
+| `bossBars`                                   | object                            | Boss bars on one player's screen. A bar belongs to the pack that showed it and goes away when the player leaves or the pack's scripts stop, as on `/reload`.                                                                                |
+| `bossBars.show(player, options)`             | function                          | Shows a boss bar to one player. A player sees the bar shown last, and the one before it again once that one is hidden. A bar for a player who left is never valid.                                                                          |
+| `placeholders`                               | object                            | Tokens such as `{player:ping}` that any pack can provide and any pack can render. A namespace belongs to the pack that registered it and goes when the pack's scripts stop, as on `/reload`.                                                |
+| `placeholders.namespaces`                    | `readonly PlaceholderNamespace[]` | Every registered namespace with its keys, oldest first, as a new frozen list each read.                                                                                                                                                     |
+| `placeholders.register(namespace, provider)` | function                          | Registers a namespace. Throws a `TypeError` for a namespace or key that is not lowercase letters, digits and underscores starting with a letter, or for a provider with no keys, and an `Error` for a namespace that is registered already. |
+| `placeholders.resolve(text, player)`         | function                          | Replaces each `{namespace:key}` in the text with its value, for the player when one is given. A token nobody provides, or whose provider gives `undefined` or throws, stays as written, and so does any other text between braces.          |
 <!-- /fact -->
 
 The members take and give these types, which `@jsprismarine/script-types` declares:
 
 <!-- fact:scripting.jspModule.types -->
-| Type                       | Kind           | What it is                                                                                                                              |
-| -------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `Player`                   | interface      | A `Player` from `@minecraft/server`. The members take only a real one; this names what they read, so the pack's own `Player` type fits. |
-| `Player.id`                | string         | The player's entity id.                                                                                                                 |
-| `BossBarColor`             | string         | A boss bar's color. One of `pink`, `blue`, `red`, `green`, `yellow`, `purple`, `rebeccaPurple`, `white`.                                |
-| `BossBarOptions`           | interface      | What a boss bar shows.                                                                                                                  |
-| `BossBarOptions.text?`     | string         | The title above the bar. Empty when a bar is shown without it.                                                                          |
-| `BossBarOptions.progress?` | number         | How full the bar is, from 0 to 1, clamped to that range. Full when a bar is shown without it.                                           |
-| `BossBarOptions.color?`    | `BossBarColor` | The bar's color. Pink when a bar is shown without it.                                                                                   |
-| `BossBar`                  | interface      | A boss bar on one player's screen.                                                                                                      |
-| `BossBar.player`           | `Player`       | The player who sees the bar.                                                                                                            |
-| `BossBar.isValid`          | boolean        | Whether the bar is still there: false once it is hidden, once the player leaves and once the pack's scripts stop.                       |
-| `BossBar.update(options)`  | function       | Changes what the bar shows. A property the options leave out keeps its value. Does nothing to a bar that is no longer valid.            |
-| `BossBar.hide()`           | function       | Takes the bar off the screen for good. Does nothing to a bar that is no longer valid.                                                   |
+| Type                                       | Kind                | What it is                                                                                                                                                                                                                                                                         |
+| ------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Player`                                   | interface           | A `Player` from `@minecraft/server`. The members take only a real one; this names what they read, so the pack's own `Player` type fits.                                                                                                                                            |
+| `Player.id`                                | string              | The player's entity id.                                                                                                                                                                                                                                                            |
+| `BossBarColor`                             | string              | A boss bar's color. One of `pink`, `blue`, `red`, `green`, `yellow`, `purple`, `rebeccaPurple`, `white`.                                                                                                                                                                           |
+| `BossBarOptions`                           | interface           | What a boss bar shows.                                                                                                                                                                                                                                                             |
+| `BossBarOptions.text?`                     | string              | The title above the bar. Empty when a bar is shown without it.                                                                                                                                                                                                                     |
+| `BossBarOptions.progress?`                 | number              | How full the bar is, from 0 to 1, clamped to that range. Full when a bar is shown without it.                                                                                                                                                                                      |
+| `BossBarOptions.color?`                    | `BossBarColor`      | The bar's color. Pink when a bar is shown without it.                                                                                                                                                                                                                              |
+| `BossBar`                                  | interface           | A boss bar on one player's screen.                                                                                                                                                                                                                                                 |
+| `BossBar.player`                           | `Player`            | The player who sees the bar.                                                                                                                                                                                                                                                       |
+| `BossBar.isValid`                          | boolean             | Whether the bar is still there: false once it is hidden, once the player leaves and once the pack's scripts stop.                                                                                                                                                                  |
+| `BossBar.update(options)`                  | function            | Changes what the bar shows. A property the options leave out keeps its value. Does nothing to a bar that is no longer valid.                                                                                                                                                       |
+| `BossBar.hide()`                           | function            | Takes the bar off the screen for good. Does nothing to a bar that is no longer valid.                                                                                                                                                                                              |
+| `PlaceholderProvider`                      | interface           | What a pack registers for a namespace: the keys it answers, and the function that answers them.                                                                                                                                                                                    |
+| `PlaceholderProvider.keys`                 | `readonly string[]` | The keys the provider answers, each lowercase letters, digits and underscores starting with a letter. A token with another key stays as written.                                                                                                                                   |
+| `PlaceholderProvider.resolve(key, player)` | function            | The value of one key, for the player when the text is rendered for one. A number renders through `String()`. `undefined` leaves the token as written, and so does a throw, which the content log reports once per namespace. It runs inside the budget of the script that renders. |
+| `PlaceholderRegistration`                  | interface           | A namespace a pack registered.                                                                                                                                                                                                                                                     |
+| `PlaceholderRegistration.unregister()`     | function            | Takes the namespace out of the registry, so its tokens stay as written. A pack's namespaces go on their own when its scripts stop.                                                                                                                                                 |
+| `PlaceholderNamespace`                     | interface           | One registered namespace.                                                                                                                                                                                                                                                          |
+| `PlaceholderNamespace.namespace`           | string              | Its name, the part of a token before the colon.                                                                                                                                                                                                                                    |
+| `PlaceholderNamespace.keys`                | `readonly string[]` | The keys its provider answers.                                                                                                                                                                                                                                                     |
 <!-- /fact -->
 
 ## Show a boss bar
@@ -142,6 +155,48 @@ has bars from several packs sees the one shown last, and the one before it again
 hidden. `getPing` answers `undefined` until the player's connection has measured a round trip:
 RakNet's from the acknowledgments of its datagrams, NetherNet's from SCTP's under the data
 channels.
+
+## Provide and render placeholders
+
+A placeholder is a token such as `{player:ping}` in a text. `placeholders` is the registry every
+pack shares: one pack registers a namespace with the keys it answers, and any pack renders a text
+through `resolve`, so a sidebar, a chat format or a tab list shows the same values without talking
+to the pack that computes them. The [placeholders addon](../addons/README.md) registers the
+`player`, `server` and `world` namespaces most servers want.
+
+```js
+import { world } from '@minecraft/server';
+
+world.afterEvents.worldLoad.subscribe(async () => {
+    const jsp = await loadJsprismarine();
+    if (jsp === undefined || !('placeholders' in jsp)) return;
+    jsp.placeholders.register('demo', {
+        keys: ['name', 'ping', 'slots'],
+        resolve(key, player) {
+            if (key === 'slots') return jsp.jsprismarine.maxPlayers;
+            if (player === undefined) return undefined;
+            return key === 'name' ? player.name : jsp.getPing(player);
+        }
+    });
+    for (const player of world.getAllPlayers()) {
+        player.sendMessage(jsp.placeholders.resolve('{demo:name}, your ping is {demo:ping}ms', player));
+    }
+});
+```
+
+A namespace and a key are lowercase letters, digits and underscores, starting with a letter. Any
+other text between braces is not a token and stays as written, so there is no escape syntax. A
+token nobody provides stays as written too, so a missing addon shows in the text rather than
+disappearing from it. The same goes for a key whose resolver gives `undefined`, such as `name`
+above when the text is rendered for no player, and for one whose resolver throws: the content log
+reports the first throw of each namespace, and the token stays.
+
+A resolver runs inside the budget of the script that renders, so read a value rather than compute
+one. A number renders through `String()`. `register` throws a `TypeError` for a malformed name or
+a provider without keys, and an `Error` for a namespace that is registered already;
+`placeholders.namespaces` lists the names in use with their keys. A namespace belongs to the pack
+that registered it: `unregister` on the returned registration ends it, and every namespace of a
+pack goes when its scripts stop, as on `/reload`.
 
 Later JSPrismarine versions add members. To use one that an older server may lack, check for it
 before you call it, the same way you check for the module:

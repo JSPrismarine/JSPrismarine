@@ -9,7 +9,7 @@ import {
     jsprismarineServerTypings
 } from './jsprismarineServer';
 
-const info = { version: '1.2.3', minecraftVersion: '1.26.50', protocolVersion: 2193 };
+const info = { version: '1.2.3', minecraftVersion: '1.26.50', protocolVersion: 2193, maxPlayers: 20 };
 
 /** A host whose functions record each call and answer from fixed values. */
 const recordingHost = () => {
@@ -30,7 +30,11 @@ const recordingHost = () => {
         showBar: record('showBar', () => 7),
         updateBar: record('updateBar', () => undefined),
         hideBar: record('hideBar', () => undefined),
-        barValid: record('barValid', (id) => id === 7)
+        barValid: record('barValid', (id) => id === 7),
+        register: record('register', () => 3),
+        unregister: record('unregister', () => undefined),
+        resolve: record('resolve', (text) => String(text).toUpperCase()),
+        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }]))
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     return { host, calls };
 };
@@ -110,6 +114,40 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('forwards the placeholder calls to the host, and lists the namespaces as frozen copies', () => {
+        const { host, calls } = recordingHost();
+        const { placeholders } = namespaceOf(host);
+        const player = { id: '-4294967295' };
+        const provider = { keys: ['name'], resolve: () => 'Steve' };
+
+        const register = at(placeholders, 'register');
+        const resolve = at(placeholders, 'resolve');
+        if (typeof register !== 'function' || typeof resolve !== 'function') {
+            throw new TypeError('placeholders has no methods');
+        }
+        const registration: unknown = register('demo', provider);
+        expect(Object.isFrozen(registration)).toBe(true);
+        expect(resolve('{demo:name}', player)).toBe('{DEMO:NAME}');
+        const unregister = at(registration, 'unregister');
+        if (typeof unregister !== 'function') throw new TypeError('A registration has no unregister');
+        unregister();
+
+        const namespaces = at(placeholders, 'namespaces');
+        expect(namespaces).toEqual([{ namespace: 'player', keys: ['name', 'ping'] }]);
+        expect(Object.isFrozen(namespaces)).toBe(true);
+        expect(Object.isFrozen(at(namespaces, '0'))).toBe(true);
+        expect(Object.isFrozen(at(at(namespaces, '0'), 'keys'))).toBe(true);
+        expect(at(placeholders, 'namespaces')).not.toBe(namespaces);
+
+        expect(calls).toEqual([
+            ['register', 'demo', provider],
+            ['resolve', '{demo:name}', player],
+            ['unregister', 3],
+            ['namespaces'],
+            ['namespaces']
+        ]);
+    });
+
     it('declares every member, property and type it defines, under the module name, with its summary', () => {
         const typings = jsprismarineServerTypings();
 
@@ -130,5 +168,14 @@ describe('@jsprismarine/server', () => {
         }
         expect(typings).toContain('        readonly color?: BossBarColor;');
         expect(typings).toContain('        hide(): void;');
+        expect(typings).toContain('        readonly maxPlayers: number;');
+        expect(typings).toContain(
+            '    export const placeholders: {\n' +
+                `        /** ${JSPRISMARINE_SERVER.placeholders.properties.namespaces.summary} */\n` +
+                '        readonly namespaces: readonly PlaceholderNamespace[];\n' +
+                `        /** ${JSPRISMARINE_SERVER.placeholders.methods.register.summary} */\n` +
+                '        register(namespace: string, provider: PlaceholderProvider): PlaceholderRegistration;'
+        );
+        expect(typings).toContain('        resolve(key: string, player?: Player): string | number | undefined;');
     });
 });

@@ -107,6 +107,66 @@ slice 2 adds it beside `version`. `uptime` counts ticks since the world loaded, 
 `/placeholders list` prints each namespace with its keys. `/placeholders parse <text>` renders the
 text for the sender. Both are operator commands.
 
+### Templates
+
+A template is a tree in the shape of Bedrock's rawtext, the format `/tellraw` and `/titleraw`
+take, with a few more node kinds. The tab list is its first consumer, and a chat format or a
+sidebar renders the same trees later. React was considered for this and set aside: an entry is one
+line of text, so there is no tree to reconcile and no partial update, and an owner would need a
+build step to write JSX for QuickJS.
+
+```json
+{
+    "rawtext": [
+        { "placeholder": "perms:prefix" },
+        { "placeholder": "player:name" },
+        { "if": "{player:ping} > 150", "then": [{ "text": " §c" }, { "placeholder": "player:ping" }], "else": [{ "text": " §7" }, { "placeholder": "player:ping" }] },
+        { "animate": { "interval": 10, "frames": [[{ "text": "." }], [{ "text": ".." }], [{ "text": "..." }]] } },
+        { "gradient": { "colors": ["#ff0000", "#0000ff"], "rawtext": [{ "text": "VIP" }] } }
+    ]
+}
+```
+
+The node kinds are `text`, `placeholder`, `if` with `then` and `else`, `animate` with `frames`
+and an `interval` in ticks, `gradient` with a color list over its children, and rawtext's own
+`translate`, `score` and `selector`, which the renderer passes through to the client. A condition
+is a small expression over placeholders and literals: `==`, `!=`, `<`, `<=`, `>`, `>=`,
+`contains` and `startsWith`, joined by `&&` and `||`, with parentheses. Two sides that both parse
+as numbers compare as numbers, otherwise as text.
+
+The shorthand string `{player:name} &7{player:ping}ms` parses into the same tree, so a command
+stays terse and a file holds the structure. `&` color codes in shorthand become `§`.
+
+```ts
+interface Placeholders {
+    // ...the registry above
+    parse(shorthand: string): Template;
+    render(template: Template | string, player?: Player): { text: string; nextChangeTick?: number };
+}
+```
+
+`render` returns the text and, when the template holds an animation, the tick at which a frame
+next changes the output. A consumer that refreshes on an interval also renders at that tick, so
+an animation runs at its own pace and a template without one costs nothing between refreshes.
+
+### The config member
+
+An owner configures an addon in a file the server owns, not in `config/<module uuid>/variables.json`,
+which needs the beta `server-admin` module and a folder named by a UUID.
+
+```ts
+interface AddonConfig {
+    readonly value: unknown; // parsed JSON of addons/<name>.config.json, undefined when absent
+    write(value: unknown): void;
+    readonly afterEvents: { change: { subscribe(callback: (event: { value: unknown }) => void): void } };
+}
+```
+
+`config` in `@jsprismarine/server` reads `addons/<name>.config.json` beside the addon's folder.
+The server watches the file and raises `change` when it changes on disk. A file that fails to
+parse keeps the last value and logs once. `write` rewrites the file, so an addon's command and the
+owner's editor change the same thing. The addon validates the shape itself; the member only parses.
+
 ### The player list member
 
 ```ts
@@ -128,9 +188,30 @@ player's primary group, then the global one. The group comes from `{perms:primar
 the server provides once the permissions work lands; until then, or when the namespace is absent,
 the addon skips that tier and says so once on the console.
 
-Every 20 ticks the addon renders each online player's template through `placeholders.resolve`
-and calls `setDisplayName` only when the rendered name differs from the last one it sent. Until an
-owner sets a template, the list is untouched.
+The addon renders each online player's template through `placeholders.render` every `interval`
+ticks, 20 by default, and again at the `nextChangeTick` an animation reports, and calls
+`setDisplayName` only when the rendered name differs from the last one it sent. Until an owner
+sets a template, the list is untouched.
+
+The global and group templates and the interval live in `addons/tab-list.config.json`, read
+through the config member, so an owner can write trees in an editor and `/tablist` writes the
+same file:
+
+```json
+{
+    "interval": 20,
+    "templates": {
+        "global": "{player:name} &7{player:ping}ms",
+        "groups": {
+            "admin": { "rawtext": [{ "text": "§c[Admin] " }, { "placeholder": "player:name" }] }
+        }
+    }
+}
+```
+
+A template value is a shorthand string or a tree. `templates` is an object so a `worlds` sibling
+can come later without a schema break. A player's template set by command lives in a dynamic
+property on the player.
 
 Commands, all operator level:
 
@@ -144,9 +225,8 @@ Commands, all operator level:
 /tablist show <target>          print what the target renders to now
 ```
 
-A template typed in a command may use `&` color codes, which the addon stores as `§`. The global
-and group templates live in a world dynamic property; a player's template set by command lives in
-a dynamic property on the player, keyed by nothing else since it is theirs.
+A template typed in a command is shorthand. `/tablist format` and `/tablist group` write the
+config file; `/tablist player` writes the player's dynamic property.
 
 Other packs send script events with a JSON message:
 
@@ -158,7 +238,8 @@ Other packs send script events with a JSON message:
 | `jsp_tablist:set_player`  | `{ "playerId": "...", "template": "...", "persist": false }` |
 | `jsp_tablist:clear_player`| `{ "playerId": "..." }`                       |
 
-`playerId` is `Player.id`, which is stable across sessions. A player template set over the API is
+A `template` in a message is a shorthand string or a tree. `playerId` is `Player.id`, which is
+stable across sessions. A player template set over the API is
 for the session unless `persist` is true, so an AFK or vanish addon can set and clear without
 leaving residue, and a ranks addon can set once and keep it.
 
@@ -166,6 +247,9 @@ leaving residue, and a ranks addon can set once and keep it.
 
 - Unit tests for the registry: token parsing, unknown tokens, ownership, duplicate namespaces,
   thrown resolvers and cleanup on reload.
+- Unit tests for the renderer: each node kind, the condition grammar, the shorthand round trip,
+  and the next-change tick of nested animations.
+- Unit tests for the config member: read, write, a change on disk, and a file that fails to parse.
 - Unit tests for the player list member: the entry in the session manager, the packets a client
   receives, what a late joiner gets, and the revert when the pack stops.
 - Each addon's tests run its pack on a test server with a manual ticker, like the TPS bar's, and
@@ -179,17 +263,26 @@ leaving residue, and a ranks addon can set once and keep it.
 ## Slices
 
 1. [x] **The plan.** This document and its issues.
-2. [ ] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
-       and `script-types`, the fact tables on the module page, and the parity row.
+2. [x] [#3372](https://github.com/JSPrismarine/JSPrismarine/issues/3372) **The registry.** `placeholders` and `jsprismarine.maxPlayers` in `@jsprismarine/server`
+       and `script-types`, the fact tables on the module page, and the parity row. The registry is
+       `ScriptPlaceholders` in the script host, which knows nothing of the engine: the runtime
+       wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
+       lets the server register under an owner of its own. A token's key must be in the provider's
+       `keys`, so the list is what the registry answers. A player who left renders as no player.
 3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
        tests.
 4. [ ] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
-5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels, the commands, the script-event API, the
-       README, its tests and the client-e2e scenario.
+5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,
+       the script-event API, the README, its tests and the client-e2e scenario.
+6. [ ] [#3378](https://github.com/JSPrismarine/JSPrismarine/issues/3378) **The renderer.** `placeholders.parse` and `placeholders.render`, the node kinds, the
+       condition grammar and the next-change tick.
+7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
+       guide.
 
-Slice 3 needs 2. Slice 5 needs 2 and 4, and reads `perms` when permissions slice 5 exists. Slices
-2 and 4 are independent, so two branches carry them in parallel.
+Slice 3 needs 2. Slices 6 and 7 need 2. Slice 5 needs 4, 6 and 7, and reads `perms` when
+permissions slice 5 exists. Slices 2 and 4 are independent, so two branches carry them in
+parallel.
 
 ## Risks
 

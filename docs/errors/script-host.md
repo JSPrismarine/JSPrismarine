@@ -675,6 +675,35 @@ Thrown as `ScriptHostErrors.PackFileNotAnObject`, which extends `Error`.
 A pack's `manifest.json`, or another JSON file the script host reads from a pack, holds JSON
 that is not an object. Fix the file.
 
+## `SCRIPT_HOST_PLACEHOLDER_NAME`
+
+`{what} {name} is not a placeholder name: use lowercase letters, digits and underscores, starting with a letter`
+
+Thrown as `ScriptHostErrors.PlaceholderName`, which extends `TypeError`.
+
+A pack registered a placeholder namespace or key that is not a name: lowercase letters,
+digits and underscores, starting with a letter, so that `{namespace:key}` in a text is
+unmistakably a token. The script sees a `TypeError`. Rename the namespace or the key.
+
+## `SCRIPT_HOST_PLACEHOLDER_NAMESPACE_TAKEN`
+
+`The placeholder namespace {namespace} is registered already`
+
+Thrown as `ScriptHostErrors.PlaceholderNamespaceTaken`, which extends `Error`.
+
+A pack registered a placeholder namespace that another registration holds, its own or another
+pack's. The script sees an `Error`. Unregister the first registration, or pick another name;
+`placeholders.namespaces` lists the names in use.
+
+## `SCRIPT_HOST_PLACEHOLDER_NO_KEYS`
+
+`The placeholder namespace {namespace} lists no keys`
+
+Thrown as `ScriptHostErrors.PlaceholderNoKeys`, which extends `TypeError`.
+
+A pack registered a placeholder namespace with no keys, so no token could ever reach its
+resolver. The script sees a `TypeError`. List every key the resolver answers in `keys`.
+
 ## `SCRIPT_HOST_RECEIVED_FRAME_TOO_LONG`
 
 `A {length}-byte frame is over the {limit}-byte limit`
