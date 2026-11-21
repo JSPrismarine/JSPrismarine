@@ -48,7 +48,7 @@ export const megaMenus = [
             {
                 text: 'Addons',
                 items: [
-                    { text: 'Addons', description: 'The addons JSPrismarine publishes.', link: '/addons/' },
+                    { text: 'Addons', description: 'Find an addon and copy its install command.', link: '/addons/' },
                     {
                         text: 'Writing an addon',
                         description: 'A script pack owners install from the console.',
@@ -58,6 +58,11 @@ export const megaMenus = [
                         text: 'Publishing addons',
                         description: 'Release from a repository of your own.',
                         link: '/guide/publishing-addons'
+                    },
+                    {
+                        text: 'Listing an addon',
+                        description: 'A page in the marketplace for your addon.',
+                        link: '/guide/listing-addons'
                     }
                 ]
             },
