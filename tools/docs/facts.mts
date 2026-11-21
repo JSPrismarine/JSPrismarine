@@ -182,28 +182,51 @@ const errorSection = (error: ErrorData, heading: string) =>
         ...(error.description ? [error.description] : [])
     ].join('\n\n');
 
-/** A domain's page body: the classes that group its errors, then every error, by module when it has several. */
-const errorDomainPage = ({ categories, groups }: ErrorDomainData) => {
-    const parts: string[] = [];
-    if (categories.length > 0) {
+/** The classes that group a domain's errors, as a section of its page; empty when it has none. */
+const errorGroups = ({ categories }: ErrorDomainData) =>
+    categories.length > 0
+        ? [
+              '## Groups',
+              'Catch one of these classes to handle every error that extends it.',
+              table(
+                  ['Class', 'What its errors mean'],
+                  categories.map(({ name, description }) => [inlineCode(name), description.replace(/\s*\n\s*/g, ' ')])
+              )
+          ]
+        : [];
+
+/**
+ * A domain's page body: the classes that group its errors, then every error. A domain split across
+ * catalog modules lists its modules instead, and each module's errors get a page of their own, so a
+ * change to one module edits one page.
+ */
+const errorDomainPage = (domain: ErrorDomainData) => {
+    const parts = errorGroups(domain);
+    const modules = domain.groups.filter(({ module }) => module !== '');
+    if (modules.length > 0) {
         parts.push(
-            '## Groups',
-            'Catch one of these classes to handle every error that extends it.',
+            '## Modules',
             table(
-                ['Class', 'What its errors mean'],
-                categories.map(({ name, description }) => [inlineCode(name), description.replace(/\s*\n\s*/g, ' ')])
+                ['Page', 'Catalog'],
+                modules.map(({ module, errors }) => [
+                    `[${module}](${domain.domain}/${module}.md)`,
+                    inlineCode(errors[0]?.thrownAs.split('.')[0] ?? '')
+                ])
             )
         );
     }
-    for (const { module, errors } of groups) {
-        const nested = groups.length > 1;
-        if (nested) parts.push(`## ${module[0]?.toUpperCase()}${module.slice(1)}`);
-        parts.push(...errors.map((error) => errorSection(error, nested ? '###' : '##')));
-    }
+    const own = domain.groups.find(({ module }) => module === '');
+    if (own) parts.push(...own.errors.map((error) => errorSection(error, '##')));
     return parts.join('\n\n');
 };
 
-/** The error reference: every error the catalog in `@jsprismarine/errors` defines, a page per domain. */
+/** A module page's body: every error of one catalog module of a split domain. */
+const errorModulePage = (errors: readonly ErrorData[]) => errors.map((error) => errorSection(error, '##')).join('\n\n');
+
+/**
+ * The error reference: every error the catalog in `@jsprismarine/errors` defines, a page per domain
+ * and, for a domain split across catalog modules, a page per module.
+ */
 async function errorFacts() {
     const domains = await loadErrors();
     // The example is a real entry, logged by the real logger, so the page shows what a log holds.
@@ -226,7 +249,15 @@ async function errorFacts() {
             ])
         )}\n`,
         ...Object.fromEntries(
-            domains.map((domain) => [`errors.page.${domain.domain}`, `\n${errorDomainPage(domain)}\n`])
+            domains.flatMap((domain) => [
+                [`errors.page.${domain.domain}`, `\n${errorDomainPage(domain)}\n`],
+                ...domain.groups
+                    .filter(({ module }) => module !== '')
+                    .map(({ module, errors }) => [
+                        `errors.page.${domain.domain}.${module}`,
+                        `\n${errorModulePage(errors)}\n`
+                    ])
+            ])
         )
     };
 }

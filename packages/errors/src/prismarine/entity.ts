@@ -6,7 +6,7 @@ export abstract class LoggedFieldError extends TypeError {
 }
 
 /** The errors the entity code of `@jsprismarine/prismarine` throws. */
-export const PrismarineEntityErrors = defineErrors('prismarine', {
+export const PrismarineEntityErrors = defineErrors('prismarine/entity', {
     /**
      * A player's saved game mode is not one of the game modes, so the save or the replay that holds
      * it is damaged.

@@ -6,7 +6,7 @@ export abstract class RegistryBundleFormatError extends JSPrismarineError {
 }
 
 /** The errors the generation code of `@jsprismarine/prismarine` throws. */
-export const PrismarineGenerationErrors = defineErrors('prismarine', {
+export const PrismarineGenerationErrors = defineErrors('prismarine/generation', {
     /**
      * A generated chunk's biome points past its palette. This is a bug in world generation; report
      * it with the stack trace.

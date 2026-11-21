@@ -12,14 +12,15 @@ error, the last line names its code and links to the entry:
 
 <!-- fact:errors.example.reference -->
 ```text
-More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine#prismarine-player-not-found
+More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismarine/server#prismarine-player-not-found
 ```
 <!-- /fact -->
 
 Code that embeds the server or uses a package on its own reads the same two values from the error
 it catches, as `error.code` and `error.docs`.
 
-There are <!-- fact:errors.count -->1371<!-- /fact --> errors, one page per package:
+There are <!-- fact:errors.count -->1371<!-- /fact --> errors, one page per package. A package that throws many, such as
+`@jsprismarine/prismarine`, has a page per catalog module as well, which its page lists:
 
 <!-- fact:errors.domains -->
 | Package                                                 | Errors |

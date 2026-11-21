@@ -59,7 +59,10 @@ export interface CardContext {
     project: ProjectData;
     /** The site menu, which says which part of the site a page belongs to. */
     menus: readonly MegaMenu[];
-    /** How many errors each `@jsprismarine/errors` domain defines, by domain. */
+    /**
+     * How many errors each `@jsprismarine/errors` domain defines, by domain, and each module of a split
+     * domain, by its page's path such as `prismarine/world`.
+     */
     errorCounts: ReadonlyMap<string, number>;
     /** Every page of the site, by source file, which section overviews and packages count. */
     pages: readonly string[];
@@ -90,12 +93,14 @@ export function splitApiTitle(relativePath: string, title: string) {
 
 /**
  * The title a page's card sets: an API page's without its symbol kind, which the figure tile shows,
- * and a package's error reference by the package's name alone, since the tile says it is the error
- * reference.
+ * and a package's error reference by the package's name alone, or with its module's, since the tile
+ * says it is the error reference.
  */
 export function cardTitle(relativePath: string, title: string) {
     const name = splitApiTitle(relativePath, title).name;
-    const errors = /^errors\/[^/]+\.md$/.test(relativePath) ? /^(@\S+\/\S+) errors$/.exec(name) : null;
+    const errors = /^errors\/[^/]+(?:\/[^/]+)?\.md$/.test(relativePath)
+        ? /^(@\S+\/\S+(?: \S+)?) errors$/.exec(name)
+        : null;
     return errors ? errors[1] : name;
 }
 
@@ -185,11 +190,12 @@ export function pageFigure(relativePath: string, context: CardContext): Figure |
     const adr = /^adr\/(\d{4})-[^/]+\.md$/.exec(relativePath);
     if (adr) return { value: adr[1], label: adrStatus(context.source(relativePath)) ?? 'Decision' };
 
-    const errors = /^errors\/([^/]+)\.md$/.exec(relativePath);
+    const errors = /^errors\/([^/]+(?:\/[^/]+)?)\.md$/.exec(relativePath);
     if (errors) {
+        // The modules' counts are in their domain's already, so the total adds only the domains.
         const total =
             errors[1] === 'index'
-                ? [...errorCounts.values()].reduce((sum, n) => sum + n, 0)
+                ? [...errorCounts].reduce((sum, [page, n]) => (page.includes('/') ? sum : sum + n), 0)
                 : errorCounts.get(errors[1]);
         return total === undefined ? undefined : count(total, 'error');
     }

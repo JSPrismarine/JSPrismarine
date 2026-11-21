@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the network code of `@jsprismarine/prismarine` throws. */
-export const PrismarineNetworkErrors = defineErrors('prismarine', {
+export const PrismarineNetworkErrors = defineErrors('prismarine/network', {
     /**
      * The folder the server writes packet dumps to belongs to another user, so the server refuses
      * to write there. Use a folder you own.

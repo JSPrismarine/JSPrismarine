@@ -77,6 +77,8 @@ export interface ErrorClass<Message extends string, Base extends ErrorBase> {
     readonly code: string;
     /** The catalog the entry belongs to, which is also the name of its page in the error reference. */
     readonly domain: string;
+    /** The module of a domain split across several, such as `world`, which names its page; otherwise undefined. */
+    readonly module: string | undefined;
     /** The message template, with its `{name}` placeholders. */
     readonly template: Message;
     /** The address of this error's entry in the error reference. */
@@ -100,8 +102,12 @@ export const constantCase = (name: string) =>
 /** The anchor the error reference gives a code's heading, as VitePress slugs it. */
 export const codeAnchor = (code: string) => code.toLowerCase().replaceAll('_', '-');
 
-/** The address of a code's entry in the error reference. */
-export const docsUrlOf = (domain: string, code: string) => `${DOCS_URL}errors/${domain}#${codeAnchor(code)}`;
+/**
+ * The address of a code's entry in the error reference. A domain split across modules has a page per
+ * module, under the domain's folder.
+ */
+export const docsUrlOf = (domain: string, code: string, module?: string) =>
+    `${DOCS_URL}errors/${module ? `${domain}/${module}` : domain}#${codeAnchor(code)}`;
 
 /** Fills a template's placeholders the way a template literal would. */
 export const formatMessage = (template: string, params: Readonly<Record<string, unknown>>) =>
@@ -112,6 +118,10 @@ export const formatMessage = (template: string, params: Readonly<Record<string, 
  * catalog's page in the error reference and prefixes every code, so the `DatabaseLocked` entry of
  * the `leveldb` domain has the code `LEVELDB_DATABASE_LOCKED`.
  *
+ * A domain split across catalog modules, such as `src/prismarine/`, names the module after a slash,
+ * as in `defineErrors('prismarine/world', { ... })`. The reference gives each module its own page,
+ * so changes to different modules edit different pages. The module is not part of the code.
+ *
  * @example
  * export const LeveldbErrors = defineErrors('leveldb', {
  *     DatabaseLocked: { message: 'The world at {path} is already open.', base: DatabaseLockedError }
@@ -119,14 +129,15 @@ export const formatMessage = (template: string, params: Readonly<Record<string, 
  * throw new LeveldbErrors.DatabaseLocked({ path: directory }, { cause });
  */
 export function defineErrors<const Entries extends Record<string, string | ErrorEntry>>(
-    domain: string,
+    catalog: string,
     entries: Entries
 ): ErrorCatalog<Entries> {
+    const [domain = catalog, module] = catalog.split('/');
     const classes: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(entries)) {
         const { message: template, base = Error } = typeof entry === 'string' ? { message: entry } : entry;
         const code = `${constantCase(domain)}_${constantCase(key)}`;
-        const docs = docsUrlOf(domain, code);
+        const docs = docsUrlOf(domain, code, module);
         // Without placeholders the first argument is the options, so the class reads it as such.
         const takesParams = new RegExp(PLACEHOLDER.source).test(template);
 
@@ -135,6 +146,7 @@ export function defineErrors<const Entries extends Record<string, string | Error
         const Defined = class extends Concrete {
             public static readonly code = code;
             public static readonly domain = domain;
+            public static readonly module = module;
             public static readonly template = template;
             public static readonly docs = docs;
 

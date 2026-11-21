@@ -58,9 +58,15 @@ does. Give `base` when the error should extend `TypeError`, `RangeError` or a gr
 default is `Error`. When a class needs fields of its own, such as the chunk coordinates on
 `ChunkStepOutOfOrderError`, define it in its package and extend the catalog entry with it.
 
+A catalog module in a package's folder names the module after a slash, as
+`defineErrors('prismarine/world', { ... })` does in `src/prismarine/world.ts`. The code still starts
+with the domain alone, `PRISMARINE_`, but the reference gives each module its own page, so changes
+to different modules edit different pages.
+
 The JSDoc on an entry is its description in the reference. After a change, run
-`pnpm run docs:facts` to rewrite the pages under `docs/errors/`. A package with no catalog yet also
-needs a page there, which `pnpm run lint:docs-facts` asks for.
+`pnpm run docs:facts` to rewrite the pages under `docs/errors/`. A package with no catalog yet, or a
+new module in a package's folder, also needs a page there, which `pnpm run lint:docs-facts` asks
+for.
 
 A `new Error(...)`, or a class that extends `Error`, anywhere in a package's `src/` outside this
 package fails the lint. The rule is `.biome/no-raw-errors.grit`.

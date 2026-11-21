@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the intent dispatch of `@jsprismarine/prismarine` throws. */
-export const PrismarineInputErrors = defineErrors('prismarine', {
+export const PrismarineInputErrors = defineErrors('prismarine/input', {
     /**
      * Two handlers were registered for the same intent kind. A plugin that wants to add behavior
      * to an intent appends its handler instead of registering a second one.

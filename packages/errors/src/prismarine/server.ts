@@ -12,7 +12,7 @@ export abstract class ConfigSyntaxError extends JSPrismarineError {
 }
 
 /** The errors the server code of `@jsprismarine/prismarine` throws. */
-export const PrismarineServerErrors = defineErrors('prismarine', {
+export const PrismarineServerErrors = defineErrors('prismarine/server', {
     /**
      * The protocol the server advertises names no Minecraft version. This is a bug in the server;
      * report it with the stack trace.

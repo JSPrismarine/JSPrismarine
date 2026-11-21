@@ -6,7 +6,7 @@ export abstract class ChangeLogError extends JSPrismarineError {
 }
 
 /** The errors the world code of `@jsprismarine/prismarine` throws. */
-export const PrismarineWorldErrors = defineErrors('prismarine', {
+export const PrismarineWorldErrors = defineErrors('prismarine/world', {
     /**
      * A chunk's list of entities is not a whole number of entity ids. The world on disk is damaged,
      * or was written by a tool that writes the format differently; open it in the game to let it

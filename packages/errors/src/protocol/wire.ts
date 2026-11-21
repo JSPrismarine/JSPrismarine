@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the wire code of `@jsprismarine/protocol` throws. */
-export const ProtocolWireErrors = defineErrors('protocol', {
+export const ProtocolWireErrors = defineErrors('protocol/wire', {
     /**
      * A movement prediction packet's entity flags run past the most bytes the protocol uses, so the
      * packet is malformed. The connection is dropped; a modified client, or one that writes the

@@ -9,6 +9,7 @@ import { codeAnchor, constantCase, DOCS_URL, JSPrismarineError } from './JSPrism
 interface DefinedClass {
     readonly code: string;
     readonly domain: string;
+    readonly module: string | undefined;
     readonly template: string;
     readonly docs: string;
     new (...args: unknown[]): Error;
@@ -66,6 +67,13 @@ describe('the error catalog', () => {
         }
     });
 
+    it('gives a domain split across a folder a page per module, named for its file', () => {
+        for (const { file, error } of entries) {
+            const [, module] = file.replace(/^\.\//, '').replace(/\.ts$/, '').split('/');
+            expect(error.module, file).toBe(module);
+        }
+    });
+
     it('links into the site the root manifest says the docs are published at', () => {
         const manifest: unknown = JSON.parse(
             readFileSync(path.join(import.meta.dirname, '../../../package.json'), 'utf8')
@@ -75,7 +83,8 @@ describe('the error catalog', () => {
 
     it('links every error to its entry in the reference', () => {
         for (const { error } of entries) {
-            expect(error.docs).toBe(`${DOCS_URL}errors/${error.domain}#${codeAnchor(error.code)}`);
+            const page = error.module ? `${error.domain}/${error.module}` : error.domain;
+            expect(error.docs).toBe(`${DOCS_URL}errors/${page}#${codeAnchor(error.code)}`);
         }
     });
 

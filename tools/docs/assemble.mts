@@ -11,8 +11,10 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync,
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { codeAnchor } from '../../packages/errors/src/JSPrismarineError.ts';
 import { addonPage, loadAddons } from './addons.mts';
 import { runStep } from './build-cache.mts';
+import { loadErrors } from './code-data.mts';
 import { applyFacts, loadFacts } from './facts.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
@@ -25,6 +27,7 @@ import {
     sections
 } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
+import { MOVED_ERRORS_FILE, type MovedErrors } from './site/.vitepress/theme/movedErrors.ts';
 import type { TrackerIndex } from './site/.vitepress/theme/parity.ts';
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
@@ -215,6 +218,17 @@ if (staleFacts.length) {
 console.log(
     `Staged ${pages} pages from ${sections.length} doc sections, ${addons.length} addon READMEs and ${rootPages.length} root documents.`
 );
+
+// A split domain's errors moved from its page to a page per module, so the site forwards old links.
+const moved: MovedErrors = {};
+for (const { domain, groups } of await loadErrors()) {
+    for (const { module, errors } of groups) {
+        if (module === '') continue;
+        moved[domain] ??= {};
+        for (const { code } of errors) moved[domain][codeAnchor(code)] = module;
+    }
+}
+writeFileSync(path.join(publicDir, MOVED_ERRORS_FILE), JSON.stringify(moved));
 
 const search = await writeSearchIndex(siteDir);
 console.log(`Indexed ${search.pages} pages and ${search.headings} headings for the site menu's search.`);

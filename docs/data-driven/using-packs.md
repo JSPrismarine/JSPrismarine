@@ -85,9 +85,9 @@ The Java side targets the data pack format of the Java release the server runs, 
 format. The release is the default pinned one, Java <!-- fact:java.version -->26.3<!-- /fact --> at data pack format <!-- fact:java.dataPackFormat -->121.0<!-- /fact -->, unless
 `content-java-version` in `config.json` names another pinned release. The server stops at startup
 when that setting names a release it cannot load. A release `sources.json` does not pin stops it
-with [`PRISMARINE_UNKNOWN_JAVA_RELEASE`](../errors/prismarine.md#prismarine-unknown-java-release), which lists the pinned releases; set the key to one of them or leave it
+with [`PRISMARINE_UNKNOWN_JAVA_RELEASE`](../errors/prismarine/content.md#prismarine-unknown-java-release), which lists the pinned releases; set the key to one of them or leave it
 empty for the default. A pinned release whose vanilla datapack is not generated stops it with
-[`PRISMARINE_JAVA_RELEASE_NOT_GENERATED`](../errors/prismarine.md#prismarine-java-release-not-generated), which gives the `datagen:java --java <release>` command that generates
+[`PRISMARINE_JAVA_RELEASE_NOT_GENERATED`](../errors/prismarine/content.md#prismarine-java-release-not-generated), which gives the `datagen:java --java <release>` command that generates
 it. Each world
 records the release's data version in its `level.dat`, and a world saved under a newer release
 refuses to open under an older one, as Java does. [Java versions](../guide/java-versions.md)

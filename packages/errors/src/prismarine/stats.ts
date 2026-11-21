@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the usage statistics code of `@jsprismarine/prismarine` throws. */
-export const PrismarineStatsErrors = defineErrors('prismarine', {
+export const PrismarineStatsErrors = defineErrors('prismarine/stats', {
     /**
      * Code registered a stats metric under a name that is not a `snake_case` namespace and name,
      * such as `jsprismarine:players`. Rename the metric.

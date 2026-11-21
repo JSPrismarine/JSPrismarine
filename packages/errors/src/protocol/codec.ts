@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the codec code of `@jsprismarine/protocol` throws. */
-export const ProtocolCodecErrors = defineErrors('protocol', {
+export const ProtocolCodecErrors = defineErrors('protocol/codec', {
     /**
      * A protocol version's packet table gives two packet classes the same id. This is a bug in the
      * protocol codecs; report it with the stack trace.

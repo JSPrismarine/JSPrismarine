@@ -68,6 +68,7 @@ tools/docs/site/plans/
 tools/docs/site/research/
 tools/docs/site/public/parity-tracker/
 tools/docs/site/public/search-index.json
+tools/docs/site/public/moved-errors.json
 # Rasterized from docs/brand/assets/ by `brand-assets-cli.mts site` on every docs build.
 tools/docs/site/public/favicon.*
 tools/docs/site/public/apple-touch-icon.png

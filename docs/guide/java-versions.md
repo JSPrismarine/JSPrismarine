@@ -69,9 +69,9 @@ The datapack, world generation and data version all follow the setting together.
 must be pinned and its data generated, and the server stops at startup rather than fall back to
 the default, since that would generate a world for a release nobody asked for:
 
-- [`PRISMARINE_UNKNOWN_JAVA_RELEASE`](../errors/prismarine.md#prismarine-unknown-java-release):
+- [`PRISMARINE_UNKNOWN_JAVA_RELEASE`](../errors/prismarine/content.md#prismarine-unknown-java-release):
   `sources.json` does not pin the release. The message lists the pinned ones.
-- [`PRISMARINE_JAVA_RELEASE_NOT_GENERATED`](../errors/prismarine.md#prismarine-java-release-not-generated):
+- [`PRISMARINE_JAVA_RELEASE_NOT_GENERATED`](../errors/prismarine/content.md#prismarine-java-release-not-generated):
   the release is pinned but its vanilla datapack is not in the download cache. The message gives
   the command that generates it,
   `pnpm --filter @jsprismarine/bedrock-data run datagen:java --java <release>`.
@@ -84,7 +84,7 @@ updates the record, and chunks generated before blend into the new terrain the w
 
 Opening it under an older release is a downgrade, which Java refuses because an older release
 cannot read what a newer one wrote. The server refuses too, with
-[`PRISMARINE_JAVA_DATA_DOWNGRADE`](../errors/prismarine.md#prismarine-java-data-downgrade). Set
+[`PRISMARINE_JAVA_DATA_DOWNGRADE`](../errors/prismarine/world.md#prismarine-java-data-downgrade). Set
 `content-java-version` to the release the world was saved with, or a newer one, or start the
 server on another world. A world saved before the record existed has none and opens under any
 release.

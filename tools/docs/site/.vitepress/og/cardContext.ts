@@ -27,7 +27,15 @@ export async function loadCardContext(srcDir: string, pages: readonly string[]):
     return {
         project: loadProject(),
         menus: megaMenus,
-        errorCounts: new Map(errors.map((domain) => [domain.domain, errorCount(domain)])),
+        // A split domain's modules count too, under their page's path, such as `prismarine/world`.
+        errorCounts: new Map(
+            errors.flatMap((domain) => [
+                [domain.domain, errorCount(domain)],
+                ...domain.groups
+                    .filter(({ module }) => module !== '')
+                    .map(({ module, errors }): [string, number] => [`${domain.domain}/${module}`, errors.length])
+            ])
+        ),
         pages,
         parity: tracker ? behaviorProgress(tracker.families) : undefined,
         contributors: contributors.length || undefined,

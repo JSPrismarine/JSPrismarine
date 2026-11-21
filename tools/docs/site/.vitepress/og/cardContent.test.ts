@@ -58,7 +58,8 @@ const context: CardContext = {
     menus,
     errorCounts: new Map([
         ['commands', 2_000],
-        ['auth', 1]
+        ['auth', 1],
+        ['commands/parse', 1_500]
     ]),
     pages: [
         ...Object.keys(pages),
@@ -108,6 +109,7 @@ describe('figures', () => {
         expect(pageFigure('errors/commands.md', context)).toEqual({ value: '2,000', label: 'errors' });
         expect(pageFigure('errors/auth.md', context)).toEqual({ value: '1', label: 'error' });
         expect(pageFigure('errors/index.md', context)).toEqual({ value: '2,001', label: 'errors' });
+        expect(pageFigure('errors/commands/parse.md', context)).toEqual({ value: '1,500', label: 'errors' });
         expect(pageFigure('errors/unknown.md', context)).toBeUndefined();
     });
 
@@ -197,6 +199,9 @@ describe('describeCard', () => {
     it("titles a package's error reference by the package", () => {
         expect(cardTitle('errors/commands.md', '@jsprismarine/commands errors')).toBe('@jsprismarine/commands');
         expect(cardTitle('errors/common.md', 'Shared errors')).toBe('Shared errors');
+        expect(cardTitle('errors/commands/parse.md', '@jsprismarine/commands parse errors')).toBe(
+            '@jsprismarine/commands parse'
+        );
     });
 
     it('summarizes a dated research note by its scope, and shows the date in the figure', () => {

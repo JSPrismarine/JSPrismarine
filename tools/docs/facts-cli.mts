@@ -76,12 +76,13 @@ for (const file of markdownFiles()) {
     }
 }
 
-// Every error domain needs a page in the reference, since each of its errors links there.
+// Every error domain, and every module of a split one, needs a page in the reference, since each of
+// its errors links there. `errors.page.prismarine.world` is the page `prismarine/world.md`.
 const pageless = [...facts.keys()].filter((name) => name.startsWith('errors.page.') && !used.has(name));
 for (const name of pageless) {
-    const domain = name.slice('errors.page.'.length);
+    const page = name.slice('errors.page.'.length).replaceAll('.', '/');
     console.error(
-        `docs/errors/${domain}.md is missing: its errors link there. Copy another domain's page and mark it with ${name}.`
+        `docs/errors/${page}.md is missing: its errors link there. Copy another page of the reference and mark it with ${name}.`
     );
 }
 if (pageless.length) process.exitCode = 1;

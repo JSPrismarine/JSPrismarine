@@ -6,7 +6,7 @@ export abstract class SnbtSyntaxError extends JSPrismarineError {
 }
 
 /** The errors the command code of `@jsprismarine/prismarine` throws. */
-export const PrismarineCommandErrors = defineErrors('prismarine', {
+export const PrismarineCommandErrors = defineErrors('prismarine/command', {
     /**
      * `/debug` was asked to change a setting that only takes effect at startup. Change it in
      * `config.json` and restart.

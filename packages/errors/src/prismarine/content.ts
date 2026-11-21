@@ -1,7 +1,7 @@
 import { defineErrors } from '@jsprismarine/errors/JSPrismarineError';
 
 /** The errors the content code of `@jsprismarine/prismarine` throws. */
-export const PrismarineContentErrors = defineErrors('prismarine', {
+export const PrismarineContentErrors = defineErrors('prismarine/content', {
     /**
      * The random source the server was configured with cannot save its state, so replays cannot
      * restore it. Use the default random source to record replays.

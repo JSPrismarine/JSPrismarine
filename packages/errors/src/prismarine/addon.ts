@@ -6,7 +6,7 @@ export abstract class AddonIntegrityError extends JSPrismarineError {
 }
 
 /** The errors the addon installer of `@jsprismarine/prismarine` throws. */
-export const PrismarineAddonErrors = defineErrors('prismarine', {
+export const PrismarineAddonErrors = defineErrors('prismarine/addon', {
     /**
      * `addon install` takes a bare addon name such as `tps-bar`, `<owner>/<repo>/<name>`, either
      * with an optional `@<range>`, an `https:` URL of an `.mcpack`, or a path that starts with

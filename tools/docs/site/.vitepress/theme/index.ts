@@ -1,3 +1,4 @@
+import { inBrowser } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import type { Component } from 'vue';
 
@@ -24,6 +25,7 @@ import Ticker from './components/Ticker.vue';
 import WindowBlind from './components/WindowBlind.vue';
 import ContributorList from './ContributorList.vue';
 import Layout from './Layout.vue';
+import { forwardMovedError } from './forwardMovedError';
 import ParityTracker from './ParityTracker.vue';
 import ServerBenchmarks from './ServerBenchmarks.vue';
 
@@ -55,7 +57,8 @@ const brandComponents = {
 export default {
     extends: DefaultTheme,
     Layout,
-    enhanceApp({ app }) {
+    enhanceApp({ app, router }) {
+        if (inBrowser) router.onAfterRouteChange = () => forwardMovedError(router);
         app.component('ContributorList', ContributorList);
         app.component('ParityTracker', ParityTracker);
         app.component('ServerBenchmarks', ServerBenchmarks);

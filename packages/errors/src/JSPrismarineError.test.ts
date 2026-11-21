@@ -28,6 +28,16 @@ describe('defineErrors', () => {
         expect(new TestErrors.Plain().docs).toBe('https://jsprismarine.dev/errors/test-domain#test-domain-plain');
     });
 
+    it("links a module's errors to the module's page, with the domain's code", () => {
+        const ModuleErrors = defineErrors('test-domain/world', { Plain: 'Nothing to fill in' });
+        const { code, domain, module } = ModuleErrors.Plain;
+        expect({ code, domain, module }).toEqual({ code: 'TEST_DOMAIN_PLAIN', domain: 'test-domain', module: 'world' });
+        expect(new ModuleErrors.Plain().docs).toBe(
+            'https://jsprismarine.dev/errors/test-domain/world#test-domain-plain'
+        );
+        expect(TestErrors.Plain.module).toBeUndefined();
+    });
+
     it('passes the cause through, with or without placeholders', () => {
         const cause = new Error('underneath');
         expect(new TestErrors.Plain({ cause }).cause).toBe(cause);
