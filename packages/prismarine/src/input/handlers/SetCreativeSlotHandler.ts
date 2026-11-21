@@ -1,6 +1,5 @@
 import { Gametype } from '@jsprismarine/minecraft';
 
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
 import { maxStackSizeOf } from '../../item/Item';
 import type { InputContext } from '../../network/handler/HandlerContext';
@@ -22,10 +21,8 @@ export default class SetCreativeSlotHandler implements IntentHandler<'setCreativ
         { container, slot, item }: Intent<'setCreativeSlot'>,
         { session, log, services, step }: InputContext
     ): undefined {
-        const inventory = session.getPlayer().getInventory();
-        const target =
-            container === 'armor' ? inventory.getArmor() : container === 'offhand' ? inventory.getOffhand() : inventory;
-        if (!Number.isInteger(slot) || slot < 0 || slot >= target.getSlotCount()) return;
+        const target = session.getPlayer().getInventory().container(container);
+        if (!target.has(slot)) return;
 
         const stack = item === null ? null : itemFromContent(item.name, services.content);
         if (session.getPlayer().gamemode !== Gametype.CREATIVE || (item !== null && stack === null)) {
@@ -37,10 +34,10 @@ export default class SetCreativeSlotHandler implements IntentHandler<'setCreativ
         }
 
         if (item === null || stack === null) {
-            target.removeItem(slot);
+            target.set(slot, null);
             return;
         }
         const count = Math.min(Math.max(1, item.count), maxStackSizeOf(item.name, services.content));
-        target.setItem(slot, new ContainerEntry({ item: stack, count }));
+        target.set(slot, stack.withCount(count));
     }
 }

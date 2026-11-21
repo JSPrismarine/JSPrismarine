@@ -10,8 +10,8 @@
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId } from '@jsprismarine/minecraft';
 
-import { ARMOR_SLOTS, HOTBAR_SIZE } from '../inventory/HumanInventory';
-import type { PlayerContainer } from '../inventory/slotLog';
+import { ARMOR_SLOTS, HOTBAR_SIZE } from '../inventory/EntityInventory';
+import type { EntityContainer } from '../inventory/slotLog';
 import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
 import { booleanField, numberField } from './data/entityFields';
 import type { PlayerComponentField } from './playerComponents';
@@ -35,7 +35,7 @@ export const SHOWN_PLAYER_COMPONENTS = [
 ] as const satisfies readonly PlayerComponentField[];
 
 /** One slot a player carries, as a slot entry addresses it. */
-export type PlayerSlot = { readonly container: PlayerContainer; readonly slot: number };
+export type PlayerSlot = { readonly container: EntityContainer; readonly slot: number };
 
 /** The key of a slot, as the replica holds it: `container:slot`. */
 export const slotKey = (container: string, slot: number): string => `${container}:${slot}`;

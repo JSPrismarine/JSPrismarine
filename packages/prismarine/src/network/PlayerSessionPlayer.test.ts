@@ -28,7 +28,6 @@ import type { BlockMining } from '../world/BlockMining';
 import type { DimensionTravel } from '../world/portal/DimensionTravel';
 import type { World } from '../world/World';
 import { respawnPointOf } from '../testing/respawnPoint.test.helper';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 
 /**
@@ -645,23 +644,18 @@ describe("PlayerSession's player", () => {
         it('drops the inventory, armor and off hand where the player died, without keepInventory', async () => {
             const { session, player, dropped } = fakePlayer({ underwater: true, gameRules: { keepinventory: false } });
             const inventory = player.getInventory();
-            inventory.setItem(3, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 5 }));
-            inventory
-                .getArmor()
-                .setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_helmet' }), count: 1 }));
-            inventory
-                .getOffhand()
-                .setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:torch' }), count: 2 }));
-            inventory.setItem(
+            inventory.container('inventory').set(3, new Item({ name: 'minecraft:stone', count: 5 }));
+            inventory.container('armor').set(0, new Item({ name: 'minecraft:iron_helmet', count: 1 }));
+            inventory.container('offhand').set(0, new Item({ name: 'minecraft:torch', count: 2 }));
+            inventory.container('inventory').set(
                 4,
-                new ContainerEntry({
-                    item: new Item({ name: 'minecraft:diamond_sword' }).withEnchantments({
+                new Item({ name: 'minecraft:diamond_sword' })
+                    .withEnchantments({
                         'minecraft:vanishing_curse': 1
-                    }),
-                    count: 1
-                })
+                    })
+                    .withCount(1)
             );
-            inventory.setCursor(new Item({ name: 'minecraft:apple' }));
+            inventory.container('cursor').set(0, new Item({ name: 'minecraft:apple' }));
             player.getCraftingInput().set(0, new Item({ name: 'minecraft:oak_planks' }));
             player.setFood(10);
             await session.getActor()?.setHealth(1);
@@ -677,19 +671,20 @@ describe("PlayerSession's player", () => {
                 ['minecraft:apple', 1],
                 ['minecraft:oak_planks', 1]
             ]);
-            expect(inventory.getCursor()).toBeNull();
+            expect(inventory.container('cursor').get(0)).toBeNull();
             expect(player.getCraftingInput().isEmpty()).toBe(true);
-            expect(inventory.getItem(3).getName()).toBe('minecraft:air');
-            expect(inventory.getItem(4).getName()).toBe('minecraft:air');
-            expect(inventory.getArmor().getItem(0).getName()).toBe('minecraft:air');
-            expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(3)).toBeNull();
+            expect(inventory.container('inventory').get(4)).toBeNull();
+            expect(inventory.container('armor').get(0)).toBeNull();
+            expect(inventory.container('offhand').get(0)).toBeNull();
         });
 
         it('keeps the inventory and experience through a death with keepInventory', async () => {
             const { session, player, dropped } = fakePlayer({ underwater: true, gameRules: { keepinventory: true } });
             player
                 .getInventory()
-                .setItem(3, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 5 }));
+                .container('inventory')
+                .set(3, new Item({ name: 'minecraft:stone', count: 5 }));
             player.getExperience().setLevel(12);
             player.setFood(10);
             await session.getActor()?.setHealth(1);
@@ -699,7 +694,7 @@ describe("PlayerSession's player", () => {
             session.getServer().getRespawnRequests().admit();
 
             expect(dropped).toEqual([]);
-            expect(player.getInventory().getEntry(3)?.getCount()).toBe(5);
+            expect(player.getInventory().container('inventory').get(3)?.getAmount()).toBe(5);
             expect(player.getExperience().getLevel()).toBe(12);
         });
 

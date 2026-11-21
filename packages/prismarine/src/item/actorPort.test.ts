@@ -3,7 +3,6 @@ import { ArmorSlot, Gametype } from '@jsprismarine/minecraft';
 import type { MoveMode } from '../network/presenter/SessionPresenter';
 import { describe, expect, it } from 'vitest';
 
-import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import type Server from '../Server';
 import { sessionOnPrototype } from '../testing/storePlayer.test.helper';
@@ -242,15 +241,15 @@ describe('the item actor port', () => {
         expect(offered).toEqual([
             { itemIdentifier: 'minecraft:air', heldItem: { identifier: 'minecraft:air', count: 0 } }
         ]);
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
-        expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_sword');
+        expect(inventory.equipment('mainhand')?.getCustomName()).toBe('Returned sword');
     });
 
     it('keeps the wear an interaction dealt when it also uses one of the stack', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
         const shears = new Item({ name: 'minecraft:shears' });
-        inventory.setItem(0, new ContainerEntry({ item: shears, count: 2 }));
+        inventory.container('inventory').set(0, shears.withCount(2));
         const player = sessionOnPrototype(
             {
                 getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
@@ -270,17 +269,14 @@ describe('the item actor port', () => {
 
         expect(port.duringInteraction(SOURCE, targetSource, () => port.interactWithEntity(SOURCE))).toBe(true);
 
-        expect(inventory.getEntry(0)?.getCount()).toBe(1);
-        expect(inventory.getItemInHand().getDurability()).toBe(shears.getMaxDurability() - 3);
+        expect(inventory.container('inventory').get(0)?.getAmount()).toBe(1);
+        expect(inventory.equipment('mainhand')?.getDurability()).toBe(shears.getMaxDurability() - 3);
     });
 
     const feeding = (count: number) => {
         const recorded = recording();
         const inventory = new HumanInventory();
-        inventory.setItem(
-            0,
-            new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }).withCount(count), count })
-        );
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:wheat', count: count }).withCount(count));
         const player = sessionOnPrototype(
             {
                 getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
@@ -305,15 +301,15 @@ describe('the item actor port', () => {
     it('empties the hand when an interaction uses its last item', () => {
         const inventory = feeding(1);
 
-        expect(inventory.isEmpty(0)).toBe(true);
+        expect(inventory.container('inventory').isEmpty(0)).toBe(true);
     });
 
     it('gives the stack left after an interaction the count its slot holds', () => {
         const inventory = feeding(3);
 
-        expect(inventory.getEntry(0)?.getCount()).toBe(2);
+        expect(inventory.container('inventory').get(0)?.getAmount()).toBe(2);
         // The wire writes the item's own count, so the two have to agree.
-        expect(inventory.getItemInHand().getAmount()).toBe(2);
+        expect(inventory.equipment('mainhand')?.getAmount()).toBe(2);
     });
 
     /** Right-clicks the held armor on, from a hand of `count`, over whatever is already worn. */
@@ -321,8 +317,8 @@ describe('the item actor port', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
         const chestplate = new Item({ name: 'minecraft:diamond_chestplate' }).withDisplay('Held plate');
-        inventory.setItem(0, new ContainerEntry({ item: chestplate.withCount(count), count }));
-        if (worn !== undefined) inventory.getArmor().setItem(ArmorSlot.TORSO, new ContainerEntry({ item: worn }));
+        inventory.container('inventory').set(0, chestplate.withCount(count));
+        if (worn !== undefined) inventory.container('armor').set(ArmorSlot.TORSO, worn);
         const player = sessionOnPrototype(
             {
                 getPosition: () => Position.fromVector3(new Vector3(1.5, 65, 1.5), stub<World>()),
@@ -341,52 +337,58 @@ describe('the item actor port', () => {
         // reads the action's stack, so any stack the content has stands in for it.
         const item = contentStackOf(testContent(), new Item({ name: 'minecraft:diamond_pickaxe', runtimeId: 1 }))!;
         port.perform({ kind: 'equip', target: SOURCE, slot: 'chest', item: item.copy(1), fromHand: true });
-        return { inventory, worn: inventory.getArmor().getItem(ArmorSlot.TORSO) };
+        return { inventory, worn: inventory.container('armor').get(ArmorSlot.TORSO) };
     };
 
     it('moves worn armor out of the hand rather than copying it', () => {
         const { inventory, worn } = wearing(1);
 
-        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
-        expect(worn.getCustomName()).toBe('Held plate');
-        expect(inventory.isEmpty(0)).toBe(true);
+        expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
+        expect(worn?.getCustomName()).toBe('Held plate');
+        expect(inventory.container('inventory').isEmpty(0)).toBe(true);
     });
 
     it('swaps the armor already worn into the hand', () => {
         const old = new Item({ name: 'minecraft:iron_chestplate' });
         const { inventory, worn } = wearing(1, old);
 
-        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:iron_chestplate');
+        expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:iron_chestplate');
         expect(
-            inventory.getItems().filter((entry) => entry.getItem().getName() === 'minecraft:diamond_chestplate')
+            inventory
+                .container('inventory')
+                .stacks()
+                .filter((entry) => entry.getName() === 'minecraft:diamond_chestplate')
         ).toEqual([]);
     });
 
     it('wears one of a stack and puts the old armor in the inventory', () => {
         const { inventory, worn } = wearing(2, new Item({ name: 'minecraft:iron_chestplate' }));
 
-        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
-        expect(inventory.getEntry(0)?.getCount()).toBe(1);
-        expect(inventory.getItems().some((entry) => entry.getItem().getName() === 'minecraft:iron_chestplate')).toBe(
-            true
-        );
+        expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.container('inventory').get(0)?.getAmount()).toBe(1);
+        expect(
+            inventory
+                .container('inventory')
+                .stacks()
+                .some((entry) => entry.getName() === 'minecraft:iron_chestplate')
+        ).toBe(true);
     });
 
     it('leaves a creative hand holding the armor it put on an empty slot', () => {
         const { inventory, worn } = wearing(1, undefined, Gametype.CREATIVE);
 
-        expect(worn.getName()).toBe('minecraft:diamond_chestplate');
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_chestplate');
+        expect(worn?.getName()).toBe('minecraft:diamond_chestplate');
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_chestplate');
     });
 
     it('wears the held tool by writing a worn copy into the hand slot', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
         const pickaxe = new Item({ name: 'minecraft:iron_pickaxe' });
-        inventory.setItem(0, new ContainerEntry({ item: pickaxe }));
+        inventory.container('inventory').set(0, pickaxe);
         const written: number[] = [];
-        inventory.observeCarried({ slot: (_container, slot) => void written.push(slot), handSlot: () => {} });
+        inventory.observe({ slot: (_container, slot) => void written.push(slot), handSlot: () => {} });
         const player = sessionOnPrototype(
             { getInventory: () => inventory, getServer: () => stub<Server>({ getContent: () => testContent() }) },
             { runtimeId: 7n, actor: {} }
@@ -400,7 +402,7 @@ describe('the item actor port', () => {
         port.perform({ kind: 'consume-durability', source: SOURCE, amount: 2, broke: false });
 
         expect(written).toEqual([0]);
-        expect(inventory.getItemInHand().getDurability()).toBe(pickaxe.getMaxDurability() - 2);
+        expect(inventory.equipment('mainhand')?.getDurability()).toBe(pickaxe.getMaxDurability() - 2);
         // The stack that was in the hand is not changed in place.
         expect(pickaxe.getDurability()).toBe(pickaxe.getMaxDurability());
         expect(recorded.broken).toEqual([]);
@@ -409,7 +411,7 @@ describe('the item actor port', () => {
     it('empties the hand of a tool that wore through, and shows it breaking', () => {
         const recorded = recording();
         const inventory = new HumanInventory();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_pickaxe' }) }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:iron_pickaxe' }));
         const player = sessionOnPrototype(
             { getInventory: () => inventory, getServer: () => stub<Server>({ getContent: () => testContent() }) },
             { runtimeId: 7n, actor: {} }
@@ -422,7 +424,7 @@ describe('the item actor port', () => {
 
         port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: true });
 
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:air');
+        expect(inventory.equipment('mainhand')).toBeNull();
         expect(recorded.broken).toEqual(['minecraft:iron_pickaxe']);
     });
 

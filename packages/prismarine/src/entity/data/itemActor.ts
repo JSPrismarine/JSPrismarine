@@ -10,9 +10,9 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 
-import ContainerEntry from '../../inventory/ContainerEntry';
 import type { StoredItemStack } from '../../inventory/persistence';
 import { restoredItem } from '../../inventory/persistence';
+import type { Item } from '../../item/Item';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import type { DamageSource } from '../DamageSource';
@@ -64,10 +64,9 @@ export class ItemActor extends StoreActor {
     }
 
     /** The stack a player picks up, as the item actor packet carries it. */
-    public getItem(): ContainerEntry | undefined {
+    public getItem(): Item | undefined {
         const view = itemViewOf(this.entity);
-        const item = view === undefined ? null : restoredItem(view.stack, this.getServer().getContent());
-        return item === null ? undefined : new ContainerEntry({ item, count: item.getAmount() });
+        return (view === undefined ? null : restoredItem(view.stack, this.getServer().getContent())) ?? undefined;
     }
 
     /** The speed it is moving at, in blocks per tick, which the client is told when it appears. */

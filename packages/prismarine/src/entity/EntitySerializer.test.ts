@@ -159,8 +159,8 @@ describe('entity', () => {
                 const item = itemOf(live, savedItem());
 
                 expect(item?.entity.identifier).toBe('minecraft:item');
-                expect(item?.getItem()?.getItem().getName()).toBe('minecraft:stone');
-                expect(item?.getItem()?.getCount()).toBe(2);
+                expect(item?.getItem()?.getName()).toBe('minecraft:stone');
+                expect(item?.getItem()?.getAmount()).toBe(2);
                 expect(item?.savedItem()).toMatchObject({ age: 120, pickupDelay: 27 });
                 expect(item?.entity.position).toEqual({ x: 10.5, y: -60.125, z: -3.5 });
                 expect(item?.entity.body.velocity).toEqual({ x: -0.01, y: 0.1, z: 0.3 });

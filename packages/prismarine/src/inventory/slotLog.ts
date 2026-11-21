@@ -7,8 +7,7 @@
  * restores what matters. What the value leaves out is session state: a stack network id is the
  * client's name for the stack, and an undone write hands the stack a fresh one.
  */
-import type ContainerEntry from './ContainerEntry';
-import { isStoredItemStack, restoredItem, storedItem, storedStack } from './persistence';
+import { isStoredItemStack, restoredItem, storedItem } from './persistence';
 import type { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
 import type { PlainData, PlainRecord } from '../world/changelog/PlainData';
@@ -20,16 +19,6 @@ export type SlotValue = PlainRecord | null;
 
 /** Hears one write to a slot, with the slot's logged value before and after it. */
 export type SlotObserver = (slot: number, before: SlotValue, after: SlotValue) => void;
-
-/** The containers a player carries, as an `inventory-slot` entry names them. */
-export const PLAYER_CONTAINERS = ['inventory', 'armor', 'offhand', 'ender_chest', 'cursor', 'crafting'] as const;
-
-/** One of the containers a player carries. */
-export type PlayerContainer = (typeof PLAYER_CONTAINERS)[number];
-
-/** The container a logged entry names, or undefined for a name no player container has. */
-export const playerContainerNamed = (name: string): PlayerContainer | undefined =>
-    PLAYER_CONTAINERS.find((container) => container === name);
 
 /**
  * The containers an entity carries, as an `inventory-slot` entry names them.
@@ -65,11 +54,8 @@ const plainSlot = (stored: ReturnType<typeof storedItem>): SlotValue => {
     return plain;
 };
 
-/** The logged value of a slot that holds `entry`. */
-export const slotValueOf = (entry: ContainerEntry | null): SlotValue => plainSlot(storedStack(entry));
-
-/** The logged value of a slot that holds `item`, such as the cursor or a crafting slot. */
-export const slotValueOfItem = (item: Item | null): SlotValue => (item === null ? null : plainSlot(storedItem(item)));
+/** The logged value of a slot that holds `item`, or null for an empty slot. */
+export const slotValueOf = (item: Item | null): SlotValue => (item === null ? null : plainSlot(storedItem(item)));
 
 /**
  * The item a logged slot value describes, or null for an empty slot.

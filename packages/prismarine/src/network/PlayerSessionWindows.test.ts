@@ -2,7 +2,6 @@ import { Vector3 } from '@jsprismarine/math';
 import { ContainerUiId, WindowIds, WindowTypes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import type { SessionPlayer } from './sessionPlayers';
@@ -91,7 +90,7 @@ describe('network', () => {
 
         it('opens a chest on the block it stands on, and sends what it holds', async () => {
             const { session, sent, lids } = sessionFor();
-            const stick = new ContainerEntry({ item: new Item({ name: 'minecraft:stick', count: 1 }), count: 3 });
+            const stick = new Item({ name: 'minecraft:stick', count: 1 }).withCount(3);
 
             const opened = await session.openBlockContainer(new Vector3(4, 64, -7), 'minecraft:chest', [stick]);
 
@@ -128,9 +127,9 @@ describe('network', () => {
             async (identifier) => {
                 const { session, sent } = sessionFor();
                 const contents = [
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 8 }),
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot', count: 1 }), count: 1 })
+                    new Item({ name: 'minecraft:iron_ore', count: 1 }),
+                    new Item({ name: 'minecraft:coal', count: 1 }).withCount(8),
+                    new Item({ name: 'minecraft:iron_ingot', count: 1 })
                 ];
 
                 await session.openBlockContainer(new Vector3(0, 64, 0), identifier, contents);
@@ -153,9 +152,9 @@ describe('network', () => {
         it('names every stack a furnace shows by an id, so the client can pick it up', async () => {
             const { session, sent } = sessionFor();
             const contents = [
-                new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ore', count: 1 }), count: 1 }),
-                new ContainerEntry({ item: new Item({ name: 'minecraft:coal', count: 1 }), count: 8 }),
-                new ContainerEntry({ item: Item.air() })
+                new Item({ name: 'minecraft:iron_ore', count: 1 }),
+                new Item({ name: 'minecraft:coal', count: 1 }).withCount(8),
+                Item.air()
             ];
 
             await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:furnace', contents);

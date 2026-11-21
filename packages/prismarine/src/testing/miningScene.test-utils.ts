@@ -121,7 +121,7 @@ export const miningScene = (
     const player = stubPlayerPort({
         gamemode,
         getPosition: () => new Position(0, 0, 0, world),
-        getInventory: () => stub<HumanInventory>({ getItemInHand: () => PICKAXE }),
+        getInventory: () => stub<HumanInventory>({ equipment: () => PICKAXE }),
         getComponents: () => components,
         getStatusEffects: () => effects
     });

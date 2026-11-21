@@ -4,7 +4,7 @@ import { Item } from '../item/Item';
 import { EntityInventory, mobLayout, PLAYER_LAYOUT } from './EntityInventory';
 import type { EntityInventoryObserver, InventoryContainer } from './EntityInventory';
 import type { SlotValue } from './slotLog';
-import { slotValueOfItem } from './slotLog';
+import { slotValueOf } from './slotLog';
 
 type Heard = { container: InventoryContainer; slot: number; before: SlotValue; after: SlotValue };
 
@@ -157,6 +157,16 @@ describe('EntityInventory', () => {
             expect(inventory.equipmentAddress('body')).toEqual({ container: 'body', slot: 0 });
         });
 
+        it('sums armor through an alias, and not the armor slot the alias hides', () => {
+            const inventory = new EntityInventory(mobLayout(2));
+            inventory.setEquipment('head', stack('minecraft:iron_helmet'));
+            inventory.setAlias('head', { container: 'inventory', slot: 0 });
+            inventory.container('inventory').set(0, stack('minecraft:diamond_helmet'));
+
+            expect(inventory.getArmorDefensePoints()).toBe(3);
+            expect(inventory.getArmorToughness()).toBe(2);
+        });
+
         it('does not alias to a slot the layout lacks', () => {
             const inventory = new EntityInventory(mobLayout(2));
             inventory.setAlias('body', { container: 'inventory', slot: 5 });
@@ -216,9 +226,9 @@ describe('EntityInventory', () => {
 
             main.set(5, null);
             expect(inventory.restoreSlot('inventory', 5, logged)).toBe(true);
-            expect(inventory.restoreSlot('cursor', 0, slotValueOfItem(stack('minecraft:bow')))).toBe(true);
+            expect(inventory.restoreSlot('cursor', 0, slotValueOf(stack('minecraft:bow')))).toBe(true);
 
-            expect(slotValueOfItem(main.get(5))).toEqual(logged);
+            expect(slotValueOf(main.get(5))).toEqual(logged);
             expect(inventory.slotItem('cursor', 0)?.getName()).toBe('minecraft:bow');
             expect(inventory.restoreSlot('armor', 4, null)).toBe(false);
             expect(inventory.restoreSlot('crafting', 0, null)).toBe(false);

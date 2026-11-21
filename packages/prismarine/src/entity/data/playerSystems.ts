@@ -23,7 +23,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { ContentBlock, ContentLevelFacts, ContentPosition } from '../../content/world/adapter';
 import type { ServerContent } from '../../content/ServerContent';
-import type { PlayerContainer, SlotValue } from '../../inventory/slotLog';
+import type { EntityContainer, SlotValue } from '../../inventory/slotLog';
 import { DROWNING_DAMAGE, FALL_DAMAGE, NATURAL_REGENERATION, ruleIsOn } from '../../content/world/gameRules';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { DamageCause, damageCauseOf } from '../DamageCause';
@@ -83,7 +83,7 @@ export interface PlayerSystemsPorts {
      */
     writtenSlot(
         entity: DataEntity,
-        container: PlayerContainer,
+        container: EntityContainer,
         slot: number,
         before: SlotValue,
         after: SlotValue
@@ -158,7 +158,7 @@ export interface PlayerLog {
     /** Logs a write to a component field, or a field kept beside them such as the hand slot. */
     field(field: string, before: unknown, after: unknown): void;
     /** Logs a write to one slot the player carries. */
-    slot(container: PlayerContainer, slot: number, before: SlotValue, after: SlotValue): void;
+    slot(container: EntityContainer, slot: number, before: SlotValue, after: SlotValue): void;
 }
 
 /** One store player's state beside its entity. */

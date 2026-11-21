@@ -12,7 +12,6 @@ import { loose } from '../../entity/Archery';
 import * as combat from '../../entity/Combat';
 import { meleeAttack } from '../../entity/Combat';
 import type { StoreActor } from '../../entity/data/storeActors';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { inputContext } from '../../testing/handlerContext.test.helper';
@@ -122,7 +121,7 @@ const fake = (
     });
 
     const inventory = new HumanInventory();
-    inventory.setItem(2, new ContainerEntry({ item: held, count: 1 }));
+    inventory.container('inventory').set(2, held);
     inventory.setHandSlot(2);
 
     const runtimeId = nextPlayerRuntimeId++;
@@ -204,7 +203,7 @@ const fake = (
                 .mocked(useItemOnBlock)
                 .mock.calls.filter(([interaction]) => interaction.player === session)
                 .map(([{ player: clicker, position, face }]) => {
-                    const held = clicker.getInventory().getItemInHand().getName();
+                    const held = clicker.getInventory().equipment('mainhand')?.getName();
                     return `${held} at ${position.x},${position.y},${position.z} face ${face}`;
                 });
         },
@@ -638,7 +637,7 @@ describe('InventoryTransactionHandler', () => {
 
         await handle(transaction(TransactionType.NORMAL, null, actions), world);
 
-        expect(world.inventory.getItemInHand().getName()).toBe('minecraft:stone');
+        expect(world?.inventory.equipment('mainhand')?.getName()).toBe('minecraft:stone');
         expect(world.logged).toEqual([
             'debug: Ignored a Normal inventory transaction from tester with 2 actions (CONTAINER, WORLD); item moves go through ItemStackRequest'
         ]);
@@ -647,7 +646,7 @@ describe('InventoryTransactionHandler', () => {
     it('drops the item a balanced Normal transaction removes from inventory', async () => {
         const world = fake();
         const held = new Item({ runtimeId: 1, name: 'minecraft:stone', count: 3 });
-        world.inventory.setItem(2, new ContainerEntry({ item: held, count: 3 }));
+        world.inventory.container('inventory').set(2, held);
 
         await handle(
             transaction(TransactionType.NORMAL, null, [
@@ -657,17 +656,17 @@ describe('InventoryTransactionHandler', () => {
             world
         );
 
-        expect(world.inventory.getItem(2).getAmount()).toBe(2);
+        expect(world?.inventory.container('inventory').get(2)?.getAmount()).toBe(2);
         expect(world.dropped.map((item) => [item.getName(), item.getAmount()])).toEqual([['minecraft:stone', 1]]);
         expect(world.inventorySyncs).toEqual([
-            [0, ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2, world.inventory.getItem(2)]
+            [0, ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2, world.inventory.container('inventory').get(2)]
         ]);
     });
 
     it('ignores a Normal drop whose inventory and world changes do not balance', async () => {
         const world = fake();
         const held = new Item({ runtimeId: 1, name: 'minecraft:stone', count: 3 });
-        world.inventory.setItem(2, new ContainerEntry({ item: held, count: 3 }));
+        world.inventory.container('inventory').set(2, held);
 
         await handle(
             transaction(TransactionType.NORMAL, null, [
@@ -677,7 +676,7 @@ describe('InventoryTransactionHandler', () => {
             world
         );
 
-        expect(world.inventory.getItem(2).getAmount()).toBe(3);
+        expect(world?.inventory.container('inventory').get(2)?.getAmount()).toBe(3);
         expect(world.dropped).toEqual([]);
         expect(world.inventorySyncs).toEqual([]);
     });

@@ -34,7 +34,6 @@ import type { World } from '../../world/World';
 import { entityIds } from '../entityIds';
 import { EYE_HEIGHT } from '../playerEyes';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import type { StorePlayer } from '../storePlayer';
 import type { StorePlayerIdentity } from '../storePlayer';
 import { entityFixture, FLOOR_Y } from './testing';
@@ -64,7 +63,7 @@ const identityOf = (name: string): StorePlayerIdentity => ({
 });
 
 /** One stack for a slot. */
-const entryOf = (name: string) => new ContainerEntry({ item: new Item({ runtimeId: 0, name }), count: 1 });
+const entryOf = (name: string) => new Item({ runtimeId: 0, name, count: 1 });
 
 const fixture = () => {
     // Ids from the server's own counter, so a store player and the viewers never share one,
@@ -278,8 +277,8 @@ describe('a store player shown to other clients', () => {
         const { viewers, spawn, tick } = fixture();
         const { player, actor } = await spawn(identityOf('Steve'), (spawned) => {
             const inventory = spawned.getInventory();
-            inventory.setItem(inventory.getHandSlotIndex(), entryOf('minecraft:diamond_sword'));
-            inventory.getArmor().setItem(1, entryOf('minecraft:iron_chestplate'));
+            inventory.container('inventory').set(inventory.getHandSlot(), entryOf('minecraft:diamond_sword'));
+            inventory.container('armor').set(1, entryOf('minecraft:iron_chestplate'));
         });
 
         const [alex] = viewers;
@@ -294,7 +293,7 @@ describe('a store player shown to other clients', () => {
         expect(ofType(alex!.sent, MobArmorEquipmentPacket)).toHaveLength(0);
 
         const inventory = player.getInventory();
-        await tick(() => inventory.setItem(inventory.getHandSlotIndex(), entryOf('minecraft:bow')));
+        await tick(() => inventory.container('inventory').set(inventory.getHandSlot(), entryOf('minecraft:bow')));
         expect(ofType(alex!.sent, MobArmorEquipmentPacket, actor.getRuntimeId())).toHaveLength(1);
         // The main hand; the off hand follows in a packet of its own window.
         const held = ofType(alex!.sent, MobEquipmentPacket, actor.getRuntimeId()).filter(

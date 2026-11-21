@@ -1,5 +1,4 @@
 import CraftingInput from '../../crafting/CraftingInput';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import type { Item } from '../../item/Item';
 import type { InputContext, InputStep } from '../../network/handler/HandlerContext';
 import type PlayerSession from '../../network/PlayerSession';
@@ -31,11 +30,11 @@ export default class CloseContainerHandler implements IntentHandler<'closeContai
         const open = session.getOpenBlockContainer();
         const left = open?.windowId === window ? open.inputs.filter((item) => item !== null) : [];
         // Whatever the player still holds on the cursor goes back with them, since the screen it was held over is gone.
-        const inventory = session.getPlayer().getInventory();
-        const cursor = inventory.getCursor();
-        if (cursor !== null && open?.windowId === window) {
-            left.push(cursor);
-            inventory.setCursor(null);
+        const cursor = session.getPlayer().getInventory().container('cursor');
+        const held = cursor.get(0);
+        if (held !== null && open?.windowId === window) {
+            left.push(held);
+            cursor.set(0, null);
         }
 
         if (!session.closeWindow(window)) {
@@ -66,11 +65,11 @@ export default class CloseContainerHandler implements IntentHandler<'closeContai
         const craftingInput = player.getCraftingInput();
         if (craftingInput.isEmpty() && windowItems.length === 0) return;
 
-        const inventory = player.getInventory();
+        const inventory = player.getInventory().container('inventory');
         const overflow: Item[] = [];
 
         for (const item of windowItems) {
-            const left = inventory.addItem(new ContainerEntry({ item, count: item.getAmount() }));
+            const left = inventory.add(item);
             if (left > 0) overflow.push(item.withCount(left));
         }
 
@@ -78,7 +77,7 @@ export default class CloseContainerHandler implements IntentHandler<'closeContai
             const item = craftingInput.get(slot);
             if (!item) continue;
 
-            const left = inventory.addItem(new ContainerEntry({ item, count: item.getAmount() }));
+            const left = inventory.add(item);
             // A copy of the stack, so what falls keeps its enchantments, name and durability.
             if (left > 0) overflow.push(item.withCount(left));
 

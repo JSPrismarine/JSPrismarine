@@ -10,7 +10,6 @@ import type PlayerSession from '../network/PlayerSession';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import type { StoreActor } from '../entity/data/storeActors';
-import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { createItemActorPort } from '../item/actorPort';
@@ -326,7 +325,7 @@ describe('earning vanilla advancements by playing', () => {
     it('earns story/mine_stone from the cobblestone a break dropped', () => {
         const { player, inventory } = scene();
         const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+        inventory.container('inventory').set(0, cobblestone);
 
         expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
         advancementPickedUpItem(player, cobblestone);
@@ -336,7 +335,7 @@ describe('earning vanilla advancements by playing', () => {
     it('does not earn it from something else landing in a slot', () => {
         const { player, inventory } = scene();
         const stick = new Item({ name: 'minecraft:stick' });
-        inventory.setItem(0, new ContainerEntry({ item: stick, count: 1 }));
+        inventory.container('inventory').set(0, stick);
 
         advancementPickedUpItem(player, stick);
         expect(done(player, 'minecraft:story/mine_stone')).toBe(false);
@@ -345,7 +344,7 @@ describe('earning vanilla advancements by playing', () => {
     it('earns story/root from a crafting table reaching the inventory', () => {
         const { player, inventory } = scene();
         const table = new Item({ name: 'minecraft:crafting_table' });
-        inventory.setItem(0, new ContainerEntry({ item: table, count: 1 }));
+        inventory.container('inventory').set(0, table);
 
         advancementPickedUpItem(player, table);
         expect(done(player, 'minecraft:story/root')).toBe(true);
@@ -406,8 +405,8 @@ describe('earning vanilla advancements by playing', () => {
         const { player, inventory, announced } = scene();
         const cobblestone = new Item({ name: 'minecraft:cobblestone' });
         const table = new Item({ name: 'minecraft:crafting_table' });
-        inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
-        inventory.setItem(1, new ContainerEntry({ item: table, count: 1 }));
+        inventory.container('inventory').set(0, cobblestone);
+        inventory.container('inventory').set(1, table);
 
         // `story/root` sets `announce_to_chat: false`, which is why it is the
         // one advancement in the game nobody is told about.
@@ -424,7 +423,7 @@ describe('earning vanilla advancements by playing', () => {
     it('names a completion in English, since a Bedrock client has no string for the Java key', () => {
         const { player, inventory, announced } = scene(new Map([['advancements.story.mine_stone.title', 'Stone Age']]));
         const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+        inventory.container('inventory').set(0, cobblestone);
 
         advancementPickedUpItem(player, cobblestone);
 
@@ -433,7 +432,7 @@ describe('earning vanilla advancements by playing', () => {
 
     it('earns husbandry/root the first time the player eats anything', () => {
         const { player, port, inventory, source } = scene();
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));
+        inventory.container('inventory').set(0, new Item({ name: 'minecraft:stone', count: 1 }));
 
         expect(done(player, 'minecraft:husbandry/root')).toBe(false);
 
@@ -447,8 +446,8 @@ describe('earning vanilla advancements by playing', () => {
     it('earns a durability advancement from the hit that wore the tool down', () => {
         const { player, port, inventory, source } = scene();
         const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe' });
-        inventory.setItem(0, new ContainerEntry({ item: pickaxe, count: 1 }));
         pickaxe.durability = 4;
+        inventory.container('inventory').set(0, pickaxe);
 
         port.perform({ kind: 'consume-durability', source, amount: 1, broke: false });
         expect(done(player, 'minecraft:story/wear_out_a_pickaxe')).toBe(false);
@@ -494,7 +493,7 @@ describe('advancement progress across a save and a load', () => {
     it('survives the round trip through the player data record', () => {
         const first = scene();
         const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        first.inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+        first.inventory.container('inventory').set(0, cobblestone);
         advancementPickedUpItem(first.player, cobblestone);
 
         const stored = storedAdvancements(first.player.keyed());
@@ -512,11 +511,11 @@ describe('advancement progress across a save and a load', () => {
     it('does not earn a second time, so a reloaded completion announces nothing', () => {
         const first = scene();
         const cobblestone = new Item({ name: 'minecraft:cobblestone' });
-        first.inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+        first.inventory.container('inventory').set(0, cobblestone);
         advancementPickedUpItem(first.player, cobblestone);
 
         const second = scene();
-        second.inventory.setItem(0, new ContainerEntry({ item: cobblestone, count: 1 }));
+        second.inventory.container('inventory').set(0, cobblestone);
         loadAdvancements(second.player.keyed(), storedAdvancements(first.player.keyed()));
 
         advancementPickedUpItem(second.player, cobblestone);

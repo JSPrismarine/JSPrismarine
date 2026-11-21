@@ -23,7 +23,7 @@ export default class SelectHotbarSlotHandler implements IntentHandler<'selectHot
     public handle({ slot }: Intent<'selectHotbarSlot'>, { session }: InputContext): undefined {
         const player = session.getPlayer();
         const inventory = player.getInventory();
-        const previousSlot = inventory.getHandSlotIndex();
+        const previousSlot = inventory.getHandSlot();
         inventory.setHandSlot(slot);
 
         const mining = blockMiningOf(player.getComponents().get('mining.block'));
@@ -33,7 +33,7 @@ export default class SelectHotbarSlotHandler implements IntentHandler<'selectHot
             const restarted = world.startBlockCracking(
                 mining.position,
                 mining.face,
-                inventory.getItemInHand(),
+                inventory.equipment('mainhand'),
                 null,
                 session.handledInputs()
             );

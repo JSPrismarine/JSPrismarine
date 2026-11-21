@@ -48,7 +48,7 @@ import PlayerBlockPlacedEvent from '../events/player/PlayerBlockPlacedEvent';
 import PlayerPlaceBlockEvent from '../events/player/PlayerPlaceBlockEvent';
 import PlayerItemUseStageEvent from '../events/player/PlayerItemUseStageEvent';
 import PlayerUseItemEvent from '../events/player/PlayerUseItemEvent';
-import type { Item } from './Item';
+import { Item } from './Item';
 import type { ItemStack } from '@jsprismarine/items';
 import type { SystemBlock } from '../world/WorldSystems';
 import type Server from '../Server';
@@ -374,9 +374,9 @@ const placeBlock = (
  * egg and every other consumable used on a block, an entity or the air stayed at full count.
  */
 const putBackStack = (player: InteractingPlayer, stack: ItemStack | undefined): void => {
-    const held = player.getInventory().getItemInHand();
-    if (stack === undefined || stack.identifier !== held.getName()) return;
-    player.getInventory().setHandCount(stack.count);
+    const held = player.getInventory().equipment('mainhand');
+    if (stack === undefined || stack.identifier !== held?.getName()) return;
+    player.getInventory().setEquipmentCount('mainhand', stack.count);
 };
 
 /** Sends a player their inventory, without holding up the click that changed it. */
@@ -392,9 +392,9 @@ const spendHeldItem = (player: InteractingPlayer): void => {
     if (player.gamemode === Gametype.CREATIVE) return;
 
     const inventory = player.getInventory();
-    const held = inventory.getEntry(inventory.getHandSlotIndex());
+    const held = inventory.equipment('mainhand');
     if (held === null) return;
-    inventory.setHandCount(held.getCount() - 1);
+    inventory.setEquipmentCount('mainhand', held.getAmount() - 1);
 };
 
 /**
@@ -538,9 +538,9 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     if (block === undefined) return 'declined';
 
     const inventory = player.getInventory();
-    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
-    const held = inventory.getItemInHand();
-    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    // An empty hand clicks as an empty stack, which no hook declares and no block is placed from.
+    const held = inventory.equipment('mainhand') ?? Item.air();
+    const stack = contentStackOf(content, held);
     const placedBlock = placedBlockOf(content, held);
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
     const position = player.getPosition();
@@ -650,7 +650,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
         return 'handled';
     });
     if (result === 'handled') {
-        events.post('playerBlockInteracted', new PlayerBlockInteractedEvent(click, inventory.getItemInHand()));
+        events.post('playerBlockInteracted', new PlayerBlockInteractedEvent(click, inventory.equipment('mainhand')));
     }
     return result;
 };
@@ -668,9 +668,8 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
     const { content, actors, player, target } = interaction;
 
     const inventory = player.getInventory();
-    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
-    const held = inventory.getItemInHand();
-    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    const held = inventory.equipment('mainhand') ?? Item.air();
+    const stack = contentStackOf(content, held);
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
     // The guard stage of the click, which a plugin or a script's
@@ -702,7 +701,7 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
         return 'handled';
     });
     if (result === 'handled') {
-        events.post('playerEntityInteracted', new PlayerEntityInteractedEvent(click, inventory.getItemInHand()));
+        events.post('playerEntityInteracted', new PlayerEntityInteractedEvent(click, inventory.equipment('mainhand')));
     }
     return result;
 };
@@ -721,14 +720,12 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
 export const useItemInAir = (interaction: AirInteraction): InteractionResult => {
     const { content, actors, player } = interaction;
 
-    const inventory = player.getInventory();
-    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
-    const held = inventory.getItemInHand();
+    const held = player.getInventory().equipment('mainhand') ?? Item.air();
     if (!usePastGuards(player, held)) {
         resendInventory(player);
         return 'handled';
     }
-    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    const stack = contentStackOf(content, held);
     if (stack === undefined) return 'declined';
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
@@ -776,10 +773,10 @@ const TICKS_PER_SECOND = 20;
  */
 export const consumeTicksOf = (
     content: ServerContent,
-    player: { getInventory(): Pick<HumanInventory, 'getItemInHand'> }
+    player: { getInventory(): Pick<HumanInventory, 'equipment'> }
 ): number | undefined => {
-    const held = player.getInventory().getItemInHand();
-    const stack = contentStackOf(content, held, held.getAmount());
+    const held = player.getInventory().equipment('mainhand');
+    const stack = held === null ? undefined : contentStackOf(content, held);
     if (stack === undefined) return undefined;
     if (stack.params(food) === undefined && stack.params(consumable) === undefined) return undefined;
 
@@ -796,10 +793,8 @@ export const consumeTicksOf = (
 export const consumeHeldItem = (interaction: AirInteraction): boolean => {
     const { content, actors, player } = interaction;
 
-    const inventory = player.getInventory();
-    const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
-    const held = inventory.getItemInHand();
-    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
+    const held = player.getInventory().equipment('mainhand');
+    const stack = held === null ? undefined : contentStackOf(content, held);
     if (stack === undefined) return false;
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 

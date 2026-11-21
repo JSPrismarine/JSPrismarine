@@ -25,6 +25,7 @@ import type {
 import { Chat, ChatType } from '../chat/Chat';
 import { usePastGuards } from '../item/interaction';
 import { itemFromContent } from '../item/itemFromContent';
+import { Item } from '../item/Item';
 import { meleeAttack } from '../entity/Combat';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
@@ -175,7 +176,7 @@ export const levelSimulatedPlayers = (server: Server, level: Level): ScriptSimul
                 if (target === undefined) return false;
                 return meleeAttack(attacker, target, {
                     reach: REACH,
-                    damage: player.getInventory().getItemInHand().getAttackDamage()
+                    damage: (player.getInventory().equipment('mainhand') ?? Item.air()).getAttackDamage()
                 });
             }
             case 'useItem': {

@@ -6,17 +6,17 @@ import { netIdFor } from '@jsprismarine/protocol/bedrock/wire/versions/v2193';
 import { ContainerUiId } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
-import Inventory from '../../inventory/Inventory';
+import { ItemContainer } from '../../inventory/ItemContainer';
 import { Item } from '../../item/Item';
 import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
 
 const protocolContext: ProtocolContext = { protocolVersion: 2193 };
 
-const descriptors = (items: ContainerEntry[]) =>
-    items.map((entry) => {
-        const item = entry.toItemStack();
+/** Each slot as `PlayerSession` writes it, with an empty slot as an air stack at its position. */
+const descriptors = (items: readonly (Item | null)[]) =>
+    items.map((held) => {
+        const item = held ?? Item.air();
         return item.toStackDescriptor(protocolContext, item.stackNetworkId > 0 ? item.stackNetworkId : null);
     });
 
@@ -79,7 +79,7 @@ const readBack = (buffer: Buffer) => {
     return { containerId, slots, containerName, dynamicId, storageItem };
 };
 
-const encoded = (items: ContainerEntry[], windowId = 0): Buffer => {
+const encoded = (items: readonly (Item | null)[], windowId = 0): Buffer => {
     const packet = new InventoryContentPacket();
     packet.items = descriptors(items);
     packet.windowId = windowId;
@@ -92,17 +92,14 @@ describe('InventoryContentPacket', () => {
     /** A player's inventory as `PlayerSession.sendInventory` sends it on join. */
     const filled = (): HumanInventory => {
         const inventory = new HumanInventory();
-        inventory.setItem(
-            0,
-            new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:oak_planks', count: 12 }) })
-        );
-        inventory.setItem(5, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }) }));
+        inventory.container('inventory').set(0, new Item({ runtimeId: 0, name: 'minecraft:oak_planks', count: 12 }));
+        inventory.container('inventory').set(5, new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }));
 
         return inventory;
     };
 
     it('decodes the join-time inventory in docs order to the last byte', () => {
-        const read = readBack(encoded(filled().getItems(true)));
+        const read = readBack(encoded(filled().container('inventory').items()));
 
         expect(read.containerId).toBe(0);
         // Position is the slot, so every one of the 36 is written, empty or not.
@@ -133,8 +130,8 @@ describe('InventoryContentPacket', () => {
     });
 
     it('matches a hand-written buffer', () => {
-        const inventory = new Inventory(2);
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }) }));
+        const inventory = new ItemContainer(2);
+        inventory.set(0, new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }));
         const swordId = ItemTable['minecraft:diamond_sword']!.runtime_id;
 
         const empty = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -179,7 +176,7 @@ describe('InventoryContentPacket', () => {
             ...empty // Storage Item: an empty stack.
         ]);
 
-        expect([...encoded(inventory.getItems(true))]).toEqual([...expected]);
+        expect([...encoded(inventory.items())]).toEqual([...expected]);
     });
 
     it('writes the dynamic id as a uint32 after its presence byte', () => {
@@ -196,29 +193,29 @@ describe('InventoryContentPacket', () => {
     });
 
     it('writes the stack network id a stack has, and none for a stack without one', () => {
-        const inventory = new Inventory(3);
+        const inventory = new ItemContainer(3);
         const planks = new Item({ name: 'minecraft:oak_planks', count: 12 });
         planks.stackNetworkId = 7;
-        inventory.setItem(0, new ContainerEntry({ item: planks, count: 12 }));
-        inventory.setItem(1, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }) }));
+        inventory.set(0, planks);
+        inventory.set(1, new Item({ name: 'minecraft:stone' }));
 
         // A ZigZag varint after the presence byte; slot 2 is empty and has none.
-        expect(readBack(encoded(inventory.getItems(true))).slots.map((slot) => slot.netId)).toEqual([7, null, null]);
+        expect(readBack(encoded(inventory.items())).slots.map((slot) => slot.netId)).toEqual([7, null, null]);
     });
 
     it('reads back what it writes', () => {
         const planks = new Item({ name: 'minecraft:oak_planks', count: 12 });
         planks.stackNetworkId = 7;
         const helmet = new Item({ name: 'minecraft:iron_helmet' });
-        const inventory = new Inventory(3);
-        inventory.setItem(0, new ContainerEntry({ item: planks, count: 12 }));
-        inventory.setItem(2, new ContainerEntry({ item: helmet, count: 1 }));
+        const inventory = new ItemContainer(3);
+        inventory.set(0, planks);
+        inventory.set(2, helmet);
 
         const packet = new InventoryContentPacket();
         packet.windowId = 120;
         packet.containerId = ContainerUiId.ARMOR_CONTAINER;
         packet.dynamicId = 9;
-        packet.items = descriptors(inventory.getItems(true));
+        packet.items = descriptors(inventory.items());
         packet.encode();
         const written = packet.getBuffer();
 
@@ -249,10 +246,10 @@ describe('InventoryContentPacket', () => {
     });
 
     it('writes a shield with its blocking tick at the end of the blob', () => {
-        const inventory = new Inventory(1);
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:shield' }) }));
+        const inventory = new ItemContainer(1);
+        inventory.set(0, new Item({ runtimeId: 0, name: 'minecraft:shield' }));
 
-        const shield = readBack(encoded(inventory.getItems(true))).slots[0]!;
+        const shield = readBack(encoded(inventory.items())).slots[0]!;
         // A shield wears, so its blob holds the 28 bytes of a `Damage` 0 compound and two
         // empty lists, and then the eight-byte tick.
         expect(shield.userData).toHaveLength(36);
@@ -270,13 +267,13 @@ describe('InventoryContentPacket', () => {
         // field after it out of place. A client that reads this packet one field short
         // disconnects rather than drawing the item wrong, which is why the whole packet is
         // read back rather than just the stack.
-        const inventory = new Inventory(1);
+        const inventory = new ItemContainer(1);
         const sword = new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' })
             .withEnchantments({ 'minecraft:sharpness': 2 })
             .withDisplay('Needle', ['Out of a dungeon']);
-        inventory.setItem(0, new ContainerEntry({ item: sword }));
+        inventory.set(0, sword);
 
-        const slot = readBack(encoded(inventory.getItems(true))).slots[0]!;
+        const slot = readBack(encoded(inventory.items())).slots[0]!;
         const blob = new NetworkBinaryStream(slot.userData);
         const userData = new ItemInstanceUserData();
         userData.deserialize(blob);
@@ -287,8 +284,9 @@ describe('InventoryContentPacket', () => {
     });
 
     it('does not throw on an inventory that is entirely empty', () => {
-        // Every slot holds an `Air` block rather than an item, and a block cannot be written
-        // out as a stack. This threw on slot zero, every time.
-        expect(() => encoded(new HumanInventory().getItems(true))).not.toThrow();
+        // Every slot once held an `Air` block rather than an item, and a block cannot be written
+        // out as a stack. This threw on slot zero, every time. An empty slot is null now, and
+        // goes out as an air stack.
+        expect(() => encoded(new HumanInventory().container('inventory').items())).not.toThrow();
     });
 });

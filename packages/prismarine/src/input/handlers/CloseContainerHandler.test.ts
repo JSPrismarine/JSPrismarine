@@ -4,7 +4,6 @@ import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/Containe
 import { describe, expect, it } from 'vitest';
 
 import CraftingInput from '../../crafting/CraftingInput';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { WindowTypes } from '../../inventory/WindowTypes';
 import { Item } from '../../item/Item';
@@ -130,7 +129,7 @@ describe('CloseContainerHandler', () => {
         const { dropped } = await run({ craftingInput, inventory });
 
         expect(craftingInput.isEmpty()).toBe(true);
-        expect(inventory.getItem(0).getName()).toBe('minecraft:oak_planks');
+        expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:oak_planks');
         expect(dropped).toEqual([]);
     });
 
@@ -139,27 +138,24 @@ describe('CloseContainerHandler', () => {
         const inventory = new HumanInventory();
         const { dropped } = await run({ inventory, windowItems: [emerald] });
 
-        expect(inventory.getItem(0).getName()).toBe('minecraft:emerald');
-        expect(inventory.getItem(0).getAmount()).toBe(3);
+        expect(inventory.container('inventory').get(0)?.getName()).toBe('minecraft:emerald');
+        expect(inventory.container('inventory').get(0)?.getAmount()).toBe(3);
         expect(dropped).toEqual([]);
     });
 
     it('gives back the cursor of a player who closes a window over it', async () => {
         const inventory = new HumanInventory();
-        inventory.setCursor(new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 1 }));
+        inventory.container('cursor').set(0, new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 1 }));
         await run({ inventory, windowItems: [new Item({ runtimeId: 6, name: 'minecraft:emerald', count: 2 })] });
 
-        expect(inventory.getCursor()).toBeNull();
-        expect(inventory.getItem(0).getAmount()).toBe(3);
+        expect(inventory.container('cursor').get(0)).toBeNull();
+        expect(inventory.container('inventory').get(0)?.getAmount()).toBe(3);
     });
 
     it('drops what the inventory has no room for rather than eating it', async () => {
         const inventory = new HumanInventory();
         for (let slot = 0; slot < 36; slot++) {
-            inventory.setItem(
-                slot,
-                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }), count: 64 })
-            );
+            inventory.container('inventory').set(slot, new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }));
         }
 
         const craftingInput = new CraftingInput();
@@ -178,10 +174,7 @@ describe('CloseContainerHandler', () => {
         // Rebuilt from its name, what fell was a plain stack of the same item.
         const inventory = new HumanInventory();
         for (let slot = 0; slot < 36; slot++) {
-            inventory.setItem(
-                slot,
-                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }), count: 64 })
-            );
+            inventory.container('inventory').set(slot, new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }));
         }
 
         const craftingInput = new CraftingInput();

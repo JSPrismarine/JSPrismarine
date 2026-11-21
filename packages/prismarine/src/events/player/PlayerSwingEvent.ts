@@ -24,7 +24,6 @@ export default class PlayerSwingEvent extends PlayerEvent {
 
     /** What the player holds now, or null for an empty hand. */
     public getItem(): Item | null {
-        const held = this.getSession().getPlayer().getInventory().getItemInHand();
-        return held.getName() === 'minecraft:air' ? null : held;
+        return this.getSession().getPlayer().getInventory().equipment('mainhand');
     }
 }

@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import { PlayerComponents } from '../../entity/playerComponents';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type PlayerSession from '../../network/PlayerSession';
@@ -30,10 +29,7 @@ const fakeWorld = () => {
     });
 
     const inventory = new HumanInventory();
-    inventory.setItem(
-        3,
-        new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }), count: 1 })
-    );
+    inventory.container('inventory').set(3, new Item({ runtimeId: 0, name: 'minecraft:diamond_sword', count: 1 }));
 
     /** What the sender is mining, which the store player keeps. */
     const components = new PlayerComponents(new Attributes(Attributes.getPlayerDefaults()), () => {});
@@ -101,8 +97,8 @@ describe('SelectHotbarSlotHandler', () => {
 
         new SelectHotbarSlotHandler().handle({ kind: 'selectHotbarSlot', slot: 3 }, context);
 
-        expect(inventory.getHandSlotIndex()).toBe(3);
-        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
+        expect(inventory.getHandSlot()).toBe(3);
+        expect(inventory.equipment('mainhand')?.getName()).toBe('minecraft:diamond_sword');
         expect(outputs).toHaveLength(0);
     });
 });

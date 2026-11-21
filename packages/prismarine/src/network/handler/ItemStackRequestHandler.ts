@@ -10,9 +10,9 @@ import { WindowTypes } from '@jsprismarine/minecraft';
 import type PlayerSession from '../PlayerSession';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
-import ContainerEntry from '../../inventory/ContainerEntry';
-import type Inventory from '../../inventory/Inventory';
+import { ARMOR_SLOTS } from '../../inventory/EntityInventory';
 import type HumanInventory from '../../inventory/HumanInventory';
+import type { ItemContainer } from '../../inventory/ItemContainer';
 import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '../../inventory/containerSlots';
 import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../inventory/containerStore';
 import type { ContainerViewer, OpenContainerSlots } from '../../inventory/containerStore';
@@ -53,9 +53,6 @@ import PlayerCraftEvent from '../../events/player/PlayerCraftEvent';
  * its store player's.
  */
 type RequestingPlayer = WorkstationPlayer & ContainerViewer;
-
-/** Helmet, chestplate, leggings, boots - the four the client numbers head to feet. */
-const ARMOR_SLOTS = 4;
 
 /** The containers that are all views onto the one player inventory. */
 const PLAYER_CONTAINERS = new Set<number>([
@@ -1127,23 +1124,19 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
     }
 
     /**
-     * Everything one request may change, copied.
+     * Everything one request may change, as the slots stood before it.
      *
-     * The entries are copied rather than referenced: `addItem` raises the count on an entry
-     * in place, so holding the same objects would record the change as it happened and give
-     * nothing to go back to.
+     * The stacks themselves and not copies: a write replaces the stack in a slot and never
+     * changes it, so the stacks held here are still what the slots held.
      */
     private snapshot(inventory: HumanInventory, craftingInput: CraftingInput, open?: OpenBlockContainer) {
-        const copy = (entries: ContainerEntry[]) =>
-            entries.map((entry) => new ContainerEntry({ item: entry.getItem(), count: entry.getCount() }));
-
         return {
-            slots: copy(inventory.getItems(true)),
+            slots: inventory.container('inventory').items(),
             // What is worn, so a refused request does not leave a helmet the client has already
             // put back in the inventory.
-            armor: copy(inventory.getArmor().getItems(true)),
-            offhand: copy(inventory.getOffhand().getItems(true)),
-            cursor: inventory.getCursor(),
+            armor: inventory.container('armor').items(),
+            offhand: inventory.container('offhand').items(),
+            cursor: inventory.container('cursor').items(),
             grid: Array.from({ length: CraftingInput.SLOTS }, (_, slot) => craftingInput.get(slot)),
             gridSize: craftingInput.gridSize(),
             // The open workstation's two slots, so a refused request does not leave a stack in
@@ -1159,10 +1152,13 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         craftingInput: CraftingInput,
         open?: OpenBlockContainer
     ): void {
-        inventory.setItems(before.slots);
-        inventory.getArmor().setItems(before.armor);
-        inventory.getOffhand().setItems(before.offhand);
-        inventory.setCursor(before.cursor);
+        const put = (container: ItemContainer, items: readonly (Item | null)[]) => {
+            for (const [slot, item] of items.entries()) if (container.get(slot) !== item) container.set(slot, item);
+        };
+        put(inventory.container('inventory'), before.slots);
+        put(inventory.container('armor'), before.armor);
+        put(inventory.container('offhand'), before.offhand);
+        put(inventory.container('cursor'), before.cursor);
 
         for (const [slot, item] of before.grid.entries()) craftingInput.set(slot, item);
         craftingInput.useGrid(before.gridSize);
@@ -1307,13 +1303,7 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         if (at[0] === WORKSTATION) return open?.inputs[at[1]] ?? null;
         if (at[0] === BLOCK_CONTAINER) return container()?.get(at[1]) ?? null;
         if (at[0] === ContainerUiId.CRAFTING_INPUT) return craftingInput.get(at[1]);
-        if (at[0] === ContainerUiId.CURSOR) return inventory.getCursor();
-        if (at[0] === ContainerUiId.ARMOR_CONTAINER || at[0] === ContainerUiId.OFFHAND) {
-            const worn = at[0] === ContainerUiId.ARMOR_CONTAINER ? inventory.getArmor() : inventory.getOffhand();
-            return this.itemOrNull(worn, at[1]);
-        }
-
-        return this.itemOrNull(inventory, at[1]);
+        return this.playerContainerAt(at, inventory).get(at[1]);
     }
 
     /** The counterpart to {@link ItemStackRequestHandler.readAt}: `null` empties the slot. */
@@ -1329,13 +1319,15 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
             if (open !== undefined) open.inputs[at[1]] = item;
         } else if (at[0] === BLOCK_CONTAINER) container()?.set(at[1], item);
         else if (at[0] === ContainerUiId.CRAFTING_INPUT) craftingInput.set(at[1], item);
-        else if (at[0] === ContainerUiId.CURSOR) inventory.setCursor(item);
-        else if (at[0] === ContainerUiId.ARMOR_CONTAINER || at[0] === ContainerUiId.OFFHAND) {
-            const worn = at[0] === ContainerUiId.ARMOR_CONTAINER ? inventory.getArmor() : inventory.getOffhand();
-            if (item) worn.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
-            else worn.removeItem(at[1]);
-        } else if (item) inventory.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
-        else inventory.removeItem(at[1]);
+        else this.playerContainerAt(at, inventory).set(at[1], item);
+    }
+
+    /** The container of the player's own that a located slot is in: the cursor, the armor, the off hand or the main slots. */
+    private playerContainerAt(at: Located, inventory: HumanInventory): ItemContainer {
+        if (at[0] === ContainerUiId.CURSOR) return inventory.container('cursor');
+        if (at[0] === ContainerUiId.ARMOR_CONTAINER) return inventory.container('armor');
+        if (at[0] === ContainerUiId.OFFHAND) return inventory.container('offhand');
+        return inventory.container('inventory');
     }
 
     /** Which store and which slot a request names, with the names it used, or `null` for neither. */
@@ -1390,17 +1382,6 @@ export default class ItemStackRequestHandler implements InputLaneHandler<ItemSta
         const inventory = this.slotOf(info);
 
         return inventory === null ? null : named(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, inventory);
-    }
-
-    /** An inventory slot's item, with the empty one reported as empty rather than as air. */
-    private itemOrNull(inventory: Inventory, slot: number): Item | null {
-        const entry = inventory.getEntry(slot);
-        if (entry === null || entry.getItem().getName() === 'minecraft:air') return null;
-
-        const item = entry.toItemStack();
-        // Keep the stored object so a response's newly assigned stack id survives the next request.
-        item.count = entry.getCount();
-        return item;
     }
 
     /**

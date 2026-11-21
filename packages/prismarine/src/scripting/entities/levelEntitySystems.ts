@@ -17,7 +17,6 @@ import type {
     ScriptEntityStatus,
     ScriptEntitySystems
 } from '@jsprismarine/script-host/host/entities/world';
-import type { ScriptItem } from '@jsprismarine/script-host/host/world';
 import { isRecord } from '@jsprismarine/entities';
 import { normalizedItemIdentifier } from '@jsprismarine/entities/components/shared';
 import { BuildPlatform } from '@jsprismarine/minecraft';
@@ -61,7 +60,7 @@ import type PlayerSession from '../../network/PlayerSession';
 import { cameraPresetNames, vanillaAimAssist } from '../../network/cameraJoinPackets';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
-import { containerEntryOf, levelActors } from '../levelActors';
+import { itemOfScriptItem, levelActors } from '../levelActors';
 import { scriptItemOf } from '../levelScriptAccess';
 import { playerInputOf } from './playerInputs';
 
@@ -250,9 +249,9 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
         }
         const session = sessionOf(id);
         if (session !== undefined) {
-            const cursor = session.getPlayer().getInventory().getCursor?.();
+            const cursor = session.getPlayer().getInventory().container('cursor').get(0);
             found.set('minecraft:cursor_inventory', {
-                ...(cursor === undefined || cursor === null ? {} : { item: scriptItemOf(cursor) }),
+                ...(cursor === null ? {} : { item: scriptItemOf(cursor) }),
                 ...(fields.get(id)?.get('minecraft:cursor_inventory') ?? {})
             });
             found.set('minecraft:ender_inventory', {});
@@ -681,21 +680,15 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
             }
         },
         enderChest: (id) => {
-            const chest = player(id)?.getInventory().getEnderChest();
-            if (chest === undefined) return undefined;
-            const slots: (ScriptItem | null)[] = [];
-            for (let slot = 0; slot < chest.getSlotCount(); slot++) {
-                slots.push(chest.isEmpty(slot) ? null : scriptItemOf(chest.getItem(slot)));
-            }
-            return slots;
+            return player(id)?.getInventory().container('ender_chest').items().map(scriptItemOf);
         },
         setEnderChestItem: (id, slot, item) => {
-            const chest = player(id)?.getInventory().getEnderChest();
+            const chest = player(id)?.getInventory().container('ender_chest');
             if (chest === undefined) return;
-            if (item === undefined) chest.removeItem(slot);
+            if (item === undefined) chest.set(slot, null);
             else {
-                const entry = containerEntryOf(server, item);
-                if (entry !== undefined) chest.setItem(slot, entry);
+                const stack = itemOfScriptItem(server, item);
+                if (stack !== undefined) chest.set(slot, stack);
             }
         }
     };

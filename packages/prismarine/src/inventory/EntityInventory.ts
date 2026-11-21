@@ -9,7 +9,7 @@
  * equipment slot at another container slot, as a horse's armor lives in its inventory.
  */
 import type { EntityContainer, SlotValue } from './slotLog';
-import { itemOfSlotValue, slotValueOfItem } from './slotLog';
+import { itemOfSlotValue, slotValueOf } from './slotLog';
 import { ItemContainer } from './ItemContainer';
 import type { Item } from '../item/Item';
 import type { ServerContent } from '../content/ServerContent';
@@ -282,8 +282,15 @@ export class EntityInventory<C extends InventoryContainer = InventoryContainer> 
         return this.sumArmor((item) => item.getArmorToughness());
     }
 
+    /** Sums a figure over what the four armor equipment slots read, through any alias. */
     private sumArmor(of: (item: Item) => number): number {
-        return (this.byName.get('armor')?.stacks() ?? []).reduce((total, item) => total + of(item), 0);
+        let total = 0;
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            if (ARMOR_SLOT_OF[slot] === undefined) continue;
+            const item = this.equipment(slot);
+            if (item !== null) total += of(item);
+        }
+        return total;
     }
 
     /**
@@ -316,6 +323,6 @@ export class EntityInventory<C extends InventoryContainer = InventoryContainer> 
      * @returns The value, or null for an empty slot or one this inventory does not have.
      */
     public slotValue(container: string, slot: number): SlotValue {
-        return slotValueOfItem(this.containerNamed(container)?.get(slot) ?? null);
+        return slotValueOf(this.containerNamed(container)?.get(slot) ?? null);
     }
 }

@@ -13,7 +13,6 @@ import type { DataEntity } from '../../entity/data/DataEntity';
 import { EntityRuntime } from '../../entity/data/EntityRuntime';
 import { entityFixture, FLOOR_Y, spawnDeclared, TestEntityWorld } from '../../entity/data/testing';
 import { EntityReplica } from './EntityReplica';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item } from '../../item/Item';
 import { enterStore, StorePlayers } from '../../entity/data/storePlayers';
 import { SHOWN_PLAYER_SLOTS } from '../../entity/playerShown';
@@ -232,7 +231,7 @@ describe('the entity replica', () => {
             const components = player.getComponents();
             return {
                 headYaw: player.headYaw,
-                handSlot: player.getInventory().getHandSlotIndex(),
+                handSlot: player.getInventory().getHandSlot(),
                 sprinting: components.get('movement.sprinting'),
                 gamemode: components.get('abilities.gamemode'),
                 flying: components.get('abilities.flying'),
@@ -244,11 +243,11 @@ describe('the entity replica', () => {
             SHOWN_PLAYER_SLOTS.map(({ container, slot }) => player.getInventory().slotValue(container, slot));
         const held = () =>
             SHOWN_PLAYER_SLOTS.map(({ container, slot }) => replica.slot(BigInt(player.id), container, slot));
-        const sword = new ContainerEntry({ item: new Item({ name: 'minecraft:iron_sword', count: 1 }), count: 1 });
+        const sword = new Item({ name: 'minecraft:iron_sword', count: 1 });
 
         // Brought in with a sword in the second hotbar slot and a turned head, which the shown form carries.
         const player = loggedInStorePlayer(fixture);
-        player.getInventory().setItem(1, sword);
+        player.getInventory().container('inventory').set(1, sword);
         player.headYaw = 35;
         tickInto(fixture.runtime, replica, () => enterStore(fixture.runtime, new StorePlayers(), player));
         expect(replica.player(BigInt(player.id))).toEqual(live());
@@ -262,8 +261,8 @@ describe('the entity replica', () => {
             () => player.getComponents().set('abilities.flying', true),
             () => player.getComponents().set('vitals.air', 120),
             () => player.getComponents().set('vitals.breathing', false),
-            () => player.getInventory().getArmor().setItem(0, sword),
-            () => player.getInventory().getOffhand().setItem(0, sword)
+            () => player.getInventory().container('armor').set(0, sword),
+            () => player.getInventory().container('offhand').set(0, sword)
         ];
         for (const write of writes) {
             tickInto(fixture.runtime, replica, write);

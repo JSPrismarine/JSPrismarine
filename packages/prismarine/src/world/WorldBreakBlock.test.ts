@@ -181,7 +181,7 @@ const fakePlayer = (gamemode: Gametype) => ({
     gamemode,
     getRuntimeId: () => 7n,
     getPosition: () => new Vector3(10, 64, -20),
-    getInventory: () => ({ getItemInHand: () => null })
+    getInventory: () => ({ equipment: () => null })
 });
 
 describe('world', () => {
@@ -243,7 +243,7 @@ describe('world', () => {
             expect(world.spawned).toHaveLength(1);
             const [drop] = world.spawned;
             expect(drop.getType()).toBe('minecraft:item');
-            expect(drop.getItem()!.getItem().getName()).toBe('minecraft:oak_log');
+            expect(drop.getItem()!.getName()).toBe('minecraft:oak_log');
             // Reported within the middle 70% of the block on each axis, and pushed out a little
             // sideways and 0.2 up: what a Bedrock Dedicated Server 1.26.52 did with 18 drops.
             const at = drop.getPosition();

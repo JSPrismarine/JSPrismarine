@@ -64,16 +64,15 @@ import type { StatusEffect, StatusEffectChange } from '../entity/StatusEffect';
 import type { Metadata } from '@jsprismarine/protocol/bedrock/wire/structures/Metadata';
 import type { DeathMessage } from '../entity/DeathMessages';
 import { eyePositionAt } from '../entity/playerEyes';
-import type ContainerEntry from '../inventory/ContainerEntry';
 import type HumanInventory from '../inventory/HumanInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { showContainerLid } from '../inventory/containerLid';
 import { blockSlotName } from '../inventory/containerSlots';
 import { WindowIds } from '../inventory/WindowIds';
-import type { PlayerContainer } from '../inventory/slotLog';
-import { playerContainerNamed } from '../inventory/slotLog';
+import type { EntityContainer } from '../inventory/slotLog';
+import { entityContainerNamed } from '../inventory/slotLog';
 import { WindowTypes } from '../inventory/WindowTypes';
-import type { Item } from '../item/Item';
+import { Item } from '../item/Item';
 import CraftingInput from '../crafting/CraftingInput';
 import { KEEP_INVENTORY, gameRuleValue } from '../content/world/gameRules';
 import { experienceOrbs } from '../entity/data/deathExperience';
@@ -341,12 +340,19 @@ export type RespawnDestination = ReturnType<typeof respawnPoint> & { readonly wo
 /** How often the two per-player triggers are checked, which is Java's one second. */
 const ADVANCEMENT_CHECK_TICKS = 20;
 
+/** A slot as the wire carries it: an empty slot is an air stack of none, at its position. */
+const wireStackOf = (item: Item | null): Item => item ?? Item.air();
+
+/** One of the player's own slots as the wire carries it, under the id the client names the stack by. */
+const ownSlotDescriptor = (item: Item | null, context: Parameters<Item['toStackDescriptor']>[0]) =>
+    wireStackOf(item).toStackDescriptor(context, item !== null && item.stackNetworkId > 0 ? item.stackNetworkId : null);
+
 /**
  * The window and the container name a client numbers each of its player's own slots by, for the
  * containers it always has open. The ender chest is sent when one is opened, and the crafting
  * grid is emptied when its screen closes, so neither is here.
  */
-const OWN_SLOT_WINDOWS: Partial<Record<PlayerContainer, { readonly windowId: number; readonly containerId: number }>> =
+const OWN_SLOT_WINDOWS: Partial<Record<EntityContainer, { readonly windowId: number; readonly containerId: number }>> =
     {
         inventory: { windowId: WindowIds.INVENTORY, containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY },
         armor: { windowId: WindowIds.ARMOR, containerId: ContainerUiId.ARMOR_CONTAINER },
@@ -1680,17 +1686,14 @@ export default class PlayerSession {
         inventory.assignStackNetworkIds();
 
         const pk = new InventoryContentPacket();
-        pk.items = inventory.getItems(true).map((entry) => {
-            const item = entry.toItemStack().withCount(entry.getCount());
-            return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
-        });
+        pk.items = inventory
+            .container('inventory')
+            .items()
+            .map((item) => ownSlotDescriptor(item, context));
         pk.windowId = windowId;
         const sends = [this.connection.sendDataPacket(pk)];
 
-        // Through the entry rather than `getItemInHand`, which hands back an empty slot's air
-        // as though it were an item and cannot be written out.
-        const hand = inventory.getEntry(inventory.getHandSlotIndex());
-        if (hand) sends.push(this.sendHandItem(hand.toItemStack()));
+        sends.push(this.sendHandItem(wireStackOf(inventory.equipment('mainhand'))));
 
         // The armor container is a window of its own, so the main inventory's contents say
         // nothing about it and a player would open their screen to four empty slots. Its
@@ -1698,12 +1701,9 @@ export default class PlayerSession {
         // combined hotbar and inventory, which named the wrong container for window 120.
         const armor = new InventoryContentPacket();
         armor.items = inventory
-            .getArmor()
-            .getItems(true)
-            .map((entry) => {
-                const item = entry.toItemStack().withCount(entry.getCount());
-                return item.toStackDescriptor(context, item.stackNetworkId > 0 ? item.stackNetworkId : null);
-            });
+            .container('armor')
+            .items()
+            .map((item) => ownSlotDescriptor(item, context));
         armor.windowId = WindowIds.ARMOR;
         armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         sends.push(this.connection.sendDataPacket(armor), this.sendArmorFor(this.shown()));
@@ -1749,7 +1749,7 @@ export default class PlayerSession {
      * @returns The send, or a settled promise for a container the client has no window for.
      */
     public sendOwnSlot(container: string, slot: number): Promise<void> {
-        const named = playerContainerNamed(container);
+        const named = entityContainerNamed(container);
         const window = named === undefined ? undefined : OWN_SLOT_WINDOWS[named];
         if (named === undefined || window === undefined) return allSent([]);
 
@@ -1822,7 +1822,7 @@ export default class PlayerSession {
     public async openBlockContainer(
         at: Vector3,
         identifier: string,
-        contents: ContainerEntry[] = []
+        contents: readonly (Item | null)[] = []
     ): Promise<OpenBlockContainer | undefined> {
         const container = blockContainerOf(identifier);
         if (container === undefined) return undefined;
@@ -1875,19 +1875,19 @@ export default class PlayerSession {
                     const content = new InventoryContentPacket();
                     content.windowId = packet.windowId;
                     content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
-                    content.items = contents.map((entry) => {
-                        const item = entry.toItemStack().withCount(entry.getCount());
+                    content.items = contents.map((held) => {
+                        const item = wireStackOf(held);
                         return item.toStackDescriptor(context, this.stackIdFor(item));
                     });
                     await this.connection.sendDataPacket(content);
                 } else {
                     // Screens with separate primary inventories name each complete slot list
                     // under the container the client uses for requests to that part of the screen.
-                    const byContainer = new Map<number, ContainerEntry[]>();
-                    contents.forEach((entry, slot) => {
+                    const byContainer = new Map<number, (Item | null)[]>();
+                    contents.forEach((held, slot) => {
                         const named = blockSlotName(container.screen, slot);
                         const slots = byContainer.get(named.containerId) ?? [];
-                        slots[named.slotId] = entry;
+                        slots[named.slotId] = held;
                         byContainer.set(named.containerId, slots);
                     });
 
@@ -1895,8 +1895,8 @@ export default class PlayerSession {
                         const content = new InventoryContentPacket();
                         content.windowId = packet.windowId;
                         content.containerId = containerId;
-                        content.items = slots.map((entry) => {
-                            const item = entry.toItemStack().withCount(entry.getCount());
+                        content.items = slots.map((held) => {
+                            const item = wireStackOf(held);
                             return item.toStackDescriptor(context, this.stackIdFor(item));
                         });
                         await this.connection.sendDataPacket(content);
@@ -2174,7 +2174,7 @@ export default class PlayerSession {
      * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
-        const slot = this.own().getInventory().getHandSlotIndex();
+        const slot = this.own().getInventory().getHandSlot();
         await this.connection.sendDataPacket(
             new MobEquipmentPacket({
                 runtimeEntityId: this.runtimeId,
@@ -3866,19 +3866,10 @@ export default class PlayerSession {
         const player = this.getPlayer();
         const inventory = this.getInventory();
         const held: Item[] = [];
-        for (const container of [inventory, inventory.getArmor(), inventory.getOffhand()]) {
-            for (let slot = 0; slot < container.getSlotCount(); slot += 1) {
-                const entry = container.getEntry(slot);
-                if (entry === null || entry.getCount() === 0 || entry.getItem().getName() === 'minecraft:air') continue;
-                container.removeItem(slot);
-                held.push(entry.getItem().withCount(entry.getCount()));
-            }
-        }
-
-        const cursor = inventory.getCursor();
-        if (cursor !== null) {
-            held.push(cursor);
-            inventory.setCursor(null);
+        for (const name of ['inventory', 'armor', 'offhand', 'cursor'] as const) {
+            const container = inventory.container(name);
+            held.push(...container.stacks());
+            container.clear();
         }
         const grid = player.getCraftingInput();
         for (let slot = 0; slot < CraftingInput.SLOTS; slot += 1) {

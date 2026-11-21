@@ -11,7 +11,6 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { EntityRuntimes } from '../entity/data/live';
 import type { StoreActor } from '../entity/data/storeActors';
 import { ItemActor as ItemEntity } from '../entity/data/itemActor';
-import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { builtInEntityDefinitions } from '../content/testing';
@@ -348,7 +347,7 @@ describe('breakBlockWithContent', () => {
      */
     const player = (held: Item | null = null, gamemode = Gametype.SURVIVAL): PlayerSession => {
         const inventory = new HumanInventory();
-        if (held !== null) inventory.setItemInHand(new ContainerEntry({ item: held, count: held.getAmount() }));
+        if (held !== null) inventory.setEquipment('mainhand', held);
 
         const breaker: PlayerSession = sessionOnPrototype(
             {
@@ -386,8 +385,8 @@ describe('breakBlockWithContent', () => {
         spawned
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
             .map((entity) => ({
-                identifier: entity.getItem()!.getItem().getName(),
-                count: entity.getItem()!.getCount()
+                identifier: entity.getItem()!.getName(),
+                count: entity.getItem()!.getAmount()
             }));
 
     it('spills what a chest held and drops the chest itself', async () => {
@@ -520,7 +519,8 @@ describe('breakBlockWithContent', () => {
      */
     describe('tool wear', () => {
         /** Durability spent, which is what both servers write as `Damage`. */
-        const damageOf = (item: Item): number => item.getMaxDurability() - item.getDurability();
+        const damageOf = (item: Item | null): number =>
+            item === null ? 0 : item.getMaxDurability() - item.getDurability();
 
         it.each([
             ['minecraft:wooden_pickaxe', 'minecraft:cobblestone', 1],
@@ -535,7 +535,7 @@ describe('breakBlockWithContent', () => {
 
             await world.breakBlock(new Vector3(5, 64, 5), breaker);
 
-            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(wear);
+            expect(damageOf(breaker.getInventory().equipment('mainhand'))).toBe(wear);
         });
 
         it('wears a wooden pickaxe to Damage 3 over three cobblestone, as BDS did', async () => {
@@ -546,7 +546,7 @@ describe('breakBlockWithContent', () => {
                 await world.breakBlock(new Vector3(x, 64, 9), breaker);
             }
 
-            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(3);
+            expect(damageOf(breaker.getInventory().equipment('mainhand'))).toBe(3);
         });
 
         it('empties the hand when the tool runs out', async () => {
@@ -559,8 +559,8 @@ describe('breakBlockWithContent', () => {
 
             await world.breakBlock(new Vector3(5, 64, 7), breaker);
 
-            expect(breaker.getInventory().getItemInHand().getName()).toBe('minecraft:air');
-            expect(breaker.getInventory().getItems()).toHaveLength(0);
+            expect(breaker.getInventory().equipment('mainhand')).toBeNull();
+            expect(breaker.getInventory().container('inventory').stacks()).toHaveLength(0);
         });
 
         it('wears nothing in creative', async () => {
@@ -569,7 +569,9 @@ describe('breakBlockWithContent', () => {
 
             await world.breakBlock(new Vector3(5, 64, 5), breaker);
 
-            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(0);
+            const held = breaker.getInventory().equipment('mainhand');
+            expect(held?.getName()).toBe('minecraft:wooden_pickaxe');
+            expect(damageOf(held)).toBe(0);
         });
     });
 });

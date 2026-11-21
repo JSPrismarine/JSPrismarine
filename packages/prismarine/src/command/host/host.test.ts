@@ -22,7 +22,6 @@ import { DamageCause } from '../../entity/DamageCause';
 import type { EntityRuntime } from '../../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../../entity/data/live';
 import { DamageSource } from '../../entity/DamageSource';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
 import { vanillaItemTypes } from '../../item/vanillaItemTypes';
@@ -601,7 +600,7 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('give @a minecraft:stone 5')).resolves.toBe(5);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(5);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(5);
         });
 
         it('gives nothing for an item this server does not have', async () => {
@@ -623,9 +622,9 @@ describe('the server command host', () => {
             await fixture.run('give @a minecraft:stone 5');
 
             await expect(fixture.run('clear @a minecraft:stone 3')).resolves.toBe(3);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(2);
             // The stack's own count is what the client is sent, so it has to go down as well.
-            expect(player.getInventory().getItem(0).getAmount()).toBe(2);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(2);
         });
 
         it('adds, lists and removes a tag', async () => {
@@ -911,15 +910,15 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('replaceitem entity @a slot.hotbar 2 minecraft:stone 4')).resolves.toBe(4);
-            expect(player.getInventory().getEntry(2)?.getItem().getName()).toBe('minecraft:stone');
-            expect(player.getInventory().getEntry(2)?.getCount()).toBe(4);
+            expect(player.getInventory().container('inventory').get(2)?.getName()).toBe('minecraft:stone');
+            expect(player.getInventory().container('inventory').get(2)?.getAmount()).toBe(4);
         });
 
         it('gives the stack /replaceitem writes the count its slot holds', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await fixture.run('replaceitem entity @a slot.hotbar 0 minecraft:stone 2');
-            expect(player.getInventory().getItem(0).getAmount()).toBe(2);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(2);
         });
 
         it('leaves an occupied slot alone in keep mode', async () => {
@@ -927,14 +926,14 @@ describe('the server command host', () => {
             await fixture.run('replaceitem entity @a slot.hotbar 0 minecraft:stone 1');
 
             await expect(fixture.run('replaceitem entity @a slot.hotbar 0 keep minecraft:stone 9')).resolves.toBe(0);
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(1);
         });
 
         it('writes the ender chest, which is a container a player carries', async () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('replaceitem entity @a slot.enderchest 3 minecraft:stone 2')).resolves.toBe(2);
-            expect(player.getInventory().getEnderChest().getEntry(3)?.getItem().getName()).toBe('minecraft:stone');
+            expect(player.getInventory().container('ender_chest').get(3)?.getName()).toBe('minecraft:stone');
         });
 
         it('reads the indexed armor spelling as the named one', async () => {
@@ -945,8 +944,8 @@ describe('the server command host', () => {
 
             // Index 1 is the chestplate and `slot.armor.legs` is index 2, so
             // the two spellings addressed different slots of one container.
-            expect(player.getInventory().getArmor().getEntry(1)?.getCount()).toBe(1);
-            expect(player.getInventory().getArmor().getEntry(2)?.getCount()).toBe(2);
+            expect(player.getInventory().container('armor').get(1)?.getAmount()).toBe(1);
+            expect(player.getInventory().container('armor').get(2)?.getAmount()).toBe(2);
         });
 
         it('refuses a slot group this server has no container for', async () => {
@@ -1239,13 +1238,11 @@ describe('the server command host', () => {
             const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
             player
                 .getInventory()
-                .setItemInHand(
-                    new ContainerEntry({ item: new ItemStack({ name: 'minecraft:diamond_sword' }), count: 1 })
-                );
+                .setEquipment('mainhand', new ItemStack({ name: 'minecraft:diamond_sword' }).withCount(1));
 
             await expect(fixture.run('enchant @a sharpness 3')).resolves.toBe(1);
 
-            expect(player.getInventory().getItemInHand().getEnchantmentLevel('minecraft:sharpness')).toBe(3);
+            expect(player.getInventory().equipment('mainhand')?.getEnchantmentLevel('minecraft:sharpness')).toBe(3);
         });
 
         it('refuses an empty hand by name', async () => {
@@ -1312,7 +1309,7 @@ describe('the server command host', () => {
 
             await expect(fixture.run('loot give @a loot mypack:prize')).resolves.toBe(2);
 
-            expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
+            expect(player.getInventory().container('inventory').get(0)?.getAmount()).toBe(2);
         });
 
         it('rolls the table of the block /loot mine names', async () => {

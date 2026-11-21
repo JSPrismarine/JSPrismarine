@@ -31,9 +31,8 @@ import type { ContentItemDrop } from '../../content/world/adapter';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { rollMobDrops } from '../../entity/mobLoot';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemOfDrop } from '../../inventory/persistence';
-import type { Item } from '../../item/Item';
+import { Item } from '../../item/Item';
 import { itemFromContent } from '../../item/itemFromContent';
 import { worldBlockEntities } from '../../world/contentAdapter';
 import { lootLevelOf } from '../../world/lootLevel';
@@ -100,9 +99,8 @@ const toolOf = (
     if (tool === 'mainhand' || tool === 'offhand') {
         const player = source.entity === undefined ? undefined : resolvePlayer(server, source.entity);
         if (player === undefined) return undefined;
-        const held =
-            tool === 'mainhand' ? player.getInventory().getItemInHand() : player.getInventory().getOffhand().getItem(0);
-        return held?.asPredicateStack();
+        // An empty hand is an empty stack, as Java hands a loot table `ItemStack.EMPTY`.
+        return (player.getInventory().equipment(tool) ?? Item.air()).asPredicateStack();
     }
 
     const registered = itemFromContent(tool.includes(':') ? tool : `minecraft:${tool}`, content);
@@ -197,7 +195,7 @@ const giveTo = (
             const stack = stackOf(content, drop);
             if (stack === null) continue;
 
-            const leftover = player.getInventory().addItem(new ContainerEntry({ item: stack, count: drop.count }));
+            const leftover = player.getInventory().container('inventory').add(stack.withCount(drop.count));
             given += drop.count - leftover;
         }
         carryOut(session.sendInventory(), undefined);

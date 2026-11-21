@@ -18,7 +18,6 @@ import type { ServerContent } from '../../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../../content/testing';
 import CraftingInput from '../../crafting/CraftingInput';
 import { AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stubPlayerPort } from '../../testing/playerPort.test.helper';
@@ -224,13 +223,13 @@ describe('a workstation screen', () => {
     describe('the enchanting table', () => {
         it('takes a stack into its input slot and redraws the rows', async () => {
             const { inventory, run, open, sent } = scene(openScreen(WindowTypes.ENCHANTMENT));
-            inventory.setItem(0, new ContainerEntry({ item: pickaxe(), count: 1 }));
+            inventory.container('inventory').set(0, pickaxe().withCount(1));
 
             const response = await run([placeInWorkstation(ContainerUiId.ENCHANTING_INPUT_CONTAINER)]);
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
             expect(open.inputs[0]?.getName()).toBe('minecraft:diamond_pickaxe');
-            expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+            expect(inventory.container('inventory').get(0)).toBeNull();
 
             // The table's offers are a function of the stack, so putting one in redraws them.
             const options = sent.find((packet) => packet instanceof PlayerEnchantOptionsPacket);
@@ -268,7 +267,7 @@ describe('a workstation screen', () => {
 
         it('enchants the stack and charges the levels when a row is taken', async () => {
             const { inventory, attributes, run, open, filledRow } = scene(openScreen(WindowTypes.ENCHANTMENT));
-            inventory.setItem(0, new ContainerEntry({ item: pickaxe(), count: 1 }));
+            inventory.container('inventory').set(0, pickaxe().withCount(1));
 
             await run([placeInWorkstation(ContainerUiId.ENCHANTING_INPUT_CONTAINER)]);
 
@@ -295,9 +294,9 @@ describe('a workstation screen', () => {
 
             expect(response.responses.at(-1)?.result).toBe(ItemStackResponseResult.OK);
 
-            const enchanted = inventory.getItem(5);
-            expect(enchanted.getName()).toBe('minecraft:diamond_pickaxe');
-            expect(enchanted.getEnchantments().size).toBeGreaterThan(0);
+            const enchanted = inventory.container('inventory').get(5);
+            expect(enchanted?.getName()).toBe('minecraft:diamond_pickaxe');
+            expect(enchanted?.getEnchantments().size).toBeGreaterThan(0);
 
             // Paid for, and the table is empty again.
             expect(attributes.getValue(AttributeIds.PlayerLevel)).toBeLessThan(30);
@@ -328,8 +327,8 @@ describe('a workstation screen', () => {
             base.durability = Math.floor(base.getMaxDurability() / 2);
             addition.durability = Math.floor(addition.getMaxDurability() / 2);
 
-            inventory.setItem(0, new ContainerEntry({ item: base, count: 1 }));
-            inventory.setItem(1, new ContainerEntry({ item: addition, count: 1 }));
+            inventory.container('inventory').set(0, base);
+            inventory.container('inventory').set(1, addition);
 
             await run([placeInWorkstation(ContainerUiId.ANVIL_INPUT_CONTAINER)]);
             await run([
@@ -374,10 +373,10 @@ describe('a workstation screen', () => {
 
             expect(response.responses.at(-1)?.result).toBe(ItemStackResponseResult.OK);
 
-            const repaired = inventory.getItem(9);
-            expect(repaired.getName()).toBe('minecraft:diamond_pickaxe');
-            expect(repaired.getDurability()).toBeGreaterThan(base.getMaxDurability() / 2);
-            expect(repaired.getCustomName()).toBe('Hole Maker');
+            const repaired = inventory.container('inventory').get(9);
+            expect(repaired?.getName()).toBe('minecraft:diamond_pickaxe');
+            expect(repaired?.getDurability()).toBeGreaterThan(base.getMaxDurability() / 2);
+            expect(repaired?.getCustomName()).toBe('Hole Maker');
             expect(open.inputs[0]).toBeNull();
             expect(open.inputs[1]).toBeNull();
         });

@@ -96,7 +96,6 @@ import { advancementDamage, advancementKill, advancementPickedUpItem } from '../
 import { raiseAdvancement } from '../../advancement/raise';
 import type { AdvancementRaiser } from '../../advancement/raise';
 import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
-import ContainerEntry from '../../inventory/ContainerEntry';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import type { DroppedItems, ItemStart } from './droppedItems';
 import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
@@ -106,8 +105,8 @@ import type { StoredActor } from '../EntitySerializer';
 import { worldKeyOf } from '../../world/worldKey';
 
 /** A held or equipped item as the entity filter language reads it. */
-const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
-    item === undefined
+const filterItemOf = (item: Item | null | undefined): FilterItemView | undefined =>
+    item === undefined || item === null
         ? undefined
         : {
               identifier: () => item.getName(),
@@ -137,6 +136,8 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     if (cached !== undefined) return cached;
 
     const inventory = player.getInventory();
+    const main = inventory.container('inventory');
+    const armor = inventory.container('armor');
     const armorSlots = new Map<EquipmentSlot, number>([
         ['head', 0],
         ['torso', 1],
@@ -145,40 +146,28 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
     ]);
     const equipment = (slot: EquipmentSlot, index: number): FilterItemView | undefined => {
         if (slot === 'any') {
-            if (index === 0) return filterItemOf(inventory.getItemInHand());
-            if (index === 1) return filterItemOf(inventory.getOffhand().getEntry(0)?.getItem());
-            const armorSlotCount = inventory.getArmor().getSlotCount();
-            if (index >= 2 && index < 2 + armorSlotCount)
-                return filterItemOf(
-                    inventory
-                        .getArmor()
-                        .getEntry(index - 2)
-                        ?.getItem()
-                );
-            return filterItemOf(inventory.getEntry(index - 2 - armorSlotCount)?.getItem());
+            if (index === 0) return filterItemOf(inventory.equipment('mainhand'));
+            if (index === 1) return filterItemOf(inventory.equipment('offhand'));
+            if (index >= 2 && index < 2 + armor.size) return filterItemOf(armor.get(index - 2));
+            return filterItemOf(main.get(index - 2 - armor.size));
         }
-        if (slot === 'main_hand') return index === 0 ? filterItemOf(inventory.getItemInHand()) : undefined;
+        if (slot === 'main_hand') return index === 0 ? filterItemOf(inventory.equipment('mainhand')) : undefined;
         if (slot === 'hand') {
-            if (index === 0) return filterItemOf(inventory.getItemInHand());
-            return index === 1 ? filterItemOf(inventory.getOffhand().getEntry(0)?.getItem()) : undefined;
+            if (index === 0) return filterItemOf(inventory.equipment('mainhand'));
+            return index === 1 ? filterItemOf(inventory.equipment('offhand')) : undefined;
         }
-        if (slot === 'off_hand')
-            return index === 0 ? filterItemOf(inventory.getOffhand().getEntry(0)?.getItem()) : undefined;
-        if (slot === 'inventory') return filterItemOf(inventory.getEntry(index)?.getItem());
-        if (slot === 'armor') return filterItemOf(inventory.getArmor().getEntry(index)?.getItem());
+        if (slot === 'off_hand') return index === 0 ? filterItemOf(inventory.equipment('offhand')) : undefined;
+        if (slot === 'inventory') return filterItemOf(main.get(index));
+        if (slot === 'armor') return filterItemOf(armor.get(index));
         const armorIndex = armorSlots.get(slot);
-        return armorIndex === undefined
-            ? undefined
-            : index === 0
-              ? filterItemOf(inventory.getArmor().getEntry(armorIndex)?.getItem())
-              : undefined;
+        return armorIndex === undefined ? undefined : index === 0 ? filterItemOf(armor.get(armorIndex)) : undefined;
     };
     const capacity = (slot: EquipmentSlot): number => {
         switch (slot) {
             case 'any':
-                return 2 + inventory.getArmor().getSlotCount() + inventory.getSlotCount();
+                return 2 + armor.size + main.size;
             case 'armor':
-                return inventory.getArmor().getSlotCount();
+                return armor.size;
             case 'feet':
             case 'head':
             case 'leg':
@@ -188,7 +177,7 @@ const playerFilterView = (player: FilteredPlayer): FilterEntityView => {
             case 'hand':
                 return 2;
             case 'inventory':
-                return inventory.getSlotCount();
+                return main.size;
             case 'torso':
                 return 1;
         }
@@ -333,8 +322,7 @@ const givePlayerItem = (
         events.post('entityItemPickup', guard);
         if (guard.isCanceled()) return drop.count;
     }
-    const entry = new ContainerEntry({ item, count: item.getAmount() });
-    const left = taker.getInventory().addItem(entry);
+    const left = taker.getInventory().container('inventory').add(item);
     if (left >= drop.count) return left;
     if (events.hasListeners('entityItemPickedUp')) {
         const taken = itemOfDrop({ ...drop, count: drop.count - left }, options.content());
@@ -344,7 +332,7 @@ const givePlayerItem = (
 
     // Here rather than in the inventory, which has no idea whose it is. Nearly every "get this
     // item" advancement is earned this way: Java has no block-break trigger.
-    advancementPickedUpItem(taker, entry.toItemStack());
+    advancementPickedUpItem(taker, item);
 
     const take = new TakeItemActorPacket();
     take.itemRuntimeEntityId = BigInt(itemId);

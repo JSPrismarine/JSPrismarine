@@ -77,7 +77,7 @@ export default class MineBlockHandler implements IntentHandler<'mineBlock'> {
             const z = blockPosition.getZ();
             const block = world.loadedBlockAt(x, y, z);
             if (face !== undefined && block !== undefined && block.name !== 'minecraft:air') {
-                const held = player.getInventory().getItemInHand();
+                const held = player.getInventory().equipment('mainhand');
                 const mining = player.getComponents().get('mining.block');
                 const progress =
                     mining === null || !Number.isFinite(mining.breakTicks) || mining.breakTicks <= 0
@@ -91,7 +91,7 @@ export default class MineBlockHandler implements IntentHandler<'mineBlock'> {
                         miningStep,
                         { x, y, z, name: block.name, states: block.states },
                         face,
-                        held.getName() === 'minecraft:air' ? null : held,
+                        held,
                         miningStep === 'abort' ? progress : 0
                     )
                 );
@@ -112,7 +112,7 @@ export default class MineBlockHandler implements IntentHandler<'mineBlock'> {
                 // The held item, so a pickaxe animates at a pickaxe's pace. This passed null
                 // for as long as it existed, which made every block crack at a fist's rate
                 // and left Efficiency with nothing to speed up.
-                const tool = player.getInventory().getItemInHand();
+                const tool = player.getInventory().equipment('mainhand');
 
                 if (serverTimed) {
                     // The block is read from its loaded chunk; one nobody has loaded starts nothing.
@@ -294,6 +294,6 @@ const refusePrediction = (
     // No mining to time, which is right only for a block that gives way at once.
     const block = world.loadedBlock(x, y, z);
     if (block === undefined) return 'the block is not loaded';
-    const breakTicks = block.getBreakTicks(player.getInventory().getItemInHand());
+    const breakTicks = block.getBreakTicks(player.getInventory().equipment('mainhand'));
     return breakTicks <= 0 ? null : 'it is not the block being mined';
 };

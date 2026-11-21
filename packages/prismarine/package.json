@@ -960,11 +960,6 @@
                 "import": "./dist/network/sessionPlayers.js",
                 "module": "./dist/network/sessionPlayers.js"
             },
-            "./inventory/ContainerEntry": {
-                "types": "./dist/inventory/ContainerEntry.d.ts",
-                "import": "./dist/inventory/ContainerEntry.js",
-                "module": "./dist/inventory/ContainerEntry.js"
-            },
             "./entity/DeathMessages": {
                 "types": "./dist/entity/DeathMessages.d.ts",
                 "import": "./dist/entity/DeathMessages.js",
@@ -1230,10 +1225,15 @@
                 "import": "./dist/crafting/CraftingInput.js",
                 "module": "./dist/crafting/CraftingInput.js"
             },
-            "./inventory/Inventory": {
-                "types": "./dist/inventory/Inventory.d.ts",
-                "import": "./dist/inventory/Inventory.js",
-                "module": "./dist/inventory/Inventory.js"
+            "./inventory/ItemContainer": {
+                "types": "./dist/inventory/ItemContainer.d.ts",
+                "import": "./dist/inventory/ItemContainer.js",
+                "module": "./dist/inventory/ItemContainer.js"
+            },
+            "./inventory/EntityInventory": {
+                "types": "./dist/inventory/EntityInventory.d.ts",
+                "import": "./dist/inventory/EntityInventory.js",
+                "module": "./dist/inventory/EntityInventory.js"
             },
             "./inventory/slotLog": {
                 "types": "./dist/inventory/slotLog.d.ts",
@@ -2538,10 +2538,6 @@
             "jsprismarine:dist": "./dist/network/sessionPlayers.js",
             "default": "./src/network/sessionPlayers.ts"
         },
-        "./inventory/ContainerEntry": {
-            "jsprismarine:dist": "./dist/inventory/ContainerEntry.js",
-            "default": "./src/inventory/ContainerEntry.ts"
-        },
         "./entity/DeathMessages": {
             "jsprismarine:dist": "./dist/entity/DeathMessages.js",
             "default": "./src/entity/DeathMessages.ts"
@@ -2706,9 +2702,13 @@
             "jsprismarine:dist": "./dist/crafting/CraftingInput.js",
             "default": "./src/crafting/CraftingInput.ts"
         },
-        "./inventory/Inventory": {
-            "jsprismarine:dist": "./dist/inventory/Inventory.js",
-            "default": "./src/inventory/Inventory.ts"
+        "./inventory/ItemContainer": {
+            "jsprismarine:dist": "./dist/inventory/ItemContainer.js",
+            "default": "./src/inventory/ItemContainer.ts"
+        },
+        "./inventory/EntityInventory": {
+            "jsprismarine:dist": "./dist/inventory/EntityInventory.js",
+            "default": "./src/inventory/EntityInventory.ts"
         },
         "./inventory/slotLog": {
             "jsprismarine:dist": "./dist/inventory/slotLog.js",

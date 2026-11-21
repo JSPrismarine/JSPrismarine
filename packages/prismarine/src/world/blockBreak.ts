@@ -34,6 +34,7 @@ import { blockLootTableOf, rollBlockDrops } from '../block/blockLoot';
 import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
+import type { EntityInventory } from '../inventory/EntityInventory';
 import { itemOfDrop } from '../inventory/persistence';
 import { contentStackOf } from '../item/contentStack';
 import { Item } from '../item/Item';
@@ -78,7 +79,7 @@ export interface BreakWorld {
 export interface Breaker {
     /** The mode they are in, because creative takes a block away and leaves nothing behind. */
     readonly gamemode: number;
-    getInventory(): { getItemInHand(): Item };
+    getInventory(): Pick<EntityInventory, 'equipment'>;
     getPosition(): { getX(): number; getY(): number; getZ(): number };
 }
 
@@ -281,7 +282,7 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
             states: standing.states
         };
 
-        const held = player?.getInventory().getItemInHand() ?? null;
+        const held = player?.getInventory().equipment('mainhand') ?? null;
         const correctTool =
             player === undefined ||
             (blockFromContent(standing.name, content, standing.states)?.isCompatibleWithTool(held) ?? true);

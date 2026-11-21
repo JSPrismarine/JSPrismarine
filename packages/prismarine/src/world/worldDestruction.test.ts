@@ -388,8 +388,8 @@ describe('a block the world destroyed', () => {
         spawned
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
             .map((entity) => ({
-                identifier: entity.getItem()!.getItem().getName(),
-                count: entity.getItem()!.getCount()
+                identifier: entity.getItem()!.getName(),
+                count: entity.getItem()!.getAmount()
             }));
 
     /** Puts a chest at a position through the adapter, so `onPlace` gives it its block entity. */

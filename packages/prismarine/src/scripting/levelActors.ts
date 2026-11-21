@@ -5,10 +5,10 @@
 import type { ScriptItem } from '@jsprismarine/script-host/host/world';
 
 import type { StoreActor } from '../entity/data/storeActors';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { itemFromContent } from '../item/itemFromContent';
 import type PlayerSession from '../network/PlayerSession';
 import type Server from '../Server';
+import type { Item } from '../item/Item';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
 
@@ -41,11 +41,10 @@ export const levelActors = (server: Server, level: Level) => ({
 });
 
 /** A script's stack as an inventory slot holds it, or undefined for a type the content lacks. */
-export const containerEntryOf = (server: Server, item: ScriptItem): ContainerEntry | undefined => {
+export const itemOfScriptItem = (server: Server, item: ScriptItem): Item | undefined => {
     const stack = itemFromContent(item.typeId, server.getContent());
     if (stack === null) return undefined;
     const shown = stack.withCount(item.amount).withDisplay(item.nameTag, item.lore ?? []);
     const most = shown.getMaxDurability();
-    const written = most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
-    return new ContainerEntry({ item: written, count: item.amount });
+    return most > 0 ? shown.withDurability(most - (item.damage ?? 0)) : shown;
 };

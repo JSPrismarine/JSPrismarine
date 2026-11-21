@@ -730,7 +730,7 @@ describe('the command layer on a server with packs of its own', () => {
         // command wrote with, so this says the chest holds it and not merely
         // that the write returned.
         const held = contentsOf([8, 70, 8], 'minecraft:chest');
-        expect(held.filter((entry) => entry.getItem().getName() === 'minecraft:cobblestone')).toHaveLength(1);
+        expect(held.filter((entry) => entry?.getName() === 'minecraft:cobblestone')).toHaveLength(1);
     });
 
     it('refuses /loot insert where no block stores anything', async () => {
@@ -745,8 +745,8 @@ describe('the command layer on a server with packs of its own', () => {
         await expect(run('/replaceitem block 10 70 10 slot.container 5 minecraft:diamond 3')).resolves.toBe(true);
 
         const held = contentsOf([10, 70, 10], 'minecraft:chest');
-        expect(held[5]?.getItem().getName()).toBe('minecraft:diamond');
-        expect(held[5]?.getCount()).toBe(3);
+        expect(held[5]?.getName()).toBe('minecraft:diamond');
+        expect(held[5]?.getAmount()).toBe(3);
     });
 
     it('refuses a container slot the block does not have', async () => {
@@ -761,6 +761,6 @@ describe('the command layer on a server with packs of its own', () => {
 
         await expect(run('/loot replace block 12 70 12 container.2 loot mypack:gifts')).resolves.toBe(true);
 
-        expect(contentsOf([12, 70, 12], 'minecraft:chest')[2]?.getItem().getName()).toBe('minecraft:cobblestone');
+        expect(contentsOf([12, 70, 12], 'minecraft:chest')[2]?.getName()).toBe('minecraft:cobblestone');
     });
 });

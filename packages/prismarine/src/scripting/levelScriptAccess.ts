@@ -34,7 +34,7 @@ import { ENTITY_EYE_HEIGHT_FRACTION } from '../entity/data/position';
 import type { StoreActor } from '../entity/data/storeActors';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { WindowIds } from '../inventory/WindowIds';
-import type Inventory from '../inventory/Inventory';
+import type { MobEquipmentSlot } from '../entity/equipment';
 import { mobEquipmentSlotOf } from '../entity/equipment';
 import type { Item } from '../item/Item';
 import { maxStackSizeOf } from '../item/Item';
@@ -52,7 +52,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { blockContainerAt } from '../command/host/containers';
 import { bedrockMobEffectId, normalizeStatusEffectId } from '../entity/StatusEffect';
 import { damageSourceOfScript } from './scriptEntityEvents';
-import { containerEntryOf, levelActors, presentActor } from './levelActors';
+import { itemOfScriptItem, levelActors, presentActor } from './levelActors';
 import { scriptScoreboard } from './scriptScoreboard';
 import { levelCatalog } from './blocksItems/levelCatalog';
 import { scriptEffectTypes } from '@jsprismarine/bedrock-data/script-catalog';
@@ -136,8 +136,16 @@ const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): 
     };
 };
 
-/** The equipment slots of a player's armor container, in the order the client numbers them. */
-const ARMOR_ORDER: readonly ScriptEquipmentSlot[] = ['Head', 'Chest', 'Legs', 'Feet'];
+/** Each equipment slot a script names, with the server's name for it, in the order a script reads them. */
+const EQUIPMENT_SLOTS = [
+    ['Mainhand', 'mainhand'],
+    ['Offhand', 'offhand'],
+    ['Head', 'head'],
+    ['Chest', 'chest'],
+    ['Legs', 'legs'],
+    ['Feet', 'feet'],
+    ['Body', 'body']
+] as const satisfies readonly (readonly [ScriptEquipmentSlot, MobEquipmentSlot])[];
 
 /**
  * A player's hunger, saturation and exhaustion, which BDS gives the attribute components
@@ -215,8 +223,8 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                     ? { inventorySize: capacity }
                     : {}
                 : {
-                      inventorySize: player.getInventory().getSlotCount(),
-                      selectedSlot: player.getInventory().getHandSlotIndex(),
+                      inventorySize: player.getInventory().container('inventory').size,
+                      selectedSlot: player.getInventory().getHandSlot(),
                       sneaking: player.isSneaking()
                   }),
             ...(gameMode === undefined ? {} : { gameMode }),
@@ -254,7 +262,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         dimension: actor.getWorld().getDimension().id
     });
     const javaDimension = (dimension: string): string => worldOf(dimension)?.getDimension().id ?? dimension;
-    const entryOf = (item: ScriptItem) => containerEntryOf(server, item);
+    const stackOf = (item: ScriptItem) => itemOfScriptItem(server, item);
     /**
      * An entity's attribute. A mob whose definition leaves out one of the attributes BDS gives
      * every mob has BDS's default for it, see {@link MOB_ATTRIBUTE_DEFAULTS}, declared on it the
@@ -316,7 +324,7 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         inventory: (id) => {
             const actor = actorOf(id);
             if (actor === undefined) return undefined;
-            const inventory = sessionOf(id)?.getPlayer().getInventory();
+            const inventory = sessionOf(id)?.getPlayer().getInventory().container('inventory');
             if (inventory === undefined) {
                 const { body } = actor.entity;
                 if (body.containerCapacity <= 0) return undefined;
@@ -324,15 +332,11 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                     scriptItemOfDrop(body.containerSlots[slot])
                 );
             }
-            const slots: (ScriptItem | null)[] = [];
-            for (let slot = 0; slot < inventory.getSlotCount(); slot++) {
-                slots.push(inventory.isEmpty(slot) ? null : scriptItemOf(inventory.getItem(slot)));
-            }
-            return slots;
+            return inventory.items().map(scriptItemOf);
         },
         setInventoryItem: (id, slot, item) => {
             const session = sessionOf(id);
-            const inventory = session?.getPlayer().getInventory();
+            const inventory = session?.getPlayer().getInventory().container('inventory');
             if (session === undefined || inventory === undefined) {
                 const body = actorOf(id)?.entity.body;
                 if (body === undefined || slot < 0 || slot >= body.containerCapacity) return;
@@ -340,11 +344,11 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
                 body.setContainerSlot(slot, item === undefined ? undefined : dropOfScriptItem(item, held));
                 return;
             }
-            if (item === undefined) inventory.removeItem(slot);
+            if (item === undefined) inventory.set(slot, null);
             else {
-                const entry = entryOf(item);
-                if (entry === undefined) return;
-                inventory.setItem(slot, entry);
+                const stack = stackOf(item);
+                if (stack === undefined) return;
+                inventory.set(slot, stack);
             }
             session.released(session.sendInventory());
         },
@@ -417,17 +421,10 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             // Only a player has equipment a script reaches, as on BDS.
             const inventory = sessionOf(id)?.getPlayer().getInventory();
             if (inventory === undefined) return undefined;
-            const held = (container: Inventory, slot: number) =>
-                container.isEmpty(slot) ? undefined : (scriptItemOf(container.getItem(slot)) ?? undefined);
             const slots: Partial<Record<ScriptEquipmentSlot, ScriptItem>> = {};
-            const read: readonly (readonly [ScriptEquipmentSlot, Inventory, number])[] = [
-                ['Mainhand', inventory, inventory.getHandSlotIndex()],
-                ['Offhand', inventory.getOffhand(), 0],
-                ...ARMOR_ORDER.map((slot, index) => [slot, inventory.getArmor(), index] as const)
-            ];
-            for (const [slot, container, index] of read) {
-                const item = held(container, index);
-                if (item !== undefined) slots[slot] = item;
+            for (const [slot, equipped] of EQUIPMENT_SLOTS) {
+                const item = scriptItemOf(inventory.equipment(equipped));
+                if (item !== null) slots[slot] = item;
             }
             return { slots, armor: inventory.getArmorDefensePoints(), toughness: inventory.getArmorToughness() };
         },
@@ -435,22 +432,16 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const session = sessionOf(id);
             const inventory = session?.getPlayer().getInventory();
             if (session === undefined || inventory === undefined || slot === 'Body') return false;
-            const entry = item === undefined ? undefined : entryOf(item);
-            if (item !== undefined && entry === undefined) return false;
-            const armorSlot = ARMOR_ORDER.indexOf(slot);
+            const stack = item === undefined ? undefined : stackOf(item);
+            if (item !== undefined && stack === undefined) return false;
+            const equipped = EQUIPMENT_SLOTS.find(([named]) => named === slot)?.[1];
+            if (equipped === undefined) return false;
             // An armor slot takes only a piece worn there, as the item's `minecraft:wearable` says.
-            if (armorSlot >= 0 && entry !== undefined) {
-                const worn = entry.getItem().getEquipmentSlot();
-                if (worn === undefined || mobEquipmentSlotOf(worn) !== slot.toLowerCase()) return false;
+            if (equipped !== 'mainhand' && equipped !== 'offhand' && stack !== undefined) {
+                const worn = stack.getEquipmentSlot();
+                if (worn === undefined || mobEquipmentSlotOf(worn) !== equipped) return false;
             }
-            const [container, index] =
-                slot === 'Mainhand'
-                    ? [inventory, inventory.getHandSlotIndex()]
-                    : slot === 'Offhand'
-                      ? [inventory.getOffhand(), 0]
-                      : [inventory.getArmor(), armorSlot];
-            if (entry === undefined) container.removeItem(index);
-            else container.setItem(index, entry);
+            if (!inventory.setEquipment(equipped, stack ?? null)) return false;
             session.released(session.sendInventory());
             return true;
         },

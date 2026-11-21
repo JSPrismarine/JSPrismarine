@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type PlayerSession from '../network/PlayerSession';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import { DamageCause } from './DamageCause';
 
@@ -22,10 +21,7 @@ const scene = () => ({ wearer: () => fakePlayer().session });
 
 /** Puts a piece on, in the slot the client numbers it. */
 const wear = (player: PlayerSession, slot: number, piece: Item) =>
-    player
-        .getInventory()
-        .getArmor()
-        .setItem(slot, new ContainerEntry({ item: piece, count: 1 }));
+    player.getInventory().container('armor').set(slot, piece);
 
 /** The armor points and toughness a player's inventory gives it. */
 const armorOf = (player: PlayerSession) => ({

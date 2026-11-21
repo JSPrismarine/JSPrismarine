@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type HumanInventory from '../../inventory/HumanInventory';
+import { ItemContainer } from '../../inventory/ItemContainer';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import BookEditPacket, { BookEditAction } from '@jsprismarine/protocol/bedrock/packet/BookEditPacket';
@@ -12,10 +13,7 @@ const steveHolding = (item: Item) =>
     sessionSeeingBlocks(
         {},
         {
-            getInventory: () =>
-                stub<HumanInventory>({
-                    getItem: (slot) => (slot === 2 ? item : new Item({ runtimeId: 0, name: 'minecraft:air' }))
-                })
+            getInventory: () => stub<HumanInventory>({ container: () => new ItemContainer(36, [null, null, item]) })
         }
     );
 

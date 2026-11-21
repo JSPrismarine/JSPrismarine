@@ -10,7 +10,6 @@ import { describe, expect, it } from 'vitest';
 
 import type { SessionPlayer } from './sessionPlayers';
 import type { StorePlayerActor } from '../entity/data/storePlayers';
-import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
 import { stub } from '../testing/stub.test.helper';
@@ -84,8 +83,8 @@ const equippedHuman = () => {
     const inventory = new HumanInventory();
     const chestplate = new Item({ runtimeId: 0, name: 'minecraft:diamond_chestplate' });
     const shield = new Item({ runtimeId: 0, name: 'minecraft:shield' });
-    inventory.getArmor().setItem(1, new ContainerEntry({ item: chestplate, count: 1 }));
-    inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
+    inventory.container('armor').set(1, chestplate);
+    inventory.container('offhand').set(0, shield);
 
     return Object.assign(
         stub<StorePlayerActor>({
@@ -175,10 +174,7 @@ describe('network', () => {
                 // every stack it lists.
                 const { session, sent } = ownSession();
                 const inventory = session.getPlayer().getInventory();
-                inventory.setItem(
-                    3,
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 1 }), count: 9 })
-                );
+                inventory.container('inventory').set(3, new Item({ name: 'minecraft:stone', count: 1 }).withCount(9));
 
                 await session.sendInventory();
 
@@ -203,7 +199,7 @@ describe('network', () => {
                 const { session, sent } = ownSession();
                 const inventory = session.getPlayer().getInventory();
                 const sword = new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' });
-                inventory.setItem(inventory.getHandSlotIndex(), new ContainerEntry({ item: sword, count: 1 }));
+                inventory.container('inventory').set(inventory.getHandSlot(), sword);
 
                 await session.sendInventory();
 
@@ -217,8 +213,8 @@ describe('network', () => {
                 expect(data.runtimeEntityId).toBe(7n);
                 expect(itemName(data.item)).toBe('minecraft:diamond_sword');
                 expect(data.windowId).toBe(WindowIds.INVENTORY);
-                expect(data.inventorySlot).toBe(inventory.getHandSlotIndex());
-                expect(data.hotbarSlot).toBe(inventory.getHandSlotIndex());
+                expect(data.inventorySlot).toBe(inventory.getHandSlot());
+                expect(data.hotbarSlot).toBe(inventory.getHandSlot());
             });
         });
 
