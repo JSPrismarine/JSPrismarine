@@ -8,6 +8,7 @@ import { createGoalEntityRegistry, goalNames } from '@jsprismarine/entity-goals'
 
 import { actuatorOf, goalWorldOf } from './goalWorld';
 import { entityFixture, entityFile, FLOOR_Y, TestEntityWorld } from './testing';
+import { give } from '../../testing/mobSlots.test-utils';
 
 /**
  * Whether every registered vanilla goal can run against the real host.
@@ -133,7 +134,7 @@ describe('the goals against the real goal world', () => {
 
     carrier.target = mate.id;
     carrier.body.owner = 900;
-    carrier.body.setInventory([...carrier.body.inventory, 'minecraft:wheat']);
+    give(carrier.body, ['minecraft:wheat'], fixture.runtime.content());
     fixture.runtime.hurt(carrier, mate.id, 'entity_attack', 1);
     fixture.runtime.knockback(
         mate.body,

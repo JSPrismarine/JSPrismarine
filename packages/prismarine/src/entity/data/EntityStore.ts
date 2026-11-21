@@ -48,6 +48,7 @@ import type { PlainData, PlainRecord } from '../../world/changelog/PlainData';
 import type { TickHeader } from '../../world/changelog/TickHeader';
 import { plainOf, samePlain } from '../../world/changelog/PlainData';
 import type { DataEntity } from './DataEntity';
+import { clientOwnsMovement } from '../playerOverlay';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 /**
@@ -526,8 +527,12 @@ export class EntityStore {
             this.reverting = false;
         }
         // Logged after the undo, in the span around this one if there is one, so an undo of that
-        // span shows the slots again too.
-        for (const shown of slotsShownAgain(removed)) this.append(shown);
+        // span shows the slots again too. A mob's slots have no owner's client to show.
+        const hasOwner = (entity: bigint): boolean => {
+            const member = this.members.get(Number(entity));
+            return member === undefined || clientOwnsMovement(member.identifier);
+        };
+        for (const shown of slotsShownAgain(removed)) if (hasOwner(shown.data.entity)) this.append(shown);
     }
 }
 
@@ -552,7 +557,7 @@ type AfterUnit = {
 /**
  * The slots an undone span wrote, or showed again after an undo inside it, each once and in the
  * order the span first named it. A slot written back holds a stack with a new network id, so its
- * owner's client is shown it again.
+ * owner's client is shown it again. The caller leaves out a mob's, which no client owns.
  */
 const slotsShownAgain = (removed: readonly ChangeEntry[]): OccurrenceEntry<'slot-shown'>[] => {
     const shown = new Map<string, OccurrenceEntry<'slot-shown'>>();

@@ -11,7 +11,6 @@ import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/bedr
 import type { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures/SyncedProperties';
 
 import { syncedPropertiesOf } from '../../network/actorProperties';
-import type { MobEquipmentSet } from '../equipment';
 import type { StatusEffect } from '../StatusEffect';
 import { actorMetadataProjection } from './actorMetadata';
 import type { ActorMetadataProjection } from './actorMetadata';
@@ -56,11 +55,12 @@ export const healthAttributesOf = (health: ShownHealth | undefined): Attributes 
 };
 
 /**
- * Everything a client is shown of one store entity that its store state decides: where it is,
- * its metadata, its health, its synced properties, its status effects and what it wears.
+ * Everything a client is shown of one store entity that its store fields decide: where it is,
+ * its metadata, its health, its synced properties and its status effects.
  *
- * What a player's own components add (breath, sprinting, flight) and what a session holds of a
- * player (its skin, its name and its inventory's equipment) are not part of it.
+ * What it holds and wears is in its slots, which the replica reads apart
+ * (`EntityReplica.equipment`). What a player's own components add (breath, sprinting, flight) and
+ * what a session holds of a player (its skin and its name) are not part of it.
  */
 export type EntityView = {
     readonly identifier: string;
@@ -71,7 +71,6 @@ export type EntityView = {
     readonly health: ShownHealth | undefined;
     readonly properties: SyncedProperties;
     readonly statusEffects: readonly StatusEffect[];
-    readonly equipment: MobEquipmentSet;
 };
 
 /**
@@ -90,7 +89,6 @@ export const entityViewOf = (entity: DataEntity, leashHolderId?: number): Entity
         metadata: actorMetadataProjection(entity, leashHolderId),
         health: health === undefined ? undefined : { current: health.current, max: health.max },
         properties: syncedPropertiesOf(instance.properties),
-        statusEffects: [...body.statusEffects.values()],
-        equipment: body.equipment
+        statusEffects: [...body.statusEffects.values()]
     };
 };

@@ -400,7 +400,7 @@ const digestOf = (
                     bits(entity.body.yaw),
                     bits(entity.body.pitch),
                     entity.target ?? '-',
-                    entity.body.carried ?? '-',
+                    entity.body.inventory.equipment('mainhand')?.getName() ?? '-',
                     entity.body.sitting ? 's' : '-',
                     entity.body.sleeping ? 'z' : '-',
                     entity.body.loveTicks,

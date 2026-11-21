@@ -12,6 +12,7 @@ import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 import { PLAYER_IDENTIFIER } from '../playerOverlay';
 import { storePlayerFixture } from '../../testing/storePlayer.test.helper';
 import { beginMeasuredTick } from '../../testing/changeTicks.test.helper';
+import { containerOf, equip, equipmentOf, setContainerSlot } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -86,15 +87,7 @@ const WRITES: readonly {
     { field: 'projectileAge', write: ({ body }) => (body.projectileAge = 5), saved: false },
     { field: 'projectileStuck', write: ({ body }) => (body.projectileStuck = true), saved: false },
     { field: 'teleports', write: ({ body }) => body.teleportTo({ x: 3, y: FLOOR_Y + 1, z: 2 }) },
-    {
-        field: 'equipment',
-        write: ({ body }) => body.setEquipment({ mainhand: { identifier: 'minecraft:bow', count: 1 } })
-    },
-    { field: 'inventory', write: ({ body }) => body.setInventory(['minecraft:wheat', 'minecraft:bread']) },
-    {
-        field: 'containerSlots',
-        write: ({ body }) => body.setContainerSlot(1, { identifier: 'minecraft:saddle', count: 1 })
-    },
+    { field: 'inventorySize', write: ({ body }) => body.setContainerCapacity(4) },
     { field: 'tags', write: ({ body }) => body.tags.add('logged') },
     {
         field: 'statusEffects',
@@ -129,6 +122,45 @@ const WRITES: readonly {
             const vehicle = runtime.mobById(other.id);
             if (vehicle === undefined) throw new Error('the vehicle is not in the store');
             runtime.mount(entity.body, vehicle);
+        }
+    }
+];
+
+/** One write to each kind of slot a mob carries, named by the slot its `inventory-slot` entry addresses. */
+const SLOT_WRITES: readonly {
+    readonly name: string;
+    readonly container: string;
+    readonly slot: number;
+    readonly write: (entity: DataEntity, runtime: EntityRuntime) => void;
+}[] = [
+    {
+        name: 'its main hand',
+        container: 'mainhand',
+        slot: 0,
+        write: ({ body }, runtime) =>
+            equip(body, { mainhand: { identifier: 'minecraft:bow', count: 1 } }, runtime.content())
+    },
+    {
+        name: 'an armor slot',
+        container: 'armor',
+        slot: 0,
+        write: ({ body }, runtime) =>
+            equip(body, { head: { identifier: 'minecraft:iron_helmet', count: 1 } }, runtime.content())
+    },
+    {
+        name: 'an inventory slot',
+        container: 'inventory',
+        slot: 1,
+        write: ({ body }, runtime) =>
+            setContainerSlot(body, 1, { identifier: 'minecraft:saddle', count: 1 }, runtime.content())
+    },
+    {
+        name: 'the inventory slot an equipment slot is aliased to',
+        container: 'inventory',
+        slot: 1,
+        write: ({ body }, runtime) => {
+            body.equipmentInventorySlots.set('body', 1);
+            equip(body, { body: { identifier: 'minecraft:iron_horse_armor', count: 1 } }, runtime.content());
         }
     }
 ];
@@ -212,6 +244,73 @@ describe('the entity store', () => {
             if (saved !== false) expect(savedForms(runtime)).not.toEqual(before);
         }
     );
+
+    it.each(SLOT_WRITES)(
+        'logs a write to $name as an inventory-slot entry, and undoes it exactly',
+        ({ container, slot, write }) => {
+            const { runtime } = fixture();
+            const entity = spawnLogged(runtime);
+            const before = savedForms(runtime);
+            beginMeasuredTick(runtime.store);
+
+            runtime.store.unit(() => {
+                write(entity, runtime);
+                throw new Planned();
+            });
+            expect(runtime.store.broken).toBeUndefined();
+            expect(savedForms(runtime)).toEqual(before);
+            expect(entity.body.inventory.slotItem(container, slot)).toBeNull();
+            expect(runtime.store.sealTick()?.entries).toEqual([]);
+
+            beginMeasuredTick(runtime.store);
+            runtime.store.unit(() => write(entity, runtime));
+            const entries = runtime.store.sealTick()?.entries ?? [];
+            expect(entries).toContainEqual({
+                kind: 'field',
+                field: 'inventory-slot',
+                address: { entity: BigInt(entity.id), container, slot },
+                before: null,
+                after: entity.body.inventory.slotValue(container, slot)
+            });
+            // Slots are logged one by one, and no whole-field entry carries them as well.
+            expect(entries.filter((entry) => entry.kind === 'field' && entry.field === 'entity')).not.toContainEqual(
+                expect.objectContaining({ address: expect.objectContaining({ field: 'equipment' }) })
+            );
+            expect(savedForms(runtime)).not.toEqual(before);
+        }
+    );
+
+    it('undoes a shrink of the inventory container, giving the slots back before their stacks', () => {
+        const { runtime } = fixture();
+        const entity = spawnLogged(runtime);
+        setContainerSlot(entity.body, 1, { identifier: 'minecraft:saddle', count: 1 }, runtime.content());
+        const before = savedForms(runtime);
+        beginMeasuredTick(runtime.store);
+
+        runtime.store.unit(() => {
+            expect(entity.body.setContainerCapacity(1).map((item) => item.getName())).toEqual(['minecraft:saddle']);
+            expect(entity.body.containerCapacity).toBe(1);
+            throw new Planned();
+        });
+
+        expect(runtime.store.broken).toBeUndefined();
+        expect(entity.body.containerCapacity).toBe(2);
+        expect(containerOf(entity.body)).toEqual([undefined, { identifier: 'minecraft:saddle', count: 1 }]);
+        expect(savedForms(runtime)).toEqual(before);
+
+        // Kept, the slot's write comes before the size's, which is the order an undo reverses.
+        runtime.store.unit(() => entity.body.setContainerCapacity(1));
+        const addressed = (runtime.store.sealTick()?.entries ?? []).flatMap((entry) =>
+            entry.kind !== 'field'
+                ? []
+                : entry.field === 'inventory-slot'
+                  ? [`${entry.address.container}:${entry.address.slot}`]
+                  : entry.field === 'entity'
+                    ? [entry.address.field]
+                    : []
+        );
+        expect(addressed).toEqual(['inventory:1', 'inventorySize']);
+    });
 
     it('undoes a spawn and a removal inside a unit, bringing the removed entity back under its id', () => {
         const { runtime } = fixture();
@@ -395,20 +494,20 @@ describe('the entity store', () => {
         expect(runtime.store.sealTick()?.entries.filter((entry) => entry.kind === 'membership')).toEqual([]);
     });
 
-    it('keeps a stored stack from changing through the object its caller still holds', () => {
+    it('keeps a stored stack from changing through the drop its caller still holds', () => {
         const { runtime } = fixture();
         const entity = spawnLogged(runtime);
         const saddle = { identifier: 'minecraft:saddle', count: 1, lore: ['worn'] };
         const sword = { identifier: 'minecraft:iron_sword', count: 1, enchantments: { sharpness: 1 } };
-        entity.body.setContainerSlot(1, saddle);
-        entity.body.setEquipment({ mainhand: sword });
+        setContainerSlot(entity.body, 1, saddle, runtime.content());
+        equip(entity.body, { mainhand: sword }, runtime.content());
 
-        // Strict mode turns a write to a frozen object into a throw, so a caller learns at once.
-        expect(() => (saddle.count = 2)).toThrow(TypeError);
-        expect(() => saddle.lore.push('torn')).toThrow(TypeError);
-        expect(() => (sword.enchantments.sharpness = 5)).toThrow(TypeError);
-        expect(entity.body.containerSlots[1]).toEqual({ identifier: 'minecraft:saddle', count: 1, lore: ['worn'] });
-        expect(entity.body.equipment.mainhand?.enchantments).toEqual({ sharpness: 1 });
+        // A slot holds a stack built from the drop, so changing the drop afterwards changes nothing.
+        saddle.count = 2;
+        saddle.lore.push('torn');
+        sword.enchantments.sharpness = 5;
+        expect(containerOf(entity.body)[1]).toEqual({ identifier: 'minecraft:saddle', count: 1, lore: ['worn'] });
+        expect(equipmentOf(entity.body).mainhand?.enchantments).toEqual({ 'minecraft:sharpness': 1 });
     });
 
     it('appends at most one position write per walking mob in a tick', () => {
@@ -633,7 +732,7 @@ describe('the entity store', () => {
             const world = new FailingDropWorld();
             const { runtime } = entityFixture(world, {}, EXTRA);
             const entity = spawnLogged(runtime);
-            entity.body.setContainerSlot(1, { identifier: 'minecraft:saddle', count: 1 });
+            setContainerSlot(entity.body, 1, { identifier: 'minecraft:saddle', count: 1 }, runtime.content());
             const lethal = {
                 target: entity.id,
                 cause: 'entity_attack',

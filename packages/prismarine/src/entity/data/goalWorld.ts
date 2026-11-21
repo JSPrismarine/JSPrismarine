@@ -17,14 +17,14 @@ import { bedrockBlockStateToJava, javaBlockStateToBedrock } from '@jsprismarine/
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
-import type { ContentItemDrop } from '../../content/world/adapter';
+import { itemOfDrop } from '../../inventory/persistence';
 import { isDay } from '../../world/DayCycle';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
-import type { MobEquipmentSlot } from '../equipment';
 import { EYE_HEIGHT } from '../playerEyes';
 import type { DataEntity, MobBody } from './DataEntity';
 import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
+import { countIn, identifiersIn } from './mobInventory';
 import { doorBreakEvents, removeDoor, setDoorOpen } from './doors';
 import type { LevelEventSink } from './doors';
 
@@ -81,13 +81,11 @@ const samePosition = (left: EntityPosition, right: EntityPosition): boolean =>
 /** Reuses read-through goal views without tying an entity to another runtime's scene. */
 const goalMobViews = new WeakMap<EntityScene, WeakMap<DataEntity, GoalMob>>();
 
-/** The item identifiers held in an entity's flat inventory and declared slots. */
-const shareInventoryOf = (body: MobBody): readonly string[] => [
-    ...body.inventory,
-    ...body.containerSlots.flatMap((item) =>
-        item === undefined ? [] : Array.from({ length: item.count }, () => item.identifier)
-    )
-];
+/** The item identifiers an entity carries in its `inventory` container, one per item. */
+const carriedIdentifiersOf = (body: MobBody): readonly string[] => identifiersIn(body.inventory.container('inventory'));
+
+/** The identifier of what an entity holds in its main hand. */
+const heldIdentifierOf = (body: MobBody): string | undefined => body.inventory.equipment('mainhand')?.getName();
 
 /** One live entity as a goal sees another. */
 export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
@@ -106,9 +104,9 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
         lookPosition: () => entityEyePosition(entity.position, entity.facts.box.height),
         view: (): FilterEntityView => entity.instance.filterContext().self,
         identifier: () => entity.identifier,
-        heldItem: () => entity.carried,
-        inventory: () => entity.body.inventory,
-        shareInventory: () => shareInventoryOf(entity.body),
+        heldItem: () => heldIdentifierOf(entity.body),
+        inventory: () => carriedIdentifiersOf(entity.body),
+        shareInventory: () => carriedIdentifiersOf(entity.body),
         shareables: () => {
             const rules = entity.instance.componentParams('minecraft:shareables');
             return isShareablesParams(rules) ? rules : undefined;
@@ -319,17 +317,9 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         canPickUpLoot: () => scene.canPickUpLoot(entity),
         craftInto: (inputIdentifier, outputIdentifier, availableInput, wantedOutput) =>
             scene.craftInto(inputIdentifier, outputIdentifier, availableInput, wantedOutput),
-        carriedItem: () => entity.carried,
+        carriedItem: () => heldIdentifierOf(entity),
         itemCount: (identifier) =>
-            entity.inventory.filter((item) => item === identifier).length +
-            Object.values(entity.equipment).reduce(
-                (count, item) => count + (item?.identifier === identifier ? item.count : 0),
-                0
-            ) +
-            entity.containerSlots.reduce(
-                (count, item) => count + (item?.identifier === identifier ? item.count : 0),
-                0
-            ),
+            entity.inventory.entries().reduce((count, [, container]) => count + countIn(container, identifier), 0),
         itemHasTag: (identifier, tag) => {
             const name = tag.startsWith('#') ? tag.slice(1) : tag;
             const namespaced = name.includes(':') ? name : `minecraft:${name}`;
@@ -338,11 +328,9 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         itemHasComponent: (identifier, component) =>
             scene.content().items.types.get(identifier)?.hasComponent(component) === true,
-        setCarriedItem: (identifier) => {
-            entity.carried = identifier;
-        },
-        inventory: () => [...entity.inventory],
-        shareInventory: () => shareInventoryOf(entity),
+        setCarriedItem: (identifier) => scene.setHeldItem(entity, identifier),
+        inventory: () => carriedIdentifiersOf(entity),
+        shareInventory: () => carriedIdentifiersOf(entity),
         giveItem: (mob, identifier, count) => scene.giveItem(entity, mob, identifier, count),
         giveCraftedItem: (mob, craft) => scene.giveCraftedItem(entity, mob, craft),
         dropItem: (identifier, position) =>
@@ -402,13 +390,12 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             if (spawned === undefined) return undefined;
             const fill = options?.fillEmptySlots;
             if (fill !== undefined) {
-                const equipment: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = { ...spawned.body.equipment };
+                const { inventory } = spawned.body;
                 for (const slot of MOB_EQUIPMENT_SLOTS) {
                     const item = fill[slot];
-                    if (item !== undefined && equipment[slot] === undefined)
-                        equipment[slot] = { identifier: item, count: 1 };
+                    if (item !== undefined && inventory.equipment(slot) === null)
+                        inventory.setEquipment(slot, itemOfDrop({ identifier: item, count: 1 }, scene.content()));
                 }
-                spawned.body.setEquipment(equipment);
             }
             const enchant = options?.enchantFromProvider;
             if (enchant !== undefined) scene.enchantEquipmentFromProvider(spawned, enchant.provider, enchant.slots);

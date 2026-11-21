@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { inHopperReach, insertStack } from './itemHopper';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
+import { containerOf } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 const CART = { position: GROUND, width: 0.98, height: 0.7 };
@@ -62,7 +63,7 @@ describe('a hopper minecart in the runtime', () => {
         expect(world.host.items?.().length).toBe(2);
         runtime.tick(2);
         expect(world.host.items?.().map((lying) => lying.item.identifier)).toEqual(['minecraft:diamond']);
-        expect(cart.body.containerSlots).toEqual([
+        expect(containerOf(cart.body).filter((slot) => slot !== undefined)).toEqual([
             { identifier: 'minecraft:dirt', count: 5 },
             { identifier: 'minecraft:cobblestone', count: 3 }
         ]);

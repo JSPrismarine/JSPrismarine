@@ -58,11 +58,11 @@ const MATURE_GROWTH = 7;
 /** How many blocks around itself a farmer looks for work, horizontally. */
 const FARM_RADIUS = 4;
 
-/** Counts one item in a flat inventory. */
+/** Counts one item in a list of carried identifiers, one per item. */
 export const countOf = (inventory: readonly string[], identifier: string): number =>
     inventory.filter((held) => held === identifier).length;
 
-/** Takes up to `count` of one item out of a flat inventory and returns how many went. */
+/** Takes up to `count` of one item out of a list of carried identifiers and returns how many went. */
 export const takeFrom = (inventory: string[], identifier: string, count: number): number => {
     let taken = 0;
     for (let index = inventory.length - 1; index >= 0 && taken < count; index -= 1) {
@@ -73,7 +73,7 @@ export const takeFrom = (inventory: string[], identifier: string, count: number)
     return taken;
 };
 
-/** Puts `count` of one item into a flat inventory. */
+/** Puts `count` of one item into a list of carried identifiers. */
 export const giveTo = (inventory: string[], identifier: string, count: number): void => {
     for (let index = 0; index < count; index += 1) inventory.push(identifier);
 };

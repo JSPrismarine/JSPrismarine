@@ -18,10 +18,13 @@
  * The attack target is deliberately not in the record. It is a runtime id,
  * which is drawn fresh each session and would resolve to whatever entity
  * happened to take the number. The owner is stored by stable player identity
- * and rebound to the new runtime id when that player returns. The goal-facing
- * `carried` field remains an identifier; `equipment` and `containerSlots`
- * retain complete item stacks and nested contents. A generated identity lets
- * spawned leash links reconnect when either actor is restored first.
+ * and rebound to the new runtime id when that player returns. `equipment` and
+ * `containerSlots` hold complete item stacks and nested contents, written from
+ * the body's inventory. A record written before the body had one may also hold
+ * `carried`, an identifier for the main hand, and `inventory`, a list of
+ * identifiers with no counts; both load into the inventory. A generated
+ * identity lets spawned leash links reconnect when either actor is restored
+ * first.
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
@@ -33,6 +36,9 @@ import { Types } from '@jsprismarine/nbt';
 import { randomUUID } from 'node:crypto';
 
 import type { ContentItemDrop } from '../../content/world/adapter';
+import type { ServerContent } from '../../content/ServerContent';
+import type { EntityInventory } from '../../inventory/EntityInventory';
+import { dropOfItem, itemOfDrop } from '../../inventory/persistence';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
 import type { DataEntity } from './DataEntity';
@@ -79,13 +85,22 @@ export interface DataEntityRecord {
     readonly ownerIdentity?: string;
     /** The player who cured this villager of being a zombie villager. */
     readonly curedBy?: string;
-    /** What the entity holds in its main hand. */
+    /**
+     * The main hand as an item identifier, which a record written before `equipment` held the
+     * main hand carries. It loads only when `equipment` has no main hand.
+     */
     readonly carried?: string;
-    /** What it carries that is not in its hand, as item identifiers. */
-    readonly inventory: readonly string[];
-    /** Equipment slots modified after spawn, with each complete stack. */
+    /**
+     * Items carried outside the hand, one identifier per item, which a record written before
+     * `containerSlots` held them carries. They load into the `inventory` container.
+     */
+    readonly inventory?: readonly string[];
+    /**
+     * What each equipment slot holds, with each complete stack. A slot an alias reads through
+     * `equipmentInventorySlots` holds the same stack as its container slot.
+     */
     readonly equipment?: MobEquipmentSet;
-    /** Inventory slots whose contents are also represented in a wearable slot. */
+    /** The equipment slots read through a container slot, such as a horse's armor, by container index. */
     readonly equipmentInventorySlots?: Partial<Record<MobEquipmentSlot, number>>;
     /** Slots in the `minecraft:inventory` container, empty slots represented by null. */
     readonly containerSlots?: readonly (ContentItemDrop | null)[];
@@ -164,13 +179,14 @@ export const dataEntityRecordOf = (
         ...(body.home === undefined ? {} : { home: body.home }),
         ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
         ...(body.curedBy === undefined ? {} : { curedBy: body.curedBy }),
-        ...(body.carried === undefined ? {} : { carried: body.carried }),
-        inventory: [...body.inventory],
-        equipment: body.equipment,
+        equipment: equipmentDropsOf(body.inventory),
         ...(body.equipmentInventorySlots.size === 0
             ? {}
             : { equipmentInventorySlots: Object.fromEntries(body.equipmentInventorySlots) }),
-        containerSlots: body.containerSlots.map((item) => item ?? null),
+        containerSlots: body.inventory
+            .container('inventory')
+            .items()
+            .map((item) => dropOfItem(item) ?? null),
         sitting: body.sitting,
         sleeping: body.sleeping,
         loveTicks: body.loveTicks,
@@ -196,6 +212,16 @@ export const dataEntityRecordOf = (
     };
 };
 
+/** What each equipment slot of an inventory holds, as drops, with an empty slot left out. */
+export const equipmentDropsOf = (inventory: Pick<EntityInventory, 'equipment'>): MobEquipmentSet => {
+    const equipment: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = {};
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const drop = dropOfItem(inventory.equipment(slot));
+        if (drop !== undefined) equipment[slot] = drop;
+    }
+    return equipment;
+};
+
 /** Writes a record into an actor compound, leaving every other tag alone. */
 export const writeDataEntityRecord = (nbt: NBTTagCompound, record: DataEntityRecord): void => {
     nbt.addValue(DATA_ENTITY_TAG, new Types.StringVal(JSON.stringify(record)));
@@ -209,7 +235,7 @@ const stringsOf = (value: unknown): readonly string[] =>
     Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 
 /** One saved item stack, after checking each field this runtime reads. */
-const itemDropOf = (value: unknown): ContentItemDrop | undefined => {
+export const savedDropOf = (value: unknown): ContentItemDrop | undefined => {
     if (!isObject(value)) return undefined;
     const { identifier, count } = value;
     if (typeof identifier !== 'string' || identifier === '' || typeof count !== 'number' || !Number.isFinite(count))
@@ -226,7 +252,7 @@ const itemDropOf = (value: unknown): ContentItemDrop | undefined => {
         ? value['lore'].filter((line): line is string => typeof line === 'string')
         : undefined;
     const contents = Array.isArray(value['contents'])
-        ? value['contents'].map((item) => itemDropOf(item) ?? undefined)
+        ? value['contents'].map((item) => savedDropOf(item) ?? undefined)
         : undefined;
 
     return {
@@ -242,11 +268,11 @@ const itemDropOf = (value: unknown): ContentItemDrop | undefined => {
 };
 
 /** Saved equipment, retaining only known slots and complete item stacks. */
-export const equipmentOf = (value: unknown): MobEquipmentSet | undefined => {
+const equipmentOf = (value: unknown): MobEquipmentSet | undefined => {
     if (!isObject(value)) return undefined;
     const equipment: Partial<Record<(typeof MOB_EQUIPMENT_SLOTS)[number], ContentItemDrop>> = {};
     for (const slot of MOB_EQUIPMENT_SLOTS) {
-        const item = itemDropOf(value[slot]);
+        const item = savedDropOf(value[slot]);
         if (item !== undefined) equipment[slot] = item;
     }
     return equipment;
@@ -264,8 +290,8 @@ const equipmentInventorySlotsOf = (value: unknown): Partial<Record<MobEquipmentS
 };
 
 /** All saved container slots, preserving indices and treating invalid or absent stacks as empty. */
-export const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
-    Array.isArray(value) ? value.map((item) => itemDropOf(item) ?? null) : undefined;
+const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
+    Array.isArray(value) ? value.map((item) => savedDropOf(item) ?? null) : undefined;
 
 /** A saved position, when the value holds three numbers under `x`, `y` and `z`. */
 export const positionOf = (value: unknown): EntityPosition | undefined => {
@@ -401,6 +427,7 @@ export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefi
     const projectile = projectileOf(parsed['projectile']);
     const merchant = merchantSnapshotIn(parsed['merchant']);
     const componentState = componentStateOf(parsed['componentState']);
+    const legacyInventory = stringsOf(parsed['inventory']);
 
     return {
         identifier,
@@ -419,7 +446,7 @@ export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefi
         ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
         ...(typeof curedBy === 'string' ? { curedBy } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
-        inventory: stringsOf(parsed['inventory']),
+        ...(legacyInventory.length === 0 ? {} : { inventory: legacyInventory }),
         ...(equipment === undefined ? {} : { equipment }),
         ...(equipmentInventorySlots === undefined ? {} : { equipmentInventorySlots }),
         ...(containerSlots === undefined ? {} : { containerSlots }),
@@ -453,8 +480,14 @@ export const dataEntityRecordFrom = (parsed: unknown): DataEntityRecord | undefi
  * components and a component that declares an attribute writes that attribute
  * back to its base. The saved values land after, so a cow restored at four
  * hearts stays at four hearts, and a mob saved mid-timer resumes the timer.
+ *
+ * The `inventory` container keeps the size the caller gave it unless the record holds more than
+ * fits, in which case it grows to hold all of it. The caller's next resize to the size the
+ * components decide hands back what does not fit, so nothing a record holds is lost.
+ *
+ * @param content - The content build, which decides each restored item's maximum durability.
  */
-export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityRecord): void => {
+export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityRecord, content?: ServerContent): void => {
     const { body, instance } = entity;
 
     if (record.componentGroups.length > 0) {
@@ -481,18 +514,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     instance.setHomePosition(record.home);
     body.ownerIdentity = record.ownerIdentity;
     body.curedBy = record.curedBy;
-    if (record.equipment === undefined) body.carried = record.carried;
-    else {
-        body.setEquipment(record.equipment);
-        if (record.equipment.mainhand === undefined) body.carried = record.carried;
-    }
-    body.equipmentInventorySlots.clear();
-    for (const slot of MOB_EQUIPMENT_SLOTS) {
-        const index = record.equipmentInventorySlots?.[slot];
-        if (index !== undefined) body.equipmentInventorySlots.set(slot, index);
-    }
-    body.setInventory(record.inventory);
-    body.setContainerSlots((record.containerSlots ?? []).map((item) => item ?? undefined));
+    restoreCarried(entity, record, content);
     body.sitting = record.sitting;
     body.sleeping = record.sleeping;
     body.loveTicks = record.loveTicks;
@@ -511,4 +533,41 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
         body.projectileAge = record.projectile.age;
         body.projectileStuck = record.projectile.stuck;
     }
+};
+
+/**
+ * Puts what a record says the entity holds, wears and carries into its inventory.
+ *
+ * The container slots go first, then the aliases that point equipment slots at them, then the
+ * equipment slots no alias reads. A legacy `carried` fills the main hand only when `equipment`
+ * holds none, and the legacy identifier list goes into the container after its slots.
+ */
+const restoreCarried = (entity: DataEntity, record: DataEntityRecord, content: ServerContent | undefined): void => {
+    const { body } = entity;
+    const itemOf = (drop: ContentItemDrop) => itemOfDrop(drop, content);
+    const container = body.inventory.container('inventory');
+
+    const slots = record.containerSlots ?? [];
+    if (slots.length > container.size) body.setContainerCapacity(slots.length);
+    for (const [slot, drop] of slots.entries()) container.set(slot, drop === null ? null : itemOf(drop));
+    for (const identifier of record.inventory ?? []) {
+        const item = itemOf({ identifier, count: 1 });
+        if (item === null) continue;
+        if (container.room(item) <= 0) body.setContainerCapacity(container.size + 1);
+        container.add(item);
+    }
+
+    body.equipmentInventorySlots.clear();
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const index = record.equipmentInventorySlots?.[slot];
+        if (index !== undefined) body.equipmentInventorySlots.set(slot, index);
+    }
+
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        if (body.equipmentInventorySlots.has(slot)) continue;
+        const drop = record.equipment?.[slot];
+        body.inventory.setEquipment(slot, drop === undefined ? null : itemOf(drop));
+    }
+    if (record.equipment?.mainhand === undefined && record.carried !== undefined)
+        body.inventory.setEquipment('mainhand', itemOf({ identifier: record.carried, count: 1 }));
 };

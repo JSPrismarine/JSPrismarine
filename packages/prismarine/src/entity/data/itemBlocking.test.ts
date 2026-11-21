@@ -5,6 +5,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 
 import { blockDelayTicks, blockedDamage, blockingAngle, disableTicks, strongKnockback } from './itemBlocking';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
+import { equip, equipmentOf } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 const PLAYER = 500;
@@ -72,7 +73,7 @@ const shieldBearer = (random: readonly number[] = [0.5]) => {
     );
     const player = fixture.runtime.spawnPlayer(PLAYER, GROUND);
     if (player === undefined) throw new Error('the fixture declares no player');
-    player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+    equip(player.body, { offhand: { identifier: 'minecraft:shield', count: 1 } }, fixture.runtime.content());
     player.body.yaw = FACING_WEST;
     // The client owns a player's movement, so a push reaches it as an impulse it is sent.
     const impulses: EntityPosition[] = [];
@@ -95,7 +96,7 @@ const shieldBearer = (random: readonly number[] = [0.5]) => {
     const axeBlow = () => {
         const axeman = fixture.runtime.spawn('minecraft:cow', { ...GROUND, x: -1.5 });
         if (axeman === undefined) throw new Error('the fixture declares no cow');
-        axeman.body.setEquipment({ mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
+        equip(axeman.body, { mainhand: { identifier: 'minecraft:iron_axe', count: 1 } }, fixture.runtime.content());
         fixture.runtime.attack(axeman.body, fixture.runtime.mobById(PLAYER)!, 4);
     };
     const pass = (ticks: number) => {
@@ -133,7 +134,7 @@ describe('a raised shield in the entity runtime', () => {
         raised.hit('minecraft:cow', undefined, 4);
         expect(raised.health()).toBe(full);
         // `item_damage`: 1 + 1 * 4, past its threshold of 3.
-        expect(raised.player.body.equipment.offhand?.damage).toBe(5);
+        expect(equipmentOf(raised.player.body).offhand?.damage).toBe(5);
         // A blow taken whole pushes nothing.
         expect(raised.impulses).toEqual([]);
     });

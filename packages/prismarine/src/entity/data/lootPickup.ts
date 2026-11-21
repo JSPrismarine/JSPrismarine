@@ -8,8 +8,7 @@
  * walks over. Bedrock's `minecraft:behavior.pickup_items` only walks a mob to items: the runtime
  * runs the touch here for the mobs whose Java class picks up, by the rule each class follows.
  */
-import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
-import { insertStack } from './itemHopper';
+import type { ContentPosition } from '../../content/world/adapter';
 
 /** Which Java class's `wantsToPickUp` and `pickUpItem` a mob follows. */
 export type LootPickupRule =
@@ -85,22 +84,3 @@ export interface VillagerPickupItem {
  */
 export const villagerWants = (item: VillagerPickupItem, profession: string | undefined): boolean =>
     item.picksUp || item.villagerFood || (profession === 'farmer' && FARMER_REQUESTED_ITEMS.has(item.identifier));
-
-/**
- * How many of `identifier` a flat inventory of `slots` stacks still takes, as Java's
- * `SimpleContainer.addItem` would fill it: the stacks of each item packed `maxStack` to a slot.
- */
-export const flatInventoryRoom = (
-    inventory: readonly string[],
-    identifier: string,
-    slots: number,
-    maxStackOf: (identifier: string) => number
-): number => {
-    const counts = new Map<string, number>();
-    for (const held of inventory) counts.set(held, (counts.get(held) ?? 0) + 1);
-    let packed: readonly (ContentItemDrop | undefined)[] = [];
-    for (const [held, count] of counts)
-        packed = insertStack(packed, slots, { identifier: held, count }, maxStackOf(held)).slots;
-    const maxStack = maxStackOf(identifier);
-    return insertStack(packed, slots, { identifier, count: maxStack * slots }, maxStack).inserted;
-};

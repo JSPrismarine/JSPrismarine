@@ -324,33 +324,25 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
         inventory: (id) => {
             const actor = actorOf(id);
             if (actor === undefined) return undefined;
-            const inventory = sessionOf(id)?.getPlayer().getInventory().container('inventory');
-            if (inventory === undefined) {
-                const { body } = actor.entity;
-                if (body.containerCapacity <= 0) return undefined;
-                return Array.from({ length: body.containerCapacity }, (_, slot) =>
-                    scriptItemOfDrop(body.containerSlots[slot])
-                );
-            }
-            return inventory.items().map(scriptItemOf);
+            const inventory =
+                sessionOf(id)?.getPlayer().getInventory().container('inventory') ??
+                actor.entity.body.inventory.container('inventory');
+            // A mob with no `minecraft:inventory` has no container a script reaches, as on BDS.
+            return inventory.size === 0 ? undefined : inventory.items().map(scriptItemOf);
         },
         setInventoryItem: (id, slot, item) => {
             const session = sessionOf(id);
-            const inventory = session?.getPlayer().getInventory().container('inventory');
-            if (session === undefined || inventory === undefined) {
-                const body = actorOf(id)?.entity.body;
-                if (body === undefined || slot < 0 || slot >= body.containerCapacity) return;
-                const held = body.containerSlots[slot];
-                body.setContainerSlot(slot, item === undefined ? undefined : dropOfScriptItem(item, held));
-                return;
-            }
+            const inventory =
+                session?.getPlayer().getInventory().container('inventory') ??
+                actorOf(id)?.entity.body.inventory.container('inventory');
+            if (inventory === undefined) return;
             if (item === undefined) inventory.set(slot, null);
             else {
                 const stack = stackOf(item);
                 if (stack === undefined) return;
                 inventory.set(slot, stack);
             }
-            session.released(session.sendInventory());
+            if (session !== undefined) session.released(session.sendInventory());
         },
         heightRange: (dimension) => {
             // A dimension nobody has entered has no world yet, so its range is its type's.

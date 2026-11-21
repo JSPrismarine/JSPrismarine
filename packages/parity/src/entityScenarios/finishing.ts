@@ -21,6 +21,7 @@ import { inSandbox, SANDBOX_ORIGIN } from './sandbox.ts';
 import { javaAncestry, javaEntityClassName, javaMethodOf, numberNear, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
 import { entitiesDeclaring, field, mappedEntity } from './subjects.ts';
+import { equip, hold } from './mobSlots.ts';
 
 /**
  * The last entity rows of the parity tracker: behavior no earlier theme measured, each compared
@@ -669,7 +670,7 @@ const comparePlayerCubeKnockback = (): string | undefined => {
         const player = probe.player(-1.5, 0, 0);
         const sulfur = probe.spawn('minecraft:sulfur_cube', 3, 0, 0);
         // Bedrock's cube holds what it swallowed in its main hand, and the pickup raises this event.
-        sulfur.body.setEquipment({ ...sulfur.body.equipment, mainhand: { identifier: 'minecraft:stone', count: 1 } });
+        hold(sulfur.body, 'minecraft:stone');
         sulfur.instance.raise('minecraft:on_block_absorbed', 'self', 'parity');
         probe.tick(2);
         const playerAt = probe.at(-1.5, 0, 0);
@@ -953,7 +954,7 @@ const ravagerOnShield = (bedrock: string, draw: number): BlockedRavager | string
         const target = probe.runtime.mobById(SHIELD_HOLDER_ID);
         if (player === undefined || target === undefined) return 'the probe could not put a player in front of it';
         try {
-            player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+            equip(player.body, { offhand: { identifier: 'minecraft:shield', count: 1 } });
             // Facing -x, toward the ravager: Java's look is (-sin(yaw), cos(yaw)).
             player.body.yaw = 90;
             const impulses: EntityPosition[] = [];
@@ -1065,7 +1066,7 @@ const axeInGrace = (bedrock: string): number | string =>
         const target = probe.runtime.mobById(SHIELD_HOLDER_ID);
         if (player === undefined || target === undefined) return 'the probe could not put a player in front of it';
         try {
-            player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+            equip(player.body, { offhand: { identifier: 'minecraft:shield', count: 1 } });
             player.body.yaw = 90;
             probe.runtime.playerSystems.setSneaking(player, true);
             probe.tick(10);
@@ -1073,9 +1074,9 @@ const axeInGrace = (bedrock: string): number | string =>
             if (attacker === undefined) return 'the probe lost the attacker';
             // A bare-handed blow the shield takes whole starts the grace period, then the axe
             // `Vindicator.populateDefaultEquipmentSlots` gives it strikes inside it.
-            attacker.setEquipment({});
+            equip(attacker, {});
             probe.runtime.attack(attacker, target);
-            attacker.setEquipment({ mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
+            equip(attacker, { mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
             probe.runtime.attack(attacker, target);
             probe.tick(20);
             const before = player.instance.attributes.get('health')?.current ?? 0;

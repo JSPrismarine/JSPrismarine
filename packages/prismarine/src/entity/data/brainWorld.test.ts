@@ -107,7 +107,7 @@ describe('BrainWorld cached views', () => {
         player.position = { x: 10.5, y: FLOOR_Y + 1, z: 0.5 };
         expect(playerView.position).toEqual(player.position);
 
-        goat.carried = 'minecraft:gold_ingot';
+        fixture.runtime.setHeldItem(goat.body, 'minecraft:gold_ingot');
         const view = brainEntityOf(goat, fixture.runtime);
         const mob = brainMobOf(goat, goat.brain, fixture.runtime);
         const includes = vi.spyOn(fixture.content.tags, 'includes');

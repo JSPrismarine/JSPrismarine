@@ -12,14 +12,13 @@ import { ATTRIBUTES } from '@jsprismarine/entities';
 import type { ComponentStateRecord } from '@jsprismarine/entities/componentState';
 import { isComponentStateRecord } from '@jsprismarine/entities/componentState';
 
-import type { ContentItemDrop } from '../../content/world/adapter';
 import type { PlainData } from '../../world/changelog/PlainData';
 import { isPlainList, isPlainRecord } from '../../world/changelog/PlainData';
 import type { MobEquipmentSlot } from '../equipment';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
 import type { StatusEffect } from '../StatusEffect';
 import type { LoggedBodyState, StatusEffectClock } from './DataEntity';
-import { containerSlotsOf, equipmentOf, positionOf } from './persistence';
+import { positionOf } from './persistence';
 import { PrismarineEntityErrors } from '@jsprismarine/errors/prismarine/entity';
 
 const wrong = (field: string, value: PlainData): never => {
@@ -84,12 +83,7 @@ const BODY_FIELDS: { readonly [K in keyof LoggedBodyState]: (value: PlainData) =
     projectileAge: numberField('projectileAge'),
     projectileStuck: booleanField('projectileStuck'),
     teleports: numberField('teleports'),
-    equipment: (value) => equipmentOf(value) ?? wrong('equipment', value),
-    inventory: (value) => stringsIn('inventory', value),
-    containerSlots: (value) =>
-        (containerSlotsOf(value) ?? wrong('containerSlots', value)).map(
-            (item): ContentItemDrop | undefined => item ?? undefined
-        )
+    inventorySize: numberField('inventorySize')
 };
 
 /** Whether a logged field name is one of the body's {@link LoggedBodyState} fields. */

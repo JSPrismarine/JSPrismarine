@@ -1,8 +1,9 @@
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
-import { FARMER_REQUESTED_ITEMS, flatInventoryRoom, inPickupReach, villagerWants } from './lootPickup';
+import { FARMER_REQUESTED_ITEMS, inPickupReach, villagerWants } from './lootPickup';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
+import { carriedOf, equip, equipmentOf } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 const ZOMBIE_BOX = { position: GROUND, width: 0.6, height: 1.95 };
@@ -29,15 +30,6 @@ describe("Java's villager pickup", () => {
         expect(villagerWants(item('minecraft:bone_meal'), 'librarian')).toBe(false);
         expect(villagerWants(item('minecraft:gold_ingot'), 'farmer')).toBe(false);
         expect(FARMER_REQUESTED_ITEMS.has('minecraft:wheat')).toBe(true);
-    });
-
-    it('fills its inventory a stack to a slot, as SimpleContainer.addItem does', () => {
-        const maxStack = (identifier: string) => (identifier === 'minecraft:bread' ? 64 : 16);
-        const full = Array.from({ length: 2 * 64 }, () => 'minecraft:bread');
-        expect(flatInventoryRoom(full, 'minecraft:bread', 2, maxStack)).toBe(0);
-        expect(flatInventoryRoom(full.slice(10), 'minecraft:bread', 2, maxStack)).toBe(10);
-        expect(flatInventoryRoom(['minecraft:bread'], 'minecraft:egg', 2, maxStack)).toBe(16);
-        expect(flatInventoryRoom([], 'minecraft:egg', 2, maxStack)).toBe(32);
     });
 });
 
@@ -81,22 +73,22 @@ describe('a mob that picks up by touch', () => {
 
         runtime.tick(1);
 
-        expect(zombie.body.equipment.head?.identifier).toBe('minecraft:iron_helmet');
+        expect(equipmentOf(zombie.body).head?.identifier).toBe('minecraft:iron_helmet');
         // A hand takes the whole stack, where Java's armor slots take one.
-        expect(zombie.body.equipment.mainhand).toEqual({ identifier: 'minecraft:gold_ingot', count: 3 });
+        expect(equipmentOf(zombie.body).mainhand).toEqual({ identifier: 'minecraft:gold_ingot', count: 3 });
         expect(world.host.items?.().map((lying) => lying.item.identifier)).toEqual(['minecraft:glow_ink_sac']);
     });
 
     it('puts a second helmet in its main hand when its head is taken', () => {
         const { world, runtime, zombie } = zombieRuntime();
         zombie.body.canPickUpLoot = true;
-        zombie.body.setEquipment({ head: { identifier: 'minecraft:leather_helmet', count: 1 } });
+        equip(zombie.body, { head: { identifier: 'minecraft:leather_helmet', count: 1 } }, runtime.content());
         world.host.drop(NEAR, { identifier: 'minecraft:iron_helmet', count: 1 });
 
         runtime.tick(1);
 
-        expect(zombie.body.equipment.head?.identifier).toBe('minecraft:leather_helmet');
-        expect(zombie.body.equipment.mainhand?.identifier).toBe('minecraft:iron_helmet');
+        expect(equipmentOf(zombie.body).head?.identifier).toBe('minecraft:leather_helmet');
+        expect(equipmentOf(zombie.body).mainhand?.identifier).toBe('minecraft:iron_helmet');
     });
 
     it('leaves items lying when its roll failed or mobGriefing is off', () => {
@@ -104,13 +96,13 @@ describe('a mob that picks up by touch', () => {
         unlucky.zombie.body.canPickUpLoot = false;
         unlucky.world.host.drop(NEAR, { identifier: 'minecraft:iron_helmet', count: 1 });
         unlucky.runtime.tick(1);
-        expect(unlucky.zombie.body.equipment.head).toBeUndefined();
+        expect(equipmentOf(unlucky.zombie.body).head).toBeUndefined();
 
         const peaceful = zombieRuntime({ mobGriefing: false });
         peaceful.zombie.body.canPickUpLoot = true;
         peaceful.world.host.drop(NEAR, { identifier: 'minecraft:iron_helmet', count: 1 });
         peaceful.runtime.tick(1);
-        expect(peaceful.zombie.body.equipment.head).toBeUndefined();
+        expect(equipmentOf(peaceful.zombie.body).head).toBeUndefined();
     });
 });
 
@@ -140,15 +132,15 @@ describe("a fox's pickup goal", () => {
 
     it('leaves an item lying while its mouth is full, as Fox.canHoldItem does', () => {
         const full = foxRuntime();
-        full.fox.body.setEquipment({ mainhand: { identifier: 'minecraft:rabbit_foot', count: 1 } });
+        equip(full.fox.body, { mainhand: { identifier: 'minecraft:rabbit_foot', count: 1 } }, full.runtime.content());
         full.world.host.drop(NEAR, { identifier: 'minecraft:gold_ingot', count: 1 });
         for (let tick = 1; tick <= 40; tick += 1) full.runtime.tick(tick);
         expect(full.world.host.items?.().map((lying) => lying.item.identifier)).toEqual(['minecraft:gold_ingot']);
-        expect(full.fox.body.inventory).toEqual([]);
+        expect(carriedOf(full.fox.body)).toEqual([]);
 
         const empty = foxRuntime();
         empty.world.host.drop(NEAR, { identifier: 'minecraft:gold_ingot', count: 1 });
         for (let tick = 1; tick <= 40; tick += 1) empty.runtime.tick(tick);
-        expect(empty.fox.body.equipment.mainhand?.identifier).toBe('minecraft:gold_ingot');
+        expect(equipmentOf(empty.fox.body).mainhand?.identifier).toBe('minecraft:gold_ingot');
     });
 });

@@ -40,7 +40,6 @@ import type { ShownActor } from '../../world/ShownActor';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
-import { viewableEquipmentOf } from '../equipment';
 import { KNOCKBACK_LIFT } from '../knockback';
 import { PORTAL_COOLDOWN_TICKS, PORTAL_TRANSITION_TICKS, PortalContact, portalCooldownOf } from '../PortalContact';
 import type { ViewableEquipment } from '../predicateView';
@@ -211,7 +210,7 @@ export class StoreActor implements ShownActor {
 
     /** @inheritdoc */
     public getEquipment(): ViewableEquipment {
-        return viewableEquipmentOf(this.entity.equipment, this.getServer().getContent());
+        return this.entity.body.inventory.getEquipment();
     }
 
     /** @inheritdoc */

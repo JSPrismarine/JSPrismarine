@@ -10,10 +10,9 @@ import {
     MOB_EQUIPMENT_SLOTS,
     mobEquipmentSlotOf,
     rollMobEquipment,
-    sameEquipment,
+    sameDrop,
     sameEquipmentItems,
-    slotForItem,
-    withoutEquipmentSlot
+    slotForItem
 } from './equipment';
 
 /** An item that declares the slot it is worn in, which is all {@link slotForItem} reads. */
@@ -62,70 +61,43 @@ describe('entity equipment', () => {
         });
     });
 
-    describe('sameEquipment', () => {
-        it('calls two empty sets the same', () => {
-            expect(sameEquipment({}, {})).toBe(true);
+    describe('sameDrop', () => {
+        it('calls two empty slots the same', () => {
+            expect(sameDrop(undefined, undefined)).toBe(true);
         });
 
-        it('calls the same item in the same slot the same', () => {
-            const bow = { mainhand: { identifier: 'minecraft:bow', count: 1 } };
-
-            expect(sameEquipment(bow, { mainhand: { identifier: 'minecraft:bow', count: 1 } })).toBe(true);
+        it('calls the same item the same', () => {
+            expect(sameDrop({ identifier: 'minecraft:bow', count: 1 }, { identifier: 'minecraft:bow', count: 1 })).toBe(
+                true
+            );
         });
 
         it('tells an occupied slot from an empty one', () => {
-            expect(sameEquipment({ mainhand: { identifier: 'minecraft:bow', count: 1 } }, {})).toBe(false);
-        });
-
-        it('tells the same item in a different slot apart', () => {
-            const helmet = { identifier: 'minecraft:iron_helmet', count: 1 };
-
-            expect(sameEquipment({ head: helmet }, { chest: helmet })).toBe(false);
+            expect(sameDrop({ identifier: 'minecraft:bow', count: 1 }, undefined)).toBe(false);
         });
 
         it('reads the condition an item is in, not only which item it is', () => {
             const sword = { identifier: 'minecraft:iron_sword', count: 1 };
 
-            expect(sameEquipment({ mainhand: sword }, { mainhand: { ...sword, damage: 3 } })).toBe(false);
-            expect(sameEquipment({ mainhand: sword }, { mainhand: { ...sword, customName: 'Stabby' } })).toBe(false);
-            expect(sameEquipment({ mainhand: sword }, { mainhand: { ...sword, lore: ['a'] } })).toBe(false);
+            expect(sameDrop(sword, { ...sword, damage: 3 })).toBe(false);
+            expect(sameDrop(sword, { ...sword, customName: 'Stabby' })).toBe(false);
+            expect(sameDrop(sword, { ...sword, lore: ['a'] })).toBe(false);
         });
 
         it('reads enchantments whichever order their keys are in', () => {
             const sword = { identifier: 'minecraft:iron_sword', count: 1 };
-            const left = {
-                mainhand: { ...sword, enchantments: { 'minecraft:sharpness': 2, 'minecraft:knockback': 1 } }
-            };
-            const right = {
-                mainhand: { ...sword, enchantments: { 'minecraft:knockback': 1, 'minecraft:sharpness': 2 } }
-            };
+            const left = { ...sword, enchantments: { 'minecraft:sharpness': 2, 'minecraft:knockback': 1 } };
+            const right = { ...sword, enchantments: { 'minecraft:knockback': 1, 'minecraft:sharpness': 2 } };
 
-            expect(sameEquipment(left, right)).toBe(true);
-            expect(sameEquipment(left, { mainhand: { ...sword, enchantments: { 'minecraft:sharpness': 2 } } })).toBe(
-                false
-            );
+            expect(sameDrop(left, right)).toBe(true);
+            expect(sameDrop(left, { ...sword, enchantments: { 'minecraft:sharpness': 2 } })).toBe(false);
         });
 
         it('treats an absent optional field as its default rather than as a difference', () => {
-            // A drop rebuilt from a save carries explicit zeros where the rolled one carried
-            // nothing, and calling that a change would broadcast every restored mob.
+            // A drop rebuilt from a save carries explicit zeros where the rolled one carried nothing.
             const sword = { identifier: 'minecraft:iron_sword', count: 1 };
 
-            expect(sameEquipment({ mainhand: sword }, { mainhand: { ...sword, damage: 0, meta: 0 } })).toBe(true);
-        });
-    });
-
-    describe('withoutEquipmentSlot', () => {
-        it('copies every other filled slot and leaves the original alone', () => {
-            const helmet = { identifier: 'minecraft:iron_helmet', count: 1 };
-            const sword = { identifier: 'minecraft:iron_sword', count: 1 };
-            const equipment = { head: helmet, mainhand: sword };
-
-            const without = withoutEquipmentSlot(equipment, 'head');
-
-            expect(without).toStrictEqual({ mainhand: sword });
-            expect(Object.keys(without)).toStrictEqual(['mainhand']);
-            expect(equipment).toStrictEqual({ head: helmet, mainhand: sword });
+            expect(sameDrop(sword, { ...sword, damage: 0, meta: 0 })).toBe(true);
         });
     });
 

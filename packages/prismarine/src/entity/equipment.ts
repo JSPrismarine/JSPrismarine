@@ -48,7 +48,6 @@ import type { ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { Item } from '../item/Item';
 import type { ViewableEquipment } from './predicateView';
-import { itemOfDrop } from '../inventory/persistence';
 
 /**
  * The slots a mob's equipment reaches a client in.
@@ -76,24 +75,6 @@ export type MobEquipmentSlot = (typeof MOB_EQUIPMENT_SLOTS)[number];
 
 /** What a mob has in each slot, with a slot it has nothing in left out. */
 export type MobEquipmentSet = Readonly<Partial<Record<MobEquipmentSlot, ContentItemDrop>>>;
-
-/** Nothing in any slot, which is what a mob with no `minecraft:equipment` has. */
-export const NO_EQUIPMENT: MobEquipmentSet = {};
-
-/**
- * A copy of a set with one slot emptied.
- * @param equipment - The set to copy.
- * @param slot - The slot to leave out.
- * @returns A new set holding every other slot `equipment` fills.
- */
-export const withoutEquipmentSlot = (equipment: MobEquipmentSet, slot: MobEquipmentSlot): MobEquipmentSet => {
-    const kept: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = {};
-    for (const other of MOB_EQUIPMENT_SLOTS) {
-        const item = equipment[other];
-        if (other !== slot && item !== undefined) kept[other] = item;
-    }
-    return kept;
-};
 
 /** The item component spellings and Bedrock's fully qualified slot names. */
 const SLOTS = new Map<string, MobEquipmentSlot>();
@@ -214,17 +195,6 @@ const slotBytes = (item: Item | undefined): Buffer => {
 export const sameEquipmentItems = (left: ViewableEquipment, right: ViewableEquipment): boolean =>
     MOB_EQUIPMENT_SLOTS.every((slot) => slotBytes(left[slot]).equals(slotBytes(right[slot])));
 
-/**
- * Whether two sets of equipment would reach a client as the same thing.
- *
- * Compared over the drops rather than over the encoded packets because a drop is already the
- * whole of what the packet carries: the identifier, the count, the aux value, the durability,
- * the name, the lore and the enchantments. Two drops agreeing on all of those encode the same
- * bytes, and nothing else about a drop reaches the wire.
- */
-export const sameEquipment = (left: MobEquipmentSet, right: MobEquipmentSet): boolean =>
-    MOB_EQUIPMENT_SLOTS.every((slot) => sameDrop(left[slot], right[slot]));
-
 /** Whether two drops are the same item in the same condition, counts included. */
 export const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDrop | undefined): boolean => {
     if (left === undefined || right === undefined) return left === right;
@@ -285,20 +255,4 @@ export const wornArmorOf = (
         toughness += item?.getArmorToughness() ?? 0;
     }
     return { defensePoints, toughness };
-};
-
-/**
- * A mob's equipment as server items, which is the form the armor and enchantment rules and a
- * client's equipment packets read. A slot whose drop names no known item is left empty.
- */
-export const viewableEquipmentOf = (equipment: MobEquipmentSet, content: ServerContent): ViewableEquipment => {
-    const worn: ViewableEquipment = {};
-    for (const slot of MOB_EQUIPMENT_SLOTS) {
-        const drop = equipment[slot];
-        if (drop === undefined) continue;
-
-        const item = itemOfDrop(drop, content);
-        if (item !== null) worn[slot] = item;
-    }
-    return worn;
 };

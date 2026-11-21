@@ -1,3 +1,4 @@
+import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { AIR_STATE } from '@jsprismarine/entities';
 import { DROWNING_INTERVAL_TICKS } from '@jsprismarine/entities/components/hazards';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
@@ -5,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DATA_ENTITY_TAG, dataEntityRecordIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { entityFixture, FLOOR_Y } from './testing';
+import { containerOf, equip, equipmentOf, setContainerSlot } from '../../testing/mobSlots.test-utils';
 
 const GROUND = { x: 0.5, y: FLOOR_Y + 1, z: 0.5 };
 
@@ -34,7 +36,7 @@ describe('the data entity record', () => {
         if (hatchling === undefined) throw new Error('the fixture declares no jsprismarine:hatchling');
 
         hatchling.instance.attributes.set('health', 1);
-        hatchling.body.carried = 'minecraft:wheat';
+        equip(hatchling.body, { mainhand: { identifier: 'minecraft:wheat', count: 1 } }, runtime.content());
         hatchling.body.sitting = true;
         hatchling.body.loveTicks = 300;
         hatchling.body.fuseTicks = 41;
@@ -46,7 +48,7 @@ describe('the data entity record', () => {
             pool: 'animal',
             componentGroups: ['hatched'],
             attributes: { health: 1 },
-            carried: 'minecraft:wheat',
+            equipment: { mainhand: { identifier: 'minecraft:wheat', count: 1 } },
             sitting: true,
             loveTicks: 300,
             fuseTicks: 41
@@ -68,27 +70,124 @@ describe('the data entity record', () => {
         );
         const mount = runtime.spawn('jsprismarine:inventory_mount', GROUND);
         if (mount === undefined) throw new Error('the fixture declares no inventory mount');
+        // Horse armor has no durability, so the stack carries no damage to keep.
         const armor = {
             identifier: 'minecraft:iron_horse_armor',
             count: 1,
             meta: 2,
-            damage: 3,
             customName: 'Saved armor',
             enchantments: { 'minecraft:protection': 2 },
             contents: [{ identifier: 'minecraft:diamond', count: 1 }]
         };
-        mount.body.setContainerSlot(1, armor);
-        mount.body.setEquipment({ body: armor });
+        setContainerSlot(mount.body, 1, armor, runtime.content());
         mount.body.equipmentInventorySlots.set('body', 1);
 
-        const record = dataEntityRecordIn(written(dataEntityRecordOf(mount, undefined)));
+        const saved = dataEntityRecordOf(mount, undefined);
+        // The record keeps the shape it had when the armor sat in both places.
+        expect(saved.containerSlots).toEqual([null, armor]);
+        expect(saved.equipment).toEqual({ body: armor });
+        expect(saved.equipmentInventorySlots).toEqual({ body: 1 });
+
+        const record = dataEntityRecordIn(written(saved));
         if (record === undefined) throw new Error('the inventory mount record could not be read');
         const restored = runtime.restore(record, GROUND);
+        if (restored === undefined) throw new Error('the inventory mount did not restore');
 
-        expect(restored?.body.containerSlots).toEqual([undefined, armor]);
-        expect(restored?.body.equipment.body).toEqual(armor);
-        expect(restored?.body.equipmentInventorySlots.get('body')).toBe(1);
-        expect(restored?.body.containerCapacity).toBe(2);
+        expect(containerOf(restored.body)).toEqual([undefined, armor]);
+        expect(equipmentOf(restored.body).body).toEqual(armor);
+        expect(restored.body.inventory.equipmentAddress('body')).toEqual({ container: 'inventory', slot: 1 });
+        // One stack in one slot: the body slot reads the container, and its own slot is empty.
+        expect(restored.body.inventory.container('body').get(0)).toBeNull();
+        expect(restored.body.containerCapacity).toBe(2);
+    });
+
+    it('loads a record saved before mobs had an inventory', () => {
+        const { runtime } = entityFixture(
+            undefined,
+            { itemDefinitions: vanillaItemDefinitions() },
+            {
+                'jsprismarine:legacy_villager': {
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:inventory': { inventory_size: 8, private: true }
+                    }
+                }
+            }
+        );
+        // As the server wrote it before: the held item as `carried`, what the mob gathered as a
+        // flat identifier list, an empty `equipment` and container slots beside it.
+        const legacy = new NBTTagCompound('');
+        legacy.addValue(
+            DATA_ENTITY_TAG,
+            new Types.StringVal(
+                JSON.stringify({
+                    identifier: 'jsprismarine:legacy_villager',
+                    persistentIdentity: '00000000-0000-0000-0000-000000000007',
+                    componentGroups: [],
+                    properties: {},
+                    attributes: {},
+                    yaw: 0,
+                    pitch: 0,
+                    carried: 'minecraft:emerald',
+                    inventory: ['minecraft:wheat', 'minecraft:wheat', 'jsprismarine:unknown_seed'],
+                    equipment: { head: { identifier: 'minecraft:iron_helmet', count: 1, damage: 4 } },
+                    containerSlots: [null, { identifier: 'minecraft:bread', count: 3 }],
+                    sitting: false,
+                    sleeping: false,
+                    loveTicks: 0,
+                    breedCooldown: 0
+                })
+            )
+        );
+
+        const record = dataEntityRecordIn(legacy);
+        if (record === undefined) throw new Error('the legacy record could not be read');
+        const restored = runtime.restore(record, GROUND);
+        if (restored === undefined) throw new Error('the legacy record did not restore');
+
+        expect(equipmentOf(restored.body)).toEqual({
+            mainhand: { identifier: 'minecraft:emerald', count: 1 },
+            head: { identifier: 'minecraft:iron_helmet', count: 1, damage: 4 }
+        });
+        // The identifiers fill the container after its saved slots, an item the content does not
+        // know included.
+        expect(containerOf(restored.body)).toEqual([
+            { identifier: 'minecraft:wheat', count: 2 },
+            { identifier: 'minecraft:bread', count: 3 },
+            { identifier: 'jsprismarine:unknown_seed', count: 1 },
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined
+        ]);
+
+        // And it saves in the current form, with no legacy keys left.
+        const resaved = dataEntityRecordOf(restored, undefined);
+        expect(resaved.carried).toBeUndefined();
+        expect(resaved.inventory).toBeUndefined();
+        expect(resaved.equipment?.mainhand).toEqual({ identifier: 'minecraft:emerald', count: 1 });
+    });
+
+    it('keeps a saved equipment main hand over a legacy carried identifier', () => {
+        const { runtime } = entityFixture();
+        const legacy = new NBTTagCompound('');
+        legacy.addValue(
+            DATA_ENTITY_TAG,
+            new Types.StringVal(
+                JSON.stringify({
+                    identifier: 'minecraft:cow',
+                    carried: 'minecraft:wheat',
+                    equipment: { mainhand: { identifier: 'minecraft:bow', count: 1 } }
+                })
+            )
+        );
+
+        const record = dataEntityRecordIn(legacy);
+        if (record === undefined) throw new Error('the legacy record could not be read');
+        const restored = runtime.restore(record, GROUND);
+
+        expect(restored?.body.inventory.equipment('mainhand')?.getName()).toBe('minecraft:bow');
     });
 
     it('preserves a stable owner identity instead of a session runtime id', () => {
@@ -177,7 +276,6 @@ describe('the data entity record', () => {
             attributes: {},
             yaw: 0,
             pitch: 0,
-            inventory: [],
             sitting: false,
             sleeping: false,
             loveTicks: 0,

@@ -84,11 +84,10 @@ import ExplodedEvent from '../../events/other/ExplodedEvent';
 import EntityHealedEvent from '../../events/entity/EntityHealedEvent';
 import EntityHealthChangedEvent from '../../events/entity/EntityHealthChangedEvent';
 import { enchantmentProtection } from '../../enchantment/mitigation';
-import { viewableEquipmentOf, wornArmorOf } from '../equipment';
+import { wornArmorOf } from '../equipment';
 import { PASS, VETO, replaceAmount } from './damagePipeline';
 import type { DamageOutcome, DamageRoute } from './damagePipeline';
 import { intentOfHealthWrite, intentOfLegacyBlow, legacySourceOfIntent, viewableDataEntity } from './legacyDamage';
-import type { Item } from '../../item/Item';
 import type HumanInventory from '../../inventory/HumanInventory';
 import type PlayerSession from '../../network/PlayerSession';
 import type { StatusEffect } from '../StatusEffect';
@@ -99,23 +98,11 @@ import { itemDropOf, itemOfDrop } from '../../inventory/persistence';
 import { TakeItemActorPacket } from '@jsprismarine/protocol';
 import type { DroppedItems, ItemStart } from './droppedItems';
 import { isDroppedItem, itemTuningOf, itemViewOf } from './droppedItems';
+import { filterItemOf } from './filterView';
 import { ItemActor } from './itemActor';
 import { storedItemActorOf } from '../EntitySerializer';
 import type { StoredActor } from '../EntitySerializer';
 import { worldKeyOf } from '../../world/worldKey';
-
-/** A held or equipped item as the entity filter language reads it. */
-const filterItemOf = (item: Item | null | undefined): FilterItemView | undefined =>
-    item === undefined || item === null
-        ? undefined
-        : {
-              identifier: () => item.getName(),
-              data: () => item.getMeta(),
-              tags: () => item.getTags(),
-              enchantment: (name) => item.getEnchantmentLevel(name),
-              hasComponent: (name) => item.hasComponent(name),
-              damaged: () => item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
-          };
 
 /** What a player's filter view reads of the player. */
 interface FilteredPlayer {
@@ -388,8 +375,7 @@ const liveHost = (
         if (world === undefined) return undefined;
         const content = world.getServer().getContent();
         // A store player wears what its inventory holds, which the store does not model yet.
-        const equipment =
-            players.of(target.id)?.getInventory().getEquipment() ?? viewableEquipmentOf(target.equipment, content);
+        const equipment = players.of(target.id)?.getInventory().getEquipment() ?? target.body.inventory.getEquipment();
         const worn = wornArmorOf(equipment);
         const enchantment =
             intent.source.bypassesEnchantments === true

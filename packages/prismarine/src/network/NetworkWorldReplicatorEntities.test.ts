@@ -35,6 +35,8 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { replicateEntities } from '../testing/changeTicks.test.helper';
 import { sealOccurrences } from '../testing/occurrences.test.helper';
 import type { SessionPresenter, ShownEntityState, ShownEquipment } from './presenter/SessionPresenter';
+import { equip, setContainerSlot } from '../testing/mobSlots.test-utils';
+import MobArmorEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobArmorEquipmentPacket';
 
 /**
  * Who is shown what, as entities come and go.
@@ -187,7 +189,8 @@ const EXTRA = {
         components: {
             'minecraft:health': { value: 10, max: 10 },
             'minecraft:movement': { value: 0.25 },
-            'minecraft:collision_box': { width: 0.6, height: 0.6 }
+            'minecraft:collision_box': { width: 0.6, height: 0.6 },
+            'minecraft:inventory': { container_type: 'horse', inventory_size: 2 }
         },
         component_groups: { grown: { 'minecraft:health': { value: 30, max: 30 } } },
         events: { grow: { add: { component_groups: ['grown'] } } }
@@ -474,7 +477,7 @@ describe('network', () => {
                 await tick(() => (entity = spawn()));
                 watching.spy.frames.length = 0;
 
-                await tick(() => entity!.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } }));
+                await tick(() => equip(entity!.body, { mainhand: { identifier: 'minecraft:stick', count: 1 } }));
 
                 expect(packetsIn(watching.spy.frames).map(({ name }) => name)).toStrictEqual([
                     'MobArmorEquipmentPacket',
@@ -496,7 +499,7 @@ describe('network', () => {
                 });
                 watching.spy.frames.length = 0;
 
-                await tick(() => entity!.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } }));
+                await tick(() => equip(entity!.body, { mainhand: { identifier: 'minecraft:stick', count: 1 } }));
 
                 expect(shown).toStrictEqual([{ mainhand: { name: 'minecraft:stick', count: 1 } }]);
                 expect(watching.spy.frames).toHaveLength(0);
@@ -520,6 +523,67 @@ describe('network', () => {
 
                 expect(states.at(-1)?.onFire).toBe(true);
                 expect(watching.spy.frames).toHaveLength(0);
+            });
+
+            it("sends a mount's armor from the inventory slot its body slot reads, and not for another slot", async () => {
+                const watching = fakePlayer(1001n);
+                const { tick, spawn } = replicatorOverLog([watching.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                watching.spy.frames.length = 0;
+
+                await tick(() => {
+                    entity!.body.equipmentInventorySlots.set('body', 1);
+                    setContainerSlot(entity!.body, 1, { identifier: 'minecraft:iron_horse_armor', count: 1 });
+                });
+                const armor = packetsIn(watching.spy.frames).filter(({ name }) => name === 'MobArmorEquipmentPacket');
+                expect(armor).toHaveLength(1);
+                const packet = new MobArmorEquipmentPacket(armor[0]!.buffer);
+                packet.codecProtocol = Codec2193.protocolVersion;
+                packet.decode();
+                const body = packet.getPacketData()?.body;
+                if (body === undefined) throw new Error('the armor packet has no body slot');
+                expect(Item.fromStackDescriptor({ protocolVersion: Codec2193.protocolVersion }, body).getName()).toBe(
+                    'minecraft:iron_horse_armor'
+                );
+
+                // A slot no equipment slot reads is not shown on the mob.
+                watching.spy.frames.length = 0;
+                await tick(() => setContainerSlot(entity!.body, 0, { identifier: 'minecraft:saddle', count: 1 }));
+                expect(packetsIn(watching.spy.frames).map(({ name }) => name)).not.toContain('MobArmorEquipmentPacket');
+            });
+
+            it('shows a viewer that arrives what a mob already holds and wears', async () => {
+                const early = fakePlayer(1001n);
+                const { replicator, tick, spawn } = replicatorOverLog([early.player]);
+                let entity: DataEntity | undefined;
+                await tick(() => (entity = spawn()));
+                await tick(() => {
+                    // `equip` empties every slot its map leaves out, so it goes before the armor.
+                    equip(entity!.body, { mainhand: { identifier: 'minecraft:stick', count: 1 } });
+                    entity!.body.equipmentInventorySlots.set('body', 1);
+                    setContainerSlot(entity!.body, 1, { identifier: 'minecraft:iron_horse_armor', count: 1 });
+                });
+
+                const late = fakePlayer(1002n);
+                const shown = replicator.shownEntities().find((one) => one.getRuntimeId() === BigInt(entity!.id));
+                if (shown === undefined) throw new Error('the replicator shows no such entity');
+                await shown.spawnTo(late.player);
+
+                const frames = packetsIn(late.spy.frames);
+                expect(frames.map(({ name }) => name)).toEqual([
+                    'AddActorPacket',
+                    'MobArmorEquipmentPacket',
+                    'MobEquipmentPacket'
+                ]);
+                const packet = new MobArmorEquipmentPacket(frames[1]!.buffer);
+                packet.codecProtocol = Codec2193.protocolVersion;
+                packet.decode();
+                const body = packet.getPacketData()?.body;
+                if (body === undefined) throw new Error('the armor packet has no body slot');
+                expect(Item.fromStackDescriptor({ protocolVersion: Codec2193.protocolVersion }, body).getName()).toBe(
+                    'minecraft:iron_horse_armor'
+                );
             });
 
             it('sends the maximum health a group raised, not the one the entity spawned with (#2995)', async () => {
@@ -573,10 +637,10 @@ describe('network', () => {
                 const { tick, spawn } = replicatorOverLog([watching.player]);
                 let entity: DataEntity | undefined;
                 await tick(() => (entity = spawn()));
-                await tick(() => entity!.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } }));
+                await tick(() => equip(entity!.body, { offhand: { identifier: 'minecraft:shield', count: 1 } }));
                 watching.spy.frames.length = 0;
 
-                await tick(() => entity!.body.setEquipment({}));
+                await tick(() => equip(entity!.body, {}));
 
                 const offhands = packetsIn(watching.spy.frames)
                     .filter(({ name }) => name === 'MobEquipmentPacket')
