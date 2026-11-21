@@ -66,6 +66,37 @@ lists every vanilla behavior that does not match yet, each a possible change.
   from code, such as a version or a count, is marked as a docs fact rather than typed in; see
   `tools/docs/facts.mts`.
 
+### Change a file the server owns
+
+`config.json` and `permissions.json` carry a `schemaVersion`, and the server upgrades an older
+file when it loads it. An install may skip releases, so each change to a file's shape or defaults
+is one step from the previous version to the next, and loading runs every step from the file's
+version to the current one, in order. `packages/prismarine/src/config/FileMigrations.ts` runs
+them. It keeps the original beside the file as `<file>.v<version>.bak`, writes the result once
+and logs the two versions. It leaves a file at the current version alone, refuses a file newer
+than the server, and writes nothing when a step throws.
+
+To change a file's shape or its defaults:
+
+1. Change what a fresh file gets, such as `DEFAULT_PLAYER_PERMISSIONS` in
+   `packages/prismarine/src/permission/PermissionsFile.ts`.
+2. Raise the current version by one: `PERMISSIONS_SCHEMA_VERSION` there, or
+   `CONFIG_SCHEMA_VERSION` in `packages/prismarine/src/config/Config.ts`, and the `schemaVersion`
+   literal in `packages/prismarine/src/config/JsonConfigTypes.ts`.
+3. Append a step to the file's definition, `PERMISSIONS_MIGRATIONS` or `CONFIG_MIGRATIONS`, whose
+   `to` is the new version. Its `migrate` gets the parsed document and edits it in place, so the
+   owner's comments and key order stay; it may return a new document instead. Leave the version
+   key to the runner. Throw a catalog error to refuse a file the step cannot upgrade.
+4. Test the step through `migrateDocument` on a document of the previous version: what changes,
+   what stays, and that a second run changes nothing.
+
+The step adding `/link` and `/unlink` to the `default` group, the version 3 step of
+`PERMISSIONS_MIGRATIONS`, is an example. Another JSON file joins by getting its own
+`FileMigrations` definition and calling `migrateFile` where the server reads it. The runner reads
+only files whose root is an object. `ops.json` and `banned-players.json` are lists at the root, with
+no place for a version key, so they have no definition yet. `account-links.json` has an object root
+and no version yet, so its first definition reads a file without one as version 1.
+
 ### Commit
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and are
