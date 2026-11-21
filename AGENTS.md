@@ -48,7 +48,9 @@ commit messages and comments.
 - Track confirmed adjacent bugs or behavior gaps discovered during requested work by opening a
   GitHub issue automatically when they are outside the task scope. Search all issues for duplicates,
   include a minimal reproduction and expected and observed behavior, apply the existing labels that
-  match, and report the issue link. Fix in-scope issues in the requested change.
+  match, and report the issue link. Fix in-scope issues in the requested change. Open no issue for
+  work already in progress, such as a gap in the feature being built or a step the current plan
+  still has to do; finish it in the change or note it in the plan instead.
 - Keep history linear. Integrate by rebasing onto the target branch. To combine parallel work, rebase
   the side branch onto the target and fast-forward the target onto it. Leave merge commits out of
   this repository's history.
