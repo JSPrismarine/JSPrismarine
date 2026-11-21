@@ -256,9 +256,14 @@ function toggle(key: string) {
     transform: rotate(90deg);
 }
 
+/* On a phone the breaking label is one word, so a note's two folds fit one row. */
 @media (max-width: 640px) {
     .release__text :deep(:is(.release__breaking, .release__details) > summary) {
         min-height: var(--jsp-target);
+    }
+
+    .release__text :deep(.release__fold-more) {
+        display: none;
     }
 }
 
