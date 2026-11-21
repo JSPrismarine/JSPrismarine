@@ -1,9 +1,12 @@
 name: Executable
 
 # Runs when a file that reaches the executables changes. A push builds them to publish a nightly
-# release, and a pull request builds them to check they still compile and start. Run by hand on
-# master, it publishes a nightly whenever it is started, without the six-hour interval; on another
-# branch it only builds.
+# release. A pull request builds them only when it changes how they are built: the build scripts,
+# the files they embed or the dependencies Bun bundles. Every other change is compiled by the next
+# nightly, since the build is three jobs on three runner platforms, two of them in the small
+# Windows and macOS pools, and no pull request check requires it. Run by hand on master, it
+# publishes a nightly whenever it is started, without the six-hour interval; on another branch it
+# only builds.
 on:
     workflow_dispatch:
     push:
@@ -29,24 +32,23 @@ on:
     pull_request:
         branches:
             - master
-        # The same paths as the push.
         paths:
             - '.github/workflows/nightly.yml'
             - '.github/workflows/executables.yml'
             - '.github/common/**'
             - '.github/scripts/**'
-            - 'packages/**'
-            - 'scripts/**'
-            - 'package.json'
+            # The entry point and the workers build-aot.mjs embeds by path.
+            - 'packages/server/src/Server.ts'
+            - 'packages/chunkgen/src/singleExecutableWorker.ts'
+            - 'packages/prismarine/src/world/generators/datadriven/chunkPipeline.ts'
+            - 'packages/prismarine/src/world/generators/datadriven/terrainPipeline.ts'
+            - 'packages/raknet/src/WorkerServerSocket.worker.ts'
+            - 'packages/leveldb/src/db/TableBuilderWorker.ts'
+            # A new or updated dependency is what Bun's bundler trips on.
             - 'pnpm-lock.yaml'
             - 'pnpm-workspace.yaml'
             - '.npmrc'
             - '.nvmrc'
-            - 'tsconfig*.json'
-            - 'turbo.json'
-            - 'vite.config.ts'
-            - '!**/*.md'
-            - '!**/*.test.ts'
 
 env:
     GIT_CONFIG_COUNT: '1'
