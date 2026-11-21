@@ -66,6 +66,9 @@ const { allowList } = await import('../src/allowlist.ts');
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = join(packageRoot, '..', '..');
 const { values } = parseArgs({
+    // pnpm forwards the literal `--` it was given, and `parseArgs` reads everything after one as
+    // positional, so the separators are dropped first.
+    args: process.argv.slice(2).filter((argument) => argument !== '--'),
     options: {
         base: { type: 'string' },
         update: { type: 'string', multiple: true },
