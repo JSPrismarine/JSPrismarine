@@ -13,14 +13,7 @@
  * rather than reporting an empty roll: an empty roll is a real answer for
  * bedrock and for a mob Java gives no table, and the two must not read alike.
  */
-import type {
-    CommandSource,
-    DataTarget,
-    EntityRef,
-    ItemSlot,
-    LootDestination,
-    LootSource
-} from '@jsprismarine/commands';
+import type { CommandSource, EntityRef, LootDestination, LootSource } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
@@ -37,56 +30,8 @@ import { itemFromContent } from '../../item/itemFromContent';
 import { worldBlockEntities } from '../../world/contentAdapter';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt, insertIntoContainer } from './containers';
-import { BLOCK_CONTAINER_SLOT, setItemSlot } from './inventory';
+import { replaceWithLoot } from './inventory';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, resolveTarget, worldOf } from './support';
-
-/**
- * Java's slot names as the Bedrock group and index `setItemSlot` writes.
- *
- * `/loot replace` is a Java command and writes `container.0`; `/replaceitem`
- * is Bedrock's and writes `slot.hotbar 0`. The inventories address slots in
- * Bedrock's spelling, because that is the spelling the client sends, so a
- * Java slot name is translated here.
- */
-const JAVA_SLOT_GROUPS: Readonly<Record<string, string>> = {
-    container: 'slot.inventory',
-    hotbar: 'slot.hotbar',
-    inventory: 'slot.inventory',
-    'weapon.mainhand': 'slot.weapon.mainhand',
-    'weapon.offhand': 'slot.weapon.offhand',
-    weapon: 'slot.weapon.mainhand',
-    'armor.head': 'slot.armor.head',
-    'armor.chest': 'slot.armor.chest',
-    'armor.legs': 'slot.armor.legs',
-    'armor.feet': 'slot.armor.feet'
-};
-
-/**
- * Reads a Java slot name into the group and index this server's inventories
- * address.
- *
- * `container.N` counts the whole 36-slot container from zero, which is what
- * `slot.inventory` is here; `hotbar.N` is the nine at the front. A block has
- * one group of slots and Java spells it with that same word, so which of the
- * two `container` means is the target's question rather than the name's.
- */
-const slotOf = (target: DataTarget, slot: ItemSlot, offset: number): ItemSlot => {
-    const dot = slot.name.lastIndexOf('.');
-    const tail = dot < 0 ? '' : slot.name.slice(dot + 1);
-    const indexed = tail.length > 0 && /^\d+$/.test(tail);
-    const name = indexed ? slot.name.slice(0, dot) : slot.name;
-    const index = (indexed ? Number(tail) : 0) + offset;
-
-    if (target.kind === 'block') {
-        if (name !== 'container') refuse(`${slot.name} is not a slot a container block has`);
-        return { name: BLOCK_CONTAINER_SLOT, index };
-    }
-
-    const group = JAVA_SLOT_GROUPS[name];
-    if (group === undefined) refuse(`${slot.name} is not a slot this server can write`);
-
-    return { name: group, index };
-};
 
 /** What the predicates read of a tool, for a `mine` or `fish` source. */
 const toolOf = (
@@ -219,25 +164,22 @@ export const runLootCommand = (
 ): number => {
     const content = server.getContent();
     const drops = rollLoot(server, content, loot, source);
-    if (drops.length === 0) return 0;
-
-    if (destination.kind === 'give') return giveTo(server, content, destination.players, drops);
 
     if (destination.kind === 'replace') {
-        // Java writes consecutive slots from the one named, one stack each.
-        let placed = 0;
-        drops.forEach((drop, offset) => {
-            if (destination.slot.count !== undefined && offset >= destination.slot.count) return;
-            placed += setItemSlot(
-                server,
-                destination.target,
-                slotOf(destination.target, destination.slot, offset),
-                drop.identifier,
-                drop.count
-            );
-        });
-        return placed;
+        // An empty roll still empties the slots an explicit count names, as Java's does.
+        // Java writes consecutive slots from the one named, one stack each, with the stack the
+        // roll carries: a table's enchanted book goes in enchanted.
+        return replaceWithLoot(
+            server,
+            destination.targets,
+            destination.slot,
+            drops.map((drop) => stackOf(content, drop)),
+            destination.slot.count
+        );
     }
+
+    if (drops.length === 0) return 0;
+    if (destination.kind === 'give') return giveTo(server, content, destination.players, drops);
 
     if (destination.kind === 'insert') {
         const world = worldOf(server, destination.dimension);

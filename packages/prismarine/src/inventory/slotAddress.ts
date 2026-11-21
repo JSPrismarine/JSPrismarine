@@ -194,6 +194,13 @@ export const javaSlotIds = (name: string): readonly number[] | undefined => JAVA
 /** Every Java slot name this server reads, for a command's suggestions. */
 export const javaSlotNames = (): readonly string[] => [...JAVA_SLOT_NAMES.keys()];
 
+/**
+ * How many slots past the one a name names an offset can reach: one more than Java's largest slot
+ * number, `horse.14`. A larger offset resolves on no holder, since no container this server
+ * builds has that many slots either, so `/loot replace` with a huge count stops here.
+ */
+export const SLOT_OFFSET_LIMIT = Math.max(...[...JAVA_SLOT_NAMES.values()].flat()) + 1;
+
 /** A slot the holder has, nothing, or one the holder has that this server cannot write yet. */
 type SlotLookup = HeldSlot | 'missing' | 'unreachable';
 

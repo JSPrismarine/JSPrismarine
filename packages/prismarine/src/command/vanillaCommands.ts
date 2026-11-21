@@ -30,7 +30,6 @@ import type { ServerContent } from '../content/ServerContent';
  */
 export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     attribute: "attribute modifiers; this server's `Attribute` holds one value and no modifier stack",
-    item: 'item modifiers and Java-addressable inventory slots',
     place: 'feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk',
     ride: 'entity riding outside the data-driven entity runtime'
 };

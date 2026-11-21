@@ -35,7 +35,7 @@ import {
     stringArgument
 } from '../argumentTypes';
 import { gameRule } from '../gamerules';
-import type { CommandSource } from '../host';
+import type { CommandSource, SlotTarget } from '../host';
 import type { CommandRegistry } from '../tree';
 import { registerTitleRaw } from './server';
 import { registerTickingArea } from './tickingarea';
@@ -396,28 +396,42 @@ const replacement = (context: Context, amount: number) => ({
     item: value<string>(context, 'itemName')
 });
 
-const replaceItemOnEntity = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number => {
+/**
+ * Writes the slot on every target and reports it the way Bedrock Dedicated Server does: the
+ * slot, the stack and, for an entity, whose slot it was; or, when `keep` left it alone, that
+ * something was already there.
+ */
+const replaceItem = (
+    context: Context,
+    targets: readonly SlotTarget[],
+    mode: 'destroy' | 'keep' | 'replace',
+    amount: number
+): number => {
     const current = source(context);
     const { slot, item } = replacement(context, amount);
+    const replaced = current.host.data.setSlot(targets, slot, item, amount, mode);
+    if (replaced === 0 && mode === 'keep') {
+        return report(current, 0, `There is already an item occupying ${slot.name} slot ${slot.index}.`);
+    }
 
-    const replaced = select(current, value(context, 'target')).reduce(
-        (total, entity) => total + current.host.data.setSlot({ kind: 'entity', entity }, slot, item, amount, mode),
-        0
-    );
-    return report(current, replaced, `Replaced ${replaced} items`);
+    const [only] = targets;
+    const whose =
+        only?.kind === 'entity' ? ` of ${targets.length === 1 ? only.entity.name : `${targets.length} entities`}` : '';
+    return report(current, replaced, `Replaced ${slot.name} slot ${slot.index}${whose} with ${amount} * ${item}`);
 };
+
+const replaceItemOnEntity = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number =>
+    replaceItem(
+        context,
+        select(source(context), value(context, 'target')).map((entity) => ({ kind: 'entity', entity })),
+        mode,
+        amount
+    );
 
 const replaceItemInBlock = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number => {
     const current = source(context);
-    const { slot, item } = replacement(context, amount);
-    const target = {
-        kind: 'block',
-        dimension: current.dimension,
-        position: resolvePosition(value(context, 'position'), current)
-    } as const;
-
-    const replaced = current.host.data.setSlot(target, slot, item, amount, mode);
-    return report(current, replaced, `Replaced ${replaced} items`);
+    const position = resolvePosition(value(context, 'position'), current);
+    return replaceItem(context, [{ kind: 'block', dimension: current.dimension, position }], mode, amount);
 };
 
 const fog = (context: Context, mode: 'pop' | 'remove'): number => {

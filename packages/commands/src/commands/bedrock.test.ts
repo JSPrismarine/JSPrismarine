@@ -5,10 +5,10 @@ import type {
     BlockRef,
     CameraShake,
     CommandSource,
-    DataTarget,
     EntityRef,
     FogChange,
     ItemSlot,
+    SlotTarget,
     TitleInstruction
 } from '../host';
 import { createCommandSource } from '../host';
@@ -20,14 +20,15 @@ import { registerVanillaCommands } from './vanilla';
 const run = (
     line: string,
     overrides: TestCommandHostOverrides = {},
-    extra: { entity?: EntityRef; feedback?: string[] } = {}
+    extra: { entity?: EntityRef; feedback?: string[]; errors?: string[] } = {}
 ): unknown[] => {
     const host = testCommandHost(overrides);
     const source: CommandSource = createCommandSource({
         host,
         ...(extra.entity === undefined ? {} : { entity: extra.entity }),
         permissionLevel: 4,
-        onFeedback: (message) => extra.feedback?.push(message)
+        onFeedback: (message) => extra.feedback?.push(message),
+        onError: (message) => extra.errors?.push(message)
     });
     return registerVanillaCommands().getDispatcher().execute(line, source);
 };
@@ -183,13 +184,14 @@ describe('the Bedrock-only commands', () => {
     describe('/replaceitem', () => {
         /** What one line put where. */
         const placed = (line: string) => {
-            const slots: { target: DataTarget; slot: ItemSlot; item: string; count: number; mode?: string }[] = [];
+            const slots: { target: SlotTarget; slot: ItemSlot; item: string; count: number; mode?: string }[] = [];
             run(line, {
                 entities: { select: () => [steve] },
                 data: {
-                    setSlot: (target, slot, item, count, mode) => {
-                        slots.push({ target, slot, item, count, ...(mode === undefined ? {} : { mode }) });
-                        return count;
+                    setSlot: (targets, slot, item, count, mode) => {
+                        for (const target of targets)
+                            slots.push({ target, slot, item, count, ...(mode === undefined ? {} : { mode }) });
+                        return targets.length;
                     }
                 }
             });
@@ -217,13 +219,26 @@ describe('the Bedrock-only commands', () => {
             expect(placed('replaceitem entity @s slot.hotbar 0 destroy minecraft:stone')[0]?.mode).toBe('destroy');
         });
 
-        it('returns how many items went in', () => {
+        it('returns how many slots were written, and says which one as Bedrock does', () => {
+            const feedback: string[] = [];
             expect(
-                run('replaceitem entity @s slot.hotbar 0 minecraft:stone 7', {
-                    entities: { select: () => [steve] },
-                    data: { setSlot: (_target, _slot, _item, count) => count }
-                })
-            ).toEqual([7]);
+                run(
+                    'replaceitem entity @s slot.hotbar 0 minecraft:stone 7',
+                    { entities: { select: () => [steve] }, data: { setSlot: () => 1 } },
+                    { feedback }
+                )
+            ).toEqual([1]);
+            expect(feedback).toEqual([`Replaced slot.hotbar slot 0 of ${steve.name} with 7 * minecraft:stone`]);
+        });
+
+        it('says the slot was occupied when keep left it alone', () => {
+            const errors: string[] = [];
+            run(
+                'replaceitem entity @s slot.hotbar 0 keep minecraft:stone',
+                { entities: { select: () => [steve] }, data: { setSlot: () => 0 } },
+                { errors }
+            );
+            expect(errors).toEqual(['There is already an item occupying slot.hotbar slot 0.']);
         });
 
         it("addresses a container block, which is Mojang's other two overloads", () => {

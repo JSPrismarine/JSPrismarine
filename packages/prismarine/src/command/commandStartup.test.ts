@@ -72,12 +72,26 @@ const debugConfig = (levelName: string) =>
         }
     })();
 
+/** What an entity definition adds to the fixture's health and family: components, groups and events. */
+interface DefinitionParts {
+    readonly components?: Record<string, unknown>;
+    readonly component_groups?: Record<string, unknown>;
+    readonly events?: Record<string, unknown>;
+}
+
 /**
  * Writes the entity definitions this command integration test exercises.
  *
  * @param notSummonable - The identifiers whose definitions say `"is_summonable": false`.
+ * @param parts - What each identifier's definition carries beyond its health and family, so a
+ *   test does not lean on the vanilla pack, which CI does not have.
  */
-const writeBehaviorPack = (at: string, identifiers: readonly string[], notSummonable: readonly string[] = []): void => {
+const writeBehaviorPack = (
+    at: string,
+    identifiers: readonly string[],
+    notSummonable: readonly string[] = [],
+    parts: Readonly<Record<string, DefinitionParts>> = {}
+): void => {
     const files: Record<string, unknown> = {
         'manifest.json': {
             format_version: 2,
@@ -97,8 +111,13 @@ const writeBehaviorPack = (at: string, identifiers: readonly string[], notSummon
                 description: { identifier, is_spawnable: true, is_summonable: !notSummonable.includes(identifier) },
                 components: {
                     'minecraft:health': { value: 40, max: 40 },
-                    'minecraft:type_family': { family: [identifier.split(':')[1], 'mob'] }
-                }
+                    'minecraft:type_family': { family: [identifier.split(':')[1], 'mob'] },
+                    ...parts[identifier]?.components
+                },
+                ...(parts[identifier]?.component_groups === undefined
+                    ? {}
+                    : { component_groups: parts[identifier]?.component_groups }),
+                ...(parts[identifier]?.events === undefined ? {} : { events: parts[identifier]?.events })
             }
         };
     }
@@ -583,14 +602,46 @@ describe('the command layer on a booted server', () => {
  * a behavior pack declaring the entity types this test exercises and a
  * datapack declaring one loot table.
  */
+/** A horse's two slots and a llama's carpet and chest, as the vanilla pack declares them. */
+const MOUNT_DEFINITIONS: Readonly<Record<string, DefinitionParts>> = {
+    'minecraft:horse': {
+        components: {
+            'minecraft:inventory': { container_type: 'horse', inventory_size: 2 },
+            'minecraft:equippable': {
+                slots: [
+                    { slot: 0, item: 'saddle', accepted_items: ['saddle'] },
+                    {
+                        slot: 1,
+                        item: 'horsearmoriron',
+                        accepted_items: ['horsearmorleather', 'horsearmoriron', 'horsearmorgold', 'horsearmordiamond']
+                    }
+                ]
+            }
+        }
+    },
+    'minecraft:llama': {
+        components: {
+            'minecraft:inventory': { container_type: 'horse', inventory_size: 16 },
+            'minecraft:equippable': { slots: [{ slot: 1, item: 'carpet', accepted_items: ['carpet'] }] }
+        },
+        component_groups: { 'minecraft:llama_chested': { 'minecraft:is_chested': {} } },
+        events: { 'minecraft:on_chest': { add: { component_groups: ['minecraft:llama_chested'] } } }
+    }
+};
+
 describe('the command layer on a server with packs of its own', () => {
     let root: string;
     let server: Server;
     let world: World;
     let sender: CommandExecutor;
     let previousDir: string | undefined;
+    /** What the console was told by the last line run. */
+    const answers: string[] = [];
 
-    const run = async (line: string) => server.getCommandManager().dispatchCommand(sender, sender, line);
+    const run = async (line: string) => {
+        answers.length = 0;
+        return server.getCommandManager().dispatchCommand(sender, sender, line);
+    };
 
     /** A datapack whose one loot table rolls a fixed, countable stack. */
     const writeDatapack = (at: string): void => {
@@ -599,7 +650,8 @@ describe('the command layer on a server with packs of its own', () => {
             'data/mypack/loot_table/gifts.json': {
                 type: 'minecraft:chest',
                 pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }] }]
-            }
+            },
+            'data/mypack/loot_table/nothing.json': { type: 'minecraft:chest', pools: [] }
         };
         for (const [relative, data] of Object.entries(files)) {
             const absolute = path.join(at, ...relative.split('/'));
@@ -611,11 +663,21 @@ describe('the command layer on a server with packs of its own', () => {
     beforeAll(async () => {
         root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-content-'));
         // The villager pair and the fishing hook carry the vanilla pack's flags: the legacy
-        // `villager` is summonable, `villager_v2` and the projectile are not.
+        // `villager` is summonable, `villager_v2` and the projectile are not. The mounts carry
+        // the vanilla pack's inventory and equippable slots, which their slot tests read.
         writeBehaviorPack(
             path.join(root, 'behaviorpack'),
-            ['mypack:dragon', 'minecraft:villager', 'minecraft:villager_v2', 'minecraft:fishing_hook'],
-            ['minecraft:villager_v2', 'minecraft:fishing_hook']
+            [
+                'mypack:dragon',
+                'minecraft:villager',
+                'minecraft:villager_v2',
+                'minecraft:fishing_hook',
+                'minecraft:zombie',
+                'minecraft:horse',
+                'minecraft:llama'
+            ],
+            ['minecraft:villager_v2', 'minecraft:fishing_hook'],
+            MOUNT_DEFINITIONS
         );
         writeDatapack(path.join(root, 'datapack'));
         // `readContentSettings` reads this file out of `JSP_DIR`, before the
@@ -645,7 +707,9 @@ describe('the command layer on a server with packs of its own', () => {
         await world.getChunkAt(0, 0);
 
         sender = {
-            sendMessage: async () => {},
+            sendMessage: async (message: string) => {
+                answers.push(message);
+            },
             getName: () => 'CONSOLE',
             getFormattedUsername: () => 'CONSOLE',
             getServer: () => server
@@ -762,5 +826,98 @@ describe('the command layer on a server with packs of its own', () => {
         await expect(run('/loot replace block 12 70 12 container.2 loot mypack:gifts')).resolves.toBe(true);
 
         expect(contentsOf([12, 70, 12], 'minecraft:chest')[2]?.getName()).toBe('minecraft:cobblestone');
+    });
+
+    it('empties the slots an explicit count names, even when the roll is empty, as Java does', async () => {
+        await run('/setblock 15 70 15 minecraft:chest');
+        await run('/replaceitem block 15 70 15 slot.container 0 minecraft:diamond 4');
+        await run('/replaceitem block 15 70 15 slot.container 3 minecraft:diamond 4');
+
+        await run('/loot replace block 15 70 15 container.0 1 loot mypack:nothing');
+        expect(contentsOf([15, 70, 15], 'minecraft:chest')[0]).toBeFalsy();
+
+        // A count far past the chest's 27 slots writes what it can and returns.
+        await run('/loot replace block 15 70 15 container.2 2147483647 loot mypack:gifts');
+        const held = contentsOf([15, 70, 15], 'minecraft:chest');
+        expect(held[2]?.getName()).toBe('minecraft:cobblestone');
+        expect(held[3]).toBeFalsy();
+    });
+
+    it('copies between a container block and back through /item', async () => {
+        await run('/setblock 13 70 13 minecraft:chest');
+        await run('/setblock 14 70 14 minecraft:barrel');
+        await run('/replaceitem block 13 70 13 slot.container 0 minecraft:diamond 4');
+
+        await expect(run('/item replace block 14 70 14 container.5 from block 13 70 13 container.0')).resolves.toBe(
+            true
+        );
+
+        expect(contentsOf([14, 70, 14], 'minecraft:barrel')[5]?.getAmount()).toBe(4);
+        // A block that stores nothing is refused in Java's words.
+        await expect(run('/item replace block 0 70 0 container.0 with minecraft:diamond')).resolves.toBe(false);
+        expect(answers.at(-1)).toContain('Target position 0, 70, 0 is not a container');
+    });
+
+    // #3567: a mob's slots were out of reach, and the refusal read as a garbled sentence.
+    it("puts a helmet on a zombie's head through /replaceitem", async () => {
+        await run('/summon minecraft:zombie 20 70 20');
+        const zombie = dataEntityAt(20, 20);
+        expect(zombie?.identifier).toBe('minecraft:zombie');
+
+        await expect(run('/replaceitem entity @e[type=zombie] slot.armor.head 0 minecraft:iron_helmet')).resolves.toBe(
+            true
+        );
+
+        expect(zombie?.body.inventory.equipment('head')?.getName()).toBe('minecraft:iron_helmet');
+        expect(answers.join('\n')).not.toContain('This server has no');
+
+        // Java's spelling reaches the same slot, and a slot a zombie lacks is refused in a sentence.
+        await expect(run('/item replace entity @e[type=zombie] armor.head with minecraft:golden_helmet')).resolves.toBe(
+            true
+        );
+        expect(zombie?.body.inventory.equipment('head')?.getName()).toBe('minecraft:golden_helmet');
+        await expect(run('/replaceitem entity @e[type=zombie] slot.saddle 0 minecraft:saddle')).resolves.toBe(false);
+        expect(answers.at(-1)).toContain('That entity has no slot.saddle slots');
+    });
+
+    /**
+     * Summons a mount and tames it, as a player who rode it until it trusted them would. The
+     * runtime sizes its container to the tamed group's on the next tick.
+     */
+    const tamed = async (type: string, at: number) => {
+        await run(`/summon ${type} ${at} 70 ${at}`);
+        const mount = dataEntityAt(at, at);
+        mount?.instance.fire('minecraft:on_tame');
+        world.dataEntities()?.runtime.tick(1);
+        return mount;
+    };
+
+    it("saddles and armors a tamed horse through Java's slot names", async () => {
+        const horse = await tamed('minecraft:horse', 22);
+        expect(horse?.body.inventory.container('inventory').size).toBe(2);
+
+        await expect(run('/item replace entity @e[type=horse] saddle with minecraft:saddle')).resolves.toBe(true);
+        await expect(
+            run('/item replace entity @e[type=horse] armor.body with minecraft:iron_horse_armor')
+        ).resolves.toBe(true);
+
+        const inventory = horse?.body.inventory;
+        expect(inventory?.container('inventory').get(0)?.getName()).toBe('minecraft:saddle');
+        // The armor lives in the horse's own armor slot, and its body reads it from there.
+        expect(inventory?.container('inventory').get(1)?.getName()).toBe('minecraft:iron_horse_armor');
+        expect(inventory?.equipment('body')?.getName()).toBe('minecraft:iron_horse_armor');
+    });
+
+    it("fills a tamed llama's chest past its carpet slot", async () => {
+        const llama = await tamed('minecraft:llama', 24);
+
+        await expect(run('/replaceitem entity @e[type=llama] slot.chest 0 minecraft:diamond 3')).resolves.toBe(true);
+        await expect(run('/item replace entity @e[type=llama] horse.1 with minecraft:emerald')).resolves.toBe(true);
+
+        const container = llama?.body.inventory.container('inventory');
+        // Slot 1 is the carpet's, so the chest is slots 0, 2, 3 and on.
+        expect(container?.get(0)?.getName()).toBe('minecraft:diamond');
+        expect(container?.get(1)).toBeNull();
+        expect(container?.get(2)?.getName()).toBe('minecraft:emerald');
     });
 });
