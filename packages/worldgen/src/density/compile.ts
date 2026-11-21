@@ -288,6 +288,38 @@ export interface InterpolationCellSize {
     readonly y: number;
 }
 
+/** A range of density values, both ends included. A range that holds any value has non-finite ends. */
+export interface DensityRange {
+    lo: number;
+    hi: number;
+}
+
+/** A box of block positions, both ends of each axis included. */
+export interface DensityBox {
+    minX: number;
+    minY: number;
+    minZ: number;
+    maxX: number;
+    maxY: number;
+    maxZ: number;
+}
+
+/**
+ * Writes into `out` a range that holds the value a compiled tree samples at every block inside
+ * `box`, for one context. Ends that are not finite mean the tree could not be bounded there, and
+ * then a sample may also be NaN.
+ */
+export type DensityBoundSampler = (context: SampleContext, box: DensityBox, out: DensityRange) => void;
+
+/** The range that holds any value, which is the answer for a node the bound does not model. */
+const unbounded: DensityBoundSampler = (_context, _box, out) => {
+    out.lo = Number.NEGATIVE_INFINITY;
+    out.hi = Number.POSITIVE_INFINITY;
+};
+
+/** Whether a range bounds its values. A sample inside a bounded range is a number, never NaN. */
+const isBounded = (range: DensityRange): boolean => Number.isFinite(range.lo) && Number.isFinite(range.hi);
+
 /** The greatest common divisor, with `gcd(0, n) === n` so it folds over an empty set. */
 const gcd = (a: number, b: number): number => {
     let left = a;
@@ -416,6 +448,7 @@ const endIslandHeight = (noise: Noise, sectionX: number, sectionZ: number): numb
  */
 export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
+    private readonly bounds = new Map<DensityFunctionNode, DensityBoundSampler>();
     private readonly volumePlans = new Map<DensityFunctionNode, DensityVolumePlan>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
@@ -557,6 +590,28 @@ export class DensityFunctionCompiler {
         if (generated === undefined) this.closureFallbacks++;
         const sampler = generated ?? this.build(node);
         this.compiled.set(node, sampler);
+        return sampler;
+    }
+
+    /**
+     * Compiles a tree into a function that bounds its samples over a box of blocks.
+     *
+     * The bound is conservative: every sample the compiled tree returns inside the box lies in
+     * the range, and a node it does not model makes the range unbounded. An `interpolated`
+     * node's value is a chain of single-precision lerps between the eight corners of its cell,
+     * and each lerp stays between its two ends, so the corners bound every value in the cell.
+     * That holds only for a box inside one cell of every `interpolated` node in the tree; size
+     * the box with {@link DensityFunctionCompiler.interpolationCellSizeOf} and align it to that
+     * size. A box that crosses a cell edge gets an unbounded range.
+     *
+     * Bounding a box computes the corners its `interpolated` nodes read, through the same
+     * corner cache the samplers use, so a later sample in the box reuses them.
+     */
+    public boundSampler(node: DensityFunctionNode): DensityBoundSampler {
+        const existing = this.bounds.get(node);
+        if (existing) return existing;
+        const sampler = this.buildBound(node);
+        this.bounds.set(node, sampler);
         return sampler;
     }
 
@@ -1475,7 +1530,8 @@ export class DensityFunctionCompiler {
         return (context, x, y, z) => f32(base(context, x, y, z) ** exponent(context, x, y, z));
     }
 
-    private buildGradient(node: DensityFunctionNode & { type: 'gradient' }): DensitySampler {
+    /** A gradient's value as a function of the one coordinate it reads. */
+    private gradientAlong(node: DensityFunctionNode & { type: 'gradient' }): (coordinate: number) => number {
         const range = node.toCoordinate - node.fromCoordinate;
         if (range === 0) throw new WorldgenErrors.FlatGradient();
         const factor = f32(f32(f32(node.toValue) - f32(node.fromValue)) / range);
@@ -1504,6 +1560,11 @@ export class DensityFunctionCompiler {
                 };
                 break;
         }
+        return sample;
+    }
+
+    private buildGradient(node: DensityFunctionNode & { type: 'gradient' }): DensitySampler {
+        const sample = this.gradientAlong(node);
 
         // One closure per axis keeps the per-sample path free of axis comparisons; the depth
         // slot reaches a y gradient on every block of a chunk.
@@ -1514,6 +1575,201 @@ export class DensityFunctionCompiler {
                 return (_context, _x, y) => sample(y);
             case 'z':
                 return (_context, _x, _y, z) => sample(z);
+        }
+    }
+
+    /**
+     * Builds {@link DensityFunctionCompiler.boundSampler}'s function for one node.
+     *
+     * Each case rounds its ends the way the sampler rounds its value. Rounding to the nearest
+     * float never reorders two values, so an end computed from the extremes of the inputs is
+     * still an end after rounding. A case whose input is unbounded is unbounded too, which also
+     * covers a NaN sample: only an unbounded input can produce one.
+     */
+    private buildBound(node: DensityFunctionNode): DensityBoundSampler {
+        switch (node.type) {
+            case 'constant': {
+                const value = f32(node.value);
+                if (!Number.isFinite(value)) return unbounded;
+                return (_context, _box, out) => {
+                    out.lo = value;
+                    out.hi = value;
+                };
+            }
+
+            case 'cache':
+                return this.boundSampler(node.input);
+
+            case 'gradient': {
+                // Only the clamped gradient moves one way along its axis; a tiled one wraps.
+                if (node.tiling !== 'clamp_to_edge') return unbounded;
+                const sample = this.gradientAlong(node);
+                const axis = node.axis;
+                return (_context, box, out) => {
+                    const first = sample(axis === 'x' ? box.minX : axis === 'y' ? box.minY : box.minZ);
+                    const last = sample(axis === 'x' ? box.maxX : axis === 'y' ? box.maxY : box.maxZ);
+                    out.lo = Math.min(first, last);
+                    out.hi = Math.max(first, last);
+                };
+            }
+
+            case 'interpolated': {
+                const id = this.cacheId(node);
+                const input = this.compile(node.input);
+                const cellSizeXz = node.cellSizeXz;
+                const cellSizeY = node.cellSizeY;
+                return (context, box, out) => {
+                    const cellX = floorDiv(box.minX, cellSizeXz);
+                    const cellY = floorDiv(box.minY, cellSizeY);
+                    const cellZ = floorDiv(box.minZ, cellSizeXz);
+                    if (
+                        floorDiv(box.maxX, cellSizeXz) !== cellX ||
+                        floorDiv(box.maxY, cellSizeY) !== cellY ||
+                        floorDiv(box.maxZ, cellSizeXz) !== cellZ
+                    ) {
+                        unbounded(context, box, out);
+                        return;
+                    }
+
+                    const cache = context.cornerCache(id);
+                    let lo = Number.POSITIVE_INFINITY;
+                    let hi = Number.NEGATIVE_INFINITY;
+                    for (let corner = 0; corner < 8; corner++) {
+                        const cornerX = cellX + (corner & 1);
+                        const cornerY = cellY + ((corner >> 1) & 1);
+                        const cornerZ = cellZ + (corner >> 2);
+                        const value = cache.getOrCompute(
+                            context,
+                            input,
+                            cornerX,
+                            cornerY,
+                            cornerZ,
+                            cornerX * cellSizeXz,
+                            cornerY * cellSizeY,
+                            cornerZ * cellSizeXz
+                        );
+                        // Math.min and Math.max carry a NaN corner through, which leaves the range unbounded.
+                        lo = Math.min(lo, value);
+                        hi = Math.max(hi, value);
+                    }
+                    out.lo = lo;
+                    out.hi = hi;
+                };
+            }
+
+            case 'range_choice': {
+                const input = this.boundSampler(node.input);
+                const whenInRange = this.boundSampler(node.whenInRange);
+                const whenOutOfRange = this.boundSampler(node.whenOutOfRange);
+                const min = f32(node.minInclusive);
+                const max = f32(node.maxExclusive);
+                const chosen: DensityRange = { lo: 0, hi: 0 };
+                const other: DensityRange = { lo: 0, hi: 0 };
+                return (context, box, out) => {
+                    input(context, box, chosen);
+                    if (isBounded(chosen)) {
+                        if (chosen.lo >= min && chosen.hi < max) {
+                            whenInRange(context, box, out);
+                            return;
+                        }
+                        if (chosen.hi < min || chosen.lo >= max) {
+                            whenOutOfRange(context, box, out);
+                            return;
+                        }
+                    }
+                    // Some samples may fall either side, and a NaN input takes the out of range branch.
+                    whenInRange(context, box, chosen);
+                    whenOutOfRange(context, box, other);
+                    out.lo = Math.min(chosen.lo, other.lo);
+                    out.hi = Math.max(chosen.hi, other.hi);
+                };
+            }
+
+            case 'abs':
+            case 'negate':
+            case 'square': {
+                const type = node.type;
+                const input = this.boundSampler(node.input);
+                const inner: DensityRange = { lo: 0, hi: 0 };
+                return (context, box, out) => {
+                    input(context, box, inner);
+                    if (!isBounded(inner)) {
+                        unbounded(context, box, out);
+                        return;
+                    }
+                    if (type === 'negate') {
+                        out.lo = -inner.hi;
+                        out.hi = -inner.lo;
+                        return;
+                    }
+                    const least = inner.lo >= 0 ? inner.lo : inner.hi <= 0 ? -inner.hi : 0;
+                    const most = Math.max(Math.abs(inner.lo), Math.abs(inner.hi));
+                    out.lo = type === 'abs' ? least : square(least);
+                    out.hi = type === 'abs' ? most : square(most);
+                };
+            }
+
+            case 'clamp': {
+                const input = this.boundSampler(node.input);
+                const min = f32(node.min);
+                const max = f32(node.max);
+                return (context, box, out) => {
+                    input(context, box, out);
+                    if (!isBounded(out)) return;
+                    out.lo = clamp(out.lo, min, max);
+                    out.hi = clamp(out.hi, min, max);
+                };
+            }
+
+            case 'add':
+            case 'sub':
+            case 'mul':
+            case 'min':
+            case 'max': {
+                const type = node.type;
+                const left = this.boundSampler(node.left);
+                const right = this.boundSampler(node.right);
+                const a: DensityRange = { lo: 0, hi: 0 };
+                const b: DensityRange = { lo: 0, hi: 0 };
+                return (context, box, out) => {
+                    left(context, box, a);
+                    right(context, box, b);
+                    if (!isBounded(a) || !isBounded(b)) {
+                        unbounded(context, box, out);
+                        return;
+                    }
+                    switch (type) {
+                        case 'add':
+                            out.lo = f32(a.lo + b.lo);
+                            out.hi = f32(a.hi + b.hi);
+                            return;
+                        case 'sub':
+                            out.lo = f32(a.lo - b.hi);
+                            out.hi = f32(a.hi - b.lo);
+                            return;
+                        case 'mul': {
+                            const p0 = f32(a.lo * b.lo);
+                            const p1 = f32(a.lo * b.hi);
+                            const p2 = f32(a.hi * b.lo);
+                            const p3 = f32(a.hi * b.hi);
+                            out.lo = Math.min(p0, p1, p2, p3);
+                            out.hi = Math.max(p0, p1, p2, p3);
+                            return;
+                        }
+                        case 'min':
+                            out.lo = Math.min(a.lo, b.lo);
+                            out.hi = Math.min(a.hi, b.hi);
+                            return;
+                        case 'max':
+                            out.lo = Math.max(a.lo, b.lo);
+                            out.hi = Math.max(a.hi, b.hi);
+                            return;
+                    }
+                };
+            }
+
+            default:
+                return unbounded;
         }
     }
 

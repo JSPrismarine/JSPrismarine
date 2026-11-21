@@ -144,7 +144,9 @@ fifteen-slot shape does not load 26.3 data.
 **Aquifers and ore veins.** `NoiseBasedAquifer` is the jittered 16 by 12 by 16 cell grid with its
 barrier pressure, floodedness thresholds and lava rule. `createGlobalFluidPicker` builds the
 dimension-wide fluid surface. `compileOreVeinRule` implements the `minecraft:ore_vein` rule with
-its three draws in Java's order.
+its three draws in Java's order. Given a cell bound from `RandomState.boundSampler`, it bounds the
+vein density once per interpolation cell and skips the cells where it cannot be positive, which
+in vanilla is almost all of them; the blocks and draws stay the same.
 
 **Chunk sampling.** `ChunkSampler` samples `final_density` per block and runs the aquifer over the
 result, for one block, one column or a whole 16 by 16 chunk. `column` and `fill` go top-down;

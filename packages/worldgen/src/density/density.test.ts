@@ -282,6 +282,75 @@ describe('generated density compiler', () => {
     });
 });
 
+describe('cell bounds', () => {
+    const seed = BigInt(vectors.density.seed);
+    const state = new RandomState(vanillaData, seed, vanillaData.settings('minecraft:overworld'));
+    const boundedIds = [
+        'minecraft:overworld/ore_vein/copper_density',
+        'minecraft:overworld/ore_vein/iron_density',
+        'minecraft:overworld/ore_vein/mask',
+        'minecraft:overworld/ore_vein/richness',
+        'minecraft:overworld/ore_vein/toggle'
+    ];
+
+    it('holds every sample of a cell for the vanilla ore vein trees', () => {
+        let boundedCells = 0;
+        let cells = 0;
+        for (const id of boundedIds) {
+            const node = vanillaData.densityFunction(id);
+            const cell = state.interpolationCellSizeOf(node);
+            expect(cell, id).toEqual({ xz: 4, y: 8 });
+            if (cell === undefined) continue;
+
+            const sample = state.sampler(node);
+            const bound = state.boundSampler(node);
+            const context = new SampleContext();
+            const range = { lo: 0, hi: 0 };
+            for (let minX = -8; minX < 8; minX += cell.xz) {
+                for (let minZ = 0; minZ < 8; minZ += cell.xz) {
+                    for (let minY = -72; minY < 72; minY += cell.y) {
+                        const box = {
+                            minX,
+                            minY,
+                            minZ,
+                            maxX: minX + cell.xz - 1,
+                            maxY: minY + cell.y - 1,
+                            maxZ: minZ + cell.xz - 1
+                        };
+                        bound(context, box, range);
+                        cells++;
+                        if (!Number.isFinite(range.lo) || !Number.isFinite(range.hi)) continue;
+                        boundedCells++;
+                        for (let x = box.minX; x <= box.maxX; x++) {
+                            for (let y = box.minY; y <= box.maxY; y++) {
+                                for (let z = box.minZ; z <= box.maxZ; z++) {
+                                    const value = sample(context, x, y, z);
+                                    expect(value, `${id} at ${x},${y},${z}`).toBeGreaterThanOrEqual(range.lo);
+                                    expect(value, `${id} at ${x},${y},${z}`).toBeLessThanOrEqual(range.hi);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        expect(boundedCells).toBe(cells);
+    });
+
+    it('leaves a box unbounded where a sample is not interpolated or the box crosses a cell', () => {
+        const gap = state.boundSampler(vanillaData.densityFunction('minecraft:overworld/ore_vein/gap'));
+        const toggle = state.boundSampler(vanillaData.densityFunction('minecraft:overworld/ore_vein/toggle'));
+        const range = { lo: 0, hi: 0 };
+        const cellBox = { minX: 0, minY: 0, minZ: 0, maxX: 3, maxY: 7, maxZ: 3 };
+
+        gap(new SampleContext(), cellBox, range);
+        expect(range).toEqual({ lo: Number.NEGATIVE_INFINITY, hi: Number.POSITIVE_INFINITY });
+
+        toggle(new SampleContext(), { ...cellBox, maxX: 4 }, range);
+        expect(range).toEqual({ lo: Number.NEGATIVE_INFINITY, hi: Number.POSITIVE_INFINITY });
+    });
+});
+
 describe('unary operators', () => {
     it('computes abs', () => {
         expect(unary('abs', -2.5)).toBe(2.5);

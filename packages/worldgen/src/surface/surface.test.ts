@@ -14,6 +14,8 @@ import type { ClimateEntry } from '../biome/Climate';
 import { ClimateParameterList } from '../biome/Climate';
 import { createClimateSampler } from '../biome/ClimateSampler';
 import { ChunkSampler } from '../chunk/ChunkSampler';
+import { compileOreVeinRule, ORE_VEIN_SEED } from '../chunk/oreVein';
+import type { DensitySampler } from '../density/compile';
 import { SampleContext } from '../density/SampleContext';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
@@ -376,5 +378,67 @@ describe('the material rule at one position, which a carver asks after it opens 
         const { pass } = runPass(buildChunk('minecraft:overworld', 'overworld'), probe);
 
         expect(pass.topMaterial(column.x, deepY, column.z, true)).toBe('minecraft:lapis_block');
+    });
+});
+
+describe('the ore vein rule', () => {
+    /** Two chunks of the vector seed that hold an iron vein and a copper vein. */
+    const VEIN_CHUNKS = [
+        [0, 0],
+        [6, 10]
+    ] as const;
+
+    it('samples the vein density only in cells that can hold a vein, and places the same blocks', () => {
+        const randomState = new RandomState(worldgenData, SEED, worldgenData.settings('minecraft:overworld'));
+        const random = randomState.randomFactory(ORE_VEIN_SEED);
+        for (const id of ['minecraft:overworld/copper_ore_vein', 'minecraft:overworld/iron_ore_vein']) {
+            const node = materialRuleData.rule(id);
+            if (node.type !== 'ore_vein') throw new TypeError(`${id} is not an ore_vein rule`);
+            const density = node.rule.density;
+            const cell = randomState.interpolationCellSizeOf(density);
+            if (cell === undefined) throw new TypeError(`${id} has no interpolated density`);
+
+            let densitySamples = 0;
+            const compile = (child: typeof density): DensitySampler => {
+                const sampler = randomState.sampler(child);
+                if (child !== density) return sampler;
+                return (context, x, y, z) => {
+                    densitySamples++;
+                    return sampler(context, x, y, z);
+                };
+            };
+            const everyBlock = compileOreVeinRule(node.rule, compile, random);
+            const byCell = compileOreVeinRule(node.rule, compile, random, {
+                density: randomState.boundSampler(density),
+                cell
+            });
+
+            const walk = (place: typeof everyBlock): { placed: string[]; samples: number; blocks: number } => {
+                densitySamples = 0;
+                const placed: string[] = [];
+                let blocks = 0;
+                for (const [chunkX, chunkZ] of VEIN_CHUNKS) {
+                    const context = new SampleContext();
+                    // Columns top down, the order the surface pass asks in.
+                    for (let x = chunkX * 16; x < chunkX * 16 + 16; x++) {
+                        for (let z = chunkZ * 16; z < chunkZ * 16 + 16; z++) {
+                            for (let y = 63; y >= -64; y--) {
+                                blocks++;
+                                const block = place(context, x, y, z);
+                                if (block !== undefined) placed.push(`${x} ${y} ${z} ${block}`);
+                            }
+                        }
+                    }
+                }
+                return { placed, samples: densitySamples, blocks };
+            };
+
+            const expected = walk(everyBlock);
+            const actual = walk(byCell);
+            expect(expected.placed.length, id).toBeGreaterThan(0);
+            expect(actual.placed, id).toEqual(expected.placed);
+            expect(expected.samples, id).toBe(expected.blocks);
+            expect(actual.samples, id).toBeLessThan(expected.samples / 4);
+        }
     });
 });

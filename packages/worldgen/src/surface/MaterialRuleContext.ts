@@ -1,6 +1,7 @@
 import type { BiomeClimateLookup } from '../biome/BiomeClimate';
 import { coldEnoughToSnow } from '../biome/BiomeClimate';
 import { compileOreVeinRule, ORE_VEIN_SEED } from '../chunk/oreVein';
+import type { OreVeinCellBound } from '../chunk/oreVein';
 import type { DensitySampler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import { SampleContext } from '../density/SampleContext';
@@ -217,6 +218,15 @@ export class MaterialRuleContext {
         return this.randomState.sampler(node);
     }
 
+    /**
+     * What an ore vein placer needs to rule out a cell of blocks at once, or undefined when the
+     * tree has no `interpolated` node to size the cell by.
+     */
+    public densityCellBound(node: DensityFunctionNode): OreVeinCellBound | undefined {
+        const cell = this.randomState.interpolationCellSizeOf(node);
+        return cell === undefined ? undefined : { density: this.randomState.boundSampler(node), cell };
+    }
+
     /** Resolves a vertical anchor against the dimension extent. */
     public resolveAnchorY(anchor: Parameters<typeof resolveAnchorY>[0]): number {
         return resolveAnchorY(anchor, this.generationContext);
@@ -411,7 +421,8 @@ export const compileMaterialRule = (node: MaterialRuleNode, context: MaterialRul
             const place = compileOreVeinRule(
                 node.rule,
                 (child) => context.densitySampler(child),
-                context.randomFactory(ORE_VEIN_SEED)
+                context.randomFactory(ORE_VEIN_SEED),
+                context.densityCellBound(node.rule.density)
             );
             return (x, y, z) => place(context.sampleContext, x, y, z);
         }
