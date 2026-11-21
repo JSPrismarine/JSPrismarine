@@ -42,9 +42,10 @@ const target = computed(() => (/^[a-z]+:/i.test(props.href) ? props.href : withB
     box-shadow: var(--jsp-shadow-offset) var(--jsp-shadow-offset) 0 var(--jsp-primary-shadow, var(--jsp-ink));
 }
 
+/* Pointing lightens the face and leaves it in line with the buttons beside it; only a press moves it. */
 .is-primary:hover {
-    transform: translate(3px, 3px);
-    box-shadow: 1px 1px 0 var(--jsp-primary-shadow, var(--jsp-ink));
+    background: color-mix(in srgb, var(--jsp-accent) 80%, var(--jsp-cream));
+    border-color: color-mix(in srgb, var(--jsp-accent) 80%, var(--jsp-cream));
 }
 
 .is-primary:active {
