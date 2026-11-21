@@ -15,6 +15,7 @@ import type { JavaClient } from './headlessmc.mts';
 import { launchJavaClient } from './headlessmc.mts';
 import type { JspServer } from './jsp-server.mts';
 import { startServer } from './jsp-server.mts';
+import { blocks } from './java-scenarios/blocks.mts';
 import { chat } from './java-scenarios/chat.mts';
 import { entities } from './java-scenarios/entities.mts';
 import { join } from './java-scenarios/join.mts';
@@ -32,7 +33,7 @@ export interface JavaScenario {
     run(context: JavaScenarioContext): Promise<void>;
 }
 
-const SCENARIOS: readonly JavaScenario[] = [join, chat, entities];
+const SCENARIOS: readonly JavaScenario[] = [join, chat, entities, blocks];
 
 /** A TCP port nothing listens on. */
 const freeTcpPort = (): Promise<number> =>
