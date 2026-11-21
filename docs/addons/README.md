@@ -32,6 +32,18 @@ each addon's <!-- fact:addons.files -->`manifest.json`, `addon.json` and `README
 listed here goes onto the <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release once its change reaches `master`.
 
 <!-- fact:addons.catalog -->
+### [Placeholders](../../addons/placeholders/README.md)
+
+Provides the player, server and world placeholders, and /placeholders to list and try them.
+
+| Version | Runs on | License |
+| ------- | ------- | ------- |
+| `1.0.0` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+
+```text
+addon install placeholders
+```
+
 ### [TPS Bar](../../addons/tps-bar/README.md)
 
 Shows TPS, MSPT and ping on a boss bar.

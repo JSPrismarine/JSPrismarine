@@ -275,8 +275,10 @@ and clear without leaving residue, and a ranks addon can set once and keep it.
        wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
        lets the server register under an owner of its own. A token's key must be in the provider's
        `keys`, so the list is what the registry answers. A player who left renders as no player.
-3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
-       tests.
+3. [x] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
+       tests. `/placeholders` is one command whose first word is an enum, and a text with spaces
+       is quoted, since a `String` parameter reads one word or a quoted phrase. `time` renders as
+       the in-game clock and `uptime` counts from `worldLoad`, so a `/reload` starts it over.
 4. [ ] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
 5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,

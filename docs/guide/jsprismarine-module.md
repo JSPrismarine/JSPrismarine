@@ -161,7 +161,8 @@ always for a player who joined over NetherNet, which measures none yet
 A placeholder is a token such as `{player:ping}` in a text. `placeholders` is the registry every
 pack shares: one pack registers a namespace with the keys it answers, and any pack renders a text
 through `resolve`, so a sidebar, a chat format or a tab list shows the same values without talking
-to the pack that computes them.
+to the pack that computes them. The [placeholders addon](../../addons/placeholders/README.md)
+registers the `player`, `server` and `world` namespaces most servers want.
 
 ```js
 import { world } from '@minecraft/server';

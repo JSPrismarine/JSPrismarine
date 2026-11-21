@@ -9,9 +9,15 @@ import { fileURLToPath } from 'node:url';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import {
+    clockOf,
+    PLACEHOLDERS as PLACEHOLDER_TABLE,
+    uptimeOf
+} from '../../../../addons/placeholders/scripts/placeholders.js';
 import type { ScriptHostLibrary } from '../ScriptEngine';
 import { loadLibrary, scriptHostAvailable, TEST_SERVER } from '../testing/library.test-utils';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
+import { memoryWorldSystem } from './worldsystem/memoryWorldSystem';
 import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
 import type { ScriptPack } from './pack';
 import { readScriptConfig, readScriptPack } from './pack';
@@ -19,6 +25,7 @@ import type { ScriptCommandOutcome } from './world';
 import { WorldScripts } from './WorldScripts';
 
 const TPS_BAR = fileURLToPath(new URL('../../../../addons/tps-bar', import.meta.url));
+const PLACEHOLDERS = fileURLToPath(new URL('../../../../addons/placeholders', import.meta.url));
 
 const directories: string[] = [];
 afterAll(() => {
@@ -33,13 +40,13 @@ const readPack = (directory: string): ScriptPack => {
 };
 
 /**
- * The TPS bar as Bedrock Dedicated Server runs it: the same files, with the import of
+ * An addon as Bedrock Dedicated Server runs it: the same files, with the import of
  * `@jsprismarine/server` naming a module the runtime refuses with the message BDS gives.
  */
-const tpsBarOnBds = (): ScriptPack => {
-    const directory = mkdtempSync(join(tmpdir(), 'jsp-tps-bar-bds-'));
+const addonOnBds = (addon: string): ScriptPack => {
+    const directory = mkdtempSync(join(tmpdir(), 'jsp-addon-bds-'));
     directories.push(directory);
-    cpSync(TPS_BAR, directory, { recursive: true });
+    cpSync(addon, directory, { recursive: true });
     const main = join(directory, 'scripts', 'main.js');
     const source = readFileSync(main, 'utf8');
     expect(source.split("import('@jsprismarine/server')")).toHaveLength(2);
@@ -297,7 +304,7 @@ describe.skipIf(!scriptHostAvailable())('the TPS bar addon', () => {
             message: 'The TPS bar needs JSPrismarine 0.23.0 or newer, and this server is not one.'
         };
         const bds = new MemoryWorld();
-        const onBds = start(bds, undefined, tpsBarOnBds());
+        const onBds = start(bds, undefined, addonOnBds(TPS_BAR));
         expect(tpsbar(bds, bds.join('Steve'))).toEqual(needsJsprismarine);
 
         const older = new MemoryWorld();
@@ -318,5 +325,204 @@ describe.skipIf(!scriptHostAvailable())('the TPS bar addon', () => {
             status: 'failure',
             message: 'Only a player can turn on the TPS bar.'
         });
+    });
+});
+
+describe.skipIf(!scriptHostAvailable())('the placeholders addon', () => {
+    let library: ScriptHostLibrary;
+    beforeAll(() => {
+        library = loadLibrary();
+    });
+    const runtimes: WorldScripts[] = [];
+    afterEach(() => {
+        for (const runtime of runtimes.splice(0)) runtime.shutdown();
+    });
+
+    /** A world whose clock the test sets, through the world system the scripts' `world.getTimeOfDay` reads. */
+    class TimedWorld extends MemoryWorld {
+        public readonly worldSystem = memoryWorldSystem('0', this);
+    }
+
+    /** Starts the pack over `world`, on a server that gives the live members when `server` is set. */
+    const start = (world: MemoryWorld, server?: ManualServer, pack = readPack(PLACEHOLDERS)) => {
+        const errors: string[] = [];
+        const scripts = new WorldScripts({
+            server: TEST_SERVER,
+            library,
+            world,
+            packs: [pack],
+            config: readScriptConfig(undefined),
+            log: { info: () => {}, warn: () => {}, error: (line) => errors.push(line) },
+            seed: 1n,
+            ...(server === undefined ? {} : { members: server })
+        });
+        runtimes.push(scripts);
+        scripts.startEarly();
+        scripts.startWorld();
+        scripts.flush();
+        const tick = (count: number) => {
+            for (let index = 0; index < count; index++) scripts.flush();
+        };
+        return { scripts, errors, tick };
+    };
+
+    /** A player, or the console when `player` is undefined, runs `/placeholders <action> [text]`. */
+    const placeholders = (
+        world: MemoryWorld,
+        player: string | undefined,
+        action: string,
+        text?: string
+    ): ScriptCommandOutcome | undefined =>
+        world.commandSet?.run(
+            'jsp:placeholders',
+            player === undefined
+                ? { sourceType: 'Server' }
+                : { sourceType: 'Entity', sourceEntity: { id: player, typeId: 'minecraft:player' } },
+            text === undefined ? [action] : [action, text]
+        );
+
+    /** Every token of the table, in a text, with each namespace's tokens in table order. */
+    const everyToken = Object.entries(PLACEHOLDER_TABLE)
+        .flatMap(([namespace, keys]) => Object.keys(keys).map((key) => `{${namespace}:${key}}`))
+        .join(' ');
+
+    it('registers /placeholders for operators, with list and parse as its first word and an optional text', () => {
+        const world = new MemoryWorld();
+        start(world, new ManualServer());
+
+        expect(world.commandSet?.commands).toEqual([
+            expect.objectContaining({
+                name: 'jsp:placeholders',
+                permissionLevel: 1,
+                mandatoryParameters: [{ name: 'jsp:placeholders_action', type: 'Enum' }],
+                optionalParameters: [{ name: 'text', type: 'String' }]
+            })
+        ]);
+        expect(world.commandSet?.enums).toEqual([{ name: 'jsp:placeholders_action', values: ['list', 'parse'] }]);
+    });
+
+    it('lists the player, server and world namespaces with the keys the README documents', () => {
+        const world = new MemoryWorld();
+        start(world, new ManualServer());
+
+        expect(placeholders(world, world.join('Steve'), 'list')).toEqual({
+            status: 'success',
+            message: Object.entries(PLACEHOLDER_TABLE)
+                .map(([namespace, keys]) => `${namespace}: ${Object.keys(keys).join(', ')}`)
+                .join('\n')
+        });
+        expect(Object.keys(PLACEHOLDER_TABLE)).toEqual(['player', 'server', 'world']);
+    });
+
+    it('renders every token for the player who runs parse', () => {
+        const world = new TimedWorld();
+        const server = new ManualServer();
+        const steve = world.join('Steve');
+        world.setAttribute(steve, 'minecraft:health', 15.4);
+        world.setGameMode(steve, 'Creative');
+        world.teleport(steve, 'minecraft:the_nether', { x: 10.9, y: -3.2, z: 0.5 });
+        world.setWeather('minecraft:the_nether', 'Thunder', 100);
+        world.worldSystem.setAbsoluteTime(2 * 24_000 + 13_500);
+        server.pings.set(steve, 41.6);
+        server.current = { tps: 19.26, tpsAverages: [19, 19, 19], lastTickMs: 60, averageTickMs: 12.345 };
+        world.join('Alex');
+        const { tick } = start(world, server);
+        tick(2 * 1200);
+
+        expect(placeholders(world, steve, 'parse', everyToken)).toEqual({
+            status: 'success',
+            message:
+                'Steve 42 15 20 Creative the_nether 10 -4 0 0 ' +
+                `19.3 12.3 2 ${TEST_SERVER.maxPlayers} ${TEST_SERVER.version} 2m ` +
+                '19:30 2 Thunder'
+        });
+    });
+
+    it('renders for no player from the console, leaving the player tokens and any other unknown token', () => {
+        const world = new MemoryWorld();
+        world.join('Steve');
+        const { errors } = start(world, new ManualServer());
+
+        expect(
+            placeholders(world, undefined, 'parse', '{player:name} has {server:online} {other:thing} {world:moon}')
+        ).toEqual({ status: 'success', message: '{player:name} has 1 {other:thing} {world:moon}' });
+        expect(errors).toEqual([]);
+    });
+
+    it('knows the weather once it has changed, per dimension', () => {
+        const world = new MemoryWorld();
+        const steve = world.join('Steve');
+        const { tick } = start(world, new ManualServer());
+        expect(placeholders(world, undefined, 'parse', '{world:weather}')?.message).toBe('{world:weather}');
+
+        world.setWeather('minecraft:overworld', 'Rain', 100);
+        tick(1);
+        expect(placeholders(world, undefined, 'parse', '{world:weather}')?.message).toBe('Rain');
+        expect(placeholders(world, steve, 'parse', '{world:weather}')?.message).toBe('Rain');
+        world.teleport(steve, 'minecraft:the_end', { x: 0, y: 64, z: 0 });
+        expect(placeholders(world, steve, 'parse', '{world:weather}')?.message).toBe('{world:weather}');
+    });
+
+    it('leaves {player:ping} until the connection has a sample', () => {
+        const world = new MemoryWorld();
+        const server = new ManualServer();
+        const steve = world.join('Steve');
+        start(world, server);
+
+        expect(placeholders(world, steve, 'parse', '{player:ping}ms')?.message).toBe('{player:ping}ms');
+        server.pings.set(steve, 7);
+        expect(placeholders(world, steve, 'parse', '{player:ping}ms')?.message).toBe('7ms');
+    });
+
+    it('asks for a text when parse has none', () => {
+        const world = new MemoryWorld();
+        start(world, new ManualServer());
+
+        expect(placeholders(world, world.join('Steve'), 'parse')).toEqual({
+            status: 'failure',
+            message: 'Usage: /placeholders parse <text>'
+        });
+    });
+
+    it('says the placeholders need JSPrismarine on Bedrock Dedicated Server, and on a server without the registry', () => {
+        const needsJsprismarine = {
+            status: 'failure',
+            message: 'Placeholders need JSPrismarine 0.23.0 or newer, and this server is not one.'
+        };
+        const bds = new MemoryWorld();
+        const onBds = start(bds, undefined, addonOnBds(PLACEHOLDERS));
+        expect(placeholders(bds, bds.join('Steve'), 'list')).toEqual(needsJsprismarine);
+
+        const older = new MemoryWorld();
+        const onOlder = start(older);
+        expect(placeholders(older, undefined, 'parse', '{server:tps}')).toEqual(needsJsprismarine);
+
+        onBds.tick(20);
+        onOlder.tick(20);
+        expect([...onBds.errors, ...onOlder.errors]).toEqual([]);
+    });
+
+    it.each([
+        [0, '06:00'],
+        [500, '06:30'],
+        [6000, '12:00'],
+        [13_500, '19:30'],
+        [18_000, '00:00'],
+        [23_999, '05:59'],
+        [24_000 + 1000, '07:00']
+    ])('reads tick %i of the day as %s on the clock', (ticks, clock) => {
+        expect(clockOf(ticks)).toBe(clock);
+    });
+
+    it.each([
+        [0, '0m'],
+        [1199, '0m'],
+        [1200, '1m'],
+        [60 * 1200, '1h 0m'],
+        [(60 + 3) * 1200, '1h 3m'],
+        [(24 * 60 + 3) * 1200, '1d 0h 3m'],
+        [(26 * 60 + 3) * 1200, '1d 2h 3m']
+    ])('renders %i ticks of uptime as %s', (ticks, uptime) => {
+        expect(uptimeOf(ticks)).toBe(uptime);
     });
 });

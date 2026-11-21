@@ -1093,6 +1093,22 @@ async function tpsBarFacts() {
     };
 }
 
+/** The placeholders addon's namespaces and keys, read from the module that lists them. */
+async function placeholdersAddonFacts() {
+    const module: object = await import(
+        pathToFileURL(path.join(REPO_ADDONS_DIRECTORY, 'placeholders', 'scripts', 'placeholders.js')).href
+    );
+    const namespaces: unknown = Reflect.get(module, 'PLACEHOLDERS');
+    if (typeof namespaces !== 'object' || namespaces === null) {
+        throw new Error('the placeholders addon exports no PLACEHOLDERS table');
+    }
+    const rows = Object.entries(namespaces).flatMap(([namespace, keys]) => {
+        if (typeof keys !== 'object' || keys === null) throw new Error(`${namespace} lists no keys`);
+        return Object.entries(keys).map(([key, summary]) => [inlineCode(`{${namespace}:${key}}`), String(summary)]);
+    });
+    return { 'addons.placeholders.keys': `\n${table(['Token', 'What it renders'], rows)}\n` };
+}
+
 /** The entry points `@jsprismarine/prismarine` publishes, read from its published exports map. */
 function prismarineEntryFacts() {
     // Parsed JSON is an untyped boundary; only the published exports map is read.
@@ -1202,6 +1218,7 @@ export async function loadFacts(): Promise<Facts> {
             ...prismarineEntryFacts(),
             ...(await addonFacts()),
             ...(await tpsBarFacts()),
+            ...(await placeholdersAddonFacts()),
             ...leveldbFacts(),
             ...tickBudgetFacts(),
             ...generationFacts(),
