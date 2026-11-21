@@ -55,10 +55,11 @@ type MemberDefinition =
     /** A frozen object whose properties read the server each time. */
     | { readonly kind: 'live'; readonly summary: string; readonly properties: Readonly<Record<string, LiveProperty>> }
     | ({ readonly kind: 'function' } & FunctionDefinition)
-    /** A frozen object of functions. */
+    /** A frozen object of functions, and of properties the script reads from the server. */
     | {
           readonly kind: 'methods';
           readonly summary: string;
+          readonly properties?: Readonly<Record<string, InterfaceProperty>>;
           readonly methods: Readonly<Record<string, FunctionDefinition>>;
       };
 
@@ -94,6 +95,10 @@ export const JSPRISMARINE_SERVER = {
             protocolVersion: {
                 type: 'number',
                 summary: 'The Bedrock network protocol version of `minecraftVersion`.'
+            },
+            maxPlayers: {
+                type: 'number',
+                summary: "How many players may be online at once, the server's `max-players` setting."
             }
         }
     },
@@ -139,6 +144,31 @@ export const JSPRISMARINE_SERVER = {
                     'Shows a boss bar to one player. A player sees the bar shown last, and the one before it again once that one is hidden. A bar for a player who left is never valid.',
                 parameters: 'player: Player, options?: BossBarOptions',
                 returns: 'BossBar'
+            }
+        }
+    },
+    placeholders: {
+        kind: 'methods',
+        summary:
+            "Tokens such as `{player:ping}` that any pack can provide and any pack can render. A namespace belongs to the pack that registered it and goes when the pack's scripts stop, as on `/reload`.",
+        properties: {
+            namespaces: {
+                type: 'readonly PlaceholderNamespace[]',
+                summary: 'Every registered namespace with its keys, oldest first, as a new frozen list each read.'
+            }
+        },
+        methods: {
+            register: {
+                summary:
+                    'Registers a namespace. Throws a `TypeError` for a namespace or key that is not lowercase letters, digits and underscores starting with a letter, or for a provider with no keys, and an `Error` for a namespace that is registered already.',
+                parameters: 'namespace: string, provider: PlaceholderProvider',
+                returns: 'PlaceholderRegistration'
+            },
+            resolve: {
+                summary:
+                    'Replaces each `{namespace:key}` in the text with its value, for the player when one is given. A token nobody provides, or whose provider gives `undefined` or throws, stays as written, and so does any other text between braces.',
+                parameters: 'text: string, player?: Player',
+                returns: 'string'
             }
         }
     }
@@ -202,6 +232,46 @@ export const JSPRISMARINE_TYPES = {
                 returns: 'void'
             }
         }
+    },
+    PlaceholderProvider: {
+        kind: 'interface',
+        summary: 'What a pack registers for a namespace: the keys it answers, and the function that answers them.',
+        properties: {
+            keys: {
+                type: 'readonly string[]',
+                summary:
+                    'The keys the provider answers, each lowercase letters, digits and underscores starting with a letter. A token with another key stays as written.'
+            }
+        },
+        methods: {
+            resolve: {
+                summary:
+                    'The value of one key, for the player when the text is rendered for one. A number renders through `String()`. `undefined` leaves the token as written, and so does a throw, which the content log reports once per namespace. It runs inside the budget of the script that renders.',
+                parameters: 'key: string, player?: Player',
+                returns: 'string | number | undefined'
+            }
+        }
+    },
+    PlaceholderRegistration: {
+        kind: 'interface',
+        summary: 'A namespace a pack registered.',
+        properties: {},
+        methods: {
+            unregister: {
+                summary:
+                    "Takes the namespace out of the registry, so its tokens stay as written. A pack's namespaces go on their own when its scripts stop.",
+                parameters: '',
+                returns: 'void'
+            }
+        }
+    },
+    PlaceholderNamespace: {
+        kind: 'interface',
+        summary: 'One registered namespace.',
+        properties: {
+            namespace: { type: 'string', summary: 'Its name, the part of a token before the colon.' },
+            keys: { type: 'readonly string[]', summary: 'The keys its provider answers.' }
+        }
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -228,12 +298,24 @@ type LiveMember = {
 }[keyof typeof JSPRISMARINE_SERVER];
 
 /** The functions the namespace's live members call, which the embedder makes in the pack's context. */
-export const JSPRISMARINE_HOST_FUNCTIONS = ['read', 'ping', 'showBar', 'updateBar', 'hideBar', 'barValid'] as const;
+export const JSPRISMARINE_HOST_FUNCTIONS = [
+    'read',
+    'ping',
+    'showBar',
+    'updateBar',
+    'hideBar',
+    'barValid',
+    'register',
+    'unregister',
+    'resolve',
+    'namespaces'
+] as const;
 
 /**
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
  * `host.read(name, index)` answers a property of `performance`, one entry of a list at a time,
- * and the others are named for what they do.
+ * `host.namespaces()` answers the registered namespaces as JSON, and the others are named for
+ * what they do.
  */
 const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, string>> = {
     getPing: 'freeze((player) => host.ping(player))',
@@ -246,6 +328,21 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        hide() { host.hideBar(id); }',
         '    });',
         '    return freeze({ show: (player, options) => bar(host.showBar(player, options), player) });',
+        '})()'
+    ].join('\n'),
+    placeholders: [
+        '(() => {',
+        '    const parse = JSON.parse;',
+        '    const namespaces = () =>',
+        '        freeze(parse(host.namespaces()).map(({ namespace, keys }) => freeze({ namespace, keys: freeze(keys) })));',
+        '    return freeze({',
+        '        register: (namespace, provider) => {',
+        '            const id = host.register(namespace, provider);',
+        '            return freeze({ unregister() { host.unregister(id); } });',
+        '        },',
+        '        resolve: (text, player) => host.resolve(text, player),',
+        '        get namespaces() { return namespaces(); }',
+        '    });',
         '})()'
     ].join('\n')
 };
@@ -329,7 +426,7 @@ const memberLines = (name: string, member: MemberDefinition): string[] => {
     }
     const properties: Readonly<Record<string, { readonly summary: string; readonly type: string }>> =
         member.kind === 'methods'
-            ? {}
+            ? (member.properties ?? {})
             : Object.fromEntries(
                   Object.entries<ValueProperty | LiveProperty>(member.properties).map(([key, property]) => [
                       key,

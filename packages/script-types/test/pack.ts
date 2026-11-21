@@ -14,10 +14,11 @@ if (jsp !== undefined) {
     const { jsprismarine } = jsp;
     const name: 'JSPrismarine' = jsprismarine.name;
     const protocol: number = jsprismarine.protocolVersion;
+    const slots: number = jsprismarine.maxPlayers;
     const versions: string[] = [jsprismarine.version, jsprismarine.minecraftVersion];
     // @ts-expect-error The module's values are read-only.
     jsprismarine.version = '1.0.0';
-    void [name, protocol, versions];
+    void [name, protocol, versions, slots];
 
     // A server older than these members leaves them out, so the pack checks before it uses them.
     if ('performance' in jsp && 'getPing' in jsp && 'bossBars' in jsp) {
@@ -36,6 +37,21 @@ if (jsp !== undefined) {
         // @ts-expect-error The list is read-only.
         averages.push(20);
         void [milliseconds, ping, bar.player.id];
+    }
+
+    if ('placeholders' in jsp) {
+        const { placeholders } = jsp;
+        const player = { id: '-4294967295' };
+        const registration = placeholders.register('demo', {
+            keys: ['name', 'slots'],
+            resolve: (key, who) => (key === 'name' ? who?.id : jsp.jsprismarine.maxPlayers)
+        });
+        const text: string = placeholders.resolve('{demo:name} of {demo:slots}', player);
+        const names: string[] = placeholders.namespaces.flatMap(({ namespace, keys }) => [namespace, ...keys]);
+        // @ts-expect-error The list is read-only.
+        placeholders.namespaces.push({ namespace: 'x', keys: [] });
+        registration.unregister();
+        void [text, names];
     }
 }
 

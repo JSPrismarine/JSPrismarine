@@ -51,10 +51,12 @@ const describe = (jsp) => ({
     version: typeof jsp.jsprismarine.version,
     minecraftVersion: typeof jsp.jsprismarine.minecraftVersion,
     protocolVersion: typeof jsp.jsprismarine.protocolVersion,
+    maxPlayers: typeof jsp.jsprismarine.maxPlayers,
     frozen: Object.isFrozen(jsp.jsprismarine),
     performance: 'performance' in jsp ? typesOf(jsp.performance) : 'absent',
     getPing: 'getPing' in jsp ? typeof jsp.getPing : 'absent',
     bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
+    placeholders: 'placeholders' in jsp ? typesOf(jsp.placeholders) : 'absent',
     allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });
 

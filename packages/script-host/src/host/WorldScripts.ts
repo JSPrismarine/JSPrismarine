@@ -50,6 +50,7 @@ import type { JsprismarineServerInfo } from './jsprismarineServer';
 import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
 import { bossBarOptions, ScriptBossBars } from './jsprismarineMembers';
+import { ScriptPlaceholders } from './placeholders';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -171,7 +172,8 @@ export interface WorldScriptsOptions {
     readonly server: JsprismarineServerInfo;
     /**
      * What `@jsprismarine/server`'s `performance`, `getPing` and `bossBars` reach of the running
-     * server. Without it, the module leaves those members out, as an older server would.
+     * server. Without it, the module leaves those members and `placeholders` out, as an older
+     * server would.
      */
     readonly members?: JsprismarineServerMembers;
     /** The world's seed, which `Math.random` is seeded from. */
@@ -281,6 +283,13 @@ const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPla
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
 const unrecognized = (name: string): ReferenceError => new ScriptHostErrors.UnrecognizedModule({ name });
 
+/** A thrown value as the content log shows it: a script's error with its stack, anything else as text. */
+const describeThrown = (error: unknown): string => {
+    if (!(error instanceof ScriptError)) return String(error);
+    const stack = error.scriptStack.trim();
+    return `${error.message}${stack === '' ? '' : `    ${stack}`}`;
+};
+
 /** The script runtime of one world. */
 export class WorldScripts {
     private readonly options: WorldScriptsOptions;
@@ -337,9 +346,24 @@ export class WorldScripts {
      * ids, so no bar of the new runtime shares one with a bar of the old.
      */
     private readonly bossBars: ScriptBossBars | undefined;
+    /**
+     * The placeholder namespaces the packs register through `@jsprismarine/server`, and the ones
+     * the server registers under an owner of its own. A reload ends the packs' registrations and
+     * keeps the server's.
+     */
+    public readonly placeholders: ScriptPlaceholders;
 
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
+        this.placeholders = new ScriptPlaceholders({
+            failed: (owner, namespace, error) =>
+                this.options.log.error(
+                    `[Scripting] [${owner.name}] The placeholder provider of ${namespace} threw, and its tokens stay as written: ${describeThrown(error)}`
+                ),
+            // The watchdog's errors end the render, so a resolver that hangs charges the script
+            // that renders, as the budget says.
+            fatal: (error) => error instanceof ScriptTerminatedError || error instanceof ScriptOutOfMemoryError
+        });
         this.engine = this.createEngine();
         this.gametests = new GameTests<LoadedPack>({
             world: options.world,
@@ -582,6 +606,8 @@ export class WorldScripts {
         // A bar belongs to the scripts that showed it, so it goes with them.
         this.bossBars?.hideAll();
         for (const loaded of this.loaded) {
+            // So does a placeholder namespace, whose resolver is one of the pack's functions.
+            this.placeholders.release(loaded.pack);
             loaded.forms?.destroy();
             loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
@@ -929,7 +955,25 @@ export class WorldScripts {
                     bars.hide(barId(id));
                     return undefined;
                 },
-                barValid: (id) => bars.isShown(barId(id))
+                barValid: (id) => bars.isShown(barId(id)),
+                register: (namespace, provider) => this.registerPlaceholders(loaded, namespace, provider),
+                unregister: (id) => {
+                    if (typeof id === 'number') this.placeholders.unregister(id, loaded.pack);
+                    return undefined;
+                },
+                resolve: (text, value) => {
+                    const member = 'placeholders.resolve';
+                    if (typeof text !== 'string') {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member,
+                            expected: 'a string',
+                            argument: 'text'
+                        });
+                    }
+                    const player = value === undefined ? undefined : playerOf(value, member);
+                    return this.placeholders.resolve(text, player?.present === true ? player.id : undefined);
+                },
+                namespaces: () => JSON.stringify(this.placeholders.namespaces())
             };
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
             const fn = engine.hostFunction(name, functions[name]);
@@ -937,6 +981,91 @@ export class WorldScripts {
             engine.free(fn);
         }
         return host;
+    }
+
+    /**
+     * `placeholders.register` for a pack: checks the provider's shape, keeps its `resolve` and
+     * registers it under the pack, which owns the registration until it unregisters or its scripts
+     * stop.
+     * @returns The registration's id, which the pack's `unregister` passes back.
+     */
+    private registerPlaceholders(loaded: LoadedPack, namespace: ScriptValue, provider: ScriptValue): number {
+        const engine = this.engine;
+        const member = 'placeholders.register';
+        if (typeof namespace !== 'string') {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a string', argument: 'namespace' });
+        }
+        if (!(provider instanceof ScriptHandle)) {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'an object', argument: 'provider' });
+        }
+        const keys = this.placeholderKeys(provider, member);
+        const resolve = engine.get(provider, 'resolve');
+        if (!(resolve instanceof ScriptHandle)) {
+            throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a function', argument: 'resolve' });
+        }
+        const self = engine.duplicate(provider);
+        const dispose = () => {
+            engine.free(self);
+            engine.free(resolve);
+        };
+        try {
+            return this.placeholders.register(loaded.pack, namespace, {
+                keys,
+                resolve: (key, player) => this.resolvePlaceholder(loaded, self, resolve, key, player),
+                dispose
+            });
+        } catch (error) {
+            dispose();
+            throw error;
+        }
+    }
+
+    /** The `keys` of a provider a pack passed, each a string. */
+    private placeholderKeys(provider: ScriptHandle, member: string): string[] {
+        const engine = this.engine;
+        const refuse = () =>
+            new ScriptHostErrors.JspModuleArgument({ member, expected: 'a list of strings', argument: 'keys' });
+        const list = engine.get(provider, 'keys');
+        if (!(list instanceof ScriptHandle)) throw refuse();
+        try {
+            const length = engine.get(list, 'length');
+            if (typeof length !== 'number') throw refuse();
+            const keys: string[] = [];
+            for (let index = 0; index < length; index++) {
+                const key = engine.get(list, String(index));
+                if (typeof key !== 'string') throw refuse();
+                keys.push(key);
+            }
+            return keys;
+        } finally {
+            engine.free(list);
+        }
+    }
+
+    /**
+     * Calls a pack's placeholder resolver with a key and, for a player, the pack's own object for
+     * them, in the pack's context as its callbacks run. A value that is not a string or a number
+     * answers as undefined, which leaves the token.
+     */
+    private resolvePlaceholder(
+        loaded: LoadedPack,
+        self: ScriptHandle,
+        resolve: ScriptHandle,
+        key: string,
+        player: string | undefined
+    ): string | number | undefined {
+        if (this.stopped) return undefined;
+        const engine = this.engine;
+        return engine.inContext(loaded.context, () => {
+            const args: ScriptValue[] =
+                player === undefined ? [key] : [key, this.entityObject(loaded, { id: player, typeId: PLAYER })];
+            const value = engine.call(resolve, self, ...args);
+            if (value instanceof ScriptHandle) {
+                engine.free(value);
+                return undefined;
+            }
+            return typeof value === 'string' || typeof value === 'number' ? value : undefined;
+        });
     }
 
     private instance(loaded: LoadedPack, className: string, tag: number, state = ''): ScriptHandle {
