@@ -11,7 +11,7 @@ Two addons and the module members they need.
 
 Placeholders are tokens such as `{player:ping}` that any pack can provide and any pack can render.
 A registry in `@jsprismarine/server` holds them, so a sidebar, a chat format or a tab list reads
-the same values without talking to the pack that computes them. The `placeholders` addon ships the
+the same values without talking to the pack that computes them. The `standard-placeholders` addon ships the
 providers every server wants.
 
 The tab list addon renames entries in the player list from a template, with a template per
@@ -25,7 +25,7 @@ What done looks like:
   scripts stop, as boss bars do.
 - `playerList.setDisplayName(player, name)` and `playerList.reset(player)` change what every
   client shows for a player in its player list, and nothing else.
-- `addon install placeholders` gives a server the `player`, `server` and `world` namespaces and
+- `addon install standard-placeholders` gives a server the `player`, `server` and `world` namespaces and
   `/placeholders list` and `/placeholders parse <text>`.
 - `addon install tab-list`, then `/tablist format {player:name} &7{player:ping}ms`, and every
   entry in the pause menu's player list shows the name and ping, refreshed once a second.
@@ -40,7 +40,8 @@ Out of scope for now:
 - Hiding players, ordering the list, or a header and footer. Bedrock's list shows a name, a skin
   and a platform, and the server controls only the name.
 - Dependencies between addons in the installer. The tab list README says to install
-  placeholders first, and the addon warns on the console when the `player` namespace is missing.
+  `standard-placeholders` first, and the addon warns on the console when the `player` namespace is
+  missing.
 
 ## What we know
 
@@ -92,7 +93,7 @@ namespace rather than every tick.
 
 ### The standard providers
 
-The `placeholders` addon registers:
+The `standard-placeholders` addon registers:
 
 | Namespace | Keys                                                                         |
 | --------- | ---------------------------------------------------------------------------- |
@@ -280,8 +281,11 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
        wraps a pack's resolver and names the pack as the owner, and `WorldScripts.placeholders`
        lets the server register under an owner of its own. A token's key must be in the provider's
        `keys`, so the list is what the registry answers. A player who left renders as no player.
-3. [ ] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
-       tests.
+3. [x] [#3373](https://github.com/JSPrismarine/JSPrismarine/issues/3373) **The placeholders addon.** The three namespaces, the two commands, the README, and its
+       tests. The addon is `standard-placeholders`, so `addon install standard-placeholders` and
+       `import('@jsprismarine/placeholders')` are not the same word for two things. `/placeholders` is one command whose first word is an enum, and a text with spaces
+       is quoted, since a `String` parameter reads one word or a quoted phrase. `time` renders as
+       the in-game clock and `uptime` counts from `worldLoad`, so a `/reload` starts it over.
 4. [x] [#3374](https://github.com/JSPrismarine/JSPrismarine/issues/3374) **The player list member.** `playerList` in the module and `script-types`, the fact
        tables, and the parity row.
 5. [ ] [#3375](https://github.com/JSPrismarine/JSPrismarine/issues/3375) **The tab list addon.** Templates at three levels from the config file, the commands,

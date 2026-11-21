@@ -1,0 +1,5 @@
+{
+    "description": "Provides the standard player, server and world placeholders, and /placeholders to list and try them.",
+    "minServer": "0.23.0",
+    "license": "(MIT OR MPL-2.0)"
+}
