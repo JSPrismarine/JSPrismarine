@@ -303,9 +303,16 @@ export class TickList {
      * @param run - Called once per due tick, in order.
      * @param maxTicks - The per-tick budget, defaulting to Java's 65536. Due ticks past it stay
      * queued, still due, and run first on the next game tick.
+     * @param canTick - Whether a chunk's ticks may run now, Java's `LevelTicks` tick check. A due
+     * tick in a chunk that may not stays queued, still due, and counts against no budget.
      * @returns How many ticks ran.
      */
-    tick(currentTick: number, run: TickHandler, maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK): number {
+    tick(
+        currentTick: number,
+        run: TickHandler,
+        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
+        canTick?: (chunkX: number, chunkZ: number) => boolean
+    ): number {
         if (this.removed.size > 0) {
             let kept = 0;
             for (const tick of this.queue) if (!this.removed.has(tick)) this.queue[kept++] = tick;
@@ -314,15 +321,20 @@ export class TickList {
         }
         this.queue.sort(drainOrder);
 
+        const collected: ScheduledTick[] = [];
+        const held: ScheduledTick[] = [];
         let dueCount = 0;
-        while (dueCount < maxTicks) {
+        while (collected.length < maxTicks) {
             const next = this.queue[dueCount];
             if (next === undefined || next.triggerTick > currentTick) break;
             dueCount++;
+            if (canTick === undefined || canTick(next.at.x >> 4, next.at.z >> 4)) collected.push(next);
+            else held.push(next);
         }
 
-        // A single prefix splice moves the remaining queue once; shifting each due tick moves it repeatedly.
-        const collected = this.queue.splice(0, dueCount);
+        // A single prefix splice moves the remaining queue once; shifting each due tick moves it
+        // repeatedly. The held ticks go back in front, still in drain order.
+        this.queue.splice(0, dueCount, ...held);
         for (const tick of collected) {
             this.queued.delete(identity(tick));
             this.unindex(tick);
@@ -401,15 +413,19 @@ export class TickScheduler {
      * @param currentTick - The game tick to run.
      * @param run - Called with each due tick and the list it came from.
      * @param maxTicks - The per-list budget, defaulting to Java's 65536.
+     * @param canTick - Whether a list's ticks in a chunk may run now; see {@link TickList.tick}.
      * @returns How many ticks ran across both lists.
      */
     tick(
         currentTick: number,
         run: (kind: TickKind, tick: ScheduledTick) => void,
-        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK
+        maxTicks: number = MAX_SCHEDULED_TICKS_PER_TICK,
+        canTick?: (kind: TickKind, chunkX: number, chunkZ: number) => boolean
     ): number {
-        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks);
-        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks);
+        const check = (kind: TickKind) =>
+            canTick === undefined ? undefined : (chunkX: number, chunkZ: number) => canTick(kind, chunkX, chunkZ);
+        const blocks = this.lists.block.tick(currentTick, (tick) => run('block', tick), maxTicks, check('block'));
+        const fluids = this.lists.fluid.tick(currentTick, (tick) => run('fluid', tick), maxTicks, check('fluid'));
         return blocks + fluids;
     }
 }

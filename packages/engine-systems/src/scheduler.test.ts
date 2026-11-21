@@ -74,6 +74,31 @@ describe('TickList', () => {
         expect(list.count()).toBe(0);
     });
 
+    it('holds a due tick in a chunk that may not tick, and runs it once the chunk may', () => {
+        const list = new TickList();
+        list.schedule(at(16), 'water', 1);
+        list.schedule(at(15), 'water', 1);
+        let ticking = new Set([0]);
+        const ran = (tick: number) => {
+            const names: string[] = [];
+            list.tick(
+                tick,
+                (each) => names.push(`${each.type}@${each.at.x}`),
+                1,
+                (chunkX) => ticking.has(chunkX)
+            );
+            return names;
+        };
+
+        // The held tick counts against no budget: the one in chunk 0 still runs.
+        expect(ran(5)).toEqual(['water@15']);
+        expect(list.hasScheduledTick(at(16), 'water')).toBe(true);
+        expect(ran(6)).toEqual([]);
+        ticking = new Set([0, 1]);
+        expect(ran(7)).toEqual(['water@16']);
+        expect(list.count()).toBe(0);
+    });
+
     it('orders one batch by TickPriority, the jar values -3 through 3', () => {
         const list = new TickList();
         list.schedule(at(0), 'normal', 1, TICK_PRIORITIES.NORMAL);
