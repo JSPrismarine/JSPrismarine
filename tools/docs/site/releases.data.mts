@@ -238,7 +238,7 @@ function markChange(html: string) {
             // A breaking note lists removed names, which only upgraders need, so it folds behind its label.
             .replace(
                 /<p class="release__breaking">([\s\S]*?)<\/p>/g,
-                '<details class="release__breaking"><summary>Breaking: what to update</summary><p>$1</p></details>'
+                '<details class="release__breaking"><summary>Breaking<span class="release__fold-more">: what to update</span></summary><p>$1</p></details>'
             )
             // A long note keeps its lead sentence in view and folds what follows, up to its first breaking
             // note, so the list stays scannable.
