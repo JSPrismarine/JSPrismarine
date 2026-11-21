@@ -66,6 +66,67 @@ export const long: WireType<bigint> = custom<bigint>(
     (s) => s.readLong()
 );
 
+/** `VarLong`: a signed 64-bit integer, seven bits a byte, least significant group first. */
+export const varLong: WireType<bigint> = custom<bigint>(
+    'VarLong',
+    (s, v) => s.writeUnsignedVarLong(BigInt.asUintN(64, v)),
+    (s) => BigInt.asIntN(64, s.readUnsignedVarLong())
+);
+
+/** A block's place in the world. */
+export interface JavaBlockPosition {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** `Position`: one long, x in the top 26 bits, then z in 26 and y in the low 12, as `BlockPos.asLong` packs it. */
+export const blockPosition: WireType<JavaBlockPosition> = custom<JavaBlockPosition>(
+    'Position',
+    (s, { x, y, z }) =>
+        s.writeLong(
+            BigInt.asIntN(
+                64,
+                (BigInt.asUintN(26, BigInt(x)) << 38n) |
+                    (BigInt.asUintN(26, BigInt(z)) << 12n) |
+                    BigInt.asUintN(12, BigInt(y))
+            )
+        ),
+    (s) => {
+        const packed = s.readLong();
+        return {
+            x: Number(BigInt.asIntN(26, packed >> 38n)),
+            y: Number(BigInt.asIntN(12, packed)),
+            z: Number(BigInt.asIntN(26, packed >> 12n))
+        };
+    }
+);
+
+/**
+ * A section's place, in sections: one long, x in the top 22 bits, then z in 22 and y in the low
+ * 20, as `SectionPos.asLong` packs it.
+ */
+export const sectionPosition: WireType<JavaBlockPosition> = custom<JavaBlockPosition>(
+    'Section Position',
+    (s, { x, y, z }) =>
+        s.writeLong(
+            BigInt.asIntN(
+                64,
+                (BigInt.asUintN(22, BigInt(x)) << 42n) |
+                    (BigInt.asUintN(22, BigInt(z)) << 20n) |
+                    BigInt.asUintN(20, BigInt(y))
+            )
+        ),
+    (s) => {
+        const packed = s.readLong();
+        return {
+            x: Number(BigInt.asIntN(22, packed >> 42n)),
+            y: Number(BigInt.asIntN(20, packed)),
+            z: Number(BigInt.asIntN(22, packed >> 20n))
+        };
+    }
+);
+
 /**
  * `String (n)`: UTF-8 behind a VarInt byte length, at most `max` characters.
  *

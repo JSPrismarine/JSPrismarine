@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { JavaPacketDefinition } from './JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
 import {
+    BlockUpdate,
     ChunkBatchFinished,
     GameEvent,
     PlayLogin,
+    SectionBlocksUpdate,
     SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
@@ -70,5 +72,32 @@ describe('play packets against vanilla 26.3', () => {
         expect(readBack(SetCenterChunk, VANILLA.center)).toEqual({ x: 0, z: -1 });
         expect(readBack(GameEvent, VANILLA.gameEvent)).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
         expect(readBack(ChunkBatchFinished, VANILLA.batchFinished)).toEqual({ batchSize: 9 });
+    });
+});
+
+describe('block packets', () => {
+    /** Writes a packet and reads it back. */
+    const roundTrip = <T>(definition: JavaPacketDefinition<T>, value: T): T =>
+        decodeJavaPacket(definition, readJavaPacketId(encodeJavaPacket(definition, value)).body);
+
+    it('carries one block by its packed position and its state id', () => {
+        const update = { position: { x: -30_000_000, y: -64, z: 29_999_999 }, state: 27_000 };
+
+        expect(roundTrip(BlockUpdate, update)).toEqual(update);
+    });
+
+    it("carries a section's blocks as state ids above their place in the section", () => {
+        const update = {
+            section: { x: -2, y: -4, z: 1_875_000 },
+            blocks: [
+                { state: 1, x: 15, y: 0, z: 3 },
+                { state: 29_000, x: 0, y: 15, z: 15 }
+            ]
+        };
+        const body = encodeJavaPacket(SectionBlocksUpdate, update).subarray(idOf(SectionBlocksUpdate).length);
+
+        // After the section's long: the count, then 1 << 12 | 15 << 8 | 3 << 4 as a VarLong.
+        expect([...body.subarray(8, 11)]).toEqual([0x02, 0xb0, 0x3e]);
+        expect(roundTrip(SectionBlocksUpdate, update)).toEqual(update);
     });
 });

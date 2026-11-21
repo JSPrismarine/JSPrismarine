@@ -7,7 +7,20 @@ import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
 import { bool, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import { PACKETS } from '../versions/26.3/packets';
-import { double, float, int, javaString, long, optionalVarInt, textComponent, uuid, varInt } from '../wire/javaTypes';
+import {
+    blockPosition,
+    double,
+    float,
+    int,
+    javaString,
+    long,
+    optionalVarInt,
+    sectionPosition,
+    textComponent,
+    uuid,
+    varInt,
+    varLong
+} from '../wire/javaTypes';
 import { profileProperty } from './login';
 import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
@@ -279,3 +292,35 @@ export const PlayerInfoAdd = defineJavaPacket('Player Info Update', PACKETS.play
 export const PlayerInfoRemove = defineJavaPacket('Player Info Remove', PACKETS.play.clientbound.player_info_remove, {
     uuids: list(uuid)
 });
+
+/** `Block Update` (clientbound): one block's new state, by its state id. */
+export const BlockUpdate = defineJavaPacket('Block Update', PACKETS.play.clientbound.block_update, {
+    position: blockPosition,
+    state: varInt
+});
+
+/** One block of a section's update: its state id, and its place within the section. */
+export interface SectionBlock {
+    readonly state: number;
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** A section block as one VarLong: the state id above twelve bits of x, z and y, four bits each. */
+const sectionBlock = custom<SectionBlock>(
+    'Section Block',
+    (s, { state, x, y, z }) => varLong.write(s, (BigInt(state) << 12n) | BigInt((x << 8) | (z << 4) | y)),
+    (s) => {
+        const packed = varLong.read(s);
+        const place = Number(packed & 0xfffn);
+        return { state: Number(packed >> 12n), x: place >> 8, y: place & 15, z: (place >> 4) & 15 };
+    }
+);
+
+/** `Update Section Blocks` (clientbound): several blocks of one section at once. */
+export const SectionBlocksUpdate = defineJavaPacket(
+    'Update Section Blocks',
+    PACKETS.play.clientbound.section_blocks_update,
+    { section: sectionPosition, blocks: list(sectionBlock) }
+);

@@ -1,7 +1,17 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { javaString, long, textComponent, unsignedShort, uuid, varInt } from './javaTypes';
+import {
+    blockPosition,
+    javaString,
+    long,
+    sectionPosition,
+    textComponent,
+    unsignedShort,
+    uuid,
+    varInt,
+    varLong
+} from './javaTypes';
 
 const bytesOf = <T>(type: { write(stream: BinaryStream, value: T): void }, value: T): number[] => {
     const stream = new BinaryStream();
@@ -30,6 +40,33 @@ describe('Java wire types', () => {
     it('writes an unsigned short and a long big-endian', () => {
         expect(bytesOf(unsignedShort, 25_565)).toEqual([0x63, 0xdd]);
         expect(bytesOf(long, -2n)).toEqual([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe]);
+    });
+
+    // The community protocol page's VarLong examples.
+    it.each([
+        [2_147_483_648n, [0x80, 0x80, 0x80, 0x80, 0x08]],
+        [-1n, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01]]
+    ])('writes the VarLong %i as the bytes the protocol page lists, and reads it back', (value, bytes) => {
+        expect(bytesOf(varLong, value)).toEqual(bytes);
+        expect(varLong.read(new BinaryStream(Buffer.from(bytes)))).toBe(value);
+    });
+
+    it('packs a block position as the protocol page does, negative coordinates included', () => {
+        const position = { x: 18_357_644, y: 831, z: -20_882_616 };
+        const below = { x: -5, y: -64, z: 7 };
+
+        expect(Buffer.from(bytesOf(blockPosition, position)).toString('hex')).toBe('4607632c15b4833f');
+        expect(blockPosition.read(new BinaryStream(Buffer.from('4607632c15b4833f', 'hex')))).toEqual(position);
+        expect(blockPosition.read(new BinaryStream(Buffer.from(bytesOf(blockPosition, below))))).toEqual(below);
+    });
+
+    it('packs a section position x, z, y from the top, and reads a negative one back', () => {
+        const section = { x: -1, y: -4, z: 2 };
+        const bytes = Buffer.from(bytesOf(sectionPosition, section));
+
+        expect(bytes.readBigInt64BE() >> 42n).toBe(-1n);
+        expect((bytes.readBigUInt64BE() >> 20n) & 0x3fffffn).toBe(2n);
+        expect(sectionPosition.read(new BinaryStream(bytes))).toEqual(section);
     });
 
     it('refuses a string longer than its field allows', () => {
