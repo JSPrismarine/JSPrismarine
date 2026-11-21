@@ -415,7 +415,11 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const creative = entity.gamemode === Gametype.CREATIVE;
         const count = held.getAmount();
 
-        armor.set(index, held.withCount(1));
+        // The worn piece is the hand's own stack only when the hand gives all of it up. Otherwise it
+        // is a new stack, which must not share the hand's stack network id.
+        const piece = held.withCount(1);
+        if (count > 1 || (creative && worn === null)) piece.stackNetworkId = 0;
+        armor.set(index, piece);
 
         if (count <= 1) {
             if (worn !== null) inventory.setEquipment('mainhand', worn);
