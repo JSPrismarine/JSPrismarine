@@ -788,10 +788,17 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3249](https://github.com/JSPrismarine/JSPrismarine/issues/3249)); a NetherNet
       `transferPlayer` sends nothing, as its packet is not captured; the replay trace does not
       write the recorded results to its file yet, as with the clock
-      ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226)); the WebSocket
-      client, the packet events, `HttpResponse.deserialize`, the request limit, the allow list,
-      the level storage, `asyncPlayerJoin` and the operator and kick functions throw
-      `NotImplementedError`.
+      ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226)); these throw
+      `NotImplementedError`: the allow list
+      ([#3633](https://github.com/JSPrismarine/JSPrismarine/issues/3633)), the operator and kick
+      functions ([#3634](https://github.com/JSPrismarine/JSPrismarine/issues/3634)), `stopServer`
+      and the reloads ([#3635](https://github.com/JSPrismarine/JSPrismarine/issues/3635)), the
+      level storage ([#3636](https://github.com/JSPrismarine/JSPrismarine/issues/3636)),
+      `asyncPlayerJoin` ([#3637](https://github.com/JSPrismarine/JSPrismarine/issues/3637)),
+      `HttpResponse.deserialize` and the request limits
+      ([#3638](https://github.com/JSPrismarine/JSPrismarine/issues/3638)), the packet events
+      ([#3639](https://github.com/JSPrismarine/JSPrismarine/issues/3639)) and the WebSocket client
+      ([#3640](https://github.com/JSPrismarine/JSPrismarine/issues/3640)).
 16. [x] [#3213](https://github.com/JSPrismarine/JSPrismarine/issues/3213) **`@jsprismarine/server`.** The first JSP-only members, the npm typings package, and a
     docs page with the detect-and-fall-back pattern.
     - Done: the module exports `jsprismarine`, a frozen object with the server's `name`,
