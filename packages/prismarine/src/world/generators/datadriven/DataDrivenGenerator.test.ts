@@ -680,6 +680,48 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
         expect(searches.mock.calls.length).toBeLessThan(cellsPerChunk / 8);
     });
 
+    describe('the biomes of a chunk generated on this thread', () => {
+        const side = 3;
+        let ownCellSearches = 0;
+
+        // Generating the block is the slow part and the only thing the assertion waits on.
+        beforeAll(
+            async () => {
+                const generator = new DataDrivenGenerator({ registries });
+                // A tile far from the chunks under test binds the biome source and its climate
+                // sampler, so every climate search from then on can be counted with its cell.
+                const bound = vi.spyOn(MultiNoiseBiomeSource.prototype, 'resolver');
+                await generator.buildTerrainTile(200, 0, SEED, []);
+                const sampler = bound.mock.calls[0]?.[0];
+                bound.mockRestore();
+                if (sampler === undefined) throw new Error('the overworld bound no climate source');
+                const samples = vi.spyOn(sampler, 'sample');
+
+                for (let x = 0; x < side; x++) {
+                    for (let z = 0; z < side; z++) await generator.generateChunk(x, z, SEED);
+                }
+                generator.stopGenerating();
+                ownCellSearches = samples.mock.calls.filter(
+                    ([quartX, , quartZ]) =>
+                        quartX >> 2 >= 0 && quartX >> 2 < side && quartZ >> 2 >= 0 && quartZ >> 2 < side
+                ).length;
+                samples.mockRestore();
+            },
+            CHUNK_TIMEOUT * side * side
+        );
+
+        it('are packed from the cells the terrain pass sampled, without searching the climate again', () => {
+            // Each cell of a chunk is searched once by its terrain pass. What else reaches a chunk's
+            // own cells is the jittered lookups of carvers, the surface and the decoration of the
+            // chunks around it, where the memo has evicted the cell. Translation also repacked every
+            // cell from the biome source, which took this to 21,211 for 13,824 cells; packing from
+            // the tile's cells leaves 15,476.
+            const cells = side * side * (Dimensions.Overworld.height / 4) * 16;
+            expect(ownCellSearches).toBeGreaterThanOrEqual(cells);
+            expect(ownCellSearches).toBeLessThan(cells * 1.2);
+        });
+    });
+
     it(
         'refuses a request made after the shutdown, for a world it had never been asked about',
         async () => {

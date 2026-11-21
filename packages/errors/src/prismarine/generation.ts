@@ -50,6 +50,12 @@ export const PrismarineGenerationErrors = defineErrors('prismarine/generation', 
      */
     MissingSectionBiomes: 'The chunk at {cx}, {cz} has no biome IDs for section {section}',
     /**
+     * A terrain tile's biome cells have no biome for a cell of their own chunk, so the chunk's
+     * biome sections cannot be packed from them. This is a bug in world generation; report it with
+     * the stack trace.
+     */
+    MissingCellBiome: "The tile's biome cells have no biome for cell {quartX}, {quartY}, {quartZ}",
+    /**
      * A chunk finished generating without the data its neighbors merge from. This is a bug in world
      * generation; report it with the stack trace.
      */

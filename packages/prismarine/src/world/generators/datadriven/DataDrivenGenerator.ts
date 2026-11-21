@@ -2014,6 +2014,22 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
+     * Answers a chunk's own cells from the cells its tile carries. Only cells of that chunk may be
+     * asked for; the index is the one {@link RegionBiomeCells} documents.
+     */
+    private cellResolver(cells: RegionBiomeCells, pipeline: SeededPipeline): BiomeResolver {
+        const minQuartY = pipeline.dimension.minY >> 2;
+        const indices = new Uint16Array(cells.indices);
+        return (quartX, quartY, quartZ) => {
+            const biome = cells.palette[indices[(quartY - minQuartY) * 16 + (quartX & 3) * 4 + (quartZ & 3)] ?? -1];
+            if (biome === undefined) {
+                throw new PrismarineGenerationErrors.MissingCellBiome({ quartX, quartY, quartZ });
+            }
+            return biome;
+        };
+    }
+
+    /**
      * The `terrain` body: the noise fill, the surface materials and the carvers for one chunk.
      *
      * The tile it leaves behind is never written into again. Up to nine feature passes read it,
@@ -3372,7 +3388,19 @@ export class DataDrivenGenerator implements Generator {
         const biomes = new ChunkBiomes(chunk.getDimension());
         const sections = subChunkCount(pipeline.dimension);
         const floor = minSubChunk(pipeline.dimension);
-        const packed = biomeRegion.biomeSection(0) === undefined ? this.packBiomeSections(cx, cz, pipeline) : undefined;
+        // A tile built on this thread carries the cells its terrain pass sampled and no packed
+        // sections, so packing reads those cells: going back to the biome source would search the
+        // climate tree again for every cell the memo has evicted since.
+        const cells = biomeRegion.biomeCells();
+        const packed =
+            biomeRegion.biomeSection(0) !== undefined
+                ? undefined
+                : this.packBiomeSections(
+                      cx,
+                      cz,
+                      pipeline,
+                      cells === undefined ? pipeline.biomeCells : this.cellResolver(cells, pipeline)
+                  );
 
         for (let section = 0; section < sections; section++) {
             const sectionIds =
