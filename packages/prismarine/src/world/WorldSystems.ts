@@ -122,6 +122,13 @@ export interface WorldSystemsView {
     /** The chunk coordinates held in memory, used by fallbacks and world-wide reads. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
     /**
+     * Whether the fluid ticks of a chunk may run now. One that may not keeps its due ticks queued
+     * until it may, as Java's `LevelTicks` does for a chunk that is not ticking, so water at the
+     * edge of the loaded area waits for the next chunk rather than stopping for good. A view
+     * without it runs every due fluid tick.
+     */
+    canTickFluids?(chunkX: number, chunkZ: number): boolean;
+    /**
      * Chunks whose simulation distance and guard ring currently require lighting, in the order
      * they should be lit: {@link LIGHT_CHUNKS_PER_TICK} of them are taken in each tick, from the
      * front.
@@ -570,7 +577,8 @@ export class WorldSystems {
                 }
                 this.runAt(tick.at, contentHandler);
             },
-            SCHEDULED_TICK_BUDGET_PER_TICK
+            SCHEDULED_TICK_BUDGET_PER_TICK,
+            (kind, chunkX, chunkZ) => kind !== 'fluid' || (this.view.canTickFluids?.(chunkX, chunkZ) ?? true)
         );
 
         return {

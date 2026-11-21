@@ -731,6 +731,29 @@ describe('world', () => {
                 expect(systems.ticks.list('block').count()).toBe(0);
             });
 
+            it('holds a fluid tick in a chunk that may not tick, and runs it once the chunk may (#3101)', () => {
+                const { view, systemsOf } = worldOf();
+                let ticking = false;
+                const handled: string[] = [];
+                const systems = systemsOf({
+                    view: { ...view, canTickFluids: () => ticking },
+                    blockTickHandlers: { 'minecraft:water': () => void handled.push('water') }
+                });
+                systems.ticks.list('fluid').schedule({ x: 15, y: 1, z: 0 }, 'minecraft:water', 1);
+                systems.ticks.list('block').schedule({ x: 0, y: 1, z: 0 }, 'minecraft:water', 1);
+
+                systems.tick(1);
+                // A block tick runs wherever its chunk is held; only the fluid one waits.
+                expect(handled).toEqual(['water']);
+                systems.tick(2);
+                expect(handled).toEqual(['water']);
+                ticking = true;
+                systems.tick(3);
+
+                expect(handled).toEqual(['water', 'water']);
+                expect(systems.ticks.list('fluid').count()).toBe(0);
+            });
+
             it('does not run a duplicate fluid tick after the block list advances the same liquid', () => {
                 const at = { x: 0, y: 1, z: 0 };
                 const { systemsOf } = worldOf();

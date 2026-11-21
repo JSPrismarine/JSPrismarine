@@ -816,6 +816,9 @@ export class World implements Service {
                 blockRuntimeIdAt: (x, y, z) => this.loadedBlockRuntimeIdAt(x, y, z),
                 topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
+                // A fluid tick reads and writes the blocks around it, and its spread reaches the
+                // next chunk, so it waits for the chunk and its eight neighbors (#3101).
+                canTickFluids: (chunkX, chunkZ) => this.hasChunksAround(chunkX, chunkZ),
                 lightChunks: () => this.lightChunks(),
                 shouldInitializeLight: (chunkX, chunkZ) => this.chunkNeedsLight(chunkX, chunkZ),
                 lightSectionAt: (chunkX, sectionY, chunkZ) => this.lightSectionPalette(chunkX, sectionY, chunkZ),
@@ -841,6 +844,13 @@ export class World implements Service {
         this.systems.ticks.observe((list, { at: { x, y, z }, type, before, after }) =>
             this.blockLogStore?.writtenScheduledTick({ list, x, y, z, type }, before, after)
         );
+    }
+
+    /** Whether a chunk and its eight neighbors are all held in memory. */
+    private hasChunksAround(chunkX: number, chunkZ: number): boolean {
+        for (let dx = -1; dx <= 1; dx++)
+            for (let dz = -1; dz <= 1; dz++) if (!this.chunks.has(Chunk.packXZ(chunkX + dx, chunkZ + dz))) return false;
+        return true;
     }
 
     /**

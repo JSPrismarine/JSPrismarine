@@ -36,7 +36,9 @@ the block.
 `TickScheduler` owns the block and fluid tick lists. A scheduled tick carries a trigger tick, a
 priority, and insertion order. Ticks drain by trigger tick, then priority, then insertion order;
 the per tick budget defaults to Java's 65536 for each list. The host drains the scheduler and
-dispatches each tick to the active block family's `onTick` hook. `TickList.snapshot()` and
+dispatches each tick to the active block family's `onTick` hook. A host may pass `tick` a check of
+which chunks may tick, as Java's `LevelTicks` takes one: a due tick in a chunk that may not stays
+queued, still due, and runs once its chunk may. `TickList.snapshot()` and
 `TickScheduler.snapshot()` return copies of pending work in stable order for diagnostics and replay
 comparisons. A host that records its world's history sets `TickScheduler.observe`, which hears each
 tick queued and each tick taken off with its timing before and after, and writes a recorded change
