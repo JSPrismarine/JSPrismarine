@@ -1750,9 +1750,9 @@
             "jsprismarine:dist": "./dist/network/codec/ProtocolPolicy.js",
             "default": "./src/network/codec/ProtocolPolicy.ts"
         },
-        "./network/codec/describeCodecs": {
-            "jsprismarine:dist": "./dist/network/codec/describeCodecs.js",
-            "default": "./src/network/codec/describeCodecs.ts"
+        "./protocolProviders": {
+            "jsprismarine:dist": "./dist/protocolProviders.js",
+            "default": "./src/protocolProviders.ts"
         },
         "./network/codec/HandshakeCodec": {
             "jsprismarine:dist": "./dist/network/codec/HandshakeCodec.js",

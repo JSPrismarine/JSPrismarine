@@ -339,6 +339,28 @@ An embedded server runs script packs the same way, with the script host as an op
 dependency. Until the script host is on npm, a server installed from npm loads script packs
 without their scripts, as [Before you start](#before-you-start) describes.
 
+### List another edition
+
+The startup log and `/version` list each edition the server speaks: Bedrock, Java when
+`java-enabled` is on, and any your program adds. To add one, pass it in the `Server` constructor's
+`protocolProviders` option. Each provider implements `ProtocolProvider` from
+`@jsprismarine/prismarine/protocolProviders`: the edition's name, and the protocols it speaks
+with their releases, newest first, marking the one your program advertises and any preview.
+
+```typescript
+import type { ProtocolProvider } from '@jsprismarine/prismarine/protocolProviders';
+
+const legacy: ProtocolProvider = {
+    edition: 'Legacy Console Edition',
+    protocols: () => [{ protocolVersion: 78, minecraftVersions: ['TU78'], advertised: true, preview: false }]
+};
+
+const server = new Server({ config, logger, protocolProviders: [legacy] });
+```
+
+A provider only describes the edition; your program serves its clients. `--version` starts no
+server, so it lists the built-in editions alone.
+
 ### Entry points
 
 The package publishes <!-- fact:prismarine.entryPoints.count -->289<!-- /fact --> entry points, and

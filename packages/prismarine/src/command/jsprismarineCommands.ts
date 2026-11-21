@@ -28,7 +28,7 @@ import { CommandPermissionLevel, getGametypeId } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { TPS_AVERAGE_MINUTES } from '../modules/ticker';
-import { describeSupportedProtocols } from '../network/codec/describeCodecs';
+import { describeProtocolProviders } from '../protocolProviders';
 import type { ScriptDebugger, ScriptDebuggerReply } from '../scripting/ScriptDebugger';
 import { ScriptDebuggerMessages } from '../scripting/ScriptDebugger';
 import { softwareLabel } from '../version';
@@ -240,7 +240,7 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
         lit('version').executes(
             command((context) => {
                 source(context).sendFeedback(
-                    `This server is running on ${softwareLabel(true)} for Minecraft: Bedrock Edition, speaking ${describeSupportedProtocols().join('; ')}`
+                    `This server is running ${softwareLabel(true)} for Minecraft: ${describeProtocolProviders(server.getProtocolProviders(), true).join('; ')}`
                 );
                 return RAN;
             })

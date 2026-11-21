@@ -14,6 +14,8 @@ import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { collectAsyncCommands } from './deferred';
 import { registerJsprismarineCommands } from './jsprismarineCommands';
+import type { ProtocolProvider } from '../protocolProviders';
+import { bedrockProtocolProvider, describeProtocolProviders } from '../protocolProviders';
 
 /** The script debugger's settings as a fresh config has them, with `changes` on top. */
 const debuggerSettings = (changes: Partial<ScriptDebuggerConfig>): ScriptDebuggerConfig => ({
@@ -52,7 +54,8 @@ describe("this server's own commands", () => {
         const server = stub<Server>({
             getBanManager: () => stub<BanManager>({ setBanned, setUnbanned }),
             getSessionManager: () => stub<SessionManager>({ getSessions: () => [target] }),
-            getTPSAverages: () => tpsAverages
+            getTPSAverages: () => tpsAverages,
+            getProtocolProviders: () => [bedrockProtocolProvider, LEGACY]
         });
         registry = new CommandRegistry<CommandSource>();
         registerJsprismarineCommands(registry, server);
@@ -124,6 +127,14 @@ describe("this server's own commands", () => {
         expect(feedback[0]).toContain('JSPrismarine §ev1.2.3-nightly.1§r');
     });
 
+    it("lists every edition the server's providers speak, an embedder's too", async () => {
+        await run('version');
+
+        for (const edition of describeProtocolProviders([bedrockProtocolProvider, LEGACY], true)) {
+            expect(feedback[0]).toContain(edition);
+        }
+    });
+
     it('answers /about as /version', () => {
         expect(registry.getAliasOwner('about')).toBe('version');
     });
@@ -136,6 +147,12 @@ describe("this server's own commands", () => {
         expect(registry.getMetadata('version')?.permissionLevel).toBe(CommandPermissionLevel.ANY);
     });
 });
+
+/** An edition an embedder brings. */
+const LEGACY: ProtocolProvider = {
+    edition: 'Legacy Console Edition',
+    protocols: () => [{ protocolVersion: 78, minecraftVersions: ['TU78'], advertised: true, preview: false }]
+};
 
 describe('/script debugger', () => {
     /** What the command bodies asked of the debugger, and what each run printed. */
