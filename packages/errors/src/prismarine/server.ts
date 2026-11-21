@@ -130,6 +130,31 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
     /** `ops.json` is not a JSON list. Fix it, or delete it to start with no operators. */
     OpsNotList: '{opsFileName} must hold a list of operators',
     /**
+     * A file the server upgrades on load, such as `permissions.json` or `config.json`, is not a
+     * JSON object, so it has no version to read. Fix it, or delete it to have the server write a
+     * fresh one.
+     */
+    VersionedFileNotObject: '{fileName} must hold an object',
+    /**
+     * A file the server upgrades on load names a version that is not a whole number, or one older
+     * than any this server knows. Set the version key to a version the server lists, or restore a
+     * backup the server kept beside the file.
+     */
+    FileVersionInvalid: '{fileName} has {versionKey} {version}, which is not a version from {oldest} to {current}',
+    /**
+     * A file the server upgrades on load was written by a newer server, which may have changed its
+     * shape. The server refuses it rather than read it wrong or write it back in an older shape.
+     * Update the server, or restore the backup an upgrade kept beside the file.
+     */
+    FileVersionTooNew: '{fileName} has {versionKey} {version}, and this server reads up to {current}',
+    /**
+     * A file's migration steps do not take it one version at a time from the version a file
+     * without one is to the current one. This is a bug in the server; report it with the stack
+     * trace.
+     */
+    FileMigrationsMisdeclared:
+        'The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}',
+    /**
      * `permissions.json` is not a JSON object. Fix it, or delete it to have the server write a
      * fresh one.
      */

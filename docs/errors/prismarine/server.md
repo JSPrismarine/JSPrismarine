@@ -156,6 +156,36 @@ Thrown as `PrismarineServerErrors.FakeLevelWithoutProvider`, which extends `Erro
 
 A test's fake level needs a world provider for what the test asked of it.
 
+## `PRISMARINE_FILE_MIGRATIONS_MISDECLARED`
+
+`The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}`
+
+Thrown as `PrismarineServerErrors.FileMigrationsMisdeclared`, which extends `Error`.
+
+A file's migration steps do not take it one version at a time from the version a file
+without one is to the current one. This is a bug in the server; report it with the stack
+trace.
+
+## `PRISMARINE_FILE_VERSION_INVALID`
+
+`{fileName} has {versionKey} {version}, which is not a version from {oldest} to {current}`
+
+Thrown as `PrismarineServerErrors.FileVersionInvalid`, which extends `Error`.
+
+A file the server upgrades on load names a version that is not a whole number, or one older
+than any this server knows. Set the version key to a version the server lists, or restore a
+backup the server kept beside the file.
+
+## `PRISMARINE_FILE_VERSION_TOO_NEW`
+
+`{fileName} has {versionKey} {version}, and this server reads up to {current}`
+
+Thrown as `PrismarineServerErrors.FileVersionTooNew`, which extends `Error`.
+
+A file the server upgrades on load was written by a newer server, which may have changed its
+shape. The server refuses it rather than read it wrong or write it back in an older shape.
+Update the server, or restore the backup an upgrade kept beside the file.
+
 ## `PRISMARINE_INVALID_BLOCK_PROPERTY_VALUE`
 
 `Property {name}.{key} does not accept {value} (accepts: {values})`
@@ -584,4 +614,14 @@ Thrown as `PrismarineServerErrors.UntypedBlockProperty`, which extends `Error`.
 
 A block's property has no type in the block data. The block data is incomplete; regenerate
 it.
+
+## `PRISMARINE_VERSIONED_FILE_NOT_OBJECT`
+
+`{fileName} must hold an object`
+
+Thrown as `PrismarineServerErrors.VersionedFileNotObject`, which extends `Error`.
+
+A file the server upgrades on load, such as `permissions.json` or `config.json`, is not a
+JSON object, so it has no version to read. Fix it, or delete it to have the server write a
+fresh one.
 <!-- /fact -->
