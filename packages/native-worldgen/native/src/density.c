@@ -34,18 +34,35 @@ enum {
     OP_FIND_TOP_SURFACE = 19,
     OP_NEUTRAL_HOOK = 20,
     OP_BLEND_DENSITY = 21,
-    OP_COUNT = 22
+    OP_INTERPOLATED = 22,
+    OP_COUNT = 23
 };
 
 /* The column caches are direct-mapped by the low bits of x and z, as SampleContext's are. */
 #define COLUMN_SIDE 16
 #define COLUMN_SLOTS (COLUMN_SIDE * COLUMN_SIDE)
 
+/* An interpolated node's lattice of corner values, direct-mapped by the low bits of each cell index. */
+#define LATTICE_SIDE 16
+#define LATTICE_SLOTS (LATTICE_SIDE * LATTICE_SIDE * LATTICE_SIDE)
+
+typedef struct {
+    int32_t x[LATTICE_SLOTS], y[LATTICE_SLOTS], z[LATTICE_SLOTS];
+    double value[LATTICE_SLOTS];
+    uint8_t filled[LATTICE_SLOTS];
+    /* The cell whose corners `corners` holds, as compile.ts's interpolationCell remembers it. */
+    int cell_valid;
+    int32_t cell_x, cell_y, cell_z;
+    double corners[8];
+} Lattice;
+
 typedef struct {
     double x, y, z, value;
     int valid;
     double *column_x, *column_z, *column_value;
     uint8_t *column_filled;
+    /* Allocated on an interpolated node's first sample. */
+    Lattice *lattice;
 } Cache;
 
 typedef struct {
@@ -162,6 +179,72 @@ static double spline(Program *p, const int32_t *r, double x, double y, double z)
     double a = F(F(derivatives[start] * span) - delta);
     double b = F(F(-derivatives[start + 1] * span) + delta);
     return F(lerp_f(t, y1, y2) + F(F(t * F(1 - t)) * lerp_f(t, a, b)));
+}
+
+static inline int32_t floor_mod_i(int32_t a, int32_t b) {
+    const int32_t m = a % b;
+    return m < 0 ? m + b : m;
+}
+
+/* One lattice corner: the input at a cell's minimum block, kept in the node's lattice. */
+static double lattice_corner(Program *p, Lattice *l, int32_t input, int32_t cx, int32_t cy, int32_t cz, double x,
+                             double y, double z) {
+    const int32_t slot = (cx & (LATTICE_SIDE - 1)) | ((cy & (LATTICE_SIDE - 1)) << 4) | ((cz & (LATTICE_SIDE - 1)) << 8);
+    if (l->filled[slot] && l->x[slot] == cx && l->y[slot] == cy && l->z[slot] == cz) return l->value[slot];
+    const double value = eval(p, input, x, y, z);
+    l->filled[slot] = 1;
+    l->x[slot] = cx;
+    l->y[slot] = cy;
+    l->z[slot] = cz;
+    l->value[slot] = value;
+    return value;
+}
+
+/*
+ * An interpolated node sampled per block: compile.ts's sampleAt, which interpolates the cell's
+ * corners along x, then y, then z with weights step / size. The cell walk's buffers use
+ * fillCell's order instead, which can differ in the last bits, so the TypeScript keeps a
+ * sampler whose context has buffers on on its closure.
+ */
+static double interpolated(Program *p, const int32_t *r, double x, double y, double z) {
+    Cache *c = &p->caches[r[3]];
+    if (c->lattice == NULL) {
+        c->lattice = calloc(1, sizeof(Lattice));
+        if (c->lattice == NULL) return NAN;
+    }
+    Lattice *l = c->lattice;
+    const int32_t size_xz = (int32_t)p->constants[r[2]], size_y = (int32_t)p->constants[r[2] + 1];
+    const int32_t ix = to_int32(x), iy = to_int32(y), iz = to_int32(z);
+    const int32_t x_in = floor_mod_i(ix, size_xz), y_in = floor_mod_i(iy, size_y), z_in = floor_mod_i(iz, size_xz);
+    const int32_t x0 = ix - x_in, y0 = iy - y_in, z0 = iz - z_in;
+    const int32_t cx = x0 / size_xz, cy = y0 / size_y, cz = z0 / size_xz;
+    if (x_in == 0 && y_in == 0 && z_in == 0) return lattice_corner(p, l, r[1], cx, cy, cz, x0, y0, z0);
+    if (!l->cell_valid || l->cell_x != cx || l->cell_y != cy || l->cell_z != cz) {
+        const int32_t x1 = x0 + size_xz, y1 = y0 + size_y, z1 = z0 + size_xz;
+        l->corners[0] = lattice_corner(p, l, r[1], cx, cy, cz, x0, y0, z0);
+        l->corners[1] = lattice_corner(p, l, r[1], cx + 1, cy, cz, x1, y0, z0);
+        l->corners[2] = lattice_corner(p, l, r[1], cx, cy + 1, cz, x0, y1, z0);
+        l->corners[3] = lattice_corner(p, l, r[1], cx + 1, cy + 1, cz, x1, y1, z0);
+        l->corners[4] = lattice_corner(p, l, r[1], cx, cy, cz + 1, x0, y0, z1);
+        l->corners[5] = lattice_corner(p, l, r[1], cx + 1, cy, cz + 1, x1, y0, z1);
+        l->corners[6] = lattice_corner(p, l, r[1], cx, cy + 1, cz + 1, x0, y1, z1);
+        l->corners[7] = lattice_corner(p, l, r[1], cx + 1, cy + 1, cz + 1, x1, y1, z1);
+        l->cell_valid = 1;
+        l->cell_x = cx;
+        l->cell_y = cy;
+        l->cell_z = cz;
+    }
+    const double *k = l->corners;
+    const double alpha_x = F((double)x_in / size_xz);
+    const double p0 = F(k[0] + F(alpha_x * F(k[1] - k[0])));
+    const double p1 = F(k[2] + F(alpha_x * F(k[3] - k[2])));
+    const double p2 = F(k[4] + F(alpha_x * F(k[5] - k[4])));
+    const double p3 = F(k[6] + F(alpha_x * F(k[7] - k[6])));
+    const double alpha_y = F((double)y_in / size_y);
+    const double q0 = F(p0 + F(alpha_y * F(p1 - p0)));
+    const double q1 = F(p2 + F(alpha_y * F(p3 - p2)));
+    const double alpha_z = F((double)z_in / size_xz);
+    return F(q0 + F(alpha_z * F(q1 - q0)));
 }
 
 static double eval(Program *p, int32_t index, double x, double y, double z) {
@@ -308,6 +391,8 @@ static double eval(Program *p, int32_t index, double x, double y, double z) {
             return k[r[1]];
         case OP_BLEND_DENSITY:
             return eval(p, r[1], x, y, z);
+        case OP_INTERPOLATED:
+            return interpolated(p, r, x, y, z);
         default:
             return 0;
     }
@@ -366,6 +451,10 @@ static int validate(const Program *p) {
             case OP_DISTANCE: ok = r[1] >= 0 && r[1] <= 3 && constants_ok(p, r[2], 3); break;
             case OP_FIND_TOP_SURFACE: ok = node_ok(p, r[1]) && node_ok(p, r[2]) && constants_ok(p, r[3], 2); break;
             case OP_BLEND_DENSITY: ok = node_ok(p, r[1]); break;
+            case OP_INTERPOLATED:
+                ok = node_ok(p, r[1]) && constants_ok(p, r[2], 2) && cache_ok(p, r[3]) && p->constants[r[2]] >= 1 &&
+                     p->constants[r[2] + 1] >= 1;
+                break;
             default: ok = 0;
         }
         if (!ok) return 0;
@@ -381,6 +470,7 @@ static void program_free(Program *p) {
             free(p->caches[i].column_z);
             free(p->caches[i].column_value);
             free(p->caches[i].column_filled);
+            free(p->caches[i].lattice);
         }
     }
     free(p->caches);
