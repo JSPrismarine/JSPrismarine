@@ -5,11 +5,14 @@
  * line a player types changes the world, and a verb asserted on its own would
  * pass even if nothing routed a command to it.
  */
+import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import { createCommandSource } from '@jsprismarine/commands';
 import type { CommandSource } from '@jsprismarine/commands';
 import type { BlockType } from '@jsprismarine/blocks';
 import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { formatSnbt } from '@jsprismarine/nbt/snbt';
+import { floatTag } from '@jsprismarine/nbt/tag';
 import type { GeneratorDefinition, LevelStem } from '@jsprismarine/worldgen';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +45,7 @@ import { sessionOnPrototype } from '../../testing/storePlayer.test.helper';
 import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { RemoveObjectivePacket, SetDisplayObjectivePacket, SetScorePacket } from '@jsprismarine/protocol';
+import { CommandStorage } from '../../world/CommandStorage';
 import { Scoreboard } from '../../world/Scoreboard';
 import { Dimensions } from '../../world/DimensionType';
 import type GameRuleManager from '../../world/GameRuleManager';
@@ -200,8 +204,10 @@ const buildFixture = (): Fixture => {
     // Two stems, so `/execute in the_nether` parses; the Nether's world is ready for a move but,
     // as a lazy dimension's is, not among the loaded worlds.
     const scoreboard = new Scoreboard();
+    const commandStorage = new CommandStorage();
     const level = stub<Level>({
         getScoreboard: () => scoreboard,
+        getCommandStorage: () => commandStorage,
         getStems: () =>
             new Map<string, LevelStem>([
                 [Dimensions.Overworld.id, { type: Dimensions.Overworld.id, generator: DEBUG }],
@@ -818,10 +824,154 @@ describe('the server command host', () => {
     });
 
     describe('what has no subsystem behind it', () => {
-        it('refuses an NBT read', () => {
-            expect(() => serverCommandHost(fixture.server).data.getData({ kind: 'storage', id: 'test' })).toThrow(
-                'NBT'
+        it('refuses NBT by path on a block or an entity with a sentence that reads as one', () => {
+            const data = serverCommandHost(fixture.server).data;
+            const block = {
+                kind: 'block',
+                dimension: Dimensions.Overworld.id,
+                position: { x: 0, y: 0, z: 0 }
+            } as const;
+
+            expect(() => data.getData(block, 'Items')).toThrow(
+                'This server has no NBT paths for blocks and entities yet, so that command cannot run'
             );
+            expect(() => data.modifyData(block, 'a', 'set', { kind: 'value', snbt: '1' })).toThrow(
+                'no NBT paths for blocks and entities'
+            );
+        });
+    });
+
+    describe('command storage', () => {
+        const storage = { kind: 'storage', id: 'mypack:state' } as const;
+        const value = (snbt: string) => ({ kind: 'value', snbt }) as const;
+
+        it('reads the empty compound from a storage nobody wrote', () => {
+            expect(serverCommandHost(fixture.server).data.getData(storage)).toEqual({ snbt: '{}', result: 1 });
+        });
+
+        it("answers Java's result for each kind of tag", () => {
+            const data = serverCommandHost(fixture.server).data;
+            data.mergeData(storage, '{n: 7.9d, neg: -1.5f, list: [1, 2, 3], text: "four", c: {a: 1b}, ids: [I; 1, 2]}');
+
+            expect(data.getData(storage, 'n')).toEqual({ snbt: '7.9d', result: 7 });
+            expect(data.getData(storage, 'neg')).toEqual({ snbt: '-1.5f', result: -2 });
+            expect(data.getData(storage, 'list')).toEqual({ snbt: '[1, 2, 3]', result: 3 });
+            expect(data.getData(storage, 'text')).toEqual({ snbt: '"four"', result: 4 });
+            expect(data.getData(storage, 'c')).toEqual({ snbt: '{a: 1b}', result: 1 });
+            expect(data.getData(storage, 'ids')).toEqual({ snbt: '[I; 1, 2]', result: 2 });
+            expect(data.getData(storage, 'missing')).toBeUndefined();
+        });
+
+        it('scales a numeric tag and refuses to scale anything else', () => {
+            const data = serverCommandHost(fixture.server).data;
+            data.mergeData(storage, '{n: 7, list: [1, 2]}');
+
+            expect(data.getData(storage, 'n', 0.5)?.result).toBe(3);
+            expect(data.getData(storage, 'n', -0.5)?.result).toBe(-4);
+            expect(() => data.getData(storage, 'list', 2)).toThrow("Can't get list; only numeric tags are allowed");
+        });
+
+        it('refuses a path that matches several tags where one is read', () => {
+            const data = serverCommandHost(fixture.server).data;
+            data.mergeData(storage, '{list: [1, 2]}');
+
+            expect(() => data.getData(storage, 'list[]')).toThrow(
+                'Only one element allowed, but path list[] matched 2'
+            );
+            expect(data.countData(storage, 'list[]')).toBe(2);
+        });
+
+        it('reports whether a merge changed anything', () => {
+            const data = serverCommandHost(fixture.server).data;
+
+            expect(data.mergeData(storage, '{a: 1}')).toBe(true);
+            expect(data.mergeData(storage, '{a: 1}')).toBe(false);
+        });
+
+        it('sets, appends, prepends, inserts and merges, and counts what changed', () => {
+            const data = serverCommandHost(fixture.server).data;
+
+            expect(data.modifyData(storage, 'list', 'set', value('[2]'))).toBe(1);
+            expect(data.modifyData(storage, 'list', 'set', value('[2]'))).toBe(0);
+            expect(data.modifyData(storage, 'list', 'append', value('3'))).toBe(1);
+            expect(data.modifyData(storage, 'list', 'prepend', value('0'))).toBe(1);
+            expect(data.modifyData(storage, 'list', 'insert', value('1'), 1)).toBe(1);
+            expect(data.modifyData(storage, 'obj', 'merge', value('{a: 1}'))).toBe(1);
+            expect(data.modifyData(storage, 'obj', 'merge', value('{a: 1}'))).toBe(0);
+
+            expect(data.getData(storage)?.snbt).toBe('{list: [0, 1, 2, 3], obj: {a: 1}}');
+        });
+
+        it('copies from another storage: the whole compound, or every tag a path names', () => {
+            const data = serverCommandHost(fixture.server).data;
+            const source = { kind: 'storage', id: 'mypack:source' } as const;
+            data.mergeData(source, '{items: [{id: "a"}, {id: "b"}], n: 5}');
+
+            expect(data.modifyData(storage, 'copy', 'set', { kind: 'from', target: source })).toBe(1);
+            expect(
+                data.modifyData(storage, 'ids', 'append', { kind: 'from', target: source, path: 'items[].id' })
+            ).toBe(1);
+            // `set` takes the last of several, as Java does.
+            expect(data.modifyData(storage, 'last', 'set', { kind: 'from', target: source, path: 'items[].id' })).toBe(
+                1
+            );
+
+            expect(data.getData(storage, 'copy.n')?.result).toBe(5);
+            expect(data.getData(storage, 'ids')?.snbt).toBe('["a", "b"]');
+            expect(data.getData(storage, 'last')?.snbt).toBe('"b"');
+            expect(() =>
+                data.modifyData(storage, 'x', 'set', { kind: 'from', target: source, path: 'missing' })
+            ).toThrow('Found no elements matching missing');
+        });
+
+        it('removes every tag a path names and counts them', () => {
+            const data = serverCommandHost(fixture.server).data;
+            data.mergeData(storage, '{list: [1, 2, 3], keep: 1}');
+
+            expect(data.removeData(storage, 'list[]')).toBe(3);
+            expect(data.removeData(storage, 'list[]')).toBe(0);
+            expect(data.getData(storage)?.snbt).toBe('{keep: 1, list: []}');
+        });
+
+        it('turns the errors bad input causes into refusals with their message', () => {
+            const data = serverCommandHost(fixture.server).data;
+
+            expect(() => data.mergeData(storage, '{a: ')).toThrow(CommandSyntaxException);
+            expect(() => data.countData(storage, 'a[')).toThrow(CommandSyntaxException);
+            expect(() => data.getData({ kind: 'storage', id: 'Bad Id' })).toThrow('Invalid storage id Bad Id');
+            expect(() => data.modifyData(storage, 'a', 'merge', value('1'))).toThrow('Expected object, got: 1');
+        });
+
+        it('keeps what the commands write in the level, under the id with its namespace', async () => {
+            await expect(fixture.run('data merge storage state {a: 1}')).resolves.toBe(1);
+            await expect(fixture.run('data modify storage minecraft:state b set value 2b')).resolves.toBe(1);
+            await expect(fixture.run('data get storage state b')).resolves.toBe(2);
+
+            expect(fixture.feedback.at(-1)).toBe('Storage state has the following contents: 2b');
+            const saved = fixture.server.getWorldManager().getDefaultLevel().getCommandStorage().get('state');
+            expect(formatSnbt(saved)).toBe('{a: 1, b: 2b}');
+        });
+
+        it('stores a typed value from execute store, then reads it back as that type', async () => {
+            await fixture.run('execute store result storage mypack:out n short 0.5 run data get storage mypack:x');
+            await fixture.run('data get storage mypack:out n');
+
+            expect(fixture.feedback.at(-1)).toBe('Storage mypack:out has the following contents: 0s');
+        });
+
+        it('stores a float that overflows as an infinite float', async () => {
+            const huge = `1${'0'.repeat(39)}`;
+            await fixture.run('data merge storage mypack:x {v: 2147483647}');
+            await fixture.run(
+                `execute store result storage mypack:out up float ${huge} run data get storage mypack:x v`
+            );
+            await fixture.run(
+                `execute store result storage mypack:out down float -${huge} run data get storage mypack:x v`
+            );
+
+            const stored = fixture.server.getWorldManager().getDefaultLevel().getCommandStorage().get('mypack:out');
+            expect(stored.value.up).toEqual(floatTag(Number.POSITIVE_INFINITY));
+            expect(stored.value.down).toEqual(floatTag(Number.NEGATIVE_INFINITY));
         });
     });
 

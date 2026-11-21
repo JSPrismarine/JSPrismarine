@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->69<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->70<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -149,6 +149,7 @@ does the same thing.
 | `/clear`              | Removes items from inventories.                                                                           | `minecraft.command.clear`         | 1     | Operators   |
 | `/clone`              | Copies a region of blocks.                                                                                | `minecraft.command.clone`         | 1     | Operators   |
 | `/damage`             | Applies damage to entities.                                                                               | `minecraft.command.damage`        | 1     | Operators   |
+| `/data`               | Reads and writes NBT.                                                                                     | `minecraft.command.data`          | 1     | Operators   |
 | `/daylock`            | Locks and unlocks the day-night cycle.                                                                    | `minecraft.command.daylock`       | 1     | Operators   |
 | `/debug`              | Debug output.                                                                                             | `jsprismarine.command.debug`      | 4     | Operators   |
 | `/deop`               | Revokes operator status.                                                                                  | `minecraft.command.deop`          | 4     | Operators   |

@@ -83,14 +83,14 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->57<!-- /fact --> of them:
+`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->58<!-- /fact --> of them:
 
 <!-- fact:commands.registered.list -->
 ```
 execute summon kill teleport damage effect enchant gamemode give clear xp tag setblock fill clone
 time weather gamerule difficulty setworldspawn spawnpoint locate particle playsound stopsound
-spreadplayers loot function return schedule scoreboard random say me tell tellraw title op deop kick
-list stop reload transfer tick help recipe testfor testforblock testforblocks daylock titleraw
+spreadplayers data loot function return schedule scoreboard random say me tell tellraw title op deop
+kick list stop reload transfer tick help recipe testfor testforblock testforblocks daylock titleraw
 tickingarea replaceitem camerashake fog playanimation
 ```
 <!-- /fact -->
@@ -141,7 +141,7 @@ permission node says otherwise. `/op` and `/deop` sit higher still.
 
 ## What the server leaves out, and why
 
-The server deliberately leaves <!-- fact:commands.unwired -->5<!-- /fact --> commands unwired. The rule the project follows is worth stating plainly,
+The server deliberately leaves <!-- fact:commands.unwired -->4<!-- /fact --> commands unwired. The rule the project follows is worth stating plainly,
 because it decides what you see when you type one: an unwired command is **not registered at all**.
 Nothing parses it, no alias is registered for it, and it never reaches your client's command list.
 Type <!-- fact:commands.unwired.example -->`/attribute`<!-- /fact --> and you get `Unknown command. Type "/help" for help.` A
@@ -156,7 +156,6 @@ it, so the gap closes by deleting a row:
 | Command      | What it would need                                                                                    |
 | ------------ | ----------------------------------------------------------------------------------------------------- |
 | `/attribute` | attribute modifiers; this server's `Attribute` holds one value and no modifier stack                  |
-| `/data`      | reading and writing NBT by path                                                                       |
 | `/item`      | item modifiers and Java-addressable inventory slots                                                   |
 | `/place`     | feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk |
 | `/ride`      | entity riding outside the data-driven entity runtime                                                  |
@@ -337,7 +336,8 @@ text is NBT again. Each macro function caches its 8 most recent argument sets, m
 `/function <id>` runs one function. `/function #<namespace>:<tag>` runs every function the tag
 names, in order, with nested tags expanded in place; a function named twice runs once, and a cycle
 between tags is reported and cut rather than followed. Either form takes an optional SNBT compound
-for a macro's arguments.
+for a macro's arguments, or reads them from command storage with
+`/function <id> with storage <storage> [<path>]`, where the path has to name a compound.
 
 Tags merge across the pack stack rather than replacing, so two packs that both add to
 `#minecraft:tick` both run unless the later one sets `"replace": true`. Functions are the opposite:
@@ -358,6 +358,36 @@ means the next tick rather than this one. Entries are keyed by the exact text yo
 
 A `/schedule` of a function that does not exist is legal and returns success, because a later
 reload may provide it before the call comes due.
+
+### Command storage
+
+Command storage is Java's place for a datapack to keep NBT that belongs to no block or entity. Each
+storage is one compound under a resource location such as `mypack:state`; an id without a
+namespace is in `minecraft`, and a storage nobody wrote reads as `{}`. `/data get|merge|modify|remove
+storage`, `execute if data storage`, `execute store … storage` and `/function … with storage` read
+and write it:
+
+```mcfunction
+data merge storage mypack:state {round: 1, players: []}
+data modify storage mypack:state players append value "Steve"
+execute store result storage mypack:state round int 1 run scoreboard players get #round game
+data get storage mypack:state players[0]
+```
+
+The commands follow Java's `DataCommands`. `/data get` with a path returns the number for a
+numeric tag, rounded down, and the size of a list, an array, a compound or a string otherwise.
+With a scale it takes only a numeric tag and returns `floor(value * scale)`. `/data modify … from`
+copies every tag its source path names, and `set` keeps the last of them. A write that leaves the
+storage as it was fails with `Nothing changed`. `execute store … <type> <scale>` casts the scaled
+result as Java does: `int` and `long` truncate and saturate, `byte` and `short` wrap, so 200 stored
+as a byte reads back as `-56b`.
+
+The storage belongs to the default level, the one whose scoreboard `/scoreboard` uses, and saves
+with it under the LevelDB key `jsprismarine:command_storage`, as SNBT, one entry per storage. Bedrock
+has no such record, and no Bedrock tool reads this one.
+
+This server has no custom boss bars, so `execute store … bossbar <id> value|max` writes into the
+storage `jsprismarine:bossbar/<namespace>/<path>` instead.
 
 ### The limits
 
@@ -490,9 +520,12 @@ server's, and the fix on your side is to check the objective exists before you b
 **`execute on <relation>` always refuses.** All 8 relations parse, but nothing tracks entity
 relationships, so the host rejects the call.
 
-**Anything that reads or writes NBT refuses.** That takes out `execute if data`, `execute if
-items`, `execute if slots`, `execute store ... <nbt path>` and the NBT tag argument on `/summon`.
-It is the same gap that keeps `/data` and `/item` unregistered.
+**NBT on blocks and entities refuses.** `/data`, `execute if data`, `execute store … <nbt path>`
+and `/function … with` work on [command storage](#command-storage) only. A block or an entity
+target is refused with `This server has no NBT paths for blocks and entities yet`, and so are
+`execute if items`, `execute if slots` and the NBT tag argument on `/summon`
+([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). `/item` stays unregistered
+for the item modifiers and slots it needs.
 
 **`execute if predicate` refuses.** The datapack predicate evaluator is not wired to the command
 host, even though `@jsprismarine/predicates` compiles predicates for loot and advancements.
