@@ -17,6 +17,7 @@
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
 import type BinaryStream from '@jsprismarine/binaryutils';
+import { frozen } from './frozen';
 
 /** One value's wire representation: both directions as one frozen pair. */
 export interface WireType<T> {
@@ -29,7 +30,7 @@ export interface WireType<T> {
 }
 
 const type = <T>(wire: string, write: WireType<T>['write'], read: WireType<T>['read']): WireType<T> =>
-    Object.freeze({ wire, write, read });
+    frozen({ wire, write, read });
 
 /** `byte`: one unsigned byte. */
 export const uint8 = type<number>(

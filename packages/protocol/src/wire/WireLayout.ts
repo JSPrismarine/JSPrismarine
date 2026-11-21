@@ -16,6 +16,7 @@
  *
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
+import { frozen } from './frozen';
 import { isGated, isVersioned } from './define';
 
 import type BinaryStream from '@jsprismarine/binaryutils';
@@ -132,8 +133,8 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
         }
     }
 
-    const frozenFields = Object.freeze(fields.map((field) => Object.freeze(field)));
-    const frozenAbsent = Object.freeze(absent);
+    const frozenFields = frozen(fields.map((field) => frozen(field)));
+    const frozenAbsent = frozen(absent);
     let compiled: CompiledLayout | undefined;
     if (useCompiler && generatedCodeIsCompiled()) {
         try {
@@ -143,7 +144,7 @@ const resolve = (definition: PacketDefinition, protocolVersion: number, useCompi
         }
     }
 
-    return Object.freeze({
+    return frozen({
         name: definition.name,
         implementation: compiled === undefined ? 'walker' : 'compiled',
         fields: frozenFields,

@@ -16,6 +16,7 @@
  *
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
+import { frozen } from './frozen';
 import type { WireType } from './fieldTypes';
 import type { WireGate } from '../bedrock/wire/wireGates';
 
@@ -40,8 +41,7 @@ export interface VersionedField<T> {
 export type FieldSpec<T> = WireType<T> | GatedField<T> | VersionedField<T>;
 
 /** Marks a field as travelling only at the versions its gate admits. */
-export const gated = <T>(gate: WireGate, of: WireType<T>, fallback: T): GatedField<T> =>
-    Object.freeze({ gate, of, fallback });
+export const gated = <T>(gate: WireGate, of: WireType<T>, fallback: T): GatedField<T> => frozen({ gate, of, fallback });
 
 /**
  * Lists the layouts one field travels in, each under the gate of the versions that use it.
@@ -50,7 +50,7 @@ export const gated = <T>(gate: WireGate, of: WireType<T>, fallback: T): GatedFie
  * @param variants - Gate and wire type pairs, checked in order.
  */
 export const versioned = <T>(...variants: ReadonlyArray<readonly [WireGate, WireType<T>]>): VersionedField<T> =>
-    Object.freeze({ variants: Object.freeze(variants.map((variant) => Object.freeze(variant))) });
+    frozen({ variants: frozen(variants.map((variant) => frozen(variant))) });
 
 /** Whether a field spec is gated. */
 export const isGated = <T>(spec: FieldSpec<T>): spec is GatedField<T> => 'gate' in spec;
@@ -81,4 +81,4 @@ export interface PacketDefinition<F extends Record<string, FieldSpec<unknown>> =
 export const definePacket = <F extends Record<string, FieldSpec<unknown>>>(
     name: string,
     fields: F
-): PacketDefinition<F> => Object.freeze({ name, fields: Object.freeze(fields) });
+): PacketDefinition<F> => frozen({ name, fields: frozen(fields) });
