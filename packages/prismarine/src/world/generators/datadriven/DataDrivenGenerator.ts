@@ -921,6 +921,8 @@ export class DataDrivenGenerator implements Generator {
      * dimensions sharing this generator both have a chunk (0, 0). Entries live for one request.
      */
     private readonly urgencies = new Map<string, GenerationPriority>();
+    /** The chunks translated or waiting to be, keyed like {@link urgencies}, until each is recorded. */
+    private readonly completions = new Map<string, Promise<Chunk>>();
 
     /** Whether a worker has ever answered, which is what tells a startup failure from a bug. */
     private poolAnswered = false;
@@ -1452,10 +1454,14 @@ export class DataDrivenGenerator implements Generator {
         const pooled = await this.pooledChunk(cx, cz, pipeline);
         if (pooled !== undefined) return pooled;
 
-        return pipeline.queue.run(
+        // The admission slot covers the generation work and nothing after it. The completion
+        // waits for this thread's slice, which runs one or two chunks a tick, and a slot held
+        // through that wait held the workers idle: with three slots, a walk at view distance 10
+        // kept one to three tasks in flight while 259 chunks waited.
+        const { chunk } = await pipeline.queue.run(
             cx,
             cz,
-            async () => {
+            async (): Promise<{ readonly chunk: Chunk | Promise<Chunk> }> => {
                 this.retain(pipeline, cx, cz);
 
                 // Decoration is the only thing that makes a chunk need its neighborhood. With it off
@@ -1464,7 +1470,12 @@ export class DataDrivenGenerator implements Generator {
                 const target = this.options.decorate === false ? 'terrain' : 'full';
                 const staged = await pipeline.scheduler.generate(cx, cz, target);
                 const promoted = staged.bedrockChunk;
-                if (promoted !== undefined) return promoted;
+                if (promoted !== undefined) return { chunk: promoted };
+                // A request that arrives while the chunk waits for its slice shares that completion
+                // rather than translating the chunk a second time.
+                const completionKey = this.urgencyKey(pipeline, cx, cz);
+                const completing = this.completions.get(completionKey);
+                if (completing !== undefined) return { chunk: completing };
 
                 // `full` leaves the merge inputs, which a worker merges and translates in one
                 // task; only the wrapping waits for this thread's completion slice.
@@ -1473,7 +1484,7 @@ export class DataDrivenGenerator implements Generator {
                     inputs === undefined
                         ? undefined
                         : await this.mergeInWorker(cx, cz, staged.terrain, inputs, pipeline);
-                let chunk: Chunk;
+                let completion: Promise<Chunk>;
                 if (merged === undefined) {
                     // Without a worker the merge runs here. `terrain` leaves only its own tile,
                     // which is what a generator with decoration off stops at.
@@ -1482,19 +1493,27 @@ export class DataDrivenGenerator implements Generator {
                             ? staged.terrain
                             : this.mergeFull(cx, cz, staged.terrain, inputs, pipeline);
                     const sections = await this.sectionsInWorker(cx, cz, region, pipeline);
-                    chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                    completion = this.deferChunkCompletion(cx, cz, pipeline, () =>
                         this.toChunk(cx, cz, this.partsOf(region, pipeline, sections), pipeline, staged.terrain)
                     );
                 } else {
-                    chunk = await this.deferChunkCompletion(cx, cz, pipeline, () =>
+                    completion = this.deferChunkCompletion(cx, cz, pipeline, () =>
                         this.toChunk(cx, cz, merged, pipeline, staged.terrain)
                     );
                 }
-                staged.recordChunk(chunk);
-                return chunk;
+                const recorded = completion
+                    .then((built) => {
+                        staged.recordChunk(built);
+                        return built;
+                    })
+                    .finally(() => this.completions.delete(completionKey));
+                this.completions.set(completionKey, recorded);
+                // Wrapped, so the slot is released now rather than when the completion settles.
+                return { chunk: recorded };
             },
             this.urgencyOf(pipeline, cx, cz)
         );
+        return chunk;
     }
 
     /** Runs a finished chunk's main-thread promotion on the tick queue while it remains background work. */
