@@ -22,7 +22,10 @@ env:
 # request's alerts are compared with master's newest analysis, which the daily run keeps a day old
 # at most.
 on:
+  # `closed` starts a run that cancels the pull request's queued or running analysis, through the
+  # concurrency group below; its job skips, so it takes no runner.
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [ "master" ]
     paths:
       - '**/*.ts'
@@ -37,13 +40,15 @@ on:
   schedule:
     - cron: '18 15 * * *'
 
+# A newer pull request push, or the pull request closing, supersedes the analysis still going.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    if: ${{ github.event.action != 'closed' }}
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources

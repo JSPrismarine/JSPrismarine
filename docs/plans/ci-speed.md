@@ -451,6 +451,17 @@ plugin list.
 Done when an e2e scenario that takes no screenshot runs no camera render graph, counted by a
 counter the patch adds to the client's `state` reply, and the suites per runner rise from 2.
 
+### Stale runs (done)
+
+Added on 2026-11-21, after 136 queued runs were found that no longer tested anything: 51 for
+master commits a newer one had passed, and 61 for pull requests already merged or closed. Master's
+`ci.yml` runs share one concurrency group again, so a newer push replaces the run waiting behind
+the running one, and the newest commit's run covers the rest. `ci.yml`, `codeql.yml` and
+`nightly.yml` also run on `pull_request: closed`, in the pull request's group, which cancels its
+queued or running run; every job skips on that event, so the run takes no runner. `docs.yml`
+already did. Giving each master push a group of its own, which #3434 did, multiplied the full runs
+in a burst of merges instead.
+
 ### Phase 10: run only the tests a change reaches (part done)
 
 Added on 2026-11-20. Every run should test only what its changes can reach.

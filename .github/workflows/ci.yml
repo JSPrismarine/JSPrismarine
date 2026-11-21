@@ -15,7 +15,11 @@ on:
     push:
         branches:
             - master
+    # `closed` starts a run that only cancels the pull request's queued or running one, through
+    # the concurrency group below: a merged or closed pull request's checks have nothing left to
+    # decide. Every job skips on it, so it takes no runner.
     pull_request:
+        types: [opened, synchronize, reopened, closed]
     merge_group:
     schedule:
         - cron: '41 3 * * *'
@@ -35,15 +39,14 @@ env:
     GIT_CONFIG_VALUE_0: master
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-# A newer pull request push supersedes the old run. A push to master always finishes: its caches
-# are the ones pull requests restore, its artifacts are what pull requests compare with, and the
-# cinnabar build takes about an hour cold. Each master push has a group of its own: a group lets
-# one run wait in it and cancels the rest, so while merges landed faster than runners freed up, each
-# push cancelled the one before it and master never ran at all. A push whose pull request passed
-# `✅ CI` on the same tree runs one job, so the runs that now start beside each other cost little.
-# A merge group's ref is its own.
+# A newer pull request push supersedes the old run, and so does the pull request closing. A push to
+# master lets its running run finish: its caches are the ones pull requests restore, its artifacts
+# are what pull requests compare with, and the cinnabar build takes about an hour cold. Master has
+# one group, so at most one more run waits behind it, and a newer push takes that place. Nothing is
+# lost: a run tests what the commits since the last passing one reach, so the newest commit's run
+# covers every push it replaced. A merge group's ref is its own.
 concurrency:
-    group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}${{ github.event_name == 'push' && format('-{0}', github.sha) || '' }}
+    group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -69,6 +72,8 @@ jobs:
     # master already tested. Its merge is a push to master, which runs everything.
     plan:
         name: 🧭 Plan
+        # A closed pull request's run exists only to cancel the one before it.
+        if: ${{ github.event.action != 'closed' }}
         runs-on: ubuntu-latest
         timeout-minutes: 45
         permissions:
@@ -1572,7 +1577,7 @@ jobs:
             - cinnabar-build
             - client-e2e
             - reused-coverage
-        if: ${{ always() }}
+        if: ${{ always() && github.event.action != 'closed' }}
         runs-on: ubuntu-latest
         steps:
             - name: Check the results

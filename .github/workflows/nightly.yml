@@ -29,7 +29,10 @@ on:
             - 'vite.config.ts'
             - '!**/*.md'
             - '!**/*.test.ts'
+    # `closed` starts a run that cancels the pull request's queued or running builds, through the
+    # concurrency group below; its jobs skip, so it takes no runner.
     pull_request:
+        types: [opened, synchronize, reopened, closed]
         branches:
             - master
         paths:
@@ -50,6 +53,13 @@ on:
             - '.npmrc'
             - '.nvmrc'
 
+# A newer pull request push, or the pull request closing, supersedes its builds still going. A push
+# and a manual run have a group of their own, so this changes nothing for them; their jobs keep the
+# groups they set below.
+concurrency:
+    group: nightly-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
     GIT_CONFIG_COUNT: '1'
     GIT_CONFIG_KEY_0: init.defaultBranch
@@ -63,7 +73,7 @@ jobs:
         name: 🏷️ Resolve nightly version
         # The release pull request changes only versions and changelogs, and the pull requests
         # merged before it built the same code. Skipping this job skips the builds.
-        if: ${{ github.head_ref != 'changeset-release/master' }}
+        if: ${{ github.head_ref != 'changeset-release/master' && github.event.action != 'closed' }}
         concurrency:
             group: nightly-version-${{ github.event.pull_request.number || github.ref }}
             cancel-in-progress: false
