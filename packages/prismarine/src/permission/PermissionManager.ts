@@ -34,21 +34,27 @@ import {
     emptyUser,
     groupJson,
     isExpired,
+    OPERATOR_GROUP,
     userJson
 } from './model';
 import type { FiledUser, LoadedPermissions } from './PermissionsFile';
 import {
+    builtInGroup,
     defaultPermissionsDocument,
+    documentOf,
+    dropParentCycles,
     groupPath,
+    layoutOf,
     migrateLegacyPermissions,
-    pendingIndexOf,
+    PERMISSIONS_BACKUP_NAME,
+    PERMISSIONS_FILE_NAME,
     PERMISSIONS_SCHEMA_VERSION,
     readPermissions,
-    schemaVersionOf,
+    removePendingEntries,
     userPath
 } from './PermissionsFile';
 import type { PermissionView } from './resolve';
-import { commandLevelOf, directGroupsOf, hasPermission, metaOf, nodesOf, primaryGroupOf } from './resolve';
+import { commandLevelOf, directGroupsOf, hasPermission, metaOf, nodesOf, primaryGroupOf, wouldCycle } from './resolve';
 
 /** An operator entry: a name with a subject, or a name with the login UUID it was keyed by before subjects. */
 const isOpEntry = (value: unknown): value is OpEntry =>
@@ -72,16 +78,16 @@ export interface PermissionManagerOptions {
     readonly watch?: boolean;
 }
 
-const PERMISSION_FILE_NAME = 'permissions.json';
+const PERMISSION_FILE_NAME = PERMISSIONS_FILE_NAME;
 const OPS_FILE_NAME = 'ops.json';
 /** How long changes to the file may settle before it is read again, in milliseconds. */
 const RELOAD_DEBOUNCE_MS = 150;
 
 /**
  * Anything that can be checked for command permissions: the console, or a player-like object
- * that says whether it is an operator and whether it holds a node.
+ * that says whether it holds a node after resolution, operator status included.
  */
-export type PermissionSubject = Console | { isOp(): boolean; hasPermission(node: string): boolean };
+export type PermissionSubject = Console | { hasPermission(node: string): boolean };
 
 /** Whose permissions to read: the identity a login carries, by its subject. */
 export type PermissionHolder = Pick<PlayerIdentity, 'subject'>;
@@ -89,15 +95,26 @@ export type PermissionHolder = Pick<PlayerIdentity, 'subject'>;
 /** Whose record to write: the subject, and the name the record shows. */
 export type NamedSubject = Pick<PlayerIdentity, 'subject' | 'name'>;
 
-/** What a write touched, for whoever listens. A reload touches everything and names nothing. */
+/**
+ * What a write touched, for whoever listens: the user by subject and the name their record
+ * shows, or the group. A reload touches everything and names nothing.
+ */
 export interface PermissionChange {
     readonly subject?: Subject;
+    readonly name?: string;
     readonly group?: string;
 }
 
+/** The operators `ops.json` holds: by {@link subjectId}, and the legacy entries by login UUID. */
+interface LoadedOps {
+    readonly ops: Set<string>;
+    readonly pendingOps: Map<string, string>;
+}
+
 /**
- * Build a permission check for an executer. The console always passes, an operator always
- * passes, and otherwise the executer decides the node after resolution.
+ * Build a permission check for an executer. The console always passes; otherwise the executer
+ * decides the node after resolution, which grants an operator everything the `operator` group
+ * holds unless a node of their own or a heavier group takes it away.
  *
  * @param executer - The console or player to check.
  * @returns An object whose `execute` method takes a permission string and reports whether the executer may run it. `not().execute` negates the result. A missing permission string always passes.
@@ -109,7 +126,6 @@ export function canExecute(executer?: PermissionSubject) {
 
         if (!permission) return true;
         if (executer instanceof Console) return true;
-        if (executer.isOp()) return true;
         return executer.hasPermission(permission);
     };
 
@@ -129,8 +145,30 @@ const checkGroupName = (group: string): string => {
     return group;
 };
 
+/** The nodes with `node` set, replacing an earlier entry of the same spelling and dropping expired ones. */
+const withNode = (nodes: readonly Node[], added: Node, now: number): Node[] => [
+    ...nodes.filter((entry) => entry.node !== added.node && !isExpired(entry, now)),
+    added
+];
+
+/** The merge of two lists of nodes or memberships, each spelling once, the later list's entry kept. */
+const merged = <T extends { readonly node: string } | { readonly group: string }>(
+    first: readonly T[],
+    second: readonly T[]
+): T[] => {
+    const key = (entry: T): string => ('node' in entry ? entry.node : entry.group);
+    const seen = new Map(first.map((entry) => [key(entry), entry]));
+    for (const entry of second) seen.set(key(entry), entry);
+    return [...seen.values()];
+};
+
 /**
  * Permission manager: the operators of `ops.json`, and the groups and users of `permissions.json`.
+ *
+ * Every edit of `permissions.json` and every reload runs on one queue, in order: an edit reads the
+ * file, changes one record, writes, and only then changes memory and tells the listeners, so a
+ * failed write leaves memory as the file is and the edit can be made again. Operator changes stay
+ * memory-first, since a handler applies them in its input step.
  */
 export class PermissionManager implements Service {
     private readonly server: PermissionManagerServer;
@@ -146,15 +184,19 @@ export class PermissionManager implements Service {
     private groups: Map<string, Group> = new Map();
     /** The users the file knows, by {@link subjectId}. */
     private users: Map<string, FiledUser> = new Map();
-    /** Users migrated from a file keyed by login UUID, by that UUID, until a login claims each. */
+    /** Users migrated from a file keyed by login UUID, by that UUID, until a login's claim is written. */
     private pending: Map<string, User> = new Map();
+    /** The UUIDs whose claim is being written, so a second login meanwhile does not queue another. */
+    private readonly claiming = new Set<string>();
     private readonly listeners = new Set<(change: PermissionChange) => void>();
-    /** The last write of either file this manager queued; see {@link PermissionManager.queueWrite}. */
+    /** The queue every edit and reload of `permissions.json` and every write of `ops.json` runs on. */
     private writes: Promise<unknown> = Promise.resolve();
     /** The text this manager last read from or wrote to `permissions.json`, so its own writes do not reload it. */
     private knownText = '';
     private watcher: fs.FSWatcher | undefined;
     private reloadTimer: NodeJS.Timeout | undefined;
+    /** Set by {@link PermissionManager.disable}, so a reload that was in flight publishes nothing. */
+    private disabled = false;
 
     /**
      * Create a new permission manager.
@@ -173,8 +215,8 @@ export class PermissionManager implements Service {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        await this.parseOps();
-        await this.loadPermissions();
+        this.disabled = false;
+        await this.load(true);
         if (this.watching) this.watch();
     }
 
@@ -184,35 +226,35 @@ export class PermissionManager implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        this.disabled = true;
         this.watcher?.close();
         this.watcher = undefined;
         if (this.reloadTimer !== undefined) clearTimeout(this.reloadTimer);
         this.reloadTimer = undefined;
-        // A change made just before the server stops still reaches the file.
+        // A change made just before the server stops still reaches the file, and a reload in
+        // flight finishes without publishing.
         await this.writes;
         this.ops.clear();
         this.pendingOps.clear();
         this.groups = new Map();
         this.users = new Map();
         this.pending = new Map();
+        this.claiming.clear();
     }
 
     /**
-     * Reads `ops.json` and `permissions.json` again, as `/reload` does, and tells the listeners.
-     * A file that does not parse is logged and leaves what is in memory.
+     * Reads `ops.json` and `permissions.json` again, as `/reload` does, behind the edits queued
+     * before it. Memory changes only once both files read, and stays as it was when one does not
+     * parse, which is logged and rejects so the command reports it. Afterwards the listeners hear
+     * of it and every connected client gets its command list and abilities again.
+     * @throws InvalidPermissionsEntry when a file does not parse.
      */
-    public async reload(): Promise<void> {
-        await this.writes;
-        try {
-            this.ops.clear();
-            this.pendingOps.clear();
-            await this.parseOps();
-            await this.loadPermissions();
-        } catch (error: unknown) {
-            this.server.getLogger().error(error);
-            return;
-        }
-        this.notify({});
+    public reload(): Promise<void> {
+        return this.queue(async () => {
+            await this.load(false);
+            this.notify({});
+            await this.refreshClients({});
+        });
     }
 
     /**
@@ -233,6 +275,28 @@ export class PermissionManager implements Service {
                 this.server.getLogger().error(error);
             }
         }
+    }
+
+    /**
+     * Sends the connected players a change may have reached their command list and abilities
+     * again: the one player a user write names, or everyone after a group write or a reload. A send
+     * that fails is logged; the client learns at its next join.
+     */
+    private async refreshClients(change: PermissionChange): Promise<void> {
+        const sessions = this.server
+            .getSessionManager()
+            .getSessions()
+            .filter(({ identity }) => change.subject === undefined || sameSubject(identity.subject, change.subject));
+        await Promise.all(
+            sessions.map(async (session) => {
+                try {
+                    await session.sendAvailableCommands();
+                    await session.announceSettings();
+                } catch (error: unknown) {
+                    this.server.getLogger().error(error);
+                }
+            })
+        );
     }
 
     // --- Reading --------------------------------------------------------------------------------
@@ -299,59 +363,85 @@ export class PermissionManager implements Service {
 
     // --- Writing --------------------------------------------------------------------------------
 
+    /** Runs a task behind everything queued before it, and keeps the queue going when it fails. */
+    private queue<T>(task: () => Promise<T>): Promise<T> {
+        const run = this.writes.then(task);
+        this.writes = run.catch(() => {});
+        return run;
+    }
+
     /**
-     * Queues an edit of `permissions.json` behind the writes queued before it, so two edits never
-     * read and rewrite the file at once, and remembers the text written so the watcher leaves it
-     * alone. Memory changed before the call; a failed write is logged and rethrown.
+     * Edits one record of `permissions.json` on the queue: reads the file, lets `mutate` change the
+     * document, writes it, and only then lets `apply` change memory, tells the listeners and
+     * refreshes the clients. A file that is gone or no longer a version 2 file is rebuilt from
+     * memory first, so the edit lands in a complete file. A failed write is logged and rethrown,
+     * and leaves memory as the file is.
+     *
+     * @returns What `mutate` answered, or undefined when it answered undefined to say nothing changed.
      */
-    private queueWrite(edit: (document: ConfigDocument) => void, change: PermissionChange): Promise<void> {
-        const file = withCwd(PERMISSION_FILE_NAME);
-        const written = this.writes.then(async () => {
-            const document = await readJsonFile(file, '{}');
-            edit(document);
-            this.knownText = toJsonFileContents(file, document);
-            await writeJsonFile(file, document);
+    private edit<T>(
+        change: PermissionChange,
+        mutate: (document: ConfigDocument) => { readonly apply: () => void; readonly result: T } | undefined
+    ): Promise<T | undefined> {
+        return this.queue(async () => {
+            const file = withCwd(PERMISSION_FILE_NAME);
+            let document = await readJsonFile(file, '{}');
+            const root = document.get([]);
+            if (!isRecord(root) || layoutOf(root) !== 'current') {
+                this.server
+                    .getLogger()
+                    .warn(
+                        `${PERMISSION_FILE_NAME} is missing or not a version ${PERMISSIONS_SCHEMA_VERSION} file; writing it again from memory.`
+                    );
+                document = documentOf({ groups: this.groups, users: this.users, pending: this.pending }, this.now());
+            }
+            const outcome = mutate(document);
+            if (outcome === undefined) return undefined;
+            try {
+                this.knownText = toJsonFileContents(file, document);
+                await writeJsonFile(file, document);
+            } catch (error: unknown) {
+                this.server.getLogger().error(`Failed to write ${PERMISSION_FILE_NAME}: ${error}`);
+                throw error;
+            }
+            outcome.apply();
+            this.notify(change);
+            await this.refreshClients(change);
+            return outcome.result;
         });
-        this.writes = written.catch((error: unknown) => {
-            this.server.getLogger().error(`Failed to write ${PERMISSION_FILE_NAME}: ${error}`);
+    }
+
+    /**
+     * Edits a user's record: `compute` gets the record as it is when the edit runs, or an empty one,
+     * and answers the next record, or undefined to change nothing.
+     * @returns Whether anything changed.
+     */
+    private async editUser(player: NamedSubject, compute: (user: User) => User | undefined): Promise<boolean> {
+        const { subject } = player;
+        const changed = await this.edit({ subject, name: player.name }, (document) => {
+            const current = { ...(this.userOf(subject) ?? emptyUser(player.name)), name: player.name };
+            const next = compute(current);
+            if (next === undefined) return undefined;
+            document.set(userPath(subject), userJson(next, this.now()));
+            return { result: true, apply: () => void this.users.set(subjectId(subject), { subject, user: next }) };
         });
-        this.notify(change);
-        return written;
+        return changed === true;
     }
 
-    /** Replaces a user's record in memory and in the file, or removes it when `user` is undefined. */
-    private writeUser(subject: Subject, user: User | undefined): Promise<void> {
-        const id = subjectId(subject);
-        if (user === undefined) this.users.delete(id);
-        else this.users.set(id, { subject, user });
-        const now = this.now();
-        return this.queueWrite(
-            (document) => {
-                if (user === undefined) document.delete(userPath(subject));
-                else document.set(userPath(subject), userJson(user, now));
-            },
-            { subject }
-        );
-    }
-
-    /** Replaces a group in memory and in the file, or removes it when `group` is undefined. */
-    private writeGroup(name: string, group: Group | undefined): Promise<void> {
-        if (group === undefined) this.groups.delete(name);
-        else this.groups.set(name, group);
-        const now = this.now();
-        return this.queueWrite(
-            (document) => {
-                if (group === undefined) document.delete(groupPath(name));
-                else document.set(groupPath(name), groupJson(group, now));
-            },
-            { group: name }
-        );
-    }
-
-    /** The user a write starts from: the record, or an empty one under the player's name. */
-    private userToEdit({ subject, name }: NamedSubject): User {
-        const user = this.userOf(subject) ?? emptyUser(name);
-        return { ...user, name };
+    /**
+     * Edits a group: `compute` gets the group as it is when the edit runs and answers the next
+     * group, or undefined to change nothing.
+     * @returns Whether anything changed.
+     * @throws PermissionGroupNotFound when the group is gone by the time the edit runs.
+     */
+    private async editGroup(name: string, compute: (group: Group) => Group | undefined): Promise<boolean> {
+        const changed = await this.edit({ group: name }, (document) => {
+            const next = compute(this.groupToEdit(name));
+            if (next === undefined) return undefined;
+            document.set(groupPath(name), groupJson(next, this.now()));
+            return { result: true, apply: () => void this.groups.set(name, next) };
+        });
+        return changed === true;
     }
 
     /** The group a write starts from. @throws PermissionGroupNotFound when there is none. */
@@ -361,66 +451,68 @@ export class PermissionManager implements Service {
         return group;
     }
 
-    /** The nodes with `node` set, replacing an earlier entry of the same spelling. */
-    private withNode(nodes: readonly Node[], node: string, expires: string | undefined): Node[] {
-        const added: Node =
-            expires === undefined
-                ? { node: checkNode(node) }
-                : { node: checkNode(node), expires: checkExpiry(expires, this.now()) };
-        return [...nodes.filter((entry) => entry.node !== node && !isExpired(entry, this.now())), added];
+    /** A node as a grant writes it, checked now so the caller hears of a bad one before the edit queues. */
+    private nodeToAdd(node: string, expires: string | undefined): Node {
+        return expires === undefined
+            ? { node: checkNode(node) }
+            : { node: checkNode(node), expires: checkExpiry(expires, this.now()) };
     }
 
     /** Gives a player a node of their own. */
     public async grantUser(player: NamedSubject, node: string, expires?: string): Promise<void> {
-        const user = this.userToEdit(player);
-        return this.writeUser(player.subject, { ...user, nodes: this.withNode(user.nodes, node, expires) });
+        const added = this.nodeToAdd(node, expires);
+        await this.editUser(player, (user) => ({ ...user, nodes: withNode(user.nodes, added, this.now()) }));
     }
 
     /** Takes a player's own node away. @returns Whether the player had it. */
-    public async revokeUser(player: NamedSubject, node: string): Promise<boolean> {
-        const user = this.userToEdit(player);
-        const nodes = user.nodes.filter((entry) => entry.node !== node);
-        if (nodes.length === user.nodes.length) return false;
-        await this.writeUser(player.subject, { ...user, nodes });
-        return true;
+    public revokeUser(player: NamedSubject, node: string): Promise<boolean> {
+        return this.editUser(player, (user) => {
+            const nodes = user.nodes.filter((entry) => entry.node !== node);
+            return nodes.length === user.nodes.length ? undefined : { ...user, nodes };
+        });
     }
 
     /** Adds a player to a group. @throws PermissionGroupNotFound when the group does not exist. */
     public async addToGroup(player: NamedSubject, group: string, expires?: string): Promise<void> {
         this.groupToEdit(group);
-        const user = this.userToEdit(player);
         const membership: Membership =
             expires === undefined ? { group } : { group, expires: checkExpiry(expires, this.now()) };
-        const groups = [
-            ...user.groups.filter((entry) => entry.group !== group && !isExpired(entry, this.now())),
-            membership
-        ];
-        return this.writeUser(player.subject, { ...user, groups });
+        await this.editUser(player, (user) => ({
+            ...user,
+            groups: [
+                ...user.groups.filter((entry) => entry.group !== group && !isExpired(entry, this.now())),
+                membership
+            ]
+        }));
     }
 
     /** Removes a player from a group. @returns Whether the player was in it. */
-    public async removeFromGroup(player: NamedSubject, group: string): Promise<boolean> {
-        const user = this.userToEdit(player);
-        const groups = user.groups.filter((entry) => entry.group !== group);
-        if (groups.length === user.groups.length) return false;
-        await this.writeUser(player.subject, { ...user, groups });
-        return true;
+    public removeFromGroup(player: NamedSubject, group: string): Promise<boolean> {
+        return this.editUser(player, (user) => {
+            const groups = user.groups.filter((entry) => entry.group !== group);
+            return groups.length === user.groups.length ? undefined : { ...user, groups };
+        });
     }
 
     /** Sets a player's own meta value, or removes the key when `value` is undefined. */
     public async setUserMeta(player: NamedSubject, key: string, value: string | undefined): Promise<void> {
-        const user = this.userToEdit(player);
-        const meta = { ...user.meta };
-        if (value === undefined) delete meta[key];
-        else meta[key] = value;
-        return this.writeUser(player.subject, { ...user, meta });
+        await this.editUser(player, (user) => {
+            const meta = { ...user.meta };
+            if (value === undefined) delete meta[key];
+            else meta[key] = value;
+            return { ...user, meta };
+        });
     }
 
     /** Creates an empty group at weight 0. @throws PermissionGroupExists when the name is taken. */
     public async createGroup(name: string): Promise<void> {
         checkGroupName(name);
         if (this.groups.has(name)) throw new PrismarineServerErrors.PermissionGroupExists({ group: name });
-        return this.writeGroup(name, EMPTY_GROUP);
+        await this.edit({ group: name }, (document) => {
+            if (this.groups.has(name)) throw new PrismarineServerErrors.PermissionGroupExists({ group: name });
+            document.set(groupPath(name), groupJson(EMPTY_GROUP, this.now()));
+            return { result: true, apply: () => void this.groups.set(name, EMPTY_GROUP) };
+        });
     }
 
     /**
@@ -431,65 +523,122 @@ export class PermissionManager implements Service {
     public async deleteGroup(name: string): Promise<void> {
         if (BUILT_IN_GROUPS.includes(name)) throw new PrismarineServerErrors.PermissionGroupBuiltIn({ group: name });
         this.groupToEdit(name);
-        return this.writeGroup(name, undefined);
+        await this.edit({ group: name }, (document) => {
+            this.groupToEdit(name);
+            document.delete(groupPath(name));
+            return { result: true, apply: () => void this.groups.delete(name) };
+        });
     }
 
     /** Gives a group a node. */
     public async grantGroup(name: string, node: string, expires?: string): Promise<void> {
-        const group = this.groupToEdit(name);
-        return this.writeGroup(name, { ...group, nodes: this.withNode(group.nodes, node, expires) });
+        this.groupToEdit(name);
+        const added = this.nodeToAdd(node, expires);
+        await this.editGroup(name, (group) => ({ ...group, nodes: withNode(group.nodes, added, this.now()) }));
     }
 
     /** Takes a group's node away. @returns Whether the group had it. */
-    public async revokeGroup(name: string, node: string): Promise<boolean> {
-        const group = this.groupToEdit(name);
-        const nodes = group.nodes.filter((entry) => entry.node !== node);
-        if (nodes.length === group.nodes.length) return false;
-        await this.writeGroup(name, { ...group, nodes });
-        return true;
+    public revokeGroup(name: string, node: string): Promise<boolean> {
+        this.groupToEdit(name);
+        return this.editGroup(name, (group) => {
+            const nodes = group.nodes.filter((entry) => entry.node !== node);
+            return nodes.length === group.nodes.length ? undefined : { ...group, nodes };
+        });
     }
 
-    /** Makes `parent` a parent of a group. Both must exist, and a group cannot be its own parent. */
+    /**
+     * Makes `parent` a parent of a group. Both must exist, and the parent may not inherit from the
+     * group already, or the group would be its own ancestor.
+     * @throws PermissionGroupCycle when it would be.
+     */
     public async addParent(name: string, parent: string): Promise<void> {
-        if (name === parent) throw new PrismarineServerErrors.PermissionGroupOwnParent({ group: name });
         const group = this.groupToEdit(name);
         this.groupToEdit(parent);
+        if (wouldCycle(name, parent, (candidate) => this.groups.get(candidate))) {
+            throw new PrismarineServerErrors.PermissionGroupCycle({ group: name, parent });
+        }
         if (group.parents.includes(parent)) return;
-        return this.writeGroup(name, { ...group, parents: [...group.parents, parent] });
+        await this.editGroup(name, (current) => {
+            if (wouldCycle(name, parent, (candidate) => this.groups.get(candidate))) {
+                throw new PrismarineServerErrors.PermissionGroupCycle({ group: name, parent });
+            }
+            return current.parents.includes(parent) ? undefined : { ...current, parents: [...current.parents, parent] };
+        });
     }
 
     /** Removes a parent from a group. @returns Whether it was a parent. */
-    public async removeParent(name: string, parent: string): Promise<boolean> {
-        const group = this.groupToEdit(name);
-        if (!group.parents.includes(parent)) return false;
-        await this.writeGroup(name, { ...group, parents: group.parents.filter((entry) => entry !== parent) });
-        return true;
+    public removeParent(name: string, parent: string): Promise<boolean> {
+        this.groupToEdit(name);
+        return this.editGroup(name, (group) =>
+            group.parents.includes(parent)
+                ? { ...group, parents: group.parents.filter((entry) => entry !== parent) }
+                : undefined
+        );
     }
 
-    /** Sets a group's weight. */
+    /** Sets a group's weight. @throws InvalidPermissionGroupWeight for one the file cannot hold. */
     public async setGroupWeight(name: string, weight: number): Promise<void> {
-        const group = this.groupToEdit(name);
-        return this.writeGroup(name, { ...group, weight });
+        this.groupToEdit(name);
+        if (!Number.isFinite(weight))
+            throw new PrismarineServerErrors.InvalidPermissionGroupWeight({ weight: String(weight) });
+        await this.editGroup(name, (group) => ({ ...group, weight }));
     }
 
     /** Sets a group's meta value, or removes the key when `value` is undefined. */
     public async setGroupMeta(name: string, key: string, value: string | undefined): Promise<void> {
-        const group = this.groupToEdit(name);
-        const meta = { ...group.meta };
-        if (value === undefined) delete meta[key];
-        else meta[key] = value;
-        return this.writeGroup(name, { ...group, meta });
+        this.groupToEdit(name);
+        await this.editGroup(name, (group) => {
+            const meta = { ...group.meta };
+            if (value === undefined) delete meta[key];
+            else meta[key] = value;
+            return { ...group, meta };
+        });
     }
 
     // --- The file -------------------------------------------------------------------------------
 
     /**
+     * Reads both files and publishes them together, so a file that does not parse leaves memory as
+     * it was. `announce` logs the entries still waiting for a login, which a start does once.
+     * @throws InvalidPermissionsEntry when either file does not parse.
+     */
+    private async load(announce: boolean): Promise<void> {
+        const ops = await this.readOps();
+        const permissions = await this.readPermissionsFile();
+        if (this.disabled) return;
+        this.ops.clear();
+        for (const id of ops.ops) this.ops.add(id);
+        this.pendingOps.clear();
+        for (const [uuid, name] of ops.pendingOps) this.pendingOps.set(uuid, name);
+        this.groups = permissions.groups;
+        this.users = permissions.users;
+        this.pending = permissions.pending;
+        if (!announce) return;
+        for (const [uuid, name] of this.pendingOps) {
+            // Once, so an owner sees who is waiting; see the plan's risks.
+            this.server
+                .getLogger()
+                .info(
+                    `Operator ${name} is keyed by the login UUID ${uuid} and becomes an operator again at their next login.`
+                );
+        }
+        for (const [uuid, user] of this.pending) {
+            this.server
+                .getLogger()
+                .info(
+                    `${user.name} in ${PERMISSION_FILE_NAME} is keyed by the login UUID ${uuid} and gets their permissions back at their next login.`
+                );
+        }
+    }
+
+    /**
      * Reads `permissions.json`, writing a fresh one when there is none and migrating one written
      * before `schemaVersion` existed, with the old file kept beside it as `permissions.json.bak`.
+     * A file that lacks `default` or `operator` reads as if it had a fresh file's, and a parent
+     * that would make a group its own ancestor is dropped with a log line.
      */
-    private async loadPermissions(): Promise<void> {
+    private async readPermissionsFile(): Promise<LoadedPermissions> {
         const file = withCwd(PERMISSION_FILE_NAME);
-        let root: unknown;
         try {
             if (!fs.existsSync(file)) {
                 // A first start has no file yet; making one is routine, not a warning.
@@ -498,51 +647,47 @@ export class PermissionManager implements Service {
             }
 
             let document = await readJsonFile(file, '{}');
-            root = document.get([]);
+            let root = document.get([]);
             if (!isRecord(root))
                 throw new PrismarineServerErrors.PermissionsNotObject({ permissionFileName: PERMISSION_FILE_NAME });
 
-            const version = schemaVersionOf(root);
-            if (version === undefined) {
-                await fs.promises.copyFile(file, `${file}.bak`);
+            const layout = layoutOf(root);
+            if (layout === 'absent') {
+                await fs.promises.copyFile(file, withCwd(PERMISSIONS_BACKUP_NAME));
                 document = migrateLegacyPermissions(root);
                 await writeJsonFile(file, document);
                 root = document.get([]);
                 this.server
                     .getLogger()
                     .info(
-                        `Migrated ${PERMISSION_FILE_NAME} to schema version ${PERMISSIONS_SCHEMA_VERSION}; the old file is ${PERMISSION_FILE_NAME}.bak.`
+                        `Migrated ${PERMISSION_FILE_NAME} to schema version ${PERMISSIONS_SCHEMA_VERSION}; the old file is ${PERMISSIONS_BACKUP_NAME}.`
                     );
-            } else if (version > PERMISSIONS_SCHEMA_VERSION) {
+            } else if (layout === 'other') {
                 throw new PrismarineServerErrors.PermissionsSchemaUnsupported({
                     permissionFileName: PERMISSION_FILE_NAME,
-                    schemaVersion: version,
+                    schemaVersion: String(root.schemaVersion),
                     supported: PERMISSIONS_SCHEMA_VERSION
                 });
             }
             if (!isRecord(root))
                 throw new PrismarineServerErrors.PermissionsNotObject({ permissionFileName: PERMISSION_FILE_NAME });
             this.knownText = toJsonFileContents(file, document);
-            this.apply(readPermissions(root));
+            const loaded = readPermissions(root);
+            for (const name of [DEFAULT_GROUP, OPERATOR_GROUP] as const) {
+                if (!loaded.groups.has(name)) loaded.groups.set(name, builtInGroup(name));
+            }
+            for (const { group, parent } of dropParentCycles(loaded.groups)) {
+                this.server
+                    .getLogger()
+                    .error(
+                        new PrismarineServerErrors.PermissionGroupCycle({ group, parent }).message +
+                            `; ${PERMISSION_FILE_NAME} names it, so the parent is ignored`
+                    );
+            }
+            return loaded;
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: PERMISSION_FILE_NAME });
-        }
-    }
-
-    /** Takes a loaded file as the state in memory, and logs each user still waiting for a login. */
-    private apply(loaded: LoadedPermissions): void {
-        this.groups = loaded.groups;
-        this.users = loaded.users;
-        this.pending = loaded.pending;
-        if (!this.groups.has(DEFAULT_GROUP)) this.groups.set(DEFAULT_GROUP, EMPTY_GROUP);
-        for (const [uuid, user] of this.pending) {
-            // Once, so an owner sees who is waiting; see the plan's risks.
-            this.server
-                .getLogger()
-                .info(
-                    `${user.name} in ${PERMISSION_FILE_NAME} is keyed by the login UUID ${uuid} and gets their permissions back at their next login.`
-                );
         }
     }
 
@@ -566,8 +711,9 @@ export class PermissionManager implements Service {
         }
     }
 
-    /** Reloads the file unless its text is what this manager last read or wrote. */
+    /** Reloads the file unless its text is what this manager last read or wrote. A failed reload is logged by the load. */
     private async reloadIfChanged(): Promise<void> {
+        if (this.disabled) return;
         let text: string;
         try {
             text = await fs.promises.readFile(withCwd(PERMISSION_FILE_NAME), 'utf8');
@@ -576,13 +722,15 @@ export class PermissionManager implements Service {
         }
         if (text === this.knownText) return;
         this.server.getLogger().info(`${PERMISSION_FILE_NAME} changed on disk; reloading it.`);
-        await this.reload();
+        await this.reload().catch(() => {});
     }
 
     // --- Operators ------------------------------------------------------------------------------
 
-    private async parseOps(): Promise<void> {
+    /** Reads `ops.json`, writing an empty one when there is none. @throws InvalidPermissionsEntry when it does not parse. */
+    private async readOps(): Promise<LoadedOps> {
         const file = withCwd(OPS_FILE_NAME);
+        const loaded: LoadedOps = { ops: new Set(), pendingOps: new Map() };
         try {
             if (!fs.existsSync(file)) {
                 this.server.getLogger().info(`Created an empty operator list in ${OPS_FILE_NAME}.`);
@@ -594,18 +742,10 @@ export class PermissionManager implements Service {
             for (const op of ops) {
                 if (!isOpEntry(op)) continue;
                 const subject = subjectOfEntry(op);
-                if (subject !== undefined) {
-                    this.ops.add(subjectId(subject));
-                } else if (isLegacyOpEntry(op)) {
-                    this.pendingOps.set(op.uuid, op.name);
-                    // Once, so an owner sees who is waiting; see the plan's risks.
-                    this.server
-                        .getLogger()
-                        .info(
-                            `Operator ${op.name} is keyed by the login UUID ${op.uuid} and becomes an operator again at their next login.`
-                        );
-                }
+                if (subject !== undefined) loaded.ops.add(subjectId(subject));
+                else if (isLegacyOpEntry(op)) loaded.pendingOps.set(op.uuid, op.name);
             }
+            return loaded;
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: OPS_FILE_NAME });
@@ -673,31 +813,34 @@ export class PermissionManager implements Service {
             claimed = true;
         }
         const waiting = this.pending.get(identity.uuid);
-        if (waiting !== undefined) {
-            this.pending.delete(identity.uuid);
-            const existing = this.userOf(identity.subject);
-            // A record the subject already has keeps what it has; the claimed one adds to it.
+        if (waiting !== undefined && !this.claiming.has(identity.uuid)) {
+            const { uuid, subject } = identity;
+            this.claiming.add(uuid);
+            const existing = this.userOf(subject);
+            // A record the subject already has keeps what it has; the claimed one adds to it, each
+            // node and membership once, so a claim written twice adds nothing the second time.
             const user: User = {
                 name: identity.name,
-                groups: [...(existing?.groups ?? []), ...waiting.groups],
-                nodes: [...(existing?.nodes ?? []), ...waiting.nodes],
+                groups: merged(existing?.groups ?? [], waiting.groups),
+                nodes: merged(existing?.nodes ?? [], waiting.nodes),
                 meta: { ...waiting.meta, ...existing?.meta }
             };
-            this.users.set(subjectId(identity.subject), { subject: identity.subject, user });
-            const now = this.now();
+            // The player has their permissions from this login on; the file follows, and the entry
+            // stays under `pending` in memory and on disk until the write succeeds, so a failed
+            // write is retried at their next login.
+            this.users.set(subjectId(subject), { subject, user });
             this.server
                 .getLogger()
                 .info(
                     `${waiting.name} in ${PERMISSION_FILE_NAME} logged in as ${identity.name} and is now keyed by their account.`
                 );
-            void this.queueWrite(
-                (document) => {
-                    const index = pendingIndexOf(document, identity.uuid);
-                    if (index >= 0) document.delete(['pending', index]);
-                    document.set(userPath(identity.subject), userJson(user, now));
-                },
-                { subject: identity.subject }
-            ).catch(() => {});
+            this.edit({ subject, name: identity.name }, (document) => {
+                removePendingEntries(document, uuid);
+                document.set(userPath(subject), userJson(user, this.now()));
+                return { result: true, apply: () => void this.pending.delete(uuid) };
+            })
+                .catch(() => {})
+                .finally(() => this.claiming.delete(uuid));
             claimed = true;
         }
         return claimed;
@@ -717,7 +860,7 @@ export class PermissionManager implements Service {
         const id = subjectId(target.identity.subject);
         if (op) this.ops.add(id);
         else this.ops.delete(id);
-        this.notify({ subject: target.identity.subject });
+        this.notify({ subject: target.identity.subject, name: target.identity.name });
         return true;
     }
 
@@ -728,16 +871,13 @@ export class PermissionManager implements Service {
      * @returns Whether the file was written. A failed write is logged, not thrown.
      */
     private persistOp(subject: Subject, username: string, op: boolean, legacyUuid?: string): Promise<boolean> {
-        const written = this.writes.then(async () => {
+        return this.queue(async () => {
             await this.writeOp(subject, username, op, legacyUuid);
             return true;
-        });
-        const settled = written.catch((error: unknown) => {
+        }).catch((error: unknown) => {
             this.server.getLogger().error(`Failed to write ${OPS_FILE_NAME} for ${username}: ${error}`);
             return false;
         });
-        this.writes = settled;
-        return settled;
     }
 
     /**

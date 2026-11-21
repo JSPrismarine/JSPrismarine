@@ -223,6 +223,21 @@ describe('/perms', () => {
         });
     });
 
+    it('refuses a parent that would make a group its own ancestor', async () => {
+        await run('perms group create a');
+        await run('perms group create b');
+        await run('perms group a parent add b');
+        await run('perms group b parent add a');
+        await run('perms group a parent add a');
+
+        expect(feedback).toEqual(['Created group a', 'Created group b', 'Added b as a parent of a']);
+        expect(errors).toEqual([
+            expect.stringContaining('Making a a parent of b would make b its own ancestor'),
+            expect.stringContaining('Making a a parent of a would make a its own ancestor')
+        ]);
+        expect(permissions.groupOf('b')?.parents).toEqual([]);
+    });
+
     it('reloads both files', async () => {
         const reload = vi.spyOn(permissions, 'reload');
 

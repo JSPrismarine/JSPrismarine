@@ -1,7 +1,7 @@
 import { testKernel } from '../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../events/ServerEvents';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,10 +11,10 @@ import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { ConfigPath } from '../config/ConfigDocument';
-import { subjectId } from '../identity/Subject';
 import type SessionManager from '../SessionManager';
 import type PlayerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type PlayerSession from '../network/PlayerSession';
+import type { PlayerIdentity } from '../playerIdentity';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
@@ -38,29 +38,19 @@ const plain = (text: string): unknown => parseConfigDocument(text).get([]);
 
 describe('permission', () => {
     describe('canExecute', () => {
-        /** A player who is not an operator and holds these nodes. */
-        const holder = (...nodes: string[]) => ({
-            isOp: () => false,
-            hasPermission: (node: string) => nodes.includes(node)
-        });
+        /** A player who holds these nodes after resolution. */
+        const holder = (...nodes: string[]) => ({ hasPermission: (node: string) => nodes.includes(node) });
 
-        it('passes the console, an operator and a holder of the node, and nobody else', () => {
+        it('passes the console and a holder of the node, and nobody else', () => {
             expect(canExecute(holder('namespace.scope.action')).execute('namespace.scope.action')).toBe(true);
             expect(canExecute(holder('namespace.scope.action')).execute('namespace.scope.other')).toBe(false);
             expect(canExecute(holder()).execute('namespace.scope.action')).toBe(false);
-            expect(canExecute({ isOp: () => true, hasPermission: () => false }).execute('namespace.scope.action')).toBe(
-                true
-            );
             const console: Console = Object.create(Console.prototype);
             expect(canExecute(console).execute('namespace.scope.action')).toBe(true);
         });
 
         it('negates with not(), and passes a check with no permission', () => {
-            expect(
-                canExecute({ isOp: () => true, hasPermission: () => false })
-                    .not()
-                    .execute('x.y')
-            ).toBe(false);
+            expect(canExecute(holder('x.y')).not().execute('x.y')).toBe(false);
             expect(canExecute(holder()).execute()).toBe(true);
         });
     });
@@ -82,16 +72,22 @@ describe('permission', () => {
             document.set(at, value);
             return document.toString();
         };
+        /** The sessions online, which a write or a reload sends their commands and abilities again. */
+        let online: PlayerSession[] = [];
         const server = (): PermissionManagerServer => ({
             getLogger: () => logger,
-            getSessionManager: () => {
-                throw new Error('not needed here');
-            },
+            getSessionManager: () => stub<SessionManager>({ getSessions: () => online }),
             getKernel: () => {
                 throw new Error('not needed here');
             }
         });
         const steve = identityNamed('Steve', '00000000-0000-0000-0000-000000000005');
+        /** Writes `ops.json` with these offline operators, before the manager reads it. */
+        const opsFile = (...names: string[]) =>
+            writeFileSync(
+                path.join(directory, 'ops.json'),
+                JSON.stringify(names.map((name) => ({ name, kind: 'offline', id: name, level: 4 })))
+            );
 
         beforeEach(() => {
             directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-permission-test-'));
@@ -101,6 +97,7 @@ describe('permission', () => {
             vi.spyOn(logger, 'error').mockImplementation(() => {});
             vi.spyOn(logger, 'info');
             now = NOON;
+            online = [];
             manager = new PermissionManager(server(), { now: () => now, watch: false });
         });
 
@@ -159,6 +156,7 @@ describe('permission', () => {
 
             it('turns a file without a schemaVersion into groups and pending users, keeping the old file as .bak', async () => {
                 writeFileSync(permissionsFile(), LEGACY);
+                opsFile('Op');
 
                 await manager.enable();
 
@@ -186,9 +184,9 @@ describe('permission', () => {
                 // The same effective permissions as before, for everyone and for an operator.
                 expect(manager.has(steve, 'minecraft.command.help')).toBe(true);
                 expect(manager.has(steve, 'minecraft.command.list')).toBe(false);
-                manager['ops'].add(subjectId(steve.subject));
-                expect(manager.has(steve, 'minecraft.command.stop')).toBe(true);
-                expect(manager.has(steve, 'jsprismarine.command.debug')).toBe(false);
+                const op = identityNamed('Op');
+                expect(manager.has(op, 'minecraft.command.stop')).toBe(true);
+                expect(manager.has(op, 'jsprismarine.command.debug')).toBe(false);
             });
 
             it('files a pending user under the account of the login that claims it, and keeps the one never claimed', async () => {
@@ -215,14 +213,97 @@ describe('permission', () => {
                 });
             });
 
-            it('refuses a file a newer server wrote', async () => {
-                writeFileSync(permissionsFile(), '{ "schemaVersion": 3, "groups": {}, "users": {} }');
+            it('refuses a file a newer server wrote, or whose version is not a number, without rewriting it', async () => {
+                for (const version of ['3', '"2"', '1.5']) {
+                    const text = `{ "schemaVersion": ${version}, "groups": {}, "users": {} }`;
+                    writeFileSync(permissionsFile(), text);
 
-                await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
-                expect(logger.error).toHaveBeenCalledWith(
-                    expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
-                );
+                    await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
+                    expect(logger.error).toHaveBeenCalledWith(
+                        expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
+                    );
+                    expect(permissionsText()).toBe(text);
+                    expect(existsSync(`${permissionsFile()}.bak`)).toBe(false);
+                }
             });
+
+            it('gives `*` to operators when the old file names no valid operator defaults', async () => {
+                writeFileSync(
+                    permissionsFile(),
+                    '{ "defaultPermissions": ["a.b"], "defaultOperatorPermissions": "all" }'
+                );
+                opsFile('Op');
+
+                await manager.enable();
+
+                expect(manager.groupOf(OPERATOR_GROUP)?.nodes).toEqual([{ node: '*' }]);
+                expect(manager.has(identityNamed('Op'), 'minecraft.command.stop')).toBe(true);
+            });
+
+            it('files every pending entry of one UUID under the account that claims it', async () => {
+                writeFileSync(
+                    permissionsFile(),
+                    JSON.stringify({
+                        schemaVersion: 2,
+                        groups: {},
+                        users: {},
+                        pending: [
+                            { name: 'old', legacyUuid: 'u-1', groups: [], nodes: [{ node: 'a.b' }], meta: {} },
+                            { name: 'older', legacyUuid: 'u-1', groups: [], nodes: [{ node: 'c.d' }], meta: {} }
+                        ]
+                    })
+                );
+                await manager.enable();
+
+                expect(manager.claimLegacy(identityNamed('Bob', 'u-1'))).toBe(true);
+                await manager['writes'];
+
+                expect(permissions()).toMatchObject({ pending: [] });
+                expect(manager.claimLegacy(identityNamed('Bob', 'u-1'))).toBe(false);
+            });
+        });
+
+        it('reads a file without the built-in groups as if it had them, drops a parent that closes a cycle, and skips an entry whose expiry is not a string', async () => {
+            writeFileSync(
+                permissionsFile(),
+                JSON.stringify({
+                    schemaVersion: 2,
+                    groups: {
+                        a: {
+                            weight: 1,
+                            parents: ['b'],
+                            nodes: [{ node: 'x.y', expires: 7 }, { node: 'x.z' }],
+                            meta: {}
+                        },
+                        b: { weight: 1, parents: ['a'], nodes: [], meta: {} }
+                    },
+                    users: {
+                        offline: {
+                            Steve: {
+                                name: 'Steve',
+                                groups: [{ group: 'a', expires: null }, { group: 'b' }],
+                                nodes: [],
+                                meta: {}
+                            }
+                        }
+                    }
+                })
+            );
+            opsFile('Op');
+
+            await manager.enable();
+
+            expect(manager.groupNames()).toEqual(['a', 'b', DEFAULT_GROUP, OPERATOR_GROUP]);
+            expect(manager.has(identityNamed('Op'), 'anything.at.all')).toBe(true);
+            // `a` lists `b` as a parent and `b` lists `a`: the link read first would close the cycle, so it is dropped.
+            expect(manager.groupOf('a')?.parents).toEqual([]);
+            expect(manager.groupOf('b')?.parents).toEqual(['a']);
+            expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('would make a its own ancestor'));
+            // A numeric expiry is not permanent: the node is skipped, as is the membership with `null`.
+            expect(manager.groupOf('a')?.nodes).toEqual([{ node: 'x.z' }]);
+            expect(manager.groupsOf(steve)).toEqual(['b', DEFAULT_GROUP]);
+            expect(manager.has(steve, 'x.z')).toBe(true);
+            expect(manager.has(steve, 'x.y')).toBe(false);
         });
 
         it('refuses a permissions file that does not parse', async () => {
@@ -307,11 +388,79 @@ describe('permission', () => {
                 await expect(manager.deleteGroup('operator')).rejects.toThrow('built in');
                 await expect(manager.deleteGroup('nobody')).rejects.toThrow('No permission group');
                 await expect(manager.addToGroup(steve, 'nobody')).rejects.toThrow('No permission group');
-                await expect(manager.addParent('default', 'default')).rejects.toThrow('own parent');
+                await expect(manager.addParent('default', 'default')).rejects.toThrow('its own ancestor');
                 await expect(manager.grantUser(steve, 'bad node')).rejects.toThrow('not spelled');
                 await expect(manager.grantUser(steve, 'a.*.b')).rejects.toThrow('not spelled');
                 await expect(manager.grantUser(steve, 'a.b', 'yesterday')).rejects.toThrow('ISO 8601');
                 await expect(manager.grantUser(steve, 'a.b', '2026-11-21T11:00:00Z')).rejects.toThrow('ISO 8601');
+                // A local time without a zone is not an instant, and February 30 is not a day.
+                await expect(manager.grantUser(steve, 'a.b', '2030-01-01T00:00:00')).rejects.toThrow('ISO 8601');
+                await expect(manager.grantUser(steve, 'a.b', '2030-02-30T00:00:00Z')).rejects.toThrow('ISO 8601');
+                await manager.createGroup('a');
+                await manager.createGroup('b');
+                await manager.addParent('a', 'b');
+                await expect(manager.addParent('b', 'a')).rejects.toThrow('would make b its own ancestor');
+                await expect(manager.setGroupWeight('a', Number.POSITIVE_INFINITY)).rejects.toThrow('finite');
+                await expect(manager.setGroupWeight('a', Number.NaN)).rejects.toThrow('finite');
+                expect(manager.groupOf('a')?.weight).toBe(0);
+            });
+
+            it('changes memory only once the file is written, so a failed write leaves the edit to make again', async () => {
+                await manager.enable();
+                await manager.grantUser(steve, 'a.b');
+                const granted = manager.grantUser(steve, 'c.d');
+                expect(manager.has(steve, 'c.d')).toBe(false);
+                await granted;
+                expect(manager.has(steve, 'c.d')).toBe(true);
+
+                // The file goes read-only for the next write.
+                chmodSync(permissionsFile(), 0o400);
+                try {
+                    await expect(manager.revokeUser(steve, 'a.b')).rejects.toThrow();
+                } finally {
+                    chmodSync(permissionsFile(), 0o600);
+                }
+                expect(manager.has(steve, 'a.b')).toBe(true);
+                expect(await manager.revokeUser(steve, 'a.b')).toBe(true);
+                expect(manager.has(steve, 'a.b')).toBe(false);
+            });
+
+            it('writes a complete file again when the one on disk is gone or not a version 2 file', async () => {
+                await manager.enable();
+                await manager.createGroup('vip');
+                rmSync(permissionsFile());
+
+                await manager.grantUser(steve, 'a.b');
+
+                expect(permissions()).toMatchObject({
+                    schemaVersion: 2,
+                    groups: { default: expect.anything(), operator: expect.anything(), vip: expect.anything() },
+                    users: { offline: { Steve: { nodes: [{ node: 'a.b' }] } } }
+                });
+                expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('writing it again from memory'));
+            });
+
+            it('sends the players a change reaches their command list and abilities again', async () => {
+                const sent: string[] = [];
+                const session = (identity: PlayerIdentity) =>
+                    stub<PlayerSession>({
+                        identity,
+                        sendAvailableCommands: async () => void sent.push(`${identity.name} commands`),
+                        announceSettings: async () => void sent.push(`${identity.name} settings`)
+                    });
+                online = [session(steve), session(identityNamed('Alex'))];
+                await manager.enable();
+
+                await manager.grantUser(steve, 'a.b');
+                expect(sent).toEqual(['Steve commands', 'Steve settings']);
+
+                sent.length = 0;
+                await manager.createGroup('vip');
+                expect(sent.sort()).toEqual(['Alex commands', 'Alex settings', 'Steve commands', 'Steve settings']);
+
+                sent.length = 0;
+                await manager.reload();
+                expect(sent).toHaveLength(4);
             });
 
             it('writes an expiry, skips the node once it passes, and prunes it on the next write', async () => {
@@ -346,7 +495,7 @@ describe('permission', () => {
                 stop();
                 await manager.setGroupWeight('vip', 3);
 
-                expect(changes).toEqual([{ subject: steve.subject }, { group: 'vip' }, {}]);
+                expect(changes).toEqual([{ subject: steve.subject, name: 'Steve' }, { group: 'vip' }, {}]);
             });
         });
 
@@ -360,9 +509,14 @@ describe('permission', () => {
                 expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
 
                 writeFileSync(permissionsFile(), '{ "schemaVersion": 2, "groups": {');
-                await manager.reload();
+                await expect(manager.reload()).rejects.toThrow('Invalid permissions.json file.');
                 expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
                 expect(logger.error).toHaveBeenCalled();
+
+                // Operators stay too while the other file fails, since both are read before either is published.
+                opsFile('Op');
+                await expect(manager.reload()).rejects.toThrow();
+                expect(manager.isOp(offline('Op'))).toBe(false);
             });
 
             it('reloads when the file changes on disk, and not after its own writes', async () => {
@@ -391,6 +545,7 @@ describe('permission', () => {
         });
 
         it('gives the command level the level meta names, and an operator level 4', async () => {
+            opsFile('Op');
             await manager.enable();
 
             expect(manager.commandLevelOf(steve)).toBe(0);
@@ -398,10 +553,9 @@ describe('permission', () => {
             expect(manager.commandLevelOf(steve)).toBe(1);
             await manager.setUserMeta(steve, 'level', '3');
             expect(manager.commandLevelOf(steve)).toBe(3);
-            manager['ops'].add(subjectId(steve.subject));
-            expect(manager.commandLevelOf(steve)).toBe(4);
+            expect(manager.commandLevelOf(identityNamed('Op'))).toBe(4);
             // The operator group outweighs default, so its node comes first.
-            expect(manager.nodesOf(steve)).toEqual([
+            expect(manager.nodesOf(identityNamed('Op'))).toEqual([
                 '*',
                 'minecraft.command.help',
                 'minecraft.command.list',
@@ -519,7 +673,8 @@ describe('permission', () => {
             const opManager: PermissionManager = new PermissionManager(
                 {
                     getLogger: () => logger,
-                    getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
+                    getSessionManager: () =>
+                        stub<SessionManager>({ findSession: () => session, getSessions: () => [session] }),
                     getKernel: () => kernelPosting(() => {})
                 },
                 { watch: false }
@@ -654,7 +809,8 @@ describe('permission', () => {
             const real = new PermissionManager(
                 {
                     getLogger: () => logger,
-                    getSessionManager: () => stub<SessionManager>({ findSession: () => session }),
+                    getSessionManager: () =>
+                        stub<SessionManager>({ findSession: () => session, getSessions: () => [session] }),
                     getKernel: () => kernelPosting(() => {})
                 },
                 { watch: false }

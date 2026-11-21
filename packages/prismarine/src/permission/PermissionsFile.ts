@@ -11,7 +11,8 @@ import { SUBJECT_KINDS, parseSubject, subjectId, subjectKey } from '../identity/
 import { isRecord } from '../utils/isRecord';
 import { isStringList } from '../utils/isStringList';
 import type { Group, User } from './model';
-import { DEFAULT_GROUP, EVERY_NODE, OPERATOR_GROUP, readGroup, readUser } from './model';
+import { DEFAULT_GROUP, EVERY_NODE, groupJson, OPERATOR_GROUP, readGroup, readUser, userJson } from './model';
+import { wouldCycle } from './resolve';
 
 /** The layout this server reads and writes. */
 export const PERMISSIONS_SCHEMA_VERSION = 2 as const;
@@ -144,9 +145,65 @@ export const migrateLegacyPermissions = (root: Record<string, unknown>): ConfigD
     return document;
 };
 
-/** The `schemaVersion` a file names, or undefined for a file without one. */
-export const schemaVersionOf = (root: Record<string, unknown>): number | undefined =>
-    typeof root.schemaVersion === 'number' ? root.schemaVersion : undefined;
+/**
+ * Which layout a file declares: `absent` for a file written before `schemaVersion` existed, which
+ * migrates; `current` for the layout this server reads; `other` for anything else, which is
+ * refused without a rewrite, since a `"2"` or a `3` is not a file of the old shape.
+ */
+export const layoutOf = (root: Record<string, unknown>): 'absent' | 'current' | 'other' => {
+    if (!('schemaVersion' in root)) return 'absent';
+    return root.schemaVersion === PERMISSIONS_SCHEMA_VERSION ? 'current' : 'other';
+};
+
+/** The name of the file. */
+export const PERMISSIONS_FILE_NAME = 'permissions.json';
+/** The name of the copy a migration keeps beside the file. */
+export const PERMISSIONS_BACKUP_NAME = `${PERMISSIONS_FILE_NAME}.bak`;
+
+/** A built-in group as a fresh file writes it, for a file that lacks one. */
+export const builtInGroup = (name: typeof DEFAULT_GROUP | typeof OPERATOR_GROUP): Group =>
+    readGroup(builtInGroups()[name]);
+
+/**
+ * A version 2 document holding this state, for an edit when the file on disk is gone or no longer
+ * a version 2 file.
+ */
+export const documentOf = (loaded: LoadedPermissions, now: number): ConfigDocument => {
+    const document = parseConfigDocument('{}');
+    writeLayout(document, Object.fromEntries([...loaded.groups].map(([name, group]) => [name, groupJson(group, now)])));
+    for (const { subject, user } of loaded.users.values()) document.set(userPath(subject), userJson(user, now));
+    if (loaded.pending.size > 0) {
+        document.set(
+            ['pending'],
+            [...loaded.pending].map(([legacyUuid, user]) => ({ ...userJson(user, now), legacyUuid }))
+        );
+    }
+    return document;
+};
+
+/** A parent link the loader dropped because it would make a group its own ancestor. */
+export interface DroppedParent {
+    readonly group: string;
+    readonly parent: string;
+}
+
+/**
+ * Drops each parent link that closes a cycle, so no group is its own ancestor. The resolver would
+ * end on a cycle anyway; the loader refuses one so the file says what resolution does.
+ * @returns The links dropped, for the log.
+ */
+export const dropParentCycles = (groups: Map<string, Group>): DroppedParent[] => {
+    const dropped: DroppedParent[] = [];
+    for (const [name, group] of groups) {
+        const kept = group.parents.filter((parent) => {
+            if (!wouldCycle(name, parent, (candidate) => groups.get(candidate))) return true;
+            dropped.push({ group: name, parent });
+            return false;
+        });
+        if (kept.length !== group.parents.length) groups.set(name, { ...group, parents: kept });
+    }
+    return dropped;
+};
 
 /**
  * Reads a version 2 document into memory. A section or an entry that does not have the shape the
@@ -181,11 +238,14 @@ export const readPermissions = (root: Record<string, unknown>): LoadedPermission
     return { groups, users, pending };
 };
 
-/** The index of a pending entry in the file's `pending` list, or -1. */
-export const pendingIndexOf = (document: ConfigDocument, legacyUuid: string): number => {
+/** Removes every `pending` entry keyed by this UUID, back to front so earlier indices hold. */
+export const removePendingEntries = (document: ConfigDocument, legacyUuid: string): void => {
     const pending = document.get(['pending']);
-    if (!Array.isArray(pending)) return -1;
-    return pending.findIndex((entry: unknown) => isRecord(entry) && entry.legacyUuid === legacyUuid);
+    if (!Array.isArray(pending)) return;
+    for (let index = pending.length - 1; index >= 0; index--) {
+        const entry: unknown = pending[index];
+        if (isRecord(entry) && entry.legacyUuid === legacyUuid) document.delete(['pending', index]);
+    }
 };
 
 /** Compile-time proof that the written layout is the one the schema describes. */

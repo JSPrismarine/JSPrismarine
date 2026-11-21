@@ -4,7 +4,16 @@ import { describe, expect, it } from 'vitest';
 import type { Group, User } from './model';
 import { emptyUser } from './model';
 import type { PermissionView } from './resolve';
-import { commandLevelOf, directGroupsOf, hasPermission, levelOf, metaOf, nodesOf, primaryGroupOf } from './resolve';
+import {
+    commandLevelOf,
+    directGroupsOf,
+    hasPermission,
+    levelOf,
+    metaOf,
+    nodesOf,
+    primaryGroupOf,
+    wouldCycle
+} from './resolve';
 
 const NOW = Date.parse('2026-11-21T12:00:00Z');
 const PAST = '2026-11-21T11:00:00Z';
@@ -61,6 +70,36 @@ describe('permission resolution', () => {
         const member = view(groups, { groups: [{ group: 'staff' }] });
         expect(hasPermission(member, 'minecraft.command.ban')).toBe(true);
         expect(nodesOf(member)).toEqual(['minecraft.command.kick', 'minecraft.command.ban', 'minecraft.command.help']);
+
+        // Depth first: the first parent's own parent is read before the second parent, so its
+        // denial wins over the second parent's grant of the same node.
+        const deep = {
+            default: group(),
+            team: group({ weight: 10, parents: ['first', 'second'] }),
+            first: group({ parents: ['grand'] }),
+            grand: group({ nodes: nodes('-minecraft.command.tp') }),
+            second: group({ nodes: nodes('minecraft.command.tp') })
+        };
+        expect(hasPermission(view(deep, { groups: [{ group: 'team' }] }), 'minecraft.command.tp')).toBe(false);
+    });
+
+    it('gives an inherited node the weight of the direct group that inherits it', () => {
+        // `light` is a parent of the heavy `staff`, so its grant decides before the lighter direct `vip` denies.
+        const inherited = {
+            default: group(),
+            staff: group({ weight: 50, parents: ['light'] }),
+            light: group({ weight: 1, nodes: nodes('minecraft.command.kick') }),
+            vip: group({ weight: 10, nodes: nodes('-minecraft.command.kick') })
+        };
+        const member = view(inherited, { groups: [{ group: 'vip' }, { group: 'staff' }] });
+        expect(hasPermission(member, 'minecraft.command.kick')).toBe(true);
+        // Own and inherited nodes share the tier, so a negation among them wins a tie.
+        const tied = {
+            default: group(),
+            a: group({ weight: 5, parents: ['b'], nodes: nodes('x.y') }),
+            b: group({ nodes: nodes('-x.y') })
+        };
+        expect(hasPermission(view(tied, { groups: [{ group: 'a' }] }), 'x.y')).toBe(false);
     });
 
     it('lets a specific node beat a wildcard in the same tier, and a longer scope beat a shorter one', () => {
@@ -109,11 +148,31 @@ describe('permission resolution', () => {
         expect(primaryGroupOf(view({}))).toBe('default');
     });
 
-    it('answers false for a node nothing names, and stops at a parent cycle', () => {
-        const cyclic = { a: group({ parents: ['b'] }), b: group({ parents: ['a'], nodes: nodes('x.y') }) };
+    it('answers false for a node nothing names, and ends on a parent cycle a hand-edited file slipped past the loader', () => {
+        const cyclic = {
+            default: group(),
+            a: group({ parents: ['b'] }),
+            b: group({ parents: ['a'], nodes: nodes('x.y') })
+        };
         expect(hasPermission(view(cyclic, { groups: [{ group: 'a' }] }), 'x.y')).toBe(true);
         expect(hasPermission(view(cyclic, { groups: [{ group: 'a' }] }), 'x.z')).toBe(false);
+        expect(metaOf(view(cyclic, { groups: [{ group: 'a' }] }), 'prefix')).toBeUndefined();
         expect(hasPermission(view(groups, { groups: [{ group: 'missing' }] }), 'x.z')).toBe(false);
+    });
+
+    it('says whether a parent would make a group its own ancestor', () => {
+        const chain = { a: group({ parents: ['b'] }), b: group({ parents: ['c'] }), c: group() };
+        const groupOf = (name: string) => chain[name as keyof typeof chain];
+        expect(wouldCycle('c', 'a', groupOf)).toBe(true);
+        expect(wouldCycle('a', 'a', groupOf)).toBe(true);
+        expect(wouldCycle('a', 'c', groupOf)).toBe(false);
+        expect(wouldCycle('c', 'other', groupOf)).toBe(false);
+    });
+
+    it('leaves a membership in a group the file no longer has out of the groups held and the primary group', () => {
+        const member = view(groups, { groups: [{ group: 'gone' }, { group: 'vip' }] });
+        expect(directGroupsOf(member)).toEqual(['vip', 'default']);
+        expect(primaryGroupOf(view(groups, { groups: [{ group: 'gone' }] }))).toBe('default');
     });
 
     it('resolves meta over the same tiers, first value wins', () => {
@@ -122,6 +181,16 @@ describe('permission resolution', () => {
         expect(metaOf(member, 'suffix')).toBe('!');
         expect(metaOf(view(groups, { meta: { prefix: 'Me' }, groups: [{ group: 'staff' }] }), 'prefix')).toBe('Me');
         expect(metaOf(member, 'color')).toBeUndefined();
+        // Only a key the file sets, never one the prototype has.
+        expect(metaOf(member, 'toString')).toBeUndefined();
+        // A parent's meta follows its group's own, with the direct group's weight.
+        const inherited = {
+            default: group(),
+            staff: group({ weight: 50, parents: ['light'] }),
+            light: group({ weight: 1, meta: { prefix: 'L' } }),
+            vip: group({ weight: 10, meta: { prefix: 'V' } })
+        };
+        expect(metaOf(view(inherited, { groups: [{ group: 'vip' }, { group: 'staff' }] }), 'prefix')).toBe('L');
     });
 
     it('reads the level meta as 0 to 4, and gives an operator at least 4', () => {

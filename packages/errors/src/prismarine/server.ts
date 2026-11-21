@@ -166,6 +166,22 @@ export const PrismarineServerErrors = defineErrors('prismarine', {
         message: 'Permission group name "{group}" is empty or has whitespace',
         base: RangeError
     },
+    /** A group's weight must be a finite number, since the file holds it as a JSON number. */
+    InvalidPermissionGroupWeight: {
+        message: 'Permission group weight {weight} is not a finite number',
+        base: RangeError
+    },
+    /**
+     * A group cannot inherit from a group that inherits from it. `/perms group <group> parent add` and
+     * the file loader refuse the parent that would close the cycle.
+     */
+    PermissionGroupCycle: 'Making {parent} a parent of {group} would make {group} its own ancestor',
+    /**
+     * `permissions.json` is gone or no longer a version 2 file while the server runs, so an edit
+     * cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
+     */
+    PermissionsFileNotLoaded:
+        '{permissionFileName} is missing or not a version {supported} file, so the edit was not saved',
     /**
      * NetherNet signaling could not bind its TCP port, usually because another process holds it.
      * Free the port, or set `enable-nethernet` to `false`.

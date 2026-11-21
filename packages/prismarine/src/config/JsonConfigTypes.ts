@@ -377,7 +377,7 @@ export interface PendingPermissionUserJson extends PermissionUserJson {
 export interface PermissionsFile {
     /** The layout of this file. The server migrates a file without it. @asType integer */
     schemaVersion: 2;
-    /** Every group by name. `default` and `operator` are always present. */
+    /** Every group by name. A fresh or migrated file writes `default` and `operator`; a file without one reads as if it had a fresh file's. */
     groups: Record<string, PermissionGroupJson>;
     /** Users by platform: `xbox` by XUID, `java` by Mojang profile UUID, `offline` by name. */
     users: Partial<Record<SubjectKind, Record<string, PermissionUserJson>>>;

@@ -67,7 +67,8 @@ const commandsSentTo = async ({
 
     const session = Object.assign(sessionFor(server, connection, player, { identity: identityNamed('Steve') }), {
         isOp: () => op,
-        hasPermission: (node: string) => holds(permissions, node),
+        // An operator holds every node through the `operator` group.
+        hasPermission: (node: string) => op || holds(permissions, node),
         getCommandLevel: () => (op ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY)
     });
     sessions.push(session);
