@@ -124,7 +124,10 @@ export const FAMILIES = {
     gameplayRaids: 'gameplay.raids',
     /** Every entry of Java's vanilla datapack registries, by whether the server loads it. */
     gameplayDatapack: 'gameplay.datapack',
-    /** Java's game rules and villager professions, by whether the server runs them. */
+    /**
+     * Every Java game rule's effect, mob effect, enchantment effect, damage type and player or
+     * world system, and the villager professions' trade tables, against what Java does.
+     */
     gameplayMechanics: 'gameplay.mechanics',
     /**
      * A block position a client's packet names, refused out of reach or in a chunk that is not

@@ -3506,6 +3506,11 @@
             "reason": "Bedrock has no counterpart for this Java rule, so the client has no setting to show for it.",
             "reference": "Java 26.3 minecraft:game_rule registry and packages/commands/src/gamerules.ts"
         },
+        "saturated-regeneration:mechanic/natural-regeneration": {
+            "kind": "defect",
+            "reason": "The server heals a well-fed player only on its 80-tick clock, so a full, saturated food bar heals eight times slower than in Java.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3512"
+        },
         "villager-profession-trades:minecraft:mason": {
             "kind": "defect",
             "reason": "Every Java villager profession that trades has a trade table on the server. Observed: no trade table is named for the minecraft:mason profession.",
