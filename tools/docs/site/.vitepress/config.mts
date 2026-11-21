@@ -6,6 +6,7 @@ import typedocSidebar from '../api/typedoc-sidebar.json';
 import { footerHtml } from './footer.mts';
 import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
+import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
 import { isStagedPage, pageSource, pageUrl, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
@@ -224,6 +225,10 @@ export default defineConfig({
         footer: {
             message: footerHtml({
                 base,
+                audiences: overviewGroups('guide').map(({ text, items }) => ({
+                    title: text,
+                    links: items.map((item) => ({ text: item.text, href: item.link }))
+                })),
                 project: [
                     { text: 'Parity tracker', href: '/parity' },
                     { text: 'Packages', href: '/packages' },

@@ -451,6 +451,14 @@
     text-align: left;
 }
 
+/* `footer.mts` builds the footer from spans, which sit inside VitePress's `<p>`; these lay them out as blocks. */
+.VPFooter .site-footer__identity,
+.VPFooter .site-footer__version,
+.VPFooter .site-footer__column,
+.VPFooter .site-footer__heading {
+    display: block;
+}
+
 .VPFooter .site-footer {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
