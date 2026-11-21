@@ -22,6 +22,7 @@ import {
     BlockPermutation,
     BlockStates,
     BlockTypes,
+    Direction,
     DimensionTypes,
     EffectTypes,
     EnchantmentTypes,
@@ -312,6 +313,90 @@ function* blockFacts(dimension) {
     }
 }
 
+/** The directions `liquidCanFlowFromDirection` is asked about, by the names the table records. */
+const FLOW_DIRECTIONS = [
+    ['up', Direction.Up],
+    ['down', Direction.Down],
+    ['north', Direction.North],
+    ['south', Direction.South],
+    ['east', Direction.East],
+    ['west', Direction.West]
+];
+
+/**
+ * The directions water cannot flow into a placed block from, for each permutation of a block type
+ * that can hold water and stops it from some direction. `liquidCanFlowFromDirection` is a
+ * `Block` member, so each permutation asked is placed in the air of the ticking area.
+ *
+ * The pinned server crashes after a few hundred blocks are placed and replaced in one spot, so
+ * the pass moves to a new spot for each placement and places at most one a tick. It asks a type's
+ * other permutations only when its default permutation stops water from some direction, which
+ * holds for the slabs, stairs and sculk sensors the `block-liquid-flow` scenario found. A permutation that
+ * cannot hold water is not asked: stone, glass, a double slab and a snow layer let water in from
+ * every direction there. A type with no stopping permutation writes no row.
+ */
+function* blockLiquidFlow(dimension) {
+    const air = BlockPermutation.resolve('minecraft:air');
+    /** How many blocks the pass has placed, which picks the next spot. */
+    let placed = 0;
+    /**
+     * The sides a permutation stops water from, read off a block of it placed in the air, and the
+     * states the placed block holds, which settle a combination of legacy states that disagree.
+     */
+    const flowOf = (permutation) => {
+        // Each placement takes the next spot of a 30 by 30 grid in the ticking area, since the
+        // server crashes after a few hundred placements in one spot.
+        const spot = placed++ % 900;
+        const block = dimension.getBlock({
+            x: ORIGIN.x - 15 + (spot % 30),
+            y: ORIGIN.y,
+            z: ORIGIN.z - 15 + Math.floor(spot / 30)
+        });
+        block.setPermutation(permutation);
+        const states = block.permutation.getAllStates();
+        const stops = FLOW_DIRECTIONS.filter(
+            ([, direction]) => !block.liquidCanFlowFromDirection(LiquidType.Water, direction)
+        ).map(([name]) => name);
+        block.setPermutation(air);
+        return { states, stops };
+    };
+    /** Yields until the next tick, so the next placement lands in it. */
+    function* nextTick() {
+        const tick = system.currentTick;
+        while (system.currentTick === tick) yield;
+    }
+    for (const type of BlockTypes.getAll()) {
+        /** The stopping permutations by their states, which several requested combinations can share. */
+        const stopping = new Map();
+        try {
+            const base = BlockPermutation.resolve(type.id);
+            if (!base.canContainLiquid(LiquidType.Water)) {
+                yield;
+                continue;
+            }
+            const { stops } = flowOf(base);
+            yield* nextTick();
+            if (stops.length === 0) continue;
+        } catch (error) {
+            failed('block-liquid-flow', type.id, error);
+            yield;
+            continue;
+        }
+        for (const states of combinations(domainsOf(type.id))) {
+            try {
+                const permutation = BlockPermutation.resolve(type.id, states);
+                if (!permutation.canContainLiquid(LiquidType.Water)) continue;
+                const flow = flowOf(permutation);
+                if (flow.stops.length > 0) stopping.set(JSON.stringify(flow.states), flow);
+            } catch (error) {
+                failed('block-liquid-flow', `${type.id} ${JSON.stringify(states)}`, error);
+            }
+            yield* nextTick();
+        }
+        if (stopping.size > 0) emit('block-liquid-flow', { id: type.id, permutations: [...stopping.values()] });
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Items
 // ---------------------------------------------------------------------------
@@ -589,6 +674,7 @@ function* passes(dimension) {
     yield* blockDomains();
     yield* blockStates();
     yield* blockFacts(dimension);
+    yield* blockLiquidFlow(dimension);
     yield* items();
     yield* enchantmentItems();
     yield* enchantmentConflicts();

@@ -9,6 +9,7 @@
  * `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock --pass dump`.
  */
 import blockFactsTable from './jsp/v2225/bedrock/block-facts.json';
+import blockLiquidFlowTable from './jsp/v2225/bedrock/block-liquid-flow.json';
 import blockStatesTable from './jsp/v2225/bedrock/block-states.json';
 import blockTypesTable from './jsp/v2225/bedrock/block-types.json';
 import effectsTable from './jsp/v2225/bedrock/effects.json';
@@ -38,6 +39,22 @@ export interface ScriptRgba {
     readonly green: number;
     readonly blue: number;
     readonly alpha: number;
+}
+
+/** A side of a block, as the `block-liquid-flow` table names the six `Direction`s. */
+export type ScriptBlockFace = 'up' | 'down' | 'north' | 'south' | 'east' | 'west';
+
+/**
+ * The permutations of a block type that can hold water but stop it flowing in from some
+ * directions, as a placed block's `liquidCanFlowFromDirection` answers. Every other permutation
+ * lets water in from every direction.
+ */
+export interface ScriptBlockLiquidFlowRow {
+    readonly id: string;
+    readonly permutations: readonly {
+        readonly states: Readonly<Record<string, ScriptStateValue>>;
+        readonly stops: readonly ScriptBlockFace[];
+    }[];
 }
 
 /** One block type as its default permutation answers. */
@@ -176,6 +193,9 @@ export const scriptBlockTypes: readonly ScriptBlockTypeRow[] = rowsOf(blockTypes
 
 /** What a placed block of each type answers. */
 export const scriptBlockFacts: readonly ScriptBlockFactsRow[] = rowsOf(blockFactsTable);
+
+/** The block types some of whose permutations stop water flowing in from some directions. */
+export const scriptBlockLiquidFlow: readonly ScriptBlockLiquidFlowRow[] = rowsOf(blockLiquidFlowTable);
 
 /** Every block state, as `BlockStates.getAll` lists them. */
 export const scriptBlockStates: readonly ScriptBlockStateRow[] = rowsOf(blockStatesTable);
