@@ -31,6 +31,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { provideEmbeddedLibrary } from '@jsprismarine/native-network';
+import { provideEmbeddedLibrary as provideEmbeddedScriptHostLibrary } from '@jsprismarine/script-host/embed';
 import { readZip } from '@jsprismarine/packs';
 
 import { decodeDataBundle } from './dataBundle';
@@ -45,7 +46,9 @@ export const SEA_ASSETS = {
     /** The JSON manifest describing the bundle and the pinned BDS download. */
     manifest: 'data-manifest',
     /** The native networking library for the executable's platform, when it has a build. */
-    nativeLibrary: 'native-network-library'
+    nativeLibrary: 'native-network-library',
+    /** The script host's library for the executable's platform, when it has a build. */
+    scriptHostLibrary: 'script-host-library'
 } as const;
 
 /**
@@ -62,6 +65,17 @@ type PackagedAssets = {
     readonly bundle: () => Uint8Array;
     /** Reads the native networking library, or undefined when the executable carries none. */
     readonly nativeLibrary: () => Uint8Array | undefined;
+    /** Reads the script host's library, or undefined when the executable carries none. */
+    readonly scriptHostLibrary: () => Uint8Array | undefined;
+};
+
+/** Reads an optional asset of a Node single executable, which throws for a key it lacks. */
+const optionalSeaAsset = (sea: typeof import('node:sea'), key: string): Uint8Array | undefined => {
+    try {
+        return new Uint8Array(sea.getAsset(key));
+    } catch {
+        return undefined;
+    }
 };
 
 /** The assets this build carries, or undefined when it is not a packaged executable. */
@@ -71,7 +85,10 @@ const packagedAssets = (): PackagedAssets | undefined => {
             manifest: EMBEDDED_DATA_MANIFEST,
             bundle: () => Buffer.from(EMBEDDED_DATA_BUNDLE, 'base64'),
             nativeLibrary: () =>
-                EMBEDDED_NATIVE_LIBRARY.length > 0 ? Buffer.from(EMBEDDED_NATIVE_LIBRARY, 'base64') : undefined
+                EMBEDDED_NATIVE_LIBRARY.length > 0 ? Buffer.from(EMBEDDED_NATIVE_LIBRARY, 'base64') : undefined,
+            // The script host binds its library through `node:ffi`, which Bun lacks, so a Bun
+            // executable carries none.
+            scriptHostLibrary: () => undefined
         };
     }
 
@@ -84,13 +101,8 @@ const packagedAssets = (): PackagedAssets | undefined => {
         return {
             manifest: sea.getAsset(SEA_ASSETS.manifest, 'utf8'),
             bundle: () => new Uint8Array(sea.getAsset(SEA_ASSETS.bundle)),
-            nativeLibrary: () => {
-                try {
-                    return new Uint8Array(sea.getAsset(SEA_ASSETS.nativeLibrary));
-                } catch {
-                    return undefined;
-                }
-            }
+            nativeLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.nativeLibrary),
+            scriptHostLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.scriptHostLibrary)
         };
     } catch {
         return undefined;
@@ -323,5 +335,9 @@ export const provisionPackagedData = async (
     const nativeLibrary = assets.nativeLibrary();
     if (nativeLibrary !== undefined) {
         provideEmbeddedLibrary(nativeLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));
+    }
+    const scriptHostLibrary = assets.scriptHostLibrary();
+    if (scriptHostLibrary !== undefined) {
+        provideEmbeddedScriptHostLibrary(scriptHostLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));
     }
 };

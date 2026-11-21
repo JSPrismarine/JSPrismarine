@@ -26,6 +26,11 @@
                 "import": "./dist/library.js",
                 "module": "./dist/library.js"
             },
+            "./embed": {
+                "types": "./dist/embed.d.ts",
+                "import": "./dist/embed.js",
+                "module": "./dist/embed.js"
+            },
             "./absentGlobals": {
                 "types": "./dist/absentGlobals.d.ts",
                 "import": "./dist/absentGlobals.js",
@@ -190,6 +195,10 @@
         "./library": {
             "jsprismarine:dist": "./dist/library.js",
             "default": "./src/library.ts"
+        },
+        "./embed": {
+            "jsprismarine:dist": "./dist/embed.js",
+            "default": "./src/embed.ts"
         },
         "./absentGlobals": {
             "jsprismarine:dist": "./dist/absentGlobals.js",

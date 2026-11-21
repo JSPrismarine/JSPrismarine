@@ -146,6 +146,23 @@ if (nativeLibrary === undefined) {
     console.log(`Embedding the native networking library (${nativeLibrary.byteLength} bytes)`);
 }
 
+// The script host's library, which the executable writes to the same cache directory. Without it,
+// behavior pack scripts do not run.
+const { libraryForPlatform: scriptHostLibraryForPlatform } = (await tsImport(
+    pathToFileURL(path.join(repoRoot, 'packages', 'script-host', 'src', 'embed.ts')).href,
+    import.meta.url
+)) as {
+    libraryForPlatform: (platform: string) => Promise<Uint8Array | undefined>;
+};
+const scriptHostLibrary = await scriptHostLibraryForPlatform(platformKey());
+const scriptHostLibraryPath = path.join(seaDir, 'script-host-library.bin');
+if (scriptHostLibrary === undefined) {
+    console.warn(`No script host library for ${platformKey()}: the executable cannot run behavior pack scripts.`);
+} else {
+    writeFileSync(scriptHostLibraryPath, scriptHostLibrary);
+    console.log(`Embedding the script host library (${scriptHostLibrary.byteLength} bytes)`);
+}
+
 console.log(`Building the single executable (code cache ${useCodeCache ? 'enabled' : 'disabled'})...`);
 const seaConfig = path.join(seaDir, 'sea-config.json');
 writeFileSync(
@@ -160,6 +177,7 @@ writeFileSync(
                 'data-bundle': bundlePath,
                 'data-manifest': manifestPath,
                 ...(nativeLibrary === undefined ? {} : { 'native-network-library': nativeLibraryPath }),
+                ...(scriptHostLibrary === undefined ? {} : { 'script-host-library': scriptHostLibraryPath }),
                 ...Object.fromEntries(workerAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
             }
         },

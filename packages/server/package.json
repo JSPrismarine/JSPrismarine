@@ -78,6 +78,7 @@
         "@jsprismarine/packs": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
+        "@jsprismarine/script-host": "workspace:*",
         "yargs": "18.2.0"
     },
     "optionalDependencies": {

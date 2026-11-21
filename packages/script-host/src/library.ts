@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,9 +40,12 @@ export const approvalAdvice = (platform: string): string =>
     `Under Bun, add "${PACKAGE_NAME}" to "trustedDependencies" in package.json, then reinstall. ` +
     `Or set ${LIBRARY_ENV} to a build of the library.`;
 
+/** The report `build:native` writes beside a local build, which records the build's digest. */
+const buildReportOf = (path: string): string => join(dirname(path), 'build.json');
+
 /** The digest a local build recorded in the `build.json` beside it, which `build:native` writes. */
-const localBuildDigest = (path: string): string | undefined => {
-    const report = join(dirname(path), 'build.json');
+export const localBuildDigest = (path: string): string | undefined => {
+    const report = buildReportOf(path);
     if (!existsSync(report)) return undefined;
     try {
         const parsed: unknown = JSON.parse(readFileSync(report, 'utf8'));
@@ -51,6 +54,17 @@ const localBuildDigest = (path: string): string | undefined => {
     } catch {
         return undefined;
     }
+};
+
+/**
+ * Records a library's digest in a `build.json` beside it, as `build:native` does, so that
+ * {@link verifyLibrary} accepts the file. Only for bytes that were checked before they were
+ * written there, such as a library an executable embedded.
+ * @param path - The library file.
+ * @param digest - Its SHA-256.
+ */
+export const recordLocalBuild = (path: string, digest: string): void => {
+    writeFileSync(buildReportOf(path), `${JSON.stringify({ shared: { sha256: digest } }, null, 4)}\n`);
 };
 
 /**

@@ -189,7 +189,11 @@ carries that data inside it: the Java vanilla datapack, the biome parameter repo
 templates, and this project's overlay packs. The build enables Node's SEA code cache for the main
 entry. To build a comparison without it, save the first executable before running
 `pnpm run package -- --no-code-cache`; the remaining packaging inputs stay the same. On first run it
-provisions its data the way the prebuilt server does. It uses the plain line console, and embeds
+provisions its data the way the prebuilt server does. It also carries the native networking library
+and the script host's library for its platform, and writes them to `node_modules/.cache/jsprismarine/`
+on first run, so NetherNet and behavior pack scripts work without a download. The prebuilt
+executables carry only the networking library and do not run behavior pack scripts yet
+([#3505](https://github.com/JSPrismarine/JSPrismarine/issues/3505)). It uses the plain line console, and embeds
 the default chunk worker and generation pipelines as SEA assets, so terrain workers can run without
 importing modules from disk. If an asset is missing or a custom pipeline is not embedded, the
 server logs the reason and generates terrain on the server thread instead.

@@ -1950,6 +1950,9 @@ importers:
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
+      '@jsprismarine/script-host':
+        specifier: workspace:*
+        version: link:../script-host
       yargs:
         specifier: 18.2.0
         version: 18.2.0
