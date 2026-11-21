@@ -37,10 +37,10 @@ const run = (server: ServerId, travelCpuMs: number, peakRssMiB = 512): RunResult
     };
 };
 
-const server = (name: string, transport: Transport, source: string): ServerDescription => ({
+const server = (name: string, transport: Transport, source: string, version = '1.0.0'): ServerDescription => ({
     name,
     transport,
-    version: '1.0.0',
+    version,
     source,
     command: 'run',
     settings: []
@@ -52,9 +52,22 @@ interface Fixture {
     readonly quiet?: boolean;
     readonly runs: readonly RunResult[];
     readonly bdsTransport?: Transport;
+    readonly bdsVersion?: string;
+    /** The input fingerprint; each file gets its own unless a test shares one. */
+    readonly inputs?: string | null;
+    readonly commit?: string;
 }
 
-const results = ({ startedAt, cpuModel = 'CPU A', quiet = true, runs, bdsTransport = 'raknet' }: Fixture) => {
+const results = ({
+    startedAt,
+    cpuModel = 'CPU A',
+    quiet = true,
+    runs,
+    bdsTransport = 'raknet',
+    bdsVersion = '1.0.0',
+    inputs = startedAt,
+    commit = 'abc1234'
+}: Fixture) => {
     const file: BenchmarkResults = {
         schema: RESULTS_SCHEMA,
         startedAt,
@@ -71,15 +84,12 @@ const results = ({ startedAt, cpuModel = 'CPU A', quiet = true, runs, bdsTranspo
             ci: null
         },
         protocol: { version: 2225, minecraftVersion: '1.26.60' },
+        inputs,
         servers: {
-            'jsprismarine-nethernet': server(
-                'JSPrismarine over NetherNet',
-                'nethernet',
-                commitSource('abc1234', false)
-            ),
-            'jsprismarine-raknet': server('JSPrismarine over RakNet', 'raknet', commitSource('abc1234', false)),
+            'jsprismarine-nethernet': server('JSPrismarine over NetherNet', 'nethernet', commitSource(commit, false)),
+            'jsprismarine-raknet': server('JSPrismarine over RakNet', 'raknet', commitSource(commit, false)),
             pumpkin: server('Pumpkin', 'nethernet', 'pumpkin-X64-Linux from a release'),
-            bds: server('Bedrock Dedicated Server', bdsTransport, 'bedrock-server.zip')
+            bds: server('Bedrock Dedicated Server', bdsTransport, 'bedrock-server.zip', bdsVersion)
         },
         scenarios: [
             {
@@ -152,8 +162,8 @@ describe('buildHistory', () => {
         ]);
         expect(history.runs.map((entry) => entry.quiet)).toEqual([true, false, true]);
         expect(chart(history, 'peakRssMiB')!.series[0]!.points).toEqual([
-            { run: 0, value: 500 },
-            { run: 2, value: 520 }
+            { run: 0, value: 500, referenceChanged: false },
+            { run: 2, value: 520, referenceChanged: false }
         ]);
     });
 
@@ -189,8 +199,9 @@ describe('buildHistory', () => {
         expect(history.runs.map((entry) => entry.cpuChanged)).toEqual([false, false, false, true, false]);
     });
 
-    it('divides CPU figures by JSPrismarine over the same transport in the same run', () => {
-        // Chunks per CPU second: 100 chunks over 1 s for JSPrismarine, 0.5 s for Pumpkin, 4 s for BDS.
+    it('divides JSPrismarine by the pinned server over the same transport in the same run', () => {
+        // Chunks per CPU second: 100 for JSPrismarine over NetherNet, 50 over RakNet, 200 for
+        // Pumpkin and 25 for Bedrock Dedicated Server.
         const history = buildHistory([
             results({
                 startedAt: '2026-11-21T03:00:00.000Z',
@@ -203,15 +214,13 @@ describe('buildHistory', () => {
             })
         ]);
         const series = chart(history, 'columnsPerCpuSecond')!.series;
-        expect(series.map(({ server, baseline }) => [server, baseline])).toEqual([
-            ['pumpkin', 'jsprismarine-nethernet'],
-            ['bds', 'jsprismarine-raknet']
+        expect(series.map(({ server, reference, points }) => [server, reference, points[0]!.value])).toEqual([
+            ['jsprismarine-nethernet', 'pumpkin', 0.5],
+            ['jsprismarine-raknet', 'bds', 2]
         ]);
-        expect(series[0]!.points[0]!.value).toBe(2);
-        expect(series[1]!.points[0]!.value).toBe(0.5);
     });
 
-    it('keeps a ratio that cancels the machine steady when every server slows alike', () => {
+    it('keeps the ratio steady when a slower runner slows every server alike', () => {
         const history = buildHistory([
             results({
                 startedAt: '2026-11-21T03:00:00.000Z',
@@ -224,21 +233,78 @@ describe('buildHistory', () => {
                 runs: [run('jsprismarine-nethernet', 3_000), run('pumpkin', 1_500)]
             })
         ]);
-        expect(chart(history, 'columnsPerCpuSecond')!.series[0]!.points.map((point) => point.value)).toEqual([2, 2]);
+        const points = chart(history, 'columnsPerCpuSecond')!.series[0]!.points;
+        expect(points.map((point) => point.value)).toEqual([0.5, 0.5]);
         expect(history.runs[1]!.cpuChanged).toBe(true);
     });
 
-    it('starts a new ratio line when a server changes transport', () => {
+    it('marks a point whose reference server changed version', () => {
+        const runs = [run('jsprismarine-raknet', 2_000), run('bds', 4_000)];
+        const history = buildHistory([
+            results({ startedAt: '2026-11-21T03:00:00.000Z', runs }),
+            results({ startedAt: '2026-11-22T03:00:00.000Z', runs }),
+            results({ startedAt: '2026-11-23T03:00:00.000Z', runs, bdsVersion: '1.1.0' })
+        ]);
+        const points = chart(history, 'columnsPerCpuSecond')!.series[0]!.points;
+        expect(points.map((point) => point.referenceChanged)).toEqual([false, false, true]);
+    });
+
+    it('starts a new ratio line when a pinned server changes transport', () => {
         const runs = [run('jsprismarine-nethernet', 1_000), run('jsprismarine-raknet', 2_000), run('bds', 4_000)];
         const history = buildHistory([
             results({ startedAt: '2026-11-21T03:00:00.000Z', runs }),
             results({ startedAt: '2026-11-22T03:00:00.000Z', runs, bdsTransport: 'nethernet' })
         ]);
-        const bds = chart(history, 'columnsPerCpuSecond')!.series.filter((line) => line.server === 'bds');
-        expect(bds.map((line) => [line.baseline, line.points])).toEqual([
-            ['jsprismarine-raknet', [{ run: 0, value: 0.5 }]],
-            ['jsprismarine-nethernet', [{ run: 1, value: 0.25 }]]
+        const bds = chart(history, 'columnsPerCpuSecond')!.series.filter((line) => line.reference === 'bds');
+        expect(bds.map((line) => [line.server, line.points.map((point) => [point.run, point.value])])).toEqual([
+            ['jsprismarine-raknet', [[0, 2]]],
+            ['jsprismarine-nethernet', [[1, 4]]]
         ]);
+    });
+
+    it('keeps one run per stretch of runs that measured the same inputs', () => {
+        const history = buildHistory([
+            results({ startedAt: '2026-11-21T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 100)] }),
+            results({ startedAt: '2026-11-22T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 200)] }),
+            results({ startedAt: '2026-11-23T03:00:00.000Z', inputs: 'b', runs: [run('pumpkin', 500, 300)] }),
+            results({ startedAt: '2026-11-24T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 400)] })
+        ]);
+        expect(history.runs.map((entry) => [entry.startedAt.slice(0, 10), entry.repeats])).toEqual([
+            ['2026-11-21', 1],
+            ['2026-11-23', 0],
+            ['2026-11-24', 0]
+        ]);
+        expect(chart(history, 'peakRssMiB')!.series[0]!.points.map((point) => point.value)).toEqual([100, 300, 400]);
+    });
+
+    it('keeps the first quiet run of a stretch when the first was not quiet', () => {
+        const history = buildHistory([
+            results({
+                startedAt: '2026-11-21T03:00:00.000Z',
+                inputs: 'a',
+                quiet: false,
+                runs: [run('pumpkin', 500, 100)]
+            }),
+            results({ startedAt: '2026-11-22T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 200)] }),
+            results({ startedAt: '2026-11-23T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 300)] })
+        ]);
+        expect(history.runs.map((entry) => [entry.startedAt.slice(0, 10), entry.quiet, entry.repeats])).toEqual([
+            ['2026-11-22', true, 2]
+        ]);
+    });
+
+    it('compares sources when a file has no fingerprint, and never folds uncommitted builds', () => {
+        // Written before the fingerprint was recorded, so the file has no `inputs`.
+        const unrecorded = (day: number, commit: string) => {
+            const file = results({ startedAt: `2026-11-2${day}T03:00:00.000Z`, commit, runs: [] });
+            return { ...file, results: { ...file.results, inputs: undefined } };
+        };
+        expect(
+            buildHistory([unrecorded(1, 'abc1234'), unrecorded(2, 'abc1234'), unrecorded(3, 'def5678')]).runs
+        ).toHaveLength(2);
+        const uncommitted = (day: number) =>
+            results({ startedAt: `2026-11-2${day}T03:00:00.000Z`, inputs: null, runs: [] });
+        expect(buildHistory([uncommitted(1), uncommitted(2)]).runs).toHaveLength(2);
     });
 
     it('draws no chart for a metric no quiet run measured', () => {

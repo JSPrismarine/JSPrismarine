@@ -156,6 +156,11 @@ export interface BenchmarkResults {
         readonly ci: { readonly runUrl: string; readonly runner: string } | null;
     };
     readonly protocol: { readonly version: number; readonly minecraftVersion: string };
+    /**
+     * The fingerprint of every committed file that can move a figure, from `inputs.mts`. Null when
+     * one had uncommitted changes; absent in files written before it was recorded.
+     */
+    readonly inputs?: string | null;
     /** The servers this file measured; a run on a host without one of them leaves it out. */
     readonly servers: Readonly<Partial<Record<ServerId, ServerDescription>>>;
     readonly scenarios: readonly ScenarioDescription[];

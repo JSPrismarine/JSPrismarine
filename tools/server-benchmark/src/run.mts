@@ -24,6 +24,7 @@ import {
     runOnce,
     stopActiveRuns
 } from './benchmark.mts';
+import { readInputs } from './inputs.mts';
 import { RESULTS_SCHEMA, SCENARIO_IDS, SERVER_IDS, mergeSettings } from './results.mts';
 import { DEFAULT_PORT, REPO, SERVERS, bdsPin } from './servers.mts';
 import { isQuietLoad, quietLoadLimit } from './summary.mts';
@@ -193,6 +194,7 @@ const main = async (): Promise<void> => {
         };
     }
 
+    const inputs = readInputs(REPO);
     const logicalCpus = availableParallelism();
     const limit = quietLoadLimit(logicalCpus);
     const roundResults: RoundResult[] = [];
@@ -214,6 +216,7 @@ const main = async (): Promise<void> => {
                 ci: ciRun()
             },
             protocol: { version: PROTOCOL_VERSION, minecraftVersion: pin.minecraftVersion },
+            inputs,
             servers: descriptions,
             scenarios,
             quietLoadLimit: limit,

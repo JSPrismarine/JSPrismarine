@@ -13,9 +13,10 @@ env:
 # Runs JSPrismarine, Pumpkin and the pinned Bedrock Dedicated Server under one bot workload and
 # records what each costs, for the benchmark page on the docs site. A run takes more than an hour,
 # so it never runs on pull requests. It runs when master changes something that can move the
-# figures, weekly, and on demand, no more often than the limit above, and keeps one pull request
-# open with the newest results file. Bedrock Dedicated Server ships for Linux x86-64 only, which
-# is why this runs on a Linux x86-64 runner, where all three servers run natively.
+# figures, weekly, and on demand, no more often than the limit above. A scheduled or push run whose
+# inputs match the newest results file's ends without measuring. The workflow keeps one pull
+# request open with the newest results file. Bedrock Dedicated Server ships for Linux x86-64 only,
+# which is why this runs on a Linux x86-64 runner, where all three servers run natively.
 on:
     schedule:
         - cron: '23 3 * * 1'
@@ -23,6 +24,7 @@ on:
         branches:
             - master
         # What the servers run and what the harness measures. Docs and tests change no figure.
+        # INPUT_GLOBS in tools/server-benchmark/src/inputs.mts lists the same globs.
         paths:
             - 'packages/**'
             - '!packages/**/*.md'
@@ -96,10 +98,29 @@ jobs:
               if: steps.limit.outputs.run == 'true'
               uses: ./.github/common/install
 
+            # The history keeps one point per change, so a run whose inputs match the newest
+            # results file on master would only measure what is already there. `inputs.mts` holds
+            # the list of inputs, the same globs as the push `paths` above. A dispatch always measures.
+            - name: 🔎 Compare the inputs with the newest results
+              id: inputs
+              if: steps.limit.outputs.run == 'true'
+              env:
+                  EVENT: ${{ github.event_name }}
+              run: |
+                  set -euo pipefail
+                  changed="$(node tools/server-benchmark/src/inputs.mts docs/research/benchmarks)"
+                  echo "$changed"
+                  if [ "$EVENT" = "workflow_dispatch" ] || [ "$changed" = "changed=true" ]; then
+                      echo "measure=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "measure=false" >> "$GITHUB_OUTPUT"
+                      echo "::notice::Skipped: nothing that can move a figure changed since the newest results file."
+                  fi
+
             # JSPrismarine's default overworld needs Mojang's world generation data, which the Java
             # data generator writes. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
             - name: ☕ Setup JDK
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
               with:
                   distribution: temurin
@@ -107,7 +128,7 @@ jobs:
 
             # The test workflow's keys, so a master run reuses what it stored.
             - name: Cache the fetched sources
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/jsprismarine
@@ -116,25 +137,25 @@ jobs:
                       ${{ runner.os }}-jsp-sources-
 
             - name: ⬇️ Fetch the pinned sources
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 
             # What `pnpm run dev` prepares before it starts a server: the world generation data and
             # the pack of entities and other content from the pinned Bedrock Dedicated Server.
             - name: 🌍 Prepare the server's data
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               run: |
                   pnpm --filter @jsprismarine/bedrock-data run ensure:worldgen
                   pnpm --filter @jsprismarine/bedrock-data run ensure:bedrock-pack
 
             - name: 🔨 Build
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               run: pnpm exec turbo run build --filter=@jsprismarine/server --filter=@jsprismarine/client --env-mode=loose
 
             # Outside the checkout, so an upload never picks up a results file already in the repository.
             - name: ⏱️ Run the benchmark
               id: bench
-              if: steps.limit.outputs.run == 'true'
+              if: steps.inputs.outputs.measure == 'true'
               run: pnpm run bench:servers --rounds "$ROUNDS" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
 
             # Only a run whose benchmark step started uploads the artifact the run limit counts, so a
@@ -187,7 +208,7 @@ jobs:
                   cp "$source" "$results"
                   branch="benchmark/results"
                   title="docs(benchmarks): record the newest server benchmark"
-                  body="The server benchmark ran in ${RUN_URL} and wrote \`${results}\`. The benchmark page shows the newest results file once this merges. Check the round count and the quiet label on the page preview before merging. Each run replaces this branch."
+                  body="The server benchmark ran in ${RUN_URL} and wrote \`${results}\`. Once this merges, the benchmark page shows it as the newest run and adds it to the history. Check the round count and the quiet label on the page preview before merging. Each run replaces this branch."
                   git config user.name 'github-actions[bot]'
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
                   git switch -c "$branch"
