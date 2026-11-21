@@ -213,10 +213,11 @@ Started 2026-11-21. Phases 0, 1, 3 and parts of 4 and 5 landed (#3474, #3477, #3
 
 - A C noise stack reproduced worldgen's bit for bit: 0 mismatches in 1.2 million samples of six
   vanilla noises.
-- `node:ffi` keeps its fast path only for all-`f64` signatures: about 7 ns a call, against about
-  190 ns with one `int32` argument.
+- All-`f64` `node:ffi` calls measured about 7 ns a call, against about 190 ns with one `int32`
+  argument. These are indicative wall-clock figures, and the spike does not explain the gap:
+  Node.js documents integer arguments as fast-path eligible too.
 
-So the first native slices replace noise leaves through all-`f64` per-sample calls, before any
+So the first native slices replace noise leaves through per-sample calls with the all-`f64` shape that measured fast, before any
 volume runtime exists. The order:
 
 1. Take the native loader code that `native-network` and `script-host` each copy (platform key,

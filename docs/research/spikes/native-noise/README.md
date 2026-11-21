@@ -41,13 +41,13 @@ The first run was at load average 13 to 16. A rerun from these files at 20 to 23
 | `(int32, f64, f64, f64) -> f64` | 194 |
 | `(int32, int32) -> int32` | 36 |
 
-On Node.js 26.12.1, `node:ffi` keeps its fast path only for all-`f64` signatures. One `int32` argument costs about 190 ns a call. The first version of the per-sample entry took its handle as a pointer and cost about 200 ns per call for the same reason.
+These are wall-clock figures on a loaded machine, so they are indicative only. On Node.js 26.12.1 here, the all-`f64` signatures cost about 7 ns a call, one `int32` argument about 190 ns, and the first version of the per-sample entry, which took its handle as a pointer, about 200 ns. Node.js documents integer and pointer arguments as eligible for its fast path too, so this spike does not establish why they were slower. It only shows that the all-`f64` shape was the fast one in this setup.
 
 ## What follows for phase 6
 
 1. **The kernel can be bit-exact.** Writing every rounding step out explicitly and compiling without contraction was enough for these noises. The test for a native kernel is this comparison, run in CI against the TypeScript implementation and the Java vectors.
-2. **Per-sample calls are viable if every argument is an `f64`.**
-   - A stack's handle travels as an `f64` index into a table in the library.
+2. **Per-sample calls look viable with all-`f64` signatures, the shape that measured fastest here.**
+   - A stack's handle travels as an `f64` index into a table in the library. That is a choice this spike's measurements support, not a requirement of `node:ffi`.
    - A native `Noise` with all-`f64` calls can replace each noise leaf of the density program without the volume runtime of phase 2. That is about 7 ns of call cost against about 250 to 2,000 ns of work per sample.
    - Buffer calls amortize even that, but need callers that have a batch of positions.
 3. **Order of work this implies:**
