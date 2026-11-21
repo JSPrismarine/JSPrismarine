@@ -5,6 +5,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type { HandlerServices } from './HandlerContext';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed, STEVE } from '../../testing/sessionIdentity.test.helper';
+import { sameSubject } from '../../identity/Subject';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { ShownPlayer } from '../../world/ShownPlayer';
@@ -38,7 +39,7 @@ const fakeSession = ({ op = true }: { op?: boolean } = {}) => {
                 sessionOf: (id) => (id === targetSession.runtimeId ? targetSession : null)
             }),
             permissions: stub<HandlerServices['permissions']>({
-                isOp: (uuid) => op && uuid === STEVE.uuid,
+                isOp: (subject) => op && sameSubject(subject, STEVE.subject),
                 setOpNow: (session, value) => {
                     opChanges.push([session.identity.name, value]);
                     return Promise.resolve();

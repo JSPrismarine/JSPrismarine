@@ -16,6 +16,7 @@ import type { EntityFixture, TestEntityWorld } from '../entity/data/testing';
 import { entityFixture, FLOOR_Y } from '../entity/data/testing';
 import { PLAYER_IDENTIFIER } from '../entity/playerOverlay';
 import { StorePlayer } from '../entity/storePlayer';
+import { identityNamed } from './sessionIdentity.test.helper';
 import type { StorePlayerIdentity } from '../entity/storePlayer';
 import type { ChangeEntry } from '../world/changelog/ChangeEntry';
 import { beginMeasuredTick } from './changeTicks.test.helper';
@@ -48,7 +49,12 @@ export const STORE_PLAYER_FEET: EntityPosition = { x: 0.5, y: FLOOR_Y + 1, z: 0.
 /** A store player in no store yet, under an id from the fixture's pool, as a login builds one. */
 export const loggedInStorePlayer = (
     fixture: Pick<EntityFixture, 'runtime'>,
-    identity: StorePlayerIdentity = { uuid: UUID.fromRandom(), name: 'Steve', xuid: '' },
+    identity: StorePlayerIdentity = {
+        uuid: UUID.fromRandom(),
+        name: 'Steve',
+        xuid: '',
+        subject: { kind: 'offline', name: 'Steve' }
+    },
     feet: EntityPosition = STORE_PLAYER_FEET
 ): StorePlayer => {
     const player = new StorePlayer(fixture.runtime.nextEntityId(), identity);
@@ -109,15 +115,15 @@ export const sessionOnPrototype = (
     // The double's own name and identity, when it answers them, so its actor agrees.
     const uuid = placed.uuid ?? UUID.fromRandom();
     const name = members.getName?.() ?? 'Steve';
+    const identity = identityNamed(name, uuid.toString());
     const store = new StorePlayer(placed.runtimeId === undefined ? entityIds.next() : Number(placed.runtimeId), {
-        uuid,
-        name,
-        xuid: ''
+        ...identity,
+        uuid
     });
     const session: PlayerSession = Object.create(PlayerSession.prototype);
     definedOn(session, {
         runtimeId: BigInt(store.id),
-        identity: { name, xuid: '', uuid: uuid.toString() },
+        identity,
         players: { of: () => store, delete: () => true },
         permissions: [],
         joined: true

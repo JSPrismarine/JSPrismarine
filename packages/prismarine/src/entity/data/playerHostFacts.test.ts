@@ -13,7 +13,12 @@ import { StorePlayers } from './storePlayers';
 
 const holding = (item?: string) => {
     const players = new StorePlayers();
-    const player = new StorePlayer(7, { uuid: UUID.fromRandom(), name: 'Steve', xuid: '' });
+    const player = new StorePlayer(7, {
+        uuid: UUID.fromRandom(),
+        name: 'Steve',
+        xuid: '',
+        subject: { kind: 'offline', name: 'Steve' }
+    });
     if (item !== undefined)
         player.getInventory().setItem(0, new ContainerEntry({ item: new Item({ name: item }), count: 1 }));
     players.add(player);

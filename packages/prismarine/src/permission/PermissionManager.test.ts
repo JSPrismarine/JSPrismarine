@@ -18,6 +18,10 @@ import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionManagerServer } from './PermissionManager';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
+import type { Subject } from '../identity/Subject';
+
+/** The subject of an offline player of this name. */
+const offline = (name: string): Subject => ({ kind: 'offline', name });
 
 /** A kernel whose bus has one `playerToggleOperator` listener. */
 const kernelPosting = (listener: (event: PlayerToggleOperatorEvent) => void) => {
@@ -174,7 +178,7 @@ describe('permission', () => {
                 isOp: () => false,
                 getPermissions: () => grants
             });
-            grants = await manager.getPermissions({ uuid: FILFAT_UUID });
+            grants = await manager.getPermissions(identityNamed('Filfat', FILFAT_UUID));
 
             expect(manager.can(owner).execute('minecraft.command.op')).toBe(true);
 
@@ -184,7 +188,7 @@ describe('permission', () => {
                 isOp: () => false,
                 getPermissions: () => otherGrants
             });
-            otherGrants = await manager.getPermissions({ uuid: '00000000-0000-0000-0000-000000000001' });
+            otherGrants = await manager.getPermissions(identityNamed('filfat', '00000000-0000-0000-0000-000000000001'));
 
             expect(manager.can(sameNameWithAnotherUuid).execute('minecraft.command.op')).toBe(false);
         });
@@ -197,10 +201,10 @@ describe('permission', () => {
 
             const other = identityNamed('Other', '00000000-0000-0000-0000-000000000004');
             manager.setPermissions(other, ['namespace.scope.action']);
-            expect(await manager.getPermissions({ uuid: other.uuid })).toContain('namespace.scope.action');
+            expect(await manager.getPermissions(other)).toContain('namespace.scope.action');
         });
 
-        it('loads commented permission and operator entries by UUID', async () => {
+        it('loads commented permission entries by UUID and operator entries by subject', async () => {
             const permissionUuid = '00000000-0000-0000-0000-000000000002';
             const operatorUuid = '00000000-0000-0000-0000-000000000003';
             writeFileSync(
@@ -218,7 +222,8 @@ describe('permission', () => {
             writeFileSync(
                 path.join(directory, 'ops.json'),
                 `[
-  { "name": "bob", "uuid": "${operatorUuid}", "level": 4 }, // the owner
+  { "name": "bob", "kind": "offline", "id": "bob", "level": 4 }, // the owner
+  { "name": "steve", "kind": "xbox", "id": "2535400000000001", "level": 4 },
   { "name": "legacy-op", "level": 4 },
   "junk"
 ]
@@ -228,24 +233,75 @@ describe('permission', () => {
             await manager.enable();
 
             const playerWithPermission = async (name: string, uuid: string) => {
+                const identity = identityNamed(name, uuid);
                 let grants: string[] = [];
                 const player = stub<PlayerSession>({
                     getName: () => name,
-                    isOp: () => manager.isOp(uuid),
+                    isOp: () => manager.isOp(identity.subject),
                     getPermissions: () => grants
                 });
-                grants = await manager.getPermissions({ uuid });
+                grants = await manager.getPermissions(identity);
                 return player;
             };
             const renamedPlayer = await playerWithPermission('renamed-alice', permissionUuid);
             const nameCollision = await playerWithPermission('alice', '00000000-0000-0000-0000-000000000004');
-            const operator = await playerWithPermission('renamed-bob', operatorUuid);
+            const operator = await playerWithPermission('bob', operatorUuid);
 
             expect(manager.can(renamedPlayer).execute('minecraft.command.kick')).toBe(true);
             expect(manager.can(nameCollision).execute('minecraft.command.kick')).toBe(false);
             expect(operator.isOp()).toBe(true);
-            expect(manager.isOp('legacy-op')).toBe(false);
+            expect(manager.isOp({ kind: 'xbox', xuid: '2535400000000001' })).toBe(true);
+            // An offline steve is not the Xbox account named steve.
+            expect(manager.isOp(offline('steve'))).toBe(false);
+            expect(manager.isOp(offline('legacy-op'))).toBe(false);
             expect(manager.can(operator).execute('minecraft.command.stop')).toBe(true);
+        });
+
+        describe('claimLegacy', () => {
+            const BOB_UUID = '00000000-0000-0000-0000-00000000000b';
+            const legacyOps = `[
+    // the owner
+    { "name": "bob", "uuid": "${BOB_UUID}", "level": 4 },
+    { "name": "carol", "kind": "offline", "id": "carol", "level": 4 }
+]
+`;
+
+            it("waits for a login with the entry's UUID, then keys the entry by the account where it was", async () => {
+                writeFileSync(path.join(directory, 'ops.json'), legacyOps);
+                vi.spyOn(logger, 'info');
+                await manager.enable();
+                const bob = {
+                    ...identityNamed('Bobby', BOB_UUID),
+                    xuid: '2535400000000002',
+                    subject: { kind: 'xbox', xuid: '2535400000000002' } as const
+                };
+
+                expect(manager.isOp(bob.subject)).toBe(false);
+                expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(BOB_UUID));
+
+                expect(manager.claimLegacy(bob)).toBe(true);
+                expect(manager.isOp(bob.subject)).toBe(true);
+                await manager.disable();
+
+                const text = readFileSync(path.join(directory, 'ops.json'), 'utf8');
+                expect(text).toContain('// the owner');
+                expect(plain(text)).toStrictEqual([
+                    { name: 'Bobby', kind: 'xbox', id: '2535400000000002', level: 4 },
+                    { name: 'carol', kind: 'offline', id: 'carol', level: 4 }
+                ]);
+            });
+
+            it('claims an entry once, and a login with another UUID claims nothing', async () => {
+                writeFileSync(path.join(directory, 'ops.json'), legacyOps);
+                await manager.enable();
+
+                expect(manager.claimLegacy(identityNamed('bob', '00000000-0000-0000-0000-00000000000c'))).toBe(false);
+                expect(manager.claimLegacy(identityNamed('bob', BOB_UUID))).toBe(true);
+                expect(manager.claimLegacy(identityNamed('bob', BOB_UUID))).toBe(false);
+                await manager.disable();
+
+                expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toHaveLength(2);
+            });
         });
 
         it('refuses a permissions file that does not parse', async () => {
@@ -277,10 +333,11 @@ describe('permission', () => {
 
             expect(posted.map((event) => [event.getSession(), event.getOperator()])).toEqual([[session, true]]);
             expect(sent).toEqual(['commands', 'settings']);
-            expect(opManager.isOp(uuid)).toBe(true);
+            expect(opManager.isOp(offline('carol'))).toBe(true);
             expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toContainEqual({
                 name: 'carol',
-                uuid,
+                kind: 'offline',
+                id: 'carol',
                 level: 4
             });
             await expect(opManager.setOp('nobody', true)).rejects.toThrow();
@@ -296,7 +353,7 @@ describe('permission', () => {
             });
             const session = stub<PlayerSession>({
                 identity: identityNamed('dave', uuid),
-                sendAvailableCommands: async () => void opWhenListed.push(opManager.isOp(uuid)),
+                sendAvailableCommands: async () => void opWhenListed.push(opManager.isOp(offline('dave'))),
                 announceSettings: async () => {}
             });
             await opManager.enable();
@@ -339,14 +396,14 @@ describe('permission', () => {
 
                 const told = opManager.setOpNow(erin, true);
 
-                expect(opManager.isOp(uuid)).toBe(true);
+                expect(opManager.isOp(offline('erin'))).toBe(true);
                 expect(posted.map((event) => [event.getSession(), event.getOperator()])).toEqual([[erin, true]]);
                 expect(opsFile()).toEqual([]);
 
                 await told;
                 await opManager.disable();
                 expect(sent).toEqual(['erin commands', 'erin settings']);
-                expect(opsFile()).toEqual([{ name: 'erin', uuid, level: 4 }]);
+                expect(opsFile()).toEqual([{ name: 'erin', kind: 'offline', id: 'erin', level: 4 }]);
             });
 
             it('writes every change made in a row, in order, without losing one', async () => {
@@ -365,7 +422,7 @@ describe('permission', () => {
                 await Promise.all(told);
                 await opManager.disable();
 
-                expect(opsFile()).toEqual([{ name: 'gwen', uuid: gwenUuid, level: 4 }]);
+                expect(opsFile()).toEqual([{ name: 'gwen', kind: 'offline', id: 'gwen', level: 4 }]);
             });
 
             it('changes nothing and tells nobody when a listener cancels', async () => {
@@ -380,38 +437,36 @@ describe('permission', () => {
                 await opManager.disable();
                 expect(posted).toHaveLength(1);
                 expect(sent).toEqual([]);
-                expect(opManager.isOp(uuid)).toBe(false);
+                expect(opManager.isOp(offline('hal'))).toBe(false);
                 expect(opsFile()).toEqual([]);
             });
         });
 
         it('adds and removes one operator line and keeps the comments', async () => {
             const file = path.join(directory, 'ops.json');
-            const aliceUuid = '00000000-0000-0000-0000-000000000005';
-            const bobUuid = '00000000-0000-0000-0000-000000000006';
             writeFileSync(
                 file,
                 `[
     // The owner.
-    { "name": "alice", "uuid": "${aliceUuid}", "level": 4 }
+    { "name": "alice", "kind": "offline", "id": "alice", "level": 4 }
 ]
 `
             );
 
-            await manager['writeOp'](bobUuid, 'bob', true);
+            await manager['writeOp'](offline('bob'), 'bob', true);
             let text = readFileSync(file, 'utf8');
             expect(text).toContain('// The owner.');
             expect(plain(text)).toStrictEqual([
-                { name: 'alice', uuid: aliceUuid, level: 4 },
-                { name: 'bob', uuid: bobUuid, level: 4 }
+                { name: 'alice', kind: 'offline', id: 'alice', level: 4 },
+                { name: 'bob', kind: 'offline', id: 'bob', level: 4 }
             ]);
 
-            await manager['writeOp'](bobUuid, 'bob', true);
+            await manager['writeOp'](offline('bob'), 'bob', true);
             expect(plain(readFileSync(file, 'utf8'))).toHaveLength(2);
 
-            await manager['writeOp'](aliceUuid, 'alice', false);
+            await manager['writeOp'](offline('alice'), 'alice', false);
             text = readFileSync(file, 'utf8');
-            expect(plain(text)).toStrictEqual([{ name: 'bob', uuid: bobUuid, level: 4 }]);
+            expect(plain(text)).toStrictEqual([{ name: 'bob', kind: 'offline', id: 'bob', level: 4 }]);
             expect(text).toContain('// The owner.');
         });
 
@@ -467,7 +522,7 @@ describe('permission', () => {
             const { session, manager: real } = await operatorCandidate(async () => {
                 throw new Error('the client went away');
             });
-            await real['writeOp'](session.identity.uuid, session.identity.name, true);
+            await real['writeOp'](session.identity.subject, session.identity.name, true);
 
             expect(await real.setOp(session.identity.name, false)).toBe(false);
 

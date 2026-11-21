@@ -312,7 +312,10 @@ const SHIPPED_PLAYER = {
 /** A store player built the way the store's player rules are tested, with the overlay's health. */
 const buildStorePlayer = (): StorePlayer => {
     const { runtime } = entityFixture(undefined, {}, { [PLAYER_IDENTIFIER]: SHIPPED_PLAYER });
-    return enteredStorePlayer({ runtime }, { uuid: IDENTITY, name: NAME, xuid: '' }).player;
+    return enteredStorePlayer(
+        { runtime },
+        { uuid: IDENTITY, name: NAME, xuid: '', subject: { kind: 'offline', name: NAME } }
+    ).player;
 };
 
 /** What the per-player services hold for the player both fixtures describe. */

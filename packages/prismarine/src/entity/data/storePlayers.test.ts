@@ -59,6 +59,7 @@ const FEET = { x: 1.5, y: FLOOR_Y + 1, z: 0.5 };
 const identityOf = (name: string): StorePlayerIdentity => ({
     uuid: UUID.fromRandom(),
     name,
+    subject: { kind: 'offline', name },
     xuid: '2535400000000000'
 });
 

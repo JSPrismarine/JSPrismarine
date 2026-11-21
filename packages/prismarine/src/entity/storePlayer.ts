@@ -28,6 +28,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { ServerContent } from '../content/ServerContent';
+import type { Subject } from '../identity/Subject';
 import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
 import { itemOfSlotValue, playerContainerNamed } from '../inventory/slotLog';
@@ -56,6 +57,8 @@ export interface StorePlayerIdentity {
     readonly name: string;
     /** The Xbox Live id, or an empty string when the login carried none. */
     readonly xuid: string;
+    /** Who the player is to the permission files: see {@link Subject}. */
+    readonly subject: Subject;
 }
 
 /** What a store player keeps of its entity while it is in no store. */
@@ -271,6 +274,11 @@ export class StorePlayer implements PlayerRecordSource, PlayerRecordTarget {
     /** The XUID, or null when the login carried none, as `keyOfPlayer` reads it. */
     public getXUID(): string | null {
         return this.identity.xuid || null;
+    }
+
+    /** Who the player is to the permission files. */
+    public getSubject(): Subject {
+        return this.identity.subject;
     }
 
     /** The eye, {@link EYE_HEIGHT} above the feet, which is what a player reports. */

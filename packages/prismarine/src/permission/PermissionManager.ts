@@ -8,14 +8,23 @@ import type PlayerSession from '../network/PlayerSession';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry, PlayerPermissions } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
+import { subjectEntryOf, subjectOfEntry } from '../config/subjectEntry';
+import type { Subject } from '../identity/Subject';
+import { sameSubject, subjectId } from '../identity/Subject';
 import { withCwd } from '../utils/cwd';
+import { isRecord } from '../utils/isRecord';
 import { isStringList } from '../utils/isStringList';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+/** An operator entry: a name with a subject, or a name with the login UUID it was keyed by before subjects. */
 const isOpEntry = (value: unknown): value is OpEntry =>
-    isRecord(value) && typeof value.name === 'string' && typeof value.uuid === 'string';
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    (subjectOfEntry(value) !== undefined || typeof value.uuid === 'string');
+/** Whether an entry waits for the login that claims its UUID. */
+const isLegacyOpEntry = (value: unknown): value is OpEntry & { uuid: string } =>
+    isOpEntry(value) && subjectOfEntry(value) === undefined && typeof value.uuid === 'string';
 const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
     isRecord(value) &&
     typeof value.name === 'string' &&
@@ -46,8 +55,11 @@ const OPS_FILE_NAME = 'ops.json';
  */
 export type PermissionSubject = Console | { isOp(): boolean; getPermissions(): string[] };
 
-/** Whose permissions to read or set: the identity a login carries. Permissions and operators are filed by UUID. */
-export type PermissionHolder = Pick<PlayerIdentity, 'uuid'>;
+/**
+ * Whose permissions to read or set: the identity a login carries. Operators are filed by subject,
+ * and the grants of `permissions.json` still by the login UUID.
+ */
+export type PermissionHolder = Pick<PlayerIdentity, 'uuid' | 'subject'>;
 
 /**
  * Build a permission check for an executer. The console always passes; operators and holders
@@ -96,8 +108,13 @@ export function canExecute(executer?: PermissionSubject) {
  */
 export class PermissionManager implements Service {
     private readonly server: PermissionManagerServer;
-    /** UUIDs of players currently recognized as operators. */
+    /** The operators, by {@link subjectId}. */
     private readonly ops: Set<string> = new Set();
+    /**
+     * Operator entries written before subjects existed, by the login UUID each is keyed by. One
+     * leaves when a login with its UUID claims it, which writes the entry under its subject.
+     */
+    private readonly pendingOps: Map<string, string> = new Map();
     /** Additional permission grants keyed by player UUID. */
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
@@ -132,6 +149,7 @@ export class PermissionManager implements Service {
         // A change made just before the server stops still reaches the file.
         await this.opWrites;
         this.ops.clear();
+        this.pendingOps.clear();
         this.permissions.clear();
         this.defaultPermissions = [];
     }
@@ -156,11 +174,10 @@ export class PermissionManager implements Service {
      * @returns The player's current permissions.
      */
     public permissionsOf(player: PermissionHolder): string[] {
-        const uuid = player.uuid;
         return [
             ...this.defaultPermissions,
-            ...(this.permissions.get(uuid) ?? []),
-            ...(this.isOp(uuid) ? this.defaultOperatorPermissions : [])
+            ...(this.permissions.get(player.uuid) ?? []),
+            ...(this.isOp(player.subject) ? this.defaultOperatorPermissions : [])
         ];
     }
 
@@ -251,7 +268,19 @@ export class PermissionManager implements Service {
             const ops = (await readJsonFile(file, '[]')).get([]);
             if (!Array.isArray(ops)) throw new PrismarineServerErrors.OpsNotList({ opsFileName: OPS_FILE_NAME });
             for (const op of ops) {
-                if (isOpEntry(op)) this.ops.add(op.uuid);
+                if (!isOpEntry(op)) continue;
+                const subject = subjectOfEntry(op);
+                if (subject !== undefined) {
+                    this.ops.add(subjectId(subject));
+                } else if (isLegacyOpEntry(op)) {
+                    this.pendingOps.set(op.uuid, op.name);
+                    // Once, so an owner sees who is waiting; see the plan's risks.
+                    this.server
+                        .getLogger()
+                        .info(
+                            `Operator ${op.name} is keyed by the login UUID ${op.uuid} and becomes an operator again at their next login.`
+                        );
+                }
             }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
@@ -259,19 +288,63 @@ export class PermissionManager implements Service {
         }
     }
 
+    /** Whether an entry is this subject's. */
+    private static entryOf(subject: Subject) {
+        return (entry: unknown): boolean => {
+            const own = subjectOfEntry(entry);
+            return own !== undefined && sameSubject(own, subject);
+        };
+    }
+
     /**
      * Adds or removes one player's line in `ops.json`, leaving the other lines and any comments
      * as they are.
+     *
+     * @param legacyUuid - The login UUID of the entry this one replaces, when a login claims an
+     *   entry written before subjects existed.
      */
-    private async writeOp(uuid: string, username: string, op: boolean): Promise<void> {
+    private async writeOp(subject: Subject, username: string, op: boolean, legacyUuid?: string): Promise<void> {
         const file = withCwd(OPS_FILE_NAME);
         const document = await readJsonFile(file, '[]');
-        const samePlayer = (entry: unknown) => isOpEntry(entry) && entry.uuid === uuid;
+        const samePlayer = PermissionManager.entryOf(subject);
+        const entry = { name: username, ...subjectEntryOf(subject), level: 4 };
 
-        if (op) upsertListEntry(document, samePlayer, { name: username, uuid, level: 4 });
-        else removeListEntries(document, samePlayer);
+        if (!op) {
+            removeListEntries(document, samePlayer);
+        } else if (legacyUuid === undefined) {
+            upsertListEntry(document, samePlayer, entry);
+        } else {
+            // The claimed entry takes the subject where it is, so a comment beside it stays. A
+            // line the player already had under the subject goes, so one player has one line.
+            removeListEntries(document, samePlayer);
+            upsertListEntry(
+                document,
+                (candidate) => isLegacyOpEntry(candidate) && candidate.uuid === legacyUuid,
+                entry
+            );
+        }
 
         await writeJsonFile(file, document);
+    }
+
+    /**
+     * Gives an operator entry written before subjects existed its subject, when this login's UUID
+     * is the one it was keyed by. The player is an operator from here on, and the entry is written
+     * under their subject behind any write queued before it.
+     *
+     * @param identity - Who logged in.
+     * @returns Whether an entry was claimed.
+     */
+    public claimLegacy(identity: PlayerIdentity): boolean {
+        const name = this.pendingOps.get(identity.uuid);
+        if (name === undefined) return false;
+        this.pendingOps.delete(identity.uuid);
+        this.ops.add(subjectId(identity.subject));
+        this.server
+            .getLogger()
+            .info(`Operator ${name} logged in as ${identity.name} and is now keyed by their account.`);
+        void this.persistOp(identity.subject, identity.name, true, identity.uuid);
+        return true;
     }
 
     /**
@@ -285,9 +358,9 @@ export class PermissionManager implements Service {
         this.server.getKernel().events.post('playerToggleOperator', event);
         if (event.isCanceled()) return false;
 
-        const { uuid } = target.identity;
-        if (op) this.ops.add(uuid);
-        else this.ops.delete(uuid);
+        const id = subjectId(target.identity.subject);
+        if (op) this.ops.add(id);
+        else this.ops.delete(id);
         return true;
     }
 
@@ -297,10 +370,10 @@ export class PermissionManager implements Service {
      *
      * @returns Whether the file was written. A failed write is logged, not thrown.
      */
-    private persistOp(uuid: string, username: string, op: boolean): Promise<boolean> {
+    private persistOp(subject: Subject, username: string, op: boolean, legacyUuid?: string): Promise<boolean> {
         this.opWrites = this.opWrites
             .then(async () => {
-                await this.writeOp(uuid, username, op);
+                await this.writeOp(subject, username, op, legacyUuid);
                 return true;
             })
             .catch((error: unknown) => {
@@ -326,7 +399,7 @@ export class PermissionManager implements Service {
      */
     public setOpNow(target: PlayerSession, op: boolean): Promise<void> | undefined {
         if (!this.toggleOp(target, op)) return undefined;
-        void this.persistOp(target.identity.uuid, target.identity.name, op);
+        void this.persistOp(target.identity.subject, target.identity.name, op);
         return (async () => {
             // After the change, because the list holds only the commands the player may now run.
             await target.sendAvailableCommands();
@@ -349,7 +422,7 @@ export class PermissionManager implements Service {
         try {
             // Saved before the client is told anything, so a send that fails cannot leave the
             // change in memory alone, to be undone by the next restart.
-            if (!(await this.persistOp(target.identity.uuid, username, op))) return false;
+            if (!(await this.persistOp(target.identity.subject, username, op))) return false;
 
             // After the change, so the list the client gets is the one its new status allows.
             await target.sendAvailableCommands();
@@ -363,11 +436,11 @@ export class PermissionManager implements Service {
     /**
      * Check if a player is an operator.
      *
-     * @param {string} uuid - The player's UUID.
-     * @returns {boolean} Whether the player is an operator.
+     * @param subject - Who the player is to the permission files.
+     * @returns Whether the player is an operator.
      */
-    public isOp(uuid: string): boolean {
-        return this.ops.has(uuid);
+    public isOp(subject: Subject): boolean {
+        return this.ops.has(subjectId(subject));
     }
 
     /**

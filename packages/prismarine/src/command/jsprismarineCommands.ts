@@ -203,8 +203,10 @@ const ban = async (server: Server, target: string, reason?: string): Promise<str
             server.getLogger().error(error);
         }
     }
-    if (reason === undefined) await server.getBanManager().setBanned(target);
-    else await server.getBanManager().setBanned(target, reason);
+    // Online, the ban names the one account; offline, it names the name until a login claims it.
+    const banned = { name: target, ...(session === undefined ? {} : { subject: session.identity.subject }) };
+    if (reason === undefined) await server.getBanManager().setBanned(banned);
+    else await server.getBanManager().setBanned(banned, reason);
     return reason === undefined ? `Banned ${name}` : `Banned ${name} due to: ${reason}!`;
 };
 

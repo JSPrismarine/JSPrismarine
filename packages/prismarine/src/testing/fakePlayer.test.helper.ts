@@ -32,6 +32,7 @@ import { enterStore, leaveStore } from '../entity/data/storePlayers';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
+import { identityNamed } from './sessionIdentity.test.helper';
 import type PlayerSession from '../network/PlayerSession';
 import { liveTestEntities } from './entityServer';
 import { fakeLevel } from './level';
@@ -266,14 +267,15 @@ export const fakePlayer = ({
         disconnect: async (...args) => void disconnects.push(args)
     });
 
-    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    const identity = identityNamed(name, UUID.fromRandom().toString());
+    const player = new StorePlayer(entityIds.next(), { ...identity, uuid: UUID.fromString(identity.uuid) });
     player.standAt({ x: 0, y: 64 - EYE_HEIGHT, z: 0 });
 
     const session: PlayerSession = createConnectedPlayer({
         server,
         connection,
         player,
-        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        identity,
         world
     });
 

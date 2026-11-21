@@ -7,7 +7,12 @@ describe('a session and the player it speaks for', () => {
         const { session, player } = fakePlayer({ name: 'Alex' });
 
         expect(session.runtimeId).toBe(player.getRuntimeId());
-        expect(session.identity).toEqual({ name: 'Alex', xuid: '', uuid: player.getUUID().toString() });
+        expect(session.identity).toEqual({
+            name: 'Alex',
+            xuid: '',
+            uuid: player.getUUID().toString(),
+            subject: { kind: 'offline', name: 'Alex' }
+        });
         expect(Object.values(session)).not.toContain(player);
     });
 

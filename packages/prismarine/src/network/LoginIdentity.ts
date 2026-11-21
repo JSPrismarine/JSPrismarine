@@ -137,6 +137,8 @@ export const parseLoginIdentity = (login: Login) => {
         identity,
         displayName,
         identityPublicKey,
+        /** Whether the chain was checked against Xbox Live. Set by the login handler, never by a parse. */
+        verified: false,
         skin: Skin.fromJWT(clientData),
         device: new Device({
             id: clientData.DeviceId,

@@ -1,5 +1,6 @@
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { LogLevel } from '@jsprismarine/logger';
+import type { SubjectKind } from '../identity/Subject';
 import type { StoredInventory } from '../inventory/persistence';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
 import type { WorldExperiment } from '../world/WorldExperiments';
@@ -345,12 +346,30 @@ export interface PermissionsFile {
     players?: PlayerPermissions[];
 }
 
+/**
+ * The fields that say which player an entry is about, as `ops.json` and `banned-players.json`
+ * spell a subject: the platform, and the player's id on it.
+ */
+export interface SubjectEntry {
+    /**
+     * Which platform `id` belongs to: `xbox` for an Xbox Live XUID, `java` for a Mojang profile
+     * UUID, `offline` for a name on an offline-mode server.
+     */
+    kind: SubjectKind;
+    /** The player's id on that platform: the XUID, the UUID or the name. */
+    id: string;
+}
+
 /** One operator entry in `ops.json`. */
-export interface OpEntry {
+export interface OpEntry extends Partial<SubjectEntry> {
+    /** The player's name when the entry was written. `kind` and `id` decide who it is. */
     name: string;
-    /** The player's UUID, used to identify the operator. */
-    uuid: string;
-    /** Informational operator level; JSPrismarine currently identifies operators by UUID. */
+    /**
+     * The login UUID an entry written before `kind` and `id` existed was keyed by. The entry waits
+     * for a login with this UUID, which writes `kind` and `id` and drops it.
+     */
+    uuid?: string;
+    /** Informational operator level; an operator runs every command at level 4. */
     level?: number;
 }
 
@@ -360,8 +379,12 @@ export interface OpEntry {
  */
 export type OpsFile = OpEntry[];
 
-/** One entry in `banned-players.json`. */
-export interface BannedPlayerEntry {
+/**
+ * One entry in `banned-players.json`. An entry with `kind` and `id` bans that one player; an entry
+ * with a name alone, as the file was written before `kind` and `id` existed, bans every player of
+ * that name until one logs in and the entry is written with their `kind` and `id`.
+ */
+export interface BannedPlayerEntry extends Partial<SubjectEntry> {
     /** The player's exact name. */
     name: string;
     /** The reason shown to the player, if provided. */

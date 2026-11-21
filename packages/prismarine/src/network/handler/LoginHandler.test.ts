@@ -147,9 +147,14 @@ describe('network', () => {
                 });
 
             const permissionManager = (): PermissionManager =>
-                stub<PermissionManager>({ getPermissions: async () => [], isOp: () => false });
+                stub<PermissionManager>({
+                    getPermissions: async () => [],
+                    isOp: () => false,
+                    claimLegacy: () => false
+                });
 
-            const banManager = (): BanManager => stub<BanManager>({ isBanned: () => false });
+            const banManager = (): BanManager =>
+                stub<BanManager>({ isBanned: () => false, claimLegacy: async () => false });
 
             // Where `createConnectedPlayer` files each login's store player.
             const storePlayers = new StorePlayers();
@@ -282,7 +287,12 @@ describe('network', () => {
                     getPlayer: () => existing,
                     isConnected: () => true,
                     kick: async (reason) => void kicked.push(reason ?? ''),
-                    identity: { name: 'Steve', xuid: '2535400000000001', uuid: '00000000-0000-4000-8000-0000000000aa' }
+                    identity: {
+                        name: 'Steve',
+                        xuid: '2535400000000001',
+                        uuid: '00000000-0000-4000-8000-0000000000aa',
+                        subject: { kind: 'xbox', xuid: '2535400000000001' }
+                    }
                 });
                 const chainClaiming = (xuid: string, name: string) => ({
                     chain: [
@@ -545,7 +555,9 @@ describe('network', () => {
             };
 
             it('refuses a banned player with NOT_ALLOWED and no reason', async () => {
-                const banned = { getBanManager: () => stub<BanManager>({ isBanned: () => '' }) };
+                const banned = {
+                    getBanManager: () => stub<BanManager>({ isBanned: () => '', claimLegacy: async () => false })
+                };
 
                 const disconnect = await refused(banned, login());
 
@@ -553,7 +565,10 @@ describe('network', () => {
             });
 
             it('refuses a banned player with NOT_ALLOWED and the reason', async () => {
-                const banned = { getBanManager: () => stub<BanManager>({ isBanned: () => 'griefing' }) };
+                const banned = {
+                    getBanManager: () =>
+                        stub<BanManager>({ isBanned: () => 'griefing', claimLegacy: async () => false })
+                };
 
                 const disconnect = await refused(banned, login());
 
@@ -562,6 +577,35 @@ describe('network', () => {
                     false,
                     DisconnectReason.NOT_ALLOWED
                 );
+            });
+
+            it('lets the operator list and the ban list claim an entry keyed before subjects, then checks the ban', async () => {
+                const claimed: string[] = [];
+                const banned = {
+                    getBanManager: () =>
+                        stub<BanManager>({
+                            isBanned: (player) => {
+                                claimed.push(`isBanned ${player.subject.kind} ${player.name}`);
+                                return 'griefing';
+                            },
+                            claimLegacy: async (identity) => {
+                                claimed.push(`ban ${identity.uuid}`);
+                                return true;
+                            }
+                        }),
+                    getPermissionManager: () =>
+                        stub<PermissionManager>({
+                            claimLegacy: (identity) => {
+                                claimed.push(`op ${identity.uuid} ${identity.subject.kind} ${identity.name}`);
+                                return true;
+                            }
+                        })
+                };
+
+                await refused(banned, login());
+
+                const uuid = UUID.fromString(IDENTITY).toString();
+                expect(claimed).toEqual([`op ${uuid} offline runner`, `ban ${uuid}`, 'isBanned offline runner']);
             });
 
             it('refuses a login with no XUID on a server in online mode with NOT_AUTHENTICATED', async () => {

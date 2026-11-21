@@ -55,6 +55,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '@jsprismarine/protocol/wire/structures/UUID';
@@ -289,7 +290,8 @@ const containerDataSent = (): ContainerSetDataPacket[] =>
         .map(({ packet }) => packet as ContainerSetDataPacket);
 
 const buildPlayer = (world: World, server: Server, name: string): PlayerSession => {
-    const player = new StorePlayer(entityIds.next(), { uuid: UUID.fromRandom(), name, xuid: '' });
+    const identity = identityNamed(name, UUID.fromRandom().toString());
+    const player = new StorePlayer(entityIds.next(), { ...identity, uuid: UUID.fromString(identity.uuid) });
     player.standAt({ x: CHEST.x + 0.5, y: CHEST.y - EYE_HEIGHT, z: CHEST.z + 2.5 });
 
     const connection = stub<ClientConnection>({
@@ -309,7 +311,7 @@ const buildPlayer = (world: World, server: Server, name: string): PlayerSession 
         server,
         connection,
         player,
-        identity: { name, xuid: '', uuid: player.getUUID().toString() },
+        identity,
         world
     });
 };

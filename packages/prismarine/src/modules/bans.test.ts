@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startTestModule } from '@jsprismarine/kernel/testing';
 import { Logger } from '@jsprismarine/logger';
 import { bansModule } from './bans';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { bansToken } from './tokens';
 
 describe('modules/bans', () => {
@@ -32,8 +33,8 @@ describe('modules/bans', () => {
         const handle = await startTestModule(bansModule({ getLogger: () => logger }));
         try {
             const bans = handle.get(bansToken);
-            expect(bans.isBanned({ name: 'player1' })).toBe('griefing');
-            expect(bans.isBanned({ name: 'someone-else' })).toBe(false);
+            expect(bans.isBanned(identityNamed('player1'))).toBe('griefing');
+            expect(bans.isBanned(identityNamed('someone-else'))).toBe(false);
         } finally {
             await handle.stop();
         }
@@ -46,6 +47,6 @@ describe('modules/bans', () => {
         const bans = handle.get(bansToken);
         await handle.stop();
 
-        expect(bans.isBanned({ name: 'player1' })).toBe(false);
+        expect(bans.isBanned(identityNamed('player1'))).toBe(false);
     });
 });

@@ -3656,7 +3656,7 @@ export default class PlayerSession {
 
     /** Whether the player is an operator. */
     public isOp(): boolean {
-        return this.server.getPermissionManager().isOp(this.identity.uuid);
+        return this.server.getPermissionManager().isOp(this.identity.subject);
     }
 
     /**

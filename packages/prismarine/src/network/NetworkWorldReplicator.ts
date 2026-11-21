@@ -229,7 +229,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                     name: player.getName(),
                     platformChatId: player.platformChatId,
                     device: player.device,
-                    op: server.getPermissionManager().isOp(player.getUUID().toString())
+                    op: server.getPermissionManager().isOp(player.getSubject())
                 };
             },
             content: () => server.getContent(),

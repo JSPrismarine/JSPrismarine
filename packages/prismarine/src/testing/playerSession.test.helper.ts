@@ -5,6 +5,7 @@ import type Server from '../Server';
 import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
+import { identityNamed } from './sessionIdentity.test.helper';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
 import type ClientConnection from '../network/ClientConnection';
 import PlayerSession from '../network/PlayerSession';
@@ -16,7 +17,7 @@ import { stub } from './stub.test.helper';
 import type { PlayerIdentity } from '../playerIdentity';
 
 /** The identity a session double holds unless a test names another. */
-const TESTER: PlayerIdentity = { name: 'Tester', xuid: '', uuid: '00000000-0000-0000-0000-000000000000' };
+const TESTER: PlayerIdentity = identityNamed('Tester');
 
 /**
  * The fields a session holds of its player, for a double built from `PlayerSession.prototype`
@@ -104,9 +105,9 @@ export const connectedSession = ({
     uuid?: UUID;
     joined?: boolean;
 }): PlayerSession => {
-    const player = new StorePlayer(entityIds.next(), { uuid, name, xuid: '' });
+    const identity = identityNamed(name, uuid.toString());
+    const player = new StorePlayer(entityIds.next(), { ...identity, uuid });
     player.standAt({ x: eyes.getX(), y: eyes.getY() - EYE_HEIGHT, z: eyes.getZ() });
-    const identity = { name, xuid: '', uuid: player.getUUID().toString() };
     const session = createConnectedPlayer({ server, connection, player, identity, world });
     if (joined) session['joined'] = true;
     return session;

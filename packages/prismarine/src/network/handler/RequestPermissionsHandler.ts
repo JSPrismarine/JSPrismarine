@@ -25,7 +25,7 @@ export default class RequestPermissionsHandler implements InputLaneHandler<Reque
         const level = PlayerPermissionLevel[packet.playerPermissionLevel] ?? packet.playerPermissionLevel;
         const target = services.sessions.sessionOf(packet.targetPlayerUniqueId);
 
-        if (!services.permissions.isOp(session.identity.uuid)) {
+        if (!services.permissions.isOp(session.identity.subject)) {
             log.debug(
                 `${name} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`
             );

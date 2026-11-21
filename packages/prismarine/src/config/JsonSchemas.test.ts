@@ -102,12 +102,19 @@ describe('JSON schemas', () => {
         },
         {
             file: 'ops.schema.json',
-            valid: [{ name: 'alice', uuid: 'fbf8646c-652c-38c4-96ff-a29d86cb5943', level: 4 }],
-            invalid: [{ level: 4 }]
+            valid: [
+                { name: 'alice', kind: 'xbox', id: '2535400000000001', level: 4 },
+                // Written before subjects existed; a login with the UUID claims it.
+                { name: 'bob', uuid: 'fbf8646c-652c-38c4-96ff-a29d86cb5943', level: 4 }
+            ],
+            invalid: [{ name: 'carol', kind: 'bedrock', id: '1' }]
         },
         {
             file: 'banned-players.schema.json',
-            valid: [{ name: 'alice', reason: 'griefing' }],
+            valid: [
+                { name: 'alice', kind: 'offline', id: 'alice', reason: 'griefing' },
+                { name: 'bob', reason: 'griefing' }
+            ],
             invalid: [{ reason: 'griefing' }]
         },
         {

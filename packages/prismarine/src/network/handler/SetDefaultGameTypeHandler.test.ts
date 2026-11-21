@@ -11,6 +11,7 @@ import type PlayerSession from '../PlayerSession';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/packet/SetDefaultGameTypePacket';
 import type { HandlerServices } from './HandlerContext';
+import { subjectId } from '../../identity/Subject';
 import type { World } from '../../world/World';
 import { WorldMessages } from '../../world/WorldMessages';
 import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
@@ -61,7 +62,7 @@ const fakeServer = ({
             setGamemode: async (mode?: Gametype) => void applied.push([name, mode]),
             released: (sends) => void sends.catch((error: unknown) => void logged.push(String(error)))
         });
-        if (isOp) ops.add(uuid);
+        if (isOp) ops.add(subjectId(session.identity.subject));
         /** Moves the player to another world, as a world change between two input steps does. */
         const moveTo = (next: World) => {
             where.world = next;
@@ -88,7 +89,7 @@ const fakeServer = ({
                 }
             }),
             sessions: stub<HandlerServices['sessions']>({ getSessions: () => [requester.session, other.session] }),
-            permissions: stub<HandlerServices['permissions']>({ isOp: (uuid) => ops.has(uuid) }),
+            permissions: stub<HandlerServices['permissions']>({ isOp: (subject) => ops.has(subjectId(subject)) }),
             messages
         }
     };
