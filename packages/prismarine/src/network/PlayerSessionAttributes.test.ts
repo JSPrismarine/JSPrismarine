@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { Attribute, AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
+import { Attribute, AttributeIds, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor } from '../world/ShownActor';
 import { stub } from '../testing/stub.test.helper';
 import type UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import PlayerSession from './PlayerSession';
+import type { SessionPresenter, ShownVitals } from './presenter/SessionPresenter';
+import type { SessionPlayer } from './sessionPlayers';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
@@ -25,6 +27,7 @@ const attributeSession = () => {
             sendDataPacket: async (packet: UpdateAttributesPacket) => void sent.push(packet)
         },
         ...sessionPlayerFields(player, 1n),
+        presenter: stub<SessionPresenter>({ edition: 'bedrock' }),
         lastInputTick: 0n
     });
 
@@ -80,6 +83,31 @@ describe('network', () => {
             await session.sendAttributesFor(player, []);
 
             expect(sent).toHaveLength(0);
+        });
+
+        it('shows a client of another edition its own vitals when one changes, and nothing else', async () => {
+            const shown: ShownVitals[] = [];
+            const attributes = new Attributes(Attributes.getPlayerDefaults());
+            attributes.setValue(AttributeIds.Health, 7);
+            const player = stub<ShownActor & SessionPlayer>({ getRuntimeId: () => 1n, attributes });
+            const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
+                connection: { sendDataPacket: async () => {} },
+                ...sessionPlayerFields(player, 1n),
+                presenter: stub<SessionPresenter>({
+                    edition: 'java',
+                    showVitals: async (vitals) => void shown.push(vitals)
+                }),
+                lastInputTick: 0n
+            });
+
+            await session.sendAttributesFor(player, [health()]);
+            await session.sendAttributesFor(stub<ShownActor>({ getRuntimeId: () => 2n }), [health()]);
+            await session.sendAttributesFor(
+                player,
+                attributes.getAttributes().filter((a) => a.getName() === AttributeIds.Movement)
+            );
+
+            expect(shown).toEqual([{ health: 7, food: 20, saturation: 5 }]);
         });
     });
 });

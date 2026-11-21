@@ -106,6 +106,19 @@ export interface ShownInventory {
     readonly handSlot: number;
 }
 
+/** A player's own health, food level and saturation. */
+export interface ShownVitals {
+    readonly health: number;
+    readonly food: number;
+    readonly saturation: number;
+}
+
+/** Why a player died, as a translation: the key without Bedrock's `%`, and what fills it. */
+export interface ShownDeath {
+    readonly key: string;
+    readonly parameters: readonly string[];
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -218,6 +231,30 @@ export interface SessionPresenter {
      * @param stack - What it holds, or null.
      */
     showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void>;
+
+    /**
+     * Shows the player its own health, food and saturation, for a client the session's Bedrock
+     * attribute sends do not reach.
+     *
+     * @param vitals - The values now.
+     */
+    showVitals(vitals: ShownVitals): Promise<void>;
+
+    /**
+     * Opens the client's death screen, for a client the session's Bedrock respawn exchange does
+     * not reach.
+     *
+     * @param death - Why the player died.
+     */
+    showDeath(death: ShownDeath): Promise<void>;
+
+    /**
+     * Spawns the player again on its client after a death, before the session moves it to where
+     * it comes back, for a client the session's Bedrock respawn exchange does not reach.
+     *
+     * @param gamemode - The player's game mode.
+     */
+    showRespawn(gamemode: Gametype): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.
