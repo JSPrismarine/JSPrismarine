@@ -807,7 +807,9 @@ const liveWorld = (
                 // What `/summon` resolves its dimension through; the one world is already running.
                 startWorld: (dimension) => (dimension === Dimensions.Overworld.id ? world : undefined),
                 // What a command resolves an entity reference through.
-                getLevels: () => [stub<Level>({ worlds: () => [world].values() })]
+                getLevels: () => [stub<Level>({ worlds: () => [world].values() })],
+                // The one level is the default, so a command names its dimensions plainly.
+                getDefaultLevel: () => world.getLevel()
             }),
         getContent: () => content,
         // So the world's occurrences go into its change log, as a live world's do.

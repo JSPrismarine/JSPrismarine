@@ -52,9 +52,16 @@ const setUp = async () => {
             players.some((session) => session.getRuntimeId() === runtimeId)
                 ? stub<StoreActor>({ getWorld: () => world, getRuntimeId: () => runtimeId })
                 : null,
-        viewerOf: (runtimeId: bigint) => players.find((session) => session.getRuntimeId() === runtimeId)
+        viewerOf: (runtimeId: bigint) => players.find((session) => session.getRuntimeId() === runtimeId),
+        getLevel: () => level,
+        getServer: () => server
     });
-    const server = stub<Server>({
+    const level: Level = stub<Level>({
+        worlds: function* () {
+            yield world;
+        }
+    });
+    const server: Server = stub<Server>({
         getLogger: () => logger,
         getContent: () => testContent(),
         getSessionManager: () => stub<SessionManager>({ getSessions: () => [] }),
@@ -62,13 +69,8 @@ const setUp = async () => {
         getWorldManager: () =>
             stub<WorldManager>({
                 getDefaultWorld: () => world,
-                getLevels: () => [
-                    stub<Level>({
-                        worlds: function* () {
-                            yield world;
-                        }
-                    })
-                ]
+                getDefaultLevel: () => level,
+                getLevels: () => [level]
             }),
         getAddons: () => stub<AddonManager>({ list, install })
     });

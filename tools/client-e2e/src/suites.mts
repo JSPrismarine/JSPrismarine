@@ -54,6 +54,7 @@ import { generatedFluidFlow } from './scenarios/generated-fluid-flow.mts';
 import { worldgenSpawn } from './scenarios/worldgen-spawn.mts';
 import { worldgenDimensions } from './scenarios/worldgen-dimensions.mts';
 import { levelIsolation } from './scenarios/level-isolation.mts';
+import { secondLevelSummon } from './scenarios/second-level-summon.mts';
 import { kick } from './scenarios/kick.mts';
 import { teleport } from './scenarios/teleport.mts';
 import { edgeChunkBlockChange } from './scenarios/edge-chunk-block-change.mts';
@@ -163,7 +164,7 @@ export const suites: ScenarioSuite[] = [
     // Its own suite for the same reason: the reset would generate the noise Overworld's origin.
     { name: 'worldgen-dimensions', scenarios: [worldgenDimensions] },
     // Its own suite, because the second level is a world every other scenario would also tick.
-    { name: 'levels', scenarios: [levelIsolation] },
+    { name: 'levels', scenarios: [levelIsolation, secondLevelSummon] },
     // Its own suite: a kicked client is gone, so nothing can run after it.
     { name: 'kick', scenarios: [kick] }
 ];
