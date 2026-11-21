@@ -1,10 +1,13 @@
 /**
  * How a subject's permissions and meta resolve ([the permissions plan](../../../../docs/plans/permissions.md)).
  *
- * Resolution walks tiers of nodes: the user's own, then each group the user holds directly,
- * heaviest first, and each group's parents depth first behind it. The first tier that decides the
- * query wins. Within a tier a specific node decides before a wildcard, and a negation decides
- * before a grant at the same specificity. Meta resolves over the same tiers, first value wins.
+ * Resolution walks tiers of nodes: the user's own, then one tier per group the user holds
+ * directly, heaviest first. A group's tier is its own nodes followed by its parents' depth first,
+ * so an inherited node takes the weight of the direct group that inherits it. The walk keeps the
+ * groups it has visited and never enters one twice, so it ends on a file that names a cycle. The
+ * first tier that decides the query wins. Within a tier a specific node decides before a wildcard,
+ * and a negation decides before a grant at the same specificity. Meta resolves in the same order,
+ * first value wins.
  */
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
@@ -54,14 +57,17 @@ const decideTier = (nodes: readonly Node[], query: string, now: number): boolean
 };
 
 /**
- * The groups a subject holds directly, heaviest first: the memberships that have not expired,
- * `default` for everyone and `operator` for an operator. Two groups of one weight keep the order
- * the memberships list them in, with the built-in groups last.
+ * The groups a subject holds directly, heaviest first: the memberships that have not expired and
+ * name a group the file has, `default` for everyone and `operator` for an operator. Two groups of
+ * one weight keep the order the memberships list them in, with the built-in groups last.
  */
 export const directGroupsOf = (view: PermissionView): string[] => {
     const names: string[] = [];
     for (const membership of view.user?.groups ?? []) {
-        if (!isExpired(membership, view.now) && !names.includes(membership.group)) names.push(membership.group);
+        if (isExpired(membership, view.now) || names.includes(membership.group)) continue;
+        // A membership in a group the file no longer has resolves to nothing, so it is not held.
+        if (view.groupOf(membership.group) === undefined) continue;
+        names.push(membership.group);
     }
     if (!names.includes(DEFAULT_GROUP)) names.push(DEFAULT_GROUP);
     if (view.isOp && !names.includes(OPERATOR_GROUP)) names.push(OPERATOR_GROUP);
@@ -76,24 +82,51 @@ export const directGroupsOf = (view: PermissionView): string[] => {
 /** The heaviest group the subject holds directly. */
 export const primaryGroupOf = (view: PermissionView): string => directGroupsOf(view)[0] ?? DEFAULT_GROUP;
 
+/** One tier of resolution: nodes and meta maps in the order they decide. */
+interface Tier {
+    readonly nodes: readonly Node[];
+    readonly metas: readonly Readonly<Record<string, string>>[];
+}
+
 /**
- * Walks the tiers in resolution order: the user, then each direct group and its parents depth
- * first. A group reached twice is visited once, which also ends a parent cycle.
+ * The groups a group inherits from, in resolution order: the group itself, then each parent and
+ * its parents depth first. A group already in `visited` is left out, which also ends a cycle.
  */
-const tiersOf = function* (
-    view: PermissionView
-): Generator<{ readonly nodes: readonly Node[]; readonly meta: Readonly<Record<string, string>> }> {
-    if (view.user !== undefined) yield view.user;
+export const inheritanceOf = (
+    name: string,
+    groupOf: (name: string) => Group | undefined,
+    visited: Set<string>
+): Group[] => {
+    if (visited.has(name)) return [];
+    visited.add(name);
+    const group = groupOf(name);
+    if (group === undefined) return [];
+    return [group, ...group.parents.flatMap((parent) => inheritanceOf(parent, groupOf, visited))];
+};
+
+/**
+ * Whether making `parent` a parent of `group` would make `group` its own ancestor: `group` is
+ * already among what `parent` inherits.
+ */
+export const wouldCycle = (group: string, parent: string, groupOf: (name: string) => Group | undefined): boolean => {
+    if (group === parent) return true;
     const visited = new Set<string>();
-    const visit = function* (name: string): Generator<Group> {
-        if (visited.has(name)) return;
-        visited.add(name);
-        const group = view.groupOf(name);
-        if (group === undefined) return;
-        yield group;
-        for (const parent of group.parents) yield* visit(parent);
-    };
-    for (const name of directGroupsOf(view)) yield* visit(name);
+    inheritanceOf(parent, groupOf, visited);
+    return visited.has(group);
+};
+
+/**
+ * Walks the tiers in resolution order: the user, then each direct group with its inheritance.
+ * A group reached twice is visited once, which also ends a parent cycle.
+ */
+const tiersOf = function* (view: PermissionView): Generator<Tier> {
+    if (view.user !== undefined) yield { nodes: view.user.nodes, metas: [view.user.meta] };
+    const visited = new Set<string>();
+    for (const name of directGroupsOf(view)) {
+        const groups = inheritanceOf(name, view.groupOf, visited);
+        if (groups.length > 0)
+            yield { nodes: groups.flatMap((group) => group.nodes), metas: groups.map((group) => group.meta) };
+    }
 };
 
 /**
@@ -111,8 +144,9 @@ export const hasPermission = (view: PermissionView, node: string): boolean => {
 /** The resolved value of a meta key, or undefined when nothing sets it. */
 export const metaOf = (view: PermissionView, key: string): string | undefined => {
     for (const tier of tiersOf(view)) {
-        const value = tier.meta[key];
-        if (value !== undefined) return value;
+        // The key as the file sets it, not one the prototype has such as `toString`.
+        const meta = tier.metas.find((entry) => Object.hasOwn(entry, key));
+        if (meta !== undefined) return meta[key];
     }
     return undefined;
 };

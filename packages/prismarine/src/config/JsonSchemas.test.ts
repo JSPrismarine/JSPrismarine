@@ -118,7 +118,11 @@ describe('JSON schemas', () => {
                     }
                 ]
             },
-            invalid: { schemaVersion: 2, groups: { vip: { weight: 'heavy' } }, users: {} }
+            invalid: {
+                schemaVersion: 2,
+                groups: { vip: { weight: 'heavy', parents: [], nodes: [], meta: {} } },
+                users: {}
+            }
         },
         {
             file: 'ops.schema.json',

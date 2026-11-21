@@ -2443,6 +2443,14 @@ Thrown as `PrismarineServerErrors.InvalidPermissionGroupName`, which extends `Ra
 
 A group's name is empty or has whitespace.
 
+### `PRISMARINE_INVALID_PERMISSION_GROUP_WEIGHT`
+
+`Permission group weight {weight} is not a finite number`
+
+Thrown as `PrismarineServerErrors.InvalidPermissionGroupWeight`, which extends `RangeError`.
+
+A group's weight must be a finite number, since the file holds it as a JSON number.
+
 ### `PRISMARINE_INVALID_PERMISSION_NODE`
 
 `Permission node "{node}" is not spelled as scope.name, scope.* or *`
@@ -2572,6 +2580,15 @@ Thrown as `PrismarineServerErrors.PermissionGroupBuiltIn`, which extends `Error`
 
 `default` and `operator` cannot be deleted: every subject holds the first and every operator the second.
 
+### `PRISMARINE_PERMISSION_GROUP_CYCLE`
+
+`Making {parent} a parent of {group} would make {group} its own ancestor`
+
+Thrown as `PrismarineServerErrors.PermissionGroupCycle`, which extends `Error`.
+
+A group cannot inherit from a group that inherits from it. `/perms group <group> parent add` and
+the file loader refuse the parent that would close the cycle.
+
 ### `PRISMARINE_PERMISSION_GROUP_EXISTS`
 
 `A permission group named "{group}" already exists`
@@ -2595,6 +2612,15 @@ A command or a script named a permission group `permissions.json` does not have.
 Thrown as `PrismarineServerErrors.PermissionGroupOwnParent`, which extends `Error`.
 
 A group's parent must be another group; a group cannot inherit itself.
+
+### `PRISMARINE_PERMISSIONS_FILE_NOT_LOADED`
+
+`{permissionFileName} is missing or not a version {supported} file, so the edit was not saved`
+
+Thrown as `PrismarineServerErrors.PermissionsFileNotLoaded`, which extends `Error`.
+
+`permissions.json` is gone or no longer a version 2 file while the server runs, so an edit
+cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
 
 ### `PRISMARINE_PERMISSIONS_NOT_OBJECT`
 

@@ -70,11 +70,45 @@ export const EMPTY_GROUP: Group = Object.freeze({ weight: 0, parents: [], nodes:
 /** A user of this name with nothing of their own. */
 export const emptyUser = (name: string): User => ({ name, groups: [], nodes: [], meta: {} });
 
-/** Whether something with an expiry has expired at `now`, in milliseconds since the epoch. An expiry that does not parse counts as expired. */
+/**
+ * An ISO 8601 instant with an explicit `Z` or offset, such as `2030-01-01T00:00:00Z`. A local
+ * time without one would read differently on each host, so it is not an instant.
+ */
+const INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * The milliseconds since the epoch an expiry names, or undefined when it is not an instant with a
+ * time zone or names a date the calendar does not have.
+ */
+export const parseInstant = (text: string): number | undefined => {
+    const match = INSTANT.exec(text);
+    if (match === null) return undefined;
+    const [, year, month, day, hour, minute, second = '0', zone = 'Z'] = match;
+    const at = Date.parse(text);
+    if (Number.isNaN(at)) return undefined;
+    // `Date.parse` rolls an impossible date such as February 30 into March; the calendar fields
+    // of the instant it answers have to be the ones written, read in the offset written.
+    const offsetMinutes =
+        zone === 'Z' ? 0 : (zone.startsWith('-') ? -1 : 1) * (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(4, 6)));
+    const local = new Date(at + offsetMinutes * 60_000);
+    const same =
+        local.getUTCFullYear() === Number(year) &&
+        local.getUTCMonth() + 1 === Number(month) &&
+        local.getUTCDate() === Number(day) &&
+        local.getUTCHours() === Number(hour) &&
+        local.getUTCMinutes() === Number(minute) &&
+        local.getUTCSeconds() === Number(second);
+    return same ? at : undefined;
+};
+
+/**
+ * Whether something with an expiry has expired at `now`, in milliseconds since the epoch. An
+ * expiry that is not an instant counts as expired, so a damaged entry grants nothing.
+ */
 export const isExpired = ({ expires }: { readonly expires?: string }, now: number): boolean => {
     if (expires === undefined) return false;
-    const at = Date.parse(expires);
-    return Number.isNaN(at) || at <= now;
+    const at = parseInstant(expires);
+    return at === undefined || at <= now;
 };
 
 /**
@@ -95,12 +129,12 @@ export const checkNode = (node: string): string => {
 };
 
 /**
- * Checks an expiry: an ISO 8601 instant in the future.
- * @throws InvalidPermissionExpiry when it does not parse or is already past.
+ * Checks an expiry: an ISO 8601 instant with a time zone, in the future.
+ * @throws InvalidPermissionExpiry when it is not one or is already past.
  */
 export const checkExpiry = (expires: string, now: number): string => {
-    const at = Date.parse(expires);
-    if (Number.isNaN(at) || at <= now) throw new PrismarineServerErrors.InvalidPermissionExpiry({ expires });
+    const at = parseInstant(expires);
+    if (at === undefined || at <= now) throw new PrismarineServerErrors.InvalidPermissionExpiry({ expires });
     return new Date(at).toISOString();
 };
 
@@ -108,15 +142,28 @@ export const checkExpiry = (expires: string, now: number): string => {
 const isMeta = (value: unknown): value is Record<string, string> =>
     isRecord(value) && Object.values(value).every((entry) => typeof entry === 'string');
 
+/**
+ * The expiry an entry of the file carries: a string, absent for never, or `null` for an entry whose
+ * `expires` is something else, which is skipped rather than read as permanent.
+ */
+const readExpires = (value: Record<string, unknown>): string | undefined | null => {
+    if (!('expires' in value) || value.expires === undefined) return undefined;
+    return typeof value.expires === 'string' ? value.expires : null;
+};
+
 /** The node an entry of the file holds, or undefined for one that is not a node. */
 const readNode = (value: unknown): Node | undefined => {
     if (!isRecord(value) || typeof value.node !== 'string') return undefined;
-    return typeof value.expires === 'string' ? { node: value.node, expires: value.expires } : { node: value.node };
+    const expires = readExpires(value);
+    if (expires === null) return undefined;
+    return expires === undefined ? { node: value.node } : { node: value.node, expires };
 };
 
 const readMembership = (value: unknown): Membership | undefined => {
     if (!isRecord(value) || typeof value.group !== 'string') return undefined;
-    return typeof value.expires === 'string' ? { group: value.group, expires: value.expires } : { group: value.group };
+    const expires = readExpires(value);
+    if (expires === null) return undefined;
+    return expires === undefined ? { group: value.group } : { group: value.group, expires };
 };
 
 /** The entries of a list that `read` accepts, or none for something that is not a list. */
