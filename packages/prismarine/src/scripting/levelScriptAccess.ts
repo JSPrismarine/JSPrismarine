@@ -64,12 +64,16 @@ export const scriptItemOf = (item: Item | null): ScriptItem | null => {
     const lore = item.getLore();
     const most = item.getMaxDurability();
     const damage = most > 0 ? Math.max(0, most - item.getDurability()) : 0;
+    const canDestroy = item.getCanDestroyBlocks();
+    const canPlaceOn = item.getCanPlaceOnBlocks();
     return {
         typeId: item.getName(),
         amount: item.getAmount(),
         ...(nameTag === undefined ? {} : { nameTag }),
         ...(lore.length === 0 ? {} : { lore }),
-        ...(damage > 0 ? { damage } : {})
+        ...(damage > 0 ? { damage } : {}),
+        ...(canDestroy.length === 0 ? {} : { canDestroy }),
+        ...(canPlaceOn.length === 0 ? {} : { canPlaceOn })
     };
 };
 

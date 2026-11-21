@@ -6,7 +6,8 @@ import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from '../world/DimensionType';
 import type { Level } from '../world/Level';
 import type { World } from '../world/World';
-import { levelScriptAccess } from './levelScriptAccess';
+import { Item } from '../item/Item';
+import { levelScriptAccess, scriptItemOf } from './levelScriptAccess';
 
 describe('levelScriptAccess', () => {
     it("writes a script's setWaterlogged into the liquid layer: a still water source, or air", () => {
@@ -31,5 +32,20 @@ describe('levelScriptAccess', () => {
             [1, -60, 2, BlockRuntimeIds.tryGetByState('minecraft:water', { liquid_depth: 0 })],
             [1, -60, 2, BlockRuntimeIds.getByName('minecraft:air')]
         ]);
+    });
+
+    it("reads a stack's block permissions for a script", () => {
+        const item = new Item({
+            name: 'minecraft:diamond_pickaxe',
+            count: 1,
+            canDestroyBlocks: ['minecraft:stone'],
+            canPlaceOnBlocks: ['minecraft:dirt']
+        });
+
+        expect(scriptItemOf(item)).toMatchObject({ canDestroy: ['minecraft:stone'], canPlaceOn: ['minecraft:dirt'] });
+        expect(scriptItemOf(new Item({ name: 'minecraft:stone', count: 1 }))).toEqual({
+            typeId: 'minecraft:stone',
+            amount: 1
+        });
     });
 });
