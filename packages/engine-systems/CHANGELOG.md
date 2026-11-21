@@ -1,5 +1,15 @@
 # @jsprismarine/engine-systems
 
+## 0.24.0
+
+### Patch Changes
+
+- [#3562](https://github.com/JSPrismarine/JSPrismarine/pull/3562) [`c769189`](https://github.com/JSPrismarine/JSPrismarine/commit/c769189072d249ccc528900df092302793ba747a) Thanks [@filiphsps](https://github.com/filiphsps)! - Tell a block when an entity moves into it. The entity runtime runs `onStepOn` on each block a body's box moves into, as Java's `Entity.checkInsideBlocks` calls `entityInside`, so a pressure plate a player or a mob stands on now powers. A detector rail powers while a minecart is on it, rechecks every second and releases once it has gone, and strongly powers the block below it, as Java's `DetectorRailBlock` does. A sculk shrieker shrieks for a player alone and a sculk sensor ignores the warden, and lava leaves the stacks in it to burn at Java's pace.
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`f60848b`](https://github.com/JSPrismarine/JSPrismarine/commit/f60848bcfa396c2070d18a7f9324e08b92b909e5), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`f601458`](https://github.com/JSPrismarine/JSPrismarine/commit/f601458356766013707b4b0253ff534d73c8ce68), [`9c4bd38`](https://github.com/JSPrismarine/JSPrismarine/commit/9c4bd38bc8532b277ae4eea0b75923ad81993c05), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`8a41ef4`](https://github.com/JSPrismarine/JSPrismarine/commit/8a41ef432e4274717875eb8bf010cff00ef435ea), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4), [`e515b52`](https://github.com/JSPrismarine/JSPrismarine/commit/e515b52206a0e9ce6223c860ab6bcb0da6483643)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/blocks@0.24.0
+  - @jsprismarine/mapping@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

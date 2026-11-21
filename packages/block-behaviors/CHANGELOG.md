@@ -1,5 +1,33 @@
 # @jsprismarine/block-behaviors
 
+## 0.24.0
+
+### Patch Changes
+
+- [`6913cc7`](https://github.com/JSPrismarine/JSPrismarine/commit/6913cc7485bcbd990b7966459cead818f57b5be3) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop cocoa without the jungle log it faces, a tripwire hook without the wall behind it, a grindstone without the floor, ceiling or wall it is attached to, and a standing or hanging bell without its floor or ceiling, as their Java classes' `canSurvive` asks.
+
+- [`f60848b`](https://github.com/JSPrismarine/JSPrismarine/commit/f60848bcfa396c2070d18a7f9324e08b92b909e5) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop candles and candle cakes with nothing underneath, as Java's `CandleBlock` and `CandleCakeBlock` do, and give copper torches and copper lanterns the torch and lantern families, so they need the block they stand or hang on like any torch or lantern while the lantern family still weathers, waxes and scrapes them.
+
+- [`3b6f795`](https://github.com/JSPrismarine/JSPrismarine/commit/3b6f795889b71faf6d2925eba249d4c27d2d045c) Thanks [@filiphsps](https://github.com/filiphsps)! - Roll a composter's chance from the `context_int_provider` Java's `minecraft:compostable` names, rather than a table of chances that had Java's names shifted: a medium item now lands 65 times in 100 rather than 50, and the 25 low-medium, medium-high and always-add-one items compost at all.
+
+- [`eead130`](https://github.com/JSPrismarine/JSPrismarine/commit/eead130646ab1291d0879fc36bade86fa02e8912) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop a coral plant or fan, dead or alive, with nothing solid below it, and a coral wall fan without the wall behind it, as Java's coral blocks need.
+
+- [`ac2873c`](https://github.com/JSPrismarine/JSPrismarine/commit/ac2873c5186442ef50fe47ff12ced73da31aeb4e) Thanks [@filiphsps](https://github.com/filiphsps)! - Remove a piston head without its piston behind it, and pop pale hanging moss with neither more moss nor a block above it, as Java's `PistonHeadBlock` and `HangingMossBlock` do.
+
+- [`9c4bd38`](https://github.com/JSPrismarine/JSPrismarine/commit/9c4bd38bc8532b277ae4eea0b75923ad81993c05) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop a lily pad or frogspawn off anything but water (a lily pad also stays on ice), and a comparator without a block below it, as Java's `WaterlilyBlock`, `FrogspawnBlock` and `DiodeBlock` need. Bedrock's `waterlily` and `frog_spawn` now take the flora family.
+
+- [`8872949`](https://github.com/JSPrismarine/JSPrismarine/commit/8872949a2f5e4e9293bdbc5c04c45796d12c26bc) Thanks [@filiphsps](https://github.com/filiphsps)! - Turn every pillar block to the axis of the face it is placed against, as Java's `RotatedPillarBlock` does, not only logs, wood, stems and hyphae: basalt, polished basalt, deepslate, bone blocks, hay bales, bamboo blocks, purpur and quartz pillars, chains, froglights and muddy mangrove roots now lie sideways when placed against a side.
+
+- [`8a41ef4`](https://github.com/JSPrismarine/JSPrismarine/commit/8a41ef432e4274717875eb8bf010cff00ef435ea) Thanks [@filiphsps](https://github.com/filiphsps)! - Follow Java's piston on two rules: a retracted piston or sticky piston is pushed like any block, and a block that never breaks (an end portal frame, a light block, a command block) cannot be moved, which the vanilla overlay now marks immovable from its hardness rather than for bedrock alone.
+
+- [#3562](https://github.com/JSPrismarine/JSPrismarine/pull/3562) [`c769189`](https://github.com/JSPrismarine/JSPrismarine/commit/c769189072d249ccc528900df092302793ba747a) Thanks [@filiphsps](https://github.com/filiphsps)! - Tell a block when an entity moves into it. The entity runtime runs `onStepOn` on each block a body's box moves into, as Java's `Entity.checkInsideBlocks` calls `entityInside`, so a pressure plate a player or a mob stands on now powers. A detector rail powers while a minecart is on it, rechecks every second and releases once it has gone, and strongly powers the block below it, as Java's `DetectorRailBlock` does. A sculk shrieker shrieks for a player alone and a sculk sensor ignores the warden, and lava leaves the stacks in it to burn at Java's pace.
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`f60848b`](https://github.com/JSPrismarine/JSPrismarine/commit/f60848bcfa396c2070d18a7f9324e08b92b909e5), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`6365a56`](https://github.com/JSPrismarine/JSPrismarine/commit/6365a5628a161352be1466954f0fba67ebb555b9), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`f601458`](https://github.com/JSPrismarine/JSPrismarine/commit/f601458356766013707b4b0253ff534d73c8ce68), [`9c4bd38`](https://github.com/JSPrismarine/JSPrismarine/commit/9c4bd38bc8532b277ae4eea0b75923ad81993c05), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`8a41ef4`](https://github.com/JSPrismarine/JSPrismarine/commit/8a41ef432e4274717875eb8bf010cff00ef435ea), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4), [`905abae`](https://github.com/JSPrismarine/JSPrismarine/commit/905abaebe028a49444dbfd35dbf794fad9b2dc22), [`e515b52`](https://github.com/JSPrismarine/JSPrismarine/commit/e515b52206a0e9ce6223c860ab6bcb0da6483643)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/blocks@0.24.0
+  - @jsprismarine/items@0.24.0
+  - @jsprismarine/mapping@0.24.0
+  - @jsprismarine/content@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

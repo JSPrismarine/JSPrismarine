@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/server",
-    "version": "0.23.2",
+    "version": "0.24.0",
     "description": "The prismarine command line: runs the server in a host process, with a file watcher and the terminal console",
     "sideEffects": false,
     "publishConfig": {

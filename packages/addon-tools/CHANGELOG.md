@@ -1,5 +1,17 @@
 # @jsprismarine/addon-tools
 
+## 0.24.0
+
+### Minor Changes
+
+- [#3464](https://github.com/JSPrismarine/JSPrismarine/pull/3464) [`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a) Thanks [@filiphsps](https://github.com/filiphsps)! - `addon.json` takes optional listing keys for the addon marketplace: `title`, `tags` from a fixed list (`ADDON_TAGS`), `authors`, `screenshots` under `media/` with alt text, `deprecated` and `replacedBy`. `jsp-addon build` leaves `media/` out of the pack, checks that `pack_icon.png` is a square PNG, and writes the README, icon and screenshots beside each pack as `<name>-<version>.md`, `.png` and `-<n>.<type>`. Each new index entry gains a `listing` that links those files with their SHA-256; the schema stays version 1, since readers drop keys they do not know. A published version whose listing files changed fails the build with `PublishedListingChanged`, as a changed pack does. `--github-output` adds a `listing` output naming the new listing files, and `isAddonInstallId` and `isAddonRepository` check install ids and repositories.
+
+### Patch Changes
+
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/packs@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes
