@@ -560,7 +560,6 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       `packSettingChange` ([#3292](https://github.com/JSPrismarine/JSPrismarine/issues/3292)),
       `soundCompleted` ([#3293](https://github.com/JSPrismarine/JSPrismarine/issues/3293)),
       tripwires and target blocks ([#3294](https://github.com/JSPrismarine/JSPrismarine/issues/3294)),
-      input permissions ([#3295](https://github.com/JSPrismarine/JSPrismarine/issues/3295)),
       `entityUpgrade` ([#3296](https://github.com/JSPrismarine/JSPrismarine/issues/3296)) and the
       component hooks `onStepOff`, `onNamedTick`, `onNeighborChanged` and
       `onBeforeDurabilityDamage` ([#3297](https://github.com/JSPrismarine/JSPrismarine/issues/3297))

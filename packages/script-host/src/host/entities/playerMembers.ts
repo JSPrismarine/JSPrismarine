@@ -321,9 +321,16 @@ export const implementPlayerMembers = (implementations: ScriptApiImplementations
             const id = present(call, 'call', 'setPermissionCategory');
             const { locked } = stateOf(id);
             const category = Number(call.args[0]);
-            if (call.args[1] === true) locked.delete(category);
+            const enabled = call.args[1] === true;
+            // BDS raises the event in the next flush, and only for a category whose value changed.
+            if (enabled !== locked.has(category)) return undefined;
+            if (enabled) locked.delete(category);
             else locked.add(category);
             send(id, { kind: 'inputLocks', locked: [...locked].sort((a, b) => a - b) });
+            host.raise?.({
+                event: 'PlayerInputPermissionCategoryChangeAfterEvent',
+                fields: { category, enabled, player: { entity: { id, typeId: 'minecraft:player' } } }
+            });
             return undefined;
         });
 

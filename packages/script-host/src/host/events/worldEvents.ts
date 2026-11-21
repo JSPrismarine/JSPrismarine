@@ -35,8 +35,7 @@ const GAME_RULES: ReadonlyMap<string, string> = (() => {
  * world clocks, `worldClockOn*` and `StartupEvent.worldClockRegistry` (#3290); script-registered
  * dimensions, `StartupEvent.dimensionRegistry` (#3291); pack settings, `packSettingChange` (#3292);
  * a sound's length, `soundCompleted` (#3293); tripwire and target block redstone, `tripWireTrip`
- * and `targetBlockHit` (#3294); input permissions, `playerInputPermissionCategoryChange` (#3295);
- * entity upgrades, `entityUpgrade` (#3296); and the component hooks `onStepOff`, `onNamedTick`,
+ * and `targetBlockHit` (#3294); entity upgrades, `entityUpgrade` (#3296); and the component hooks `onStepOff`, `onNamedTick`,
  * `onNeighborChanged` and `onBeforeDurabilityDamage` (#3297).
  */
 
@@ -92,6 +91,7 @@ export const WORLD_EVENT_SIGNALS = [
     'PlayerEmoteAfterEventSignal',
     'PlayerButtonInputAfterEventSignal',
     'PlayerInputModeChangeAfterEventSignal',
+    'PlayerInputPermissionCategoryChangeAfterEventSignal',
     'ServerMessageAfterEventSignal',
     'PlayerCursorItemGrabAfterEventSignal',
     'PlayerCraftRecipeAfterEventSignal',
@@ -517,7 +517,16 @@ export const implementWorldEvents = (
         .implement(SERVER, 'WorldAfterEvents', 'playerInputModeChange', signal('PlayerInputModeChangeAfterEventSignal'))
         .implement(SERVER, 'PlayerInputModeChangeAfterEvent', 'player', field('player'))
         .implement(SERVER, 'PlayerInputModeChangeAfterEvent', 'newInputModeUsed', field('newInputModeUsed'))
-        .implement(SERVER, 'PlayerInputModeChangeAfterEvent', 'previousInputModeUsed', field('previousInputModeUsed'));
+        .implement(SERVER, 'PlayerInputModeChangeAfterEvent', 'previousInputModeUsed', field('previousInputModeUsed'))
+        .implement(
+            SERVER,
+            'WorldAfterEvents',
+            'playerInputPermissionCategoryChange',
+            signal('PlayerInputPermissionCategoryChangeAfterEventSignal')
+        )
+        .implement(SERVER, 'PlayerInputPermissionCategoryChangeAfterEvent', 'category', field('category'))
+        .implement(SERVER, 'PlayerInputPermissionCategoryChangeAfterEvent', 'enabled', field('enabled'))
+        .implement(SERVER, 'PlayerInputPermissionCategoryChangeAfterEvent', 'player', field('player'));
 
     implementations
         .implement(SERVER, 'WorldAfterEvents', 'pistonActivate', signal('PistonActivateAfterEventSignal'))

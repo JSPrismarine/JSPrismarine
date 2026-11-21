@@ -65,6 +65,7 @@ import type {
     ScriptDirection,
     ScriptVector3,
     ScriptEventSourceType,
+    ScriptGameEvent,
     ScriptItem,
     ScriptSpawnCause,
     ScriptWeather,
@@ -358,6 +359,11 @@ export interface PackHost {
      * a member runs, or undefined when the pack has not bound the module. The caller frees it.
      */
     readonly serverExport?: (name: string) => ScriptValue | undefined;
+    /**
+     * Queues an after-event the scripts themselves caused, such as a change of a player's input
+     * permissions, for the next script flush, beside the ones the world commits.
+     */
+    readonly raise?: (event: ScriptGameEvent) => void;
 }
 
 /** Whether a value is a generator object, as `system.runJob` takes one. */

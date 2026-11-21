@@ -800,7 +800,8 @@ export class WorldScripts {
             serverExport: (name) => {
                 const namespace = self().api.namespace(SERVER_MODULE);
                 return namespace === undefined ? undefined : engine.get(namespace, name);
-            }
+            },
+            raise: (event) => void this.lifecycleEvents.push({ type: 'game', ...event })
         } satisfies PackHost);
         // Made in the pack's context, so the API's classes and errors belong to the pack's realm
         // and no two packs share a prototype.
