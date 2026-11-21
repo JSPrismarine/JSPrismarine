@@ -324,6 +324,41 @@ jobs:
               # Every file, not only the ones the pull request changed: `pnpm run lint` checks those.
               run: pnpm run lint:all
 
+            # The docs check converts the packages for the API reference and stages the parity
+            # tracker, the docs build's two slow steps. It reuses the docs build's per-package API
+            # projects, and keeps tracker inputs of its own: this job has no real data yet, so its
+            # tracker reports rows as not measured that the published one measures.
+            - name: Hash what the docs check reads
+              id: docs_inputs
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+              working-directory: tools/docs
+              run: |
+                  api="$(node --import tsx build-cache-cli.mts key api)"
+                  tracker="$(node --import tsx build-cache-cli.mts key tracker)"
+                  { echo "api=$api"; echo "tracker=$tracker"; } >> "$GITHUB_OUTPUT"
+
+            - name: Cache each package's API project
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: tools/docs/site/.vitepress/cache/api
+                  key: ${{ runner.os }}-docs-api-packages-${{ steps.docs_inputs.outputs.api }}
+                  restore-keys: |
+                      ${{ runner.os }}-docs-api-packages-
+
+            - name: Cache the docs check's parity tracker
+              if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      packages/parity/dist/tracker.json
+                      packages/parity/dist/tracker.inputs
+                      packages/parity/dist/inputs
+                      packages/parity/dist/inputs.commit
+                  key: ${{ runner.os }}-docs-check-parity-tracker-${{ steps.docs_inputs.outputs.tracker }}
+                  restore-keys: |
+                      ${{ runner.os }}-docs-check-parity-tracker-
+
             - name: 📖 Validate docs
               id: docs
               if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
