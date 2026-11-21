@@ -348,6 +348,16 @@ Thrown as `PrismarineGenerationErrors.MansionMarkerWithoutRotation`, which exten
 A woodland mansion template marker was run without its rotation. This is a bug in world
 generation; report it with the stack trace.
 
+## `PRISMARINE_MISSING_CELL_BIOME`
+
+`The tile's biome cells have no biome for cell {quartX}, {quartY}, {quartZ}`
+
+Thrown as `PrismarineGenerationErrors.MissingCellBiome`, which extends `Error`.
+
+A terrain tile's biome cells have no biome for a cell of their own chunk, so the chunk's
+biome sections cannot be packed from them. This is a bug in world generation; report it with
+the stack trace.
+
 ## `PRISMARINE_MISSING_FEATURE_TILE`
 
 `A feature view needs every terrain tile in its three by three window.`
