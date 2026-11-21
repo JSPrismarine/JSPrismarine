@@ -8,11 +8,13 @@
  */
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import type { SectionBlock } from '@jsprismarine/protocol/java/packet/play';
+import type { JavaItemStack, SectionBlock } from '@jsprismarine/protocol/java/packet/play';
 import {
     AddEntity,
     BlockUpdate,
     CHANGE_GAME_MODE,
+    ContainerSetContent,
+    ContainerSetSlot,
     GameEvent,
     PlayerInfoAction,
     PlayerInfoAdd,
@@ -20,6 +22,7 @@ import {
     RemoveEntities,
     RotateHead,
     SectionBlocksUpdate,
+    SetHeldSlot,
     SynchronizePlayerPosition,
     SystemChat,
     TeleportEntity
@@ -31,16 +34,37 @@ import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type {
     SessionPresenter,
     ShownBlockChange,
+    ShownContainer,
     ShownEntityMove,
+    ShownInventory,
     ShownMessage,
-    ShownMove
+    ShownMove,
+    ShownStack
 } from '../presenter/SessionPresenter';
 import type { ShownEntity } from '../../world/ShownActor';
 import type { EditionTranslation } from './editionTranslation';
-import { javaBlockTranslation, javaEntityTranslation } from './editionTranslation';
+import { javaBlockTranslation, javaEntityTranslation, javaItemTranslation } from './editionTranslation';
 
 /** A UUID for an entity that has none of its own to show, made from its id so it stays the same. */
 const entityUuidOf = (runtimeId: bigint): string => hyphenatedUuid(runtimeId.toString(16).padStart(32, '0'));
+
+/** The player's own inventory window, which the client always has. */
+const INVENTORY_WINDOW = 0;
+
+/** The slots of the player's inventory window: the crafting result, its grid, armor, the inventory and the off hand. */
+const WINDOW_SLOTS = 46;
+
+/**
+ * Where a slot of the player's containers sits in its Java inventory window: armor from 5, head
+ * first, the 27 slots above the hotbar from 9, the hotbar from 36, and the off hand at 45.
+ * @param container - The container.
+ * @param slot - The slot within it, numbered as the server numbers it.
+ */
+export const javaWindowSlotOf = (container: ShownContainer, slot: number): number => {
+    if (container === 'armor') return 5 + slot;
+    if (container === 'offhand') return 45;
+    return slot < 9 ? 36 + slot : slot;
+};
 
 /** Sends one Java packet to the session's client. */
 export type JavaSend = <T>(definition: JavaPacketDefinition<T>, value: T) => void;
@@ -99,12 +123,26 @@ export class JavaPresenter implements SessionPresenter {
      * @param send - Sends to the session's client.
      * @param ownRuntimeId - The session's own player, whose moves its client is told.
      * @param blocks - Bedrock runtime ids to Java state ids, which every Java session can share.
+     * @param items - Bedrock item identifiers to Java item ids, which every Java session can share.
      */
     public constructor(
         private readonly send: JavaSend,
         private readonly ownRuntimeId: bigint,
-        private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation()
+        private readonly blocks: EditionTranslation<number, number> = javaBlockTranslation(),
+        private readonly items: EditionTranslation<string, number | undefined> = javaItemTranslation()
     ) {}
+
+    /**
+     * The window's state id, which the client echoes with each click so the server can tell a click
+     * made on a stale screen. Moved on with every change the server sends.
+     */
+    private stateId = 0;
+
+    /** A stack in Java's terms; an item Java has nothing for shows as an empty slot. */
+    private javaStackOf(stack: ShownStack | null): JavaItemStack | null {
+        const item = stack === null ? undefined : this.items.toJava(stack.name);
+        return stack === null || item === undefined ? null : { item, count: stack.count };
+    }
 
     /** Not shown yet: the time of day comes with the world state slice, PR 10. */
     public async sendTime(): Promise<void> {}
@@ -241,6 +279,26 @@ export class JavaPresenter implements SessionPresenter {
                 });
             } else this.send(SectionBlocksUpdate, { section: { x: section.x, y: section.y, z: section.z }, blocks });
         }
+    }
+
+    /** Sends the inventory window's whole content, then the hotbar slot the hand holds. */
+    public async showInventory({ inventory, armor, offhand, handSlot }: ShownInventory): Promise<void> {
+        const items = new Array<JavaItemStack | null>(WINDOW_SLOTS).fill(null);
+        inventory.forEach((stack, slot) => (items[javaWindowSlotOf('inventory', slot)] = this.javaStackOf(stack)));
+        armor.forEach((stack, slot) => (items[javaWindowSlotOf('armor', slot)] = this.javaStackOf(stack)));
+        items[javaWindowSlotOf('offhand', 0)] = this.javaStackOf(offhand);
+        this.send(ContainerSetContent, { window: INVENTORY_WINDOW, stateId: ++this.stateId, items, carried: null });
+        this.send(SetHeldSlot, { slot: handSlot });
+    }
+
+    /** Sends one slot of the inventory window. */
+    public async showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void> {
+        this.send(ContainerSetSlot, {
+            window: INVENTORY_WINDOW,
+            stateId: ++this.stateId,
+            slot: javaWindowSlotOf(container, slot),
+            item: this.javaStackOf(stack)
+        });
     }
 
     /** Sends `System Chat Message` with the message as Java text; see {@link javaTextOf}. */

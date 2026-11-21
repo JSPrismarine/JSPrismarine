@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
-import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
+import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
@@ -103,6 +103,37 @@ describe('JavaPresenter', () => {
                 }
             }
         ]);
+    });
+
+    it('fills the inventory window from the containers, translating items, and tells the client its held slot', async () => {
+        const { sent, java } = presenter();
+        const stone = { name: 'minecraft:stone', count: 64 };
+        const inventory = new Array(36).fill(null);
+        inventory[0] = stone;
+        inventory[9] = { name: 'minecraft:web', count: 2 };
+        inventory[10] = { name: 'minecraft:not_an_item', count: 1 };
+
+        await java.showInventory({
+            inventory,
+            armor: [{ name: 'minecraft:iron_helmet', count: 1 }, null, null, null],
+            offhand: stone,
+            handSlot: 4
+        });
+        await java.showOwnSlot('inventory', 1, null);
+
+        const [content, held, slot] = sent;
+        const window = new Array(46).fill(null);
+        window[36] = { item: ITEMS.idOf('minecraft:stone'), count: 64 };
+        window[9] = { item: ITEMS.idOf('minecraft:cobweb'), count: 2 };
+        // An item Java has nothing for, in slot 10, shows as an empty slot.
+        window[5] = { item: ITEMS.idOf('minecraft:iron_helmet'), count: 1 };
+        window[45] = { item: ITEMS.idOf('minecraft:stone'), count: 64 };
+        expect(content).toEqual({
+            name: 'Set Container Content',
+            value: { window: 0, stateId: 1, items: window, carried: null }
+        });
+        expect(held).toEqual({ name: 'Set Held Item', value: { slot: 4 } });
+        expect(slot).toMatchObject({ name: 'Set Container Slot', value: { window: 0, slot: 37, item: null } });
     });
 
     it("tells the client its game mode in Java's numbers", async () => {

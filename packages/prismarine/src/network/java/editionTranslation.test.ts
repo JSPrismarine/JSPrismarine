@@ -1,6 +1,6 @@
 import { BEDROCK_ONLY_BLOCKS } from '@jsprismarine/mapping';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
-import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
+import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
@@ -10,7 +10,8 @@ import {
     JAVA_BIOMES,
     javaBiomeTranslation,
     javaBlockTranslation,
-    javaEntityTranslation
+    javaEntityTranslation,
+    javaItemTranslation
 } from './editionTranslation';
 
 describe('javaBlockTranslation', () => {
@@ -66,6 +67,27 @@ describe('javaEntityTranslation', () => {
             expect(entities.toBedrock(java)).toBe(type);
         }
         expect(entities.toJava('minecraft:agent')).toBeUndefined();
+    });
+});
+
+describe('javaItemTranslation', () => {
+    const items = javaItemTranslation();
+
+    it('turns a Bedrock item into the Java item it comes from, and back, renamed ones too', () => {
+        expect(items.toJava('minecraft:stone')).toBe(ITEMS.idOf('minecraft:stone'));
+        expect(items.toJava('minecraft:web')).toBe(ITEMS.idOf('minecraft:cobweb'));
+        expect(items.toBedrock(ITEMS.idOf('minecraft:cobweb'))).toBe('minecraft:web');
+    });
+
+    it('prefers the Java item under the same name over others that map onto it', () => {
+        // Java's cobblestone stairs are Bedrock's stone stairs, and Java's own stone stairs are not.
+        expect(items.toBedrock(ITEMS.idOf('minecraft:cobblestone_stairs'))).toBe('minecraft:stone_stairs');
+        expect(items.toJava('minecraft:stone_stairs')).toBe(ITEMS.idOf('minecraft:cobblestone_stairs'));
+    });
+
+    it('shows nothing for an item Java lacks, and air for an id it never sent', () => {
+        expect(items.toJava('minecraft:not_an_item')).toBeUndefined();
+        expect(items.toBedrock(-1)).toBe('minecraft:air');
     });
 });
 

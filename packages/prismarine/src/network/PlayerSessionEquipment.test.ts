@@ -25,6 +25,7 @@ import { SyncedProperties } from '@jsprismarine/protocol/bedrock/wire/structures
 import { firstSightPackets } from './replica/firstSight';
 import type { FirstSight } from './replica/firstSight';
 import type ClientConnection from './ClientConnection';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import InventoryContentPacket from '@jsprismarine/protocol/bedrock/packet/InventoryContentPacket';
 import type { ProtocolCodec } from '@jsprismarine/protocol';
@@ -71,6 +72,7 @@ const sessionFor = (player: SessionPlayer) => {
 
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
+        presenter: new BedrockPresenter(connection),
         ...sessionPlayerFields(player, player.getRuntimeId())
     });
 

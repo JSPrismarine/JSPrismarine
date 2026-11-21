@@ -12,11 +12,12 @@ import {
     bedrockBlockStateToJava,
     javaBlockStateToBedrock,
     javaEntityTypeToBedrock,
-    javaIdentifierToBedrock
+    javaIdentifierToBedrock,
+    javaItemToBedrock
 } from '@jsprismarine/mapping';
 import { BLOCK_STATES } from '@jsprismarine/protocol/java/versions/26.3/blockStates';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
-import { ENTITY_TYPES } from '@jsprismarine/protocol/java/versions/26.3/registries';
+import { ENTITY_TYPES, ITEMS } from '@jsprismarine/protocol/java/versions/26.3/registries';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 
@@ -137,6 +138,38 @@ export const javaEntityTranslation = (): EditionTranslation<string, number | und
             const name = javaId === undefined ? undefined : ENTITY_TYPES.nameOf(javaId);
             const mapped = name === undefined ? undefined : javaEntityTypeToBedrock(name);
             return mapped?.kind === 'mapped' || mapped?.kind === 'passthrough' ? mapped.bedrock : '';
+        }
+    });
+};
+
+/**
+ * Items: a Bedrock identifier and a Java item's network id, or undefined for an item no Java item
+ * shows as. As with entity types, the inverse is the forward mapping read over the whole registry
+ * once, where an item Java has under the same identifier wins over the others that map onto it. A
+ * Java item the mapping lists as a loss becomes the Bedrock fallback the loss names.
+ * @returns The translation, cached.
+ */
+export const javaItemTranslation = (): EditionTranslation<string, number | undefined> => {
+    let byBedrock: Map<string, number> | undefined;
+    const bedrockOf = (javaName: string): string | undefined => {
+        const mapped = javaItemToBedrock(javaName);
+        return mapped.kind === 'unknown' ? undefined : mapped.bedrock.identifier;
+    };
+    const inverse = (): Map<string, number> => {
+        if (byBedrock !== undefined) return byBedrock;
+        byBedrock = new Map();
+        for (let id = 0; id < ITEMS.size; id++) {
+            const name = ITEMS.nameOf(id)!;
+            const bedrock = bedrockOf(name);
+            if (bedrock !== undefined && (bedrock === name || !byBedrock.has(bedrock))) byBedrock.set(bedrock, id);
+        }
+        return byBedrock;
+    };
+    return cachedTranslation({
+        toJava: (bedrock) => inverse().get(bedrock) ?? ITEMS.idOf(bedrock),
+        toBedrock: (javaId) => {
+            const name = javaId === undefined ? undefined : ITEMS.nameOf(javaId);
+            return (name === undefined ? undefined : bedrockOf(name)) ?? 'minecraft:air';
         }
     });
 };

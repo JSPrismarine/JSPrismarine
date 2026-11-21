@@ -86,6 +86,26 @@ export interface ShownBlockChange {
     readonly runtimeId: number;
 }
 
+/** A stack as plain data: the item's Bedrock identifier and how many. */
+export interface ShownStack {
+    readonly name: string;
+    readonly count: number;
+}
+
+/** The containers of a player's own inventory that a client shows. */
+export type ShownContainer = 'inventory' | 'armor' | 'offhand';
+
+/** A player's own inventory as plain stacks, an empty slot null. */
+export interface ShownInventory {
+    /** The inventory's 36 slots: the hotbar's 9, then the 27 above it. */
+    readonly inventory: readonly (ShownStack | null)[];
+    /** Head, chest, legs and feet. */
+    readonly armor: readonly (ShownStack | null)[];
+    readonly offhand: ShownStack | null;
+    /** The hotbar slot the hand holds, 0 to 8. */
+    readonly handSlot: number;
+}
+
 /** The outbound contract of one session. */
 export interface SessionPresenter {
     /**
@@ -181,6 +201,23 @@ export interface SessionPresenter {
      * @param changes - This tick's changes to the blocks in the client's view, in the order made.
      */
     showBlocks(changes: readonly ShownBlockChange[]): Promise<void>;
+
+    /**
+     * Shows the player its whole inventory, for a client the session's Bedrock sends do not reach.
+     *
+     * @param inventory - What the player carries.
+     */
+    showInventory(inventory: ShownInventory): Promise<void>;
+
+    /**
+     * Shows the player what one of its own slots holds now, for a client the session's Bedrock
+     * sends do not reach.
+     *
+     * @param container - The container.
+     * @param slot - The slot within it.
+     * @param stack - What it holds, or null.
+     */
+    showOwnSlot(container: ShownContainer, slot: number, stack: ShownStack | null): Promise<void>;
 
     /**
      * Gives a joining client the whole player list.

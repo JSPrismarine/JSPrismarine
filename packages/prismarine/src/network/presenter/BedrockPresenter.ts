@@ -124,6 +124,12 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends nothing: a Bedrock client's block changes go in the replicator's shared batches. */
     public async showBlocks(): Promise<void> {}
 
+    /** Sends nothing: the session sends a Bedrock client its inventory, with the stack ids it names stacks by. */
+    public async showInventory(): Promise<void> {}
+
+    /** Sends nothing: the session sends a Bedrock client its slots, with the stack ids it names stacks by. */
+    public async showOwnSlot(): Promise<void> {}
+
     /** Sends one `PlayerList` Add with every entry. */
     public async sendPlayerList(players: readonly ListedPlayer[]): Promise<void> {
         await this.connection.sendDataPacket(playerListAddOf(players));

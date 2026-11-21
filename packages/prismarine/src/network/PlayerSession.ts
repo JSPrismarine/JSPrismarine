@@ -136,6 +136,7 @@ import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPack
 import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from './presenter/BedrockPresenter';
 import type { MoveMode, SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
+import { shownInventoryOf, shownStackOf } from './presenter/shownInventory';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
@@ -1671,6 +1672,8 @@ export default class PlayerSession {
     public sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
         const player = this.own();
         const inventory = player.getInventory();
+        // A client of another edition is handed plain stacks, which its presenter encodes.
+        if (this.presenter.edition !== 'bedrock') return this.presenter.showInventory(shownInventoryOf(inventory));
         const context = this.connection.codec.context;
         // Every stack goes out with the id the client will name it by in its requests.
         inventory.assignStackNetworkIds();
@@ -1750,6 +1753,13 @@ export default class PlayerSession {
         if (named === undefined || window === undefined) return allSent([]);
 
         const inventory = this.own().getInventory();
+        if (this.presenter.edition !== 'bedrock') {
+            const item = inventory.slotItem(named, slot);
+            if (item === undefined || (named !== 'inventory' && named !== 'armor' && named !== 'offhand')) {
+                return allSent([]);
+            }
+            return this.presenter.showOwnSlot(named, slot, shownStackOf(item));
+        }
         inventory.assignStackNetworkIds();
         const item = inventory.slotItem(named, slot);
         if (item === undefined) return allSent([]);
