@@ -263,7 +263,20 @@ jobs:
                           --title "$PACKAGE_NAME library $hash" \
                           --notes "Builds of $PACKAGE_NAME's native library from native sources $hash. Packages download them at install; their manifest records each file's SHA-256."
                   fi
-                  gh release upload "$tag" artifacts/*-"$NATIVE_LIBRARY".* --clobber
+                  # A file the release holds stays: a manifest, and a published package, may already
+                  # name its SHA-256, and the Windows and macOS builds differ from one run to the next.
+                  # A run that started before the manifest pointed at these sources builds them again.
+                  published="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+                  for file in artifacts/*-"$NATIVE_LIBRARY".*; do
+                      name="${file##*/}"
+                      if grep -qxF "$name" <<< "$published"; then
+                          echo "$name: keeping the build the release already holds."
+                      else
+                          gh release upload "$tag" "$file"
+                      fi
+                  done
+                  # The manifest describes the files the release serves, which may be another run's.
+                  gh release download "$tag" --pattern "*-$NATIVE_LIBRARY.*" --dir artifacts --clobber
 
             - name: 📝 Commit the manifest
               if: ${{ steps.sources.outputs.publish == 'true' }}
