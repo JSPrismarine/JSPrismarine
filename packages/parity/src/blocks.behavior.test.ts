@@ -826,6 +826,38 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'pillar-axis',
+        java: "A log, pillar or other rotated pillar placed against a face lies along that face's axis.",
+        reference: 'Java RotatedPillarBlock.getStateForPlacement',
+        subjects: () =>
+            Object.keys(blocksTable.blocks)
+                .filter((javaId) => javaBlockIsA(javaId, 'RotatedPillarBlock'))
+                .flatMap((javaId) => subjectOf(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            for (const [face, axis] of [
+                ['up', 'y'],
+                ['down', 'y'],
+                ['east', 'x'],
+                ['west', 'x'],
+                ['north', 'z'],
+                ['south', 'z']
+            ] as const) {
+                const java = javaBlockStateToBedrock(subject.javaId, { axis });
+                if (java.kind !== 'mapped') return `Java's ${axis} axis maps to no Bedrock state`;
+                const harness = bind(subject);
+                harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+                harness.place(ORIGIN, { face });
+                const placed = harness.block(ORIGIN).states;
+                const differs = Object.entries(java.bedrock.states).find(([name, value]) => placed[name] !== value);
+                if (differs !== undefined) {
+                    return `placed against ${face} its ${differs[0]} is ${String(placed[differs[0]])}, Java's ${axis} axis is ${String(differs[1])}`;
+                }
+            }
+            return undefined;
+        }
+    },
+    {
         name: 'observer-pulse-delay',
         java: 'An observer schedules its pulse two game ticks after the block in front of it changes.',
         reference: 'Java ObserverBlock.updateShape and startSignal (2 ticks)',
@@ -914,7 +946,8 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'breaking-drops-loot': ['drops'],
     'observer-pulse-delay': ['neighbor-update'],
     'torch-inversion-delay': ['neighbor-update'],
-    'lamp-off-delay': ['neighbor-update', 'scheduled-tick']
+    'lamp-off-delay': ['neighbor-update', 'scheduled-tick'],
+    'pillar-axis': ['placement']
 };
 
 const scenarios: readonly BehaviorScenario<BlockSubject>[] = blockScenarios.map((scenario) => {

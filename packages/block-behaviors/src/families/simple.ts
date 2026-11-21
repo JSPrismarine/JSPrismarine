@@ -5,8 +5,7 @@
  */
 import { defineFamily } from '../family';
 import { hasSilkTouch } from '../rules/heldItem';
-import { placementAxis } from '../rules/placement';
-import { bareName, hasState, setStates } from '../state';
+import { bareName } from '../state';
 import type { ItemDrop } from '../world';
 import { dropAll, dropSelf } from './shared';
 
@@ -86,14 +85,8 @@ export const glassFamily = defineFamily(
 /** Logs, stems and the other blocks placed along an axis. */
 export const logFamily = defineFamily(
     'jsprismarine:log',
-    'Takes pillar_axis from the face the placement was made against, falling back to the placer, and drops itself.',
+    'Drops itself; its pillar_axis comes from the face it was placed against, as every pillar block takes it.',
     {
-        onPlace: (event, world) => {
-            if (!hasState(event.block, 'pillar_axis')) return;
-            const axis = placementAxis(event);
-            if (axis === undefined) return;
-            setStates(world, event.block, { pillar_axis: axis });
-        },
         onBreak: (event, world) => {
             dropSelf(world, event.brokenBlock);
         }

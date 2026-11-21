@@ -30,6 +30,8 @@ import type { Behavior, BindContext, Definition } from '@jsprismarine/content';
 import type { BlockProperties, BlockWorld, WorldActions } from './world';
 import { DEFAULT_BLOCK_PROPERTIES } from './world';
 import { isRecord } from './isRecord';
+import { placementAxis } from './rules/placement';
+import { hasState, setStates } from './state';
 
 /** What a family handler knows about the block type it was built for. */
 export interface FamilyContext {
@@ -153,7 +155,15 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
         beforeOnPlayerPlace
     } = handlers;
 
-    if (onPlace !== undefined) bound.onPlace = (event) => onPlace(event, actions(event), context);
+    // Java's `RotatedPillarBlock` lies along the axis of the face it was placed against, whatever
+    // else the block does, so every block with a `pillar_axis` takes it here before its family:
+    // basalt, deepslate, bone blocks, chains and froglights as well as the logs.
+    bound.onPlace = (event) => {
+        const world = actions(event);
+        const axis = hasState(event.block, 'pillar_axis') ? placementAxis(event) : undefined;
+        if (axis !== undefined) setStates(world, event.block, { pillar_axis: axis });
+        onPlace?.(event, world, context);
+    };
     if (onBreak !== undefined) bound.onBreak = (event) => onBreak(event, actions(event), context);
     if (onNeighborChanged !== undefined) {
         bound.onNeighborChanged = (event) => onNeighborChanged(event, actions(event), context);
@@ -182,6 +192,7 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
 /** Turns a family into the behavior `BehaviorRegistry.register` takes. */
 export const familyBehavior = (family: BlockFamily, world: BlockWorld): Behavior<BlockHooks> => ({
     name: family.name,
-    hooks: familyHooks(family),
+    // Every family places, for the pillar axis `bindHandlers` gives any block that has one.
+    hooks: BLOCK_HOOK_NAMES.filter((hook) => hook === 'onPlace' || family.handlers[hook] !== undefined),
     create: (bind) => bindHandlers(family.handlers, familyContextOf(bind, world))
 });

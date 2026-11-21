@@ -106,6 +106,17 @@ describe('logFamily', () => {
     });
 });
 
+describe('a pillar block outside the log family', () => {
+    it("takes its axis from the clicked face as Java's RotatedPillarBlock does", () => {
+        const harness = bindFamily(plainBlockFamily, 'minecraft:basalt');
+        harness.dimension.set(position, 'minecraft:basalt', { pillar_axis: 'y' });
+
+        harness.place(position, { face: 'east' });
+
+        expect(harness.dimension.stateAt(position, 'pillar_axis')).toBe('x');
+    });
+});
+
 describe('oreFamily', () => {
     it('drops the ore item and its experience', () => {
         const harness = bindFamily(oreFamily, 'minecraft:diamond_ore');

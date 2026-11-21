@@ -197,6 +197,10 @@ portal, a frame and a fire are.
 `@jsprismarine/blocks` sends to it, which matches `vanilla_overlay/report.json`. `registry.test.ts`
 fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot go stale.
 
+Every family also places: a block with a `pillar_axis` state lies along the axis of the face it was
+placed against before its family's own `onPlace` runs, as Java's `RotatedPillarBlock` does, so
+basalt, deepslate, bone blocks, chains and froglights turn like logs whatever family they are in.
+
 | Family | Blocks | Hooks | What it does |
 | --- | --- | --- | --- |
 | `plain_block` | 199 | onBreak | A full cube that proposes itself as a drop; the content break host applies the correct-tool rule. |
@@ -206,7 +210,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `double_slab` | 93 | onBreak, onRandomTick, onPlayerInteract | Drops two of the slab it is made of, waxes and scrapes, and oxidizes when it is copper. |
 | `copper` | 84 | onBreak, onRandomTick, onPlayerInteract, onRedstoneUpdate | Waxes with honeycomb, scrapes with an axe, and oxidizes a stage per random tick at the isolated-block rate. |
 | `bamboo` | 54 | onBreak, onNeighborChanged, onRandomTick, onTick | Grows a stalk upward to its height limit, takes every block above with it when it breaks, and kills coral that is not in water. |
-| `log` | 48 | onPlace, onBreak | Takes pillar_axis from the face the placement was made against, falling back to the placer, and drops itself. |
+| `log` | 48 | onBreak | Drops itself; its pillar_axis comes from the face it was placed against, as every pillar block takes it. |
 | `utility` | 47 | onPlace, onBreak, onNeighborChanged, onTick, onStepOn, onEntityFallOn | Counts a beacon pyramid, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime. |
 | `flora` | 47 | onBreak, onNeighborChanged, onStepOn | Pops without soil below, keeps the two halves of a tall plant together, and marks an entity that walks into a wither rose. The effect itself is the entity runtime. |
 | `sign` | 39 | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a wall sign whose backing block goes. |
