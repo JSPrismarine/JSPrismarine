@@ -161,22 +161,6 @@ jobs:
               if: ${{ always() && steps.plan.outputs.publish == 'true' && steps.plan.outputs.pending == 'true' }}
               run: mv -t .changeset "$RUNNER_TEMP"/changesets/*.md
 
-            - name: 🤝 Create or Update Release Pull Request
-              if: ${{ steps.plan.outputs.pr == 'true' }}
-              uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
-              with:
-                  # No publish script, so the action publishes nothing, even if it reads no
-                  # changesets where the check above found one.
-                  version-script: pnpm run version
-                  push-with-git-cli: true
-                  commit-message: |
-                      chore(changeset): release packages
-
-                      Congratulations on the new release! 🎉
-                      This is an automated commit triggered by the `release` workflow.
-                  pr-title: 🚀 Release packages
-                  github-token: ${{ secrets.MACHINE_USER }}
-
             # A release only: the unstable and nightly builds stay on npm. It does not block the
             # executables below when GitHub Packages is down; the step's error shows on the run, and
             # `publish-github-packages.mjs` skips versions that are already there, so it can be rerun.
@@ -223,6 +207,27 @@ jobs:
                   # Rebuild Prismarine after the snapshot version change so its schema URLs match the published package.
                   pnpm --filter @jsprismarine/prismarine run build
                   pnpm run release:unstable
+
+            # Last, since it leaves the checkout on the release branch with the next versions written:
+            # the steps above read the release commit's packages, and GitHub Packages publishes them
+            # from this tree. The action resets the branch to this run's commit before versioning, so
+            # the unstable release's snapshot versions do not reach it. A failed release step above
+            # still leaves the pull request to refresh.
+            - name: 🤝 Create or Update Release Pull Request
+              if: ${{ !cancelled() && steps.plan.outputs.pr == 'true' }}
+              uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+              with:
+                  # No publish script, so the action publishes nothing, even if it reads no
+                  # changesets where the check above found one.
+                  version-script: pnpm run version
+                  push-with-git-cli: true
+                  commit-message: |
+                      chore(changeset): release packages
+
+                      Congratulations on the new release! 🎉
+                      This is an automated commit triggered by the `release` workflow.
+                  pr-title: 🚀 Release packages
+                  github-token: ${{ secrets.MACHINE_USER }}
 
     executables:
         name: 🗃️ Build standalone executables
