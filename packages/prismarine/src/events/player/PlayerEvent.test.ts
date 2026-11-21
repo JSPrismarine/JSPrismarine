@@ -16,7 +16,8 @@ describe('player events', () => {
         expect(event.getIdentity()).toEqual({
             name: 'EventTester',
             xuid: player.getXUID() ?? '',
-            uuid: player.getUUID().toString()
+            uuid: player.getUUID().toString(),
+            subject: player.getSubject()
         });
         expect(event.getGamemode()).toBe(1);
     });
