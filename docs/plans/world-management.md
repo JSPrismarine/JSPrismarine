@@ -90,13 +90,15 @@ Out of scope for now:
        out stays per level, and a level in no group shares nothing.
 10. [x] **Commands.** `/world list | create | attach | detach | tp`, with permissions nodes, and the
         console the same.
-11. [ ] **Script API.** `@jsprismarine/server` lists levels and moves a player between them, and
-        creates, attaches and detaches levels where the pack's permissions allow it.
+11. [x] **Script API.** `@jsprismarine/server` lists levels and moves a player between them, and
+        creates, attaches and detaches levels.
 12. [ ] **Multiverse.** The addon in #3630 rebuilt on slices 10 and 11: its own file holds only
         per-world rules (alias, game mode, spawn, access), keyed by level UUID.
 
 ## Decided along the way
 
+- Every pack gets the whole of `levels`, as it gets the whole of `permissions`. Packs have no
+  permission model of their own: the owner installs an addon and trusts it with the server.
 - The registry is `levels.json`, beside `addons.json` in the server directory.
 - A level name is unique among attached levels only. Detached levels may share a name with each
   other and with an attached one, and are told apart by UUID.

@@ -14,6 +14,9 @@ import { isUuid } from '../utils/isUuid';
 /** The file's name, beside `config.json` and `addons.json`. */
 export const LEVELS_FILE_NAME = 'levels.json';
 
+/** The preset a level created while the server runs gets when its creator names none. */
+export const DEFAULT_CREATED_PRESET = 'minecraft:normal';
+
 /** The layout this server writes. */
 export const LEVELS_SCHEMA_VERSION = 1;
 

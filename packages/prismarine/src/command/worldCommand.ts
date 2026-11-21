@@ -13,6 +13,7 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
 import { SeedGenerator } from '../utils/Seed';
+import { DEFAULT_CREATED_PRESET } from '../world/LevelRegistry';
 import { transferToLevel } from '../world/levelTransfer';
 import { deferCommandWork } from './deferred';
 import { playerSessionOf, refuse, sessionsOf } from './host/support';
@@ -27,9 +28,6 @@ type WorldSubcommand = (typeof WORLD_SUBCOMMANDS)[number];
 
 /** The node that gates a subcommand. */
 export const worldSubcommandNode = (sub: WorldSubcommand): string => `${WORLD_COMMAND_PERMISSION}.${sub}`;
-
-/** The preset a level `/world create` makes gets when the command names none. */
-export const DEFAULT_CREATED_PRESET = 'minecraft:normal';
 
 const RAN = 1;
 const REFUSED = 0;

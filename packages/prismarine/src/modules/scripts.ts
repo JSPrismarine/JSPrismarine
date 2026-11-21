@@ -198,7 +198,7 @@ export const startLevelScripts = async (
             playerActions: levelPlayerActions(server, level),
             worldEvents: levelWorldEvents(server, level)
         },
-        members: scriptServerMembers(server),
+        members: scriptServerMembers(server, level),
         admin: scriptAdminServer(server),
         addonConfig: new AddonConfigFiles({ log: { warn: (message) => server.getLogger().warn(message) } }),
         maxPlayers: server.getConfig().getMaxPlayers(),

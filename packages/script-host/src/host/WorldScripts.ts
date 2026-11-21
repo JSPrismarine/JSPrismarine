@@ -55,6 +55,7 @@ import {
     JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS,
     JSPRISMARINE_PLACEHOLDERS_MODULE,
     jsprismarineServerSource,
+    LEVEL_HOST_FUNCTIONS,
     PERMISSION_HOST_FUNCTIONS,
     placeholdersModuleSource
 } from './jsprismarineServer';
@@ -287,6 +288,13 @@ interface LoadedPack {
     debugHost?: DebugPackHost;
 }
 
+/** A `levels` operation of `@jsprismarine/server` a pack started. */
+interface LevelCall {
+    readonly loaded: LoadedPack;
+    /** Settles the pack's promise: with an error message, or with the value as JSON. */
+    readonly settle: ScriptHandle;
+}
+
 /** A callback a pack subscribed to a signal. */
 interface Subscription {
     readonly signal: SignalName;
@@ -382,6 +390,14 @@ export class WorldScripts {
     private readonly forms = new ScriptForms<LoadedPack>(() => this.engine);
     /** The `@minecraft/server-net` requests the packs have in flight. */
     private readonly http = new ScriptHttp<LoadedPack>();
+    /**
+     * The `levels` operations the packs started, each with the function that settles its promise.
+     * One that finishes moves to {@link levelSettlements}; a reload or shutdown drops the rest.
+     */
+    private readonly levelCalls = new Set<LevelCall>();
+    /** The `levels` operations that finished, settled on the next flush in the order they finished. */
+    private readonly levelSettlements: { readonly call: LevelCall; readonly error?: string; readonly json?: string }[] =
+        [];
     /** The world's GameTests, which a reload clears. */
     private readonly gametests: GameTests<LoadedPack>;
     /** The ids of the simulated players GameTests spawned, whose objects are `SimulatedPlayer`s. */
@@ -576,6 +592,7 @@ export class WorldScripts {
         this.refreshClock();
         this.settleForms();
         this.settleRequests();
+        this.settleLevelCalls();
         for (const loaded of this.loaded) if (loaded.lifecycle === 1) this.runJobs(loaded);
         // The GameTest runner and its simulated players go first, as BDS ticks them before the
         // scripts' tasks: a test's function and its delays run ahead of every system task.
@@ -710,6 +727,10 @@ export class WorldScripts {
         // A reload or shutdown settles no open form: the contexts that would see it go with it.
         this.forms.clear();
         this.http.clear(this.options.world.http);
+        // A level operation still running finishes on the server, but its promise never settles.
+        for (const call of this.levelCalls) this.engine.free(call.settle);
+        for (const { call } of this.levelSettlements.splice(0)) this.engine.free(call.settle);
+        this.levelCalls.clear();
         // The world stops drawing what the runtime's shapes drew, since nothing can remove them after.
         this.drawDebugShapes(this.loaded.flatMap((loaded) => loaded.debug?.clear() ?? []));
         // A bar belongs to the scripts that showed it, so it goes with them, as does a name they set.
@@ -1132,7 +1153,8 @@ export class WorldScripts {
                     loaded.configEventMaker = engine.duplicate(maker);
                     return undefined;
                 },
-                ...this.permissionFunctions(loaded, (value, member) => this.playerArgument(loaded, value, member))
+                ...this.permissionFunctions(loaded, (value, member) => this.playerArgument(loaded, value, member)),
+                ...this.levelFunctions(loaded, members, (value, member) => this.playerArgument(loaded, value, member))
             };
         const permissions = members.permissions;
         const configFunctions: readonly string[] = JSPRISMARINE_CONFIG_FUNCTIONS;
@@ -1141,6 +1163,8 @@ export class WorldScripts {
             if (store === undefined && configFunctions.includes(name)) continue;
             // Without the permission files, the module leaves `permissions` out, so its functions are not installed.
             if (permissions === undefined && (PERMISSION_HOST_FUNCTIONS as readonly string[]).includes(name)) continue;
+            // Without level management, the module leaves `levels` out in the same way.
+            if (members.levels === undefined && (LEVEL_HOST_FUNCTIONS as readonly string[]).includes(name)) continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
@@ -1438,6 +1462,93 @@ export class WorldScripts {
                 return undefined;
             }
         };
+    }
+
+    /** The host functions behind `levels` of `@jsprismarine/server`, for one pack. */
+    private levelFunctions(
+        loaded: LoadedPack,
+        members: JsprismarineServerMembers,
+        playerOf: (value: ScriptValue, member: string) => FormPlayer
+    ): Record<(typeof LEVEL_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> {
+        const engine = this.engine;
+        const levels = () => {
+            if (members.levels === undefined) throw new ScriptHostErrors.JspMemberUnavailable({ member: 'levels' });
+            return members.levels;
+        };
+        const text = (value: ScriptValue, member: string, argument: string): string => {
+            if (typeof value !== 'string')
+                throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a string', argument });
+            return value;
+        };
+        const optionalText = (value: ScriptValue, member: string, argument: string): string | undefined =>
+            value === undefined ? undefined : text(value, member, argument);
+        /**
+         * Starts an operation whose promise the pack's module made, keeping the function that
+         * settles it until the operation finishes.
+         */
+        const start = (settle: ScriptValue, operation: () => Promise<unknown>): undefined => {
+            if (!(settle instanceof ScriptHandle)) return undefined;
+            const call: LevelCall = { loaded, settle: engine.duplicate(settle) };
+            this.levelCalls.add(call);
+            const finish = (outcome: { readonly error?: string; readonly json?: string }) => {
+                // A reload or shutdown freed the function and dropped the call.
+                if (!this.levelCalls.delete(call)) return;
+                this.levelSettlements.push({ call, ...outcome });
+            };
+            operation().then(
+                (value) => finish(value === undefined ? {} : { json: JSON.stringify(value) }),
+                (error: unknown) => finish({ error: error instanceof Error ? error.message : String(error) })
+            );
+            return undefined;
+        };
+        return {
+            levels: () => JSON.stringify(levels().list()),
+            currentLevel: () => JSON.stringify(levels().current()),
+            levelOf: (value) => {
+                const player = playerOf(value, 'levels.levelOf');
+                const level = player.present ? levels().levelOf(player.id) : undefined;
+                if (level === undefined)
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'levels.levelOf',
+                        expected: 'a Player who is online',
+                        argument: 'player'
+                    });
+                return JSON.stringify(level);
+            },
+            transferPlayer: (value, level, toSpawn, settle) => {
+                const member = 'levels.transfer';
+                const player = playerOf(value, member);
+                const name = text(level, member, 'level');
+                return start(settle, () =>
+                    player.present ? levels().transfer(player.id, name, toSpawn === true) : Promise.resolve(false)
+                );
+            },
+            createLevel: (name, preset, seed, settle) => {
+                const member = 'levels.create';
+                const levelName = text(name, member, 'name');
+                const presetName = optionalText(preset, member, 'preset');
+                const seedText = optionalText(seed, member, 'seed');
+                return start(settle, () => levels().create(levelName, presetName, seedText));
+            },
+            attachLevel: (level, settle) => {
+                const name = text(level, 'levels.attach', 'level');
+                return start(settle, () => levels().attach(name));
+            },
+            detachLevel: (level, settle) => {
+                const name = text(level, 'levels.detach', 'level');
+                return start(settle, () => levels().detach(name));
+            }
+        };
+    }
+
+    /** Settles the promises of the `levels` operations that finished since the last flush, in each pack's context. */
+    private settleLevelCalls(): void {
+        for (const { call, error, json } of this.levelSettlements.splice(0)) {
+            this.engine.inContext(call.loaded.context, () =>
+                this.guarded(call.loaded, () => void this.engine.call(call.settle, undefined, error, json))
+            );
+            this.engine.free(call.settle);
+        }
     }
 
     /**

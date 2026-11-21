@@ -64,6 +64,36 @@ export interface ScriptPermissionMembers {
     onChange(listener: (change: ScriptPermissionsChange) => void): () => void;
 }
 
+/** One level, as `levels` in `@jsprismarine/server` gives it. */
+export interface ScriptLevelInfo {
+    readonly id: string;
+    readonly name: string;
+    readonly attached: boolean;
+    /** Whether players join the server in it. */
+    readonly entry: boolean;
+    /** The names of the players in it. */
+    readonly players: readonly string[];
+}
+
+/**
+ * What `levels` in `@jsprismarine/server` reads and changes of the server's levels, for the
+ * runtime of one level. A level is named by its name or its UUID, and players by their entity ids.
+ * The operations that take a while answer a promise, which rejects with a message for a script.
+ */
+export interface ScriptLevelMembers {
+    /** The level the runtime's packs run in. */
+    current(): ScriptLevelInfo;
+    /** Every level, the attached ones first. */
+    list(): readonly ScriptLevelInfo[];
+    /** The level a player is in, or undefined for a player who left. */
+    levelOf(player: string): ScriptLevelInfo | undefined;
+    /** Moves a player to an attached level. @returns Whether the move landed. */
+    transfer(player: string, level: string, toSpawn: boolean): Promise<boolean>;
+    create(name: string, preset: string | undefined, seed: string | undefined): Promise<ScriptLevelInfo>;
+    attach(level: string): Promise<ScriptLevelInfo>;
+    detach(level: string): Promise<void>;
+}
+
 /**
  * What `@jsprismarine/server`'s members that reach the running server read and show. Players are
  * named by their entity ids, as `ScriptWorld.players` lists them. Boss bars are named by an id
@@ -72,6 +102,8 @@ export interface ScriptPermissionMembers {
 export interface JsprismarineServerMembers {
     /** The permission files. Without it the module leaves `permissions` out, as an older server would. */
     readonly permissions?: ScriptPermissionMembers;
+    /** The server's levels. Without it the module leaves `levels` out. */
+    readonly levels?: ScriptLevelMembers;
     /** How fast the server ticks right now. */
     performance(): ScriptPerformance;
     /** A player's round trip time in milliseconds, or undefined while there is no sample. */

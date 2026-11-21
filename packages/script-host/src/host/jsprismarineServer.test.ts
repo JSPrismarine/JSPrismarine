@@ -14,6 +14,15 @@ import {
 
 const info = { version: '1.2.3', minecraftVersion: '1.26.50', protocolVersion: 2193, maxPlayers: 20 };
 
+const lobby = { id: '11111111-1111-4111-8111-111111111111', name: 'lobby', attached: true, entry: true, players: [] };
+const arena = {
+    id: '22222222-2222-4222-8222-222222222222',
+    name: 'arena',
+    attached: true,
+    entry: false,
+    players: ['Steve']
+};
+
 /** A host whose functions record each call and answer from fixed values. */
 const recordingHost = () => {
     const calls: unknown[][] = [];
@@ -51,7 +60,14 @@ const recordingHost = () => {
         revokeFromGroup: record('revokeFromGroup', () => undefined),
         addToGroup: record('addToGroup', () => undefined),
         removeFromGroup: record('removeFromGroup', () => undefined),
-        onPermissionsChange: record('onPermissionsChange', () => undefined)
+        onPermissionsChange: record('onPermissionsChange', () => undefined),
+        levels: record('levels', () => JSON.stringify([lobby, { ...arena, attached: false }])),
+        currentLevel: record('currentLevel', () => JSON.stringify(lobby)),
+        levelOf: record('levelOf', () => JSON.stringify(arena)),
+        transferPlayer: record('transferPlayer', () => undefined),
+        createLevel: record('createLevel', () => undefined),
+        attachLevel: record('attachLevel', () => undefined),
+        detachLevel: record('detachLevel', () => undefined)
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     const placeholdersHost = {
         register: record('register', () => 3),
@@ -183,6 +199,61 @@ describe('@jsprismarine/server', () => {
 
         expect('permissions' in namespace).toBe(false);
         expect('bossBars' in namespace).toBe(true);
+    });
+
+    it('reads levels through the host as frozen values, and settles an operation when the host calls back', async () => {
+        const { host, calls } = recordingHost();
+        const levels = namespaceOf(host).levels;
+        const player = { id: '7' };
+
+        expect(at(levels, 'current')).toEqual(lobby);
+        expect(Object.isFrozen(at(levels, 'current'))).toBe(true);
+        const list = at(levels, 'list');
+        const levelOf = at(levels, 'levelOf');
+        const transfer = at(levels, 'transfer');
+        const create = at(levels, 'create');
+        const detach = at(levels, 'detach');
+        if (
+            typeof list !== 'function' ||
+            typeof levelOf !== 'function' ||
+            typeof transfer !== 'function' ||
+            typeof create !== 'function' ||
+            typeof detach !== 'function'
+        )
+            throw new TypeError('levels lacks a method');
+        const listed: unknown = list();
+        expect(listed).toEqual([lobby, { ...arena, attached: false }]);
+        expect(Object.isFrozen(at(listed, '0'))).toBe(true);
+        expect(levelOf(player)).toEqual(arena);
+
+        const moved: unknown = transfer(player, 'arena', { toSpawn: true });
+        const made: unknown = create('skyblock', { preset: 'minecraft:flat' });
+        const refused: unknown = detach('lobby');
+        const settle = (name: string, ...outcome: unknown[]) => {
+            const call = calls.find(([called]) => called === name);
+            const callback = call?.at(-1);
+            if (typeof callback !== 'function') throw new TypeError(`${name} handed the host no callback`);
+            callback(...outcome);
+            return call?.slice(1, -1);
+        };
+        expect(settle('transferPlayer', undefined, 'true')).toEqual([player, 'arena', true]);
+        expect(settle('createLevel', undefined, JSON.stringify(arena))).toEqual([
+            'skyblock',
+            'minecraft:flat',
+            undefined
+        ]);
+        settle('detachLevel', 'Level lobby is the level players join first, so it cannot be detached');
+
+        await expect(moved).resolves.toBe(true);
+        await expect(made).resolves.toEqual(arena);
+        await expect(refused).rejects.toThrow('cannot be detached');
+    });
+
+    it('leaves levels out of a namespace whose host has no level functions', () => {
+        const { host } = recordingHost();
+        const { levels: _levels, ...without } = host;
+
+        expect('levels' in namespaceOf(without)).toBe(false);
     });
 
     it('makes only the fixed values and the ones the server supplied without a host', () => {

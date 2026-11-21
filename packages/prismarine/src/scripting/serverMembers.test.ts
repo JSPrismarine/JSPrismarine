@@ -17,7 +17,17 @@ import type SessionManager from '../SessionManager';
 import { testKernel } from '../testing/kernel.test.helper';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { ScriptBossBarScreens, scriptPermissionMembers, scriptServerMembers } from './serverMembers';
+import type { WorldData } from '../config/JsonConfigTypes';
+import type { World } from '../world/World';
+import type { Level } from '../world/Level';
+import { DEFAULT_CREATED_PRESET } from '../world/LevelRegistry';
+import type WorldManager from '../world/WorldManager';
+import {
+    ScriptBossBarScreens,
+    scriptLevelMembers,
+    scriptPermissionMembers,
+    scriptServerMembers
+} from './serverMembers';
 
 /** A joined player's session that records the boss events it is sent and the sends it was handed. */
 const viewer = (runtimeId: bigint, roundTripTime?: number) => {
@@ -178,7 +188,7 @@ describe('scriptServerMembers', () => {
         });
 
     it("reads the ticker's figures each time", () => {
-        expect(scriptServerMembers(server([])).performance()).toEqual({
+        expect(scriptServerMembers(server([]), stub<Level>()).performance()).toEqual({
             tps: 18.75,
             tpsAverages: [19.9, 19.5, 19],
             lastTickMs: 61,
@@ -187,14 +197,14 @@ describe('scriptServerMembers', () => {
     });
 
     it("gives a player's round trip time from their connection, and undefined without one", () => {
-        const members = scriptServerMembers(server([viewer(9n, 23.5).session, viewer(10n).session]));
+        const members = scriptServerMembers(server([viewer(9n, 23.5).session, viewer(10n).session]), stub<Level>());
 
         expect([members.ping('9'), members.ping('10'), members.ping('11')]).toEqual([23.5, undefined, undefined]);
     });
 
     it('renames the player list entry of the player it names, and gives it back, through their session', () => {
         const steve = viewer(9n);
-        const members = scriptServerMembers(server([steve.session]));
+        const members = scriptServerMembers(server([steve.session]), stub<Level>());
 
         members.setPlayerListName('9', '§aSteve');
         members.resetPlayerListName('9');
@@ -206,7 +216,7 @@ describe('scriptServerMembers', () => {
 
     it("puts a script's bar on the screen of the player it names", async () => {
         const steve = viewer(9n);
-        const members = scriptServerMembers(server([steve.session]));
+        const members = scriptServerMembers(server([steve.session]), stub<Level>());
 
         members.showBossBar('9', 1, { text: 'TPS: 20', progress: 1, color: 'yellow' });
         members.updateBossBar('9', 1, { text: 'TPS: 20', progress: 0.5, color: 'yellow' });
@@ -313,5 +323,73 @@ describe('scriptPermissionMembers', () => {
             { target: { group: 'vip' } },
             {}
         ]);
+    });
+});
+
+describe('scriptLevelMembers', () => {
+    const lobby = stub<Level>({ id: '11111111-1111-4111-8111-111111111111', name: 'lobby' });
+    const arena = stub<Level>({ id: '22222222-2222-4222-8222-222222222222', name: 'arena' });
+    const archive = {
+        id: '33333333-3333-4333-8333-333333333333',
+        name: 'archive',
+        folder: 'archive',
+        state: 'detached' as const,
+        world: { seed: 1 }
+    };
+    const steve = stub<PlayerSession>({
+        identity: identityNamed('Steve', '00000000-0000-0000-0000-000000000007'),
+        getWorld: () => stub<World>({ getLevel: () => arena })
+    });
+
+    const members = (created: Array<{ name: string; world: WorldData }> = []) =>
+        scriptLevelMembers(
+            stub<Server>({
+                getSessionManager: () => stub<SessionManager>({ getSessions: () => [steve] }),
+                getWorldManager: () =>
+                    stub<WorldManager>({
+                        getEntryLevel: () => lobby,
+                        getLevels: () => [lobby, arena],
+                        getLevel: (name: string) => [lobby, arena].find((level) => level.name === name),
+                        getLevelById: (id: string) => [lobby, arena].find((level) => level.id === id),
+                        getRegisteredLevels: () => [
+                            { ...arena, folder: 'arena', state: 'attached', world: { seed: 1 } },
+                            archive
+                        ],
+                        createLevel: async (name: string, world: WorldData) => {
+                            created.push({ name, world });
+                            return stub<Level>({ id: '44444444-4444-4444-8444-444444444444', name });
+                        }
+                    })
+            }),
+            arena,
+            (player) => (player === '7' ? steve : undefined)
+        );
+
+    it('lists the attached levels with their players, then the detached ones the registry keeps, once each', () => {
+        expect(members().list()).toEqual([
+            { id: lobby.id, name: 'lobby', attached: true, entry: true, players: [] },
+            { id: arena.id, name: 'arena', attached: true, entry: false, players: ['Steve'] },
+            { id: archive.id, name: 'archive', attached: false, entry: false, players: [] }
+        ]);
+    });
+
+    it("answers the runtime's level and the level a player is in", () => {
+        expect(members().current().name).toBe('arena');
+        expect(members().levelOf('7')?.name).toBe('arena');
+        expect(members().levelOf('8')).toBeUndefined();
+    });
+
+    it('refuses to move a player to a level that is not attached, by name or UUID', async () => {
+        await expect(members().transfer('7', 'archive', false)).rejects.toThrow('archive');
+        await expect(members().transfer('7', archive.id, false)).rejects.toThrow(archive.id);
+    });
+
+    it('creates a level with the default preset and a seed of its own when the pack names neither', async () => {
+        const created: Array<{ name: string; world: WorldData }> = [];
+        const made = await members(created).create('skyblock', undefined, undefined);
+
+        expect(made).toMatchObject({ name: 'skyblock', attached: true, entry: false });
+        expect(created[0]?.world.preset).toBe(DEFAULT_CREATED_PRESET);
+        expect(String(created[0]?.world.seed)).toMatch(/^-?\d+$/);
     });
 });

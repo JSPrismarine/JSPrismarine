@@ -45,7 +45,7 @@ import {
     ADDON_TAGS
 } from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
-import { DEFAULT_CREATED_PRESET } from '../../packages/prismarine/src/command/worldCommand.ts';
+import { DEFAULT_CREATED_PRESET } from '../../packages/prismarine/src/world/LevelRegistry.ts';
 import { PLAYER_DATA_PARTS } from '../../packages/prismarine/src/world/playerDataGroups.ts';
 import {
     ADDON_SOURCE_ENTRIES,
