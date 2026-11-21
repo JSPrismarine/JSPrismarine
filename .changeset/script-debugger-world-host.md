@@ -1,5 +1,0 @@
----
-'@jsprismarine/prismarine': patch
----
-
-The VS Code script debugger now attaches to the default level's behavior pack scripts. `config.json` takes Bedrock Dedicated Server's debugger properties under their names and defaults, all optional and off: `allow-inbound-script-debugging`, `allow-outbound-script-debugging`, `force-inbound-debug-port`, `script-debugger-listen-address`, `script-debugger-auto-attach`, `script-debugger-auto-attach-connect-address`, `script-debugger-auto-attach-timeout` and `script-debugger-passcode`. A listener on an address other than loopback needs the passcode. `/script debugger listen <port>`, `/script debugger connect [host] [port]` and `/script debugger close`, with `detach` as an alias, print BDS's lines, and `listen` takes no port once `force-inbound-debug-port` is set. Auto-attach runs before the scripts start, so a breakpoint on a pack's first line stops it. A script stopped at a breakpoint holds its level's tick until VS Code resumes it. A server constructed with the new `replay` option never opens the debugger's socket.

@@ -1,5 +1,15 @@
 # @jsprismarine/recipes
 
+## 0.23.0
+
+### Minor Changes
+
+- [#3270](https://github.com/JSPrismarine/JSPrismarine/pull/3270) [`5d2fb0e`](https://github.com/JSPrismarine/JSPrismarine/commit/5d2fb0eb3730e59260a09e60c130e57e5fdb099c) Thanks [@filiphsps](https://github.com/filiphsps)! - Replace the `"./*"` pattern in each export map with an entry for each module another package or the docs import, as ADR 0010 asks. A deep import of any other module no longer resolves. Import it from the package root, or ask for the module to be exported.
+
+### Patch Changes
+
+- [#3288](https://github.com/JSPrismarine/JSPrismarine/pull/3288) [`a56f916`](https://github.com/JSPrismarine/JSPrismarine/commit/a56f9160bbb5769e4c596b78073dc931517e6497) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the `unhandledJavaTypes` module, the reviewed list of Java recipe serializers the package has no handler for. A test checks it against the pinned Java registry report.
+
 ## 0.22.0
 
 No changes in this release.

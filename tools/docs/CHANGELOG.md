@@ -1,5 +1,11 @@
 # @jsprismarine/docs
 
+## 0.23.0
+
+### Patch Changes
+
+- [#3082](https://github.com/JSPrismarine/JSPrismarine/pull/3082) [`4cca28f`](https://github.com/JSPrismarine/JSPrismarine/commit/4cca28fe6d566f55986bc7d7e4fee6f4431acf95) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency focus-trap to v8.2.5
+
 ## 0.22.0
 
 No changes in this release.

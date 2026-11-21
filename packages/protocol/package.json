@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/protocol",
-    "version": "0.22.0",
+    "version": "0.23.0",
     "description": "Minecraft: Bedrock Edition packets: classes, wire layouts, version gates and payload builders, for a server or a client",
     "sideEffects": false,
     "publishConfig": {

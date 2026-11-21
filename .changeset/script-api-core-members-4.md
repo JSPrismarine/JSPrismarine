@@ -1,7 +1,0 @@
----
-'@jsprismarine/script-host': minor
----
-
-Implement the fourth batch of `@minecraft/server` members the add-on corpus uses most. `world.structureManager` copies a volume of the world into a structure, reads and writes its blocks, places it by id or object, turned or flipped, saves it under another id, lists and deletes structures. A player's `minecraft:equippable` component reads and writes what they wear and hold, an entity's `minecraft:health`, `minecraft:movement` and other attribute components read and write the attribute, and `Container.getSlot` and `EntityEquippableComponent.getEquipmentSlot` return a `ContainerSlot` that reads and writes the stack in place. `Entity.hasComponent` answers for every component the host has. `DimensionTypes` and `EffectTypes` list the types the world has, `Effect.isValid` turns false once the effect is gone, and `Player.spawnParticle` shows a particle to one player. `world.beforeEvents.playerInteractWithBlock` and `playerInteractWithEntity` can cancel a player's click, and their after-events report the clicks that went on. The GameTest `Test.spawn` spawns an entity in a test's structure. Values and errors follow the pinned Bedrock Dedicated Server, as the `structures` and `entity-components` parity scenarios recorded.
-
-`ScriptWorld` gains optional `structures`, `equipment`, `setEquipment`, `attribute`, `setAttribute`, `effectTypes`, `guardBlockInteract` and `guardEntityInteract` members, `spawnParticle` an optional player, and `ScriptWorldEvent` the `playerInteractWithBlock` and `playerInteractWithEntity` events.
