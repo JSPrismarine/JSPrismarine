@@ -51,14 +51,17 @@ export interface DimensionType {
 }
 
 /**
- * The first id a dimension type without a Bedrock overlay gets. A `Level` hands them out from
- * here in stem order.
+ * The first id a dimension type without a Bedrock overlay gets. A save's `DimensionNumbers` hands
+ * them out from here and keeps each one.
  */
 export const FIRST_CUSTOM_DIMENSION_ID = 1000;
 
 /** The floor and ceiling the Bedrock client accepts for a dimension it was told about. */
 const BEDROCK_MIN_Y = -512;
 const BEDROCK_MAX_Y = 512;
+
+/** Whether a Java `dimension_type` id is custom: one the Bedrock overlay does not list, which takes a number of its own. */
+export const isCustomDimensionType = (javaId: string): boolean => bedrockDimensionOverlay(javaId) === undefined;
 
 /**
  * Joins a parsed Java `dimension_type` with its Bedrock overlay.

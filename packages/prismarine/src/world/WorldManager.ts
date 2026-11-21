@@ -20,6 +20,7 @@ import { Level } from './Level';
 import type { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 import type { WorldGenSettings } from './WorldPersistence';
+import type { SavedDimensionNumbers } from './DimensionNumbers';
 
 import LevelDB from './providers/leveldb/LevelDB';
 
@@ -63,6 +64,8 @@ interface SavedLevel {
     readonly worldGenSettings?: WorldGenSettings;
     /** The level's UUID, or undefined for a save written before levels had one. */
     readonly levelId?: string;
+    /** The custom dimension numbers, or undefined for a save written before it kept them. */
+    readonly dimensionNumbers?: SavedDimensionNumbers;
 }
 
 /**
@@ -218,7 +221,8 @@ export default class WorldManager implements Service {
         await enabling;
         // A save keeps the stems it was generated with from its first load on, so a later config
         // edit is compared against them rather than silently regenerating different terrain.
-        if (firstLoad) await level.saveLevelData();
+        // So are the numbers of the custom dimensions, which the next start has to find again.
+        if (firstLoad || level.hasUnsavedDimensionNumbers()) await level.saveLevelData();
         this.server
             .getLogger()
             .verbose(`Level §b${level.name}§r loaded with ${[...level.getStems().keys()].join(', ')}`);
@@ -300,6 +304,7 @@ export default class WorldManager implements Service {
         const level = new Level({
             // A save from before levels had a UUID gets one now, which its first load writes.
             id: saved.levelId ?? randomUUID(),
+            ...(saved.dimensionNumbers === undefined ? {} : { dimensionNumbers: saved.dimensionNumbers }),
             name: folderName,
             path: levelPath,
             server: this.server,
@@ -348,7 +353,8 @@ export default class WorldManager implements Service {
             const data = await provider.readWorldData();
             return {
                 ...(data?.worldGenSettings === undefined ? {} : { worldGenSettings: data.worldGenSettings }),
-                ...(data?.levelId === undefined ? {} : { levelId: data.levelId })
+                ...(data?.levelId === undefined ? {} : { levelId: data.levelId }),
+                ...(data?.dimensionNumbers === undefined ? {} : { dimensionNumbers: data.dimensionNumbers })
             };
         } finally {
             await provider.disable();

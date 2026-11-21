@@ -325,10 +325,15 @@ without the old chunk. It compares no other blocks.
 
 ## Custom dimension types
 
-A stem whose type has no row in the Bedrock overlay is a custom dimension. The level hands such
-types Bedrock ids from 1000 upward in stem order, keeps the Java id as the name the client and the
-content runtime see, and clamps the Java bounds into the -512 to 512 range the client accepts.
-Because the client has no built-in dimension for the id, the join sends a `DimensionData` packet
+A stem whose type has no row in the Bedrock overlay is a custom dimension. Each one gets a UUID
+and a Bedrock id from 1000 upward, and the save keeps both, so a dimension has the same id at every
+start, whatever order the config, a datapack or a script names it in, and no other dimension ever
+takes an id once given
+([ADR 0029](../adr/0029-worlds-are-levels-the-server-manages.md)). A save from before the table
+existed gets its ids in stem order on its next start, which are the ids it had. The level keeps
+the Java id as the name the client and the content runtime see, and clamps the Java bounds into
+the -512 to 512 range the client accepts. Because the client has no built-in dimension for the id,
+the join sends a `DimensionData` packet
 right after `StartGame` and before any chunk, with one entry per custom type: the bounds, the id,
 a generator type of `Void` (the client generates nothing for a dimension a server feeds it), the
 stem's fixed or flat biome as the default biome and `minecraft:plains` otherwise, and at protocol

@@ -30,7 +30,9 @@ import { replayInputFingerprint, serializeReplayInitialStateManifest } from '../
 import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile } from '../config/JsonFile';
-import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './DimensionType';
+import { Dimensions, dimensionTypeOf, isCustomDimensionType } from './DimensionType';
+import { DimensionNumbers } from './DimensionNumbers';
+import type { SavedDimensionNumbers } from './DimensionNumbers';
 import { voidStem } from './generators/factories/void';
 import type { DimensionType } from './DimensionType';
 import GameRuleManager, { GameRules } from './GameRuleManager';
@@ -114,12 +116,14 @@ export interface LevelOptions {
     readonly stems: ReadonlyMap<string, LevelStem>;
     /**
      * The Java `dimension_type` definitions the stems may name, keyed by type id. The level
-     * resolves each one a stem uses into a {@link DimensionType}, handing out Bedrock ids from
-     * {@link FIRST_CUSTOM_DIMENSION_ID} to the types the overlay does not list.
+     * resolves each one a stem uses into a {@link DimensionType}, giving each type the overlay does
+     * not list the Bedrock number the save keeps for it; see {@link DimensionNumbers}.
      */
     readonly dimensionTypes: ReadonlyMap<string, DimensionTypeDefinition>;
     /** When each stem's world is built, by dimension id. A stem left out is `lazy`. */
     readonly load?: ReadonlyMap<string, DimensionLoad>;
+    /** The custom dimension numbers the save keeps, or undefined for a save from before it kept them. */
+    readonly dimensionNumbers?: SavedDimensionNumbers;
     /** The generator kinds this server can build a stem with. */
     readonly factories: GeneratorFactories;
     /**
@@ -191,6 +195,8 @@ export class Level {
     /** Every stem: the config's and the save's, then the ones scripts registered, in that order. */
     private readonly stems: Map<string, LevelStem>;
     private readonly dimensionTypes: Map<string, DimensionType>;
+    /** The Bedrock number of each custom dimension, which the save keeps; see {@link DimensionNumbers}. */
+    private readonly dimensionNumbers: DimensionNumbers;
     /**
      * The stems scripts registered, which the save leaves out: the scripts register them again
      * each time the level opens, and their types are in no datapack the next start reads.
@@ -313,7 +319,10 @@ export class Level {
                 overworldStemId: OVERWORLD_STEM_ID
             });
         }
-        this.dimensionTypes = new Map(Level.resolveDimensionTypes(this.name, this.stems, options.dimensionTypes));
+        this.dimensionNumbers = new DimensionNumbers(options.dimensionNumbers);
+        this.dimensionTypes = new Map(
+            Level.resolveDimensionTypes(this.name, this.stems, options.dimensionTypes, this.dimensionNumbers)
+        );
 
         // A rule set after this point goes out to everyone in every world of the level, the
         // same route the clock takes. The worlds are read when the rule changes, not now, so
@@ -357,11 +366,11 @@ export class Level {
     private static resolveDimensionTypes(
         name: string,
         stems: ReadonlyMap<string, LevelStem>,
-        definitions: ReadonlyMap<string, DimensionTypeDefinition>
+        definitions: ReadonlyMap<string, DimensionTypeDefinition>,
+        numbers: DimensionNumbers
     ): ReadonlyMap<string, DimensionType> {
         const resolved = new Map<string, DimensionType>();
         const boundBy = new Map<string, string>();
-        let nextCustomId = FIRST_CUSTOM_DIMENSION_ID;
 
         for (const [id, stem] of stems) {
             const earlier = boundBy.get(stem.type);
@@ -380,8 +389,9 @@ export class Level {
                 throw new PrismarineWorldErrors.UnknownDimensionType({ id, name, type: stem.type });
             }
 
-            const type = dimensionTypeOf(definition, stem.type, nextCustomId);
-            if (type.custom) nextCustomId++;
+            const type = isCustomDimensionType(stem.type)
+                ? dimensionTypeOf(definition, stem.type, numbers.numberOf(stem.type))
+                : dimensionTypeOf(definition, stem.type);
             resolved.set(stem.type, type);
         }
 
@@ -406,12 +416,18 @@ export class Level {
     public registerScriptDimension(typeId: string): 'registered' | 'new-after-reload' {
         if ([...this.stems.values()].some((stem) => stem.type === typeId)) return 'registered';
         if (this.scriptDimensionsSealed) return 'new-after-reload';
-        const customIds = [...this.dimensionTypes.values()].filter((type) => type.custom).map((type) => type.bedrockId);
-        const nextId = Math.max(FIRST_CUSTOM_DIMENSION_ID - 1, ...customIds) + 1;
-        this.dimensionTypes.set(typeId, dimensionTypeOf(Dimensions.Overworld.java, typeId, nextId));
+        this.dimensionTypes.set(
+            typeId,
+            dimensionTypeOf(Dimensions.Overworld.java, typeId, this.dimensionNumbers.numberOf(typeId))
+        );
         this.stems.set(typeId, voidStem(typeId));
         this.scriptStems.add(typeId);
         return 'registered';
+    }
+
+    /** Whether a custom dimension got a number the save does not hold yet, which the next save writes. */
+    public hasUnsavedDimensionNumbers(): boolean {
+        return this.dimensionNumbers.isChanged();
     }
 
     /** Ends the registration of script dimensions, once the level's first scripts have started. */
@@ -686,8 +702,8 @@ export class Level {
      * The `DimensionDefinition` of every custom dimension, for `DimensionDataPacket`.
      *
      * A dimension type the Bedrock overlay does not list is one the client has never heard
-     * of, so it has to be told the bounds and the id the level chose, from
-     * {@link FIRST_CUSTOM_DIMENSION_ID} in stem order. The generator type is `Void`, as
+     * of, so it has to be told the bounds and the number the save keeps for it
+     * ({@link DimensionNumbers}). The generator type is `Void`, as
      * Dragonfly sends it: the client generates nothing for a dimension a server feeds it.
      *
      * @returns One entry per custom dimension type, in stem order; empty for a vanilla level.
@@ -1216,6 +1232,7 @@ export class Level {
                 // back the last area removed.
                 tickingAreas: this.tickingAreas?.all() ?? [...this.storedTickingAreas],
                 scriptSettings: this.scriptSettings.saved(),
+                dimensionNumbers: this.dimensionNumbers.saved(),
                 clockPaused: this.isDayTimePaused()
             },
             levelDat: {

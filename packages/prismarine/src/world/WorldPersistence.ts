@@ -14,6 +14,8 @@ import type { SavedWeather } from './Weather';
 import { savedWeatherOf } from './Weather';
 import { isRecord } from '../utils/isRecord';
 import { isUuid } from '../utils/isUuid';
+import type { SavedDimensionNumber, SavedDimensionNumbers } from './DimensionNumbers';
+import { FIRST_CUSTOM_DIMENSION_ID } from './DimensionType';
 import type { SavedScriptSettings } from './LevelScriptSettings';
 import { savedScriptSettingsOf } from './LevelScriptSettings';
 import type { TickingArea } from './TickingAreas';
@@ -100,6 +102,8 @@ export type SavedRaid = RaidRecord;
 export interface WorldPersistenceData {
     /** The level's UUID, its identity whatever it is named; see `Level.id`. */
     levelId?: string;
+    /** Each custom dimension's type and Bedrock number, by its UUID; see `DimensionNumbers`. */
+    dimensionNumbers?: SavedDimensionNumbers;
     spawn?: { x: number; y: number; z: number };
     gameRules?: Array<[string, [boolean | number, boolean]]>;
     weather?: SavedWeather;
@@ -133,6 +137,7 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
 
     const levelId = isUuid(value['levelId']) ? value['levelId'].toLowerCase() : undefined;
     const spawn = spawnOf(value['spawn']);
+    const dimensionNumbers = dimensionNumbersOf(value['dimensionNumbers']);
     const gameRules = gameRulesOf(value['gameRules']);
     const weather = savedWeatherOf(value['weather']);
     const entities = entitiesOf(value['entities']);
@@ -145,6 +150,7 @@ export const worldPersistenceDataOf = (value: unknown): WorldPersistenceData => 
 
     return {
         ...(levelId === undefined ? {} : { levelId }),
+        ...(dimensionNumbers === undefined ? {} : { dimensionNumbers }),
         ...(spawn === undefined ? {} : { spawn }),
         ...(gameRules === undefined ? {} : { gameRules }),
         ...(weather === undefined ? {} : { weather }),
@@ -391,6 +397,28 @@ const raidsOf = (value: unknown): SavedRaid[] | undefined => {
     if (!Array.isArray(value)) return undefined;
     const raids = value.flatMap((entry) => raidOf(entry) ?? []);
     return raids.length === 0 ? undefined : raids;
+};
+
+/**
+ * The custom dimension numbers a save keeps. An entry whose key is no UUID, whose type is no
+ * string, whose number is below the first custom one, or whose type or number an earlier entry
+ * has, is dropped: two dimensions of one number would write over each other's chunks.
+ */
+const dimensionNumbersOf = (value: unknown): SavedDimensionNumbers | undefined => {
+    if (!isRecord(value)) return undefined;
+    const kept: Record<string, SavedDimensionNumber> = {};
+    const types = new Set<string>();
+    const ids = new Set<number>();
+    for (const [uuid, entry] of Object.entries(value)) {
+        if (!isUuid(uuid) || !isRecord(entry)) continue;
+        const { type, id } = entry;
+        if (typeof type !== 'string' || typeof id !== 'number' || !Number.isSafeInteger(id)) continue;
+        if (id < FIRST_CUSTOM_DIMENSION_ID || types.has(type) || ids.has(id)) continue;
+        types.add(type);
+        ids.add(id);
+        kept[uuid.toLowerCase()] = { type, id };
+    }
+    return kept;
 };
 
 const isRespawnStage = (value: unknown): value is DragonRespawnStage =>
