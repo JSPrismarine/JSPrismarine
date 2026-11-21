@@ -3,11 +3,14 @@
  *
  * ```
  * node scripts/dashboard.ts                                   # runs the suite, then renders
+ * node scripts/dashboard.ts --changed <commit>                # runs what changed since <commit>
  * node scripts/dashboard.ts --update <dir>... [--base <dir>] [--save-inputs <dir>]
  * ```
  *
  * Without options the script runs the parity suite with the Vitest JSON reporter, the way local
- * use does. With `--update` it reads what earlier runs wrote instead (see
+ * use does, and keeps its inputs in `dist/inputs`. With `--changed` it runs only the files the
+ * changes since `<commit>` reach, overlays them on the inputs `dist/inputs` already holds, which
+ * have to be that commit's, and keeps the result there. With `--update` it reads what earlier runs wrote instead (see
  * `src/dashboard/inputs.ts`): each directory holds one CI shard's `report.json`, `progress.jsonl`
  * and `cases/`. `--base` names the base commit's complete inputs, which the shards' files overlay,
  * since a shard runs only the files its changes reach. `--save-inputs` keeps the complete inputs
@@ -71,6 +74,7 @@ const { values } = parseArgs({
     args: process.argv.slice(2).filter((argument) => argument !== '--'),
     options: {
         base: { type: 'string' },
+        changed: { type: 'string' },
         update: { type: 'string', multiple: true },
         'save-inputs': { type: 'string' }
     }
@@ -78,19 +82,32 @@ const { values } = parseArgs({
 
 mkdirSync(join(packageRoot, 'dist'), { recursive: true });
 
-/** Runs the suite and writes its inputs where `readInputs` finds them. */
-const runSuite = (): string => {
-    const directory = join(packageRoot, 'dist', 'inputs');
+const inputsDirectory = join(packageRoot, 'dist', 'inputs');
+
+/**
+ * Runs the suite, or the files the changes since `changed` reach, and writes its inputs to a fresh
+ * `directory` where `readInputs` finds them.
+ */
+const runSuite = (directory: string, changed?: string): string => {
     rmSync(directory, { recursive: true, force: true });
     mkdirSync(directory, { recursive: true });
     const progressPath = join(directory, 'progress.jsonl');
     writeFileSync(progressPath, '');
     const reportPath = join(directory, 'report.json');
-    const run = spawnSync('pnpm', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${reportPath}`], {
-        cwd: packageRoot,
-        env: { ...process.env, PARITY_PROGRESS_FILE: progressPath, PARITY_CASES_DIRECTORY: join(directory, 'cases') },
-        stdio: ['ignore', 'ignore', 'inherit']
-    });
+    const selection = changed === undefined ? [] : [`--changed=${changed}`, '--passWithNoTests'];
+    const run = spawnSync(
+        'pnpm',
+        ['exec', 'vitest', 'run', ...selection, '--reporter=json', `--outputFile=${reportPath}`],
+        {
+            cwd: packageRoot,
+            env: {
+                ...process.env,
+                PARITY_PROGRESS_FILE: progressPath,
+                PARITY_CASES_DIRECTORY: join(directory, 'cases')
+            },
+            stdio: ['ignore', 'ignore', 'inherit']
+        }
+    );
     if (!existsSync(reportPath)) {
         console.error(`vitest produced no JSON report at ${reportPath} (exit status ${run.status}).`);
         process.exit(1);
@@ -99,7 +116,17 @@ const runSuite = (): string => {
 };
 
 const inputs: DashboardInputs = (() => {
-    if (values.update === undefined) return readInputs(runSuite());
+    if (values.changed !== undefined) {
+        const base = readInputs(inputsDirectory);
+        const update = readInputs(runSuite(join(packageRoot, 'dist', 'changed'), values.changed));
+        const result = overlayInputs(base, update, (file) => existsSync(join(repositoryRoot, file)));
+        writeInputs(inputsDirectory, result);
+        console.error(
+            `${update.report.testResults.length} files changed since ${values.changed}, over ${base.report.testResults.length} from its run: ${result.report.testResults.length} files.`
+        );
+        return result;
+    }
+    if (values.update === undefined) return readInputs(runSuite(inputsDirectory));
     const update = mergeInputs(values.update.map(readInputs));
     if (values.base === undefined) return update;
     const base = readInputs(values.base);
