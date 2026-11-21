@@ -352,7 +352,10 @@ export class DensityFunctionCompiler {
         if (context.interpolationBufferValue(id, cellX, cellY, cellZ, 0) === undefined) return undefined;
 
         let maximum = Number.NEGATIVE_INFINITY;
-        for (const value of context.interpolationBuffer(id, valueCount)) maximum = Math.max(maximum, value);
+        const buffer = context.interpolationBuffer(id, valueCount);
+        // An index loop: JavaScriptCore runs `for...of` over a typed array through its iterator,
+        // which cost more than the comparison in a Bun profile of terrain generation.
+        for (let index = 0; index < buffer.length; index++) maximum = Math.max(maximum, buffer[index]!);
         return maximum;
     }
 

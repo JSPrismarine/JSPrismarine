@@ -205,8 +205,10 @@ export default class BlockStorage implements ReadonlyBlockStorage {
             this.nonAirBlocks = this.palette[0] === this.airRuntimeId ? 0 : BLOCKS_PER_SUBCHUNK;
         } else {
             this.nonAirBlocks = 0;
-            for (const index of this.blocks) {
-                if (this.palette[index] !== this.airRuntimeId) this.nonAirBlocks++;
+            // An index loop: JavaScriptCore runs `for...of` over a typed array through its iterator.
+            const blocks = this.blocks;
+            for (let slot = 0; slot < blocks.length; slot++) {
+                if (this.palette[blocks[slot]!] !== this.airRuntimeId) this.nonAirBlocks++;
             }
         }
     }
