@@ -426,8 +426,7 @@ const percentage = trackerProgressPercent;
                                         :href="part.href"
                                         target="_blank"
                                         rel="noreferrer"
-                                        >{{ part.text }}</a
-                                    ><span v-else>{{ part.text }}</span>
+                                        >{{ part.text }}</a><span v-else>{{ part.text }}</span>
                                 </template>
                             </span>
                         </div>

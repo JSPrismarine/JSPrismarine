@@ -99,9 +99,13 @@ const startCommand = `chmod +x ${executable}\n./${executable}`;
                         }}:</span
                     >
                     <span v-for="(entry, index) in project.protocols" :key="entry.protocol" class="t-line">
-                        protocol <span class="t-warn">{{ entry.protocol }}</span
-                        >: <span class="t-warn">{{ entry.minecraft.join(', ') }}</span
-                        ><span v-if="index === 0" class="t-dim"> (advertised in the MOTD)</span></span
+                        protocol <span class="t-warn">{{ entry.protocol }}</span>:
+                        <span class="t-warn">{{ entry.minecraft.join(', ') }}</span><span
+                            v-if="index === 0"
+                            class="t-dim"
+                        >
+                            (advertised in the MOTD)</span
+                        ></span
                     >
                     <span class="t-line"
                         ><span class="t-ok">[info]</span> JSPrismarine is now listening on port
