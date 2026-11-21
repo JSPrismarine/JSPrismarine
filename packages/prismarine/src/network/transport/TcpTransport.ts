@@ -1,3 +1,5 @@
+import type { Cipheriv, Decipheriv } from 'node:crypto';
+import { createCipheriv, createDecipheriv } from 'node:crypto';
 import type { Server as NetServer, Socket } from 'node:net';
 import { createServer } from 'node:net';
 
@@ -23,6 +25,9 @@ export class TcpTransportConnection implements TransportConnection {
     public readonly capabilities = TCP_CAPABILITIES;
     public readonly transport = TransportNames.tcp;
 
+    /** The stream cipher each way, once {@link TcpTransportConnection.encrypt} turned it on. */
+    private cipher: { readonly out: Cipheriv; readonly in: Decipheriv } | undefined;
+
     public constructor(
         public readonly id: ConnectionId,
         private readonly socket: Socket
@@ -33,7 +38,26 @@ export class TcpTransportConnection implements TransportConnection {
     /** Writes one frame behind its length. TCP sends at once, so `immediate` changes nothing. */
     public sendFrame(payload: Buffer): void {
         if (this.socket.destroyed || this.socket.writableEnded) return;
-        this.socket.write(framed(payload));
+        const bytes = framed(payload);
+        this.socket.write(this.cipher === undefined ? bytes : this.cipher.out.update(bytes));
+    }
+
+    /**
+     * Encrypts the stream both ways from here on, with AES-128 in CFB8 mode and the shared secret
+     * as both key and IV, as Java Edition does once its login has agreed on the secret. Frames are
+     * framed first and encrypted after, so the lengths are encrypted too.
+     * @param secret - The sixteen-byte shared secret.
+     */
+    public encrypt(secret: Buffer): void {
+        this.cipher = {
+            out: createCipheriv('aes-128-cfb8', secret, secret),
+            in: createDecipheriv('aes-128-cfb8', secret, secret)
+        };
+    }
+
+    /** The bytes the socket read, decrypted once the stream is encrypted. */
+    public decrypt(chunk: Buffer): Buffer {
+        return this.cipher === undefined ? chunk : this.cipher.in.update(chunk);
     }
 
     /**
@@ -109,7 +133,7 @@ export class TcpTransport extends KeyedTransport<TcpTransportConnection, Socket>
 
         const reader = new TcpFrameReader();
         socket.on('data', (chunk: Buffer) => {
-            const read = reader.push(chunk);
+            const read = reader.push(connection.decrypt(chunk));
             if ('malformed' in read) {
                 this.log.debug(`Java connection ${connection.id} sent ${read.malformed}; closing it`);
                 socket.destroy();

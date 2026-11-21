@@ -412,7 +412,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `entity-tracking-interval`            | Ticks between entity visibility passes, at least 1.                                                                                                                                                                                                                                                                                                 |
 | `protocol-window`                     | How many Bedrock releases to accept, counted back from the newest this server supports. 1 accepts the newest only. Upgrading the server moves the window with it.                                                                                                                                                                                   |
 | `protocol-content`                    | Which release in protocol-window the world's blocks, items and mobs come from: newest, or oldest so every accepted client has all of them. With newest and a wider window, older clients see a placeholder for what their release lacks.                                                                                                            |
-| `online-mode`                         | Whether players must be signed in to Xbox Live.                                                                                                                                                                                                                                                                                                     |
+| `online-mode`                         | Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to the account Mojang's session server vouches for.                                                                                                                                                                                                           |
 | `enable-raknet`                       | Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.                                                                                                                                                                                                                                                             |
 | `use-raknet-worker`                   | Whether RakNet networking runs in a worker thread.                                                                                                                                                                                                                                                                                                  |
 | `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                                                                                                                                                                |
@@ -528,9 +528,14 @@ again, so keep the file with your worlds when you move or rebuild the server.
 With `java-enabled` set to `true`, the server also listens for Java Edition clients on TCP
 `java-port`, <!-- fact:server.javaPort -->25565<!-- /fact --> by default. A Java client's server
 list then shows the server with its MOTD, the Java release it speaks and the count of players of
-both editions, the same count a Bedrock client sees. Java Edition players cannot join yet: the server refuses a join with a message that
-says so. [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks the work that opens
-joining.
+both editions, the same count a Bedrock client sees.
+
+A Java Edition player can log in but not yet play. With `online-mode` on, the server asks Mojang's
+session server whether the player owns their account, as a vanilla server does, and refuses one it
+cannot verify; with it off, a player is known by the UUID their name gives, and the connection is
+not encrypted, as on a vanilla server. Once the player is logged in, the server ends the join with a
+message that says Java Edition players cannot join yet.
+[The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks the work that opens joining.
 
 When another program holds `java-port`, the server does not start, and its error names the port.
 Free it, change `java-port`, or set `java-enabled` to `false`.

@@ -1,0 +1,213 @@
+import { constants, publicEncrypt, randomBytes } from 'node:crypto';
+
+import { ConfigurationDisconnect } from '@jsprismarine/protocol/java/packet/configuration';
+import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
+import {
+    EncryptionRequest,
+    EncryptionResponse,
+    LoginAcknowledged,
+    LoginDisconnect,
+    LoginStart,
+    LoginSuccess,
+    SetCompression
+} from '@jsprismarine/protocol/java/packet/login';
+import { PingRequest, PongResponse, StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
+import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { javaClient } from '../../testing/javaClient.test-utils';
+import { ConnectionIds } from '../transport/ConnectionId';
+import { TcpTransport } from '../transport/TcpTransport';
+import type { JavaProfile } from './javaAuth';
+import { offlineUuid, serverHash } from './javaAuth';
+import { JavaConnections } from './JavaConnections';
+
+const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
+const quiet = { debug: () => {}, info: () => {} };
+
+describe('JavaConnections', () => {
+    let transport: TcpTransport | undefined;
+    afterEach(() => transport?.close());
+
+    /** Every session server question, and the profile Mojang is said to hold. */
+    const asked: { name: string; hash: string }[] = [];
+    const listen = async ({ onlineMode = false, mojang }: { onlineMode?: boolean; mojang?: JavaProfile } = {}) => {
+        asked.length = 0;
+        transport = new TcpTransport(new ConnectionIds(), quiet);
+        new JavaConnections(transport, {
+            status,
+            onlineMode: () => onlineMode,
+            hasJoined: async (name, hash) => {
+                asked.push({ name, hash });
+                return mojang;
+            },
+            log: quiet
+        });
+        await transport.listen('127.0.0.1', 0);
+        return transport.port()!;
+    };
+
+    const handshake = (intent: ClientIntent, port: number, protocolVersion = NEWEST_JAVA_RELEASE.protocolVersion) => ({
+        protocolVersion,
+        serverAddress: 'localhost',
+        serverPort: port,
+        intent
+    });
+
+    it('answers a server list ping with the version, the counts and the MOTD, then the pong, and hangs up', async () => {
+        const port = await listen();
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Status, port));
+        java.send(StatusRequest, {});
+        const { json } = await java.receive(StatusResponse);
+        java.send(PingRequest, { timestamp: 42n });
+
+        expect(JSON.parse(json)).toEqual({
+            version: { name: NEWEST_JAVA_RELEASE.minecraftVersion, protocol: NEWEST_JAVA_RELEASE.protocolVersion },
+            players: { max: 20, online: 3 },
+            description: { text: 'A JSPrismarine server' },
+            enforcesSecureChat: false
+        });
+        expect(await java.receive(PongResponse)).toEqual({ timestamp: 42n });
+        await java.closed;
+    });
+
+    it('logs an offline player in under the UUID their name gives, compressed from Set Compression on', async () => {
+        const port = await listen();
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Login, port));
+        java.send(LoginStart, { name: 'Steve', profileId: offlineUuid('Steve') });
+        const { threshold } = await java.receive(SetCompression);
+        java.compress(threshold);
+        const success = await java.receive(LoginSuccess);
+        java.send(LoginAcknowledged, {});
+
+        expect(success).toMatchObject({ uuid: offlineUuid('Steve'), username: 'Steve', properties: [] });
+        // Until the configuration phase is written, the join ends at its door.
+        expect(await java.receive(ConfigurationDisconnect)).toEqual({
+            reason: 'This server does not take Java Edition players yet.'
+        });
+        expect(asked).toEqual([]);
+        await java.closed;
+    });
+
+    it('gives the offline UUID the vanilla server gives the same name', () => {
+        // `UUID.nameUUIDFromBytes("OfflinePlayer:Notch")`, as a vanilla offline server derives it.
+        expect(offlineUuid('Notch')).toBe('b50ad385-829d-3141-a216-7e7d7539ba7f');
+    });
+
+    it('logs an online player in with the profile Mojang holds, encrypted from the encryption response on', async () => {
+        const mojang: JavaProfile = {
+            id: '069a79f4-44e9-4726-a5be-fca90e38aaf5',
+            name: 'Notch',
+            properties: [{ name: 'textures', value: 'e30=', signature: 'c2ln' }]
+        };
+        const port = await listen({ onlineMode: true, mojang });
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Login, port));
+        java.send(LoginStart, { name: 'Notch', profileId: mojang.id });
+        const request = await java.receive(EncryptionRequest);
+        const secret = randomBytes(16);
+        const key = {
+            key: request.publicKey,
+            format: 'der' as const,
+            type: 'spki' as const,
+            padding: constants.RSA_PKCS1_PADDING
+        };
+        java.send(EncryptionResponse, {
+            sharedSecret: publicEncrypt(key, secret),
+            verifyToken: publicEncrypt(key, request.verifyToken)
+        });
+        java.encrypt(secret);
+        java.compress((await java.receive(SetCompression)).threshold);
+
+        expect(request).toMatchObject({ serverId: '', shouldAuthenticate: true });
+        expect(await java.receive(LoginSuccess)).toMatchObject({
+            uuid: mojang.id,
+            username: 'Notch',
+            properties: mojang.properties
+        });
+        expect(asked).toEqual([{ name: 'Notch', hash: serverHash('', secret, request.publicKey) }]);
+        java.destroy();
+    });
+
+    it('refuses a player Mojang has no record of joining', async () => {
+        const port = await listen({ onlineMode: true });
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Login, port));
+        java.send(LoginStart, { name: 'Notch', profileId: offlineUuid('Notch') });
+        const request = await java.receive(EncryptionRequest);
+        const secret = randomBytes(16);
+        const key = {
+            key: request.publicKey,
+            format: 'der' as const,
+            type: 'spki' as const,
+            padding: constants.RSA_PKCS1_PADDING
+        };
+        java.send(EncryptionResponse, {
+            sharedSecret: publicEncrypt(key, secret),
+            verifyToken: publicEncrypt(key, request.verifyToken)
+        });
+        java.encrypt(secret);
+
+        expect(JSON.parse((await java.receive(LoginDisconnect)).reason)).toEqual({
+            translate: 'multiplayer.disconnect.unverified_username'
+        });
+        await java.closed;
+    });
+
+    it('tells a client of another release which release the server speaks', async () => {
+        const port = await listen();
+        const java = await javaClient(port);
+
+        java.send(Intention, handshake(ClientIntent.Login, port, NEWEST_JAVA_RELEASE.protocolVersion - 1));
+
+        expect(JSON.parse((await java.receive(LoginDisconnect)).reason)).toEqual({
+            translate: 'multiplayer.disconnect.outdated_client',
+            with: [NEWEST_JAVA_RELEASE.minecraftVersion]
+        });
+        await java.closed;
+    });
+
+    it('hangs up on a packet its phase has no place for', async () => {
+        const port = await listen();
+        const java = await javaClient(port);
+
+        java.send(PingRequest, { timestamp: 1n });
+
+        await java.closed;
+    });
+});
+
+describe('JavaConnections session id', () => {
+    it('gives every login on one server the same session id', async () => {
+        const transport = new TcpTransport(new ConnectionIds(), quiet);
+        new JavaConnections(transport, { status, onlineMode: () => false, log: quiet });
+        await transport.listen('127.0.0.1', 0);
+        const port = transport.port()!;
+        const loginAs = async (name: string) => {
+            const java = await javaClient(port);
+            java.send(Intention, {
+                protocolVersion: NEWEST_JAVA_RELEASE.protocolVersion,
+                serverAddress: 'localhost',
+                serverPort: port,
+                intent: ClientIntent.Login
+            });
+            java.send(LoginStart, { name, profileId: offlineUuid(name) });
+            java.compress((await java.receive(SetCompression)).threshold);
+            const { sessionId } = await java.receive(LoginSuccess);
+            java.destroy();
+            return sessionId;
+        };
+
+        try {
+            expect(await loginAs('Steve')).toBe(await loginAs('Alex'));
+        } finally {
+            transport.close();
+        }
+    });
+});

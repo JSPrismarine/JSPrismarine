@@ -43,7 +43,7 @@ import RakNetTransport from '../network/transport/RakNetTransport';
 import type { Transport, TransportConnection, TransportName } from '../network/transport/Transport';
 import { TransportNames } from '../network/transport/Transport';
 import { TcpTransport } from '../network/transport/TcpTransport';
-import { JavaHandshakes } from '../network/java/JavaHandshakes';
+import { JavaConnections } from '../network/java/JavaConnections';
 import { about } from '../about';
 import { softwareLabel } from '../version';
 import type Server from '../Server';
@@ -136,7 +136,7 @@ export class ServerNetworking implements Networking {
     /** Stops the public address lookup; set while NetherNet looks one up. */
     private publicIpLookup: AbortController | undefined;
     /** The Java Edition listener and what answers on it; set while `java-enabled` is on. */
-    private java: { readonly transport: TcpTransport; readonly handshakes: JavaHandshakes } | undefined;
+    private java: { readonly transport: TcpTransport; readonly connections: JavaConnections } | undefined;
     /** The query protocol's own socket; set while query answers on a port RakNet does not hold. */
     private querySocket: QuerySocket | undefined;
     /** The ports RakNet shares with NetherNet, which the native library owns; see ADR 0008. */
@@ -363,7 +363,7 @@ export class ServerNetworking implements Networking {
 
     /**
      * Binds the Java Edition listener, which answers a server list ping with the same name and
-     * counts the RakNet pong shows, and refuses a join.
+     * counts the RakNet pong shows, and logs a player in under `online-mode`.
      */
     private startJava(
         address: string,
@@ -371,16 +371,20 @@ export class ServerNetworking implements Networking {
         serverName: ServerName,
         ids: ConnectionIds,
         listening: Promise<void>[]
-    ): { transport: TcpTransport; handshakes: JavaHandshakes } {
+    ): { transport: TcpTransport; connections: JavaConnections } {
         const logger = this.server.getLogger();
         const transport = new TcpTransport(ids, logger);
-        const handshakes = new JavaHandshakes(transport, serverName, logger);
+        const connections = new JavaConnections(transport, {
+            status: serverName,
+            onlineMode: () => this.server.getConfig().getOnlineMode(),
+            log: logger
+        });
         listening.push(
             transport.listen(address, port).catch((cause: Error) => {
                 throw new PrismarineServerErrors.JavaPortNotBound({ port, reason: cause.message }, { cause });
             })
         );
-        return { transport, handshakes };
+        return { transport, connections };
     }
 
     /** Binds the RakNet listener, on a worker thread when the config says so. */

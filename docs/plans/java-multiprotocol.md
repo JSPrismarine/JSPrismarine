@@ -24,7 +24,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
-| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, in review. |
+| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, done ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)). 8b, the login: Mojang verification, encryption and compression, in review. |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
@@ -242,6 +242,12 @@ interface to the protocol root, and generalizing `NetworkPacket`'s default proto
 where the Java codec first carries per-release packet ids. The layouts were checked by pinging the
 pinned 26.3 vanilla server with them: it read the handshake, status request and ping, and they read
 its status response, pong and login disconnect.
+
+PR 8b checked the login the same way. Offline, vanilla's `Set Compression` and `Login Success`
+decoded, the second only once it had the session id 26.3 added: one UUID for as long as the server
+runs, from `ServerConnectionListener.getSessionId`. Online, vanilla read the encryption response
+and sent its `unverified_username` refusal encrypted, and the client's cipher read it, so the RSA
+and AES/CFB8 halves agree with vanilla's.
 
 ### Phases
 

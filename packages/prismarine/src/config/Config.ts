@@ -98,7 +98,8 @@ const COMMENTS = {
         "Which edition decides what flowing water and lava wash away: java follows Java's #minecraft:washed_away_by_fluids tag and keeps out of waterloggable blocks, bedrock follows each block's Bedrock liquid reaction.",
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
-    'online-mode': 'Whether players must be signed in to Xbox Live.',
+    'online-mode':
+        "Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to the account Mojang's session server vouches for.",
     'enable-raknet': 'Whether to accept clients over RakNet, the UDP transport Bedrock used before NetherNet.',
     'use-raknet-worker': 'Whether RakNet networking runs in a worker thread.',
     'enable-nethernet':

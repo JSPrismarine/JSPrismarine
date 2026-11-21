@@ -169,7 +169,7 @@ export interface ConfigFile {
     'protocol-window'?: number;
     /** Which release in the protocol window the world's content comes from: the newest, or the oldest so every accepted client has all of it. */
     'protocol-content'?: 'newest' | 'oldest';
-    /** Whether players must be signed in to Xbox Live. */
+    /** Whether players must be signed in: Bedrock players to Xbox Live, Java Edition players to Mojang's session server. */
     'online-mode'?: boolean;
     /** Whether to accept clients over RakNet, Bedrock's UDP transport before NetherNet. */
     'enable-raknet'?: boolean;
