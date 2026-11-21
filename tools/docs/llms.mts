@@ -1,7 +1,8 @@
 /**
  * The site's pages as plain Markdown for language models and the tools built on them, as
  * `docs/plans/llms-txt.md` plans. Each page staged from the repository gets a copy at its route with
- * `.md` appended, so `/guide/running` is also `/guide/running.md` and `/guide/` is `/guide/index.md`.
+ * `.md` appended, so `/guide/running` is also `/guide/running.md` and `/guide/` is `/guide/index.md`,
+ * and `/llms.txt` lists the site's pages in the format https://llmstxt.org/ describes.
  *
  * The copies start from the staged Markdown, which already has its docs facts filled in and its
  * relative links pointed at site routes (see `assemble.mts`). This module only takes off what a model
@@ -14,7 +15,20 @@ import path from 'node:path';
 import { parse } from 'yaml';
 
 import { isRecord } from '../../scripts/isRecord.mts';
-import { findUnfencedLine, isStagedPage, pageSummary, pageTitle, pageUrl } from './sections.mts';
+import type { ProjectData } from './project.mts';
+import {
+    type DocSection,
+    findUnfencedLine,
+    isStagedPage,
+    pageDate,
+    pageRoute,
+    pageSummary,
+    pageTitle,
+    pageUrl
+} from './sections.mts';
+import type { OverviewGroup } from './site/.vitepress/overviewGroups.mts';
+import { minecraftRange, platformList } from './site/.vitepress/theme/landing.ts';
+import { groupPackages } from './site/.vitepress/theme/packageAreas.ts';
 
 /** Where a page's Markdown copy is published, under the site's URL. */
 export interface MarkdownPageOptions {
@@ -112,3 +126,164 @@ export function writeMarkdownPages({ srcDir, outDir, pages, siteUrl }: MarkdownS
  * them rather than downloading them and a tool reads their encoding from the response.
  */
 export const markdownHeaders = ['/*.md', '  Content-Type: text/markdown; charset=utf-8', ''];
+
+/** One link in `/llms.txt`: the page's title, its site link and a line about it. */
+export interface IndexLink {
+    title: string;
+    /** A site-absolute link, such as `/guide/running#worlds`, or a URL. */
+    link: string;
+    note: string;
+}
+
+/** A second-level section of `/llms.txt` and its links. */
+export interface IndexSection {
+    title: string;
+    links: IndexLink[];
+}
+
+/** What `/llms.txt` says, before its links are made absolute. */
+export interface LlmsIndex {
+    name: string;
+    summary: string;
+    /** Lines of context under the summary, each written as one list item. */
+    details: string[];
+    /** The sections in order. The last is `Optional`, which a reader short on context may skip. */
+    sections: IndexSection[];
+}
+
+/**
+ * `/llms.txt` in the format https://llmstxt.org/ asks for: the name as the only H1, the summary as a
+ * blockquote, context with no headings, then H2 sections of links. Each link is absolute, at the
+ * page's Markdown copy when it has one.
+ */
+export function llmsText(index: LlmsIndex, options: Omit<MarkdownPageOptions, 'page'>) {
+    const link = ({ title, link, note }: IndexLink) => {
+        const url = absoluteLink(link, { ...options, page: 'index.md' });
+        return `- [${title}](${url})${note ? `: ${note}` : ''}`;
+    };
+    return [
+        `# ${index.name}`,
+        `> ${index.summary}`,
+        index.details.map((detail) => `- ${detail}`).join('\n'),
+        ...index.sections
+            .filter(({ links }) => links.length > 0)
+            .map(({ title, links }) => `## ${title}\n\n${links.map(link).join('\n')}`)
+    ]
+        .filter((block) => block !== '')
+        .join('\n\n')
+        .concat('\n');
+}
+
+/** The pages and data `/llms.txt` is built from, as `buildEnd` has them. */
+export interface IndexSource {
+    srcDir: string;
+    pages: readonly string[];
+    siteUrl: string;
+    summary: string;
+    project: ProjectData;
+    sections: readonly DocSection[];
+    /** The pages of each section, by the section's route, in the order its sidebar gives them. */
+    sectionLinks: (section: DocSection) => readonly string[];
+    /** A card page section's groups, which are its sections in `/llms.txt` too; undefined for other sections. */
+    overviewGroups: (section: DocSection) => OverviewGroup[] | undefined;
+    /** When a page's source last changed, in milliseconds, for a dated section's page that gives no date. */
+    updatedAt: (page: string) => number | undefined;
+}
+
+/** A dated record's age, for a page in a section marked `dated`: the date it gives, its status, or its last change. */
+function datedLabel(markdown: string, updatedAt: number | undefined) {
+    const date = pageDate(markdown);
+    if (date) return `${date.label} ${date.date}`;
+    const status = /^Status: (.+)$/m.exec(markdown)?.[1];
+    if (status) return `Status: ${status}`;
+    return updatedAt === undefined ? '' : `Updated ${new Date(updatedAt).toISOString().slice(0, 10)}`;
+}
+
+/**
+ * What `/llms.txt` lists, read from the site: the guide's overview groups, then each section in
+ * order, the published packages, and an `Optional` section with the sections marked `optional`, the
+ * API reference and every other page. A page appears in the first place that lists it, so every
+ * page except the landing page and the API reference's own pages appears once.
+ */
+export function llmsIndex(source: IndexSource): LlmsIndex {
+    const pages = new Set(source.pages);
+    const listed = new Set<string>();
+    const markdown = (page: string) => readFileSync(path.join(source.srcDir, page), 'utf8');
+    const pageOf = (link: string) => routeFiles(pageRoute(link)).find((file) => pages.has(file));
+
+    /**
+     * A link to a page, titled and described by the page itself unless the caller gives them, or
+     * nothing when the page is already listed. A URL off the site is listed as given.
+     */
+    const pageLink = (link: string, given: Partial<IndexLink> = {}, dated = false): IndexLink[] => {
+        if (/^[a-z][a-z0-9+.-]*:/i.test(link)) return [{ title: given.title ?? link, link, note: given.note ?? '' }];
+        const page = pageOf(link);
+        if (page === undefined || listed.has(page)) return [];
+        listed.add(page);
+        const text = markdown(page);
+        const copy = pageMarkdown(text, { page, siteUrl: source.siteUrl, markdownPages: pages });
+        const summary = given.note || pageSummary(copy);
+        const label = dated ? datedLabel(text, source.updatedAt(page)) : '';
+        return [
+            {
+                title: given.title || pageTitle(copy, pageRoute(page) || page),
+                link,
+                note: label && summary ? `${label}. ${summary}` : label || summary
+            }
+        ];
+    };
+
+    const core: IndexSection[] = [];
+    const optional: IndexLink[] = [];
+    for (const section of source.sections) {
+        const groups = source.overviewGroups(section);
+        if (groups) {
+            for (const group of groups) {
+                core.push({
+                    title: group.text,
+                    links: group.items.flatMap((item) =>
+                        pageLink(item.link, { title: item.text, note: item.description })
+                    )
+                });
+            }
+            continue;
+        }
+        const links = source.sectionLinks(section).flatMap((link) => pageLink(link, {}, section.dated));
+        if (section.optional) optional.push(...links);
+        else core.push({ title: section.title, links });
+    }
+    core.push({
+        title: 'Packages',
+        links: groupPackages(source.project.packages).flatMap(({ packages }) =>
+            packages.map((pkg) => ({ title: pkg.name, link: `/api/${pkg.name}/`, note: pkg.description }))
+        )
+    });
+    const rest = source.pages
+        .filter((page) => page !== 'index.md' && !page.startsWith('api/'))
+        .map((page) => `/${pageRoute(page)}`);
+    optional.unshift(...pageLink('/api/'));
+    optional.push(...rest.flatMap((link) => pageLink(link)));
+
+    const { project } = source;
+    return {
+        name: 'JSPrismarine',
+        summary: source.summary,
+        details: [
+            `Version ${project.version}, released under ${project.license}.`,
+            `Accepts Minecraft Bedrock Edition ${minecraftRange(project)}.`,
+            `Prebuilt executables for ${platformList(project)}; from source it runs on Node.js ${project.engines.node}.`,
+            `Anyone can join the demo server at \`${project.demo.address}\`, port ${project.demo.port}.`
+        ],
+        sections: [...core, { title: 'Optional', links: optional }]
+    };
+}
+
+/** Writes `/llms.txt` into the built site. */
+export function writeLlmsText(source: IndexSource & { outDir: string }) {
+    const index = llmsIndex(source);
+    writeFileSync(
+        path.join(source.outDir, 'llms.txt'),
+        llmsText(index, { siteUrl: source.siteUrl, markdownPages: markdownPages(source.pages) })
+    );
+    return index.sections.reduce((count, { links }) => count + links.length, 0);
+}

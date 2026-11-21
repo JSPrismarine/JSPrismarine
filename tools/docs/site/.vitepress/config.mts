@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { defineConfig } from 'vitepress';
+import { type DefaultTheme, defineConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { footerHtml } from './footer.mts';
@@ -8,15 +8,15 @@ import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
-import { markdownHeaders, writeMarkdownPages } from '../../llms.mts';
+import { markdownHeaders, writeLlmsText, writeMarkdownPages } from '../../llms.mts';
 import { loadProject } from '../../project.mts';
-import { isStagedPage, pageSource, pageUrl, sourceUpdatedAt } from '../../sections.mts';
+import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { wordmark } from './theme/prism.ts';
 import { pageDescriptions } from './pageDescriptions.ts';
-import { sectionCardsPlugin } from './sectionCards.ts';
+import { cardPages, sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { packageAreas } from './theme/packageAreas.ts';
 import { palette, paletteCss } from './theme/tokens.ts';
@@ -64,6 +64,11 @@ function menuSidebar(section: string) {
         text: group.text,
         items: group.items.map(({ text, link }) => ({ text, link }))
     }));
+}
+
+/** Every link in a sidebar, nested groups included, in the order the sidebar shows them. */
+function sidebarLinks(items: readonly DefaultTheme.SidebarItem[]): string[] {
+    return items.flatMap((item) => [...(item.link ? [item.link] : []), ...sidebarLinks(item.items ?? [])]);
 }
 
 /**
@@ -125,6 +130,21 @@ export default defineConfig({
             siteUrl
         });
         console.log(`Markdown copies: ${markdownPages} pages.`);
+        const llmsLinks = writeLlmsText({
+            srcDir: siteConfig.srcDir,
+            outDir: siteConfig.outDir,
+            pages: siteConfig.pages,
+            siteUrl,
+            summary: manifest.description,
+            project: loadProject(),
+            sections,
+            // The sidebar is each section's page order, and a card page's groups are its sections.
+            sectionLinks: (section) => sidebarLinks(sidebar[`/${section.dir}/`] ?? []),
+            overviewGroups: (section) =>
+                cardPages.has(`${section.dir}/index.md`) ? overviewGroups(section.dir) : undefined,
+            updatedAt: sourceUpdatedAt
+        });
+        console.log(`llms.txt: ${llmsLinks} links.`);
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.
         writeFileSync(
@@ -260,6 +280,8 @@ export default defineConfig({
                     { text: 'Packages', href: '/packages' },
                     { text: 'Releases', href: '/releases' },
                     { text: 'Brand kit', href: '/brand-kit' },
+                    // The site's pages as Markdown, for language models and the tools built on them.
+                    { text: 'llms.txt', href: '/llms.txt' },
                     { text: 'GitHub', href: repositoryUrl },
                     ...(discordInvite ? [{ text: 'Discord', href: discordInvite }] : [])
                 ]
