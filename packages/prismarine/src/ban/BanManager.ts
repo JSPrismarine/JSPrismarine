@@ -76,7 +76,8 @@ export default class BanManager {
         try {
             const dir = withCwd(FILE_NAME);
             if (!fs.existsSync(dir)) {
-                this.server.getLogger().warn(`Failed to load ban list!`);
+                // A first start has no list yet; making one is routine, not a warning.
+                this.server.getLogger().info(`Created an empty ban list in ${FILE_NAME}.`);
                 await writeJsonFile(dir, await readJsonFile(dir, '[]'));
             }
 

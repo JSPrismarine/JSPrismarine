@@ -70,7 +70,8 @@ describe('ban', () => {
             it('should create ban list file if it does not exist', async () => {
                 await banManager.enable();
 
-                expect(logger.warn).toHaveBeenCalledWith('Failed to load ban list!');
+                // Creating the list is what a first start does, so it is no warning.
+                expect(logger.warn).not.toHaveBeenCalled();
                 expect(readFileSync(file, 'utf8')).toContain('// JSPrismarine schema:');
                 expect(banManager['banned'].size).toBe(0);
             });

@@ -208,7 +208,8 @@ export class PermissionManager implements Service {
         const file = withCwd(PERMISSION_FILE_NAME);
         try {
             if (!fs.existsSync(file)) {
-                this.server.getLogger().warn(`Failed to load permissions list!`);
+                // A first start has no file yet; making one is routine, not a warning.
+                this.server.getLogger().info(`Created the default permissions in ${PERMISSION_FILE_NAME}.`);
                 await writeJsonFile(file, PermissionManager.defaultPermissionsFile());
             }
 
@@ -261,7 +262,7 @@ export class PermissionManager implements Service {
         const file = withCwd(OPS_FILE_NAME);
         try {
             if (!fs.existsSync(file)) {
-                this.server.getLogger().warn(`Failed to load operators list!`);
+                this.server.getLogger().info(`Created an empty operator list in ${OPS_FILE_NAME}.`);
                 await writeJsonFile(file, await readJsonFile(file, '[]'));
             }
 
