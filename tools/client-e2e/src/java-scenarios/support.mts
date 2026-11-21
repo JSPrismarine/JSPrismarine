@@ -12,7 +12,11 @@ export const joinWorld = async ({ client, server, javaPort }: JavaScenarioContex
 
     const deadline = Date.now() + 60_000;
     for (;;) {
-        const screen = client.waitForLine(/^Screen: |not displaying a Gui/, 5_000);
+        const screen = client.waitForLine(/^Screen: |not displaying a Gui/, 5_000).then(
+            (line) => line,
+            // A busy client can take longer than that to answer; the next poll asks again.
+            () => 'no answer'
+        );
         client.command('gui');
         const line = await screen;
         if (/not displaying a Gui/.test(line)) return;
