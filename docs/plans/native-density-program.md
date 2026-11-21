@@ -12,6 +12,8 @@ Native noise (#3532, #3543, #3555) moved every octave of every vanilla noise sta
 - The splines. The overworld router reaches 6 `spline` nodes with 273 spline coordinates between them, under `cache` nodes that hold one value per column.
 - The aquifer, the surface pass and the biome search, which this plan does not cover.
 
+An indicative CPU profile agrees on the order. It is a wall-clock diagnostic, not evidence: 144 overworld chunks' terrain fill with native noise, run with `node --import tsx --cpu-prof` at load average 35 to 40. Of the busy time, about 20% was the density closures in `compile.ts` (about 30% with `SampleContext` and `cellProgram.ts`), about 19% the calls into the noise library including the time spent in C, about 16% the aquifer and about 7% `ChunkSampler`.
+
 The overworld router reaches 31 node types: `spline` (with its coordinates), `noise`, `cache`, `add`, `mul`, `abs`, `lerp`, `gradient`, `constant`, `shift_a`, `shift_b`, `range_choice`, `interpolated`, `clamp`, `blend_alpha`, `min`, `max`, `blend_offset`, `interval_select`, `quarter_negative`, `cube`, `find_top_surface`, `sub`, `div`, `squeeze`, `blend_density`, `half_negative`, `old_blended_noise`, `square` and `beardifier`.
 
 ## The shape
@@ -43,7 +45,7 @@ Each step is its own pull request, proven by the bit comparison against the clos
 4. **`interpolated` corner lattices in C.** The corner values of each `interpolated` node are filled per chunk in Java's `fillCell` order, so the trees under them stop running as closures.
    - Counts: 0 closure calls per chunk outside the hook cells.
 5. **`find_top_surface` and the `cache` kinds that hold one value per column.**
-6. **The aquifer**, the next largest TypeScript stage, on the same program form.
+6. **The aquifer**, about as large in that profile as the closures, on the same program form.
 
 ## Risks
 
