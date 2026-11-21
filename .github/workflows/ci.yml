@@ -818,6 +818,16 @@ jobs:
                   disable_search: true
                   flags: ${{ needs.plan.outputs.since != '' && 'unit-changed' || 'unit' }}
 
+            # The push to master that lands this pull request uploads this report for its own commit;
+            # see `coverage.yml`. The name carries the flag the upload above used.
+            - name: 📤 Keep the coverage for the merge
+              if: ${{ !cancelled() && github.event_name == 'pull_request' && hashFiles('coverage/lcov.info') != '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: codecov-${{ needs.plan.outputs.since != '' && 'unit-changed' || 'unit' }}.shard-${{ matrix.shard }}
+                  path: coverage/lcov.info
+                  retention-days: 30
+
             # What this shard ran, for the parity dashboard job: Vitest's JSON report beside the
             # parity side files. A shard that ran no file wrote none, and uploads nothing.
             - name: 📤 Keep the results for the parity dashboard
@@ -967,6 +977,16 @@ jobs:
                   files: junit.xml
                   disable_search: true
                   flags: ${{ needs.plan.outputs.since != '' && 'real-data-changed' || 'real-data' }}
+
+            # The push to master that lands this pull request uploads this report for its own commit;
+            # see `coverage.yml`. The name carries the flag the upload above used.
+            - name: 📤 Keep the coverage for the merge
+              if: ${{ !cancelled() && github.event_name == 'pull_request' && hashFiles('coverage/lcov.info') != '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: codecov-${{ needs.plan.outputs.since != '' && 'real-data-changed' || 'real-data' }}.shard-${{ matrix.shard }}
+                  path: coverage/lcov.info
+                  retention-days: 30
 
             # What this shard ran, for the parity dashboard job: Vitest's JSON report beside the
             # parity side files. A shard that ran no file wrote none, and uploads nothing.
@@ -1445,12 +1465,13 @@ jobs:
                   flags: client-e2e
                   name: client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
 
-            # The push to master that merges this pull request skips this job and uploads it.
+            # The push to master that lands this pull request uploads this report for its own commit;
+            # see `coverage.yml`. The name carries the flag before the dot.
             - name: 📤 Keep the coverage for the merge
               if: ${{ !cancelled() && steps.client-e2e-coverage.outcome == 'success' && github.event_name == 'pull_request' && needs.plan.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: codecov-client-e2e-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  name: codecov-client-e2e.${{ matrix.pin.name }}-shard-${{ matrix.shard }}
                   path: coverage/client-e2e/lcov.info
                   retention-days: 30
 
@@ -1501,10 +1522,11 @@ jobs:
                       ${{ runner.temp }}/jsprismarine/cinnabar/${{ matrix.pin.build }}/repo/.local/developer-control/logs
                   if-no-files-found: warn
 
-    # Codecov has no e2e report for a push that skipped the scenarios as already passed, and
-    # carryforward would keep the previous master commit's. Upload the pull request run's here.
+    # A push that skipped some pins as already passed keeps the pull request run's scenario coverage
+    # maps under its own run, so a pull request based on this commit finds every pin's map here.
+    # `coverage.yml` uploads that run's Codecov reports, whether or not this run is replaced.
     reused-coverage:
-        name: 🦺 Reuse pull request coverage
+        name: 🗺️ Reuse pull request scenario maps
         needs: plan
         if: ${{ needs.plan.outputs.reused-any == 'true' }}
         runs-on: ubuntu-latest
@@ -1512,21 +1534,7 @@ jobs:
             actions: read
             contents: read
         steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-            # An expired artifact leaves Codecov carrying the flag forward, which is no worse than
-            # before this job existed.
-            - name: ⬇️ Download the pull request coverage
-              continue-on-error: true
-              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-              with:
-                  pattern: codecov-client-e2e-*
-                  path: ${{ runner.temp }}/reused
-                  run-id: ${{ needs.plan.outputs.run-id }}
-                  github-token: ${{ github.token }}
-
-            # The pins this push skipped ran on the pull request, so their maps come from there too, and
-            # a pull request based on this commit finds every pin's map under this run.
+            # The pins this push skipped ran on the pull request, so their maps come from there too.
             - name: ⬇️ Download the pull request's scenario coverage maps
               continue-on-error: true
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -1543,23 +1551,6 @@ jobs:
                   path: ${{ runner.temp }}/scenario-coverage
                   if-no-files-found: ignore
                   retention-days: 30
-
-            - name: List the reports
-              id: reports
-              run: |
-                  files="$(find "$RUNNER_TEMP/reused" -name lcov.info 2> /dev/null | sort | paste -sd, -)"
-                  echo "files=$files" >> "$GITHUB_OUTPUT"
-
-            - name: 🦺 Upload client e2e coverage to Codecov
-              if: ${{ steps.reports.outputs.files != '' }}
-              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  slug: JSPrismarine/JSPrismarine
-                  files: ${{ steps.reports.outputs.files }}
-                  disable_search: true
-                  flags: client-e2e
-                  name: client-e2e-reused
 
     # The one check branch rules require. A matrix job's name depends on its shards or pins, and a
     # skipped job reports under its unexpanded name, so none can be required directly. Every job

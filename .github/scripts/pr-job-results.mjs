@@ -19,8 +19,9 @@ if (!repository || !sha || !token || !workflowRef) {
     throw new Error('GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_TOKEN and GITHUB_WORKFLOW_REF are required');
 }
 
-// `owner/repo/.github/workflows/ci.yml@refs/heads/master`
-const workflowFile = workflowRef.split('@')[0].split('/').at(-1);
+// `owner/repo/.github/workflows/ci.yml@refs/heads/master`. A workflow that reads another one's runs,
+// such as `coverage.yml` reading `ci.yml`'s, names it in `RESULTS_WORKFLOW`.
+const workflowFile = process.env.RESULTS_WORKFLOW || workflowRef.split('@')[0].split('/').at(-1);
 
 const api = async (path) => {
     const response = await fetch(`${apiUrl}/repos/${repository}/${path}`, {

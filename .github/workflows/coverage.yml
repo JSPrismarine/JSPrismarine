@@ -1,0 +1,106 @@
+name: Coverage
+
+# Uploads to Codecov, for each push to master, the reports of the run that already tested the
+# pushed tree: the merged pull request's, found by `pr-job-results.mjs` as `ci.yml` finds it. A
+# master commit used to get coverage only from its own `ci.yml` run, and most never had one: master's
+# runs share one concurrency group, so a newer push replaces the run waiting behind the running
+# one, and a push whose pull request passed `✅ CI` on the same tree runs no test again. This runs
+# outside that group, so every push that landed an up-to-date pull request gets a report. A direct
+# push, or a pull request that was behind master, gets one only when its own `ci.yml` run tests it.
+#
+# The pull request's shards keep each report as an artifact named `codecov-<flag>.<label>`, under
+# the flag they uploaded it with, and the uploads here reuse those flags.
+on:
+    push:
+        branches:
+            - master
+
+permissions:
+    actions: read
+    contents: read
+
+jobs:
+    upload:
+        name: 🦺 Upload the merged pull request's coverage
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  persist-credentials: false
+
+            # A failed lookup uploads nothing, which leaves Codecov carrying the flags forward.
+            - name: Find the run that tested this tree
+              id: reuse
+              continue-on-error: true
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+                  RESULTS_WORKFLOW: ci.yml
+              run: node .github/scripts/pr-job-results.mjs
+
+            # An expired artifact is missing here, and Codecov carries its flag forward instead.
+            - name: ⬇️ Download its coverage reports
+              if: ${{ steps.reuse.outputs.run-id != '' }}
+              continue-on-error: true
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: codecov-*
+                  path: ${{ runner.temp }}/coverage
+                  run-id: ${{ steps.reuse.outputs.run-id }}
+                  github-token: ${{ github.token }}
+
+            # One upload per flag family. A run's shards all use the same flag of a family, the
+            # `-changed` one when it tested only what its diff reached.
+            - name: List the reports by flag
+              id: reports
+              run: |
+                  shopt -s nullglob
+                  for family in unit real-data client-e2e; do
+                      flag=''
+                      files=()
+                      for dir in "$RUNNER_TEMP"/coverage/codecov-*; do
+                          name="${dir##*/codecov-}"
+                          candidate="${name%%.*}"
+                          if [ "$candidate" = "$family" ] || [ "$candidate" = "$family-changed" ]; then
+                              flag="$candidate"
+                              files+=("$dir/lcov.info")
+                          fi
+                      done
+                      key="${family//-/_}"
+                      echo "${key}_flag=$flag" >> "$GITHUB_OUTPUT"
+                      echo "${key}_files=$(IFS=,; echo "${files[*]}")" >> "$GITHUB_OUTPUT"
+                      echo "$family: ${#files[@]} reports${flag:+ under $flag}"
+                  done
+
+            - name: 🦺 Upload unit coverage to Codecov
+              if: ${{ steps.reports.outputs.unit_files != '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: ${{ steps.reports.outputs.unit_files }}
+                  disable_search: true
+                  flags: ${{ steps.reports.outputs.unit_flag }}
+                  name: ${{ steps.reports.outputs.unit_flag }}-reused
+
+            - name: 🦺 Upload real-data coverage to Codecov
+              if: ${{ steps.reports.outputs.real_data_files != '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: ${{ steps.reports.outputs.real_data_files }}
+                  disable_search: true
+                  flags: ${{ steps.reports.outputs.real_data_flag }}
+                  name: ${{ steps.reports.outputs.real_data_flag }}-reused
+
+            - name: 🦺 Upload client e2e coverage to Codecov
+              if: ${{ steps.reports.outputs.client_e2e_files != '' }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+                  files: ${{ steps.reports.outputs.client_e2e_files }}
+                  disable_search: true
+                  flags: ${{ steps.reports.outputs.client_e2e_flag }}
+                  name: client-e2e-reused

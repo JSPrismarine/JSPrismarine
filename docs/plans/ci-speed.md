@@ -462,6 +462,12 @@ queued or running run; every job skips on that event, so the run takes no runner
 already did. Giving each master push a group of its own, which #3434 did, multiplied the full runs
 in a burst of merges instead.
 
+That left most master commits without a Codecov report, since a replaced run uploads nothing and a
+push that reuses its pull request's `✅ CI` runs no test. `coverage.yml` runs on every push to
+master, outside that group, and uploads the reports of the pull request run that tested the same
+tree. The pull request's unit, real-data and client e2e shards keep those reports as
+`codecov-<flag>.<label>` artifacts for it.
+
 ### Phase 10: run only the tests a change reaches (part done)
 
 Added on 2026-11-20. Every run should test only what its changes can reach.
