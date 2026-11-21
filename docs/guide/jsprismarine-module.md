@@ -340,6 +340,39 @@ that fails to parse keeps the last value, and the content log says so once. The 
 nothing more, so the pack checks the shape.
 [Writing an addon](writing-addons.md#configure-it) shows the pattern.
 
+## Read and change permissions
+
+`permissions` reads and writes the groups, nodes and meta of `permissions.json`, which
+[the running guide](running.md#permissions) describes, resolved the way the server resolves them
+for a command. A write persists to the file as `/perms` would, and `afterEvents.permissionsChange`
+fires after any write, whoever made it, and after the file is read again. This pack greets a player
+with their prefix and primary group, and grants a rank for a day:
+
+```js
+import { world } from '@minecraft/server';
+
+world.afterEvents.playerSpawn.subscribe(async ({ player, initialSpawn }) => {
+    if (!initialSpawn) return;
+    const jsp = await loadJsprismarine();
+    if (jsp === undefined || !('permissions' in jsp)) return;
+    const { permissions } = jsp;
+    const prefix = permissions.metaOf(player, 'prefix') ?? '';
+    player.sendMessage(`Welcome, ${prefix}${player.name} of ${permissions.primaryGroupOf(player)}`);
+    if (!permissions.has(player, 'minecraft.command.me')) {
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        permissions.addToGroup(player, 'trial', tomorrow);
+    }
+});
+```
+
+`loadJsprismarine` is the function from [the first example](#detect-the-module-and-fall-back).
+`grant` and `revoke` take a `Player` or a group's name; `addToGroup` and `removeFromGroup` take a
+`Player`. A bad node or expiry throws a `RangeError` at the call, a group the file lacks an
+`Error`, and a `Player` who left a `TypeError`, before anything is written. The server also
+registers the `perms` placeholder namespace with `primary_group`, `groups`, `prefix`, `suffix`
+and `weight`, so a tab list or chat format reads a rank through `placeholders.resolve` without a
+call; an unset prefix or suffix renders as empty text.
+
 Later JSPrismarine versions add members. To use one that an older server may lack, check for it
 before you call it, the same way you check for the module:
 

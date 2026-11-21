@@ -3,12 +3,21 @@
  * the server: its ticker's figures, a player's round trip time from their transport, boss bars on
  * a player's own screen, and the name a player's entry shows in every client's player list.
  */
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
-import type { JsprismarineServerMembers, ScriptBossBarState } from '@jsprismarine/script-host/host/jsprismarineMembers';
+import type {
+    JsprismarineServerMembers,
+    ScriptBossBarState,
+    ScriptPermissionMembers,
+    ScriptPermissionSubject
+} from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
 
+import { sameSubject } from '../identity/Subject';
 import { BossBar } from '../network/BossBar';
 import type PlayerSession from '../network/PlayerSession';
+import type { PermissionManager } from '../permission/PermissionManager';
+import { checkExpiry, checkNode } from '../permission/model';
 import type Server from '../Server';
 
 /** The wire's color of each color a script names. */
@@ -180,6 +189,74 @@ export class ScriptBossBarScreens {
 }
 
 /**
+ * `permissions` of `@jsprismarine/server` over the permission manager. A bad argument throws the
+ * manager's own error before anything is written; a write then persists on the manager's queue,
+ * and a failed write is logged by the manager, not thrown to the script.
+ * @param permissions - The server's permission manager.
+ * @param sessionOf - The session of a player, by the entity id the scripts know them by.
+ * @param sessions - Every online session, for naming the player a change touched.
+ */
+export const scriptPermissionMembers = (
+    permissions: PermissionManager,
+    sessionOf: (player: string) => PlayerSession | undefined,
+    sessions: () => readonly PlayerSession[]
+): ScriptPermissionMembers => {
+    /** The identity of an online player. @throws PlayerNotFound for one who left. */
+    const identityOf = (player: string) => {
+        const session = sessionOf(player);
+        if (session === undefined) throw new PrismarineServerErrors.PlayerNotFound({ username: player });
+        return session.identity;
+    };
+    /** @throws PermissionGroupNotFound when the file has no such group. */
+    const checkGroup = (group: string): string => {
+        if (permissions.groupOf(group) === undefined)
+            throw new PrismarineServerErrors.PermissionGroupNotFound({ group });
+        return group;
+    };
+    /** Checks what a write takes before it is queued, so the script hears of a bad argument at the call. */
+    const checked = (node: string, expires: string | undefined): string | undefined => {
+        checkNode(node);
+        return expires === undefined ? undefined : checkExpiry(expires, Date.now());
+    };
+    /** Hands a write to the manager's queue; the manager logs a failure, so nothing is left to hear. */
+    const queued = (write: Promise<unknown>): void => void write.catch(() => {});
+    return {
+        has: (player, node) => permissions.has(identityOf(player), node),
+        groupsOf: (player) => permissions.groupsOf(identityOf(player)),
+        primaryGroupOf: (player) => permissions.primaryGroupOf(identityOf(player)),
+        metaOf: (player, key) => permissions.metaOf(identityOf(player), key),
+        weightOf: (player) => permissions.groupOf(permissions.primaryGroupOf(identityOf(player)))?.weight ?? 0,
+        grant: (subject: ScriptPermissionSubject, node, expires) => {
+            const until = checked(node, expires);
+            if ('group' in subject) queued(permissions.grantGroup(checkGroup(subject.group), node, until));
+            else queued(permissions.grantUser(identityOf(subject.player), node, until));
+        },
+        revoke: (subject: ScriptPermissionSubject, node) => {
+            if ('group' in subject) queued(permissions.revokeGroup(checkGroup(subject.group), node));
+            else queued(permissions.revokeUser(identityOf(subject.player), node));
+        },
+        addToGroup: (player, group, expires) => {
+            const identity = identityOf(player);
+            checkGroup(group);
+            const until = expires === undefined ? undefined : checkExpiry(expires, Date.now());
+            queued(permissions.addToGroup(identity, group, until));
+        },
+        removeFromGroup: (player, group) => queued(permissions.removeFromGroup(identityOf(player), group)),
+        onChange: (listener) =>
+            permissions.onChange(({ subject, group }) => {
+                const session =
+                    subject === undefined
+                        ? undefined
+                        : sessions().find((candidate) => sameSubject(candidate.identity.subject, subject));
+                listener({
+                    ...(session === undefined ? {} : { player: String(session.getRuntimeId()) }),
+                    ...(group === undefined ? {} : { group })
+                });
+            })
+    };
+};
+
+/**
  * The members of `@jsprismarine/server` that reach a running server.
  * @param server - The server whose ticker, sessions and transports they read.
  */
@@ -191,6 +268,9 @@ export const scriptServerMembers = (server: Server): JsprismarineServerMembers =
             .find((session) => String(session.getRuntimeId()) === player);
     const screens = new ScriptBossBarScreens(sessionOf);
     return {
+        permissions: scriptPermissionMembers(server.getPermissionManager(), sessionOf, () =>
+            server.getSessionManager().getSessions()
+        ),
         performance: () => ({
             tps: server.getTPS(),
             tpsAverages: server.getTPSAverages(),

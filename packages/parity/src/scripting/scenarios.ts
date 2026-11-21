@@ -246,7 +246,15 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
             server: {
                 observed: {
                     value: {
-                        exports: ['bossBars', 'config', 'getPing', 'jsprismarine', 'performance', 'playerList'],
+                        exports: [
+                            'bossBars',
+                            'config',
+                            'getPing',
+                            'jsprismarine',
+                            'performance',
+                            'permissions',
+                            'playerList'
+                        ],
                         name: 'JSPrismarine',
                         version: 'string',
                         minecraftVersion: 'string',
@@ -270,12 +278,23 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                             resolve: 'function'
                         },
                         config: { afterEvents: 'object', value: 'undefined', write: 'function' },
+                        permissions: {
+                            addToGroup: 'function',
+                            afterEvents: 'object',
+                            grant: 'function',
+                            groupsOf: 'function',
+                            has: 'function',
+                            metaOf: 'function',
+                            primaryGroupOf: 'function',
+                            removeFromGroup: 'function',
+                            revoke: 'function'
+                        },
                         allFrozen: true
                     }
                 },
                 because:
-                    'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList ' +
-                    'and config included, and @jsprismarine/placeholders beside it, and takes the fallback only ' +
+                    'a pack that gets @jsprismarine/server uses it, its performance, getPing, bossBars, playerList, ' +
+                    'config and permissions included, and @jsprismarine/placeholders beside it, and takes the fallback only ' +
                     'where the import rejects',
                 reference: 'docs/guide/jsprismarine-module.md'
             },

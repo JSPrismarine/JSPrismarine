@@ -1,15 +1,23 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { Logger } from '@jsprismarine/logger';
 import BossEventPacket, {
     BossBarColor,
     BossEventUpdateType
 } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type ClientConnection from '../network/ClientConnection';
 import type PlayerSession from '../network/PlayerSession';
+import { PermissionManager } from '../permission/PermissionManager';
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
+import { testKernel } from '../testing/kernel.test.helper';
+import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import { stub } from '../testing/stub.test.helper';
-import { ScriptBossBarScreens, scriptServerMembers } from './serverMembers';
+import { ScriptBossBarScreens, scriptPermissionMembers, scriptServerMembers } from './serverMembers';
 
 /** A joined player's session that records the boss events it is sent and the sends it was handed. */
 const viewer = (runtimeId: bigint, roundTripTime?: number) => {
@@ -165,7 +173,8 @@ describe('scriptServerMembers', () => {
             getTPSAverages: () => [19.9, 19.5, 19],
             getLastTickMs: () => 61,
             getTickMs: () => 44.5,
-            getSessionManager: () => stub<SessionManager>({ getSessions: () => [...sessions] })
+            getSessionManager: () => stub<SessionManager>({ getSessions: () => [...sessions] }),
+            getPermissionManager: () => stub<PermissionManager>()
         });
 
     it("reads the ticker's figures each time", () => {
@@ -208,5 +217,94 @@ describe('scriptServerMembers', () => {
             BossEventUpdateType.UpdatePercent,
             BossEventUpdateType.Remove
         ]);
+    });
+});
+
+describe('scriptPermissionMembers', () => {
+    let directory: string;
+    let permissions: PermissionManager;
+    const steve = identityNamed('Steve', '00000000-0000-0000-0000-000000000007');
+    const steveSession = stub<PlayerSession>({ identity: steve, getRuntimeId: () => 7n });
+    const sessionOf = (player: string) => (player === '7' ? steveSession : undefined);
+
+    beforeEach(async () => {
+        directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-script-permissions-'));
+        vi.stubEnv('JSP_DIR', directory);
+        const logger = new Logger('error');
+        permissions = new PermissionManager(
+            {
+                getLogger: () => logger,
+                getSessionManager: () => stub<SessionManager>({ getSessions: () => [steveSession] }),
+                getKernel: () => testKernel()
+            },
+            { watch: false }
+        );
+        await permissions.enable();
+    });
+
+    afterEach(async () => {
+        await permissions.disable();
+        vi.unstubAllEnvs();
+        rmSync(directory, { recursive: true, force: true });
+    });
+
+    const members = () => scriptPermissionMembers(permissions, sessionOf, () => [steveSession]);
+
+    it('reads a player through the manager and writes on its queue', async () => {
+        const scripts = members();
+        await permissions.createGroup('vip');
+        await permissions.setGroupMeta('vip', 'prefix', '[VIP] ');
+        await permissions.setGroupWeight('vip', 10);
+
+        expect(scripts.has('7', 'minecraft.command.ban')).toBe(false);
+        scripts.addToGroup('7', 'vip', '2030-01-01T00:00:00Z');
+        scripts.grant({ player: '7' }, 'minecraft.command.kick');
+        scripts.grant({ group: 'vip' }, 'minecraft.command.ban');
+        await permissions['writes'];
+
+        expect(scripts.has('7', 'minecraft.command.ban')).toBe(true);
+        expect(scripts.has('7', 'minecraft.command.kick')).toBe(true);
+        expect(scripts.groupsOf('7')).toEqual(['vip', 'default']);
+        expect(scripts.primaryGroupOf('7')).toBe('vip');
+        expect(scripts.metaOf('7', 'prefix')).toBe('[VIP] ');
+        expect(scripts.weightOf('7')).toBe(10);
+        expect(permissions.userOf(steve.subject)?.groups).toEqual([
+            { group: 'vip', expires: '2030-01-01T00:00:00.000Z' }
+        ]);
+
+        scripts.revoke({ group: 'vip' }, 'minecraft.command.ban');
+        scripts.revoke({ player: '7' }, 'minecraft.command.kick');
+        scripts.removeFromGroup('7', 'vip');
+        await permissions['writes'];
+        expect(scripts.has('7', 'minecraft.command.ban')).toBe(false);
+        expect(scripts.groupsOf('7')).toEqual(['default']);
+        expect(scripts.weightOf('7')).toBe(0);
+    });
+
+    it('throws at the call for a bad node, a bad expiry, a missing group or a player who left', () => {
+        const scripts = members();
+
+        expect(() => scripts.grant({ player: '7' }, 'bad node')).toThrow('not spelled');
+        expect(() => scripts.grant({ player: '7' }, 'a.b', 'yesterday')).toThrow('ISO 8601');
+        expect(() => scripts.grant({ group: 'nobody' }, 'a.b')).toThrow('No permission group named "nobody"');
+        expect(() => scripts.addToGroup('7', 'nobody')).toThrow('No permission group named "nobody"');
+        expect(() => scripts.has('8', 'a.b')).toThrow('not found');
+        expect(() => scripts.grant({ player: '8' }, 'a.b')).toThrow('not found');
+        expect(permissions.userOf(steve.subject)).toBeUndefined();
+    });
+
+    it('names the online player a change touched, and the group, and nothing after a reload', async () => {
+        const scripts = members();
+        const changes: unknown[] = [];
+        const stop = scripts.onChange((change) => void changes.push(change));
+
+        await permissions.grantUser(steve, 'a.b');
+        await permissions.grantUser(identityNamed('Alex', '00000000-0000-0000-0000-000000000008'), 'a.b');
+        await permissions.createGroup('vip');
+        await permissions.reload();
+        stop();
+        await permissions.createGroup('other');
+
+        expect(changes).toEqual([{ player: '7' }, {}, { group: 'vip' }, {}]);
     });
 });

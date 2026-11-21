@@ -29,12 +29,46 @@ export interface ScriptBossBarState {
     readonly color: JsprismarineBossBarColor;
 }
 
+/** Whose node a permission write is about: an online player by entity id, or a group by name. */
+export type ScriptPermissionSubject = { readonly player: string } | { readonly group: string };
+
+/** What a permission change touched: the player by entity id when they are online, and the group. */
+export interface ScriptPermissionsChange {
+    readonly player?: string;
+    readonly group?: string;
+}
+
+/**
+ * What `permissions` in `@jsprismarine/server` reads and writes of the server's permission files.
+ * Players are named by their entity ids. A write persists on the server's own schedule; a bad
+ * argument throws before anything is written.
+ */
+export interface ScriptPermissionMembers {
+    has(player: string, node: string): boolean;
+    /** The groups the player holds directly, heaviest first. */
+    groupsOf(player: string): readonly string[];
+    primaryGroupOf(player: string): string;
+    metaOf(player: string, key: string): string | undefined;
+    /** The weight of the player's primary group. */
+    weightOf(player: string): number;
+    /** @throws For a malformed node or expiry, a group the file lacks, or a player who left. */
+    grant(subject: ScriptPermissionSubject, node: string, expires?: string): void;
+    revoke(subject: ScriptPermissionSubject, node: string): void;
+    /** @throws For a malformed expiry, a group the file lacks, or a player who left. */
+    addToGroup(player: string, group: string, expires?: string): void;
+    removeFromGroup(player: string, group: string): void;
+    /** Hears of every change, however it was made. @returns A function that stops listening. */
+    onChange(listener: (change: ScriptPermissionsChange) => void): () => void;
+}
+
 /**
  * What `@jsprismarine/server`'s members that reach the running server read and show. Players are
  * named by their entity ids, as `ScriptWorld.players` lists them. Boss bars are named by an id
  * the runtime gives each bar, which no other bar of the runtime has, a reload included.
  */
 export interface JsprismarineServerMembers {
+    /** The permission files. Without it the module leaves `permissions` out, as an older server would. */
+    readonly permissions?: ScriptPermissionMembers;
     /** How fast the server ticks right now. */
     performance(): ScriptPerformance;
     /** A player's round trip time in milliseconds, or undefined while there is no sample. */
@@ -50,6 +84,24 @@ export interface JsprismarineServerMembers {
     /** Gives a player's player list entry its login name back. */
     resetPlayerListName(player: string): void;
 }
+
+/** The owner of the namespaces the server registers, such as `perms`, which outlive a reload. */
+export const SERVER_PLACEHOLDER_OWNER = { name: 'JSPrismarine' };
+
+/**
+ * The subject a pack passed to `permissions.grant` or `revoke`: a group by its name, or a player.
+ * @param player - Resolves a player value to the entity id, or throws naming the member.
+ * @throws {TypeError} When the value is neither.
+ */
+export const permissionSubjectOf = (
+    value: ScriptValue,
+    player: (value: ScriptValue) => string,
+    member: string
+): ScriptPermissionSubject => {
+    if (typeof value === 'string') return { group: value };
+    if (value instanceof ScriptHandle) return { player: player(value) };
+    throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player or a group name', argument: 'subject' });
+};
 
 /** What a bar shows when the pack shows it without a property. */
 const DEFAULT_BAR: ScriptBossBarState = { text: '', progress: 1, color: 'pink' };

@@ -205,7 +205,20 @@ const SCENARIO_MEMBERS: JsprismarineServerMembers = {
     updateBossBar: () => {},
     hideBossBar: () => {},
     setPlayerListName: () => {},
-    resetPlayerListName: () => {}
+    resetPlayerListName: () => {},
+    // Permission files with nothing in them: everyone holds `default` alone, and a write changes nothing.
+    permissions: {
+        has: () => false,
+        groupsOf: () => ['default'],
+        primaryGroupOf: () => 'default',
+        metaOf: () => undefined,
+        weightOf: () => 0,
+        grant: () => {},
+        revoke: () => {},
+        addToGroup: () => {},
+        removeFromGroup: () => {},
+        onChange: () => () => {}
+    }
 };
 
 /** The `script-watchdog-*` defaults BDS ships, under the scenario's own properties. */
@@ -275,6 +288,7 @@ const runLoadedPacks = async (
         members: SCENARIO_MEMBERS,
         // A scenario has no config file; the member is there, as on a server, and reads nothing.
         addonConfig: { read: () => undefined, write: () => {}, watch: () => () => {} },
+        // BDS's `max-players` default, which `jsprismarine.maxPlayers` tells the packs.
         maxPlayers: 10,
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),

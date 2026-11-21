@@ -55,10 +55,17 @@ import {
     JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS,
     JSPRISMARINE_PLACEHOLDERS_MODULE,
     jsprismarineServerSource,
+    PERMISSION_HOST_FUNCTIONS,
     placeholdersModuleSource
 } from './jsprismarineServer';
-import type { JsprismarineServerMembers } from './jsprismarineMembers';
-import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames } from './jsprismarineMembers';
+import type { JsprismarineServerMembers, ScriptPermissionsChange } from './jsprismarineMembers';
+import {
+    bossBarOptions,
+    permissionSubjectOf,
+    ScriptBossBars,
+    ScriptPlayerListNames,
+    SERVER_PLACEHOLDER_OWNER
+} from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
 import type { TemplateHost } from './templates';
 import { parseShorthand, renderTemplate, templateOf } from './templates';
@@ -261,6 +268,8 @@ interface LoadedPack {
     stopConfigWatch?: () => void;
     /** Whether its config file changed since the last flush looked. */
     configChanged?: boolean;
+    /** The function its `permissions.afterEvents.permissionsChange` subscribers are called through. */
+    permissionsChange?: ScriptHandle;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
     /**
@@ -393,6 +402,9 @@ export class WorldScripts {
      */
     public readonly placeholders: ScriptPlaceholders;
 
+    /** Stops hearing of permission changes, at shutdown. */
+    private readonly stopPermissionChanges: (() => void) | undefined;
+
     public constructor(options: WorldScriptsOptions) {
         this.options = options;
         this.placeholders = new ScriptPlaceholders({
@@ -419,6 +431,28 @@ export class WorldScripts {
         this.custom = new CustomContent(this.engine);
         this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
         this.playerListNames = options.members === undefined ? undefined : new ScriptPlayerListNames(options.members);
+        const permissions = options.members?.permissions;
+        if (permissions !== undefined) {
+            this.stopPermissionChanges = permissions.onChange((change) => this.permissionsChanged(change));
+            // The server's own namespace, which survives a reload as the packs' do not.
+            this.placeholders.register(SERVER_PLACEHOLDER_OWNER, 'perms', {
+                keys: ['primary_group', 'groups', 'prefix', 'suffix', 'weight'],
+                resolve: (key, player) => {
+                    if (player === undefined) return undefined;
+                    switch (key) {
+                        case 'primary_group':
+                            return permissions.primaryGroupOf(player);
+                        case 'groups':
+                            return permissions.groupsOf(player).join(', ');
+                        case 'weight':
+                            return permissions.weightOf(player);
+                        default:
+                            // Empty rather than the token, so `{perms:prefix}{player:name}` reads right for a player without one.
+                            return permissions.metaOf(player, key) ?? '';
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -588,6 +622,7 @@ export class WorldScripts {
     public shutdown(): void {
         if (this.disposed) return;
         this.disposed = true;
+        this.stopPermissionChanges?.();
         this.teardown();
         for (const release of this.releaseGuards.splice(0)) release();
     }
@@ -662,6 +697,7 @@ export class WorldScripts {
             if (loaded.parseJson !== undefined) this.engine.free(loaded.parseJson);
             if (loaded.jsp !== undefined) this.engine.free(loaded.jsp);
             if (loaded.placeholders !== undefined) this.engine.free(loaded.placeholders);
+            if (loaded.permissionsChange !== undefined) this.engine.free(loaded.permissionsChange);
             loaded.api.destroy();
         }
         this.loaded = [];
@@ -1059,12 +1095,16 @@ export class WorldScripts {
                     if (loaded.configEventMaker !== undefined) engine.free(loaded.configEventMaker);
                     loaded.configEventMaker = engine.duplicate(maker);
                     return undefined;
-                }
+                },
+                ...this.permissionFunctions(loaded, (value, member) => this.playerArgument(loaded, value, member))
             };
+        const permissions = members.permissions;
         const configFunctions: readonly string[] = JSPRISMARINE_CONFIG_FUNCTIONS;
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
             // Without a store the module leaves `config` out, which it tells by the functions' absence.
             if (store === undefined && configFunctions.includes(name)) continue;
+            // Without the permission files, the module leaves `permissions` out, so its functions are not installed.
+            if (permissions === undefined && (PERMISSION_HOST_FUNCTIONS as readonly string[]).includes(name)) continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
@@ -1275,6 +1315,98 @@ export class WorldScripts {
             engine.free(fn);
         }
         return host;
+    }
+
+    /** The host functions behind a pack's `permissions` member. Each names the member it serves in an error. */
+    private permissionFunctions(
+        loaded: LoadedPack,
+        playerOf: (value: ScriptValue, member: string) => FormPlayer
+    ): Record<(typeof PERMISSION_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> {
+        const engine = this.engine;
+        const permissions = () => {
+            const members = this.options.members?.permissions;
+            if (members === undefined) throw new ScriptHostErrors.JspMemberUnavailable({ member: 'permissions' });
+            return members;
+        };
+        const text = (value: ScriptValue, member: string, argument: string): string => {
+            if (typeof value !== 'string')
+                throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a string', argument });
+            return value;
+        };
+        const expiry = (value: ScriptValue, member: string): string | undefined =>
+            value === undefined ? undefined : text(value, member, 'expires');
+        /** A present player's id, or a throw naming the member: a player who left has no record to read. */
+        const presentPlayer = (value: ScriptValue, member: string): string => {
+            const player = playerOf(value, member);
+            if (!player.present)
+                throw new ScriptHostErrors.JspModuleArgument({
+                    member,
+                    expected: 'a Player who is online',
+                    argument: 'player'
+                });
+            return player.id;
+        };
+        const subject = (value: ScriptValue, member: string) =>
+            permissionSubjectOf(value, (player) => presentPlayer(player, member), member);
+        return {
+            hasPermission: (player, node) =>
+                permissions().has(presentPlayer(player, 'permissions.has'), text(node, 'permissions.has', 'node')),
+            groupsOf: (player) => JSON.stringify(permissions().groupsOf(presentPlayer(player, 'permissions.groupsOf'))),
+            primaryGroupOf: (player) =>
+                permissions().primaryGroupOf(presentPlayer(player, 'permissions.primaryGroupOf')),
+            metaOf: (player, key) =>
+                permissions().metaOf(
+                    presentPlayer(player, 'permissions.metaOf'),
+                    text(key, 'permissions.metaOf', 'key')
+                ),
+            grant: (who, node, expires) => {
+                const member = 'permissions.grant';
+                permissions().grant(subject(who, member), text(node, member, 'node'), expiry(expires, member));
+                return undefined;
+            },
+            revoke: (who, node) => {
+                const member = 'permissions.revoke';
+                permissions().revoke(subject(who, member), text(node, member, 'node'));
+                return undefined;
+            },
+            addToGroup: (player, group, expires) => {
+                const member = 'permissions.addToGroup';
+                permissions().addToGroup(
+                    presentPlayer(player, member),
+                    text(group, member, 'group'),
+                    expiry(expires, member)
+                );
+                return undefined;
+            },
+            removeFromGroup: (player, group) => {
+                const member = 'permissions.removeFromGroup';
+                permissions().removeFromGroup(presentPlayer(player, member), text(group, member, 'group'));
+                return undefined;
+            },
+            onPermissionsChange: (dispatch) => {
+                if (!(dispatch instanceof ScriptHandle)) return undefined;
+                if (loaded.permissionsChange !== undefined) engine.free(loaded.permissionsChange);
+                loaded.permissionsChange = engine.duplicate(dispatch);
+                return undefined;
+            }
+        };
+    }
+
+    /**
+     * Tells every pack's `permissions.afterEvents.permissionsChange` subscribers of a change, each
+     * with the pack's own object for the player when they are online.
+     */
+    private permissionsChanged(change: ScriptPermissionsChange): void {
+        if (this.stopped) return;
+        for (const loaded of [...this.loaded]) {
+            const dispatch = loaded.permissionsChange;
+            if (dispatch === undefined) continue;
+            const player =
+                change.player !== undefined && this.options.world.players().includes(change.player)
+                    ? this.entityObject(loaded, { id: change.player, typeId: PLAYER })
+                    : undefined;
+            this.invoke(loaded, dispatch, 'default', [player, change.group]);
+        }
     }
 
     /**

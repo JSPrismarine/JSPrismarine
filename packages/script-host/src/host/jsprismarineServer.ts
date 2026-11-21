@@ -194,6 +194,65 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'void'
             }
         }
+    },
+    permissions: {
+        kind: 'methods',
+        summary:
+            'The groups, nodes and meta of `permissions.json`, resolved as the server resolves them for a command. A write persists to the file as `/perms` would, and `afterEvents.permissionsChange` fires after any write, from a script, `/perms`, `/op` or an edit of the file.',
+        properties: {
+            afterEvents: {
+                type: 'PermissionsAfterEvents',
+                summary: 'The events the permission files raise.'
+            }
+        },
+        methods: {
+            has: {
+                summary:
+                    "Whether the player holds the node after resolution: their own nodes, then their groups heaviest first and each group's parents, where a specific node beats a wildcard and a negation wins a tie. An operator holds every node.",
+                parameters: 'player: Player, node: string',
+                returns: 'boolean'
+            },
+            groupsOf: {
+                summary:
+                    "The groups the player holds directly, heaviest first, `default` and an operator's `operator` included.",
+                parameters: 'player: Player',
+                returns: 'readonly string[]'
+            },
+            primaryGroupOf: {
+                summary: 'The heaviest group the player holds directly, or `default`.',
+                parameters: 'player: Player',
+                returns: 'string'
+            },
+            metaOf: {
+                summary:
+                    "The resolved value of a meta key such as `prefix`, `suffix` or `level`: the player's own, then their groups' in resolution order. `undefined` when nothing sets it.",
+                parameters: 'player: Player, key: string',
+                returns: 'string | undefined'
+            },
+            grant: {
+                summary:
+                    'Adds a node to a player, or to a group named by its name. Throws a `RangeError` for a node not spelled as `scope.name`, `scope.*` or `*` with at most one leading `-`, or for an expiry that is not an ISO 8601 instant in the future, and an `Error` for a group the file does not have.',
+                parameters: 'subject: Player | string, node: string, expires?: string',
+                returns: 'void'
+            },
+            revoke: {
+                summary:
+                    'Removes a node from a player, or from a group named by its name. Does nothing when they do not have it.',
+                parameters: 'subject: Player | string, node: string',
+                returns: 'void'
+            },
+            addToGroup: {
+                summary:
+                    'Adds a player to a group, until `expires` when one is given. Throws an `Error` for a group the file does not have.',
+                parameters: 'player: Player, group: string, expires?: string',
+                returns: 'void'
+            },
+            removeFromGroup: {
+                summary: 'Removes a player from a group. Does nothing when they are not in it.',
+                parameters: 'player: Player, group: string',
+                returns: 'void'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -423,6 +482,47 @@ export const JSPRISMARINE_PLACEHOLDER_TYPES = {
                     'The tick at which an animation in the template next changes the text, so a consumer that refreshes on an interval renders again then. Absent when the template holds no animation with more than one frame.'
             }
         }
+    },
+    PermissionsAfterEvents: {
+        kind: 'interface',
+        summary: 'The events the permission files raise, after the fact.',
+        properties: {
+            permissionsChange: {
+                type: 'PermissionsChangeSignal',
+                summary:
+                    'Fires after any write to the permission files, whoever made it, and after the files are read again on `/reload` or a change on disk.'
+            }
+        }
+    },
+    PermissionsChangeSignal: {
+        kind: 'interface',
+        summary: 'Where a pack subscribes to permission changes.',
+        properties: {},
+        methods: {
+            subscribe: {
+                summary:
+                    "Calls `callback` after each change, with the player and the group it touched, and returns the callback. A pack's subscriptions end when its scripts stop.",
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: '(event: PermissionsChangeEvent) => void'
+            },
+            unsubscribe: {
+                summary: 'Stops calling a callback `subscribe` returned.',
+                parameters: 'callback: (event: PermissionsChangeEvent) => void',
+                returns: 'void'
+            }
+        }
+    },
+    PermissionsChangeEvent: {
+        kind: 'interface',
+        summary: 'What a permission change touched. Both are absent after a reload, which may have changed anything.',
+        properties: {
+            player: {
+                type: 'Player',
+                optional: true,
+                summary: 'The player whose own record or operator status changed, when they are online.'
+            },
+            group: { type: 'string', optional: true, summary: 'The group that changed.' }
+        }
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -462,7 +562,16 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'writeConfig',
     'onConfigChange',
     'offConfigChange',
-    'setConfigEventMaker'
+    'setConfigEventMaker',
+    'hasPermission',
+    'groupsOf',
+    'primaryGroupOf',
+    'metaOf',
+    'grant',
+    'revoke',
+    'addToGroup',
+    'removeFromGroup',
+    'onPermissionsChange'
 ] as const;
 
 /**
@@ -495,7 +604,9 @@ export const JSPRISMARINE_CONFIG_FUNCTIONS = [
 /**
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
  * `host.read(name, index)` answers a property of `performance`, one entry of a list at a time,
- * and the others are named for what they do.
+ * `host.groupsOf(player)` answers a player's groups as JSON, `host.onPermissionsChange(dispatch)` keeps
+ * the function the host calls with each change's player and group, and the others are named for
+ * what they do.
  */
 const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, string>> = {
     getPing: 'freeze((player) => host.ping(player))',
@@ -531,12 +642,51 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        afterEvents: freeze({ change })',
         '    });',
         '})()'
+    ].join('\n'),
+    permissions: [
+        '(() => {',
+        '    const subscribers = new Set();',
+        '    host.onPermissionsChange((player, group) => {',
+        '        const event = freeze({ player, group });',
+        '        for (const callback of [...subscribers]) callback(event);',
+        '    });',
+        '    const permissionsChange = freeze({',
+        '        subscribe(callback) { subscribers.add(callback); return callback; },',
+        '        unsubscribe(callback) { subscribers.delete(callback); }',
+        '    });',
+        '    return freeze({',
+        '        has: (player, node) => host.hasPermission(player, node),',
+        '        groupsOf: (player) => freeze(JSON.parse(host.groupsOf(player))),',
+        '        primaryGroupOf: (player) => host.primaryGroupOf(player),',
+        '        metaOf: (player, key) => host.metaOf(player, key),',
+        '        grant: (subject, node, expires) => host.grant(subject, node, expires),',
+        '        revoke: (subject, node) => host.revoke(subject, node),',
+        '        addToGroup: (player, group, expires) => host.addToGroup(player, group, expires),',
+        '        removeFromGroup: (player, group) => host.removeFromGroup(player, group),',
+        '        afterEvents: freeze({ permissionsChange })',
+        '    });',
+        '})()'
     ].join('\n')
 };
 
+/** The host functions behind `permissions`, installed only on a server that has the permission files. */
+export const PERMISSION_HOST_FUNCTIONS = [
+    'hasPermission',
+    'groupsOf',
+    'primaryGroupOf',
+    'metaOf',
+    'grant',
+    'revoke',
+    'addToGroup',
+    'removeFromGroup',
+    'onPermissionsChange'
+] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
+
 /** A member the host object must have more than its existence for, by the check its source makes. */
 const MEMBER_GUARDS: Readonly<Record<string, string>> = {
-    config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`
+    config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`,
+    // Without the permission files a server installs none of these, and the module leaves `permissions` out.
+    permissions: `host.${PERMISSION_HOST_FUNCTIONS[0]} !== undefined`
 };
 
 /** The getters of a member whose properties read the server, each through `host.read`. */

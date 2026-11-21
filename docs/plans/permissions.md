@@ -246,9 +246,11 @@ The server registers a `perms` placeholder namespace with `primary_group`, `grou
 4. [x] [#3369](https://github.com/JSPrismarine/JSPrismarine/issues/3369) **The `/perms` command.** Every subcommand with its node, target resolution and the
        qualified form. `[expires]` also takes a duration from now, such as `30d`, which the file
        holds as the instant it ends at.
-5. [ ] [#3370](https://github.com/JSPrismarine/JSPrismarine/issues/3370) **The script module.** `permissions` in `@jsprismarine/server` and `script-types`, the
+5. [x] [#3370](https://github.com/JSPrismarine/JSPrismarine/issues/3370) **The script module.** `permissions` in `@jsprismarine/server` and `script-types`, the
        change event, and the `perms` placeholder namespace once slice 2 of the placeholders plan
-       has landed.
+       has landed. Built on the registry branch of that slice, so the namespace is registered;
+       an unset `prefix` or `suffix` renders as empty text rather than the token, since a tab
+       list template reads better that way.
 6. [ ] [#3371](https://github.com/JSPrismarine/JSPrismarine/issues/3371) **Docs.** The permissions section of [Running](../guide/running.md), the
        [command reference](../guide/commands.md) and
        [the module page](../guide/jsprismarine-module.md), with their facts regenerated.
