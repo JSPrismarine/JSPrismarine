@@ -57,9 +57,9 @@ proven by bit-pattern vectors rather than tolerances.
 - Progress is measured by counts in CI (indirect calls per sample, dispatches per chunk, `fround`
   calls per tile, boundary crossings per chunk), never by timings. The plan that applies this
   decision is [worldgen-rearchitecture.md](../plans/worldgen-rearchitecture.md).
-- Java's volume path and its per-block path differ in the last bits of a float (captured in
-  `vectors/26.3/density-volume.json`). We reproduce the per-block path today. Terrain follows the
-  volume path, so the runtime's bits move to Java's terrain bits, pinned by the `worldgen.terrain`
-  parity rows, and the per-block path is kept where Java itself samples per block.
+- Java's volume path and its per-block path differ in the last bits of a float, and only through
+  `interpolated` (captured in `vectors/26.3/density-volume.json`). The terrain cell walk follows the
+  volume order since #3474, the per-block path stays where Java samples per block, and the
+  `worldgen.terrain` parity rows hold both.
 - The surface pass, the biome sampler and the feature world follow the same rule in later phases:
   typed arrays at the seams the hot loops cross, objects only at the Bedrock translation.
