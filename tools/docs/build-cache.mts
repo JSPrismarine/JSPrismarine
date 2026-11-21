@@ -102,6 +102,30 @@ export function inputHash(name: StepName): string {
     return hashFiles(steps[name].inputs);
 }
 
+/**
+ * The commit the step's inputs match, or `undefined` when some input has uncommitted changes, so a
+ * later run can ask what changed since the inputs this run read.
+ */
+export function committedInputs(name: StepName): string | undefined {
+    const [head] = git(['rev-parse', 'HEAD']);
+    const committed = new Map<string, string>();
+    for (const line of git(['ls-tree', '-r', '-z', 'HEAD'])) {
+        const tab = line.indexOf('\t');
+        committed.set(line.slice(tab + 1), line.slice(0, tab).split(' ')[2] ?? '');
+    }
+    return inputHash(name) === hashFiles(steps[name].inputs, committed) ? head : undefined;
+}
+
+/** Whether `commit` names a commit this checkout has. */
+export function isKnownCommit(commit: string): boolean {
+    try {
+        execFileSync('git', ['cat-file', '-e', `${commit}^{commit}`], { cwd: repoRoot, stdio: 'ignore' });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function stampOf(name: StepName, inputs: string): string {
     const step: Step = steps[name];
     if (step.output === undefined) return inputs;
