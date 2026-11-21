@@ -195,6 +195,21 @@ const canFluidOccupy = (world: WorldActions, block: HookBlock | undefined): bool
     return reaction !== undefined && reaction !== 'blocking';
 };
 
+/**
+ * Whether a block keeps its place and holds water beside itself, Java's `LiquidBlockContainer`.
+ * Only a host that can write the second layer has one.
+ */
+const isWaterContainer = (world: WorldActions, block: HookBlock | undefined): boolean =>
+    block !== undefined && world.setLiquid !== undefined && (world.holdsWater?.(block) ?? false);
+
+/**
+ * Java's `canHoldSpecificFluid`: a container takes only a water source, which is
+ * `SimpleWaterloggedBlock.canPlaceLiquid` accepting `Fluids.WATER` alone; anything else holds
+ * whatever may enter it.
+ */
+const canHoldSpecificFluid = (world: WorldActions, block: HookBlock | undefined, fluid: LiquidState): boolean =>
+    !isWaterContainer(world, block) || (fluid.kind === 'water' && fluid.source);
+
 /** Whether the fluid already at a position can be replaced from this direction. */
 const canBeReplacedWith = (
     existing: LiquidState | undefined,
@@ -264,7 +279,7 @@ const canMaybePassThrough = (
     kind: LiquidState['kind']
 ): boolean =>
     !isSourceBlockOf(world, to, kind) &&
-    canFluidOccupy(world, world.getBlock(to)) &&
+    (canFluidOccupy(world, world.getBlock(to)) || isWaterContainer(world, world.getBlock(to))) &&
     canPassThroughWall(world, from, to);
 
 /** Whether fluid at this position has an opening to fall through. */
@@ -421,7 +436,7 @@ const fluidSpreadDirections = (
         const testAt = offset(at, direction);
         if (!canMaybePassThrough(world, at, testAt, kind)) continue;
         const next = newLiquidAt(world, testAt, kind, dimension);
-        if (next === undefined) continue;
+        if (next === undefined || !canHoldSpecificFluid(world, world.getBlock(testAt), next)) continue;
 
         const distance = isHoleIn(search, world, testAt, kind)
             ? 0
@@ -473,6 +488,14 @@ const spreadTo = (
     dimension: string
 ): void => {
     const existing = world.getBlock(at);
+    if (isWaterContainer(world, existing)) {
+        // `SimpleWaterloggedBlock.placeLiquid`: the block stays, and its water ticks from now on.
+        if (fluidAt(world, at) !== undefined) return;
+        world.setLiquid?.(at, WATER, { liquid_depth: 0 });
+        world.notifyNeighbors(at);
+        world.scheduleTick(at, spreadTicks(WATER, dimension), 'fluid');
+        return;
+    }
     if (target.kind === 'lava' && direction === 'down' && existing !== undefined && isWater(existing.identifier)) {
         world.setBlock(at, STONE);
         world.playSound(at, 'random.fizz');
@@ -530,7 +553,10 @@ const spreadFluid = (world: WorldActions, at: BlockPosition, state: LiquidState,
             falling: true,
             source: false
         };
-        if (canBeReplacedWith(fluidAt(world, belowAt), state.kind, 'down')) {
+        if (
+            canBeReplacedWith(fluidAt(world, belowAt), state.kind, 'down') &&
+            canHoldSpecificFluid(world, world.getBlock(belowAt), nextBelow)
+        ) {
             spreadTo(world, belowAt, 'down', { ...nextBelow, falling: true }, dimension);
             const sides =
                 sourceNeighborCount(world, at, state.kind) >= 3 ? spreadToSides(world, at, state, dimension) : [];

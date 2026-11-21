@@ -40,7 +40,7 @@ import { liquidOf } from '../../world/physics/BlockRules';
 import type { ServerContent } from '../ServerContent';
 import type { ContentBlock, ContentPosition, ServerWorldAdapter, ServerWorldSource } from './adapter';
 import { hasBlockTag } from './blockTags';
-import { DEFAULT_FLUID_REPLACEMENT, liquidReactionOf } from './fluidReplacement';
+import { DEFAULT_FLUID_REPLACEMENT, isJavaLiquidContainer, liquidReactionOf } from './fluidReplacement';
 import { CONTENT_AREAS, notWired } from './notWired';
 import {
     FIRE_SPREAD_RADIUS,
@@ -226,6 +226,19 @@ const blockActionsOf = (
             const liquid = adapter.blocks.liquid?.(at);
             return liquid && { identifier: liquid.identifier, position: at, dimension, states: liquid.states };
         },
+        ...(adapter.blocks.setLiquid === undefined
+            ? {}
+            : {
+                  setLiquid: (position: ContentPosition, identifier: string, states = {}) =>
+                      adapter.blocks.setLiquid?.(
+                          position,
+                          identifier === 'minecraft:air' ? undefined : { identifier, states }
+                      )
+              }),
+        // Java's rule only: Bedrock's own decides a waterloggable block by its liquid reaction.
+        holdsWater: (block) =>
+            (adapter.level.fluidReplacement?.() ?? DEFAULT_FLUID_REPLACEMENT) === 'java' &&
+            isJavaLiquidContainer(block),
         setBlock: (position, identifier, states = {}, notifyNeighbors = true, placement) =>
             adapter.blocks.set(position, { identifier, states }, notifyNeighbors, placement),
         ...(adapter.blocks.move === undefined

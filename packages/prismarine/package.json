@@ -339,6 +339,10 @@
             "jsprismarine:dist": "./dist/content/world/adapter.js",
             "default": "./src/content/world/adapter.ts"
         },
+        "./content/world/fluidReplacement": {
+            "jsprismarine:dist": "./dist/content/world/fluidReplacement.js",
+            "default": "./src/content/world/fluidReplacement.ts"
+        },
         "./entity/Combat": {
             "jsprismarine:dist": "./dist/entity/Combat.js",
             "default": "./src/entity/Combat.ts"

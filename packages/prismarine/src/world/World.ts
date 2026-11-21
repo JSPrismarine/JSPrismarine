@@ -3108,6 +3108,38 @@ export class World implements Service {
         return this.setLoadedBlockRuntimeId(x, y, z, runtimeId, this.getTicks(), 1, notifyNeighbors);
     }
 
+    /**
+     * Writes the liquid a position holds in its second storage layer, which is where Bedrock keeps
+     * a waterlogged block's water, for a chunk that is already in memory. The block in the first
+     * layer stays as it is. Clients learn of it from the change log, as of a block write.
+     * @param {number} x - World x.
+     * @param {number} y - World y.
+     * @param {number} z - World z.
+     * @param {number} runtimeId - The liquid to put there, or air to take it away.
+     * @param {boolean} [notifyNeighbors=true] - Whether the blocks around it hear of the change.
+     * @returns {boolean} `false` if nothing changed, including when the chunk is not in memory.
+     */
+    public setLoadedLiquidRuntimeId(
+        x: number,
+        y: number,
+        z: number,
+        runtimeId: number,
+        notifyNeighbors = true
+    ): boolean {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return false;
+        const previousRuntimeId = chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf, 1);
+        if (previousRuntimeId === runtimeId) return false;
+
+        this.blockLog()?.writtenBlock(x, y, z, 1, previousRuntimeId, runtimeId);
+        chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId, 1);
+        this.blockWriteVersion = World.nextBlockWriteVersion++;
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name, this.levelName(), x >> 4, z >> 4);
+        this.blockUpdates.scheduleAround(x, y, z, this.getTicks(), 1);
+        if (notifyNeighbors) notifyContentNeighbors(this, { x, y, z });
+        return true;
+    }
+
     /** The write itself, once a chunk to write into is in hand. */
     private writeBlockRuntimeId(
         chunk: Chunk,

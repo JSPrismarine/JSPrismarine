@@ -77,6 +77,11 @@ export interface BlockStorageAccess {
      */
     liquidAt?(position: ContentPosition): ContentBlock | undefined;
     /**
+     * Writes the liquid a position holds in its second storage layer, or takes it away for
+     * undefined, raising no hook and notifying no neighbor.
+     */
+    writeLiquid?(position: ContentPosition, liquid: ContentBlock | undefined): void;
+    /**
      * Raises a block's `onBreak` and puts what Java's table rolls on the ground, leaving
      * the write to the caller; see {@link ContentBlockAccess.destroy}.
      *
@@ -327,6 +332,12 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
     return {
         get: (at) => storage.at(at),
         ...(storage.liquidAt === undefined ? {} : { liquid: (at: ContentPosition) => storage.liquidAt?.(at) }),
+        ...(storage.writeLiquid === undefined
+            ? {}
+            : {
+                  setLiquid: (at: ContentPosition, liquid: ContentBlock | undefined) =>
+                      storage.writeLiquid?.(at, liquid)
+              }),
         ...(move === undefined ? {} : { move }),
         // Passed through rather than reimplemented: the hook, the roll and the ground all
         // belong to the world the storage is over. Absent when the storage cannot do it,

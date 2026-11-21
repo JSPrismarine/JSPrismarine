@@ -247,6 +247,37 @@ describe('water held by a waterlogged block', () => {
         expect(world.identifierAt(below)).toBe('minecraft:air');
     });
 
+    it('takes a water source between two sources into its second layer, as Java waterlogs it', () => {
+        const world = Object.assign(slabWorld(), {
+            holdsWater: (block: { identifier: string }) => block.identifier === SLAB
+        });
+        // Wide enough that no side finds a hole to flow toward, so every side gets a share.
+        world.fill({ x: -10, y: 0, z: -10 }, { x: 10, y: 0, z: 10 }, 'minecraft:stone');
+        const middle = { x: 1, y: 1, z: 0 };
+        world.set(source, 'minecraft:water');
+        world.set(middle, SLAB);
+        world.set({ x: 2, y: 1, z: 0 }, 'minecraft:water');
+
+        spreadLiquid(world, world.block(source));
+
+        expect(world.identifierAt(middle)).toBe(SLAB);
+        expect(world.getLiquid(middle)?.identifier).toBe('minecraft:water');
+    });
+
+    it('keeps flowing water out of a block that holds water', () => {
+        const world = Object.assign(slabWorld(), {
+            holdsWater: (block: { identifier: string }) => block.identifier === SLAB
+        });
+        const beside = { x: 1, y: 1, z: 0 };
+        world.set(source, 'minecraft:water');
+        world.set(beside, SLAB);
+
+        spreadLiquid(world, world.block(source));
+
+        expect(world.identifierAt(beside)).toBe(SLAB);
+        expect(world.getLiquid(beside)).toBeUndefined();
+    });
+
     it('is not entered or replaced by flowing water beside it', () => {
         const world = slabWorld();
         world.set(source, 'minecraft:water');

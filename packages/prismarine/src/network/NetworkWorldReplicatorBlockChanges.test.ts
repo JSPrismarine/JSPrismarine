@@ -16,13 +16,16 @@ import Codec2225 from './codec/Codec2225';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { BatchCodec, blockRuntimeId } from '@jsprismarine/protocol';
-import UpdateBlockPacket, { UpdateBlockFlagsType } from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
+import UpdateBlockPacket, {
+    UpdateBlockFlagsType,
+    UpdateBlockLayerType
+} from '@jsprismarine/protocol/bedrock/packet/UpdateBlockPacket';
 import UpdateSubChunkBlocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateSubChunkBlocksPacket';
 import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 import { readPacketId } from '@jsprismarine/protocol/NetworkPacket';
 import { PacketIdentifier } from '@jsprismarine/protocol';
 import { isInView } from '../world/Proximity';
-import { sealBlockWrite } from '../testing/sealedBlocks.test.helper';
+import { blockEntry, sealBlockWrite, sealEntries } from '../testing/sealedBlocks.test.helper';
 
 /** Viewers' sessions and the block updates the replicator batches for each. */
 const replicatorFor = (
@@ -233,6 +236,27 @@ describe('NetworkWorldReplicator block changes', () => {
         await replicator.flushBlockChanges();
 
         expect(packetsIn(batches[0]!).map(({ kind }) => kind)).toEqual(['block', 'block']);
+    });
+
+    it("sends a waterlogged block's water on the liquid layer, alone and among other changes", async () => {
+        const { batches, replicator } = replicatorFor([{ x: 8, z: 8, viewDistance: 4 }]);
+        const water = BlockRuntimeIds.getByName('minecraft:water');
+        const stone = BlockRuntimeIds.getByName('minecraft:stone');
+
+        sealEntries(replicator, [blockEntry({ x: 1, y: 64, z: 1 }, water, 1)]);
+        await replicator.flushBlockChanges();
+        sealEntries(replicator, [
+            blockEntry({ x: 2, y: 64, z: 2 }, stone),
+            blockEntry({ x: 2, y: 64, z: 2 }, water, 1)
+        ]);
+        await replicator.flushBlockChanges();
+
+        const [lone, batch] = packetsIn(batches[0]!);
+        if (lone?.kind !== 'block' || batch?.kind !== 'sub-chunk') throw new Error('expected an update and a batch');
+        expect(lone.packet.layer).toBe(UpdateBlockLayerType.Liquid);
+        expect(lone.packet.blockRuntimeId).toBe(water >>> 0);
+        expect(batch.data.blocksChanged.standards.map((info) => info.runtimeId)).toEqual([stone >>> 0]);
+        expect(batch.data.blocksChanged.extras.map((info) => info.runtimeId)).toEqual([water >>> 0]);
     });
 
     it('names the sub chunk a negative column belongs to by its own origin corner', async () => {
