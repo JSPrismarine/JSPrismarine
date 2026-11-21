@@ -1,0 +1,155 @@
+{
+    "$comment": [
+        "What the scripts of scenario `player-client-feedback` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.entities",
+    "scenario": "player-client-feedback",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "client",
+            "seq": 1,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "client",
+            "seq": 2,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "client",
+            "seq": 3,
+            "tick": 0,
+            "event": "playMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 4,
+            "tick": 0,
+            "event": "playMusic louder than 1",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 5,
+            "tick": 0,
+            "event": "playMusic with a negative fade",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: fade, Value: -1, Property min: 0"
+        },
+        {
+            "pack": "client",
+            "seq": 6,
+            "tick": 0,
+            "event": "queueMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 7,
+            "tick": 0,
+            "event": "queueMusic with a negative fade",
+            "error": "PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: fade, Value: -1, Property min: 0"
+        },
+        {
+            "pack": "client",
+            "seq": 8,
+            "tick": 0,
+            "event": "stopMusic",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 9,
+            "tick": 0,
+            "event": "postClientMessage",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 10,
+            "tick": 0,
+            "event": "postClientMessage empty",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 11,
+            "tick": 0,
+            "event": "controlPoints read back",
+            "value": []
+        },
+        {
+            "pack": "client",
+            "seq": 12,
+            "tick": 0,
+            "event": "playAnimation linear",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 13,
+            "tick": 0,
+            "event": "playAnimation linear with one point",
+            "error": "Error: Linear needs at least 2 control points"
+        },
+        {
+            "pack": "client",
+            "seq": 14,
+            "tick": 0,
+            "event": "playAnimation catmull-rom with two points",
+            "error": "Error: CatmullRom needs at least 3 control points"
+        },
+        {
+            "pack": "client",
+            "seq": 15,
+            "tick": 0,
+            "event": "playAnimation catmull-rom with key frames",
+            "value": "undefined"
+        },
+        {
+            "pack": "client",
+            "seq": 16,
+            "tick": 0,
+            "event": "playAnimation with a late first progress key frame",
+            "error": "Error: First progress key frame must be at time 0.0"
+        },
+        {
+            "pack": "client",
+            "seq": 17,
+            "tick": 0,
+            "event": "playAnimation with a late first rotation key frame",
+            "error": "Error: First rotation key frame must be at time 0.0"
+        },
+        {
+            "pack": "client",
+            "seq": 18,
+            "tick": 0,
+            "event": "playAnimation with both key frames late and one point",
+            "error": "Error: First rotation key frame must be at time 0.0"
+        },
+        {
+            "pack": "client",
+            "seq": 19,
+            "tick": 0,
+            "event": "playAnimation with a late first progress key frame and one point",
+            "error": "Error: First progress key frame must be at time 0.0"
+        },
+        {
+            "pack": "client",
+            "seq": 20,
+            "tick": 0,
+            "event": "playAnimation with no time",
+            "value": "undefined"
+        }
+    ],
+    "client": []
+}

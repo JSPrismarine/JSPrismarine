@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario player-client-feedback client",
+        "description": "Plays music, overrides properties, posts client messages and plays camera splines for the scenario's client, and records what the calls return. Written for packages/parity.",
+        "uuid": "16c81ab0-a9b1-4d5c-9368-0864eb9f8d25",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "00375578-fbeb-4e08-a408-48bc730653cb",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

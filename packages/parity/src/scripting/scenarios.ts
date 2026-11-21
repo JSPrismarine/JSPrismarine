@@ -536,6 +536,19 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         }
     },
     {
+        id: 'player-client-feedback',
+        family: 'scripting.entities',
+        description:
+            "Player's music, client messages and Camera.playAnimation take their calls for the joined client, refuse " +
+            'a negative fade, a spline with too few control points and key frames that do not start at time 0, and ' +
+            "read back no spline's control points.",
+        reference: 'https://github.com/JSPrismarine/JSPrismarine/issues/3308',
+        packs: ['client'],
+        experiments: ['gametest'],
+        needs: 'world',
+        client: { answers: [] }
+    },
+    {
         id: 'world-basics',
         family: 'scripting.world',
         description:
