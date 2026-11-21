@@ -24,7 +24,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
-| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, done ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)). 8b, the login: Mojang verification, encryption and compression, in review. |
+| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, done ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)). 8b, the login: Mojang verification, encryption and compression, done ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)). 8c, the configuration phase, in review. |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
@@ -262,9 +262,17 @@ it is off, and produces a `java` `Subject` for the permissions plan's identity.
 
 The configuration phase sends the registries the client needs before it can decode play packets:
 dimension types, biomes, damage types, chat types, wolf and cat variants, painting variants and the
-tags over blocks, items, fluids and entity types. Their contents come from the pinned jar's data
-generator output, which the repository already runs per Java release for the datapack. The known
-packs exchange says the server has none.
+tags over blocks, items, fluids and entity types.
+
+PR 8c sends them the way vanilla 26.3 does. `capture:java-configuration` runs the pinned server
+jar, logs in with this package's packets and records the feature flags, the known packs (vanilla
+offers `minecraft:core` at the release's version), each registry's entry ids in order and every tag,
+into `java/versions/<release>/configuration.json`. The server replays that: a client that has the
+core pack gets every registry as ids alone and takes the data from its own copy, which is what
+vanilla does for it too, and a client without the pack is turned away. Order is what gives a
+registry entry its network id and tags name entries by those ids, so both come from the server
+rather than being rebuilt from the datapack. Content the world adds beyond vanilla's, such as an
+addon's biome, needs entries with data, which waits until a Java client can see such content.
 
 ### Tables and bring-up
 

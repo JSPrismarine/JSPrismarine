@@ -376,6 +376,7 @@ export class ServerNetworking implements Networking {
         const transport = new TcpTransport(ids, logger);
         const connections = new JavaConnections(transport, {
             status: serverName,
+            brand: serverName.getName(),
             onlineMode: () => this.server.getConfig().getOnlineMode(),
             log: logger
         });

@@ -1,6 +1,21 @@
 import { constants, publicEncrypt, randomBytes } from 'node:crypto';
 
-import { ConfigurationDisconnect } from '@jsprismarine/protocol/java/packet/configuration';
+import {
+    AcknowledgeFinishConfiguration,
+    brandPayload,
+    ClientboundKnownPacks,
+    ClientboundPluginMessage,
+    ConfigurationDisconnect,
+    FeatureFlags,
+    FinishConfiguration,
+    RegistryData,
+    ServerboundKnownPacks,
+    UpdateTags
+} from '@jsprismarine/protocol/java/packet/configuration';
+import { defineJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
+import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { PACKETS } from '@jsprismarine/protocol/java/versions/26.3/packets';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import {
     EncryptionRequest,
@@ -22,6 +37,13 @@ import type { JavaProfile } from './javaAuth';
 import { offlineUuid, serverHash } from './javaAuth';
 import { JavaConnections } from './JavaConnections';
 
+/** `Client Information`, by id alone: its fields are the client's settings, which the server reads past. */
+const ClientInformationProbe = defineJavaPacket(
+    'Client Information',
+    PACKETS.configuration.serverbound.client_information,
+    {}
+);
+
 const status = { getMotd: () => 'A JSPrismarine server', getOnlinePlayerCount: () => 3, getMaxPlayerCount: () => 20 };
 const quiet = { debug: () => {}, info: () => {} };
 
@@ -36,6 +58,7 @@ describe('JavaConnections', () => {
         transport = new TcpTransport(new ConnectionIds(), quiet);
         new JavaConnections(transport, {
             status,
+            brand: 'JSPrismarine',
             onlineMode: () => onlineMode,
             hasJoined: async (name, hash) => {
                 asked.push({ name, hash });
@@ -85,11 +108,63 @@ describe('JavaConnections', () => {
         java.send(LoginAcknowledged, {});
 
         expect(success).toMatchObject({ uuid: offlineUuid('Steve'), username: 'Steve', properties: [] });
-        // Until the configuration phase is written, the join ends at its door.
-        expect(await java.receive(ConfigurationDisconnect)).toEqual({
+        expect(asked).toEqual([]);
+        java.destroy();
+    });
+
+    /** A client logged in offline and acknowledged, at the start of its configuration phase. */
+    const configuring = async (port: number) => {
+        const java = await javaClient(port);
+        java.send(Intention, handshake(ClientIntent.Login, port));
+        java.send(LoginStart, { name: 'Steve', profileId: offlineUuid('Steve') });
+        java.compress((await java.receive(SetCompression)).threshold);
+        await java.receive(LoginSuccess);
+        java.send(LoginAcknowledged, {});
+        return java;
+    };
+
+    it('configures a client that has the core pack as vanilla does, and ends the join as it reaches play', async () => {
+        const port = await listen();
+        const java = await configuring(port);
+
+        const brand = await java.receive(ClientboundPluginMessage);
+        const { features } = await java.receive(FeatureFlags);
+        const { packs } = await java.receive(ClientboundKnownPacks);
+        // What a vanilla client sends first, which the server reads past.
+        java.send(ClientInformationProbe, {});
+        java.send(ServerboundKnownPacks, { packs });
+        const registries: string[] = [];
+        for (let i = 0; i < CONFIGURATION.registries.length; i++) {
+            const { registry, entries } = await java.receive(RegistryData);
+            registries.push(registry);
+            expect(entries.map((entry) => entry.id)).toEqual(CONFIGURATION.registries[i]?.entries);
+        }
+        const tags = await java.receive(UpdateTags);
+        await java.receive(FinishConfiguration);
+        java.send(AcknowledgeFinishConfiguration, {});
+
+        expect(brand).toEqual({ channel: 'minecraft:brand', data: brandPayload('JSPrismarine') });
+        expect(features).toEqual(CONFIGURATION.features);
+        expect(packs).toEqual(CONFIGURATION.knownPacks);
+        expect(registries).toEqual(CONFIGURATION.registries.map((entry) => entry.registry));
+        expect(tags.registries).toEqual(CONFIGURATION.tags);
+        expect(await java.receive(PlayDisconnect)).toEqual({
             reason: 'This server does not take Java Edition players yet.'
         });
-        expect(asked).toEqual([]);
+        await java.closed;
+    });
+
+    it('ends the join of a client without the pack the registries come from', async () => {
+        const port = await listen();
+        const java = await configuring(port);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        await java.receive(ClientboundKnownPacks);
+
+        java.send(ServerboundKnownPacks, { packs: [] });
+
+        const { reason } = await java.receive(ConfigurationDisconnect);
+        expect(reason).toContain('minecraft:core');
         await java.closed;
     });
 
@@ -186,7 +261,7 @@ describe('JavaConnections', () => {
 describe('JavaConnections session id', () => {
     it('gives every login on one server the same session id', async () => {
         const transport = new TcpTransport(new ConnectionIds(), quiet);
-        new JavaConnections(transport, { status, onlineMode: () => false, log: quiet });
+        new JavaConnections(transport, { status, brand: 'JSPrismarine', onlineMode: () => false, log: quiet });
         await transport.listen('127.0.0.1', 0);
         const port = transport.port()!;
         const loginAs = async (name: string) => {

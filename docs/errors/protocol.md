@@ -752,6 +752,16 @@ Thrown as `ProtocolWireErrors.InvalidUuidLength`, which extends `Error`.
 A UUID was read from a value that is not 16 bytes. This is a bug in the protocol codecs;
 report it with the stack trace.
 
+### `PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE`
+
+`A compressed frame names {length} bytes, outside what threshold {threshold} allows`
+
+Thrown as `ProtocolWireErrors.JavaFrameLengthOutOfRange`, which extends `Error`.
+
+A Java Edition client's compressed frame names an uncompressed length below the compression
+threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
+the connection; a modified client is the usual cause.
+
 ### `PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES`
 
 `{name} has {unread} unread bytes after its fields`
@@ -761,6 +771,16 @@ Thrown as `ProtocolWireErrors.JavaPacketHasTrailingBytes`, which extends `Error`
 A Java Edition packet has bytes after the fields this server reads, so the client wrote a
 layout this server does not read. The connection is dropped; a client of another release,
 or a modified one, is the usual cause.
+
+### `PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA`
+
+`A registry entry carries data, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaRegistryEntryHasData`, which extends `Error`.
+
+A registry entry carried its data, which this server does not read: it lists only entries of
+packs the client has. Seen when reading another server's configuration without the known
+packs exchange.
 
 ### `PROTOCOL_JAVA_STRING_TOO_LONG`
 

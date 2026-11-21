@@ -402,5 +402,17 @@ export const ProtocolWireErrors = defineErrors('protocol', {
      * A Java Edition client sent a text component that is not plain text, which the server does
      * not read yet. The connection is dropped.
      */
-    JavaTextComponentNotString: 'A text component with NBT tag {tag} is not plain text'
+    JavaTextComponentNotString: 'A text component with NBT tag {tag} is not plain text',
+    /**
+     * A registry entry carried its data, which this server does not read: it lists only entries of
+     * packs the client has. Seen when reading another server's configuration without the known
+     * packs exchange.
+     */
+    JavaRegistryEntryHasData: 'A registry entry carries data, which this server does not read',
+    /**
+     * A Java Edition client's compressed frame names an uncompressed length below the compression
+     * threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
+     * the connection; a modified client is the usual cause.
+     */
+    JavaFrameLengthOutOfRange: 'A compressed frame names {length} bytes, outside what threshold {threshold} allows'
 });

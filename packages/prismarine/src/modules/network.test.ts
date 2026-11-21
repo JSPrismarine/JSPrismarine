@@ -6,7 +6,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { TransportNames } from '../network/transport/Transport';
-import { framed, TcpFrameReader } from '../network/transport/tcpFrames';
+import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
@@ -342,7 +342,7 @@ describe('modules/network', () => {
             socket.write(framed(encodeJavaPacket(StatusRequest, {})));
             const [chunk] = await once(socket, 'data');
             socket.destroy();
-            const read = new TcpFrameReader().push(chunk);
+            const read = new JavaFrameReader().push(chunk);
             if (!('frames' in read) || read.frames[0] === undefined) throw new Error('expected a status frame');
             const { body } = readJavaPacketId(read.frames[0]);
 

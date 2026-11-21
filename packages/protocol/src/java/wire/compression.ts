@@ -8,8 +8,9 @@
 import { deflateSync, inflateSync } from 'node:zlib';
 
 import BinaryStream from '@jsprismarine/binaryutils';
-import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
-import { varInt } from '@jsprismarine/protocol/java/wire/javaTypes';
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
+
+import { varInt } from './javaTypes';
 
 /** The longest packet a client may say a compressed frame inflates to, as the vanilla server allows. */
 const MAX_UNCOMPRESSED = 8_388_608;
@@ -45,11 +46,11 @@ export const decompressFrame = (frame: Buffer, threshold: number): Buffer => {
     const body = stream.readRemaining();
     if (length === 0) return body;
     if (length < threshold || length > MAX_UNCOMPRESSED) {
-        throw new PrismarineNetworkErrors.JavaFrameLengthOutOfRange({ length, threshold });
+        throw new ProtocolWireErrors.JavaFrameLengthOutOfRange({ length, threshold });
     }
     const packet = inflateSync(body, { maxOutputLength: length });
     if (packet.byteLength !== length) {
-        throw new PrismarineNetworkErrors.JavaFrameLengthOutOfRange({ length, threshold });
+        throw new ProtocolWireErrors.JavaFrameLengthOutOfRange({ length, threshold });
     }
     return packet;
 };

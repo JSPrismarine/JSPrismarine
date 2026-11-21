@@ -1828,16 +1828,6 @@ Thrown as `PrismarineNetworkErrors.InvalidTraceRecords`, which extends `Error`.
 
 A packet trace's records are not a list, so it is damaged.
 
-### `PRISMARINE_JAVA_FRAME_LENGTH_OUT_OF_RANGE`
-
-`A compressed frame names {length} bytes, outside what threshold {threshold} allows`
-
-Thrown as `PrismarineNetworkErrors.JavaFrameLengthOutOfRange`, which extends `Error`.
-
-A Java Edition client's compressed frame names an uncompressed length below the compression
-threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
-the connection; a modified client is the usual cause.
-
 ### `PRISMARINE_JAVA_VERIFY_TOKEN_MISMATCH`
 
 `The encryption response does not carry the token the server sent`

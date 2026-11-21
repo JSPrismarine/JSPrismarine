@@ -399,12 +399,6 @@ export const PrismarineNetworkErrors = defineErrors('prismarine', {
      */
     UnexpectedJavaPacket: 'Packet {packetId} has no place in the {phase} phase',
     /**
-     * A Java Edition client's compressed frame names an uncompressed length below the compression
-     * threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
-     * the connection; a modified client is the usual cause.
-     */
-    JavaFrameLengthOutOfRange: 'A compressed frame names {length} bytes, outside what threshold {threshold} allows',
-    /**
      * A Java Edition client's encryption response did not decrypt to the token the server sent, so
      * it did not encrypt it with the server's key. The server refuses the join.
      */

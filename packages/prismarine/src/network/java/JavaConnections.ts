@@ -9,7 +9,18 @@ import { constants, generateKeyPairSync, privateDecrypt, randomBytes, randomUUID
 
 import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network';
 import type { Logger } from '@jsprismarine/logger';
-import { ConfigurationDisconnect } from '@jsprismarine/protocol/java/packet/configuration';
+import {
+    AcknowledgeFinishConfiguration,
+    brandPayload,
+    ClientboundKnownPacks,
+    ClientboundPluginMessage,
+    ConfigurationDisconnect,
+    FeatureFlags,
+    FinishConfiguration,
+    RegistryData,
+    ServerboundKnownPacks,
+    UpdateTags
+} from '@jsprismarine/protocol/java/packet/configuration';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
@@ -23,6 +34,9 @@ import {
     SetCompression
 } from '@jsprismarine/protocol/java/packet/login';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
+import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
+import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
+import { PACKETS } from '@jsprismarine/protocol/java/versions/26.3/packets';
 import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
 
 import { errorMessage } from '../../utils/errorMessage';
@@ -31,7 +45,7 @@ import type { TcpTransportConnection } from '../transport/TcpTransport';
 import type { Transport } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
 import { hasJoined, offlineUuid, serverHash } from './javaAuth';
-import { compressFrame, decompressFrame } from './javaCompression';
+import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
 
 /** What a server list ping shows, read when the ping arrives: the RakNet pong's server name. */
 export interface JavaStatusSource {
@@ -44,6 +58,8 @@ export interface JavaStatusSource {
 /** What the login reads of the server. */
 export interface JavaLoginOptions {
     readonly status: JavaStatusSource;
+    /** The server's name, which the client's debug screen shows as the brand. */
+    readonly brand: string;
     /** Whether a player must prove to Mojang's session server that they own their name. */
     onlineMode(): boolean;
     /** Asks the session server; {@link hasJoined} against Mojang unless a test gives another. */
@@ -57,7 +73,10 @@ export interface JavaLoginOptions {
  */
 const COMPRESSION_THRESHOLD = 256;
 
-/** The reason the configuration phase gives, until Java Edition players can join. */
+/** Every packet a client may send in the configuration phase. */
+const CONFIGURATION_SERVERBOUND: ReadonlySet<number> = new Set(Object.values(PACKETS.configuration.serverbound));
+
+/** The reason the join ends with as it reaches play, until Java Edition players can play. */
 const JOIN_REFUSAL = 'This server does not take Java Edition players yet.';
 
 /** A player name the vanilla server accepts: one to sixteen letters, digits and underscores. */
@@ -66,7 +85,7 @@ const VALID_NAME = /^[A-Za-z0-9_]{1,16}$/;
 /** Where one connection is, and what its login has agreed so far. */
 interface JavaConnectionState {
     readonly connection: TcpTransportConnection;
-    phase: 'handshake' | 'status' | 'login' | 'configuration';
+    phase: 'handshake' | 'status' | 'login' | 'configuration' | 'play';
     /** The threshold once `Set Compression` has gone, after which every frame is compressed. */
     compression?: number;
     /** The name and token of a login waiting for its encryption response. */
@@ -151,10 +170,22 @@ export class JavaConnections {
                         return await this.encryptionResponse(state, expect(EncryptionResponse));
                     expect(LoginAcknowledged);
                     state.phase = 'configuration';
-                    // Until the configuration phase is written, a join ends here.
-                    this.send(state, ConfigurationDisconnect, { reason: JOIN_REFUSAL });
-                    return await state.connection.close();
+                    return this.beginConfiguration(state);
                 case 'configuration':
+                    if (packetId === ServerboundKnownPacks.id) {
+                        return await this.knownPacks(state, expect(ServerboundKnownPacks).packs);
+                    }
+                    if (packetId === AcknowledgeFinishConfiguration.id) {
+                        expect(AcknowledgeFinishConfiguration);
+                        state.phase = 'play';
+                        // Until the play phase is written, a join ends as it reaches it.
+                        this.send(state, PlayDisconnect, { reason: JOIN_REFUSAL });
+                        return await state.connection.close();
+                    }
+                    // The client's settings, its brand and the like, which nothing reads yet.
+                    if (CONFIGURATION_SERVERBOUND.has(packetId)) return;
+                    throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
+                case 'play':
                     return;
             }
         } catch (error) {
@@ -229,6 +260,49 @@ export class JavaConnections {
             sessionId: this.sessionId
         });
         this.options.log.info(`Java Edition player ${profile.name} (${profile.id}) logged in`);
+    }
+
+    /**
+     * Opens the configuration phase as a vanilla server does: the brand, the feature flags, and
+     * the packs the registries come from, whose answer {@link JavaConnections.knownPacks} waits for.
+     */
+    private beginConfiguration(state: JavaConnectionState): void {
+        this.send(state, ClientboundPluginMessage, {
+            channel: 'minecraft:brand',
+            data: brandPayload(this.options.brand)
+        });
+        this.send(state, FeatureFlags, { features: CONFIGURATION.features });
+        this.send(state, ClientboundKnownPacks, { packs: CONFIGURATION.knownPacks });
+    }
+
+    /**
+     * Sends the registries and tags vanilla sends, once the client says it has the packs they come
+     * from. Each entry goes without its data, which the client takes from its own copy of the pack;
+     * a client without the pack, such as one of another release, could not read the world, so its
+     * join ends here.
+     */
+    private async knownPacks(
+        state: JavaConnectionState,
+        packs: readonly { namespace: string; id: string; version: string }[]
+    ): Promise<void> {
+        const missing = CONFIGURATION.knownPacks.find(
+            (needed) =>
+                !packs.some(
+                    (pack) =>
+                        pack.namespace === needed.namespace && pack.id === needed.id && pack.version === needed.version
+                )
+        );
+        if (missing !== undefined) {
+            this.send(state, ConfigurationDisconnect, {
+                reason: `Your client lacks the ${missing.namespace}:${missing.id} ${missing.version} pack this server's world comes from.`
+            });
+            return state.connection.close();
+        }
+        for (const { registry, entries } of CONFIGURATION.registries) {
+            this.send(state, RegistryData, { registry, entries: entries.map((id) => ({ id, data: null })) });
+        }
+        this.send(state, UpdateTags, { registries: CONFIGURATION.tags });
+        this.send(state, FinishConfiguration, {});
     }
 
     /** Ends a login with a reason the client shows. */

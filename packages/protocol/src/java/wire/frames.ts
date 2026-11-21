@@ -1,5 +1,5 @@
 /**
- * Java Edition's frames on a TCP stream: each one a VarInt byte length, then that many bytes.
+ * Java Edition's frames on its TCP stream: each one a VarInt byte length, then that many bytes.
  *
  * A length takes at most three bytes, so no frame is longer than 2,097,151 bytes, as the
  * community protocol page and the vanilla server both have it. A longer length is refused rather
@@ -7,7 +7,7 @@
  */
 
 /** The longest frame a three-byte length can name. */
-export const MAX_TCP_FRAME = 2_097_151;
+export const MAX_JAVA_FRAME = 2_097_151;
 
 /** The most bytes a frame's length may take. */
 const MAX_LENGTH_BYTES = 3;
@@ -29,11 +29,11 @@ export const framed = (frame: Buffer): Buffer => {
     return Buffer.concat([Buffer.from(length), frame]);
 };
 
-/** What {@link TcpFrameReader.push} found: the whole frames, or why the stream is unreadable. */
-export type TcpFrames = { readonly frames: readonly Buffer[] } | { readonly malformed: string };
+/** What {@link JavaFrameReader.push} found: the whole frames, or why the stream is unreadable. */
+export type JavaFrames = { readonly frames: readonly Buffer[] } | { readonly malformed: string };
 
 /** Splits one connection's stream into frames, keeping a partial frame until the rest arrives. */
-export class TcpFrameReader {
+export class JavaFrameReader {
     private pending: Buffer = Buffer.alloc(0);
 
     /**
@@ -41,7 +41,7 @@ export class TcpFrameReader {
      * @param chunk - The bytes the socket read.
      * @returns The completed frames, or why the stream cannot be read past here.
      */
-    public push(chunk: Buffer): TcpFrames {
+    public push(chunk: Buffer): JavaFrames {
         this.pending = this.pending.byteLength === 0 ? chunk : Buffer.concat([this.pending, chunk]);
         const frames: Buffer[] = [];
         let offset = 0;

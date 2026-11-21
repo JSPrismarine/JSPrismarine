@@ -5,8 +5,8 @@ import { connect } from 'node:net';
 import type { JavaPacketDefinition } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from '@jsprismarine/protocol/java/packet/JavaPacket';
 
-import { compressFrame, decompressFrame } from '../network/java/javaCompression';
-import { framed, TcpFrameReader } from '../network/transport/tcpFrames';
+import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
+import { framed, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 
 /**
  * A Java Edition client on a loopback socket, as far as a login needs one: it frames, compresses
@@ -17,7 +17,7 @@ import { framed, TcpFrameReader } from '../network/transport/tcpFrames';
 export const javaClient = async (port: number) => {
     const socket = connect(port, '127.0.0.1');
     await new Promise<void>((resolve) => socket.once('connect', () => resolve()));
-    const reader = new TcpFrameReader();
+    const reader = new JavaFrameReader();
     const frames: Buffer[] = [];
     const waiting: (() => void)[] = [];
     let cipher: { out: Cipheriv; in: Decipheriv } | undefined;
@@ -38,6 +38,7 @@ export const javaClient = async (port: number) => {
 
     return {
         closed,
+        next,
         send: <T>(definition: JavaPacketDefinition<T>, value: T): void => {
             const packet = encodeJavaPacket(definition, value);
             const bytes = framed(compression === undefined ? packet : compressFrame(packet, compression));

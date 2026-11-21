@@ -8,7 +8,7 @@ import { InetAddress } from '@jsprismarine/raknet';
 
 import type { ConnectionId, ConnectionIds } from './ConnectionId';
 import { KeyedTransport } from './KeyedTransport';
-import { framed, MAX_TCP_FRAME, TcpFrameReader } from './tcpFrames';
+import { framed, MAX_JAVA_FRAME, JavaFrameReader } from '@jsprismarine/protocol/java/wire/frames';
 import { TransportNames } from './Transport';
 import type { TransportCapabilities, TransportConnection } from './Transport';
 
@@ -16,7 +16,7 @@ const TCP_CAPABILITIES: TransportCapabilities = {
     // Java Edition encrypts above the transport, after its login.
     encrypted: false,
     reliableOrdered: true,
-    maxFrameSize: MAX_TCP_FRAME
+    maxFrameSize: MAX_JAVA_FRAME
 };
 
 /** One Java Edition client's socket, which carries frames behind their lengths. */
@@ -131,7 +131,7 @@ export class TcpTransport extends KeyedTransport<TcpTransportConnection, Socket>
         const connection = this.accept(socket, (id) => new TcpTransportConnection(id, socket));
         if (connection === undefined) return;
 
-        const reader = new TcpFrameReader();
+        const reader = new JavaFrameReader();
         socket.on('data', (chunk: Buffer) => {
             const read = reader.push(connection.decrypt(chunk));
             if ('malformed' in read) {

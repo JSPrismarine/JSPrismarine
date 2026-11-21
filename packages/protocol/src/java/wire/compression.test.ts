@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compressFrame, decompressFrame } from './javaCompression';
+import { compressFrame, decompressFrame } from './compression';
 
 describe('Java compression', () => {
     it('sends a packet under the threshold as is, behind a zero length', () => {

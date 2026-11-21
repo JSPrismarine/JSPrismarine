@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { framed, MAX_TCP_FRAME, TcpFrameReader } from './tcpFrames';
+import { framed, MAX_JAVA_FRAME, JavaFrameReader } from './frames';
 
-describe('TcpFrameReader', () => {
+describe('JavaFrameReader', () => {
     it('reads back what framed wrote, however the stream splits it', () => {
         const frames = [Buffer.from([0x00]), Buffer.alloc(300, 7), Buffer.from('status')];
         const stream = Buffer.concat(frames.map(framed));
 
         // One byte at a time, which splits every length and every body.
-        const reader = new TcpFrameReader();
+        const reader = new JavaFrameReader();
         const read: Buffer[] = [];
         for (const byte of stream) {
             const result = reader.push(Buffer.from([byte]));
@@ -20,7 +20,7 @@ describe('TcpFrameReader', () => {
     });
 
     it('returns every frame one chunk completes, and keeps the rest', () => {
-        const reader = new TcpFrameReader();
+        const reader = new JavaFrameReader();
         const stream = Buffer.concat([framed(Buffer.from('a')), framed(Buffer.from('bc')), framed(Buffer.from('def'))]);
 
         const first = reader.push(stream.subarray(0, stream.byteLength - 2));
@@ -35,7 +35,7 @@ describe('TcpFrameReader', () => {
     });
 
     it('refuses a length longer than three bytes rather than waiting for more than it allows', () => {
-        const reader = new TcpFrameReader();
+        const reader = new JavaFrameReader();
 
         expect(reader.push(Buffer.from([0x80, 0x80, 0x80, 0x01]))).toEqual({
             malformed: 'a frame length longer than 3 bytes'
@@ -43,11 +43,11 @@ describe('TcpFrameReader', () => {
     });
 
     it('takes the longest frame three length bytes can name', () => {
-        const reader = new TcpFrameReader();
-        const frame = Buffer.alloc(MAX_TCP_FRAME, 1);
+        const reader = new JavaFrameReader();
+        const frame = Buffer.alloc(MAX_JAVA_FRAME, 1);
 
         const result = reader.push(framed(frame));
 
-        expect('frames' in result && result.frames[0]?.byteLength).toBe(MAX_TCP_FRAME);
+        expect('frames' in result && result.frames[0]?.byteLength).toBe(MAX_JAVA_FRAME);
     });
 });

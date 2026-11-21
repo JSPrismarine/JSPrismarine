@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ClientIntent, Intention } from './handshake';
+import { RegistryData } from './configuration';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
 import {
     EncryptionRequest,
@@ -92,5 +93,26 @@ describe('the packets every release shares', () => {
         const table: Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, number>>>>>> = PACKETS;
 
         expect(table[phase]?.[direction]?.[name]).toBe(definition.id);
+    });
+});
+
+describe('Registry Data', () => {
+    it('lists entries without their data, and refuses an entry that carries some', () => {
+        const frame = encodeJavaPacket(RegistryData, {
+            registry: 'minecraft:dimension_type',
+            entries: [{ id: 'minecraft:overworld', data: null }]
+        });
+        const { body } = readJavaPacketId(frame);
+        expect(decodeJavaPacket(RegistryData, body)).toEqual({
+            registry: 'minecraft:dimension_type',
+            entries: [{ id: 'minecraft:overworld', data: null }]
+        });
+
+        // The same entry with its presence flag set.
+        const withData = Buffer.from(frame);
+        withData[withData.byteLength - 1] = 1;
+        expect(() => decodeJavaPacket(RegistryData, readJavaPacketId(withData).body)).toThrow(
+            'A registry entry carries data, which this server does not read'
+        );
     });
 });

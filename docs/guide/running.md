@@ -533,8 +533,10 @@ both editions, the same count a Bedrock client sees.
 A Java Edition player can log in but not yet play. With `online-mode` on, the server asks Mojang's
 session server whether the player owns their account, as a vanilla server does, and refuses one it
 cannot verify; with it off, a player is known by the UUID their name gives, and the connection is
-not encrypted, as on a vanilla server. Once the player is logged in, the server ends the join with a
-message that says Java Edition players cannot join yet.
+not encrypted, as on a vanilla server. The server then configures the client as vanilla 26.3 does,
+with the same registries and tags, and ends the join as it reaches play, with a message that says
+Java Edition players cannot join yet. A client without vanilla's own data pack of that release,
+which those registries come from, is turned away there with a message that names the pack.
 [The Java multiprotocol plan](../plans/java-multiprotocol.md) tracks the work that opens joining.
 
 When another program holds `java-port`, the server does not start, and its error names the port.

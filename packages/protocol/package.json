@@ -956,6 +956,31 @@
                 "import": "./dist/java/packet/configuration.js",
                 "module": "./dist/java/packet/configuration.js"
             },
+            "./java/wire/frames": {
+                "types": "./dist/java/wire/frames.d.ts",
+                "import": "./dist/java/wire/frames.js",
+                "module": "./dist/java/wire/frames.js"
+            },
+            "./java/wire/compression": {
+                "types": "./dist/java/wire/compression.d.ts",
+                "import": "./dist/java/wire/compression.js",
+                "module": "./dist/java/wire/compression.js"
+            },
+            "./java/versions/26.3/configuration": {
+                "types": "./dist/java/versions/26.3/configuration.d.ts",
+                "import": "./dist/java/versions/26.3/configuration.js",
+                "module": "./dist/java/versions/26.3/configuration.js"
+            },
+            "./java/versions/javaConfiguration": {
+                "types": "./dist/java/versions/javaConfiguration.d.ts",
+                "import": "./dist/java/versions/javaConfiguration.js",
+                "module": "./dist/java/versions/javaConfiguration.js"
+            },
+            "./java/packet/play": {
+                "types": "./dist/java/packet/play.d.ts",
+                "import": "./dist/java/packet/play.js",
+                "module": "./dist/java/packet/play.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1784,6 +1809,26 @@
             "jsprismarine:dist": "./dist/java/packet/configuration.js",
             "default": "./src/java/packet/configuration.ts"
         },
+        "./java/wire/frames": {
+            "jsprismarine:dist": "./dist/java/wire/frames.js",
+            "default": "./src/java/wire/frames.ts"
+        },
+        "./java/wire/compression": {
+            "jsprismarine:dist": "./dist/java/wire/compression.js",
+            "default": "./src/java/wire/compression.ts"
+        },
+        "./java/versions/26.3/configuration": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/configuration.js",
+            "default": "./src/java/versions/26.3/configuration.ts"
+        },
+        "./java/versions/javaConfiguration": {
+            "jsprismarine:dist": "./dist/java/versions/javaConfiguration.js",
+            "default": "./src/java/versions/javaConfiguration.ts"
+        },
+        "./java/packet/play": {
+            "jsprismarine:dist": "./dist/java/packet/play.js",
+            "default": "./src/java/packet/play.ts"
+        },
         "./package.json": "./package.json"
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
@@ -1795,7 +1840,8 @@
         "bench:layout": "node ../../scripts/run-ts.mjs benchmarks/layout.bench.ts",
         "bench:layout-cache": "node ../../scripts/run-ts.mjs bench/layout.bench.ts",
         "test:dist-contract": "node --conditions=jsprismarine:dist --import tsx scripts/check-packet-class-names.mjs",
-        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "capture:java-configuration": "node --import tsx scripts/capture-java-configuration.ts"
     },
     "repository": {
         "type": "git",
