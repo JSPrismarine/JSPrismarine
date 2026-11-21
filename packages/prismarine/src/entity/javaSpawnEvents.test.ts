@@ -31,19 +31,22 @@ const loaded = (data: ReturnType<typeof entityFile>, identifier: string): Entity
 
 /**
  * Spawns `steps` entities with every draw of a spawn returning the same evenly spaced roll, in a
- * biome with the given tags, and counts what `read` makes of each.
+ * biome with the given tags, and counts what `read` makes of each. `event` replaces
+ * `minecraft:entity_spawned`, as a spawn rule's herd does for its later members.
  */
 const sweep = (
     types: EntityTypes,
     identifier: string,
     read: (entity: EntityInstance) => string,
     steps: number,
-    biomeTags: readonly string[] = []
+    biomeTags: readonly string[] = [],
+    event?: string
 ): ReadonlyMap<string, number> => {
     const counts = new Map<string, number>();
     for (let step = 0; step < steps; step++) {
         const roll = (step + 0.5) / steps;
         const entity = types.spawn(identifier, {
+            ...(event === undefined ? {} : { event }),
             environment: {
                 random: { next: () => roll },
                 filterContext: () => ({
@@ -126,7 +129,7 @@ describe('withJavaSpawnEvents', () => {
         expect(types.registry.get('minecraft:cave_spider')?.declaredComponents).not.toContain('minecraft:addrider');
     });
 
-    it("rolls a strider's jockeys with Java's odds among its adults", () => {
+    it("spawns a lone strider grown with Java's jockey odds, and leaves the baby roll to its herd mates", () => {
         const groups = ['adult', 'piglin_jockey', 'parent_jockey', 'baby'];
         const types = loaded(
             entityFile('minecraft:strider', Object.fromEntries(groups.map((group) => [group, {}])), {
@@ -147,13 +150,92 @@ describe('withJavaSpawnEvents', () => {
         );
 
         // Of 300 adults, nextInt(30) == 0 seats 10 piglins and nextInt(10) == 0 29 of the rest.
-        expect(sweep(types, 'minecraft:strider', groupsOf(...groups), 600)).toEqual(
+        expect(sweep(types, 'minecraft:strider', groupsOf(...groups), 300)).toEqual(
             new Map([
                 ['adult', 261],
                 ['piglin_jockey', 10],
-                ['parent_jockey', 29],
-                ['baby', 300]
+                ['parent_jockey', 29]
             ])
+        );
+        // A later group member is a baby on Java's 0.5.
+        const members = sweep(
+            types,
+            'minecraft:strider',
+            groupsOf(...groups),
+            600,
+            [],
+            'jsprismarine:spawn_group_member'
+        );
+        expect(members.get('baby')).toBe(300);
+    });
+
+    it.each([
+        {
+            entity: 'minecraft:rabbit',
+            adult: 'adult',
+            baby: 'baby',
+            spawned: {
+                randomize: [
+                    { weight: 3, ...add('adult') },
+                    { weight: 1, ...add('baby') }
+                ]
+            }
+        },
+        {
+            entity: 'minecraft:fox',
+            adult: 'minecraft:fox_adult',
+            baby: 'minecraft:fox_baby',
+            spawned: {
+                randomize: [
+                    { weight: 95, ...add('minecraft:fox_adult') },
+                    { weight: 5, ...add('minecraft:fox_baby') }
+                ]
+            }
+        },
+        {
+            entity: 'minecraft:villager_v2',
+            adult: 'adult',
+            baby: 'baby',
+            spawned: {
+                randomize: [
+                    { weight: 5, ...add('baby', 'child_schedule') },
+                    { weight: 95, sequence: [add('adult')] }
+                ]
+            }
+        }
+    ])('spawns a lone $entity grown, as Java does', ({ entity, adult, baby, spawned }) => {
+        const types = loaded(
+            entityFile(
+                entity,
+                { [adult]: {}, [baby]: {}, child_schedule: {} },
+                { 'minecraft:entity_spawned': spawned }
+            ),
+            entity
+        );
+
+        expect(sweep(types, entity, groupsOf(adult, baby), 100)).toEqual(new Map([[adult, 100]]));
+    });
+
+    it("makes a rabbit's herd mates babies through entity_born", () => {
+        const types = loaded(
+            entityFile(
+                'minecraft:rabbit',
+                { adult: {}, baby: {} },
+                {
+                    'minecraft:entity_spawned': {
+                        randomize: [
+                            { weight: 3, ...add('adult') },
+                            { weight: 1, ...add('baby') }
+                        ]
+                    },
+                    'minecraft:entity_born': { sequence: [add('baby')] }
+                }
+            ),
+            'minecraft:rabbit'
+        );
+
+        expect(sweep(types, 'minecraft:rabbit', groupsOf('adult', 'baby'), 20, [], 'minecraft:entity_born')).toEqual(
+            new Map([['baby', 20]])
         );
     });
 

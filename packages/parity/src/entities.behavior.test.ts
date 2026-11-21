@@ -14,7 +14,7 @@ import { sensesScenarios } from './entityScenarios/senses.ts';
 import { goalScenarios } from './entityScenarios/goals.ts';
 import { lifecycleScenarios } from './entityScenarios/lifecycle.ts';
 import { lootScenarios } from './entityScenarios/loot.ts';
-import { spawnScenarios } from './entityScenarios/spawning.ts';
+import { spawnAgeScenarios, spawnScenarios } from './entityScenarios/spawning.ts';
 import { statsScenarios } from './entityScenarios/stats.ts';
 import { javaEntityIds } from './entityScenarios/subjects.ts';
 import { FAMILIES } from './families.ts';
@@ -40,6 +40,7 @@ const theme = <Subject>(name: string, scenarios: readonly BehaviorScenario<Subje
  */
 const ENTITY_THEMES: readonly EntityTheme[] = [
     theme('spawning', spawnScenarios),
+    theme('spawnAge', spawnAgeScenarios),
     theme('core', coreScenarios),
     theme('interaction', interactionScenarios),
     theme('mobGoals', mobGoalScenarios),
