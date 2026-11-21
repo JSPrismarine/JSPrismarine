@@ -51,13 +51,15 @@ proven by bit-pattern vectors rather than tolerances.
 
 ## Consequences
 
-- The closure compiler in `packages/worldgen/src/density/compile.ts` becomes the test oracle during
-  the transition and is removed once the volume runtime matches the vectors on the whole corpus.
-  The `generatedFunctions` prototype goes with it.
+- The closure compiler in `packages/worldgen/src/density/compile.ts` stays only for the call sites
+  where Java samples one position at a time, and goes once nothing calls it. The `generatedFunctions`
+  prototype goes with it.
 - Progress is measured by counts in CI (indirect calls per sample, dispatches per chunk, `fround`
   calls per tile, boundary crossings per chunk), never by timings. The plan that applies this
   decision is [worldgen-rearchitecture.md](../plans/worldgen-rearchitecture.md).
-- A density-bits vector from Java's `sampleVolume` is captured before the runtime changes, so a
-  difference between our cell order and `fillCell`'s is found first and settled in Java's favor.
+- Java's volume path and its per-block path differ in the last bits of a float (captured in
+  `vectors/26.3/density-volume.json`). We reproduce the per-block path today. Terrain follows the
+  volume path, so the runtime's bits move to Java's terrain bits, pinned by the `worldgen.terrain`
+  parity rows, and the per-block path is kept where Java itself samples per block.
 - The surface pass, the biome sampler and the feature world follow the same rule in later phases:
   typed arrays at the seams the hot loops cross, objects only at the Bedrock translation.
