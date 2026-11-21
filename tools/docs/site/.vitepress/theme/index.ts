@@ -25,6 +25,7 @@ import WindowBlind from './components/WindowBlind.vue';
 import ContributorList from './ContributorList.vue';
 import Layout from './Layout.vue';
 import ParityTracker from './ParityTracker.vue';
+import ServerBenchmarks from './ServerBenchmarks.vue';
 
 /**
  * Brand components are global so any HTML-enabled page can use them. `brandCatalog.ts` says what each is
@@ -57,6 +58,7 @@ export default {
     enhanceApp({ app }) {
         app.component('ContributorList', ContributorList);
         app.component('ParityTracker', ParityTracker);
+        app.component('ServerBenchmarks', ServerBenchmarks);
         for (const [name, component] of Object.entries(brandComponents)) app.component(name, component);
     }
 };
