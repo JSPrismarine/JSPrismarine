@@ -435,5 +435,10 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * A Java Edition entity spawn carries a velocity, which this server's reader does not read: it
      * sends entities at rest. Seen when reading another server's spawn.
      */
-    JavaVelocityNotAtRest: 'A spawned entity carries a velocity, which this server does not read'
+    JavaVelocityNotAtRest: 'A spawned entity carries a velocity, which this server does not read',
+    /**
+     * A Java Edition item stack the server sent carries data components, which this server's
+     * reader does not read: it sends plain stacks. Seen when reading another server's inventory.
+     */
+    JavaItemComponentsUnread: 'An item stack carries {count} data components, which this server does not read'
 });

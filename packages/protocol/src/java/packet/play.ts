@@ -16,6 +16,7 @@ import {
     long,
     optionalVarInt,
     sectionPosition,
+    short,
     textComponent,
     uuid,
     varInt,
@@ -360,4 +361,97 @@ export const BlockChangedAck = defineJavaPacket(
     {
         sequence: varInt
     }
+);
+
+/** An item stack as plain data: an item's network id and how many. */
+export interface JavaItemStack {
+    readonly item: number;
+    readonly count: number;
+}
+
+/**
+ * `Slot` as the server writes it: a count, zero for an empty slot, then the item's id and its
+ * data component patch. Stacks are sent plain, with an empty patch, so reading one with components
+ * refuses it rather than misread what follows.
+ */
+const itemStack = custom<JavaItemStack | null>(
+    'Slot',
+    (s, stack) => {
+        if (stack === null || stack.count <= 0) {
+            varInt.write(s, 0);
+            return;
+        }
+        varInt.write(s, stack.count);
+        varInt.write(s, stack.item);
+        // No components added, none removed.
+        varInt.write(s, 0);
+        varInt.write(s, 0);
+    },
+    (s) => {
+        const count = varInt.read(s);
+        if (count <= 0) return null;
+        const item = varInt.read(s);
+        const added = varInt.read(s);
+        const removed = varInt.read(s);
+        if (added + removed > 0) throw new ProtocolWireErrors.JavaItemComponentsUnread({ count: added + removed });
+        return { item, count };
+    }
+);
+
+/**
+ * `Slot` as a client writes it, vanilla's untrusted codec: each added component's value carries
+ * its length, so the components are read past. The stack keeps its item and count only.
+ */
+const untrustedItemStack = custom<JavaItemStack | null>(
+    'Untrusted Slot',
+    (s, stack) => itemStack.write(s, stack),
+    (s) => {
+        const count = varInt.read(s);
+        if (count <= 0) return null;
+        const item = varInt.read(s);
+        const added = varInt.read(s);
+        const removed = varInt.read(s);
+        for (let i = 0; i < added; i++) {
+            varInt.read(s);
+            s.read(varInt.read(s));
+        }
+        for (let i = 0; i < removed; i++) varInt.read(s);
+        return { item, count };
+    }
+);
+
+/**
+ * `Set Container Content` (clientbound): every slot of a window, and what the cursor carries.
+ * Window 0 is the player's own inventory: 0 the crafting result, 1 to 4 the crafting grid, 5 to 8
+ * the armor from the head down, 9 to 35 the main inventory, 36 to 44 the hotbar and 45 the off hand.
+ */
+export const ContainerSetContent = defineJavaPacket(
+    'Set Container Content',
+    PACKETS.play.clientbound.container_set_content,
+    { window: varInt, stateId: varInt, items: list(itemStack), carried: itemStack }
+);
+
+/** `Set Container Slot` (clientbound): one slot of a window. */
+export const ContainerSetSlot = defineJavaPacket('Set Container Slot', PACKETS.play.clientbound.container_set_slot, {
+    window: varInt,
+    stateId: varInt,
+    slot: short,
+    item: itemStack
+});
+
+/** `Set Held Item` (clientbound): the hotbar slot the player holds, 0 to 8. */
+export const SetHeldSlot = defineJavaPacket('Set Held Item', PACKETS.play.clientbound.set_held_slot, {
+    slot: varInt
+});
+
+/** `Set Held Item` (serverbound): the hotbar slot the player moved its hand to, 0 to 8. */
+export const SetCarriedItem = defineJavaPacket('Set Held Item', PACKETS.play.serverbound.set_carried_item, {
+    slot: short
+});
+
+/** `Set Creative Mode Slot` (serverbound): a creative player put a stack in a slot of its inventory, or emptied it. */
+export const SetCreativeModeSlot = defineJavaPacket(
+    'Set Creative Mode Slot',
+    PACKETS.play.serverbound.set_creative_mode_slot,
+    { slot: short, item: untrustedItemStack }
 );

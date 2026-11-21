@@ -6,11 +6,14 @@ import {
     BlockChangedAck,
     BlockUpdate,
     ChunkBatchFinished,
+    ContainerSetContent,
+    ContainerSetSlot,
     GameEvent,
     PlayerAction,
     PlayerActionStatus,
     PlayLogin,
     SectionBlocksUpdate,
+    SetCreativeModeSlot,
     SetCenterChunk,
     START_WAITING_FOR_LEVEL_CHUNKS,
     SynchronizePlayerPosition
@@ -118,5 +121,43 @@ describe('block packets', () => {
             sequence: 7
         });
         expect(roundTrip(BlockChangedAck, { sequence: 300 })).toEqual({ sequence: 300 });
+    });
+});
+
+describe('inventory packets', () => {
+    /** A frame of `definition` with `body` after its id. */
+    const frameOf = (definition: JavaPacketDefinition<unknown>, body: number[]) =>
+        readJavaPacketId(Buffer.concat([idOf(definition), Buffer.from(body)])).body;
+
+    it('writes a window as plain stacks, empty slots as a zero count, and reads it back', () => {
+        const content = {
+            window: 0,
+            stateId: 1,
+            items: [null, { item: 1, count: 64 }, null],
+            carried: null
+        };
+        const body = encodeJavaPacket(ContainerSetContent, content).subarray(idOf(ContainerSetContent).length);
+
+        // Window, state, three slots: empty, then 64 of item 1 with no components, then empty; no cursor.
+        expect([...body]).toEqual([0, 1, 3, 0, 64, 1, 0, 0, 0, 0]);
+        expect(decodeJavaPacket(ContainerSetContent, frameOf(ContainerSetContent, [...body]))).toEqual(content);
+    });
+
+    it('reads past the components of a creative stack, each behind its length', () => {
+        // Slot 36, 1 of item 900, one added component (type 5, three bytes), one removed (type 7).
+        const body = [0x00, 0x24, 0x01, 0x84, 0x07, 0x01, 0x01, 0x05, 0x03, 0xaa, 0xbb, 0xcc, 0x07];
+
+        expect(decodeJavaPacket(SetCreativeModeSlot, frameOf(SetCreativeModeSlot, body))).toEqual({
+            slot: 36,
+            item: { item: 900, count: 1 }
+        });
+    });
+
+    it('refuses a stack from a server that carries components, rather than misread what follows', () => {
+        const body = [0x00, 0x01, 0x00, 0x24, 0x01, 0x05, 0x01, 0x00, 0x01, 0x00];
+
+        expect(() => decodeJavaPacket(ContainerSetSlot, frameOf(ContainerSetSlot, body))).toThrow(
+            'An item stack carries 1 data components'
+        );
     });
 });

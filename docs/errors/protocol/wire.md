@@ -112,6 +112,15 @@ A Java Edition client's compressed frame names an uncompressed length below the 
 threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
 the connection; a modified client is the usual cause.
 
+## `PROTOCOL_JAVA_ITEM_COMPONENTS_UNREAD`
+
+`An item stack carries {count} data components, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaItemComponentsUnread`, which extends `Error`.
+
+A Java Edition item stack the server sent carries data components, which this server's
+reader does not read: it sends plain stacks. Seen when reading another server's inventory.
+
 ## `PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES`
 
 `{name} has {unread} unread bytes after its fields`

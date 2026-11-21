@@ -38,6 +38,13 @@ export const unsignedShort: WireType<number> = custom<number>(
     (s) => s.readUnsignedShort()
 );
 
+/** `Short`: a big-endian signed 16-bit integer. */
+export const short: WireType<number> = custom<number>(
+    'Short',
+    (s, v) => s.writeShort(v),
+    (s) => s.readShort()
+);
+
 /** `Int`: a big-endian signed 32-bit integer. */
 export const int: WireType<number> = custom<number>(
     'Int',
