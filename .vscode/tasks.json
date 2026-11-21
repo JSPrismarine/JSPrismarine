@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Dev server with script debugging",
+            "detail": "pnpm dev in jsp/script-debug with every addon linked, connecting to the Minecraft Bedrock Debugger",
+            "type": "shell",
+            "command": "node scripts/script-debug-server.mts && pnpm dev",
+            "options": {
+                "env": {
+                    "JSP_DIR": "${workspaceFolder}/jsp/script-debug"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "jsprismarine-script-debug",
+                "pattern": { "regexp": "^\\b$" },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Debugging the scripts of ",
+                    "endsPattern": "^Debugging the scripts of "
+                }
+            }
+        }
+    ]
+}

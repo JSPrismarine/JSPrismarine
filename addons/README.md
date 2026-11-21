@@ -20,3 +20,15 @@ Build them locally from the repository root:
 ```sh
 pnpm exec tsx packages/addon-tools/src/cli.ts build --repository JSPrismarine/JSPrismarine
 ```
+
+## Debug an addon's scripts
+
+In VS Code, install the recommended Minecraft Bedrock Debugger extension and start the
+**Debug addon scripts** launch configuration for the addon. It starts `pnpm dev` with its data in
+`jsp/script-debug/` and every addon here linked, and the server connects to the debugger before
+the addons' scripts start, so a breakpoint on their first lines stops.
+`scripts/script-debug-server.mts` prepares the folder; it writes `config.json` only when the
+folder has none, so your edits to it stay. It also writes the launch configurations, one per addon
+with scripts: after adding an addon, run `node scripts/script-debug-server.mts --update`, which
+`pnpm run lint` checks. [Debugging](../docs/guide/extending.md#debugging) covers the debugger
+itself.

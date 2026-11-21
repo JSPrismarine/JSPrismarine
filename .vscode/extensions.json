@@ -6,6 +6,7 @@
         "biomejs.biome",
         "esbenp.prettier-vscode",
         "jgclark.vscode-todo-highlight",
-        "mikestead.dotenv"
+        "mikestead.dotenv",
+        "mojang-studios.minecraft-debugger"
     ]
 }
