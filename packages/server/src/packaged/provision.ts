@@ -31,6 +31,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { provideEmbeddedLibrary } from '@jsprismarine/native-network';
+import { provideEmbeddedLibrary as provideEmbeddedWorldgenLibrary } from '@jsprismarine/native-worldgen/embed';
 import { provideEmbeddedLibrary as provideEmbeddedScriptHostLibrary } from '@jsprismarine/script-host/embed';
 import { readZip } from '@jsprismarine/packs';
 
@@ -39,6 +40,7 @@ import {
     EMBEDDED_DATA_BUNDLE,
     EMBEDDED_DATA_MANIFEST,
     EMBEDDED_NATIVE_LIBRARY,
+    EMBEDDED_NATIVE_WORLDGEN_LIBRARY,
     EMBEDDED_SCRIPT_HOST_LIBRARY,
     hasEmbeddedData
 } from './embeddedData';
@@ -54,7 +56,9 @@ export const SEA_ASSETS = {
     /** The native networking library for the executable's platform, when it has a build. */
     nativeLibrary: 'native-network-library',
     /** The script host's library for the executable's platform, when it has a build. */
-    scriptHostLibrary: 'script-host-library'
+    scriptHostLibrary: 'script-host-library',
+    /** The native worldgen library for the executable's platform, when it has a build. */
+    nativeWorldgenLibrary: 'native-worldgen-library'
 } as const;
 
 /**
@@ -73,6 +77,8 @@ type PackagedAssets = {
     readonly nativeLibrary: () => Uint8Array | undefined;
     /** Reads the script host's library, or undefined when the executable carries none. */
     readonly scriptHostLibrary: () => Uint8Array | undefined;
+    /** Reads the native worldgen library, or undefined when the executable carries none. */
+    readonly nativeWorldgenLibrary: () => Uint8Array | undefined;
 };
 
 /** Reads an optional asset of a Node single executable, which throws for a key it lacks. */
@@ -95,6 +101,10 @@ const packagedAssets = (): PackagedAssets | undefined => {
             scriptHostLibrary: () =>
                 EMBEDDED_SCRIPT_HOST_LIBRARY.length > 0
                     ? Buffer.from(EMBEDDED_SCRIPT_HOST_LIBRARY, 'base64')
+                    : undefined,
+            nativeWorldgenLibrary: () =>
+                EMBEDDED_NATIVE_WORLDGEN_LIBRARY.length > 0
+                    ? Buffer.from(EMBEDDED_NATIVE_WORLDGEN_LIBRARY, 'base64')
                     : undefined
         };
     }
@@ -109,7 +119,8 @@ const packagedAssets = (): PackagedAssets | undefined => {
             manifest: sea.getAsset(SEA_ASSETS.manifest, 'utf8'),
             bundle: () => new Uint8Array(sea.getAsset(SEA_ASSETS.bundle)),
             nativeLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.nativeLibrary),
-            scriptHostLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.scriptHostLibrary)
+            scriptHostLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.scriptHostLibrary),
+            nativeWorldgenLibrary: () => optionalSeaAsset(sea, SEA_ASSETS.nativeWorldgenLibrary)
         };
     } catch {
         return undefined;
@@ -346,5 +357,10 @@ export const provisionPackagedData = async (
     const scriptHostLibrary = assets.scriptHostLibrary();
     if (scriptHostLibrary !== undefined) {
         provideEmbeddedScriptHostLibrary(scriptHostLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));
+    }
+    // Before any generation worker starts, so each one finds the library through the variable.
+    const nativeWorldgenLibrary = assets.nativeWorldgenLibrary();
+    if (nativeWorldgenLibrary !== undefined) {
+        provideEmbeddedWorldgenLibrary(nativeWorldgenLibrary, path.join(modulesRoot, '.cache', 'jsprismarine'));
     }
 };

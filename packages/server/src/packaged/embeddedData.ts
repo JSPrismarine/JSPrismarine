@@ -33,5 +33,12 @@ export const EMBEDDED_NATIVE_LIBRARY = '';
  */
 export const EMBEDDED_SCRIPT_HOST_LIBRARY = '';
 
+/**
+ * Base64 of the native worldgen library for the executable's platform. Empty in a checkout, and in
+ * an executable for a platform with no published build, where terrain generation runs its
+ * TypeScript noise.
+ */
+export const EMBEDDED_NATIVE_WORLDGEN_LIBRARY = '';
+
 /** Whether this build carries embedded data, which only a Bun-compiled executable does. */
 export const hasEmbeddedData = (): boolean => EMBEDDED_DATA_BUNDLE.length > 0;

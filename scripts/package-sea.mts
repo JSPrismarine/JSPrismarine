@@ -156,6 +156,17 @@ if (scriptHostLibrary === undefined) {
     console.log(`Embedding the script host library (${scriptHostLibrary.byteLength} bytes)`);
 }
 
+// The native worldgen library, which the executable writes to the same cache directory. Without
+// it, terrain generation runs its TypeScript noise: the same terrain, more slowly.
+const nativeWorldgenLibrary = await embeddableLibrary('native-worldgen', platformKey());
+const nativeWorldgenLibraryPath = path.join(seaDir, 'native-worldgen-library.bin');
+if (nativeWorldgenLibrary === undefined) {
+    console.warn(`No native worldgen library for ${platformKey()}: the executable generates terrain in TypeScript.`);
+} else {
+    writeFileSync(nativeWorldgenLibraryPath, nativeWorldgenLibrary);
+    console.log(`Embedding the native worldgen library (${nativeWorldgenLibrary.byteLength} bytes)`);
+}
+
 console.log(`Building the single executable (code cache ${useCodeCache ? 'enabled' : 'disabled'})...`);
 const seaConfig = path.join(seaDir, 'sea-config.json');
 writeFileSync(
@@ -171,6 +182,9 @@ writeFileSync(
                 'data-manifest': manifestPath,
                 ...(nativeLibrary === undefined ? {} : { 'native-network-library': nativeLibraryPath }),
                 ...(scriptHostLibrary === undefined ? {} : { 'script-host-library': scriptHostLibraryPath }),
+                ...(nativeWorldgenLibrary === undefined
+                    ? {}
+                    : { 'native-worldgen-library': nativeWorldgenLibraryPath }),
                 ...Object.fromEntries(workerAssets.map(([name]) => [name, path.join(seaDir, `${name}.mjs`)]))
             }
         },

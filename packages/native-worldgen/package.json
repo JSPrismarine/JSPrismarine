@@ -21,6 +21,11 @@
                 "import": "./dist/install.js",
                 "module": "./dist/install.js"
             },
+            "./embed": {
+                "types": "./dist/embed.d.ts",
+                "import": "./dist/embed.js",
+                "module": "./dist/embed.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -46,6 +51,10 @@
         "./install": {
             "jsprismarine:dist": "./dist/install.js",
             "default": "./src/install.ts"
+        },
+        "./embed": {
+            "jsprismarine:dist": "./dist/embed.js",
+            "default": "./src/embed.ts"
         },
         "./package.json": "./package.json"
     },
