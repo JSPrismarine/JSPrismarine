@@ -537,6 +537,16 @@ Thrown as `PrismarineGenerationErrors.RegionHeightMismatch`, which extends `Rang
 Generation tried to join regions of different heights. This is a bug in world generation;
 report it with the stack trace.
 
+## `PRISMARINE_REGION_PALETTE_FULL`
+
+`A feature view cannot record more than 65534 distinct block states`
+
+Thrown as `PrismarineGenerationErrors.RegionPaletteFull`, which extends `RangeError`.
+
+A feature pass wrote more distinct block states than its 16-bit write overlay can name. A
+3 by 3 chunk area holds a few hundred, so this is a bug in world generation; report it with
+the stack trace.
+
 ## `PRISMARINE_REGISTRY_BUNDLE_BAD_MAGIC`
 
 `This is not a world generation registry bundle this build reads: it does not start with JPRB.`

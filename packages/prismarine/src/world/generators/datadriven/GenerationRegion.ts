@@ -475,8 +475,16 @@ export class GenerationRegion {
     private readonly originZ: number;
     private states: Uint16Array<ArrayBuffer>;
     private terrainSources: readonly (GenerationRegion | undefined)[] | undefined;
-    private readonly sparseWrites: Map<number, number> | undefined;
-    private hasSparseWrites = false;
+    /**
+     * A feature view's own writes, one array per terrain tile in `terrainSources` order, made on
+     * the tile's first write. Each holds a palette slot plus one per block of the tile, in the
+     * tile's own index order, and 0 where this view has written nothing.
+     *
+     * A view reads every block of a feature pass, a hundred thousand reads or more, and most of
+     * them miss its writes. A map keyed by block index answered each miss with a hash lookup; an
+     * array answers it with one load.
+     */
+    private readonly viewWrites: (Uint16Array | undefined)[] | undefined;
     private palette: RegionBlock[] = [{ java: AIR_STATE }];
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
     private isAirByPaletteSlot: boolean[] = [];
@@ -529,7 +537,7 @@ export class GenerationRegion {
         this.originZ = (options.chunkZ - this.radius) * 16;
         this.states = new Uint16Array(options[READ_THROUGH_TERRAIN] ? 0 : this.width * this.width * options.height);
         this.terrainSources = undefined;
-        this.sparseWrites = options[READ_THROUGH_TERRAIN] ? new Map() : undefined;
+        this.viewWrites = options[READ_THROUGH_TERRAIN] ? new Array<Uint16Array | undefined>(9) : undefined;
         this.highest = new Int32Array(this.width * this.width).fill(options.minY - 1);
         this.isAirByPaletteSlot = [options.blocks.isAir(AIR_STATE)];
     }
@@ -779,17 +787,20 @@ export class GenerationRegion {
         const index = this.indexOf(x, y, z);
         if (index === -1) return this.palette[0]!;
 
-        // Avoid a Map lookup on every feature read until this view has an overlay to consult.
-        const written = this.hasSparseWrites ? this.sparseWrites?.get(index) : undefined;
-        if (written !== undefined) return this.palette[written]!;
+        const sources = this.terrainSources;
+        if (sources !== undefined) {
+            // `indexOf` has placed the position inside the 3 by 3 view, so it is in one tile.
+            const localX = x - this.originX;
+            const localZ = z - this.originZ;
+            const tile = (localX >> 4) * 3 + (localZ >> 4);
+            const inner = ((localX & 15) * 16 + (localZ & 15)) * this.height + (y - this.minY);
+            const written = this.viewWrites?.[tile]?.[inner] ?? 0;
+            if (written !== 0) return this.palette[written - 1]!;
 
-        if (this.terrainSources !== undefined) {
-            const chunkX = Math.floor(x / 16);
-            const chunkZ = Math.floor(z / 16);
-            const relativeX = chunkX - this.chunkX + FEATURE_RADIUS;
-            const relativeZ = chunkZ - this.chunkZ + FEATURE_RADIUS;
-            const source = this.terrainSources[relativeX * 3 + relativeZ];
-            const block = source?.blockAt(x, y, z);
+            // The tiles are radius-zero terrain regions that nothing writes into any more, so
+            // their own slots are the answer; `featureView` checked each one.
+            const source = sources[tile];
+            const block = source === undefined ? undefined : source.palette[source.states[inner]!];
             return block === undefined || block.java.name === AIR ? this.palette[0]! : block;
         }
 
@@ -826,7 +837,7 @@ export class GenerationRegion {
      */
     public createTerrainNameWriter(): (x: number, y: number, z: number, name: string) => boolean {
         if (
-            this.sparseWrites !== undefined ||
+            this.viewWrites !== undefined ||
             this.trackingWrites ||
             this.blockEntities.size !== 0 ||
             this.heightmapCaches.size !== 0 ||
@@ -1119,15 +1130,16 @@ export class GenerationRegion {
 
         const column = this.columnIndex(x, z);
         this.invalidateHeightmapCache(column);
-        const written = this.sparseWrites?.get(index);
         const isAir =
-            written === undefined ? this.isAirByPaletteSlot[this.states[index]!]! : this.isAirByPaletteSlot[written]!;
+            this.viewWrites === undefined
+                ? this.isAirByPaletteSlot[this.states[index]!]!
+                : this.options.blocks.isAir(this.blockAt(x, y, z).java);
         if (!isAir) {
             if (y > this.highest[column]!) this.highest[column] = y;
         } else if (y === this.highest[column]) {
             // Removing the topmost block drops the column's ceiling to the next one down.
             let nextY = y - 1;
-            if (this.sparseWrites === undefined) {
+            if (this.viewWrites === undefined) {
                 let nextIndex = index - 1;
                 while (nextY >= this.minY && this.isAirByPaletteSlot[this.states[nextIndex]!]!) {
                     nextY--;
@@ -1405,7 +1417,7 @@ export class GenerationRegion {
 
     /** Writes one already resolved slot and keeps every per-write region invariant current. */
     private writeResolvedSlot(index: number, x: number, y: number, z: number, slot: number): void {
-        this.writeSlot(index, slot);
+        this.writeSlot(index, x, y, z, slot);
         this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
     }
@@ -1418,14 +1430,21 @@ export class GenerationRegion {
         else this.trackedStructureWrites.delete(index);
     }
 
-    /** Writes a palette slot into this region or its task-local sparse overlay. */
-    private writeSlot(index: number, slot: number): void {
+    /** Writes a palette slot into this region or, for a feature view, into its write overlay. */
+    private writeSlot(index: number, x: number, y: number, z: number, slot: number): void {
         this.directTerrainWriting = false;
-        if (this.sparseWrites === undefined) this.states[index] = slot;
-        else {
-            this.sparseWrites.set(index, slot);
-            this.hasSparseWrites = true;
+        const overlays = this.viewWrites;
+        if (overlays === undefined) {
+            this.states[index] = slot;
+            return;
         }
+        // The overlay stores the slot plus one, so a 16-bit slot needs room for it.
+        if (slot >= 0xffff) throw new PrismarineGenerationErrors.RegionPaletteFull();
+        const localX = x - this.originX;
+        const localZ = z - this.originZ;
+        const tile = (localX >> 4) * 3 + (localZ >> 4);
+        const overlay = (overlays[tile] ??= new Uint16Array(16 * 16 * this.height));
+        overlay[((localX & 15) * 16 + (localZ & 15)) * this.height + (y - this.minY)] = slot + 1;
     }
 
     private heightAt(heightmap: HeightmapType, x: number, z: number): number {
