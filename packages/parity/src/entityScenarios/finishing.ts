@@ -20,7 +20,7 @@ import { withProbe } from './goalProbe.ts';
 import { inSandbox, SANDBOX_ORIGIN } from './sandbox.ts';
 import { javaAncestry, javaEntityClassName, javaMethodOf, numberNear, pushedNumbers } from './javaEntityCode.ts';
 import type { EntitySubject } from './subjects.ts';
-import { entitiesDeclaring, field } from './subjects.ts';
+import { entitiesDeclaring, field, mappedEntity } from './subjects.ts';
 
 /**
  * The last entity rows of the parity tracker: behavior no earlier theme measured, each compared
@@ -1036,6 +1036,67 @@ const compareRavagerBlocked = (subject: EntitySubject): string | undefined => {
     return differences.length === 0 ? undefined : differences.join('; ');
 };
 
+/**
+ * Whether Java's `LivingEntity.hurtServer` meets a blow with the shield before the grace period:
+ * it calls `applyItemBlocking` before it first reads `damageCooldownTime`.
+ */
+const javaBlocksBeforeGrace = (): boolean => {
+    const method = javaMethodOf('net/minecraft/world/entity/LivingEntity', 'hurtServer');
+    if (method === undefined) return false;
+    const operations = javaOperations(method.method);
+    const blocking = operations.findIndex(
+        (operation) => operation.kind === 'call' && operation.target === 'LivingEntity.applyItemBlocking'
+    );
+    const grace = operations.findIndex(
+        (operation) =>
+            operation.kind === 'field' && !operation.write && operation.target === 'LivingEntity.damageCooldownTime'
+    );
+    return blocking >= 0 && grace > blocking;
+};
+
+/**
+ * An axe blow against a raised shield inside the grace period of an earlier blow the shield took.
+ * Java meets it with the shield first, so the axe disables the shield even though the grace period then turns
+ * the blow away, and a blow 20 ticks later lands. Answers what that later blow took.
+ */
+const axeInGrace = (bedrock: string): number | string =>
+    withProbe(bedrock, { keep: [] }, (probe) => {
+        const player = probe.runtime.spawnPlayer(SHIELD_HOLDER_ID, probe.at(1.5, 0, 0));
+        const target = probe.runtime.mobById(SHIELD_HOLDER_ID);
+        if (player === undefined || target === undefined) return 'the probe could not put a player in front of it';
+        try {
+            player.body.setEquipment({ offhand: { identifier: 'minecraft:shield', count: 1 } });
+            player.body.yaw = 90;
+            probe.runtime.playerSystems.setSneaking(player, true);
+            probe.tick(10);
+            const attacker = probe.runtime.bodyOf(probe.entity.instance);
+            if (attacker === undefined) return 'the probe lost the attacker';
+            // A bare-handed blow the shield takes whole starts the grace period, then the axe
+            // `Vindicator.populateDefaultEquipmentSlots` gives it strikes inside it.
+            attacker.setEquipment({});
+            probe.runtime.attack(attacker, target);
+            attacker.setEquipment({ mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
+            probe.runtime.attack(attacker, target);
+            probe.tick(20);
+            const before = player.instance.attributes.get('health')?.current ?? 0;
+            probe.runtime.attack(attacker, target);
+            return before - (player.instance.attributes.get('health')?.current ?? 0);
+        } finally {
+            probe.runtime.remove(player.id, 'parity probe');
+        }
+    });
+
+/** A vindicator's axe inside the grace period against Java's: it disables the shield all the same. */
+const compareAxeInGrace = (subject: EntitySubject): string | undefined => {
+    if (!javaBlocksBeforeGrace())
+        return "Java's LivingEntity.hurtServer no longer runs applyItemBlocking before its grace check";
+    const taken = axeInGrace(subject.bedrock);
+    if (typeof taken === 'string') return taken;
+    return taken > 0
+        ? undefined
+        : "an axe blow inside the grace period of an earlier hit leaves a raised shield up, so the next blow 20 ticks later is blocked, where Java's hurtServer meets the axe with the shield first and disables it for 100 ticks";
+};
+
 /** The scenarios of the finishing theme. */
 export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -1205,5 +1266,15 @@ export const finishingScenarios: readonly BehaviorScenario<EntitySubject>[] = [
         idOf: (subject) => subject.javaId,
         aspects: () => ['minecraft:ravager_blocked'],
         run: compareRavagerBlocked
+    },
+    {
+        name: 'shield-disabled-in-grace',
+        java: "An axe blow on a raised shield inside the grace period of an earlier hit still disables the shield, because Java's LivingEntity.hurtServer runs applyItemBlocking before its grace check.",
+        reference:
+            'Java LivingEntity.hurtServer (applyItemBlocking before damageCooldownTime) and Player.blockUsingItem, read from the pinned jar',
+        subjects: () => ['minecraft:vindicator'].flatMap((javaId) => mappedEntity(javaId) ?? []),
+        idOf: (subject) => subject.javaId,
+        aspects: () => ['minecraft:shield'],
+        run: compareAxeInGrace
     }
 ];

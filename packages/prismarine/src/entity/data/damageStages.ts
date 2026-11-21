@@ -10,7 +10,9 @@
  *    and a spectator not even those.
  * 3. `damage_resistant` (pack): a dropped stack whose item's `minecraft:damage_resistant` names
  *    the cause, such as a nether star in a blast.
- * 4. `hit_grace` (pack): the half second after a hit during which a weaker blow is ignored.
+ * 4. `hit_grace` (pack): the half second after a hit during which a weaker blow is ignored. A
+ *    raised shield takes its part first, as Java's `LivingEntity.hurtServer` runs
+ *    `applyItemBlocking` before the grace check, so only what gets past the shield is weighed.
  * 5. `cannot_be_attacked` (pack): `minecraft:cannot_be_attacked` and the type rules an attacker
  *    in the store declares.
  * 6. `dragon` (pack): Java's `EnderDragon.hurt` rules, which the Bedrock pack does not carry.
@@ -150,6 +152,13 @@ export class DamageSensingSlot {
 const inGrace = (intent: DamageIntent, grace: HitGrace | undefined): grace is HitGrace =>
     intent.source.graced === true && intent.source.bypassesGrace !== true && grace !== undefined && grace.ticks > 0;
 
+/** What a target's raised shield takes off `amount` of a blow, 0 for none. */
+export const blockedOf = (reads: DamageStageReads, intent: DamageIntent, amount: number): number => {
+    const target = reads.target(intent.target);
+    if (target === undefined || amount <= 0) return 0;
+    return reads.blocked?.(target, intent, amount) ?? 0;
+};
+
 /** The pack and game-rule guards, in their order. */
 export const damageGuards = (reads: DamageStageReads, sensing: DamageSensingSlot): readonly DamageGuard[] => [
     {
@@ -185,7 +194,8 @@ export const damageGuards = (reads: DamageStageReads, sensing: DamageSensingSlot
         stage: 'pack',
         check: (intent) => {
             const grace = reads.grace(intent.target);
-            return inGrace(intent, grace) && intent.amount <= grace.last ? VETO : PASS;
+            if (!inGrace(intent, grace)) return PASS;
+            return intent.amount - blockedOf(reads, intent, intent.amount) <= grace.last ? VETO : PASS;
         }
     },
     {
@@ -250,9 +260,7 @@ export const damageModifiers = (reads: DamageStageReads, sensing: DamageSensingS
             name: ITEM_BLOCKING,
             priority: 50,
             modifier: (intent, amount) => {
-                const target = reads.target(intent.target);
-                if (target === undefined || amount <= 0) return undefined;
-                const blocked = reads.blocked?.(target, intent, amount) ?? 0;
+                const blocked = blockedOf(reads, intent, amount);
                 return blocked > 0 ? { operation: 'add', value: -blocked } : undefined;
             }
         },
