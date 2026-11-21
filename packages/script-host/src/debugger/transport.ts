@@ -43,6 +43,12 @@ export const checkListenAddress = (address: string, passcode: string | undefined
     }
 };
 
+/**
+ * How long {@link DebuggerSocket.close} waits for the extension to close its side before it
+ * destroys the socket anyway.
+ */
+const CLOSE_GRACE_MS = 1000;
+
 /** One TCP connection to the extension, framed in both directions. */
 export class DebuggerSocket {
     private readonly socket: Socket;
@@ -50,6 +56,7 @@ export class DebuggerSocket {
     private readonly messageListeners: ((message: unknown) => void)[] = [];
     private readonly closeListeners: ((error: Error | undefined) => void)[] = [];
     private closedValue = false;
+    private closing = false;
 
     /** Wraps a connected socket. */
     public constructor(socket: Socket) {
@@ -67,6 +74,9 @@ export class DebuggerSocket {
                 );
                 return;
             }
+            // A closing socket still reads, so the peer's last frames leave the receive buffer, but
+            // nothing it says now gets an answer.
+            if (this.closing) return;
             for (const message of messages) for (const listener of this.messageListeners) listener(message);
         });
         socket.on('error', (error) => this.finish(error));
@@ -100,11 +110,19 @@ export class DebuggerSocket {
     }
 
     /**
-     * Closes the connection once what was sent has gone. It destroys the socket then, rather than
-     * only ending its side, so the close completes even when the peer keeps its own side open.
+     * Closes the connection once what was sent has gone. It ends this side and keeps reading until
+     * the extension closes its own, which it does on seeing the end. Destroying the socket at once
+     * would close it with the extension's last frames unread, and the reset that sends can make the
+     * extension discard what arrived just before it, such as the line saying why the handshake
+     * was refused. A peer that keeps its own side open is cut off after {@link CLOSE_GRACE_MS}.
      */
     public close(): void {
-        this.socket.destroySoon();
+        if (this.closedValue || this.closing) return;
+        this.closing = true;
+        this.socket.end();
+        const timer = setTimeout(() => this.socket.destroy(), CLOSE_GRACE_MS);
+        timer.unref();
+        this.socket.once('close', () => clearTimeout(timer));
     }
 
     private finish(error: Error | undefined): void {
