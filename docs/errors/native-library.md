@@ -45,6 +45,15 @@ Thrown as `NativeLibraryErrors.DownloadFailed`, which extends `Error`.
 Downloading a package's native library failed with that HTTP status. Retry, or point the
 package's `_LIBRARY` environment variable at a library you built.
 
+## `NATIVE_LIBRARY_FFI_UNAVAILABLE`
+
+`node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.`
+
+Thrown as `NativeLibraryErrors.FfiUnavailable`, which extends `NativeLibraryError`.
+
+The Node.js running the server has no `node:ffi`, which native libraries are loaded with. Run
+a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
+
 ## `NATIVE_LIBRARY_INVALID_NATIVE_MANIFEST`
 
 `` The native manifest needs `build` and `baseUrl` strings ``

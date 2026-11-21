@@ -26,6 +26,11 @@
                 "import": "./dist/platform.js",
                 "module": "./dist/platform.js"
             },
+            "./ffi": {
+                "types": "./dist/ffi.d.ts",
+                "import": "./dist/ffi.js",
+                "module": "./dist/ffi.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -53,6 +58,10 @@
         "./platform": {
             "jsprismarine:dist": "./dist/platform.js",
             "default": "./src/platform.ts"
+        },
+        "./ffi": {
+            "jsprismarine:dist": "./dist/ffi.js",
+            "default": "./src/ffi.ts"
         },
         "./package.json": "./package.json"
     },
