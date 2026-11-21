@@ -8,7 +8,7 @@
 import { WorldgenRandom, bonusChest, endGateway, endSpike, monsterRoom } from '@jsprismarine/features';
 import type { HeightmapType } from '@jsprismarine/features';
 import { createHash } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GenerationRegion, PackedBlockWrites, packWritePosition } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -330,6 +330,43 @@ describe('neighbor chunk data', () => {
         viewed.writeName(-1, 50, -17, 'minecraft:gold_block');
         expect(viewed.stateAt(-1, 50, -17).name).toBe('minecraft:gold_block');
         expect(tiles[4]?.stateAt(-1, 50, -17).name).toBe('minecraft:cobblestone');
+    });
+
+    it('reads a feature view, its own writes included, without a map lookup per block', () => {
+        const tiles = featureTerrainTiles();
+        const copied = new GenerationRegion(featureRegionOptions());
+        for (const tile of tiles) copied.copyCenterFrom(tile);
+        const viewed = GenerationRegion.featureView(featureRegionOptions(), tiles);
+        // Writes in three of the nine tiles, so later reads meet the overlay.
+        for (const [x, z, block] of [
+            [-1, 0, 'minecraft:gold_block'],
+            [16, 3, 'minecraft:oak_log'],
+            [5, 5, 'minecraft:diamond_block']
+        ] as const) {
+            copied.writeName(x, 45, z, block);
+            viewed.writeName(x, 45, z, block);
+        }
+
+        const positions: [number, number, number][] = [];
+        for (let x = -16; x < 32; x += 3) {
+            for (let z = -16; z < 32; z += 3) {
+                for (const y of [39, 43, 45, 47, 51]) positions.push([x, y, z]);
+            }
+        }
+        positions.push([-1, 45, 0], [16, 45, 3], [5, 45, 5]);
+
+        const lookups = vi.spyOn(Map.prototype, 'get');
+        const read = positions.map(([x, y, z]) => viewed.stateAt(x, y, z));
+        const lookupCount = lookups.mock.calls.length;
+        lookups.mockRestore();
+
+        expect(lookupCount).toBe(0);
+        expect(read).toEqual(positions.map(([x, y, z]) => copied.stateAt(x, y, z)));
+        expect(read.slice(-3).map((state) => state.name)).toEqual([
+            'minecraft:gold_block',
+            'minecraft:oak_log',
+            'minecraft:diamond_block'
+        ]);
     });
 
     it('copies neighboring terrain into the feature view', () => {

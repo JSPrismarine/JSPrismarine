@@ -13,6 +13,15 @@ export const PrismarineGenerationErrors = defineErrors('prismarine/generation', 
      */
     BiomeCellOutOfPalette: { message: 'Biome cell index {index} is outside its palette', base: RangeError },
     /**
+     * A feature pass wrote more distinct block states than its 16-bit write overlay can name. A
+     * 3 by 3 chunk area holds a few hundred, so this is a bug in world generation; report it with
+     * the stack trace.
+     */
+    RegionPaletteFull: {
+        message: 'A feature view cannot record more than 65534 distinct block states',
+        base: RangeError
+    },
+    /**
      * A generated biome section has a count of biomes other than one or one per block. This is a
      * bug in world generation; report it with the stack trace.
      */
