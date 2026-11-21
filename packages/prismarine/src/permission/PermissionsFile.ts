@@ -230,9 +230,26 @@ export const readPermissions = (root: Record<string, unknown>): LoadedPermission
     if (Array.isArray(root.pending)) {
         for (const value of root.pending) {
             const user = readUser(value);
-            if (user !== undefined && isRecord(value) && typeof value.legacyUuid === 'string') {
-                pending.set(value.legacyUuid, user);
-            }
+            if (user === undefined || !isRecord(value) || typeof value.legacyUuid !== 'string') continue;
+            // Two entries under one UUID are one user: a claim files everything both hold.
+            const earlier = pending.get(value.legacyUuid);
+            pending.set(
+                value.legacyUuid,
+                earlier === undefined
+                    ? user
+                    : {
+                          name: user.name,
+                          groups: [
+                              ...earlier.groups,
+                              ...user.groups.filter((m) => !earlier.groups.some((e) => e.group === m.group))
+                          ],
+                          nodes: [
+                              ...earlier.nodes,
+                              ...user.nodes.filter((n) => !earlier.nodes.some((e) => e.node === n.node))
+                          ],
+                          meta: { ...earlier.meta, ...user.meta }
+                      }
+            );
         }
     }
     return { groups, users, pending };

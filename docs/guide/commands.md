@@ -42,8 +42,9 @@ a datapack, see [Commands and functions](../data-driven/commands.md).
 player, such as `@p`, or a name: an online player's, or one the file knows. A name that names more
 than one player is refused with the forms the command takes instead: `xbox:Steve`, `java:Steve` or
 `offline:Steve` picks a platform, and `xbox:2535428842768200`, the key itself, picks one of two
-stored accounts of one kind that share a name. The refusal lists each candidate by its key. That
-spelling is command syntax only and never appears in a file. `[expires]` is an
+stored accounts of one kind that share a name. A qualified value is read as a key first, an online
+player's or a stored user's, and as a name only when it is nobody's key. The refusal lists each
+candidate by its key. That spelling is command syntax only and never appears in a file. `[expires]` is an
 ISO 8601 instant such as `2027-01-01T00:00:00Z`, or a duration from now: `90s`, `45m`, `12h`, `30d`
 or `2w`.
 

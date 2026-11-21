@@ -659,6 +659,8 @@ export class CommandManager implements Service {
         const commandSource = createCommandSource({
             host: this.host,
             ...(entity === undefined ? {} : { entity }),
+            // The sender issued the command; `target` is only who it runs as.
+            ...(player === undefined ? {} : { caller: entityRefOf(player) }),
             permissionLevel:
                 player !== undefined
                     ? operator

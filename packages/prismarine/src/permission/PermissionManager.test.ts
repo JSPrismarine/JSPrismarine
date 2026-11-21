@@ -1,11 +1,12 @@
 import { testKernel } from '../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../events/ServerEvents';
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 import { Logger } from '@jsprismarine/logger';
 import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
@@ -18,7 +19,7 @@ import type { PlayerIdentity } from '../playerIdentity';
 import { fakePlayer } from '../testing/fakePlayer.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
-import type { PermissionManagerServer } from './PermissionManager';
+import type { PermissionChange, PermissionManagerServer } from './PermissionManager';
 import { DEFAULT_GROUP, OPERATOR_GROUP } from './model';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import type { Subject } from '../identity/Subject';
@@ -77,9 +78,7 @@ describe('permission', () => {
         const server = (): PermissionManagerServer => ({
             getLogger: () => logger,
             getSessionManager: () => stub<SessionManager>({ getSessions: () => online }),
-            getKernel: () => {
-                throw new Error('not needed here');
-            }
+            getKernel: () => testKernel()
         });
         const steve = identityNamed('Steve', '00000000-0000-0000-0000-000000000005');
         /** Writes `ops.json` with these offline operators, before the manager reads it. */
@@ -101,8 +100,12 @@ describe('permission', () => {
             manager = new PermissionManager(server(), { now: () => now, watch: false });
         });
 
+        /** Managers with a watcher, closed after each test whatever happened in it. */
+        const watchers: PermissionManager[] = [];
+
         afterEach(async () => {
             await manager.disable();
+            for (const watching of watchers.splice(0)) await watching.disable();
             vi.unstubAllEnvs();
             vi.restoreAllMocks();
             rmSync(directory, { recursive: true, force: true });
@@ -148,6 +151,7 @@ describe('permission', () => {
   "defaultOperatorPermissions": ["minecraft.command.*"],
   "players": [
     { "name": "alice", "uuid": "00000000-0000-0000-0000-000000000002", "permissions": ["minecraft.command.kick"] },
+    { "name": "carol", "uuid": "00000000-0000-0000-0000-000000000003", "permissions": ["minecraft.command.ban"] },
     { "name": "legacy", "permissions": ["*"] },
     { "name": 7 }
   ]
@@ -174,6 +178,13 @@ describe('permission', () => {
                             legacyUuid: '00000000-0000-0000-0000-000000000002',
                             groups: [],
                             nodes: [{ node: 'minecraft.command.kick' }],
+                            meta: {}
+                        },
+                        {
+                            name: 'carol',
+                            legacyUuid: '00000000-0000-0000-0000-000000000003',
+                            groups: [],
+                            nodes: [{ node: 'minecraft.command.ban' }],
                             meta: {}
                         }
                     ]
@@ -209,23 +220,26 @@ describe('permission', () => {
                             Alice: { name: 'Alice', groups: [], nodes: [{ node: 'minecraft.command.kick' }], meta: {} }
                         }
                     },
-                    pending: []
+                    // Carol's entry waits on, untouched by Alice's claim.
+                    pending: [{ name: 'carol', legacyUuid: '00000000-0000-0000-0000-000000000003' }]
                 });
             });
 
-            it('refuses a file a newer server wrote, or whose version is not a number, without rewriting it', async () => {
-                for (const version of ['3', '"2"', '1.5']) {
+            it.each(['3', '"2"', '1.5'])(
+                'refuses a file whose schemaVersion is %s rather than the number 2, without rewriting it',
+                async (version) => {
                     const text = `{ "schemaVersion": ${version}, "groups": {}, "users": {} }`;
                     writeFileSync(permissionsFile(), text);
 
                     await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
+
                     expect(logger.error).toHaveBeenCalledWith(
                         expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
                     );
                     expect(permissionsText()).toBe(text);
                     expect(existsSync(`${permissionsFile()}.bak`)).toBe(false);
                 }
-            });
+            );
 
             it('gives `*` to operators when the old file names no valid operator defaults', async () => {
                 writeFileSync(
@@ -255,11 +269,17 @@ describe('permission', () => {
                 );
                 await manager.enable();
 
-                expect(manager.claimLegacy(identityNamed('Bob', 'u-1'))).toBe(true);
-                await manager['writes'];
+                const bob = identityNamed('Bob', 'u-1');
+                expect(manager.claimLegacy(bob)).toBe(true);
+                expect(manager.claimLegacy(bob)).toBe(false);
+                expect(manager.has(bob, 'a.b')).toBe(true);
+                expect(manager.has(bob, 'c.d')).toBe(true);
 
-                expect(permissions()).toMatchObject({ pending: [] });
-                expect(manager.claimLegacy(identityNamed('Bob', 'u-1'))).toBe(false);
+                await manager.disable();
+                expect(permissions()).toMatchObject({
+                    pending: [],
+                    users: { offline: { Bob: { nodes: [{ node: 'a.b' }, { node: 'c.d' }] } } }
+                });
             });
         });
 
@@ -345,7 +365,7 @@ describe('permission', () => {
 
                 await manager.createGroup('vip');
                 await manager.createGroup('staff');
-                await manager.grantGroup('vip', 'minecraft.command.me');
+                await manager.grantGroup('vip', 'minecraft.command.tp');
                 await manager.grantGroup('staff', 'minecraft.command.kick');
                 await manager.addParent('staff', 'vip');
                 await manager.setGroupWeight('staff', 50);
@@ -359,7 +379,7 @@ describe('permission', () => {
                     meta: { prefix: 'Staff ' }
                 });
                 expect(manager.has(steve, 'minecraft.command.kick')).toBe(true);
-                expect(manager.has(steve, 'minecraft.command.me')).toBe(true);
+                expect(manager.has(steve, 'minecraft.command.tp')).toBe(true);
                 expect(manager.groupsOf(steve)).toEqual(['staff', 'default']);
                 expect(manager.primaryGroupOf(steve)).toBe('staff');
                 expect(manager.metaOf(steve, 'prefix')).toBe('Staff ');
@@ -413,22 +433,28 @@ describe('permission', () => {
                 await granted;
                 expect(manager.has(steve, 'c.d')).toBe(true);
 
-                // The file goes read-only for the next write.
-                chmodSync(permissionsFile(), 0o400);
+                // A directory stands where the file was, so the next write fails on every platform.
+                const kept = permissionsText();
+                rmSync(permissionsFile());
+                mkdirSync(permissionsFile());
                 try {
                     await expect(manager.revokeUser(steve, 'a.b')).rejects.toThrow();
                 } finally {
-                    chmodSync(permissionsFile(), 0o600);
+                    rmSync(permissionsFile(), { recursive: true });
+                    writeFileSync(permissionsFile(), kept);
                 }
                 expect(manager.has(steve, 'a.b')).toBe(true);
                 expect(await manager.revokeUser(steve, 'a.b')).toBe(true);
                 expect(manager.has(steve, 'a.b')).toBe(false);
             });
 
-            it('writes a complete file again when the one on disk is gone or not a version 2 file', async () => {
+            it.each([
+                ['gone', () => rmSync(permissionsFile())],
+                ['of the old shape', () => writeFileSync(permissionsFile(), '{ "defaultPermissions": ["x.y"] }')]
+            ])('writes a complete file again when the one on disk is %s', async (_what, spoil) => {
                 await manager.enable();
                 await manager.createGroup('vip');
-                rmSync(permissionsFile());
+                spoil();
 
                 await manager.grantUser(steve, 'a.b');
 
@@ -507,6 +533,7 @@ describe('permission', () => {
 
                 await manager.reload();
                 expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
+                const valid = permissionsText();
 
                 writeFileSync(permissionsFile(), '{ "schemaVersion": 2, "groups": {');
                 await expect(manager.reload()).rejects.toThrow('Invalid permissions.json file.');
@@ -517,30 +544,76 @@ describe('permission', () => {
                 opsFile('Op');
                 await expect(manager.reload()).rejects.toThrow();
                 expect(manager.isOp(offline('Op'))).toBe(false);
+
+                // And a valid permissions file is not published while ops.json fails.
+                writeFileSync(permissionsFile(), valid);
+                writeFileSync(permissionsFile(), edited(['groups', 'vip', 'meta'], { prefix: 'W' }));
+                writeFileSync(path.join(directory, 'ops.json'), '[');
+                await expect(manager.reload()).rejects.toThrow();
+                expect(manager.groupOf('vip')?.meta).toEqual({ prefix: 'V' });
+            });
+
+            it('keeps an operator change made while a reload reads the files', async () => {
+                await manager.enable();
+                const sent: string[] = [];
+                const session = stub<PlayerSession>({
+                    identity: steve,
+                    sendAvailableCommands: async () => void sent.push('commands'),
+                    announceSettings: async () => void sent.push('settings')
+                });
+                const kernelServer = new PermissionManager(
+                    { ...server(), getKernel: () => kernelPosting(() => {}) },
+                    { now: () => now, watch: false }
+                );
+                await kernelServer.enable();
+
+                const reloading = kernelServer.reload();
+                const told = kernelServer.setOpNow(session, true);
+                await reloading;
+                await told;
+
+                expect(kernelServer.isOp(steve.subject)).toBe(true);
+                await kernelServer.disable();
+                expect(plain(readFileSync(path.join(directory, 'ops.json'), 'utf8'))).toContainEqual(
+                    expect.objectContaining({ name: 'Steve', kind: 'offline', id: 'Steve' })
+                );
             });
 
             it('reloads when the file changes on disk, and not after its own writes', async () => {
                 const watching = new PermissionManager(server(), { now: () => now });
+                watchers.push(watching);
                 await watching.enable();
-                try {
-                    await watching.createGroup('vip');
-                    const reloaded = new Promise<void>((resolve) => {
+                const reloads: PermissionChange[] = [];
+                watching.onChange((change) => {
+                    if (change.group === undefined && change.subject === undefined) reloads.push(change);
+                });
+
+                await watching.createGroup('vip');
+
+                writeFileSync(permissionsFile(), edited(['groups', 'vip', 'weight'], 9));
+
+                // The watcher's reload, or a timeout that fails the test without leaving the watcher open.
+                await Promise.race([
+                    new Promise<void>((resolve) => {
                         const stop = watching.onChange((change) => {
                             if (change.group === undefined && change.subject === undefined) {
                                 stop();
                                 resolve();
                             }
                         });
-                    });
-                    expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('changed on disk'));
-
-                    writeFileSync(permissionsFile(), edited(['groups', 'vip', 'weight'], 9));
-
-                    await reloaded;
-                    expect(watching.groupOf('vip')?.weight).toBe(9);
-                } finally {
-                    await watching.disable();
-                }
+                        if (reloads.length > 0) resolve();
+                    }),
+                    new Promise<never>((_resolve, reject) =>
+                        setTimeout(() => reject(new PrismarineServerErrors.MissingExecutor()), 5000)
+                    )
+                ]);
+                expect(watching.groupOf('vip')?.weight).toBe(9);
+                // One reload, the external edit's: the manager's own write before it reloaded nothing.
+                const disk = vi
+                    .mocked(logger.info)
+                    .mock.calls.filter(([line]) => String(line).includes('changed on disk'));
+                expect(disk).toHaveLength(1);
+                expect(reloads).toHaveLength(1);
             });
         });
 
