@@ -128,8 +128,9 @@ into the favicon, the touch icons and the web app manifest, which are not checke
 
 - Corners are `14px` on panels (`--jsp-radius-panel`) and `10px` on controls
   (`--jsp-radius-control`). Pills are fully round.
-- Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). It shrinks on hover and
-  disappears on press, so the button reads as pushed in. The shadow is ink on light surfaces and mint
+- Primary actions carry a hard offset shadow (`4px 4px 0`, no blur). On hover the face lightens and
+  stays in line with the buttons beside it; on press the shadow disappears and the face drops into
+  its place, so the button reads as pushed in. The shadow is ink on light surfaces and mint
   on forest and in dark mode (`--jsp-primary-shadow`), where an ink shadow would vanish. Secondary
   and outline buttons have no shadow: an edge alone, filled on hover, so only the primary action
   looks like a key to press.
