@@ -1,7 +1,8 @@
 /**
- * A {@link ScriptWorld} in memory for the host's tests: a flat world of three dimensions with a
- * few block, item and entity types, the weather and chat guards, and counts of what the host
- * read, so a test can bound the world calls a script's member makes.
+ * A {@link ScriptWorld} in memory for the host's tests: a flat world of three dimensions, and the
+ * void ones scripts register, with a few block, item and entity types, the weather and chat
+ * guards, and counts of what the host read, so a test can bound the world calls a script's member
+ * makes.
  */
 import type {
     BlockBreakIntent,
@@ -510,8 +511,14 @@ export class MemoryWorld implements ScriptWorld {
         return `${owner === 'world' ? 'world' : owner.entity}\n${pack}`;
     }
 
+    /** The custom dimensions scripts registered, in order. Each is void: air wherever nothing was placed. */
+    public readonly customDimensions: string[] = [];
+    public registerCustomDimension(typeId: string): 'registered' {
+        if (!this.customDimensions.includes(typeId)) this.customDimensions.push(typeId);
+        return 'registered';
+    }
     public dimensions(): readonly string[] {
-        return ['minecraft:overworld', 'minecraft:nether', 'minecraft:the_end'];
+        return ['minecraft:overworld', 'minecraft:nether', 'minecraft:the_end', ...this.customDimensions];
     }
     public players(): readonly string[] {
         return this.online;
@@ -611,14 +618,15 @@ export class MemoryWorld implements ScriptWorld {
         if (!this.loaded(location)) return undefined;
         const placed = this.set.get(this.blockKey(dimension, location));
         if (placed !== undefined) return placed;
-        const typeId =
-            location.y === -64
-                ? 'minecraft:bedrock'
-                : location.y === -61
-                  ? 'minecraft:grass_block'
-                  : location.y < -61 && location.y > -64
-                    ? 'minecraft:dirt'
-                    : 'minecraft:air';
+        const typeId = this.customDimensions.includes(dimension)
+            ? 'minecraft:air'
+            : location.y === -64
+              ? 'minecraft:bedrock'
+              : location.y === -61
+                ? 'minecraft:grass_block'
+                : location.y < -61 && location.y > -64
+                  ? 'minecraft:dirt'
+                  : 'minecraft:air';
         return this.resolveBlock(typeId, {});
     }
     public setBlock(dimension: string, location: ScriptVector3, permutation: ScriptBlockPermutation): void {
