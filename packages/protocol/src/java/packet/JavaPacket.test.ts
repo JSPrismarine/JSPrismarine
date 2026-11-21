@@ -4,6 +4,7 @@ import { ClientIntent, Intention } from './handshake';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
 import { LoginDisconnect } from './login';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from './status';
+import { PACKETS } from '../versions/26.3/packets';
 
 describe('Java packets', () => {
     it('reads the handshake a client sends before a server list ping', () => {
@@ -40,5 +41,20 @@ describe('Java packets', () => {
         expect(() => decodeJavaPacket(StatusRequest, body)).toThrow(
             'Status Request has 1 unread bytes after its fields'
         );
+    });
+});
+
+describe('the packets every release shares', () => {
+    it.each([
+        ['handshake', 'serverbound', 'intention', Intention],
+        ['status', 'serverbound', 'status_request', StatusRequest],
+        ['status', 'clientbound', 'status_response', StatusResponse],
+        ['status', 'serverbound', 'ping_request', PingRequest],
+        ['status', 'clientbound', 'pong_response', PongResponse],
+        ['login', 'clientbound', 'login_disconnect', LoginDisconnect]
+    ] as const)('give %s %s %s the id the data generator reports', (phase, direction, name, definition) => {
+        const table: Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, number>>>>>> = PACKETS;
+
+        expect(table[phase]?.[direction]?.[name]).toBe(definition.id);
     });
 });

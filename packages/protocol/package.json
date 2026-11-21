@@ -936,6 +936,21 @@
                 "import": "./dist/java/wire/javaTypes.js",
                 "module": "./dist/java/wire/javaTypes.js"
             },
+            "./java/versions/javaRelease": {
+                "types": "./dist/java/versions/javaRelease.d.ts",
+                "import": "./dist/java/versions/javaRelease.js",
+                "module": "./dist/java/versions/javaRelease.js"
+            },
+            "./java/versions/26.3/release": {
+                "types": "./dist/java/versions/26.3/release.d.ts",
+                "import": "./dist/java/versions/26.3/release.js",
+                "module": "./dist/java/versions/26.3/release.js"
+            },
+            "./java/versions/26.3/packets": {
+                "types": "./dist/java/versions/26.3/packets.d.ts",
+                "import": "./dist/java/versions/26.3/packets.js",
+                "module": "./dist/java/versions/26.3/packets.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1747,6 +1762,18 @@
         "./java/wire/javaTypes": {
             "jsprismarine:dist": "./dist/java/wire/javaTypes.js",
             "default": "./src/java/wire/javaTypes.ts"
+        },
+        "./java/versions/javaRelease": {
+            "jsprismarine:dist": "./dist/java/versions/javaRelease.js",
+            "default": "./src/java/versions/javaRelease.ts"
+        },
+        "./java/versions/26.3/release": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/release.js",
+            "default": "./src/java/versions/26.3/release.ts"
+        },
+        "./java/versions/26.3/packets": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/packets.js",
+            "default": "./src/java/versions/26.3/packets.ts"
         },
         "./package.json": "./package.json"
     },

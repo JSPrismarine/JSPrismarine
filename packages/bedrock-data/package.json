@@ -82,6 +82,7 @@
         "datagen:java": "node utils/java/datagen.ts",
         "dump:bedrock": "node utils/bedrock-dump/run.ts",
         "dump:java": "node utils/java-dump/run.mjs",
+        "dump:java-protocol": "node utils/java-protocol/run.ts",
         "dump:java-goals": "node utils/java-goals/run.ts",
         "extract:lang": "node utils/java/extract-lang.ts",
         "extract:structures": "node utils/java/extract-structures.ts",

@@ -23,8 +23,8 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | Interaction, session settings and block interfaces done ([#3421](https://github.com/JSPrismarine/JSPrismarine/pull/3421), [#3429](https://github.com/JSPrismarine/JSPrismarine/pull/3429), [#3431](https://github.com/JSPrismarine/JSPrismarine/pull/3431)). Movement and inventory wait for their slices. |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
-| 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | In review. |
-| 8 | Java login, Mojang session verification, configuration phase, registries and tags | Not started |
+| 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
+| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, in review. |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
@@ -263,8 +263,8 @@ packs exchange says the server has none.
 
 Per-release Java wire tables live under `packages/protocol/src/java/versions/<release>/`: packet ids
 per phase and direction, the block state id order, item ids, entity type ids and the registry
-contents above. A `dump:java` script beside `dump:bedrock` generates them from the data generator
-output and from a capture of the vanilla client talking to the pinned vanilla server jar, which
+contents above. A `dump:java-protocol` script beside `dump:bedrock` generates them from the data
+generator output and from a capture of the vanilla client talking to the pinned vanilla server jar, which
 `ensure:worldgen` already downloads. Packet layouts are declarative ([ADR 0003](../adr/0003-declarative-wire-layouts.md)),
 written from the community protocol page and checked against the capture, as the Bedrock layouts
 are checked against a Bedrock Dedicated Server capture. No third-party data dump is a source, which
