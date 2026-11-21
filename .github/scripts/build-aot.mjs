@@ -80,7 +80,11 @@ const args = [
     // The server's entry answers `--role generation-host`, so the generation pool may start its
     // host by running the executable again.
     '--define',
-    'JSP_EMBEDDED_GENERATION_HOST=true'
+    'JSP_EMBEDDED_GENERATION_HOST=true',
+    // The executable has no JIT, so code built from strings is interpreted. This keeps the
+    // protocol's wire layouts on their field walker, which is compiled with everything else.
+    '--define',
+    'JSP_AOT_EXECUTABLE=true'
 ];
 
 /**
