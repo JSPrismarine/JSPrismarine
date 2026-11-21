@@ -65,7 +65,7 @@ Out of scope for now:
        every custom dimension: config, datapack and script. An existing save takes the numbers its
        dimensions have now, so no chunk moves. The script-dimension id table in #3630 becomes part
        of it.
-4. [ ] **Split `WorldManager`.** The provider registry and a worldgen catalog (presets, registries,
+4. [x] **Split `WorldManager`.** The provider registry and a worldgen catalog (presets, registries,
        generator factories) move out into modules of their own, leaving a level registry.
 5. [ ] **Lifecycle and events.** A per-level state machine with one operation at a time, and kernel
        events for attached, detaching and detached. The scripts module, the content runtime and
