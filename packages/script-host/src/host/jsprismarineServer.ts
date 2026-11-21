@@ -681,7 +681,7 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '    });',
         '    return freeze({',
         '        has: (player, node) => host.hasPermission(player, node),',
-        '        groupsOf: (player) => freeze(JSON.parse(host.groupsOf(player))),',
+        '        groupsOf: (player) => freeze(parse(host.groupsOf(player))),',
         '        primaryGroupOf: (player) => host.primaryGroupOf(player),',
         '        metaOf: (player, key) => host.metaOf(player, key),',
         '        grant: (player, node, expires) => host.grant(player, node, expires),',

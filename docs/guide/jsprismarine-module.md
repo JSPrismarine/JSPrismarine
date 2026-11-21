@@ -386,9 +386,10 @@ world.afterEvents.playerSpawn.subscribe(async ({ player, initialSpawn }) => {
 ```
 
 `loadJsprismarine` is the function from [the first example](#detect-the-module-and-fall-back).
-`grant` and `revoke` take a `Player` or a group's name; `addToGroup` and `removeFromGroup` take a
-`Player`. A bad node or expiry throws a `RangeError` at the call, a group the file lacks an
-`Error`, and a `Player` who left a `TypeError`, before anything is written. The server also
+`grant`, `revoke`, `addToGroup` and `removeFromGroup` take a `Player` and write that player's
+record; `grantToGroup` and `revokeFromGroup` take a group's name and write the group. A bad node
+or expiry throws a `RangeError` at the call, a group the file lacks an `Error`, and a `Player` who
+left a `TypeError`, before anything is written. The server also
 registers the `perms` placeholder namespace with `primary_group`, `groups`, `prefix`, `suffix`
 and `weight`, so a tab list or chat format reads a rank through `placeholders.resolve` without a
 call; an unset prefix or suffix renders as empty text.
