@@ -13,15 +13,20 @@ export interface DocSection {
      * such as `notes/ballot.md`, or a folder such as `notes/votes/`. Links to them go to GitHub.
      */
     unpublished?: string[];
+    /**
+     * Whether the docs build writes the section's pages itself instead of staging them from
+     * `docs/<dir>/`. Those pages are the build's own Markdown, so they may use Vue components.
+     */
+    generated?: boolean;
     title: string;
 }
 
 /** Contributor-only directories under `docs/` (such as `design`) are left out on purpose. */
 export const sections = [
     { dir: 'guide', title: 'Guides', first: ['joining', 'running', 'extending', 'log-levels'] },
-    // The overview lists JSPrismarine's own addons; the docs build adds a page per addon from
-    // its README under `addons/` (see `addonPageSource`).
-    { dir: 'addons', title: 'Addons' },
+    // The marketplace: the docs build writes its overview and a page per addon, each rendering a
+    // component. A README reaches its page as HTML rendered with raw HTML off (see `addonReadme.mts`).
+    { dir: 'addons', title: 'Addons', generated: true },
     { dir: 'errors', title: 'Errors' },
     // The site serves no copy of the logo and icon files, so the guide's links to them go to GitHub.
     { dir: 'brand', title: 'Brand', unpublished: ['assets/'] },
@@ -69,7 +74,7 @@ export const rootPages = [
 /** Whether a site-relative page path was staged from the repository rather than written for the site. */
 export function isStagedPage(relativePath: string) {
     return (
-        sections.some(({ dir }) => relativePath.startsWith(`${dir}/`)) ||
+        sections.some(({ dir, generated }) => !generated && relativePath.startsWith(`${dir}/`)) ||
         rootPages.some(({ page }) => relativePath === page)
     );
 }
@@ -85,6 +90,16 @@ export function pageRoute(page: string) {
         .replace(/#.*$/, '')
         .replace(/(^|\/)index(\.md)?$/, '$1')
         .replace(/\.md$/, '');
+}
+
+/**
+ * A link to a staged page as the site's router opens it: no `.md`, and a folder's index as the
+ * folder, with its fragment kept. A URL with a scheme, such as a GitHub link to a file the site
+ * does not publish, stays as written.
+ */
+export function linkRoute(link: string) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(link)) return link;
+    return link.replace(/\.md(?=#|$)/, '').replace(/\/index(?=#|$)/, '/');
 }
 
 /**

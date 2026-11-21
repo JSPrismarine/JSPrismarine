@@ -2130,9 +2130,15 @@ importers:
       '@resvg/resvg-js':
         specifier: 2.6.2
         version: 2.6.2
+      '@types/markdown-it':
+        specifier: 14.2.0
+        version: 14.2.0
       focus-trap:
         specifier: 8.2.5
         version: 8.2.5
+      markdown-it:
+        specifier: 14.3.3
+        version: 14.3.3
       minisearch:
         specifier: 7.2.0
         version: 7.2.0

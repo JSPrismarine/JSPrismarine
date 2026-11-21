@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { pageSummary } from './sections.mts';
+import { isStagedPage, linkRoute, pageSummary } from './sections.mts';
 
 const page = (...blocks: string[]) => ['# Title', ...blocks, '## Next'].join('\n\n');
 
@@ -53,5 +53,33 @@ describe('pageSummary', () => {
         const lead =
             'Researched 2026-10-24 against the source of 25 repositories at pinned commits and the docs of each one.';
         expect(pageSummary(page(`${lead} Every claim names its source.`))).toBe('');
+    });
+});
+
+describe('isStagedPage', () => {
+    it('marks pages staged from docs/ and the repository root', () => {
+        expect(isStagedPage('guide/running.md')).toBe(true);
+        expect(isStagedPage('contributing.md')).toBe(true);
+    });
+
+    it('leaves out the marketplace pages the build writes, so their components render', () => {
+        expect(isStagedPage('addons/index.md')).toBe(false);
+        expect(isStagedPage('addons/tps-bar.md')).toBe(false);
+        expect(isStagedPage('addons/owner/repo/name.md')).toBe(false);
+    });
+});
+
+describe('linkRoute', () => {
+    it("turns a page's file into its route, keeping the fragment", () => {
+        expect(linkRoute('/guide/writing-addons.md')).toBe('/guide/writing-addons');
+        expect(linkRoute('/guide/writing-addons.md#screenshots')).toBe('/guide/writing-addons#screenshots');
+        expect(linkRoute('/addons/index.md')).toBe('/addons/');
+        expect(linkRoute('./chunks.md')).toBe('./chunks');
+    });
+
+    it('keeps GitHub links and files that are not pages as written', () => {
+        const github = 'https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/addon-marketplace.md';
+        expect(linkRoute(github)).toBe(github);
+        expect(linkRoute('/repo/addons/tps-bar/media/bar.png')).toBe('/repo/addons/tps-bar/media/bar.png');
     });
 });

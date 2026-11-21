@@ -146,7 +146,10 @@ What a deprecated addon looks like:
   `javascript:`, `data:` or `vbscript:`, renders as plain text.
 - Images show only from the pinned listing files. Any other image in a README becomes a link.
 - The README's first heading is dropped, since the page title replaces it. Its other headings
-  shift down a level to sit under the page's `h1`.
+  shift so the shallowest is an `h2` under the page's `h1`.
+- A relative link opens the file on GitHub from the addon's folder, `addons/<name>/`, and the
+  README's images match a screenshot by its path there, which each screenshot in the index's
+  `listing` records as `file`.
 - Each community page carries the "Listed, not reviewed" notice and names its repository wherever
   the install command appears.
 

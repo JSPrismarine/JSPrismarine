@@ -138,6 +138,17 @@ The filterable package grid on the [packages page](./packages).
 <PackageDirectory :packages="project.packages" :repository-url="project.repositoryUrl" />
 ```
 
+### AddonMarket and AddonPage
+
+The [addon marketplace](./addons/) and each addon's page. The docs build writes their data from
+`addons/` and `addons/listings.lock.json`, and renders each README with raw HTML off before the page
+shows it.
+
+```vue
+<AddonMarket :market="market" />
+<AddonPage :addon="addon" />
+```
+
 ### CopyButton
 
 <CopyButton text="pnpm run dev" />
