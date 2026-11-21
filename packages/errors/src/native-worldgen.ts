@@ -35,5 +35,11 @@ export const NativeWorldgenErrors = defineErrors('native-worldgen', {
      * or cache slot that does not exist, or memory ran out. A program the worldgen package
      * encoded is never malformed, so this is a bug; report it.
      */
+    /**
+     * The native library refused a climate search tree: a node names a child that does not exist,
+     * or memory ran out. A tree the worldgen package flattened is never malformed, so this is a
+     * bug; report it.
+     */
+    ClimateTreeNotCreated: 'The native worldgen library could not create a climate tree of {nodes} nodes',
     ProgramNotCreated: 'The native worldgen library could not create a density program of {nodes} nodes'
 });

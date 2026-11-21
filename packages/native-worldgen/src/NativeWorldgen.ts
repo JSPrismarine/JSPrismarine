@@ -31,6 +31,28 @@ interface NativeSymbols {
     ): number;
     jwg_program_destroy(handle: number): void;
     jwg_program_eval(handle: number, x: number, y: number, z: number): number;
+    jwg_climate_create(
+        bounds: Float64Array,
+        childStarts: Uint32Array,
+        childCounts: Uint32Array,
+        valueIndices: Int32Array,
+        firstLeafRanks: Uint32Array,
+        nodeCount: number,
+        children: Uint32Array,
+        childTotal: number,
+        maxDepth: number
+    ): number;
+    jwg_climate_destroy(handle: number): void;
+    jwg_climate_find(
+        handle: number,
+        candidate: number,
+        temperature: number,
+        humidity: number,
+        continentalness: number,
+        erosion: number,
+        depth: number,
+        weirdness: number
+    ): number;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -41,8 +63,27 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_stack_fill: ['void', ['f64', 'buffer', 'buffer', 'i32']],
     jwg_program_create: ['f64', ['buffer', 'i32', 'buffer', 'i32', 'buffer', 'i32', 'buffer', 'i32', 'i32']],
     jwg_program_destroy: ['void', ['f64']],
-    jwg_program_eval: ['f64', ['f64', 'f64', 'f64', 'f64']]
+    jwg_program_eval: ['f64', ['f64', 'f64', 'f64', 'f64']],
+    jwg_climate_create: ['f64', ['buffer', 'buffer', 'buffer', 'buffer', 'buffer', 'i32', 'buffer', 'i32', 'i32']],
+    jwg_climate_destroy: ['void', ['f64']],
+    jwg_climate_find: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64', 'f64']]
 };
+
+/**
+ * A climate search tree, as `@jsprismarine/worldgen`'s climate index flattens it: per node, seven
+ * min/max pairs in `bounds`, its child range, its leaf value index (-1 for a subtree) and its first
+ * leaf rank, then the child list.
+ */
+export interface NativeClimateSource {
+    readonly bounds: Float64Array;
+    readonly childStarts: Uint32Array;
+    readonly childCounts: Uint32Array;
+    readonly valueIndices: Int32Array;
+    readonly firstLeafRanks: Uint32Array;
+    readonly children: Uint32Array;
+    /** The most nodes from the root through one leaf. */
+    readonly maxDepth: number;
+}
 
 /** The 32-bit words of one density program record, `JWG_PROGRAM_WORDS` in the C. */
 export const PROGRAM_WORDS = 6;
@@ -89,10 +130,13 @@ export class NativeWorldgen {
     private readonly bound: BoundNative<NativeSymbols>;
     /** Frees a stack nobody destroyed once it is collected. */
     private readonly finalizer: FinalizationRegistry<number>;
+    /** Frees a climate tree once it is collected. */
+    private readonly climates: FinalizationRegistry<number>;
 
     private constructor(bound: BoundNative<NativeSymbols>) {
         this.bound = bound;
         // A program's handle is registered negated, so one registry frees both kinds.
+        this.climates = new FinalizationRegistry((handle) => bound.symbols.jwg_climate_destroy(handle));
         this.finalizer = new FinalizationRegistry((handle) =>
             handle < 0 ? bound.symbols.jwg_program_destroy(-handle) : bound.symbols.jwg_stack_destroy(handle)
         );
@@ -190,6 +234,34 @@ export class NativeWorldgen {
         );
         this.finalizer.register(program, -handle, program);
         return program;
+    }
+
+    /**
+     * Registers a climate search tree, which finds the nearest box in C with the same answer as the
+     * TypeScript search, ties included.
+     * @param source - The flattened tree.
+     * @returns The tree.
+     * @throws {NativeWorldgenErrors.ClimateTreeNotCreated} When a node names a child that does not
+     *   exist, or memory runs out.
+     */
+    public createClimate(source: NativeClimateSource): NativeClimateSearch {
+        const symbols = this.bound.symbols;
+        const nodeCount = source.childCounts.length;
+        const handle = symbols.jwg_climate_create(
+            source.bounds,
+            source.childStarts,
+            source.childCounts,
+            source.valueIndices,
+            source.firstLeafRanks,
+            nodeCount,
+            source.children,
+            source.children.length,
+            source.maxDepth
+        );
+        if (handle === 0) throw new NativeWorldgenErrors.ClimateTreeNotCreated({ nodes: nodeCount });
+        const search = new NativeClimateSearch(symbols, handle, () => this.climates.unregister(search));
+        this.climates.register(search, handle, search);
+        return search;
     }
 
     /** Unloads the library. Destroy its stacks first. */
@@ -303,6 +375,59 @@ export class NativeDensityProgram {
         if (this.handle === 0) return;
         this.forget();
         this.symbols.jwg_program_destroy(this.handle);
+        this.handle = 0;
+    }
+}
+
+/** A climate search tree in native memory, made by {@link NativeWorldgen.createClimate}. */
+export class NativeClimateSearch {
+    private readonly symbols: NativeSymbols;
+    private readonly forget: () => void;
+    private handle: number;
+
+    /**
+     * Use {@link NativeWorldgen.createClimate}.
+     * @internal
+     */
+    public constructor(symbols: NativeSymbols, handle: number, forget: () => void) {
+        this.symbols = symbols;
+        this.handle = handle;
+        this.forget = forget;
+    }
+
+    /**
+     * The leaf nearest a quantized climate target.
+     * @param candidate - The leaf the previous search returned, or -1.
+     * @returns The leaf's node index, or -1 when the tree yields none.
+     * @throws {NativeWorldgenErrors.StackDestroyed} After {@link destroy}.
+     */
+    public find(
+        candidate: number,
+        temperature: number,
+        humidity: number,
+        continentalness: number,
+        erosion: number,
+        depth: number,
+        weirdness: number
+    ): number {
+        if (this.handle === 0) throw new NativeWorldgenErrors.StackDestroyed();
+        return this.symbols.jwg_climate_find(
+            this.handle,
+            candidate,
+            temperature,
+            humidity,
+            continentalness,
+            erosion,
+            depth,
+            weirdness
+        );
+    }
+
+    /** Frees the tree's native memory. Later calls throw. */
+    public destroy(): void {
+        if (this.handle === 0) return;
+        this.forget();
+        this.symbols.jwg_climate_destroy(this.handle);
         this.handle = 0;
     }
 }

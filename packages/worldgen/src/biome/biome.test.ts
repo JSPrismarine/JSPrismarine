@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import biomeVectors from '../../vectors/26.3/biome-points.json' with { type: 'json' };
 import tieVectors from '../../vectors/26.3/climate-ties.json' with { type: 'json' };
 import registryVectors from '../../vectors/26.3/surface-registries.json' with { type: 'json' };
+import { nativeWorldgen } from '../noise/nativeNoise';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { BiomeManager } from './BiomeManager';
@@ -637,3 +638,59 @@ describe('the biome manager', () => {
         for (const [x, y, z] of positions) expect(manager.getBiome(x, y, z)).toBe(expectedAt(x, y, z));
     });
 });
+
+describe.runIf(process.env.JSP_NATIVE_WORLDGEN_REQUIRE === '1' || nativeWorldgen() !== undefined)(
+    'the climate search in the native library',
+    () => {
+        it.each(biomeVectors.parameterLists.map((list) => [list.name, list] as const))(
+            'finds the same box as TypeScript in %s, ties and the prior-result seed included',
+            (_name, list) => {
+                const entries = list.points.map((row) => unpack(row, list.biomes));
+                const native = new ClimateParameterList(entries);
+                const typescript = new ClimateParameterList(entries, undefined, { native: false });
+                // Shared tables search the same way; one is checked beside the object list.
+                const sharedNative = new SharedClimateParameterList(typescript.toSharedArrayBuffer());
+                const mismatches: string[] = [];
+                const check = (target: ClimateTargetPoint, at: string): void => {
+                    const expected = typescript.find(target);
+                    if (native.find(target) !== expected || sharedNative.find(target) !== expected) {
+                        mismatches.push(at);
+                    }
+                };
+                let state = 5;
+                const next = (): number => {
+                    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                    return state / 4294967296;
+                };
+                // Coarse steps land on box edges, where distances tie.
+                const coarse = (): number => Math.round((next() * 2.4 - 1.2) * 20) / 20;
+                for (let sample = 0; sample < 3000; sample++) {
+                    const fine = sample % 2 === 0;
+                    const axis = (): number => (fine ? next() * 2.4 - 1.2 : coarse());
+                    check(climateTarget(axis(), axis(), axis(), axis(), axis(), axis()), `sample ${sample}`);
+                }
+
+                expect(mismatches.slice(0, 5)).toEqual([]);
+            }
+        );
+
+        it("follows Java's tie answers from the recorded climate-ties cells", () => {
+            const overworld = biomeVectors.parameterLists.find((list) => list.name === 'minecraft:overworld');
+            if (!overworld) throw new Error('the vector file has no overworld parameter list');
+            const entries = overworld.points.map((row) => unpack(row, overworld.biomes));
+            const native = new ClimateParameterList(entries);
+            const typescript = new ClimateParameterList(entries, undefined, { native: false });
+            const randomState = new RandomState(
+                worldgenData,
+                BigInt(tieVectors.seed),
+                worldgenData.settings('minecraft:overworld')
+            );
+            const sampler = createClimateSampler(randomState);
+            for (const cell of tieVectors.cells) {
+                const [quartX, quartY, quartZ] = cell.quart as [number, number, number];
+                const target = sampler.sample(quartX, quartY, quartZ);
+                expect(native.find(target)).toBe(typescript.find(target));
+            }
+        });
+    }
+);
