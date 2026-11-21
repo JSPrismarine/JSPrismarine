@@ -162,8 +162,11 @@ const DEFAULT_FLAMMABLE = (() => {
     return parsed.value;
 })();
 
-/** Reads the active state's Bedrock flammability component, including permutations. */
-const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammability | undefined => {
+/**
+ * Reads the active state's Bedrock flammability component, including permutations: the odds the
+ * fire rule reads for a block, which the parity suite compares with Java's.
+ */
+export const flammabilityOf = (content: ServerContent, block: HookBlock): BlockFlammability | undefined => {
     const component = content.blocks.types.get(block.identifier)?.state(block.states).content.params(flammable);
     if (component === undefined) return undefined;
     if (component === false) return { igniteOdds: 0, burnOdds: 0 };
