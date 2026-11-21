@@ -1,9 +1,10 @@
 import { appendFileSync } from 'node:fs';
 
-// Finds the jobs a push to master can skip because the merged pull request already passed them on
-// the same code. Pull requests merge by rebase, so the pushed commit only matches what the pull
-// request's last run tested when its tree equals the pull request head's tree. A head that was
-// behind master when it merged gets a new tree, and everything runs again.
+// Finds the jobs a push to master can skip because a run already passed them on the same code: the
+// merge group's run, when the pull request merged through the merge queue, or the pull request's
+// own last run. Pull requests merge by rebase, so the pushed commit only matches what a run tested
+// when its tree equals the tree of the commit the run tested. A pull request head that was behind
+// master when it merged gets a new tree, and everything runs again.
 //
 // Writes `passed`, a JSON array of the names of the jobs that succeeded in that run, and `run-id`,
 // the run to fetch artifacts from. A matrix job also adds its name without the `(...)` suffix when
@@ -39,27 +40,46 @@ const write = (passed, runId) => {
     else process.stdout.write(lines);
 };
 
-const findPassedJobs = async () => {
+/**
+ * The newest completed merge group run whose head commit has the pushed commit's tree. The queue
+ * builds the commits it merges, so the run of the group that landed this push tested this tree,
+ * whether or not master got the same SHA.
+ */
+const findMergeGroupRun = async (tree) => {
+    const { workflow_runs: runs } = await api(
+        `actions/workflows/${workflowFile}/runs?event=merge_group&status=completed&per_page=20`
+    );
+    for (const run of runs) {
+        if (run.head_sha === sha) return run;
+        const head = await api(`git/commits/${run.head_sha}`);
+        if (head.tree.sha === tree) return run;
+    }
+    return undefined;
+};
+
+/** The merged pull request's last completed run, when its head has the pushed commit's tree. */
+const findPullRequestRun = async (tree) => {
     const pull = (await api(`commits/${sha}/pulls`)).find((candidate) => candidate.merged_at);
     if (!pull) {
         console.log(`${sha} did not come from a merged pull request.`);
         return undefined;
     }
-
-    const [pushed, head] = await Promise.all([api(`git/commits/${sha}`), api(`git/commits/${pull.head.sha}`)]);
-    if (pushed.tree.sha !== head.tree.sha) {
+    const head = await api(`git/commits/${pull.head.sha}`);
+    if (head.tree.sha !== tree) {
         console.log(`#${pull.number} was not up to date with master when it merged, so its runs tested other code.`);
         return undefined;
     }
-
     const { workflow_runs: runs } = await api(
         `actions/workflows/${workflowFile}/runs?event=pull_request&status=completed&head_sha=${pull.head.sha}&per_page=1`
     );
-    const run = runs[0];
-    if (!run) {
-        console.log(`#${pull.number} has no completed ${workflowFile} run for ${pull.head.sha}.`);
-        return undefined;
-    }
+    if (!runs[0]) console.log(`#${pull.number} has no completed ${workflowFile} run for ${pull.head.sha}.`);
+    return runs[0];
+};
+
+const findPassedJobs = async () => {
+    const { tree } = await api(`git/commits/${sha}`);
+    const run = (await findMergeGroupRun(tree.sha)) ?? (await findPullRequestRun(tree.sha));
+    if (!run) return undefined;
 
     const { jobs } = await api(`actions/runs/${run.id}/jobs?filter=latest&per_page=100`);
     const passed = new Set(jobs.filter((job) => job.conclusion === 'success').map((job) => job.name));
@@ -74,7 +94,7 @@ const findPassedJobs = async () => {
         if (entries.every((job) => job.conclusion === 'success')) passed.add(name);
     }
 
-    console.log(`Reusing the results of ${run.html_url} for #${pull.number}:`);
+    console.log(`Reusing the results of ${run.html_url} (${run.event}) for ${sha}:`);
     for (const name of passed) console.log(`  ${name}`);
     return { passed: [...passed], runId: run.id };
 };

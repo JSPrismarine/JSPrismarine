@@ -4,7 +4,7 @@
     "commitMessageAction": "update",
     "packageRules": [
         {
-            "description": "Open and rebase update pull requests only overnight (UTC). Each push to an update branch starts a full set of checks, and master requires a branch to be up to date before it merges, so an update rebased all day after every merge ran them over and over. Security updates ignore the schedule.",
+            "description": "Open and rebase update pull requests only overnight (UTC). Each push to an update branch starts a full set of checks, and an update rebased all day after every merge ran them over and over. Security updates ignore the schedule. The merge queue tests each update against master before it merges, so `rebaseWhen` is `conflicted`: a branch is rebased when it conflicts, not whenever master moves.",
             "matchPackageNames": ["*"],
             "schedule": ["before 6am"],
             "updateNotScheduled": false
@@ -24,5 +24,6 @@
             "matchPackageNames": ["useblacksmith/**"],
             "pinDigests": false
         }
-    ]
+    ],
+    "rebaseWhen": "conflicted"
 }

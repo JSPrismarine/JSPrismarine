@@ -336,7 +336,7 @@ after it have what they need.
 Branch rules now require `✅ CI` alone. Each pull request push starts 2 jobs that only plan or
 merge, and the unit tests report after 2 jobs in a row.
 
-### Phase 7: run the full suite once, in a merge queue
+### Phase 7: run the full suite once, in a merge queue (part done)
 
 1. Add `merge_group` to `ci.yml` (done with phase 6). The planning job picks the tier from the
    event: a pull request runs lint, typecheck, the unit and real-data tests its diff reaches and one
@@ -361,17 +361,28 @@ merge, and the unit tests report after 2 jobs in a row.
    Revisit build concurrency after a week. A failing pull request rebuilds every build queued
    behind it, so a higher concurrency costs more runners when failures are common.
 3. Teach `pr-job-results.mjs` to find the merge group run whose head commit has the pushed commit's
-   tree, so master reuses all of it and runs only release and docs.
+   tree, so master reuses all of it and runs only release and docs. Done: it searches the twenty
+   newest merge group runs by head SHA and tree before it looks at the pull request's run.
 4. A merge group run saves caches under its temporary ref, where nothing else reads them. Add a
    master job that looks up each cache key and rebuilds only a missing entry.
 5. Master pushes no longer run the parity dashboard, so the `parity-report` artifact a pull request
-   compares with comes from the merge group run instead. The lookup in the dashboard job searches
-   merge group runs as well as push runs, and accepts one whose head commit has the base commit's
-   tree, the same match as step 3.
+   compares with comes from the merge group run instead. Done for the lookups that search by commit
+   (the parity report and the scenario coverage map accept a push or a merge group run of the
+   commit) and for the recorded times (the newest merge group run stands in when master's run kept
+   none). They match by SHA, not by tree: whether the queue lands the SHA it tested is to be read
+   from the first merges through it, and a tree match added if it does not.
 6. Renovate enqueues through GitHub's auto-merge, which works with the queue. With the up-to-date
-   requirement gone, set Renovate to rebase only on a conflict.
+   requirement gone, set Renovate to rebase only on a conflict. Done: `rebaseWhen` is `conflicted`.
 7. Update the GitHub workflows section of `AGENTS.md` to name the merge queue as where work that runs
-   once per merge goes.
+   once per merge goes. Done.
+
+Left for a repository admin, once the workflow side has merged: step 2, turning the queue on with
+the settings above and turning the up-to-date requirement off. Through the API:
+
+```
+gh api -X POST repos/JSPrismarine/JSPrismarine/rulesets --input ruleset.json   # merge_queue rule, see the settings table
+gh api -X PATCH repos/JSPrismarine/JSPrismarine/branches/master/protection/required_status_checks -F strict=false
+```
 
 If the merge queue has to wait, master can run `--changed` against the last master commit whose run
 passed, with a full run each night. The baseline is a fixed commit, so it is the same on every runner.
