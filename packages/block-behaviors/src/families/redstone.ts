@@ -577,6 +577,16 @@ export const redstoneFamily = defineFamily(
                 return;
             }
 
+            // Java's PistonHeadBlock.canSurvive needs its piston behind it; a head without one is
+            // removed, and drops nothing.
+            if (name === 'piston_arm_collision' || name === 'sticky_piston_arm_collision') {
+                const facing = faceOfFacingDirection(stateNumber(block, 'facing_direction'));
+                if (facing === undefined || event.face !== opposite(facing)) return;
+                const base = world.getBlock(offset(block.position, opposite(facing)));
+                if (base === undefined || !isPiston(base.identifier)) world.setBlock(block.position, AIR);
+                return;
+            }
+
             // Java's tripwire hook needs the wall behind the way it faces, and a bell the floor or
             // ceiling it stands or hangs on.
             if (name === 'tripwire_hook') {

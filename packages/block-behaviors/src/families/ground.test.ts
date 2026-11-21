@@ -16,6 +16,22 @@ import {
 
 const origin = { x: 0, y: 4, z: 0 };
 
+describe('soilFamily: pale hanging moss', () => {
+    it('hangs from more moss or a block above, and pops with neither', () => {
+        const harness = bindFamily(soilFamily, 'minecraft:pale_hanging_moss');
+        const moss = { x: 0, y: 1, z: 0 };
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:pale_hanging_moss');
+        harness.dimension.set(moss, 'minecraft:pale_hanging_moss', { tip: true });
+
+        harness.neighborChanged(moss, 'up');
+        expect(harness.dimension.identifierAt(moss)).toBe('minecraft:pale_hanging_moss');
+
+        harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:air');
+        harness.neighborChanged(moss, 'up');
+        expect(harness.dimension.identifierAt(moss)).toBe('minecraft:air');
+    });
+});
+
 describe('soilFamily: gravity', () => {
     it('falls through air block by block and lands on stone', () => {
         const harness = bindFamily(soilFamily, 'minecraft:sand');

@@ -70,6 +70,20 @@ describe('redstoneFamily: a tripwire hook', () => {
     });
 });
 
+describe('redstoneFamily: a piston head', () => {
+    it('is removed without the piston behind it', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:piston_arm_collision');
+        const head = { x: 0, y: 1, z: 0 };
+        // Facing up (1), its piston is below.
+        harness.dimension.set(head, 'minecraft:piston_arm_collision', { facing_direction: 1 });
+
+        harness.neighborChanged(head, 'down');
+
+        expect(harness.dimension.identifierAt(head)).toBe('minecraft:air');
+        expect(harness.dimension.drops).toEqual([]);
+    });
+});
+
 describe('redstoneFamily: the bell', () => {
     it('rings for the entities around it when a player strikes it and when power reaches it', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:bell');

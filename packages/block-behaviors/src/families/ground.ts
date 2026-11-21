@@ -173,6 +173,13 @@ export const soilFamily = defineFamily(
                 scheduleFall(world, event.block);
                 return;
             }
+            if (bareName(event.block.identifier) === 'pale_hanging_moss') {
+                // Java's HangingMossBlock hangs from more moss or a block with a sturdy underside.
+                if (event.face !== 'up') return;
+                const above = world.getBlock(offset(event.block.position, 'up'));
+                if (above?.identifier !== event.block.identifier) popWithoutSupport(world, event.block, 'up');
+                return;
+            }
             if (bareName(event.block.identifier) !== 'grass_path') return;
             if (isSolidSupport(world, offset(event.block.position, 'up'))) {
                 world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));

@@ -965,16 +965,6 @@
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:pale_hanging_moss": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:piston_head": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:sculk_vein": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
