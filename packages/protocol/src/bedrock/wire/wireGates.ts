@@ -12,6 +12,7 @@
  *
  * @see `docs/adr/0003-declarative-wire-layouts.md`
  */
+import { frozen } from '../../wire/frozen';
 
 /** Whether a field travels at a protocol version. */
 export interface WireGate {
@@ -23,14 +24,14 @@ export interface WireGate {
 
 /** A gate admitting a field from `protocolVersion` on. */
 export const since = (protocolVersion: number, reason: string): WireGate =>
-    Object.freeze({
+    frozen({
         reason,
         includedAt: (version: number) => version >= protocolVersion
     });
 
 /** A gate admitting a field up to but not including `protocolVersion`. */
 export const until = (protocolVersion: number, reason: string): WireGate =>
-    Object.freeze({
+    frozen({
         reason,
         includedAt: (version: number) => version < protocolVersion
     });

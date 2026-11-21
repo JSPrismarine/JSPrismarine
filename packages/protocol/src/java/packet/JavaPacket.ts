@@ -5,6 +5,7 @@
  * asks of Bedrock's packets: one {@link record} of field types, read and written in order. The
  * frame around a packet, its length and, after login, its compression, belongs to the connection.
  */
+import { frozen } from '../../wire/frozen';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
 
@@ -32,7 +33,7 @@ export const defineJavaPacket = <F extends Record<string, WireType<unknown>>>(
     name: string,
     id: number,
     fields: F
-): JavaPacketDefinition<RecordOf<F>> => Object.freeze({ name, id, fields: record(fields) });
+): JavaPacketDefinition<RecordOf<F>> => frozen({ name, id, fields: record(fields) });
 
 /**
  * A packet's id and fields as the bytes inside one frame.

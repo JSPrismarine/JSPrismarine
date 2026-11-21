@@ -1,3 +1,4 @@
+import { frozen } from '../../../wire/frozen';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { Vector3 } from '@jsprismarine/math';
 import { NetworkUtil } from '../../../wire/networkUtil';
@@ -52,10 +53,10 @@ export interface PassengerOfBlockLayout {
 }
 
 /** The layout protocols 2225 up to 2259 use: the five fields alone. */
-export const PASSENGER_OF_BLOCK_2225: PassengerOfBlockLayout = Object.freeze({ carriesBlockType: false });
+export const PASSENGER_OF_BLOCK_2225: PassengerOfBlockLayout = frozen({ carriesBlockType: false });
 
 /** The layout from protocol 2259: the five fields, then `BlockType` and `PackUUID`. */
-export const PASSENGER_OF_BLOCK_2259: PassengerOfBlockLayout = Object.freeze({ carriesBlockType: true });
+export const PASSENGER_OF_BLOCK_2259: PassengerOfBlockLayout = frozen({ carriesBlockType: true });
 
 /**
  * Writes an optional `PassengerOfBlockArguments`: a presence byte, then the fields its layout carries.
