@@ -160,6 +160,11 @@ whenLoaded(() => {
     attempt('getSkyLightLevel in the open', () => overworld.getSkyLightLevel({ x: 6, y: 40, z: 6 }));
     attempt('getLightLevel in stone', () => overworld.getLightLevel({ x: 6, y: 24, z: 6 }));
     attempt('getSkyLightLevel in stone', () => overworld.getSkyLightLevel({ x: 6, y: 24, z: 6 }));
+    // Where Bedrock's light and Java's part (#3311): under a one-block roof with open sky around
+    // it, and under glowstone.
+    attempt('getSkyLightLevel under a one-block roof', () => overworld.getSkyLightLevel({ x: 6, y: 23, z: 6 }));
+    overworld.setBlockType({ x: 8, y: 26, z: 8 }, 'glowstone');
+    attempt('getLightLevel under glowstone', () => overworld.getLightLevel({ x: 8, y: 25, z: 8 }));
     attempt('getLightLevel in an unloaded chunk', () => overworld.getLightLevel({ x: 100000, y: 20, z: 0 }));
     attempt('getLightLevel above the world', () => overworld.getLightLevel({ x: 0, y: 1000, z: 0 }));
 

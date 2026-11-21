@@ -1763,13 +1763,18 @@
         },
         "bds-record:block-members": {
             "kind": "defect",
-            "reason": "Block.getLightLevel and getSkyLightLevel read the world's light, where BDS answers 0 for every block of a chunk only a ticking area loads (issue #3298). getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). setWaterlogged writes nothing, so isWaterlogged stays false (issue #3300). Every neighbor, tag, localization key, item, liquid answer, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
+            "reason": "getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). setWaterlogged writes nothing, so isWaterlogged stays false (issue #3300). Every neighbor, tag, localization key, item, liquid answer, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
             "reference": "issue #3298"
         },
         "bds-record:block-world-components": {
             "kind": "defect",
             "reason": "The sign, piston, jukebox and cauldron components (issue #3302), the redstone producer and note block instrument components (issue #3303), liquidCanFlowFromDirection (issue #3304) and a bundle's item container (issue #3305) throw NotImplementedError on JSPrismarine, which gives the script host no seam to those systems yet. canPlace matches BDS.",
             "reference": "issue #3302"
+        },
+        "bds-record:dimension-blocks": {
+            "kind": "intentional",
+            "reason": "getSkyLightLevel under a one-block roof: JSPrismarine's light follows Java, where sky light reaches the block under a one-block roof from the open sky beside it, one level down, where BDS gives it the full 15. getLightLevel under glowstone: Glowstone is an opaque block in Java, so the block under it reads its 15 block light one level down, where BDS lets the sky through it.",
+            "reference": "packages/lighting/src and issue #3311"
         },
         "bds-record:dimension-volumes": {
             "kind": "defect",

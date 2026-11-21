@@ -631,7 +631,26 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/plans/script-api-host.md slice 10',
         packs: ['members'],
         experiments: ['gametest'],
-        needs: 'server'
+        needs: 'server',
+        jsprismarineDiffers: {
+            getLightLevel: {
+                observed: { value: [0, 15, 0, 15] },
+                because:
+                    'A chunk only a ticking area loads is lit as Java lights a force-loaded chunk, where BDS ' +
+                    'answers 0 for every block in it',
+                reference: 'packages/lighting/src and issue #3298'
+            },
+            getSkyLightLevel: {
+                observed: { value: [0, 15, 0] },
+                because: 'The same light, read as sky light',
+                reference: 'packages/lighting/src and issue #3298'
+            },
+            'torch getLightLevel': {
+                observed: { value: [15, 15] },
+                because: "The same light, around a torch's own block light",
+                reference: 'packages/lighting/src and issue #3298'
+            }
+        }
     },
     {
         id: 'item-members',
@@ -925,7 +944,23 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         reference: 'docs/plans/script-api-host.md slice 10',
         packs: ['blocks'],
         experiments: ['gametest'],
-        needs: 'server'
+        needs: 'server',
+        jsprismarineDiffers: {
+            'getSkyLightLevel under a one-block roof': {
+                observed: { value: 14 },
+                because:
+                    "JSPrismarine's light follows Java, where sky light reaches the block under a one-block roof " +
+                    'from the open sky beside it, one level down, where BDS gives it the full 15',
+                reference: 'packages/lighting/src and issue #3311'
+            },
+            'getLightLevel under glowstone': {
+                observed: { value: 14 },
+                because:
+                    'Glowstone is an opaque block in Java, so the block under it reads its 15 block light one level ' +
+                    'down, where BDS lets the sky through it',
+                reference: 'packages/lighting/src and issue #3311'
+            }
+        }
     },
     {
         id: 'ticking-areas',
