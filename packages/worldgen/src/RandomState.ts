@@ -11,17 +11,29 @@ import type { DensityFunctionNode } from './density/DensityFunction';
 import { SampleContext } from './density/SampleContext';
 import { BLENDED_NOISE_SEED } from './noise/BlendedNoise';
 import type { Noise } from './noise/GradientNoise';
+import { nativeWorldgen, withNativeStack } from './noise/nativeNoise';
 import { LegacyRandomSource } from './random/LegacyRandomSource';
 import type { PositionalRandomFactory, RandomSource } from './random/RandomSource';
 import { XoroshiroRandomSource } from './random/XoroshiroRandomSource';
 import type { NoiseGeneratorSettings } from './settings/NoiseGeneratorSettings';
 import type { WorldgenData } from './WorldgenData';
+import type { NativeWorldgen } from '@jsprismarine/native-worldgen';
 
 /** The two nether noises Java still instantiates through the pre-1.18 octave chain. */
 const LEGACY_NETHER_NOISES: ReadonlyMap<string, bigint> = new Map([
     ['minecraft:nether/temperature', 0n],
     ['minecraft:nether/vegetation', 1n]
 ]);
+
+/** How a {@link RandomState} compiles its density functions and samples its noises. */
+export interface RandomStateOptions extends DensityFunctionCompilerOptions {
+    /**
+     * Whether `worldgen/noise` stacks run in `@jsprismarine/native-worldgen`'s C kernel, which
+     * gives the same bits. On by default whenever the library loads on this thread; false keeps
+     * every noise in TypeScript, as the parity suite's TypeScript path does.
+     */
+    readonly nativeNoise?: boolean;
+}
 
 /**
  * Everything one world seed fixes: the positional randoms, the seeded noise instances and the
@@ -37,6 +49,8 @@ export class RandomState {
     private readonly compiler: DensityFunctionCompiler;
     private readonly noiseInstances = new Map<string, Noise>();
     private readonly positionalRandoms = new Map<string, PositionalRandomFactory>();
+    /** The native library the noises run in, or undefined for TypeScript only. */
+    private readonly nativeLibrary: NativeWorldgen | undefined;
 
     public constructor(
         private readonly data: WorldgenData,
@@ -44,9 +58,10 @@ export class RandomState {
         public readonly seed: bigint,
         /** The settings whose `legacy_random_source` flag chooses the generator. */
         public readonly settings: NoiseGeneratorSettings,
-        /** Optional compiler experiment flags, which leave the closure implementation as default. */
-        compilerOptions: DensityFunctionCompilerOptions = {}
+        /** Compiler experiment flags, which leave the closure implementation as default, and the noise path. */
+        options: RandomStateOptions = {}
     ) {
+        this.nativeLibrary = options.nativeNoise === false ? undefined : nativeWorldgen();
         const root: RandomSource = settings.useLegacyRandomSource
             ? new LegacyRandomSource(seed)
             : XoroshiroRandomSource.fromSeed(seed);
@@ -60,7 +75,7 @@ export class RandomState {
                     : this.random.fromHashOf(id),
             endIslandRandom: () => new LegacyRandomSource(seed)
         };
-        this.compiler = new DensityFunctionCompiler(environment, compilerOptions);
+        this.compiler = new DensityFunctionCompiler(environment, options);
     }
 
     /**
@@ -76,7 +91,8 @@ export class RandomState {
         const parameters = this.data.noise(id);
         const legacyOffset = LEGACY_NETHER_NOISES.get(id);
         if (legacyOffset === undefined) {
-            const hashed = parameters.create(this.random.fromHashOf(id));
+            const created = parameters.create(this.random.fromHashOf(id));
+            const hashed = this.nativeLibrary === undefined ? created : withNativeStack(this.nativeLibrary, created);
             this.noiseInstances.set(id, hashed);
             return hashed;
         }

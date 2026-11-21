@@ -82,6 +82,11 @@ export abstract class GradientNoise implements Noise {
     /** @inheritDoc */
     public abstract get2(x: number, z: number): number;
 
+    /** A copy of the shuffled permutation table, for a native kernel that samples this noise. */
+    public permutationTable(): Uint8Array {
+        return this.perms.slice();
+    }
+
     /** Looks one byte up in the permutation table, wrapping the index to `[0, 256)`. */
     protected permute(value: number): number {
         return this.perms[value & 0xff] ?? 0;

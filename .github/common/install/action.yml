@@ -36,6 +36,13 @@ inputs:
             it. A job that brings its own build turns it off.
         required: false
         default: 'true'
+    native-worldgen:
+        description: >-
+            Build the native worldgen library for this runner when the native sources differ from
+            the published builds, and make the tests that need it fail rather than skip without
+            it. A job that brings its own build turns it off.
+        required: false
+        default: 'true'
 
 runs:
     using: 'composite'
@@ -116,6 +123,17 @@ runs:
           uses: ./.github/common/native-library
           with:
               package: script-host
+
+        - name: 🌋 Native worldgen library
+          if: ${{ inputs.root-only != 'true' && inputs.native-worldgen == 'true' }}
+          uses: ./.github/common/native-library
+          with:
+              package: native-worldgen
+
+        - name: 📌 Require the native worldgen library in tests
+          if: ${{ inputs.root-only != 'true' && inputs.native-worldgen == 'true' }}
+          shell: bash
+          run: echo "JSP_NATIVE_WORLDGEN_REQUIRE=1" >> "$GITHUB_ENV"
 
         # With the library in place, a suite that cannot load it fails instead of skipping.
         - name: 📌 Require the script host library in tests

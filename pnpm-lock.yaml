@@ -2164,6 +2164,9 @@ importers:
       '@jsprismarine/errors':
         specifier: workspace:*
         version: link:../errors
+      '@jsprismarine/native-worldgen':
+        specifier: workspace:*
+        version: link:../native-worldgen
     devDependencies:
       '@types/node':
         specifier: 26.6.6

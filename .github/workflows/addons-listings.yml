@@ -40,6 +40,7 @@ jobs:
               with:
                   native-network: false
                   script-host: false
+                  native-worldgen: false
 
             # GITHUB_TOKEN raises the API's rate limit for the archived and release-date reads.
             - name: 🔄 Refresh the snapshot
