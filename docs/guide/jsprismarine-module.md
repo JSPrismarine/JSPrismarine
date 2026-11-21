@@ -389,7 +389,11 @@ world.afterEvents.playerSpawn.subscribe(async ({ player, initialSpawn }) => {
 `grant`, `revoke`, `addToGroup` and `removeFromGroup` take a `Player` and write that player's
 record; `grantToGroup` and `revokeFromGroup` take a group's name and write the group. A bad node
 or expiry throws a `RangeError` at the call, a group the file lacks an `Error`, and a `Player` who
-left a `TypeError`, before anything is written. The server also
+left a `TypeError`, before anything is written. The write itself lands later: it joins the
+server's queue of permission writes, reaches the file and then the server's own view, so `has`
+right after `grant` can still answer the old value. Subscribe to `afterEvents.permissionsChange`
+to act once a write has landed; a write that fails to reach the file is logged by the server and
+does not throw at the call. The server also
 registers the `perms` placeholder namespace with `primary_group`, `groups`, `prefix`, `suffix`
 and `weight`, so a tab list or chat format reads a rank through `placeholders.resolve` without a
 call; an unset prefix or suffix renders as empty text.
