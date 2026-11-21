@@ -22,6 +22,7 @@ import { inventory } from './java-scenarios/inventory.mts';
 import { join } from './java-scenarios/join.mts';
 import { mining } from './java-scenarios/mining.mts';
 import { placing } from './java-scenarios/placing.mts';
+import { respawn } from './java-scenarios/respawn.mts';
 
 /** What a Java scenario is given: the server, its Java port and the client, connected to nothing yet. */
 export interface JavaScenarioContext {
@@ -36,7 +37,7 @@ export interface JavaScenario {
     run(context: JavaScenarioContext): Promise<void>;
 }
 
-const SCENARIOS: readonly JavaScenario[] = [join, chat, entities, blocks, mining, inventory, placing];
+const SCENARIOS: readonly JavaScenario[] = [join, chat, entities, blocks, mining, inventory, placing, respawn];
 
 /** A TCP port nothing listens on. */
 const freeTcpPort = (): Promise<number> =>
