@@ -81,4 +81,5 @@ for (const id of [
         native.jsp_stack_fill(handle, ffi.getRawPointer(xyz.buffer), ffi.getRawPointer(out.buffer), N)
     );
     console.log(`${id} layers=${layers.length} mismatches=${mismatches} ns/sample ts=${typescript} c-batch=${batch}`);
+    if (mismatches > 0) process.exitCode = 1;
 }
