@@ -493,9 +493,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       in no fixed order, so the scenario sorts them, and it respawns a mob that spawned a baby.
     - Left: an NPC has no health attribute and an armor stand no movement attribute
       ([#3289](https://github.com/JSPrismarine/JSPrismarine/issues/3289), the
-      `entity-attributes` gap). Music, property overrides, `postClientMessage` and camera
-      splines do not reach the client
-      ([#3308](https://github.com/JSPrismarine/JSPrismarine/issues/3308)). Chat name prefixes
+      `entity-attributes` gap). Chat name prefixes
       change `chatDisplayName` but not the chat line, and the name plate settings reach no client.
       A raycast treats every block but air and liquids as solid. `World.getAimAssist` belongs to
       the world area's list and is registered here, so the two batches must keep one

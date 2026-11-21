@@ -18,7 +18,6 @@ import type { ScriptItem, ScriptVector3 } from '@jsprismarine/script-host/host/w
 import { legacy_item_aliases, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 import PlayerFogPacket from '@jsprismarine/protocol/bedrock/packet/PlayerFogPacket';
-import PlaySoundPacket from '@jsprismarine/protocol/bedrock/packet/PlaySoundPacket';
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { Vector3 } from '@jsprismarine/math';
 
@@ -35,6 +34,7 @@ import { parseBiomeTags } from '../../content/biomeTags';
 import { explode } from '../../entity/Explosion';
 import { storedItem } from '../../inventory/persistence';
 import { itemFromContent } from '../../item/itemFromContent';
+import { customMusicPacket } from '../../network/customMusic';
 import type PlayerSession from '../../network/PlayerSession';
 import type Server from '../../Server';
 import type { Level } from '../../world/Level';
@@ -172,8 +172,6 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
     const markers: ScriptTimeMarker[] = [];
     /** Each player's fog stack as the scripts built it, by entity id. */
     const fogs = new Map<string, readonly ScriptFogLayer[]>();
-    /** The track `playMusic` started, which `stopMusic` stops. */
-    let playing: string | undefined;
 
     const worldOf = (dimension: string): World | undefined =>
         [...level.worlds()].find((world) => world.getDimension().bedrockName === dimension);
@@ -228,29 +226,15 @@ export const levelWorldSystem = (server: Server, level: Level): ScriptWorldSyste
         setAllowCheats: (allow) => {
             cheats = allow;
         },
-        playMusic: ({ track, volume, queue }) => {
-            // A queued track starts once nothing plays; the client keeps no queue of its own here.
-            if (queue && playing !== undefined) return;
-            playing = track;
+        // BDS sends every player the music packets `Player.playMusic` sends one, and the client keeps the queue.
+        playMusic: ({ track, volume, fade, loop, queue }) => {
             for (const session of sessions()) {
-                const packet = new PlaySoundPacket();
-                packet.name = track;
-                const at = session.getPlayer().getPosition();
-                packet.position = new Vector3(at.getX(), at.getY(), at.getZ());
-                packet.volume = volume;
-                packet.pitch = 1;
+                const packet = customMusicPacket({ action: queue ? 'queue' : 'play', track, volume, fade, loop });
                 session.released(session.send(packet));
             }
         },
         stopMusic: () => {
-            const track = playing;
-            playing = undefined;
-            if (track === undefined) return;
-            for (const session of sessions()) {
-                const packet = new StopSoundPacket();
-                packet.soundName = track;
-                session.released(session.send(packet));
-            }
+            for (const session of sessions()) session.released(session.send(customMusicPacket({ action: 'stop' })));
         },
         blockKind,
         light: (dimension, { x, y, z }) => {

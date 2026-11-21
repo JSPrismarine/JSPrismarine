@@ -38,7 +38,7 @@ const writePack = (source: string) => {
 
 /** A prelude: `log` prints what a call returned or threw, one line each. */
 const PRELUDE = `
-import { AimAssistCategorySettings, EntityTypes, InputPermissionCategory, ItemStack, system, world } from '@minecraft/server';
+import { AimAssistCategorySettings, CatmullRomSpline, EntityTypes, InputPermissionCategory, ItemStack, LinearSpline, system, world } from '@minecraft/server';
 const show = (value) => value === undefined ? 'undefined' : JSON.stringify(value);
 const log = (label, call) => {
     try { console.warn(label + ' ' + show(call())); } catch (error) { console.warn(label + ' ! ' + String(error)); }
@@ -230,6 +230,74 @@ system.runTimeout(() => log('cooldown later', () => player.getItemCooldown('jsp:
             'inputLocks',
             'cooldown',
             'aimAssist'
+        ]);
+    });
+
+    it("sends a player's client music, property overrides, script messages and camera splines", () => {
+        const { lines, world, player } = start(
+            `${PLAYER}
+${PIG}
+player.playMusic('music.game', { fade: 1, loop: true, volume: 0.5 });
+log('negative fade', () => player.playMusic('music.game', { fade: -1 }));
+player.stopMusic();
+player.setPropertyOverrideForEntity(pig, 'minecraft:climate_variant', 'cold');
+player.removePropertyOverrideForEntity(pig, 'minecraft:climate_variant');
+player.clearPropertyOverridesForEntity(pig);
+player.postClientMessage('jsp:hello', 'world');
+const linear = new LinearSpline();
+log('one point', () => { linear.controlPoints = [{ x: 1, y: 2, z: 3 }]; player.camera.playAnimation(linear, { totalTimeSeconds: 2, animation: { progressKeyFrames: [], rotationKeyFrames: [] } }); });
+const catmull = new CatmullRomSpline();
+log('two points', () => { catmull.controlPoints = [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }]; player.camera.playAnimation(catmull, { totalTimeSeconds: 1, animation: { progressKeyFrames: [], rotationKeyFrames: [] } }); });
+catmull.controlPoints = [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }];
+log('late progress', () => player.camera.playAnimation(catmull, { totalTimeSeconds: 1, animation: { progressKeyFrames: [{ alpha: 0.5, timeSeconds: 1 }], rotationKeyFrames: [] } }));
+log('late rotation', () => player.camera.playAnimation(catmull, { totalTimeSeconds: 1, animation: { progressKeyFrames: [], rotationKeyFrames: [{ rotation: { x: 1, y: 2, z: 3 }, timeSeconds: 1 }] } }));
+player.camera.playAnimation(catmull, {
+    totalTimeSeconds: 4,
+    animation: {
+        progressKeyFrames: [{ alpha: 0, timeSeconds: 0 }, { alpha: 1, timeSeconds: 4, easingFunc: 'InOutSine' }],
+        rotationKeyFrames: [{ rotation: { x: 10, y: 20, z: 30 }, timeSeconds: 0 }]
+    }
+});`
+        );
+        expect(lines).toEqual([
+            'negative fade ! PropertyOutOfBoundsError: Unsupported or out of bounds value set on Property: fade, Value: -1, Property min: 0',
+            'one point ! Error: Linear needs at least 2 control points',
+            'two points ! Error: CatmullRom needs at least 3 control points',
+            'late progress ! Error: First progress key frame must be at time 0.0',
+            'late rotation ! Error: First rotation key frame must be at time 0.0'
+        ]);
+        const pig = world.entitySystems.sent.find(({ message }) => message.kind === 'propertyOverride');
+        const sent = world.entitySystems.sent.filter((each) => each.player === player).map(({ message }) => message);
+        expect(sent).toEqual([
+            { kind: 'music', action: 'play', track: 'music.game', volume: 0.5, fade: 1, loop: true },
+            { kind: 'music', action: 'stop' },
+            {
+                kind: 'propertyOverride',
+                entity: pig?.message.kind === 'propertyOverride' ? pig.message.entity : '',
+                property: 'minecraft:climate_variant',
+                value: 'cold'
+            },
+            expect.objectContaining({ kind: 'propertyOverride', property: 'minecraft:climate_variant' }),
+            expect.objectContaining({ kind: 'propertyOverride', property: '' }),
+            { kind: 'scriptMessage', id: 'jsp:hello', value: 'world' },
+            {
+                kind: 'camera',
+                instruction: {
+                    kind: 'spline',
+                    type: 'catmullRom',
+                    controlPoints: [
+                        { x: 0, y: 0, z: 0 },
+                        { x: 1, y: 0, z: 0 },
+                        { x: 2, y: 0, z: 0 }
+                    ],
+                    totalTime: 4,
+                    progressKeyFrames: [
+                        { value: 0, time: 0 },
+                        { value: 1, time: 4, easing: 'InOutSine' }
+                    ],
+                    rotationKeyFrames: [{ value: { x: 10, y: 20, z: 30 }, time: 0 }]
+                }
+            }
         ]);
     });
 

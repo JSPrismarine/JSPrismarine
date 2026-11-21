@@ -1,12 +1,11 @@
 /**
- * The world's clocks, the camera's spline classes, `Trigger`, and `world.soundDefinitionRegistry`.
+ * The world's clocks, `Trigger`, and `world.soundDefinitionRegistry`.
  *
  * The `world-clocks` scenario recorded what BDS does. A world has one clock,
  * `minecraft:overworld`, whose time is the world's absolute time, with six built-in time markers
  * that repeat each day and a pause of its own, apart from the daylight cycle rule. `set` moves the
  * clock to a marker's time, `skipTo` forward to the marker's next time and `rewindTo` back to its
- * last. A spline keeps its control points but reads back none, and a server has no resource pack
- * whose sound definitions the registry could list.
+ * last. A server has no resource pack whose sound definitions the registry could list.
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
@@ -188,17 +187,6 @@ export const implementClocks = (implementations: ScriptApiImplementations, host:
         .implement(SERVER, 'TimeMarker', 'name', { get: (call) => markerName(call.state) })
         .implement(SERVER, 'TimeMarker', 'time', { get: (call) => liveMarker(call).time })
         .implement(SERVER, 'TimeMarker', 'period', { get: (call) => liveMarker(call).period })
-        // A spline keeps the points a camera animation reads, though BDS reads back none.
-        .implement(SERVER, 'LinearSpline', 'constructor', () => '[]')
-        .implement(SERVER, 'LinearSpline', 'controlPoints', {
-            get: () => '[]',
-            set: (call) => call.setState(call.stringify(call.args[0] ?? null) ?? '[]')
-        })
-        .implement(SERVER, 'CatmullRomSpline', 'constructor', () => '[]')
-        .implement(SERVER, 'CatmullRomSpline', 'controlPoints', {
-            get: () => '[]',
-            set: (call) => call.setState(call.stringify(call.args[0] ?? null) ?? '[]')
-        })
         .implement(SERVER, 'Trigger', 'constructor', (call) => String(call.args[0]))
         .implement(SERVER, 'Trigger', 'eventName', {
             get: (call) => call.state,

@@ -31,12 +31,17 @@ import CameraShakePacket, {
     CameraShakeType
 } from '@jsprismarine/protocol/bedrock/packet/CameraShakePacket';
 import ClientboundControlSchemeSetPacket from '@jsprismarine/protocol/bedrock/packet/ClientboundControlSchemeSetPacket';
+import ScriptMessagePacket from '@jsprismarine/protocol/bedrock/packet/ScriptMessagePacket';
 import PlayerStartItemCooldownPacket from '@jsprismarine/protocol/bedrock/packet/PlayerStartItemCooldownPacket';
 import SetHudPacket from '@jsprismarine/protocol/bedrock/packet/SetHudPacket';
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import UpdateClientInputLocksPacket from '@jsprismarine/protocol/bedrock/packet/UpdateClientInputLocksPacket';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import type { CameraInstructionData, EasingFunction } from '@jsprismarine/protocol/bedrock/structure/CameraInstruction';
+import type {
+    CameraInstructionData,
+    CameraSplineInstruction,
+    EasingFunction
+} from '@jsprismarine/protocol/bedrock/structure/CameraInstruction';
 import { isEasingFunction } from '@jsprismarine/protocol/bedrock/structure/CameraInstruction';
 import CameraAimAssistCategoryDefinition from '@jsprismarine/protocol/bedrock/structure/CameraAimAssistCategoryDefinition';
 import CameraAimAssistCategoryPriorities from '@jsprismarine/protocol/bedrock/structure/CameraAimAssistCategoryPriorities';
@@ -50,6 +55,8 @@ import type { StoreActor } from '../../entity/data/storeActors';
 import { consumeItem } from '../../item/interaction';
 import { itemFromContent } from '../../item/itemFromContent';
 import { itemViewOf } from '../../entity/data/droppedItems';
+import { propertyOverridePacket } from '../../network/actorProperties';
+import { customMusicPacket } from '../../network/customMusic';
 import type PlayerSession from '../../network/PlayerSession';
 import { cameraPresetNames, vanillaAimAssist } from '../../network/cameraJoinPackets';
 import type Server from '../../Server';
@@ -87,6 +94,30 @@ const easingOf = (type: string): EasingFunction => {
     const name = type.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
     return isEasingFunction(name) ? name : 'linear';
 };
+
+/** The `type` byte of a camera spline instruction, as BDS 1.26.60.6 sends each spline class. */
+const SPLINE_TYPES = { catmullRom: 0, linear: 1 } as const;
+
+/** The spline instruction BDS sends for `Camera.playAnimation`: linear easing where the script names none. */
+export const splineInstructionOf = (
+    spline: Extract<ScriptCameraInstruction, { kind: 'spline' }>
+): CameraSplineInstruction => ({
+    totalTime: spline.totalTime,
+    type: SPLINE_TYPES[spline.type],
+    curve: spline.controlPoints.map(({ x, y, z }) => new Vec3(x, y, z)),
+    progressKeyFrames: spline.progressKeyFrames.map((frame) => ({
+        value: frame.value,
+        time: frame.time,
+        easing: easingOf(frame.easing ?? 'Linear')
+    })),
+    rotationKeyFrames: spline.rotationKeyFrames.map((frame) => ({
+        value: new Vec3(frame.value.x, frame.value.y, frame.value.z),
+        time: frame.time,
+        easing: easingOf(frame.easing ?? 'Linear')
+    })),
+    splineIdentifier: '',
+    loadFromJson: false
+});
 
 /** The input lock bits of the `InputPermissionCategory` numbers a script locked, each its own bit. */
 const inputLockBits = (locked: readonly number[]): number =>
@@ -321,6 +352,8 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
                 easeType: easingOf(instruction.ease?.type ?? 'Linear'),
                 clear: false
             };
+        } else if (instruction.kind === 'spline') {
+            data.spline = splineInstructionOf(instruction);
         } else if (instruction.kind === 'attach') {
             if (instruction.entity === undefined) return;
             data.attachToEntity = BigInt(instruction.entity);
@@ -386,10 +419,36 @@ export const levelEntitySystems = (server: Server, level: Level): ScriptEntitySy
                         showDebugRender: false
                     })
                 );
-            // A client takes music and property overrides through packets this server does not send yet (issue #3308).
             case 'music':
-            case 'propertyOverride':
+                return send(
+                    session,
+                    message.action === 'stop'
+                        ? customMusicPacket({ action: 'stop' })
+                        : customMusicPacket({
+                              action: message.action,
+                              track: message.track ?? '',
+                              volume: message.volume ?? 1,
+                              fade: message.fade ?? 0,
+                              loop: message.loop ?? false
+                          })
+                );
+            case 'propertyOverride': {
+                const actor = actorOf(message.entity);
+                if (actor === undefined) return;
+                const packet = propertyOverridePacket(
+                    actor.getRuntimeId(),
+                    actor.entity.instance.properties,
+                    message.property === ''
+                        ? { action: 'clear' }
+                        : message.value === undefined
+                          ? { action: 'remove', name: message.property }
+                          : { action: 'set', name: message.property, value: message.value }
+                );
+                if (packet !== undefined) send(session, packet);
                 return;
+            }
+            case 'scriptMessage':
+                return send(session, new ScriptMessagePacket({ messageId: message.id, messageValue: message.value }));
         }
     };
 
