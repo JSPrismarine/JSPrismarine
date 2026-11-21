@@ -58,6 +58,8 @@ import {
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
 import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames } from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
+import type { TemplateHost } from './templates';
+import { parseShorthand, renderTemplate, templateOf } from './templates';
 import type { EntityFilter, EventData, PackHost, SignalName, WatchdogTerminateReason } from './minecraftServer';
 import { passesFilter, serverImplementations } from './minecraftServer';
 import type { FormPlayer } from './minecraftServerUi';
@@ -291,6 +293,16 @@ const BEFORE_HOOKS: ReadonlySet<string> = new Set<ScriptBlockHook>(['beforeOnPla
 
 /** What a script's `import()` of a native module the manifest does not declare rejects with on BDS. */
 const unrecognized = (name: string): ReferenceError => new ScriptHostErrors.UnrecognizedModule({ name });
+
+/** A template as the pack's `JSON.stringify` wrote it, parsed; the renderer checks its shape after. */
+const templateJson = (source: string): unknown => {
+    try {
+        // The pack's own JSON.stringify wrote it, so only a value JSON cannot carry fails here.
+        return JSON.parse(source) as unknown;
+    } catch {
+        throw new ScriptHostErrors.TemplateInvalid({ where: 'template', problem: 'must be an object JSON can carry' });
+    }
+};
 
 /** A thrown value as the content log shows it: a script's error with its stack, anything else as text. */
 const describeThrown = (error: unknown): string => {
@@ -1006,6 +1018,36 @@ export class WorldScripts {
         return player;
     }
 
+    /** What a render reads from the world, for the player the text is for. */
+    private templateHost(player: string | undefined): TemplateHost {
+        const world = this.options.world;
+        const nameOf = (id: string): string | undefined => {
+            const entity = world.entity(id);
+            return entity?.name ?? (entity === undefined ? undefined : entity.nameTag);
+        };
+        return {
+            tick: this.tick,
+            placeholder: (namespace, key) => this.placeholders.value(namespace, key, player),
+            score: (name, objective) => {
+                const scoreboard = world.scoreboard;
+                if (scoreboard.objective(objective) === undefined) return undefined;
+                const ref =
+                    name === '*' || name === '@s' ? (player === undefined ? undefined : { entity: player }) : { name };
+                const participant = ref === undefined ? undefined : scoreboard.participant(ref);
+                return participant === undefined ? undefined : scoreboard.score(objective, participant.id);
+            },
+            selector: (selector) => {
+                // The world's own grammar, so `@a[tag=vip]` matches what a command's would.
+                const matched = world.selectEntities?.(selector, player);
+                if (matched === undefined) return undefined;
+                return matched
+                    .map(nameOf)
+                    .filter((name) => name !== undefined)
+                    .join(', ');
+            }
+        };
+    }
+
     /**
      * Makes a pack's `@jsprismarine/placeholders` namespace in its context. The registry is the
      * runtime's, so every pack reaches it, with or without the members that reach the server.
@@ -1054,7 +1096,31 @@ export class WorldScripts {
                 const player = value === undefined ? undefined : this.playerArgument(loaded, value, 'resolve');
                 return this.placeholders.resolve(text, player?.present === true ? player.id : undefined);
             },
-            namespaces: () => JSON.stringify(this.placeholders.namespaces())
+            namespaces: () => JSON.stringify(this.placeholders.namespaces()),
+            parseTemplate: (shorthand) => {
+                if (typeof shorthand !== 'string') {
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'parse',
+                        expected: 'a string',
+                        argument: 'shorthand'
+                    });
+                }
+                return JSON.stringify(parseShorthand(shorthand));
+            },
+            renderTemplate: (source, shorthand, value) => {
+                if (typeof source !== 'string') {
+                    throw new ScriptHostErrors.JspModuleArgument({
+                        member: 'render',
+                        expected: 'a template or a string',
+                        argument: 'template'
+                    });
+                }
+                const player = value === undefined ? undefined : this.playerArgument(loaded, value, 'render');
+                const template = shorthand === true ? parseShorthand(source) : templateOf(templateJson(source));
+                return JSON.stringify(
+                    renderTemplate(template, this.templateHost(player?.present === true ? player.id : undefined))
+                );
+            }
         };
         for (const name of JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS) {
             const fn = engine.hostFunction(name, functions[name]);

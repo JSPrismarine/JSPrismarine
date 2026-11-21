@@ -65,6 +65,7 @@ export type ScriptLevelAccess = Pick<
     | 'resolveBlock'
     | 'itemType'
     | 'runCommand'
+    | 'selectEntities'
     | 'simulatedPlayers'
     | 'placeStructure'
     | 'setGameMode'
@@ -501,6 +502,11 @@ export class LevelScriptWorld implements ScriptWorld {
         if (name !== 'scriptevent') return this.access.runCommand(command, source);
         const sent = this.scriptEvent(id, message.join(' '), 'entity' in source ? source.entity : undefined);
         return { successCount: sent ? 1 : 0 };
+    }
+
+    /** The entities a selector matches for a template's `selector` node; see {@link ScriptWorld.selectEntities}. */
+    public selectEntities(selector: string, player: string | undefined): readonly string[] | undefined {
+        return this.access.selectEntities?.(selector, player);
     }
 
     /**

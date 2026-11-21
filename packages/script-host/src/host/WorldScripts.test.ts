@@ -1123,6 +1123,255 @@ system.run(() => {
             ]);
         });
 
+        it('parses shorthand into a frozen tree and renders a tree or shorthand for a player, with the next change tick', () => {
+            const { scripts, world, log } = startTwoPacks(
+                `system.runTimeout(() => {
+                    placeholders.register('demo', { keys: ['name', 'ping'], resolve: (key, player) => player === undefined ? undefined : key === 'name' ? player.name : 180 });
+                }, 1);`,
+                `system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    const template = placeholders.parse('{demo:name} &7{demo:ping}ms');
+                    show('parsed', () => template);
+                    show('frozen', () => [Object.isFrozen(template), Object.isFrozen(template.rawtext), Object.isFrozen(template.rawtext[0])]);
+                    show('tree', () => placeholders.render(template, steve));
+                    show('shorthand', () => placeholders.render('{demo:name} &7{demo:ping}ms', steve));
+                    show('no player', () => placeholders.render(template));
+                    const animated = { rawtext: [
+                        { if: '{demo:ping} > 150', then: ['§c', { placeholder: 'demo:ping' }], else: ['§7fast'] },
+                        { animate: { interval: 10, frames: [['.'], ['..']] } },
+                        { gradient: { colors: ['#ff5555', '#5555ff'], rawtext: ['VIP'] } },
+                        { score: { name: '@s', objective: 'kills' } }, ' ', { score: { name: 'Nobody', objective: 'kills' } },
+                        ' ', { selector: '@s' }, '|', { selector: '@a' }, '|', { selector: 'Alex' }, '|', { selector: '@e[type=pig]' },
+                        ' ', { translate: 'commands.op.success', with: ['x'] }
+                    ] };
+                    show('animated', () => placeholders.render(animated, steve));
+                    show('rendered frozen', () => Object.isFrozen(placeholders.render(animated, steve)));
+                    show('bad node', () => placeholders.render({ rawtext: [{ bold: true }] }));
+                    show('bad condition', () => placeholders.render({ rawtext: [{ if: '{demo:ping} >', then: [] }] }));
+                    show('not a template', () => placeholders.render(7));
+                    show('not a player', () => placeholders.render('x', { id: '1' }));
+                    show('not shorthand', () => placeholders.parse(7));
+                }, 2);`
+            );
+            const steve = world.join('Steve');
+            world.join('Alex');
+            world.scoreboard.addObjective('kills', 'Kills');
+            world.scoreboard.setScore('kills', { entity: steve }, 7);
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'parsed {"rawtext":[{"placeholder":"demo:name"},{"text":" §7"},{"placeholder":"demo:ping"},{"text":"ms"}]}',
+                'frozen [true,true,true]',
+                'tree {"text":"Steve §7180ms"}',
+                'shorthand {"text":"Steve §7180ms"}',
+                'no player {"text":"{demo:name} §7{demo:ping}ms"}',
+                'animated {"text":"§c180.§cV§uI§9P§r7  Steve|Steve, Alex|Alex| commands.op.success","nextChangeTick":10}',
+                'rendered frozen true',
+                'bad node TypeError: The template node at template.rawtext[0] must be a text, placeholder, if, animate, gradient, translate, score or selector node',
+                'bad condition TypeError: The condition {demo:ping} > expects a value, a placeholder or a quoted text at its end',
+                'not a template TypeError: The template node at template must be an object with a rawtext list',
+                'not a player TypeError: render takes a Player as its player',
+                'not shorthand TypeError: parse takes a string as its shorthand'
+            ]);
+        });
+
+        /** A config store in memory: a value per pack directory, and a way to say the file changed. */
+        class MemoryConfigStore implements AddonConfigStore {
+            public readonly values = new Map<string, unknown>();
+            public readonly writes: string[] = [];
+            public readonly watching = new Map<string, () => void>();
+            public read(pack: ScriptPack): unknown {
+                return this.values.get(pack.directory);
+            }
+            public write(pack: ScriptPack, value: unknown): void {
+                this.writes.push(`${pack.name} ${JSON.stringify(value)}`);
+                this.values.set(pack.directory, value);
+                this.watching.get(pack.directory)?.();
+            }
+            public watch(pack: ScriptPack, changed: () => void): () => void {
+                this.watching.set(pack.directory, changed);
+                return () => this.watching.delete(pack.directory);
+            }
+            /** The file changed on disk to a value. */
+            public changedOnDisk(pack: ScriptPack, value: unknown): void {
+                this.values.set(pack.directory, value);
+                this.watching.get(pack.directory)?.();
+            }
+        }
+
+        it('reads, writes and follows the config file through the store, one event per flush, until the scripts stop', () => {
+            const store = new MemoryConfigStore();
+            const members = new RecordingMembers();
+            const pack = writePack(`import { system, world } from '@minecraft/server';
+                const show = (label, call) => {
+                    try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                };
+                let jsp;
+                import('@jsprismarine/server').then((module) => { jsp = module; });
+                const seen = (event) => show('change', () => [event.value, Object.isFrozen(event.value), Object.isFrozen(event)]);
+                system.runTimeout(() => {
+                    show('absent', () => [jsp.config.value, 'config' in jsp]);
+                    jsp.config.afterEvents.change.subscribe(seen);
+                    const other = jsp.config.afterEvents.change.subscribe((event) => show('other', () => event.value));
+                    jsp.config.afterEvents.change.unsubscribe(other);
+                    jsp.config.write({ interval: 40, groups: { vip: 'x' } });
+                    show('after write', () => [jsp.config.value, Object.isFrozen(jsp.config.value.groups)]);
+                }, 1);
+                system.runTimeout(() => {
+                    show('bad write', () => jsp.config.write(undefined));
+                    show('bad callback', () => jsp.config.afterEvents.change.subscribe(7));
+                }, 3);`);
+            const { scripts, log } = start([pack], { members, addonConfig: store });
+            scripts.flush();
+            scripts.flush();
+            // Two changes in one tick give one event, with the value read then.
+            store.changedOnDisk(pack, { interval: 10 });
+            store.changedOnDisk(pack, { interval: 15 });
+            scripts.flush();
+            store.changedOnDisk(pack, undefined);
+            scripts.flush();
+            scripts.reload();
+            store.changedOnDisk(pack, { interval: 99 });
+            scripts.flush();
+            scripts.flush();
+
+            // The second runtime's tick 1 writes again, as the first did.
+            expect(store.writes).toEqual(Array<string>(2).fill('probe {"interval":40,"groups":{"vip":"x"}}'));
+            expect(log.printed()).toEqual([
+                'absent [null,true]',
+                'after write [{"interval":40,"groups":{"vip":"x"}},true]',
+                'change [{"interval":40,"groups":{"vip":"x"}},true,true]',
+                'change [{"interval":15},true,true]',
+                'bad write TypeError: config.write takes a value JSON can carry as its value',
+                'bad callback TypeError: config.afterEvents.change.subscribe takes a function as its callback',
+                'change [null,true,true]',
+                // The new runtime subscribes again at its own tick 1, after the change at 99 came in.
+                'absent [{"interval":99},true]',
+                'after write [{"interval":40,"groups":{"vip":"x"}},true]',
+                'change [{"interval":40,"groups":{"vip":"x"}},true,true]'
+            ]);
+            expect(store.watching.size).toBe(1);
+            scripts.shutdown();
+            expect(store.watching.size).toBe(0);
+        });
+
+        it('refuses a listener that is not a function, drops every subscription of a callback, and stops the watch with the last one', () => {
+            const store = new MemoryConfigStore();
+            const pack = writePack(`import { system } from '@minecraft/server';
+                const show = (label, call) => {
+                    try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                };
+                let jsp;
+                import('@jsprismarine/server').then((module) => { jsp = module; });
+                const seen = (event) => show('change', () => event.value);
+                const other = (event) => show('other', () => event.value);
+                system.runTimeout(() => {
+                    show('object', () => jsp.config.afterEvents.change.subscribe({}));
+                    jsp.config.afterEvents.change.subscribe(seen);
+                    jsp.config.afterEvents.change.subscribe(seen);
+                    jsp.config.afterEvents.change.subscribe(other);
+                }, 1);
+                system.runTimeout(() => jsp.config.afterEvents.change.unsubscribe(seen), 3);
+                system.runTimeout(() => jsp.config.afterEvents.change.unsubscribe(other), 5);`);
+            const { scripts, log } = start([pack], { members: new RecordingMembers(), addonConfig: store });
+            scripts.flush();
+            scripts.flush();
+            store.changedOnDisk(pack, 1);
+            scripts.flush();
+            scripts.flush();
+            store.changedOnDisk(pack, 2);
+            scripts.flush();
+            expect(store.watching.size).toBe(1);
+            scripts.flush();
+            store.changedOnDisk(pack, 3);
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'object TypeError: config.afterEvents.change.subscribe takes a function as its callback',
+                'change 1',
+                'change 1',
+                'other 1',
+                'other 2'
+            ]);
+            expect(store.watching.size).toBe(0);
+        });
+
+        it('spreads a change over flushes within the budget, running each callback once', () => {
+            const store = new MemoryConfigStore();
+            const pack = writePack(`import { system } from '@minecraft/server';
+                let jsp;
+                import('@jsprismarine/server').then((module) => { jsp = module; });
+                const seen = new Set();
+                system.runTimeout(() => {
+                    for (let index = 0; index < 1500; index++) {
+                        jsp.config.afterEvents.change.subscribe(() => { if (seen.has(index)) console.warn('twice ' + index); seen.add(index); });
+                    }
+                }, 1);
+                system.runInterval(() => console.warn('seen ' + seen.size), 1);`);
+            const { scripts, log } = start([pack], {
+                members: new RecordingMembers(),
+                addonConfig: store,
+                watchdog: { hangSteps: 1000, shutdown: false }
+            });
+            scripts.flush();
+            scripts.flush();
+            store.changedOnDisk(pack, 1);
+            scripts.flush();
+            scripts.flush();
+            scripts.flush();
+
+            const counts = log
+                .printed()
+                .filter((line) => line.startsWith('seen '))
+                .map((line) => Number(line.slice(5)));
+            expect(log.printed().filter((line) => line.startsWith('twice'))).toEqual([]);
+            // The budget of 1000 entries per flush spreads the 1500 callbacks over two flushes, none repeated.
+            // The interval's own callback takes one of the 1000 entries, the delivery the other 999.
+            expect(counts).toEqual([0, 0, 999, 1500]);
+        });
+
+        it('leaves config out when the server keeps no config files', () => {
+            const { scripts, log } = startWithMembers(`
+                system.runTimeout(() => show('config', () => ['config' in jsp, Object.keys(jsp)]), 1);`);
+            scripts.flush();
+            scripts.flush();
+
+            // A module namespace lists its exports in name order.
+            expect(log.printed()).toEqual(['config [false,["bossBars","getPing","jsprismarine","performance"]]']);
+        });
+
+        it("renders a selector node through the world's selector grammar, filters included", () => {
+            const { scripts, world, log } = startTwoPacks(
+                '',
+                `system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    const render = (selector, player) => placeholders.render({ rawtext: [{ selector }] }, player).text;
+                    show('selectors', () => ['@a', '@a[tag=vip]', '@s', 'Alex', '@e[type=pig]', '@e[type=minecraft:pig]', '@e[type=cow]', '@a[bogus=1]', '@a[tag=vip'].map((selector) => render(selector, steve)));
+                    show('one of them', () => ['@p', '@r[tag=vip]', '@p[tag=vip]', '@s[tag=vip]'].map((selector) => render(selector, steve)));
+                    show('from the console', () => ['@s', '@a'].map((selector) => render(selector, undefined)));
+                }, 1);`
+            );
+            world.join('Steve');
+            const alex = world.join('Alex');
+            world.addTag(alex, 'vip');
+            const pig = world.spawnEntity('minecraft:overworld', 'minecraft:pig', { x: 0, y: 64, z: 0 });
+            world.setNameTag(pig, 'Porky');
+            scripts.flush();
+            scripts.flush();
+
+            // A selector the grammar refuses renders as nothing, as an unmatched one does, and
+            // `@s` for the console names nobody.
+            // The filter runs before `@p` and `@r` pick one, so an untagged Steve still finds Alex.
+            expect(log.printed()).toEqual([
+                'selectors ["Steve, Alex","Alex","Steve","Alex","Porky","Porky","","",""]',
+                'one of them ["Steve","Alex","Alex",""]',
+                'from the console ["","Steve, Alex"]'
+            ]);
+        });
+
         it('passes no player to a resolver for a player who left', () => {
             const { scripts, world, log } = startTwoPacks(
                 `system.runTimeout(() => {
@@ -1168,7 +1417,10 @@ system.run(() => {
             ]);
             scripts.flush();
 
-            expect(log.printed()).toEqual(['["namespaces","register","resolve"] true false', '[] true']);
+            expect(log.printed()).toEqual([
+                '["namespaces","parse","register","render","resolve"] true false',
+                '[] true'
+            ]);
         });
 
         it('rejects another @jsprismarine/ module and an undeclared @minecraft/ one with BDS’s message', () => {

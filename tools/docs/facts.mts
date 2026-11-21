@@ -53,6 +53,7 @@ import { DEFAULT_DEBUGGER_PORT } from '../../packages/script-host/src/debugger/p
 import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generated/scriptModules.ts';
 import type { MemberDefinition, TypeDefinition } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { PLACEHOLDER_NAME } from '../../packages/script-host/src/host/placeholders.ts';
+import { CONDITION_JOINERS, CONDITION_OPERATORS } from '../../packages/script-host/src/host/templates.ts';
 import {
     JSPRISMARINE_PLACEHOLDER_TYPES,
     JSPRISMARINE_PLACEHOLDERS,
@@ -459,6 +460,8 @@ function scriptingFacts() {
     /** The type table's rows of one module. */
     const typeRows = (definitions: Readonly<Record<string, TypeDefinition>>): string[][] =>
         Object.entries(definitions).flatMap(([name, type]): string[][] => {
+            // A union of objects would break the table, so the summary says what the alias holds.
+            if (type.kind === 'alias') return [[inlineCode(name), 'type', type.summary]];
             if (type.kind === 'union') {
                 return [
                     [
@@ -503,7 +506,9 @@ function scriptingFacts() {
             typeRows(JSPRISMARINE_PLACEHOLDER_TYPES)
         )}\n`,
         // The pattern a namespace or key matches, as the registry tests it.
-        'scripting.placeholderName': inlineCode(PLACEHOLDER_NAME.source.replace(/^\^|\$$/g, ''))
+        'scripting.placeholderName': inlineCode(PLACEHOLDER_NAME.source.replace(/^\^|\$$/g, '')),
+        'scripting.conditionOperators': list(CONDITION_OPERATORS.map(inlineCode)),
+        'scripting.conditionJoiners': list(CONDITION_JOINERS.map(inlineCode))
     };
 }
 

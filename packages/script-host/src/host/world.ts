@@ -1114,6 +1114,14 @@ export interface ScriptWorld {
      */
     runCommand(command: string, source: ScriptCommandSource): ScriptCommandResult;
     /**
+     * The entities a target selector matches, read by the world's own selector grammar, for a
+     * template's `selector` node: `@a`, `@a[tag=vip]`, `@e[type=pig]` or a player's name.
+     * @param player - The entity the selector is read for, which `@s` and `@p` name, or undefined
+     *   for the server.
+     * @returns The matched entities' ids, or undefined for a selector that does not parse.
+     */
+    selectEntities?(selector: string, player: string | undefined): readonly string[] | undefined;
+    /**
      * Calls `listener` with a player's id while they leave, before their entity goes, for
      * `world.beforeEvents.playerLeave`.
      * @returns A function that stops it.

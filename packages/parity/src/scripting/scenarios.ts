@@ -262,7 +262,13 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                         getPing: 'function',
                         bossBars: { show: 'function' },
                         playerList: { reset: 'function', setDisplayName: 'function' },
-                        placeholders: { namespaces: 'function', register: 'function', resolve: 'function' },
+                        placeholders: {
+                            namespaces: 'function',
+                            parse: 'function',
+                            register: 'function',
+                            render: 'function',
+                            resolve: 'function'
+                        },
                         allFrozen: true
                     }
                 },

@@ -616,6 +616,15 @@ export const levelScriptAccess = (server: Server, level: Level): ScriptLevelAcce
             const actor = actorOf(source.entity);
             if (actor === undefined) return { error: 'The entity is gone' };
             return manager.runScriptCommand(command, { entity: actor });
+        },
+        // The selector is read as a command of the player's would read it, or the server's in the
+        // Overworld, so `@a[tag=vip]` matches what `/tellraw @a[tag=vip]` would.
+        selectEntities: (selector: string, player: string | undefined): readonly string[] | undefined => {
+            const manager = server.getCommandManager();
+            const actor = player === undefined ? undefined : actorOf(player);
+            const source =
+                actor === undefined ? { dimension: javaDimension('minecraft:overworld') } : { entity: actor };
+            return manager.selectForScript(selector, source)?.map((entity) => entity.id);
         }
     };
 };
