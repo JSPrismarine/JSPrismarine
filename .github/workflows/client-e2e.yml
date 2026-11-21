@@ -72,6 +72,9 @@ jobs:
             pinned-keys: ${{ steps.matrix.outputs.pinned-keys }}
             # Empty runs every scenario.
             scenarios: ${{ steps.matrix.outputs.scenarios }}
+            # Seconds per suite from the last full run on master, as JSON, for splitting the suites
+            # across shards by time. Empty splits them by scenario count.
+            suite-times: ${{ steps.times.outputs.suite-times }}
             # Every pin passed on the merged pull request, so client-e2e has nothing to play.
             reused: ${{ steps.matrix.outputs.reused == 'true' }}
             # Some pin passed on the merged pull request, so its coverage is uploaded for this push.
@@ -231,6 +234,28 @@ jobs:
                       echo "scenarios=$SCENARIOS"
                   } >> "$GITHUB_OUTPUT"
                   echo "Playing $(jq -r 'map(.name) | join(", ")' <<< "$remaining") in $total shard(s) each."
+
+            # How long each suite took on the newest master run that kept the times, every pin and
+            # shard merged with the longest kept (see tools/client-e2e/src/shard.mts). A suite with
+            # no time counts as the median; with no times at all, the split goes by scenario count.
+            - name: Find the suite times
+              id: times
+              if: ${{ steps.matrix.outcome == 'success' && steps.matrix.outputs.shard-total != '1' }}
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  for run in $(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/client-e2e.yml/runs?branch=master&event=push&status=success&per_page=5" --jq '.workflow_runs[].id'); do
+                      dir="$RUNNER_TEMP/suite-times/$run"
+                      gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'e2e-suite-times-*' --dir "$dir" 2> /dev/null || continue
+                      mapfile -t files < <(find "$dir" -name suite-times.json)
+                      if [ "${#files[@]}" -eq 0 ]; then continue; fi
+                      times="$(jq -c -s 'reduce (.[] | to_entries[]) as $entry ({}; .[$entry.key] = ([.[$entry.key] // 0, $entry.value] | max))' "${files[@]}")"
+                      echo "suite-times=$times" >> "$GITHUB_OUTPUT"
+                      echo "Splitting the suites by the times of run $run: $times"
+                      exit 0
+                  done
+                  echo 'No suite times on master; splitting the suites by scenario count.'
 
             # A run can restore entries saved on its own ref or on master. The key matches the one
             # cinnabar-build writes, whose `runner.os` is `Linux`.
@@ -554,6 +579,7 @@ jobs:
                   TRANSPORT: ${{ matrix.pin.transport }}
                   SUITES: ${{ steps.size.outputs.suites }}
                   SHARD: ${{ matrix.shard }}/${{ needs.changes.outputs.shard-total }}
+                  SUITE_TIMES: ${{ needs.changes.outputs.suite-times }}
                   NODE_OPTIONS: --max-old-space-size=4096
                   # A client that panics before its control endpoint is up names only its log, so
                   # the panic carries its backtrace there.
@@ -563,9 +589,14 @@ jobs:
                   # `--retry` runs a failed scenario once more on a fresh server and client, so one
                   # flaky scenario does not cost a rerun of every protocol. It is reported as a
                   # warning and in the summary when it passes the second time.
+                  times=()
+                  if [ -n "$SUITE_TIMES" ]; then
+                      printf '%s\n' "$SUITE_TIMES" > "$RUNNER_TEMP/suite-times.json"
+                      times=(--suite-times "$RUNNER_TEMP/suite-times.json")
+                  fi
                   # shellcheck disable=SC2086
                   xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
-                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --shard "$SHARD" --concurrency "$SUITES" $SCENARIOS
+                      pnpm run e2e:client -- --retry --artifacts "$RUNNER_TEMP/client-e2e" --protocol "$PROTOCOL" --transport "$TRANSPORT" --shard "$SHARD" --concurrency "$SUITES" "${times[@]}" $SCENARIOS
 
             # A selection's shard can get no suite, and then there is nothing to cover.
             - name: 🔎 Verify client e2e coverage
@@ -611,6 +642,18 @@ jobs:
                   path: ${{ runner.temp }}/client-e2e/scenario-coverage.json
                   if-no-files-found: ignore
                   retention-days: 30
+
+            # How long each suite took, which the next run's `changes` job splits the suites by.
+            # Only a full run on master: a selection plays some of a suite, and times from a pull
+            # request's branch are not what master's lookup reads.
+            - name: 📤 Keep the suite times
+              if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.changes.outputs.scenarios == '' }}
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: e2e-suite-times-${{ matrix.pin.name }}-shard-${{ matrix.shard }}
+                  path: ${{ runner.temp }}/client-e2e/suite-times.json
+                  if-no-files-found: ignore
+                  retention-days: 14
 
             # A client that exits before its control endpoint is up reports only a log path, inside
             # the cinnabar checkout. This prints each log's end here, where the failure is read.
