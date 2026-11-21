@@ -5,6 +5,9 @@
  * them absolute when the copy is written.
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { type TrackerSummary } from '../../packages/parity/src/dashboard/trackerSummary.ts';
 import {
     behaviorProgress,
@@ -13,10 +16,18 @@ import {
     trackerProgressTotal
 } from '../../packages/parity/src/dashboard/trackerProgress.ts';
 import { METRICS } from '../server-benchmark/src/summary.mts';
-import { type ChangelogRelease, type ChangeKind, SHOWN_RELEASES } from './changelog.mts';
+import {
+    type ChangelogRelease,
+    type ChangeKind,
+    changelogUrl,
+    loadChangelog,
+    releaseDates,
+    SHOWN_RELEASES
+} from './changelog.mts';
 import type { ProjectData } from './project.mts';
-import type { BenchmarkPageData } from './site/benchmarks.data.mts';
-import { GAPS_PER_FAMILY } from './site/parity.data.mts';
+import { pageSummary } from './sections.mts';
+import { type BenchmarkPageData, readBenchmarkPage } from './site/benchmarks.data.mts';
+import { GAPS_PER_FAMILY, readParityPage } from './site/parity.data.mts';
 import {
     installCommand,
     type Market,
@@ -246,4 +257,40 @@ export function benchmarksMarkdown(
     ]
         .join('\n\n')
         .concat('\n');
+}
+
+/**
+ * The Markdown copy of every page the site builds with a component, by page file: Packages,
+ * Releases, Parity and Benchmarks when their data is there, and the addon pages, whose copies
+ * `assemble.mts` wrote while it built the marketplace.
+ *
+ * @param srcDir - The site's source folder, where the pages and the staged addon copies are.
+ */
+export function loadGeneratedCopies(srcDir: string, project: ProjectData): Map<string, string> {
+    // A component page's copy opens with the description its front matter gives the page.
+    const description = (page: string) => pageSummary(readFileSync(path.join(srcDir, page), 'utf8'));
+    const parity = readParityPage();
+    const benchmarks = readBenchmarkPage();
+    return new Map([
+        ['packages.md', packagesMarkdown(project)],
+        ['releases.md', releasesMarkdown(loadChangelog(), { dateOf: releaseDates(), changelogUrl: changelogUrl() })],
+        ...(parity
+            ? ([['parity.md', parityMarkdown(parity.summary, { description: description('parity.md') })]] as const)
+            : []),
+        ...(benchmarks
+            ? ([
+                  [
+                      'benchmarks.md',
+                      benchmarksMarkdown(benchmarks, {
+                          description: description('benchmarks.md'),
+                          repositoryUrl: project.repositoryUrl
+                      })
+                  ]
+              ] as const)
+            : []),
+        ...Object.entries(
+            // Written by assemble.mts as page file to Markdown; parsed JSON is an untyped boundary.
+            JSON.parse(readFileSync(path.join(srcDir, ADDON_COPIES_FILE), 'utf8')) as Record<string, string>
+        )
+    ]);
 }

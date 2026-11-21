@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { type DefaultTheme, defineConfig } from 'vitepress';
+import { type DefaultTheme, defineConfig, type HeadConfig } from 'vitepress';
 import manifest from '../../../../package.json' with { type: 'json' };
 import typedocSidebar from '../api/typedoc-sidebar.json';
 import { footerHtml } from './footer.mts';
@@ -8,19 +8,10 @@ import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
-import { changelogUrl, loadChangelog, releaseDates } from '../../changelog.mts';
-import { markdownHeaders, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
-import {
-    ADDON_COPIES_FILE,
-    benchmarksMarkdown,
-    packagesMarkdown,
-    parityMarkdown,
-    releasesMarkdown
-} from '../../llmsPages.mts';
-import { readBenchmarkPage } from '../benchmarks.data.mts';
-import { readParityPage } from '../parity.data.mts';
+import { markdownHeaders, markdownPages, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
+import { loadGeneratedCopies } from '../../llmsPages.mts';
 import { loadProject } from '../../project.mts';
-import { isStagedPage, pageSource, pageSummary, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
+import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
@@ -75,6 +66,13 @@ function menuSidebar(section: string) {
         items: group.items.map(({ text, link }) => ({ text, link }))
     }));
 }
+
+let copies: ReadonlyMap<string, string> | undefined;
+/**
+ * The Markdown copies written from data for the pages built with components, read once: the head of
+ * each page links its copy, and `buildEnd` publishes them.
+ */
+const generatedCopies = (srcDir: string) => (copies ??= loadGeneratedCopies(srcDir, loadProject()));
 
 /** Every link in a sidebar, nested groups included, in the order the sidebar shows them. */
 function sidebarLinks(items: readonly DefaultTheme.SidebarItem[]): string[] {
@@ -134,47 +132,12 @@ export default defineConfig({
             `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes, linked from ${linking} pages.`
         );
         const project = loadProject();
-        // A component page's copy opens with the description its front matter gives the page.
-        const description = (page: string) => pageSummary(readFileSync(path.join(siteConfig.srcDir, page), 'utf8'));
-        const parity = readParityPage();
-        const benchmarks = readBenchmarkPage();
         const site = {
             srcDir: siteConfig.srcDir,
             outDir: siteConfig.outDir,
             pages: siteConfig.pages,
             siteUrl,
-            // Pages written with components get a copy written from the data the component renders.
-            generated: new Map([
-                ['packages.md', packagesMarkdown(project)],
-                [
-                    'releases.md',
-                    releasesMarkdown(loadChangelog(), { dateOf: releaseDates(), changelogUrl: changelogUrl() })
-                ],
-                ...(parity
-                    ? ([
-                          ['parity.md', parityMarkdown(parity.summary, { description: description('parity.md') })]
-                      ] as const)
-                    : []),
-                ...(benchmarks
-                    ? ([
-                          [
-                              'benchmarks.md',
-                              benchmarksMarkdown(benchmarks, {
-                                  description: description('benchmarks.md'),
-                                  repositoryUrl: project.repositoryUrl
-                              })
-                          ]
-                      ] as const)
-                    : []),
-                // The staging step writes the addon pages' copies, since it builds the marketplace.
-                ...Object.entries(
-                    // Written by assemble.mts as page file to Markdown; parsed JSON is an untyped boundary.
-                    JSON.parse(readFileSync(path.join(siteConfig.srcDir, ADDON_COPIES_FILE), 'utf8')) as Record<
-                        string,
-                        string
-                    >
-                )
-            ])
+            generated: generatedCopies(siteConfig.srcDir)
         };
         const markdownPages = writeMarkdownPages(site);
         console.log(`Markdown copies: ${markdownPages} pages.`);
@@ -244,6 +207,19 @@ export default defineConfig({
             ['meta', { property: 'og:description', content: description }],
             ['meta', { property: 'og:url', content: url }],
             ['link', { rel: 'canonical', href: url }],
+            // A page with a Markdown copy (see `llms.mts`) names it, so a tool reading the HTML can fetch the text.
+            ...(markdownPages({ pages: [pageData.relativePath], generated: generatedCopies(siteConfig.srcDir) }).size
+                ? [
+                      [
+                          'link',
+                          {
+                              rel: 'alternate',
+                              type: 'text/markdown',
+                              href: new URL(pageData.relativePath, siteUrl).href
+                          }
+                      ] satisfies HeadConfig
+                  ]
+                : []),
             ...imageTags(image)
         );
         // VitePress serializes theme config functions into the client bundle, so the edit link is resolved
