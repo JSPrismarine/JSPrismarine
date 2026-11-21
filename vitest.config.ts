@@ -10,13 +10,14 @@ const ci = !!process.env.GITHUB_ACTIONS;
  * Locally every test is listed. CI prints the failed tests with their errors, the warnings and
  * errors any test wrote, and the totals: `minimal` lists failures only, and turning its silencing
  * off keeps what passing tests wrote, which `onConsoleLog` below narrows to `stderr`. GitHub gets
- * the failure annotations and the JUnit file for Codecov. A CI shard reports the same for its own
- * files, and Codecov combines the shards' uploads.
+ * the failure annotations, the JUnit file for Codecov, and the JSON report the parity dashboard
+ * reads its results from. A CI shard reports the same for its own files, and Codecov combines the
+ * shards' uploads.
  */
 const minimal = ['minimal', { silent: false }] as const;
 /** A line in the log every time another tenth of the run's test files finishes. */
 const progress = resolve(dirname(fileURLToPath(import.meta.url)), '.test/progressReporter.ts');
-const reporters = !ci ? ['verbose'] : [minimal, progress, 'github-actions', 'junit'];
+const reporters = !ci ? ['verbose'] : [minimal, progress, 'github-actions', 'junit', 'json'];
 const exclude = [
     '.claude/**/*.*',
     '.changeset/**/*.*',
@@ -123,7 +124,8 @@ export default defineConfig({
         // and drops `console.log` and `console.info`, which is most of the noise.
         ...(ci ? { onConsoleLog: (_log: string, type: 'stdout' | 'stderr') => type === 'stderr' } : {}),
         outputFile: {
-            junit: './junit.xml'
+            junit: './junit.xml',
+            json: './vitest-report.json'
         },
 
         // Vitest's performance guide finds `forks` slightly slower than `threads` in larger

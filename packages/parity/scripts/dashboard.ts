@@ -1,23 +1,33 @@
 /**
- * Runs the parity suite with the Vitest JSON reporter and renders the dashboard.
+ * Renders the parity dashboard and the docs site's tracker.
+ *
+ * ```
+ * node scripts/dashboard.ts                                   # runs the suite, then renders
+ * node scripts/dashboard.ts --update <dir>... [--base <dir>] [--save-inputs <dir>]
+ * ```
+ *
+ * Without options the script runs the parity suite with the Vitest JSON reporter, the way local
+ * use does. With `--update` it reads what earlier runs wrote instead (see
+ * `src/dashboard/inputs.ts`): each directory holds one CI shard's `report.json`, `progress.jsonl`
+ * and `cases/`. `--base` names the base commit's complete inputs, which the shards' files overlay,
+ * since a shard runs only the files its changes reach. `--save-inputs` keeps the complete inputs
+ * for the runs based on this one.
  *
  * Writes the Markdown table to `dist/dashboard.md`, prints it to stdout, and appends it to
  * `$GITHUB_STEP_SUMMARY` when a CI job provides one. The test run gates test failures separately;
  * this script also fails when a declared dashboard family has no test.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
-import type { VitestJsonReport } from '../src/dashboard/render.ts';
-import type { ParityMeasurement } from '../src/progress.ts';
-import { isFamily } from '../src/families.ts';
+import type { DashboardInputs } from '../src/dashboard/inputs.ts';
+import { mergeInputs, overlayInputs, readInputs, writeInputs } from '../src/dashboard/inputs.ts';
 import { familiesWithoutTests, renderDashboard } from '../src/dashboard/render.ts';
-import type { ReportedParityCase } from '../src/dashboard/tracker.ts';
 import { buildTrackerData } from '../src/dashboard/tracker.ts';
-import { isRecord } from '../src/isRecord.ts';
 
 /**
  * Teaches node how the workspace's own packages spell an import.
@@ -54,73 +64,53 @@ registerHooks({
 const { allowList } = await import('../src/allowlist.ts');
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const reportPath = join(packageRoot, 'dist', 'parity-report.json');
-const progressPath = join(packageRoot, 'dist', 'parity-progress.jsonl');
-const trackerCasesPath = join(packageRoot, 'dist', 'parity-cases');
-
-mkdirSync(join(packageRoot, 'dist'), { recursive: true });
-writeFileSync(progressPath, '');
-rmSync(trackerCasesPath, { recursive: true, force: true });
-
-const run = spawnSync('pnpm', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${reportPath}`], {
-    cwd: packageRoot,
-    env: { ...process.env, PARITY_PROGRESS_FILE: progressPath, PARITY_CASES_DIRECTORY: trackerCasesPath },
-    stdio: ['ignore', 'ignore', 'inherit']
+const repositoryRoot = join(packageRoot, '..', '..');
+const { values } = parseArgs({
+    options: {
+        base: { type: 'string' },
+        update: { type: 'string', multiple: true },
+        'save-inputs': { type: 'string' }
+    }
 });
 
-if (!existsSync(reportPath)) {
-    console.error(`vitest produced no JSON report at ${reportPath} (exit status ${run.status}).`);
-    process.exit(1);
-}
+mkdirSync(join(packageRoot, 'dist'), { recursive: true });
 
-// Parsed JSON boundary; VitestJsonReport documents the fields the renderer reads.
-const report = JSON.parse(readFileSync(reportPath, 'utf-8')) as VitestJsonReport;
-const isParityMeasurement = (value: unknown): value is ParityMeasurement =>
-    isRecord(value) &&
-    typeof value.family === 'string' &&
-    isFamily(value.family) &&
-    typeof value.name === 'string' &&
-    typeof value.value === 'number' &&
-    Number.isFinite(value.value);
-const isTrackerStatus = (value: unknown): value is ReportedParityCase['status'] =>
-    value === 'passed' || value === 'failed' || value === 'not measured' || value === 'defect' || value === 'deferred';
-const isParityCase = (value: unknown): value is ReportedParityCase =>
-    isRecord(value) &&
-    typeof value.family === 'string' &&
-    isFamily(value.family) &&
-    typeof value.id === 'string' &&
-    typeof value.title === 'string' &&
-    isTrackerStatus(value.status) &&
-    typeof value.sourceFile === 'string' &&
-    (value.context === undefined || typeof value.context === 'string') &&
-    (value.details === undefined || typeof value.details === 'string') &&
-    (value.annotates === undefined || typeof value.annotates === 'boolean');
-const measurements = readFileSync(progressPath, 'utf-8')
-    .split(/\r?\n/)
-    .filter((line) => line !== '')
-    .map((line): ParityMeasurement => {
-        const value: unknown = JSON.parse(line);
-        if (!isParityMeasurement(value)) throw new Error(`Invalid parity measurement: ${line}`);
-        return value;
+/** Runs the suite and writes its inputs where `readInputs` finds them. */
+const runSuite = (): string => {
+    const directory = join(packageRoot, 'dist', 'inputs');
+    rmSync(directory, { recursive: true, force: true });
+    mkdirSync(directory, { recursive: true });
+    const progressPath = join(directory, 'progress.jsonl');
+    writeFileSync(progressPath, '');
+    const reportPath = join(directory, 'report.json');
+    const run = spawnSync('pnpm', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile=${reportPath}`], {
+        cwd: packageRoot,
+        env: { ...process.env, PARITY_PROGRESS_FILE: progressPath, PARITY_CASES_DIRECTORY: join(directory, 'cases') },
+        stdio: ['ignore', 'ignore', 'inherit']
     });
+    if (!existsSync(reportPath)) {
+        console.error(`vitest produced no JSON report at ${reportPath} (exit status ${run.status}).`);
+        process.exit(1);
+    }
+    return directory;
+};
+
+const inputs: DashboardInputs = (() => {
+    if (values.update === undefined) return readInputs(runSuite());
+    const update = mergeInputs(values.update.map(readInputs));
+    if (values.base === undefined) return update;
+    const base = readInputs(values.base);
+    const result = overlayInputs(base, update, (file) => existsSync(join(repositoryRoot, file)));
+    console.error(
+        `${update.report.testResults.length} files from this run over ${base.report.testResults.length} from the base: ${result.report.testResults.length} files.`
+    );
+    return result;
+})();
+if (values['save-inputs'] !== undefined) writeInputs(values['save-inputs'], inputs);
+const { report, measurements, cases: parityCases } = inputs;
+
 const markdown = renderDashboard(report, allowList, measurements);
 const missingFamilies = familiesWithoutTests(report);
-const repositoryRoot = join(packageRoot, '..', '..');
-
-const parityCases = existsSync(trackerCasesPath)
-    ? readdirSync(trackerCasesPath)
-          .filter((name) => name.endsWith('.jsonl'))
-          .flatMap((name) =>
-              readFileSync(join(trackerCasesPath, name), 'utf-8')
-                  .split(/\r?\n/)
-                  .filter((line) => line !== '')
-                  .map((line) => {
-                      const value: unknown = JSON.parse(line);
-                      if (!isParityCase(value)) throw new Error(`Invalid parity case record: ${line}`);
-                      return value;
-                  })
-          )
-    : [];
 const tracker = buildTrackerData(
     report,
     allowList,
