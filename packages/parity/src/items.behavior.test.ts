@@ -29,6 +29,8 @@ import { bedrockEntityIdentifierOf } from '@jsprismarine/prismarine/entity/ident
 import { holderSetIncludes } from '@jsprismarine/prismarine/item/holderSets';
 import { blocksTable, itemsTable } from '@jsprismarine/mapping/tables';
 import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
+import { anvilPreview } from '@jsprismarine/prismarine/enchantment/anvil';
+import { Item } from '@jsprismarine/prismarine/item/Item';
 import { BlockRuntimeIds } from '@jsprismarine/prismarine/block/state/BlockRuntimeIds';
 import { expect, it } from 'vitest';
 
@@ -249,7 +251,42 @@ const javaCookingNumber = (node: unknown, fast: boolean, kind: 'int' | 'float'):
     return Number.NaN;
 };
 
+/** The Java items a holder set names: a tag through the server's tags, or the ids it lists. */
+const javaItemsIn = (set: unknown): readonly string[] => {
+    if (Array.isArray(set)) return set.flatMap((entry) => javaItemsIn(entry));
+    if (typeof set !== 'string') return [];
+    return set.startsWith('#') ? serverContent().tags.members('item', set.slice(1)) : [set];
+};
+
 const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
+    {
+        name: 'anvil-repairs',
+        aspects: () => ['minecraft:repairable'],
+        java: 'An anvil repairs a damaged item by a quarter of its durability for each of the materials its repairable component names.',
+        reference: 'Java AnvilMenu.createResult and DataComponents.REPAIRABLE',
+        subjects: () => withComponent('minecraft:repairable'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const content = serverContent();
+            const material = javaItemsIn(field(subject.components['minecraft:repairable'], 'items'))[0];
+            if (material === undefined) return 'its repairable component names no material';
+            const mapped = javaItemToBedrock(material);
+            if (mapped.kind === 'unknown') return `its repair material ${material} has no Bedrock item`;
+            const base = new Item({ name: subject.bedrock, content });
+            const max = base.getMaxDurability();
+            if (max <= 0) return 'the server gives it no durability to repair';
+            base.durability = Math.ceil(max / 2);
+            const addition = new Item({ name: mapped.bedrock.identifier, content });
+            const repaired = anvilPreview(content.enchantments, { base, addition }).stack;
+            if (repaired === undefined) return `the anvil refuses ${material} as its repair material`;
+            // Java's repair: min(damage, max / 4) per material, so one material mends a quarter.
+            const damage = max - base.durability;
+            const java = base.durability + Math.min(damage, Math.floor(max / 4));
+            return repaired.durability === java
+                ? undefined
+                : `one ${material} leaves it at ${repaired.durability} durability, Java ${java}`;
+        }
+    },
     {
         name: 'stacks-like-java',
         aspects: () => ['stacking'],

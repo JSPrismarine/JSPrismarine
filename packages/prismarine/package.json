@@ -735,6 +735,11 @@
                 "import": "./dist/entity/StatusEffect.js",
                 "module": "./dist/entity/StatusEffect.js"
             },
+            "./enchantment/anvil": {
+                "types": "./dist/enchantment/anvil.d.ts",
+                "import": "./dist/enchantment/anvil.js",
+                "module": "./dist/enchantment/anvil.js"
+            },
             "./world/physics/BlockRules": {
                 "types": "./dist/world/physics/BlockRules.d.ts",
                 "import": "./dist/world/physics/BlockRules.js",
@@ -2379,6 +2384,10 @@
         "./entity/StatusEffect": {
             "jsprismarine:dist": "./dist/entity/StatusEffect.js",
             "default": "./src/entity/StatusEffect.ts"
+        },
+        "./enchantment/anvil": {
+            "jsprismarine:dist": "./dist/enchantment/anvil.js",
+            "default": "./src/enchantment/anvil.ts"
         },
         "./world/physics/BlockRules": {
             "jsprismarine:dist": "./dist/world/physics/BlockRules.js",
