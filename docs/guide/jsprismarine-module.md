@@ -204,7 +204,9 @@ of any other `@jsprismarine/` name rejects with the message BDS gives for an unk
 A placeholder is a token such as `{player:ping}` in a text. The module is the registry every pack
 shares: one pack registers a namespace with the keys it answers, and any pack renders a text
 through `resolve`, so a sidebar, a chat format or a tab list shows the same values without talking
-to the pack that computes them.
+to the pack that computes them. The
+[standard placeholders addon](../../addons/standard-placeholders/README.md) registers the `player`,
+`server` and `world` namespaces most servers want.
 
 <!-- fact:scripting.placeholdersModule.table -->
 | Member                          | Type     | What it is                                                                                                                                                                                                                                  |
