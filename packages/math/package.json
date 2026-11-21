@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/math",
-    "version": "0.23.2",
+    "version": "0.24.0",
     "description": "Vector2 and Vector3 types and the math helpers JSPrismarine packages share",
     "sideEffects": false,
     "publishConfig": {

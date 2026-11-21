@@ -1,5 +1,12 @@
 # @jsprismarine/advancements
 
+## 0.24.0
+
+### Patch Changes
+
+- Updated dependencies [[`70ee4ea`](https://github.com/JSPrismarine/JSPrismarine/commit/70ee4eae4e88857c368ca2ca9c298cb8491c7b72)]:
+  - @jsprismarine/predicates@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @jsprismarine/bedrock-data
 
+## 0.24.0
+
+### Patch Changes
+
+- [#3492](https://github.com/JSPrismarine/JSPrismarine/pull/3492) [`0875ffb`](https://github.com/JSPrismarine/JSPrismarine/commit/0875ffb40a4dc2e04cd4596e3e6dfb6ce100ab66) Thanks [@filiphsps](https://github.com/filiphsps)! - Report the legacy block states BDS's Script API still lists, such as an oak log's `old_log_type` and a slab's `top_slot_bit`, in `BlockPermutation.getAllStates` and `getState`, and accept them in `BlockPermutation.resolve`. The captured `block-types` table records how each state follows another, and `ScriptWorld` gains an optional `legacyStates` the script host reads them from.
+
+- [#3540](https://github.com/JSPrismarine/JSPrismarine/pull/3540) [`7607ea8`](https://github.com/JSPrismarine/JSPrismarine/commit/7607ea87fba31edd33f24bfd408dd2571fdd9a82) Thanks [@filiphsps](https://github.com/filiphsps)! - `Block.liquidCanFlowFromDirection` answers as on a Bedrock Dedicated Server instead of throwing. `@jsprismarine/bedrock-data` captures a new `block-liquid-flow` table, the sides each permutation of a slab, stairs, shelf, sculk sensor or heavy core stops water from, and exports it as `scriptBlockLiquidFlow`; every other block lets water in from every side.
+
 ## 0.23.2
 
 No changes in this release.
