@@ -10,6 +10,7 @@ import OpenInventoryHandler from './handlers/OpenInventoryHandler';
 import OpenNpcHandler from './handlers/OpenNpcHandler';
 import PlayerInitializedHandler from './handlers/PlayerInitializedHandler';
 import PlaySoundHandler from './handlers/PlaySoundHandler';
+import PressRespawnHandler from './handlers/PressRespawnHandler';
 import QueryBossBarHandler from './handlers/QueryBossBarHandler';
 import RequestAbilityHandler from './handlers/RequestAbilityHandler';
 import RespawnHandler from './handlers/RespawnHandler';
@@ -39,6 +40,7 @@ export {
     OpenNpcHandler,
     PlayerInitializedHandler,
     PlaySoundHandler,
+    PressRespawnHandler,
     QueryBossBarHandler,
     RequestAbilityHandler,
     RespawnHandler,

@@ -116,8 +116,13 @@ export interface IntentPayloads {
     readonly runCommand: { readonly command: string };
     /** The client's scripts sent the server's scripts a message. */
     readonly scriptMessage: { readonly id: string; readonly value: string };
-    /** The player pressed the respawn button. */
+    /**
+     * A dead player's client is ready to spawn and asks where it will come back, which Bedrock's
+     * death screen does before it offers the respawn button.
+     */
     readonly respawn: Record<never, never>;
+    /** A dead player pressed the respawn button on its death screen. */
+    readonly pressRespawn: Record<never, never>;
     /** The client finished spawning and has a player to show. */
     readonly playerInitialized: Record<never, never>;
     /**
@@ -203,6 +208,8 @@ export const Intents = {
     // Raised on the input lane so the scripts hear it in the tick it arrived in.
     scriptMessage: { lane: 'input' },
     respawn: { lane: 'input' },
+    // Brings the player back once the respawn search answers.
+    pressRespawn: { lane: 'input' },
     // Puts the player into its world.
     playerInitialized: { lane: 'input' },
     // Writes the inventory and may drop items into the world.

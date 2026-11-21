@@ -19,6 +19,7 @@ describe('input/Intent', () => {
             'openNpc',
             'playSound',
             'playerInitialized',
+            'pressRespawn',
             'queryBossBar',
             'requestAbility',
             'respawn',
