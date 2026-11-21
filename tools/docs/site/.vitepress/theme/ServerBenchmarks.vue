@@ -1,16 +1,26 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
-import type { RunResult, ScenarioDescription, ServerId } from '../../../../server-benchmark/src/results.mts';
+import type { HistoryChart, HistorySeries } from '../../../../server-benchmark/src/history.mts';
+import type {
+    RunResult,
+    ScenarioDescription,
+    ScenarioId,
+    ServerId,
+    Transport
+} from '../../../../server-benchmark/src/results.mts';
 import type { CellSummary, MetricId, MetricKind, MetricSummary } from '../../../../server-benchmark/src/summary.mts';
 import { SERVER_IDS } from '../../../../server-benchmark/src/results.mts';
 import { BASELINE, METRICS } from '../../../../server-benchmark/src/summary.mts';
 import type { BenchmarkPageData } from '../../benchmarks.data.mts';
+import BenchmarkHistoryChart from './BenchmarkHistoryChart.vue';
+import type { ChartLine, ChartRule } from './BenchmarkHistoryChart.vue';
 
 /**
- * The server benchmark page. Every figure comes from the newest results file through
- * `benchmarks.data.mts`; this component only words and draws them. Each metric is a strip of every
- * round's value on a shared axis from zero, with the median marked, so the spread is in view.
+ * The server benchmark page. Every figure comes from the results files through
+ * `benchmarks.data.mts`; this component only words and draws them. Each metric of the newest run
+ * is a strip of every round's value on a shared axis from zero, with the median marked, so the
+ * spread is in view. The history below it draws one point per change since the first run.
  */
 const props = defineProps<{ data: BenchmarkPageData | null }>();
 
@@ -217,6 +227,123 @@ const scenariosNote = (scenarios: readonly ScenarioDescription['id'][] | undefin
 };
 
 const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
+
+const history = computed(() => props.data?.history ?? null);
+/** The runs the history draws: the quiet ones. */
+const drawn = computed(() => history.value?.runs.filter((run) => run.quiet) ?? []);
+const historyScenario = ref<ScenarioId>('flat');
+const historyScenarios = computed(() =>
+    (results.value?.scenarios ?? [])
+        .map((scenario) => scenario.id)
+        .filter((id) => history.value?.charts.some((chart) => chart.scenario === id))
+);
+const historyCharts = computed(() =>
+    METRIC_ORDER.flatMap((metric) => {
+        const chart = history.value?.charts.find(
+            (entry) => entry.scenario === historyScenario.value && entry.metric === metric
+        );
+        return chart === undefined ? [] : [chart];
+    })
+);
+
+const runTime = (run: number) => Date.parse(history.value?.runs[run]?.startedAt ?? '');
+const runDate = (run: number) => history.value?.runs[run]?.startedAt.slice(0, 10) ?? '';
+const shortSha = (sha: string) => sha.slice(0, 7);
+const historyDomain = computed((): [number, number] => {
+    const times = drawn.value.map((run) => Date.parse(run.startedAt));
+    return [Math.min(...times), Math.max(...times)];
+});
+const cpuRules = computed((): ChartRule[] =>
+    drawn.value
+        .filter((run) => run.cpuChanged)
+        .map((run) => ({
+            time: Date.parse(run.startedAt),
+            label: 'CPU',
+            tip: `Runner CPU changed to\n${run.cpuModel}`
+        }))
+);
+
+const ratio = (value: number) => `${number(2).format(value)}×`;
+const historyFormat = (chart: HistoryChart) => (chart.view === 'ratio' ? ratio : METRIC_COPY[chart.metric].format);
+
+/** A series as chart segments, broken where the reference server changed version. */
+const chartLine = (chart: HistoryChart, series: HistorySeries): ChartLine => {
+    const segments: { time: number; value: number; tip: string }[][] = [];
+    for (const point of series.points) {
+        const run = history.value!.runs[point.run]!;
+        const tip = [
+            runDate(point.run),
+            run.commit === null ? null : `commit ${shortSha(run.commit)}`,
+            series.reference === null ? null : `${serverName(series.reference)} ${run.versions[series.reference]}`,
+            historyFormat(chart)(point.value)
+        ]
+            .filter((line) => line !== null)
+            .join('\n');
+        if (segments.length === 0 || point.referenceChanged) segments.push([]);
+        segments.at(-1)!.push({ time: runTime(point.run), value: point.value, tip });
+    }
+    return {
+        key: `${series.server}:${series.reference}`,
+        server: series.server,
+        label: serverName(series.server),
+        dashed: series.server === 'jsprismarine-raknet',
+        segments
+    };
+};
+
+interface HistoryPanel {
+    readonly key: string;
+    readonly lines: readonly ChartLine[];
+    readonly reference: { readonly server: string; readonly label: string } | null;
+    readonly label: string;
+}
+
+const panelLabel = (chart: HistoryChart, title: string, series: readonly HistorySeries[]) => {
+    const format = historyFormat(chart);
+    const lines = series.map((line) => {
+        const first = line.points[0]!;
+        const last = line.points.at(-1)!;
+        return `${serverName(line.server)} from ${format(first.value)} on ${runDate(first.run)} to ${format(last.value)} on ${runDate(last.run)}`;
+    });
+    return `${METRIC_COPY[chart.metric].label}, ${title}: ${lines.join('; ')}`;
+};
+
+/**
+ * A ratio chart has a panel per pinned server; a counted one a panel per transport, holding
+ * JSPrismarine and the server it is compared with. Pumpkin and Bedrock Dedicated Server never share
+ * a panel, as they are never compared with each other.
+ */
+const panels = (chart: HistoryChart): HistoryPanel[] => {
+    if (chart.view === 'ratio') {
+        return chart.series.map((series) => {
+            const reference = series.reference!;
+            return {
+                key: `${series.server}:${reference}`,
+                lines: [chartLine(chart, series)],
+                reference: { server: reference, label: `${serverName(reference)} = 1×` },
+                label: panelLabel(chart, `${serverName(series.server)} over ${serverName(reference)}`, [series])
+            };
+        });
+    }
+    const transportOf = (server: ServerId): Transport => results.value?.servers[server]?.transport ?? 'raknet';
+    return (['nethernet', 'raknet'] as const).flatMap((transport) => {
+        const series = chart.series.filter((line) => transportOf(line.server) === transport);
+        return series.length === 0
+            ? []
+            : [
+                  {
+                      key: transport,
+                      lines: series.map((line) => chartLine(chart, line)),
+                      reference: null,
+                      label: panelLabel(chart, `over ${TRANSPORT_NAME[transport]}`, series)
+                  }
+              ];
+    });
+};
+
+/** What a ratio chart's line means, in the metric's own terms. */
+const ratioCaption = (metric: MetricId) =>
+    `JSPrismarine's median divided by the pinned server's in the same run. ${better(metric) === 'higher' ? 'Above' : 'Below'} 1×, JSPrismarine does better.`;
 </script>
 
 <template>
@@ -347,6 +474,121 @@ const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
             </div>
         </section>
 
+        <section v-if="history" class="bench-history">
+            <h2 class="bench-title">History</h2>
+            <p class="bench-intro">
+                One point for each change to the servers or the harness, from runs whose rounds were all quiet. A run of
+                unchanged code adds no point. Runs that were not quiet are listed below and left off the charts, since
+                other work on the runner can move their figures with no server changing.
+            </p>
+            <p class="bench-intro">
+                GitHub gives each run whatever runner is free, and its CPU differs from day to day, so a CPU time from
+                one run does not compare with another's. The history divides JSPrismarine's CPU figures by those of the
+                pinned server it ran beside on the same machine: Pumpkin over NetherNet and Bedrock Dedicated Server
+                over RakNet. The machine's speed cancels, and the line moves when JSPrismarine changes. A break in the
+                line is a new pinned version, and a yellow rule is a change of CPU. Memory and bytes are counted, the
+                same on any machine, so they are drawn as measured.
+            </p>
+            <template v-if="drawn.length >= 2">
+                <div class="hist-switch" role="group" aria-label="Scenario">
+                    <button
+                        v-for="scenario in historyScenarios"
+                        :key="scenario"
+                        type="button"
+                        :aria-pressed="historyScenario === scenario"
+                        @click="historyScenario = scenario"
+                    >
+                        {{ SCENARIO_TITLE[scenario] }}
+                    </button>
+                </div>
+                <div class="bench-grid">
+                    <article v-for="chart in historyCharts" :key="chart.metric" class="bench-metric">
+                        <header>
+                            <h3>{{ METRIC_COPY[chart.metric].label }}</h3>
+                            <p class="bench-tags">
+                                <span>{{ chart.view === 'ratio' ? 'Against a pinned server' : 'Counted' }}</span>
+                                <span>{{ BETTER_LABEL[better(chart.metric)] }}</span>
+                            </p>
+                        </header>
+                        <BenchmarkHistoryChart
+                            v-for="panel in panels(chart)"
+                            :key="panel.key"
+                            :lines="panel.lines"
+                            :scale="chart.view === 'ratio' ? 'log' : 'linear'"
+                            :domain="historyDomain"
+                            :rules="cpuRules"
+                            :reference="panel.reference"
+                            :format="historyFormat(chart)"
+                            :label="panel.label"
+                        />
+                        <p class="hist-dates">
+                            <time :datetime="drawn[0]!.startedAt">{{ drawn[0]!.startedAt.slice(0, 10) }}</time>
+                            <time :datetime="drawn.at(-1)!.startedAt">{{ drawn.at(-1)!.startedAt.slice(0, 10) }}</time>
+                        </p>
+                        <p class="bench-explain">
+                            {{
+                                chart.view === 'ratio' ? ratioCaption(chart.metric) : METRIC_COPY[chart.metric].explain
+                            }}
+                        </p>
+                    </article>
+                </div>
+            </template>
+            <p v-else class="hist-start">
+                <strong>The history starts with this run.</strong>
+                {{
+                    drawn.length === 1
+                        ? 'The charts appear here once a change is measured on a quiet runner.'
+                        : 'No run has been quiet yet. The charts appear once two quiet runs have measured different code.'
+                }}
+            </p>
+            <details class="bench-runs" :open="drawn.length < 2">
+                <summary>Every change measured</summary>
+                <div class="bench-table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Commit</th>
+                                <th scope="col">Runner CPU</th>
+                                <th scope="col">Pumpkin</th>
+                                <th scope="col">Bedrock Dedicated Server</th>
+                                <th scope="col">Quiet rounds</th>
+                                <th scope="col">On the charts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="run in [...history.runs].reverse()" :key="run.file">
+                                <td>
+                                    <a v-if="run.runUrl" :href="run.runUrl">{{ run.startedAt.slice(0, 10) }}</a>
+                                    <template v-else>{{ run.startedAt.slice(0, 10) }}</template>
+                                </td>
+                                <td>
+                                    <a v-if="run.commit" :href="`${repository}/commit/${run.commit}`"
+                                        ><code>{{ shortSha(run.commit) }}</code></a
+                                    ><template v-else>–</template>
+                                    <small v-if="run.dirty" class="bench-scope">with uncommitted changes</small>
+                                </td>
+                                <td>
+                                    {{ run.cpuModel }}
+                                    <small v-if="run.cpuChanged" class="bench-scope">Changed</small>
+                                </td>
+                                <td>{{ run.versions.pumpkin ?? '–' }}</td>
+                                <td>{{ run.versions.bds ?? '–' }}</td>
+                                <td>{{ run.quietRounds }} of {{ run.rounds }}</td>
+                                <td>
+                                    {{ run.quiet ? 'Yes' : 'No, not quiet' }}
+                                    <small v-if="run.repeats > 0" class="bench-scope"
+                                        >Measured again {{ run.repeats }} time{{ run.repeats === 1 ? '' : 's' }} with no
+                                        change</small
+                                    >
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+
         <section class="bench-prose">
             <h2 class="bench-title">How it was measured</h2>
             <p>
@@ -414,8 +656,9 @@ const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
                     Server as Mojang ships it.
                 </li>
                 <li>
-                    The machine is a shared cloud runner. Another day's runner may be a different CPU, so compare
-                    figures within one results file, not across files.
+                    The machine is a shared cloud runner. Another day's runner may be a different CPU, so compare CPU
+                    and wall clock figures within one results file, not across files. The history draws CPU figures only
+                    as ratios to a server that ran on the same machine, and leaves wall clock out.
                 </li>
             </ul>
         </section>
@@ -668,16 +911,17 @@ const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
     background: var(--bench-color);
 }
 
-.is-jsprismarine-nethernet,
-.is-jsprismarine-raknet {
+/* Through `:deep`, so the history charts' marks and lines take the same colors. */
+.bench :deep(.is-jsprismarine-nethernet),
+.bench :deep(.is-jsprismarine-raknet) {
     --bench-color: var(--bench-jsprismarine);
 }
 
-.is-pumpkin {
+.bench :deep(.is-pumpkin) {
     --bench-color: var(--bench-pumpkin);
 }
 
-.is-bds {
+.bench :deep(.is-bds) {
     --bench-color: var(--bench-bds);
 }
 
@@ -903,7 +1147,8 @@ const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
     background: none;
 }
 
-.bench-prose table {
+.bench-prose table,
+.bench-history table {
     display: table;
     width: 100%;
     margin: 0;
@@ -935,6 +1180,67 @@ const runCpu = (run: RunResult) => seconds(run.phases?.travel.cpuMs);
 
 .bench-runs table {
     font-variant-numeric: tabular-nums;
+}
+
+.hist-switch {
+    display: inline-flex;
+    gap: 4px;
+    justify-self: start;
+    padding: 4px;
+    background: var(--jsp-forest);
+    border-radius: 99px;
+}
+
+.hist-switch button {
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--jsp-mint);
+    border-radius: 99px;
+}
+
+.hist-switch button[aria-pressed='true'] {
+    color: var(--jsp-on-accent);
+    background: var(--jsp-accent);
+}
+
+.hist-switch button:focus-visible {
+    outline: 2px solid var(--jsp-signal);
+    outline-offset: 2px;
+}
+
+/* The room the charts leave for their axis labels, which the date row under them lines up with. */
+.bench-history {
+    --hist-gutter: 68px;
+    display: grid;
+    gap: var(--jsp-gap);
+}
+
+.bench-history .bench-intro {
+    margin: 0;
+}
+
+.hist-dates {
+    display: flex;
+    justify-content: space-between;
+    margin: -6px 0 0 var(--hist-gutter);
+    font: 12px var(--vp-font-family-mono);
+    color: var(--jsp-mint);
+}
+
+.hist-start {
+    max-width: 72ch;
+    padding: 18px;
+    margin: 0;
+    line-height: 1.5;
+    color: var(--jsp-mint);
+    background: var(--jsp-forest);
+    border-radius: var(--jsp-radius-panel);
+}
+
+.hist-start strong {
+    display: block;
+    color: var(--jsp-cream);
 }
 
 @media (max-width: 560px) {
