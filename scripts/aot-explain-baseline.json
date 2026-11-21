@@ -1,5 +1,5 @@
 {
-    "accessesByName": 44126,
+    "accessesByName": 44072,
     "packages": {
         "packages/addon-tools": {
             "unknown-callee": 22,
@@ -41,7 +41,7 @@
         "packages/chunkgen": {
             "unknown-callee": 107,
             "unknown-object": 169,
-            "lost-track": 28
+            "lost-track": 27
         },
         "packages/color-parser": {
             "unknown-object": 11
@@ -76,7 +76,7 @@
             "lost-track": 11
         },
         "packages/entities": {
-            "unknown-callee": 98,
+            "unknown-callee": 96,
             "unknown-object": 163,
             "lost-track": 39
         },
@@ -227,9 +227,9 @@
             "lost-track": 2
         },
         "packages/worldgen": {
-            "unknown-callee": 272,
-            "unknown-object": 451,
-            "lost-track": 137
+            "unknown-callee": 261,
+            "unknown-object": 425,
+            "lost-track": 132
         }
     }
 }
