@@ -26,17 +26,23 @@ const requiredEnvironment = (name: string): string => {
     return value;
 };
 
-const pullRequestFrom = (event: unknown): { number: number; headSha: string } => {
+const pullRequestFrom = (event: unknown): { number: number; headSha: string; baseSha: string } => {
     if (
         !isRecord(event) ||
         !isRecord(event.pull_request) ||
         typeof event.pull_request.number !== 'number' ||
         !isRecord(event.pull_request.head) ||
-        typeof event.pull_request.head.sha !== 'string'
+        typeof event.pull_request.head.sha !== 'string' ||
+        !isRecord(event.pull_request.base) ||
+        typeof event.pull_request.base.sha !== 'string'
     ) {
-        throw new Error('The GitHub event does not contain a pull request number and head SHA.');
+        throw new Error('The GitHub event does not contain a pull request number, head SHA and base SHA.');
     }
-    return { number: event.pull_request.number, headSha: event.pull_request.head.sha };
+    return {
+        number: event.pull_request.number,
+        headSha: event.pull_request.head.sha,
+        baseSha: event.pull_request.base.sha
+    };
 };
 
 const nextPageUrl = (linkHeader: string | null): string | undefined => {
@@ -48,7 +54,7 @@ const token = requiredEnvironment('GITHUB_TOKEN');
 const repository = requiredEnvironment('GITHUB_REPOSITORY');
 const apiRoot = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/$/, '');
 const event: unknown = JSON.parse(readFileSync(requiredEnvironment('GITHUB_EVENT_PATH'), 'utf8'));
-const { number: pullNumber, headSha } = pullRequestFrom(event);
+const { number: pullNumber, headSha, baseSha } = pullRequestFrom(event);
 
 const request = async (url: string, init: RequestInit = {}): Promise<Response> => {
     const headers = new Headers(init.headers);
@@ -98,7 +104,8 @@ const baselineTracker: TrackerData = baselineReport.trimStart().startsWith('{')
               defects: totals.defects
           };
       })();
-const body = renderParityComment(current, baselineTracker, headSha, parityTrackerUrl(comments));
+// The workflow may hand over an ancestor's report when the base commit's run has not finished.
+const body = renderParityComment(current, baselineTracker, headSha, parityTrackerUrl(comments), baseSha);
 
 const commentUrl = previousComment
     ? `${apiRoot}/repos/${repository}/issues/comments/${previousComment.id}`

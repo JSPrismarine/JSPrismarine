@@ -96,6 +96,25 @@ describe('parity report comment lookup', () => {
         expect(comment).toContain('[Open the full parity tracker]');
     });
 
+    it('names the baseline commit when it is not the base', () => {
+        const base = 'b'.repeat(40);
+        const ancestor = `${'a'.repeat(33)}1234567`;
+        const fromAncestor = { ...tracker([trackerCase()]), sourceCommit: ancestor };
+        const fromBase = { ...tracker([trackerCase()]), sourceCommit: base };
+        const head = '0123456789012345678901234567890123456789';
+
+        expect(renderParityComment(tracker([trackerCase()]), fromAncestor, head, 'https://x', base)).toContain(
+            `**Compared with master commit ${ancestor.slice(0, 7)}, the newest before the base with a report:**`
+        );
+        expect(renderParityComment(tracker([trackerCase()]), fromBase, head, 'https://x', base)).toContain(
+            '**Compared with base:**'
+        );
+        // A Markdown-only base report has no commit, and the comparison stays with the base.
+        expect(
+            renderParityComment(tracker([trackerCase()]), { ...fromBase, sourceCommit: '' }, head, 'https://x', base)
+        ).toContain('**Compared with base:**');
+    });
+
     it('summarizes large added inventories by family instead of listing every row', () => {
         const existing = trackerCase();
         const added = Array.from({ length: 50 }, (_, index) =>

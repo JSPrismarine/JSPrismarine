@@ -135,8 +135,11 @@ jobs:
             # The base commit's own run is often still going when a pull request is rebased onto
             # it, or was cancelled while pending behind another push, so the search walks back
             # master's history to the newest commit that kept a complete map. An ancestor's map
-            # names the functions by the lines they had then, so it is used only when none of the
-            # files the pull request changes changed between that ancestor and the base.
+            # describes the server as it was then: which scenario reached which function, by the
+            # lines the functions had. A commit between the ancestor and the base that changes
+            # anything a running server loads can change both, so the map is used only when
+            # select.mts finds nothing of that kind in the span, the same test that lets a pull
+            # request skip the scenarios.
             - name: Find the base commit's scenario coverage
               id: coverage
               if: ${{ github.event_name == 'pull_request' && steps.filter.outputs.code == 'true' }}
@@ -144,10 +147,10 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
                   BASE: ${{ github.event.pull_request.base.sha }}
-                  NUMBER: ${{ github.event.pull_request.number }}
                   # How far back to look: about two days of merges.
                   DEPTH: '20'
               run: |
+                  set -o pipefail
                   pin="$(node tools/client-e2e/src/pin-matrix.mts --latest-only | jq -r 'map(select(.transport == "raknet"))[0].name')"
                   for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
                       runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/client-e2e.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
@@ -162,22 +165,21 @@ jobs:
                           done
                           if [ "$complete" != true ]; then continue; fi
                           if [ "$commit" != "$BASE" ]; then
-                              # The files that changed between the ancestor and the base, against the
-                              # ones the pull request changes. The compare lists at most 300 files, so a
-                              # larger span is treated as changing everything.
+                              # The files that changed between the ancestor and the base. The compare
+                              # lists at most 300 files, so a larger span is treated as changing everything.
                               compared="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${commit}...${BASE}" --jq '.files')"
                               if [ "$(jq 'length' <<< "$compared")" -ge 300 ]; then
                                   echo "More than 300 files changed between ${commit} and ${BASE}; selecting by package."
                                   exit 0
                               fi
-                              overlap="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}/files" --jq '.[] | .filename, (.previous_filename // empty)' |
-                                  jq -R -s --argjson compared "$compared" 'split("\n") | map(select(. != "")) | . as $changed
-                                      | $compared | map(.filename, (.previous_filename // empty)) | map(select(IN($changed[]))) | unique')"
-                              if [ "$(jq 'length' <<< "$overlap")" -gt 0 ]; then
-                                  echo "The map of ${commit} predates changes to $(jq -r 'join(", ")' <<< "$overlap"); selecting by package."
+                              span="$RUNNER_TEMP/span-selection"
+                              jq -r '.[] | .filename, (.previous_filename // empty)' <<< "$compared" |
+                                  GITHUB_OUTPUT="$span" node tools/client-e2e/src/select.mts
+                              if [ "$(grep -m1 '^mode=' "$span" | cut -d= -f2)" != none ]; then
+                                  echo "A commit between ${commit} and ${BASE} changed what a running server loads; selecting by package."
                                   exit 0
                               fi
-                              echo "No complete map for ${BASE} yet; using the map of run $run for its ancestor ${commit}."
+                              echo "No complete map for ${BASE} yet; using the map of run $run for its ancestor ${commit}, which has the same server code."
                           fi
                           mapfile -t maps < <(find "$dir" -name scenario-coverage.json)
                           node tools/client-e2e/src/scenario-coverage-map.mts "$RUNNER_TEMP/scenario-coverage.json" "${maps[@]}"

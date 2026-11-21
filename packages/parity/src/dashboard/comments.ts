@@ -63,17 +63,25 @@ const caseLabel = (entry: TrackerCase, revision: string): string => {
  * changed outcomes or reviewed gaps. It never expands every row from a changed test file.
  *
  * @param current - Tracker data generated from the pull request head.
- * @param baseline - Tracker data generated from the pull request base.
+ * @param baseline - Tracker data generated from the pull request base, or from the newest master
+ * commit before it that kept a report.
  * @param revision - Pull request head SHA used in source links.
  * @param trackerUrl - Public docs page for the complete tracker.
+ * @param baseSha - The pull request base commit. A baseline from another commit is named in the
+ * comparison, so a change that landed between the two is not read as the pull request's.
  * @returns A Markdown issue comment with only pull-request-relevant case details.
  */
 export const renderParityComment = (
     current: TrackerData,
     baseline: TrackerData,
     revision: string,
-    trackerUrl: string
+    trackerUrl: string,
+    baseSha?: string
 ): string => {
+    const comparedWith =
+        baseSha !== undefined && baseline.sourceCommit !== '' && baseline.sourceCommit !== baseSha
+            ? `master commit ${baseline.sourceCommit.slice(0, 7)}, the newest before the base with a report`
+            : 'base';
     const baselineById = new Map(checkCases(baseline).map((entry) => [entry.id, entry]));
     const currentChecks = checkCases(current);
     const currentById = new Map(currentChecks.map((entry) => [entry.id, entry]));
@@ -145,10 +153,10 @@ export const renderParityComment = (
         `**Current:** ${current.passed}/${current.checks} passing; ${current.failed} failing; ${current.notMeasured} not measured; ${current.intentional} intentional differences; ${current.deferred} deferred; ${current.defects} known defects.`,
         ...(caseSchemasMatch
             ? [
-                  `**Compared with base:** ${caseChanges}; intentional differences ${signed(intentionalDelta)}; deferred ${signed(deferredDelta)}; known defects ${signed(defectDelta)}.`
+                  `**Compared with ${comparedWith}:** ${caseChanges}; intentional differences ${signed(intentionalDelta)}; deferred ${signed(deferredDelta)}; known defects ${signed(defectDelta)}.`
               ]
             : [
-                  `**Compared with base:** case-level deltas are unavailable because the base report does not contain comparable case rows; intentional differences ${signed(intentionalDelta)}, deferred ${signed(deferredDelta)}, and known defects ${signed(defectDelta)}.`
+                  `**Compared with ${comparedWith}:** case-level deltas are unavailable because the base report does not contain comparable case rows; intentional differences ${signed(intentionalDelta)}, deferred ${signed(deferredDelta)}, and known defects ${signed(defectDelta)}.`
               ]),
         ...(caseSchemasMatch
             ? [
