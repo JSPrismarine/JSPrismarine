@@ -37,7 +37,9 @@ export const steps = {
             'pnpm-lock.yaml',
             'tsconfig*.json',
             'tools/docs/package.json',
-            'tools/docs/typedoc.json'
+            'tools/docs/typedoc.json',
+            'tools/docs/api.mts',
+            'tools/docs/api-package.mts'
         ],
         stamp: 'tools/docs/site/api/.inputs'
     },
@@ -62,31 +64,42 @@ function git(args: string[], input?: string): string[] {
         .filter(Boolean);
 }
 
-/**
- * Hashes the step's input files, as git would store them, including uncommitted edits and new files
- * that git does not ignore.
- */
-export function inputHash(name: StepName): string {
-    const { inputs } = steps[name];
-    const matches = (file: string) => inputs.some((pattern) => path.posix.matchesGlob(file, pattern));
+/** Every file git tracks or would track, with the blob ID of its current contents. */
+let worktreeBlobs: ReadonlyMap<string, string> | undefined;
+
+function listBlobs(): ReadonlyMap<string, string> {
+    if (worktreeBlobs !== undefined) return worktreeBlobs;
     const blobs = new Map<string, string>();
     for (const line of git(['ls-files', '--stage', '-z'])) {
         const tab = line.indexOf('\t');
-        const file = line.slice(tab + 1);
-        if (matches(file)) blobs.set(file, line.split(' ')[1] ?? '');
+        blobs.set(line.slice(tab + 1), line.split(' ')[1] ?? '');
     }
-    const changed = git(['ls-files', '-z', '--modified', '--deleted', '--others', '--exclude-standard']).filter(
-        matches
-    );
+    const changed = git(['ls-files', '-z', '--modified', '--deleted', '--others', '--exclude-standard']);
     for (const file of changed) blobs.delete(file);
     const present = [...new Set(changed)].filter((file) => existsSync(path.join(repoRoot, file)));
     if (present.length > 0) {
         const ids = git(['hash-object', '--stdin-paths'], `${present.join('\n')}\n`);
         for (const [index, file] of present.entries()) blobs.set(file, ids[index] ?? '');
     }
+    worktreeBlobs = blobs;
+    return blobs;
+}
+
+/**
+ * Hashes the files matching `inputs`, globs relative to the repository root, as git would store
+ * them, including uncommitted edits and new files that git does not ignore. The file list is read
+ * once per process, so hashing many sets of inputs costs one `git ls-files`.
+ */
+export function hashFiles(inputs: readonly string[], blobs: ReadonlyMap<string, string> = listBlobs()): string {
     const hash = createHash('sha256');
-    for (const [file, blob] of [...blobs].sort(([a], [b]) => (a < b ? -1 : 1))) hash.update(`${blob} ${file}\n`);
+    const matching = [...blobs].filter(([file]) => inputs.some((pattern) => path.posix.matchesGlob(file, pattern)));
+    for (const [file, blob] of matching.sort(([a], [b]) => (a < b ? -1 : 1))) hash.update(`${blob} ${file}\n`);
     return hash.digest('hex');
+}
+
+/** Hashes the step's input files; see {@link hashFiles}. */
+export function inputHash(name: StepName): string {
+    return hashFiles(steps[name].inputs);
 }
 
 function stampOf(name: StepName, inputs: string): string {

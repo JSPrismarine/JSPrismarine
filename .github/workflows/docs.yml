@@ -144,6 +144,17 @@ jobs:
                   path: tools/docs/site/api
                   key: ${{ runner.os }}-docs-api-${{ steps.docs_inputs.outputs.api }}
 
+            # When the packages changed, TypeDoc converts again only the packages whose files or
+            # workspace dependencies changed, and reuses each other package's project from the newest
+            # run that saved them (tools/docs/api.mts).
+            - name: Cache each package's API project
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: tools/docs/site/.vitepress/cache/api
+                  key: ${{ runner.os }}-docs-api-packages-${{ steps.docs_inputs.outputs.api }}
+                  restore-keys: |
+                      ${{ runner.os }}-docs-api-packages-
+
             - name: Cache the parity tracker
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
