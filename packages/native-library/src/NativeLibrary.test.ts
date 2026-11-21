@@ -3,28 +3,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { BASE_URL_ENV, SKIP_DOWNLOAD_ENV, installBuild } from './install';
-import { LIBRARY_ENV, locateLibrary } from './library';
+import { NativeLibraryError } from '@jsprismarine/errors/native-library';
+
 import { sha256 } from './manifest';
 import type { NativeManifest } from './manifest';
-import { installedLibraryPath } from './platform';
-import { NativeLibraryError } from '@jsprismarine/errors/script-host';
+import { NativeLibrary } from './NativeLibrary';
+import type { LocateOptions } from './NativeLibrary';
 
 const PLATFORM = 'linux-x64-gnu';
-const OTHER = 'win32-x64';
+const OTHER = 'win32-arm64';
 const build = Buffer.from('a build of the library for linux-x64-gnu');
-const otherBuild = Buffer.from('a build for win32-x64');
+const otherBuild = Buffer.from('a build for win32-arm64');
 
 const manifest: NativeManifest = {
     build: 'abcdef0123456789',
-    baseUrl: 'https://example.invalid/releases/download/script-host-build-abcdef0123456789',
+    baseUrl: 'https://example.invalid/releases/download/example-build-abcdef0123456789',
     platforms: {
         [PLATFORM]: {
-            shared: { file: `${PLATFORM}-libjsp_script_host.so`, bytes: build.byteLength, sha256: sha256(build) }
+            shared: { file: `${PLATFORM}-libjsp_example.so`, bytes: build.byteLength, sha256: sha256(build) }
         },
         [OTHER]: {
             shared: {
-                file: `${OTHER}-libjsp_script_host.dll`,
+                file: `${OTHER}-libjsp_example.dll`,
                 bytes: otherBuild.byteLength,
                 sha256: sha256(otherBuild)
             }
@@ -32,10 +32,23 @@ const manifest: NativeManifest = {
     }
 };
 
+const library = new NativeLibrary({
+    packageName: '@jsprismarine/example',
+    library: 'libjsp_example',
+    envPrefix: 'JSP_EXAMPLE',
+    packageDir: tmpdir(),
+    manifest,
+    buildScripts: []
+});
+const { baseUrlEnv: BASE_URL_ENV, libraryEnv: LIBRARY_ENV, skipDownloadEnv: SKIP_DOWNLOAD_ENV } = library;
+const installBuild = library.install.bind(library);
+const installedLibraryPath = library.installedLibraryPath.bind(library);
+const locateLibrary = (options: LocateOptions) => library.locate(options);
+
 /** A published package: no native sources beside the manifest. */
 const packages: string[] = [];
 const publishedPackage = (): string => {
-    const dir = mkdtempSync(join(tmpdir(), 'jsp-script-host-install-'));
+    const dir = mkdtempSync(join(tmpdir(), 'jsp-native-install-'));
     packages.push(dir);
     return dir;
 };
@@ -58,7 +71,7 @@ const network = () => {
     return { requests, fetchImpl, files };
 };
 
-describe('installing the script host library', () => {
+describe('installing the native library', () => {
     it('downloads exactly the build for its platform, checks it, and stores it in the package', async () => {
         const packageDir = publishedPackage();
         const { requests, fetchImpl } = network();
@@ -144,7 +157,7 @@ describe('installing the script host library', () => {
     });
 });
 
-describe('locating the script host library', () => {
+describe('loading the native library', () => {
     it('finds the installed build and checks it, downloading nothing', () => {
         const packageDir = publishedPackage();
         const path = installedLibraryPath(packageDir, PLATFORM);
@@ -159,8 +172,8 @@ describe('locating the script host library', () => {
         const attempt = () => locateLibrary({ packageDir: publishedPackage(), platform: PLATFORM, manifest, env: {} });
 
         expect(attempt).toThrow(NativeLibraryError);
-        expect(attempt).toThrow('npm install-scripts approve @jsprismarine/script-host');
-        expect(attempt).toThrow('npm rebuild @jsprismarine/script-host');
+        expect(attempt).toThrow('npm install-scripts approve @jsprismarine/example');
+        expect(attempt).toThrow('npm rebuild @jsprismarine/example');
         expect(attempt).toThrow('pnpm approve-builds');
         expect(attempt).toThrow('"trustedDependencies"');
         expect(attempt).toThrow(LIBRARY_ENV);
@@ -173,7 +186,7 @@ describe('locating the script host library', () => {
         writeFileSync(path, Buffer.from('something else'));
 
         expect(() => locateLibrary({ packageDir, platform: PLATFORM, manifest, env: {} })).toThrow(
-            `not the ${sha256(build)} @jsprismarine/script-host publishes for ${PLATFORM}`
+            `not the ${sha256(build)} @jsprismarine/example publishes for ${PLATFORM}`
         );
     });
 
@@ -214,6 +227,28 @@ describe('a published package without a build for the machine', () => {
     it('says no build is published for it', () => {
         expect(() =>
             locateLibrary({ packageDir: publishedPackage(), platform: 'freebsd-x64', manifest, env: {} })
-        ).toThrow('@jsprismarine/script-host publishes no build for freebsd-x64');
+        ).toThrow('@jsprismarine/example publishes no build for freebsd-x64');
+    });
+});
+
+describe('the library a packager embeds', () => {
+    it('replaces a stale installed file with the published build', async () => {
+        const packageDir = publishedPackage();
+        const mirror = publishedPackage();
+        writeFileSync(join(mirror, manifest.platforms[PLATFORM]!.shared.file), build);
+        const packager = new NativeLibrary({
+            packageName: '@jsprismarine/example',
+            library: 'libjsp_example',
+            envPrefix: 'JSP_EXAMPLE',
+            packageDir,
+            manifest: { ...manifest, baseUrl: mirror },
+            buildScripts: []
+        });
+        const path = packager.installedLibraryPath(packageDir, PLATFORM);
+        mkdirSync(join(path, '..'), { recursive: true });
+        writeFileSync(path, Buffer.from('left by an older version'));
+
+        expect(await packager.forPlatform(PLATFORM)).toStrictEqual(build);
+        expect(readFileSync(path)).toStrictEqual(build);
     });
 });

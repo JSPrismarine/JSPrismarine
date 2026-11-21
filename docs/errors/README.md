@@ -19,7 +19,7 @@ More about PRISMARINE_PLAYER_NOT_FOUND: https://jsprismarine.dev/errors/prismari
 Code that embeds the server or uses a package on its own reads the same two values from the error
 it catches, as `error.code` and `error.docs`.
 
-There are <!-- fact:errors.count -->1372<!-- /fact --> errors, one page per package. A package that throws many, such as
+There are <!-- fact:errors.count -->1363<!-- /fact --> errors, one page per package. A package that throws many, such as
 `@jsprismarine/prismarine`, has a page per catalog module as well, which its page lists:
 
 <!-- fact:errors.domains -->
@@ -51,7 +51,8 @@ There are <!-- fact:errors.count -->1372<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/mapping`](mapping.md)                   | 1      |
 | [`@jsprismarine/minecraft`](minecraft.md)               | 1      |
 | [`@jsprismarine/molang`](molang.md)                     | 11     |
-| [`@jsprismarine/native-network`](native-network.md)     | 17     |
+| [`@jsprismarine/native-library`](native-library.md)     | 9      |
+| [`@jsprismarine/native-network`](native-network.md)     | 8      |
 | [`@jsprismarine/nbt`](nbt.md)                           | 29     |
 | [`@jsprismarine/nethernet`](nethernet.md)               | 42     |
 | [`@jsprismarine/packs`](packs.md)                       | 38     |
@@ -59,7 +60,7 @@ There are <!-- fact:errors.count -->1372<!-- /fact --> errors, one page per pack
 | [`@jsprismarine/prismarine`](prismarine.md)             | 428    |
 | [`@jsprismarine/protocol`](protocol.md)                 | 141    |
 | [`@jsprismarine/raknet`](raknet.md)                     | 30     |
-| [`@jsprismarine/script-host`](script-host.md)           | 99     |
+| [`@jsprismarine/script-host`](script-host.md)           | 90     |
 | [`@jsprismarine/server`](server.md)                     | 23     |
 | [`@jsprismarine/structures`](structures.md)             | 43     |
 | [`@jsprismarine/worldgen`](worldgen.md)                 | 110    |

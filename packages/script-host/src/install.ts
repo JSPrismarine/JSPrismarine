@@ -1,99 +1,16 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import type { InstallOptions, InstallOutcome } from '@jsprismarine/native-library';
 
-import { bundledManifest, sha256 } from './manifest';
-import type { NativeManifest } from './manifest';
-import { hasNativeSources, nativeSourceHash } from './nativeHash';
-import { installedLibraryPath, platformKey } from './platform';
-import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+import { scriptHostLibrary } from './library';
 
 /** Skips the download, for an install that brings its own library through `JSP_SCRIPT_HOST_LIBRARY`. */
-export const SKIP_DOWNLOAD_ENV = 'JSP_SCRIPT_HOST_SKIP_DOWNLOAD';
+export const SKIP_DOWNLOAD_ENV = scriptHostLibrary.skipDownloadEnv;
 /** Downloads from another release host or a directory, such as a mirror or a test's fixtures. */
-export const BASE_URL_ENV = 'JSP_SCRIPT_HOST_BASE_URL';
-
-/** What an install did. */
-export type InstallOutcome =
-    | { readonly kind: 'installed'; readonly path: string; readonly bytes: number }
-    | { readonly kind: 'present'; readonly path: string }
-    | { readonly kind: 'no-build'; readonly platform: string }
-    | { readonly kind: 'skipped' }
-    | { readonly kind: 'local-sources'; readonly sourceHash: string };
-
-/** How {@link installBuild} finds and fetches the build; tests replace the network and the platform. */
-export interface InstallOptions {
-    readonly packageDir: string;
-    readonly platform?: string;
-    readonly env?: NodeJS.ProcessEnv;
-    readonly fetch?: (url: string) => Promise<Response>;
-    readonly manifest?: NativeManifest;
-}
-
-/** A URL without the slashes it ends in, trimmed by index: a regular expression would backtrack on a long run of them. */
-const withoutTrailingSlashes = (url: string): string => {
-    let end = url.length;
-    while (end > 0 && url[end - 1] === '/') end--;
-    return url.slice(0, end);
-};
-
-const readSource = async (
-    base: string,
-    file: string,
-    fetchImpl: (url: string) => Promise<Response>
-): Promise<Uint8Array> => {
-    // A base that is not a URL is a directory, as a test or an offline mirror gives.
-    if (!/^[a-z]+:\/\//i.test(base)) return readFileSync(join(base, file));
-    const url = `${withoutTrailingSlashes(base)}/${encodeURIComponent(file)}`;
-    const response = await fetchImpl(url);
-    if (!response.ok) throw new ScriptHostErrors.DownloadFailed({ url, status: response.status });
-    return new Uint8Array(await response.arrayBuffer());
-};
+export const BASE_URL_ENV = scriptHostLibrary.baseUrlEnv;
 
 /**
  * Downloads the build for this machine into the package, once, and checks its SHA-256 against
  * the manifest. It is what the package's `postinstall` runs; loading the library never downloads.
  * @param options - The package and, for tests, the platform, environment and network.
  * @returns What it did.
- * @throws {Error} When the download fails or its digest or size differ from the manifest's.
  */
-export const installBuild = async (options: InstallOptions): Promise<InstallOutcome> => {
-    const env = options.env ?? process.env;
-    if (env[SKIP_DOWNLOAD_ENV] === '1') return { kind: 'skipped' };
-    const packageDir = resolve(options.packageDir);
-    const manifest = options.manifest ?? bundledManifest();
-    const platform = options.platform ?? platformKey();
-
-    // A checkout whose native sources changed since the published builds builds its own.
-    if (hasNativeSources(packageDir)) {
-        const sourceHash = nativeSourceHash(packageDir);
-        if (sourceHash !== manifest.build) return { kind: 'local-sources', sourceHash };
-    }
-
-    const entry = manifest.platforms[platform];
-    if (entry === undefined) return { kind: 'no-build', platform };
-
-    const path = installedLibraryPath(packageDir, platform);
-    if (existsSync(path) && sha256(readFileSync(path)) === entry.shared.sha256) return { kind: 'present', path };
-
-    const bytes = await readSource(env[BASE_URL_ENV] || manifest.baseUrl, entry.shared.file, options.fetch ?? fetch);
-    const digest = sha256(bytes);
-    if (digest !== entry.shared.sha256 || bytes.byteLength !== entry.shared.bytes) {
-        throw new ScriptHostErrors.DownloadDigestMismatch({
-            file: entry.shared.file,
-            digest,
-            byteLength: bytes.byteLength,
-            sha256: entry.shared.sha256,
-            bytes: entry.shared.bytes
-        });
-    }
-    mkdirSync(dirname(path), { recursive: true });
-    // Written beside the target and renamed, so a failed install never leaves half a library.
-    const partial = `${path}.${process.pid}.part`;
-    try {
-        writeFileSync(partial, bytes);
-        renameSync(partial, path);
-    } finally {
-        rmSync(partial, { force: true });
-    }
-    return { kind: 'installed', path, bytes: bytes.byteLength };
-};
+export const installBuild = (options: InstallOptions): Promise<InstallOutcome> => scriptHostLibrary.install(options);

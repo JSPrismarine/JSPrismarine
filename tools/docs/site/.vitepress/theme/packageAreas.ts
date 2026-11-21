@@ -67,8 +67,8 @@ export const packageAreas = [
     {
         id: 'utilities',
         title: 'Utilities',
-        description: 'Errors, logging and math shared by the other packages.',
-        packages: ['errors', 'logger', 'math']
+        description: 'Errors, logging, math and native library loading shared by the other packages.',
+        packages: ['errors', 'logger', 'math', 'native-library']
     }
 ] as const;
 

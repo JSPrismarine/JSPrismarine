@@ -2,7 +2,8 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
-import { NativeLibraryError, NativeNetworkErrors } from '@jsprismarine/errors/native-network';
+import { NativeLibraryError } from '@jsprismarine/errors/native-library';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 import { nodeFfiOf } from './ffi';
 

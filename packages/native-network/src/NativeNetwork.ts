@@ -3,7 +3,8 @@ import dgram from 'node:dgram';
 import { bindLibrary } from './ffi';
 import type { BoundLibrary, NativeSymbols } from './ffi';
 import { locateLibrary } from './library';
-import { NativeLibraryError, NativeNetworkErrors } from '@jsprismarine/errors/native-network';
+import { NativeLibraryError } from '@jsprismarine/errors/native-library';
+import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
 
 /** The interface version this binding speaks; it must equal the library's `JSP_ABI_VERSION`. */
 export const ABI_VERSION = 1;

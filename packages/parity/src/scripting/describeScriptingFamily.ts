@@ -1,4 +1,4 @@
-import { NativeLibraryError } from '@jsprismarine/errors/script-host';
+import { NativeLibraryError } from '@jsprismarine/errors/native-library';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { scriptHostAvailable } from '../../../script-host/src/testing/library.test-utils.ts';

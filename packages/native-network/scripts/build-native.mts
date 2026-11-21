@@ -28,8 +28,11 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 
-import { nativeBuildDir, nativeSourceHash } from '../src/nativeHash.ts';
-import { platformKey, sharedLibraryName, staticLibraryName } from '../src/platform.ts';
+// By path, not by package name: this script runs where no dependencies are installed.
+import { nativeSourceHash } from '../../native-library/src/nativeHash.ts';
+import { platformKey, sharedLibraryFile, staticLibraryFile } from '../../native-library/src/platform.ts';
+import { BUILD_SCRIPTS, nativeBuildDir } from '../src/nativeHash.ts';
+import { LIBRARY } from '../src/platform.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const nativeDir = join(packageDir, 'native');
@@ -212,14 +215,14 @@ const findBuilt = (names: string[]): string => {
 };
 
 mkdirSync(out, { recursive: true });
-const shared = join(out, sharedLibraryName());
-copyFileSync(findBuilt([sharedLibraryName(), 'jsp_native_network.dll']), shared);
+const shared = join(out, sharedLibraryFile(LIBRARY));
+copyFileSync(findBuilt([sharedLibraryFile(LIBRARY), 'jsp_native_network.dll']), shared);
 if (process.platform !== 'win32' && process.platform !== 'darwin' && !values.debug) {
     run('strip', ['--strip-unneeded', shared], out);
 }
 // The scriptc build links one archive, so the C layer's archive and every one it depends on are
 // merged into it.
-const archive = join(out, staticLibraryName());
+const archive = join(out, staticLibraryFile(LIBRARY));
 const findArchive = (stem: string): string => {
     const names = process.platform === 'win32' ? [`${stem}.lib`] : [`lib${stem}.a`];
     const stack = [buildDir];
@@ -260,7 +263,7 @@ const describe = (file: string) => ({
 });
 const report = {
     platform: key,
-    sourceHash: nativeSourceHash(packageDir),
+    sourceHash: nativeSourceHash(packageDir, BUILD_SCRIPTS),
     tls,
     buildType,
     sources: Object.fromEntries(pinned.map((source) => [source.name, source.version])),
