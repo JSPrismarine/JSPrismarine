@@ -32,8 +32,8 @@ import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
 export const scriptConfigDirectory = (): string => withCwd('config');
 
 /**
- * Runs the behavior pack scripts of every level the server loads at startup, each level in a
- * runtime of its own ([ADR 0020](../../../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)):
+ * Runs the behavior pack scripts of every level the server loads, the ones it loads at startup and
+ * each one attached later, each level in a runtime of its own ([ADR 0020](../../../../docs/adr/0020-scripts-run-in-quickjs-on-the-world-thread.md)):
  * the world packs `content-world-packs` names and the installed addons, those that have a script
  * module, with BDS's `config/` folder beside the server. The content build is the server's, so
  * every level loads the same packs.
@@ -49,29 +49,47 @@ export const scriptConfigDirectory = (): string => withCwd('config');
  */
 export const scriptsModule = (server: Server): Module => {
     /** The levels whose scripts this module started, which it stops. */
-    let started: readonly Level[] = [];
+    const started = new Set<Level>();
+    /** Takes the module off the level lifecycle events. */
+    let unsubscribe: (() => void) | undefined;
+    /** Starts a level's scripts, from the server's current pack list. */
+    const startFor = async (level: Level): Promise<void> => {
+        const worlds = server.getWorldManager();
+        started.add(level);
+        await server.getScriptSlot(level).start(server.getWorldPackDirectories(), (directories) =>
+            startLevelScripts(server, level, directories, {
+                // One debugger, on one port, so it attaches to the default level's runtime.
+                autoAttach: level === worlds.getDefaultLevel()
+            })
+        );
+    };
+    const stopFor = (level: Level): void => {
+        if (!started.delete(level)) return;
+        server.getScriptSlot(level).stop();
+    };
     return {
         id: 'prismarine:scripts',
         dependencies: [contentToken, worldsToken],
         register: () => {},
         start: async () => {
-            const worlds = server.getWorldManager();
-            started = worlds.getLevels();
-            const packs = server.getWorldPackDirectories();
             // One after another, in load order: each level's early execution and first run happen
             // before the next level's, as each Bedrock world's would on its own server.
-            for (const level of started) {
-                await server.getScriptSlot(level).start(packs, (directories) =>
-                    startLevelScripts(server, level, directories, {
-                        // One debugger, on one port, so it attaches to the default level's runtime.
-                        autoAttach: level === worlds.getDefaultLevel()
-                    })
-                );
-            }
+            for (const level of server.getWorldManager().getLevels()) await startFor(level);
+            // A level attached later starts its scripts as it attaches, and a detaching one stops
+            // them before its players move out.
+            const events = server.getKernel().events;
+            const stops = [
+                events.on('levelAttached', (event) => startFor(event.getLevel())),
+                events.on('levelDetaching', (event) => stopFor(event.getLevel()))
+            ];
+            unsubscribe = () => {
+                for (const stop of stops) stop();
+            };
         },
         stop: () => {
-            for (const level of started) server.getScriptSlot(level).stop();
-            started = [];
+            unsubscribe?.();
+            unsubscribe = undefined;
+            for (const level of [...started]) stopFor(level);
         }
     };
 };

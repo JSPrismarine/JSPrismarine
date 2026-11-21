@@ -23,10 +23,23 @@ import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import type { World } from './World';
 import { WorldgenCatalog } from './WorldgenCatalog';
 import type { WorldGenSettings } from './WorldPersistence';
+import LevelAttachedEvent from '../events/level/LevelAttachedEvent';
+import LevelDetachedEvent from '../events/level/LevelDetachedEvent';
+import LevelDetachingEvent from '../events/level/LevelDetachingEvent';
+import { SerialQueue } from '../utils/serialQueue';
 
 export type { WorldData } from '../config/JsonConfigTypes';
 
 const WORLDS_FOLDER = 'worlds';
+
+/**
+ * Where a level is in its lifecycle. A level the manager has no state for is detached: not loaded,
+ * its files left as they were.
+ */
+export type LevelState = 'attaching' | 'attached' | 'detaching';
+
+/** How long a detach waits for the level's players to arrive in the entry level before it goes on without them. */
+const EVACUATION_TICKS = 200;
 
 /** A level built and registered, and whether its save had no stems or no UUID before this load. */
 interface PreparedLevel {
@@ -52,6 +65,10 @@ interface SavedLevel {
 export default class WorldManager implements Service {
     /** The loaded levels by UUID, in load order. */
     private readonly levels = new Map<string, Level>();
+    /** Each loaded level's place in its lifecycle, by UUID. */
+    private readonly states = new Map<string, LevelState>();
+    /** Attaches and detaches, one at a time, so two of them never race over one level or one name. */
+    private readonly operations = new SerialQueue();
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
     private defaultLevel!: Level;
@@ -109,7 +126,9 @@ export default class WorldManager implements Service {
         // has its game rules, its name and its provider, which is what its callers ask it for.
         // `Level.enable` builds its eager worlds before its first await, so the Overworld
         // exists the moment the call returns its promise.
-        const prepared = await this.prepareLevel(defaultData, defaultName, { overworld: 'eager' });
+        const prepared = await this.operations.run(() =>
+            this.prepareLevel(defaultData, defaultName, { overworld: 'eager' })
+        );
         const enabling = prepared.level.enable();
         const world = prepared.level.loadedWorld(OVERWORLD_STEM_ID);
         if (world === undefined)
@@ -117,7 +136,7 @@ export default class WorldManager implements Service {
         this.defaultLevel = prepared.level;
         this.defaultWorld = world;
         this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
-        await this.finishLoading(prepared, enabling);
+        await this.operations.run(() => this.finishLoading(prepared, enabling));
 
         // The other entries after the default, one at a time, so their log lines do not
         // interleave and the default's terrain is not competing with theirs for the workers.
@@ -161,15 +180,25 @@ export default class WorldManager implements Service {
      * @throws {Error} When the level is already loaded, names a provider that is not
      *   registered, or its stems cannot be resolved.
      */
-    public async loadLevel(worldData: WorldData, folderName: string): Promise<Level> {
-        const prepared = await this.prepareLevel(worldData, folderName);
-        await this.finishLoading(prepared, prepared.level.enable());
-        return prepared.level;
+    public loadLevel(worldData: WorldData, folderName: string): Promise<Level> {
+        return this.operations.run(async () => {
+            const prepared = await this.prepareLevel(worldData, folderName);
+            await this.finishLoading(prepared, prepared.level.enable());
+            return prepared.level;
+        });
     }
 
-    /** Waits for a level's enabling, then writes the stems into a save that had none. */
+    /**
+     * Waits for a level's enabling, writes the stems into a save that had none, and announces
+     * the level attached.
+     */
     private async finishLoading({ level, firstLoad }: PreparedLevel, enabling: Promise<void>): Promise<void> {
-        await enabling;
+        try {
+            await enabling;
+        } catch (error: unknown) {
+            this.states.delete(level.id);
+            throw error;
+        }
         // A save keeps the stems it was generated with from its first load on, so a later config
         // edit is compared against them rather than silently regenerating different terrain.
         // So are the numbers of the custom dimensions, which the next start has to find again.
@@ -177,6 +206,8 @@ export default class WorldManager implements Service {
         this.server
             .getLogger()
             .verbose(`Level §b${level.name}§r loaded with ${[...level.getStems().keys()].join(', ')}`);
+        this.states.set(level.id, 'attached');
+        await this.server.getKernel().events.emit('levelAttached', new LevelAttachedEvent(level));
     }
 
     /**
@@ -287,6 +318,7 @@ export default class WorldManager implements Service {
             onWorldBuilt: (world) => this.registerWorld(world)
         });
         this.levels.set(level.id, level);
+        this.states.set(level.id, 'attaching');
 
         return { level, firstLoad: saved.worldGenSettings === undefined || saved.levelId === undefined };
     }
@@ -332,12 +364,75 @@ export default class WorldManager implements Service {
 
         await level.disable();
         this.levels.delete(level.id);
+        this.states.delete(level.id);
         // After the save, which reads them: a level loaded again under this name would otherwise
         // be handed the runtimes, and the entities, of this one.
         if (this.server.hasEntityRuntime()) this.server.getContentWorld().closeLevel(level.name);
         for (const world of level.worlds()) {
             this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
         }
+    }
+
+    /**
+     * Detaches a level while the server runs: announces it detaching, which stops its scripts,
+     * moves its players to the entry level's spawn, saves and closes it, and announces it
+     * detached. Its files stay, so loading it again opens the same save.
+     *
+     * @param folderName - The level's name.
+     * @throws {Error} When no attached level has the name, or it is the entry level, which players
+     *   join first.
+     */
+    public detachLevel(folderName: string): Promise<void> {
+        return this.operations.run(async () => {
+            const level = this.getLevel(folderName);
+            if (level === undefined || this.states.get(level.id) !== 'attached')
+                throw new PrismarineWorldErrors.LevelNotAttached({ name: folderName });
+            if (level === this.defaultLevel)
+                throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
+
+            this.states.set(level.id, 'detaching');
+            const events = this.server.getKernel().events;
+            await events.emit('levelDetaching', new LevelDetachingEvent(level));
+            await this.evacuate(level);
+            await this.unloadWorld(level.name);
+            await events.emit('levelDetached', new LevelDetachedEvent(level));
+        });
+    }
+
+    /**
+     * Sends every player in a level to the entry level's spawn, and waits up to
+     * {@link EVACUATION_TICKS} ticks for them to arrive there. A player still in the level then is
+     * disconnected, since the level is about to close under them.
+     */
+    private async evacuate(level: Level): Promise<void> {
+        const inLevel = () =>
+            this.server
+                .getSessionManager()
+                .getSessions()
+                .filter((session) => session.getWorld().getLevel() === level);
+        const leaving = inLevel();
+        if (leaving.length === 0) return;
+        for (const session of leaving) session.setWorld(this.defaultWorld);
+        if (inLevel().length === 0) return;
+
+        const events = this.server.getKernel().events;
+        await new Promise<void>((resolve) => {
+            let ticks = 0;
+            const stop = events.on('tick', () => {
+                ticks++;
+                if (inLevel().length > 0 && ticks < EVACUATION_TICKS) return;
+                stop();
+                resolve();
+            });
+        });
+        for (const session of inLevel()) {
+            await session.kick(`The level ${level.name} was detached.`);
+        }
+    }
+
+    /** Where a loaded level is in its lifecycle, or undefined for a level that is not loaded. */
+    public getLevelState(level: Level): LevelState | undefined {
+        return this.states.get(level.id);
     }
 
     /**

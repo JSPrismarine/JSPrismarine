@@ -20,6 +20,8 @@ import type { ServerContent } from '../content/ServerContent';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import type { NetworkWorldReplicator, WorldReplicators } from '../network/NetworkWorldReplicator';
+import type PlayerSession from '../network/PlayerSession';
+import type SessionManager from '../SessionManager';
 import type Server from '../Server';
 import { inertEntityRuntime, testContent } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
@@ -145,8 +147,11 @@ const buildManager = (
         verbose: (message) => void logged.push(String(message))
     });
     const kernel = testKernel();
+    /** The players online, which a detach moves out of its level. */
+    const sessions: PlayerSession[] = [];
     const server = stub<Server>({
         getKernel: () => kernel,
+        getSessionManager: () => stub<SessionManager>({ getSessions: () => sessions }),
         getLogger: () => logger,
         getConfig: () =>
             stub<Config>({
@@ -197,7 +202,7 @@ const buildManager = (
         });
     }
 
-    return { manager, logged, setWorld, builds, noiseSettingsSeen, workersSeen, terrainCacheSeen };
+    return { manager, kernel, sessions, logged, setWorld, builds, noiseSettingsSeen, workersSeen, terrainCacheSeen };
 };
 
 describe('WorldManager', () => {
@@ -402,6 +407,87 @@ describe('WorldManager', () => {
         expect(second.manager.getLevelById((other ?? '').toUpperCase())).toBe(second.manager.getLevel('OTHER'));
 
         await second.manager.disable();
+    });
+
+    it('announces each level attached, and a detach as detaching then detached, keeping its save', async () => {
+        const { manager, kernel } = buildManager('main', { main: entryOf(), other: entryOf() });
+        const seen: string[] = [];
+        kernel.events.on('levelAttached', (event) => void seen.push(`attached ${event.getLevel().name}`));
+        kernel.events.on('levelDetaching', (event) => {
+            seen.push(`detaching ${event.getLevel().name} ${manager.getLevelState(event.getLevel())}`);
+        });
+        kernel.events.on('levelDetached', (event) => {
+            seen.push(`detached ${event.getLevel().name} ${event.getLevel().isClosed()}`);
+        });
+        await manager.enable();
+        const id = manager.getLevel('other')?.id;
+
+        await manager.detachLevel('other');
+        expect(manager.getLevel('other')).toBeUndefined();
+        const again = await manager.loadLevel(entryOf(), 'other');
+
+        expect(seen).toEqual([
+            'attached main',
+            'attached other',
+            'detaching other detaching',
+            'detached other true',
+            'attached other'
+        ]);
+        expect(again.id).toBe(id);
+        expect(manager.getLevelState(again)).toBe('attached');
+
+        await manager.disable();
+    });
+
+    it('refuses to detach the entry level, or a level that is not attached', async () => {
+        const { manager } = buildManager('main', { main: entryOf() });
+        await manager.enable();
+
+        await expect(manager.detachLevel('main')).rejects.toThrow(/players join first/);
+        await expect(manager.detachLevel('nowhere')).rejects.toThrow(/No attached level is named nowhere/);
+
+        await manager.disable();
+    });
+
+    it('loads one name once, however many loads of it start together', async () => {
+        const { manager } = buildManager('main', { main: entryOf() });
+        await manager.enable();
+
+        const loads = await Promise.allSettled([
+            manager.loadLevel(entryOf(), 'other'),
+            manager.loadLevel(entryOf(), 'other')
+        ]);
+
+        expect(loads.map((load) => load.status)).toEqual(['fulfilled', 'rejected']);
+        expect(manager.getLevels().map((level) => level.name)).toEqual(['main', 'other']);
+
+        await manager.disable();
+    });
+
+    it('moves the players of a detaching level to the entry level first', async () => {
+        const { manager, sessions } = buildManager('main', { main: entryOf(), other: entryOf() });
+        await manager.enable();
+        const other = manager.getLevel('other');
+        const otherWorld = other?.loadedWorld(OVERWORLD_STEM_ID);
+        if (otherWorld === undefined) throw new Error('the other level has an Overworld');
+        let world = otherWorld;
+        const moves: string[] = [];
+        sessions.push(
+            stub<PlayerSession>({
+                getWorld: () => world,
+                setWorld: (to) => {
+                    moves.push(to.getLevel().name);
+                    world = to;
+                }
+            })
+        );
+
+        await manager.detachLevel('other');
+
+        expect(moves).toEqual(['main']);
+        expect(other?.isClosed()).toBe(true);
+
+        await manager.disable();
     });
 
     it('says each old key once and writes the entry back in the new spelling', async () => {

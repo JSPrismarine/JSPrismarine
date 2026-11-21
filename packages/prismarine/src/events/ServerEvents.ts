@@ -26,6 +26,9 @@ import type TickEvent from './other/TickEvent';
 import type ExplosionEvent from './other/ExplosionEvent';
 import type ExplodedEvent from './other/ExplodedEvent';
 import type GameRuleChangedEvent from './other/GameRuleChangedEvent';
+import type LevelAttachedEvent from './level/LevelAttachedEvent';
+import type LevelDetachedEvent from './level/LevelDetachedEvent';
+import type LevelDetachingEvent from './level/LevelDetachingEvent';
 import type RedstoneActivatedEvent from './other/RedstoneActivatedEvent';
 import type PlayerBlockBrokenEvent from './player/PlayerBlockBrokenEvent';
 import type PlayerBlockActionEvent from './player/PlayerBlockActionEvent';
@@ -72,6 +75,9 @@ import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacke
  */
 export type ServerEvents = {
     chat: [ChatEvent];
+    levelAttached: [LevelAttachedEvent];
+    levelDetaching: [LevelDetachingEvent];
+    levelDetached: [LevelDetachedEvent];
     tick: [TickEvent];
     explosion: [ExplosionEvent];
     exploded: [ExplodedEvent];
