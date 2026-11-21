@@ -28,6 +28,11 @@ export interface DocSection {
      * when each was written. `/llms.txt` labels each with its date or status.
      */
     dated?: boolean;
+    /**
+     * Whether the section is looked up a page at a time, such as the error reference, so
+     * `/llms-full.txt` leaves it out and a reader fetches the one page it needs.
+     */
+    lookup?: boolean;
     title: string;
 }
 
@@ -37,7 +42,7 @@ export const sections = [
     // The marketplace: the docs build writes its overview and a page per addon, each rendering a
     // component. A README reaches its page as HTML rendered with raw HTML off (see `addonReadme.mts`).
     { dir: 'addons', title: 'Addons', generated: true },
-    { dir: 'errors', title: 'Errors' },
+    { dir: 'errors', title: 'Errors', lookup: true },
     // The site serves no copy of the logo and icon files, so the guide's links to them go to GitHub.
     { dir: 'brand', title: 'Brand', unpublished: ['assets/'], optional: true },
     { dir: 'data-driven', title: 'Data-driven engine' },

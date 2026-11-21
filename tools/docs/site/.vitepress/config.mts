@@ -8,7 +8,7 @@ import { languages } from './languages.ts';
 import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
-import { markdownHeaders, writeLlmsText, writeMarkdownPages } from '../../llms.mts';
+import { markdownHeaders, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
 import { loadProject } from '../../project.mts';
 import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
@@ -130,7 +130,7 @@ export default defineConfig({
             siteUrl
         });
         console.log(`Markdown copies: ${markdownPages} pages.`);
-        const llmsLinks = writeLlmsText({
+        const llms = writeLlmsFiles({
             srcDir: siteConfig.srcDir,
             outDir: siteConfig.outDir,
             pages: siteConfig.pages,
@@ -144,7 +144,7 @@ export default defineConfig({
                 cardPages.has(`${section.dir}/index.md`) ? overviewGroups(section.dir) : undefined,
             updatedAt: sourceUpdatedAt
         });
-        console.log(`llms.txt: ${llmsLinks} links.`);
+        console.log(`llms.txt: ${llms.links} links; llms-full.txt: ${llms.fullTextBytes} bytes.`);
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.
         writeFileSync(
