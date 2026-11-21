@@ -1,7 +1,9 @@
 name: Addons release
 
 # Builds every addon in a repository with jsp-addon from @jsprismarine/addon-tools, and with
-# `publish` attaches the new packs and the merged index.json to the repository's addons release.
+# `publish` attaches the new packs, their listing files (README, icon and screenshots, which the
+# marketplace on jsprismarine.dev shows) and the merged index.json to the repository's addons
+# release.
 # The build downloads the index already published and refuses a published version whose pack
 # changed, so a pull request that edits an addon without raising its version fails here.
 #
@@ -44,7 +46,7 @@ on:
                 type: string
                 default: 'lts/*'
             publish:
-                description: 'Whether to attach the new packs and the index to the `addons` release.'
+                description: 'Whether to attach the new packs, their listing files and the index to the `addons` release.'
                 required: false
                 type: boolean
                 default: false
@@ -62,6 +64,7 @@ jobs:
         outputs:
             tag: ${{ steps.build.outputs.tag }}
             added: ${{ steps.build.outputs.added }}
+            listing: ${{ steps.build.outputs.listing }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -112,15 +115,18 @@ jobs:
             GH_REPO: ${{ github.repository }}
             TAG: ${{ needs.build.outputs.tag }}
             ADDED: ${{ needs.build.outputs.added }}
+            # Empty when the tools predate listings, which write no listing output.
+            LISTING: ${{ needs.build.outputs.listing }}
         steps:
             - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
                   name: addons
                   path: addons
 
-            # The packs go up before the index, so the index never names a pack the release lacks.
-            # A pack never replaces one already there: lockfiles pin each published version's hash.
-            - name: 🏷️ Attach the packs and the index to the release
+            # The packs and their listing files go up before the index, so the index never names a
+            # file the release lacks. A file never replaces one already there: lockfiles pin each
+            # published pack's hash, and the marketplace's snapshot pins each listing file's.
+            - name: 🏷️ Attach the packs, their listing files and the index to the release
               shell: bash
               run: |
                   if ! gh release view "$TAG" >/dev/null 2>&1; then
@@ -130,23 +136,23 @@ jobs:
                   asset_id() {
                       gh api "repos/$GH_REPO/releases/tags/$TAG" --jq ".assets[] | select(.name == \"$1\") | .id"
                   }
-                  # A run that failed after some packs went up left them on the release while the
-                  # index still lacks them, so the next build lists them as added again. A pack
+                  # A run that failed after some files went up left them on the release while the
+                  # index still lacks them, so the next build lists them as added again. A file
                   # already there with the same SHA-256 is skipped; one with other bytes stops the run.
                   published="$RUNNER_TEMP/published"
                   mkdir -p "$published"
-                  # The pack names are space-separated and hold no spaces of their own.
-                  for pack in $ADDED; do
-                      if [ -z "$(asset_id "$pack")" ]; then
-                          gh release upload "$TAG" "addons/$pack"
+                  # The file names are space-separated and hold no spaces of their own.
+                  for file in $ADDED $LISTING; do
+                      if [ -z "$(asset_id "$file")" ]; then
+                          gh release upload "$TAG" "addons/$file"
                           continue
                       fi
-                      gh release download "$TAG" --pattern "$pack" --dir "$published" --clobber
-                      if [ "$(sha256sum < "$published/$pack")" != "$(sha256sum < "addons/$pack")" ]; then
-                          echo "::error::$pack is already on the $TAG release with other contents. Raise the addon's version."
+                      gh release download "$TAG" --pattern "$file" --dir "$published" --clobber
+                      if [ "$(sha256sum < "$published/$file")" != "$(sha256sum < "addons/$file")" ]; then
+                          echo "::error::$file is already on the $TAG release with other contents. Raise the addon's version."
                           exit 1
                       fi
-                      echo "$pack is already on the $TAG release with the same contents"
+                      echo "$file is already on the $TAG release with the same contents"
                   done
                   # Replacing an asset deletes it first, so a failed upload would leave the release
                   # with no index. The old one is renamed to index.previous.json instead and deleted

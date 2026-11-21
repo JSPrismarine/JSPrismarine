@@ -77,8 +77,8 @@ from a changed one.
 
 <!-- fact:addons.workflowPath -->`.github/workflows/addons-release.yml`<!-- /fact --> in
 JSPrismarine's repository is a reusable workflow that runs the build and, when asked, attaches the
-new packs and the index to your repository's <!-- fact:addons.releaseTag -->`addons`<!-- /fact -->
-release. Call it from a workflow of your own:
+new packs, their listing files and the index to your repository's
+<!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release. Call it from a workflow of your own:
 
 <!-- fact:addons.callerExample -->
 ```yaml
@@ -117,7 +117,7 @@ The workflow takes these inputs:
 | `addons`       | string  | `addons` | The folder that holds one folder per addon.                                                                                                                                          |
 | `tools`        | string  | `latest` | The `@jsprismarine/addon-tools` version to run, such as `latest` or `0.23.0`. `workspace` runs the package from the caller's checkout, which only JSPrismarine's own repository has. |
 | `node-version` | string  | `lts/*`  | The Node.js version to run a published `@jsprismarine/addon-tools` on.                                                                                                               |
-| `publish`      | boolean | `false`  | Whether to attach the new packs and the index to the `addons` release.                                                                                                               |
+| `publish`      | boolean | `false`  | Whether to attach the new packs, their listing files and the index to the `addons` release.                                                                                          |
 <!-- /fact -->
 
 Set `tools` to an exact version to keep the build the same from one release to the next; the
