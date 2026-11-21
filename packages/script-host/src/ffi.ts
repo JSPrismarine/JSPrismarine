@@ -5,7 +5,7 @@
  * a call into the engine is running.
  */
 
-import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
+import { nodeFfi } from '@jsprismarine/native-library/ffi';
 
 /** A native address, as `node:ffi` passes one. The Bun binding converts its numbers to and from it. */
 export type NativePointer = bigint;
@@ -111,25 +111,6 @@ const hostCallbackSignature = {
     return: 'int32'
 } as const satisfies { arguments: readonly Kind[]; return: Kind };
 
-/** The part of `node:ffi` this binding uses; Node.js 26 ships no types for it yet. */
-interface NodeFfi {
-    dlopen(
-        path: string,
-        definitions: Record<string, { arguments: readonly string[]; return: string }>
-    ): {
-        functions: Record<string, (...args: unknown[]) => unknown>;
-        lib: {
-            close(): void;
-            registerCallback(
-                signature: { arguments: readonly string[]; return: string },
-                callback: (...args: number[]) => number
-            ): bigint;
-            unregisterCallback(pointer: bigint): void;
-        };
-    };
-    getRawPointer(memory: ArrayBufferLike): bigint;
-}
-
 /** The part of `bun:ffi` this binding uses. */
 export interface BunFfi {
     dlopen(
@@ -227,38 +208,15 @@ export const bindBunLibrary = (path: string, bun: BunFfi = loadBunFfi()): BoundL
 };
 
 /**
- * Loads `node:ffi` without its experimental warning, which would otherwise print on every start.
- * Only that one warning is held back.
- */
-const loadNodeFfi = (): NodeFfi => {
-    const emitWarning = process.emitWarning;
-    // emitWarning is overloaded, and this one function forwards every overload unchanged.
-    process.emitWarning = ((warning: string | Error, ...rest: unknown[]) => {
-        const text = typeof warning === 'string' ? warning : warning.message;
-        if (text.includes('FFI is an experimental feature')) return;
-        Reflect.apply(emitWarning, process, [warning, ...rest]);
-    }) as typeof process.emitWarning;
-    try {
-        const ffi: unknown = process.getBuiltinModule('node:ffi');
-        if (ffi === undefined) {
-            throw new ScriptHostErrors.FfiUnavailable({ version: process.version });
-        }
-        // `node:ffi` has no published types; NodeFfi above is the part this file calls.
-        return ffi as NodeFfi;
-    } finally {
-        process.emitWarning = emitWarning;
-    }
-};
-
-/**
  * Opens the library with the running runtime's FFI.
  * @param path - The shared library's file.
  * @returns The bound library.
- * @throws {Error} When Node.js has no `node:ffi` or the library does not load.
+ * @throws {NativeLibraryError} When Node.js has no `node:ffi`.
+ * @throws {Error} When the library does not load.
  */
 export const bindLibrary = (path: string): BoundLibrary => {
     if (process.versions.bun !== undefined) return bindBunLibrary(path);
-    const ffi = loadNodeFfi();
+    const ffi = nodeFfi();
     const opened = ffi.dlopen(
         path,
         Object.fromEntries(

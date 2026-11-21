@@ -2,20 +2,7 @@ import { spawnSync } from 'node:child_process';
 
 import { describe, expect, it } from 'vitest';
 
-import { NativeLibraryError } from '@jsprismarine/errors/native-library';
-import { NativeNetworkErrors } from '@jsprismarine/errors/native-network';
-
-import { nodeFfiOf } from './ffi';
-
-describe('nodeFfiOf', () => {
-    it('names the node:ffi requirement when the runtime has no FFI', () => {
-        // What `process.getBuiltinModule('node:ffi')` answers under `--no-experimental-ffi`.
-        const missing = () => nodeFfiOf(undefined, 'v26.0.0');
-
-        expect(missing).toThrow(NativeLibraryError);
-        expect(missing).toThrow(/node:ffi is not available in Node\.js v26\.0\.0.*--no-experimental-ffi/);
-    });
-});
+import { NativeLibraryErrors } from '@jsprismarine/errors/native-library';
 
 describe('NativeNetwork.load', () => {
     it('refuses with FfiUnavailable, not LibraryDoesNotLoad, on a Node.js started without FFI', () => {
@@ -38,6 +25,6 @@ describe('NativeNetwork.load', () => {
             { encoding: 'utf8' }
         );
 
-        expect(child.stdout.trim()).toBe(new NativeNetworkErrors.FfiUnavailable({ version: '' }).code);
+        expect(child.stdout.trim()).toBe(new NativeLibraryErrors.FfiUnavailable({ version: '' }).code);
     });
 });

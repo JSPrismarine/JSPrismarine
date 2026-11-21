@@ -302,16 +302,6 @@ Thrown as `ScriptHostErrors.ExportNotOfModuleClass`, which extends `TypeError`.
 A generated module shape exports an object whose type is not a class of the module. The shape
 generator wrote a broken file; regenerate the shapes.
 
-## `SCRIPT_HOST_FFI_UNAVAILABLE`
-
-`node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.`
-
-Thrown as `ScriptHostErrors.FfiUnavailable`, which extends `NativeLibraryError`.
-
-The Node.js running the server has no `node:ffi`, which the script host loads its native
-library with. Run a Node.js build with FFI support, and do not pass
-`--no-experimental-ffi`.
-
 ## `SCRIPT_HOST_FORM_KIT_FUNCTION_MISSING`
 
 `The form kit has no {name}`

@@ -4,15 +4,6 @@ import { NativeLibraryError } from '@jsprismarine/errors/native-library';
 /** The errors `@jsprismarine/native-network` throws. */
 export const NativeNetworkErrors = defineErrors('native-network', {
     /**
-     * The Node.js running the server has no `node:ffi`, which the native networking library is
-     * loaded with. Run a Node.js build with FFI support, and do not pass `--no-experimental-ffi`.
-     */
-    FfiUnavailable: {
-        message:
-            'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.',
-        base: NativeLibraryError
-    },
-    /**
      * The native library could not share the UDP port with RakNet. The error number is the
      * library's.
      */

@@ -59,16 +59,6 @@ export abstract class DebuggerTransportError extends JSPrismarineError {
  */
 export const ScriptHostErrors = defineErrors('script-host', {
     /**
-     * The Node.js running the server has no `node:ffi`, which the script host loads its native
-     * library with. Run a Node.js build with FFI support, and do not pass
-     * `--no-experimental-ffi`.
-     */
-    FfiUnavailable: {
-        message:
-            'node:ffi is not available in Node.js {version}. Run a Node.js build with FFI support, without --no-experimental-ffi.',
-        base: NativeLibraryError
-    },
-    /**
      * The native library was built for a different version of this package. Rebuild it with
      * `pnpm --filter @jsprismarine/script-host run build:native`.
      */
