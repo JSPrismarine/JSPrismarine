@@ -152,6 +152,9 @@ function* blockTypes() {
                 id: type.id,
                 localizationKey: type.localizationKey,
                 tags: list(permutation.getTags()).sort(),
+                // The default permutation's states, which include the legacy states the Script
+                // API still reports for a flattened block, such as an oak log's old_log_type.
+                states: permutation.getAllStates(),
                 item: stack ? stack.typeId : null,
                 water,
                 waterPermutations: waterPermutationsOf(type.id, water)
