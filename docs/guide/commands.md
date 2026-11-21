@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->71<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->72<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -213,5 +213,6 @@ does the same thing.
 | `/unlink`             | Undoes the link between your Java Edition and Bedrock Edition accounts.                                   | `jsprismarine.command.unlink`     | 0     | Everyone    |
 | `/version`, `/about`  | Displays general server information.                                                                      | `jsprismarine.command.version`    | 0     | Everyone    |
 | `/weather`            | Changes the weather.                                                                                      | `minecraft.command.weather`       | 1     | Operators   |
+| `/world`              | Lists, creates, attaches and detaches the server's levels, and moves players between them.                | `jsprismarine.command.world`      | 0     | Operators   |
 | `/xp`, `/experience`  | Adds, sets or queries experience.                                                                         | `minecraft.command.xp`            | 1     | Operators   |
 <!-- /fact -->

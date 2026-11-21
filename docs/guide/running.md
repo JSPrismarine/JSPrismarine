@@ -695,6 +695,30 @@ key, so an editor flags them, but the server still reads both: `Overworld` is
 to the file, so you only see the message and the editor's marks until the next start. Any other
 `generator` name stops the server with an error, as it did before.
 
+### Managing worlds while the server runs
+
+`/world` creates and manages worlds without a restart. A world it creates is recorded in
+`levels.json`, beside `config.json`, and never in the config; the server loads it again at the
+next start.
+
+| Command | What it does |
+| --- | --- |
+| `/world list` | Lists the attached worlds with their players, and the detached ones with their UUIDs. |
+| `/world create <name> [preset] [seed]` | Creates a world and attaches it. The preset defaults to <!-- fact:world.createdPreset -->`minecraft:normal`<!-- /fact -->, and the seed to a random one. |
+| `/world attach <name>` | Attaches a detached world again, by name or by UUID when detached worlds share a name. |
+| `/world detach <name>` | Moves the world's players to the world `level-name` names, then saves and closes it. Its files stay. |
+| `/world tp <name> [players]` | Moves you, or the players a selector names, to a world. |
+
+Each subcommand needs its own permission node, `jsprismarine.command.world.<subcommand>`, which
+the bare `jsprismarine.command.world` and an operator's status cover; the console may run every
+one. A world in the config's `worlds` stays attached as long as the config names it: to detach
+it, remove it from the config and restart.
+
+Each world keeps its own player records, so a player moving between worlds leaves their
+inventory, health, experience and game mode behind and picks up what they had in the other
+world, or starts fresh there. `player-data-groups` lets a group of worlds share parts of the
+record; [dimensions.md](../data-driven/dimensions.md#the-runtime-model) covers it.
+
 ### World seeds
 
 Write a world's `seed` as a string, as the examples above do.

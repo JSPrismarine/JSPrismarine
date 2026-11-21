@@ -38,6 +38,7 @@ import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
 import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
 import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
+import { WORLD_COMMAND_PERMISSION, registerWorldCommand } from './worldCommand';
 import { commandLevelOf, playerSessionOf } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
 
@@ -56,6 +57,7 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
     pardon: 'minecraft.command.pardon',
     addon: 'jsprismarine.command.addon',
     perms: PERMS_COMMAND_PERMISSION,
+    world: WORLD_COMMAND_PERMISSION,
     ...LINK_COMMAND_PERMISSIONS
 };
 
@@ -406,5 +408,6 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     registerGametestCommand(registry, server);
     registerAddonCommand(registry, server);
     registerPermsCommand(registry, server);
+    registerWorldCommand(registry, server);
     registerLinkCommands(registry, server);
 };
