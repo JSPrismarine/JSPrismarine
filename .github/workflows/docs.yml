@@ -30,6 +30,9 @@ on:
             - 'CONTRIBUTING.md'
             - 'CODE_OF_CONDUCT.md'
             - '.github/workflows/docs.yml'
+    # Rebuilds the site by hand, such as after a failed publish or to refresh what the build reads
+    # from outside the repository. A run from master publishes; one from another branch only builds.
+    workflow_dispatch:
 
 permissions:
     actions: read
@@ -50,6 +53,7 @@ jobs:
         # A closed pull request only has its preview removed. A fork's token cannot push a preview.
         if: >-
             github.event_name == 'push' ||
+            github.event_name == 'workflow_dispatch' ||
             (github.event.action != 'closed' &&
             github.event.pull_request.head.repo.full_name == github.repository)
         # runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -186,7 +190,9 @@ jobs:
 
     publish-docs:
         name: 🚀 Publish Docs
-        if: github.event_name == 'push'
+        if: >-
+            github.event_name == 'push' ||
+            (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
         runs-on: ubuntu-latest
         needs: build-docs
         permissions:
