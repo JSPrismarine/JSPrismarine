@@ -1,70 +1,24 @@
 import { memoryLinkPair } from '@jsprismarine/console-protocol';
-import type { ConsoleMessage, ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
+import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protocol';
 import { TextRenderable } from '@opentui/core';
-import { createTestRenderer } from '@opentui/core/testing';
-import type { TestRendererSetup } from '@opentui/core/testing';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { startConsole, TERMINAL_RESET } from './startConsole';
-import type { ConsoleHandle, ServerLink } from './startConsole';
-
-function fakeSupervisor() {
-    const eventListeners = new Set<(event: SupervisorEvent) => void>();
-    const linkListeners = new Set<(link: ServerLink | undefined) => void>();
-    return {
-        onEvent(listener: (event: SupervisorEvent) => void) {
-            eventListeners.add(listener);
-            return () => {
-                eventListeners.delete(listener);
-            };
-        },
-        onLink(listener: (link: ServerLink | undefined) => void) {
-            linkListeners.add(listener);
-            return () => {
-                linkListeners.delete(listener);
-            };
-        },
-        restart: vi.fn(),
-        stop: vi.fn(),
-        forceStop: vi.fn(),
-        emit(event: SupervisorEvent) {
-            for (const listener of eventListeners) listener(event);
-        },
-        attach(link: ServerLink) {
-            for (const listener of linkListeners) listener(link);
-        },
-        get listenerCount() {
-            return eventListeners.size + linkListeners.size;
-        }
-    };
-}
+import type { ConsoleHandle } from './startConsole';
+import { fakeSupervisor, startTestConsole } from './testing/console.test-utils';
 
 const nextTick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-async function setup(historyFile = join(tmpdir(), `jsp-console-${process.pid}-${Date.now()}`, 'history')) {
-    let test: TestRendererSetup | undefined;
-    const supervisor = fakeSupervisor();
-    const handle = await startConsole({
-        supervisor,
-        historyFile,
-        serverName: 'default',
-        version: '0.15.2',
-        env: {},
-        createRenderer: async () => {
-            test = await createTestRenderer({ width: 120, height: 40, exitOnCtrlC: false });
-            return test.renderer;
-        }
-    });
-    if (test === undefined) throw new Error('createRenderer was not called');
-
+async function setup(historyFile?: string) {
+    const { test, supervisor, handle, historyFile: file } = await startTestConsole(undefined, historyFile);
     const [consoleEnd, serverEnd] = memoryLinkPair<ServerMessage, ConsoleMessage>();
     const received: ConsoleMessage[] = [];
     serverEnd.onMessage((message) => received.push(message));
 
-    return { test, supervisor, handle, consoleEnd, serverEnd, received, historyFile };
+    return { test, supervisor, handle, consoleEnd, serverEnd, received, historyFile: file };
 }
 
 describe('startConsole', () => {
