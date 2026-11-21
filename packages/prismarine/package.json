@@ -325,6 +325,11 @@
                 "import": "./dist/config/JsonConfigTypes.js",
                 "module": "./dist/config/JsonConfigTypes.js"
             },
+            "./protocolProviders": {
+                "types": "./dist/protocolProviders.d.ts",
+                "import": "./dist/protocolProviders.js",
+                "module": "./dist/protocolProviders.js"
+            },
             "./network/codec/ProtocolPolicy": {
                 "types": "./dist/network/codec/ProtocolPolicy.d.ts",
                 "import": "./dist/network/codec/ProtocolPolicy.js",
