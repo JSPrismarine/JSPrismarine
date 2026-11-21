@@ -95,7 +95,7 @@ describe('propertyOverridePacket', () => {
 
     it('numbers the properties by name, as BDS does, not in the order the file declares them', () => {
         const indexOf = (name: string, value: number | string) =>
-            propertyOverridePacket(1n, creaking, { action: 'set', name, value })?.getPacketData().propertyIndex;
+            propertyOverridePacket(1n, creaking, { action: 'set', name, value })?.getPacketData()?.propertyIndex;
 
         expect(indexOf('minecraft:creaking_state', 'twitching')).toBe(0);
         expect(indexOf('minecraft:creaking_swaying_ticks', 3)).toBe(1);
