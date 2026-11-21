@@ -121,12 +121,12 @@ describe("PlayerSession's player", () => {
     });
 
     describe('isOp', () => {
-        it('checks operator status by UUID', () => {
-            const { session, player, isOp } = fakePlayer();
+        it('checks operator status by subject', () => {
+            const { session, isOp } = fakePlayer();
 
             session.isOp();
 
-            expect(isOp).toHaveBeenCalledWith(player.getUUID().toString());
+            expect(isOp).toHaveBeenCalledWith(session.identity.subject);
         });
     });
 
