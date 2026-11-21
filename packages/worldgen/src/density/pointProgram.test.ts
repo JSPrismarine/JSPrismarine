@@ -32,22 +32,26 @@ const bitsOf = (value: number): number => {
 };
 
 /** The node types the native interpreter has no operation for. */
-const TYPESCRIPT_ONLY = new Set(['end_outer_islands', 'pow', 'log', 'interpolated']);
+const TYPESCRIPT_ONLY = new Set(['end_outer_islands', 'pow', 'log']);
 
 /** The two nether noises Java builds through the pre-1.18 octave chain, which have no kernel. */
 const LEGACY_NOISES = new Set(['minecraft:nether/temperature', 'minecraft:nether/vegetation']);
 
-/** Whether a tree reaches a node the native interpreter has no operation for, or a legacy noise. */
+/**
+ * Whether a tree reaches a node the native interpreter has no operation for, a legacy noise, or an
+ * `interpolated` node under another.
+ */
 const reachesTypeScriptOnly = (root: DensityFunctionNode): boolean => {
-    const seen = new Set<DensityFunctionNode>();
-    const walk = (node: DensityFunctionNode): boolean => {
-        if (seen.has(node)) return false;
-        seen.add(node);
+    const walk = (node: DensityFunctionNode, underInterpolated: boolean): boolean => {
         if (TYPESCRIPT_ONLY.has(node.type)) return true;
         if (node.type === 'noise' && LEGACY_NOISES.has(node.noise)) return true;
-        return densityInputsOf(node).some(walk);
+        if (node.type === 'interpolated') {
+            if (underInterpolated) return true;
+            return walk(node.input, true);
+        }
+        return densityInputsOf(node).some((input) => walk(input, underInterpolated));
     };
-    return walk(root);
+    return walk(root, false);
 };
 
 /** Every `interpolated` node a tree reaches. */

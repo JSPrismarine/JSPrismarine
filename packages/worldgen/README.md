@@ -220,7 +220,11 @@ the library too. `DensityFunctionCompiler` lays each one out as a point program 
 evaluates one corner at a time, with the closures' bits. A sample whose context sets a structure or
 blending hook the tree reaches keeps its closure, since those hooks live in TypeScript; a hook the
 tree never reaches, such as a structure's beard, which vanilla adds outside the `interpolated`
-nodes, leaves it native. So does a tree that reaches `pow`, `log` or the end islands' noise. The aquifer, the surface pass's preliminary surface
+nodes, leaves it native. A tree that reaches an `interpolated` node runs it per block in the C too,
+interpolating the cell's corners along x, then y, then z; a sample whose context has interpolation
+buffers on, as the terrain cell walk's does, keeps its closure, which reads those buffers in Java's
+volume order. A tree that reaches `pow`, `log`, the end islands' noise or an `interpolated` node
+under another stays on its closures. The aquifer, the surface pass's preliminary surface
 and ore veins, and the climate sampler read their trees the same way through
 `RandomState.densitySampler`. `RandomState.nativeSampler` gives a tree's native evaluator alone.
 The biome climate search runs there too: a climate index registers its flattened tree with the

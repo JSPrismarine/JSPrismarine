@@ -54,7 +54,12 @@ export const PointOp = {
     /** `a`: the constant a hook answers when no structure or blending is in play. */
     neutralHook: 20,
     /** `a`: the input, which `blend_density` passes through when no blending is in play. */
-    blendDensity: 21
+    blendDensity: 21,
+    /**
+     * `a`: the input; `b`: two constants (the cell's size across x and z, then up y); `c`: the memo
+     * slot. Interpolates the input's values at the cell's corners, as a per-block sample does.
+     */
+    interpolated: 22
 } as const;
 
 /** The 32-bit words of one record: the operation, then up to five operands. */
@@ -96,6 +101,12 @@ export interface PointProgramHooks {
     readonly blendAlpha: boolean;
     readonly blendOffset: boolean;
     readonly blendDensity: boolean;
+    /**
+     * Whether the tree reaches an `interpolated` node, which the program samples per block. A
+     * context with interpolation buffers on reads the cell walk's buffers instead, filled in
+     * another order that can differ in the last bits, so it takes the closure.
+     */
+    readonly interpolated: boolean;
 }
 
 /** A tree laid out as point program records, for `NativeWorldgen.createProgram`. */
@@ -118,7 +129,7 @@ class NotNative {}
 /**
  * Lays a density function tree out as a point program, or answers undefined when some node has
  * no native operation: `pow` and `log`, whose results V8 and libm do not always round alike, the
- * end islands' simplex noise, a nested `interpolated` node, or a noise that runs in TypeScript.
+ * end islands' simplex noise, an `interpolated` node under another, or a noise that runs in TypeScript.
  * @param root - The tree.
  * @param source - The compiler's view of the seed.
  * @returns The program, or undefined to keep the tree on its closures.
@@ -147,7 +158,15 @@ class Encoder {
     public readonly linkValues: number[] = [];
     public readonly stacks: NativeNoiseStack[] = [];
     public cacheSlots = 0;
-    public readonly hooks = { beardifier: false, blendAlpha: false, blendOffset: false, blendDensity: false };
+    public readonly hooks = {
+        beardifier: false,
+        blendAlpha: false,
+        blendOffset: false,
+        blendDensity: false,
+        interpolated: false
+    };
+    /** Whether the node being laid out sits under an `interpolated` node. */
+    private underInterpolated = false;
     private readonly indices = new Map<DensityFunctionNode | SplineNode, number>();
     private readonly stackIndices = new Map<NativeNoiseStack, number>();
 
@@ -351,10 +370,27 @@ class Encoder {
                     this.node(node.upperBound),
                     this.constants(node.lowerBound, node.cellHeight)
                 ];
+            case 'interpolated': {
+                // A nested one would interpolate the corners of corners, which no vanilla tree does.
+                if (this.underInterpolated) throw new NotNative();
+                this.hooks.interpolated = true;
+                this.underInterpolated = true;
+                let input: number;
+                try {
+                    input = this.node(node.input);
+                } finally {
+                    this.underInterpolated = false;
+                }
+                return [
+                    PointOp.interpolated,
+                    input,
+                    this.constants(node.cellSizeXz, node.cellSizeY),
+                    this.cacheSlots++
+                ];
+            }
             case 'pow':
             case 'log':
             case 'end_outer_islands':
-            case 'interpolated':
             // Unreached: node() lays a spline node out as its spline's record.
             case 'spline':
                 throw new NotNative();

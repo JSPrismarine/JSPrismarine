@@ -1132,14 +1132,21 @@ export class DensityFunctionCompiler {
         const program = this.nativeProgram(node);
         if (program === undefined) return closure;
         const { evaluate, hooks } = program;
-        if (!hooks.beardifier && !hooks.blendAlpha && !hooks.blendOffset && !hooks.blendDensity) {
+        if (
+            !hooks.beardifier &&
+            !hooks.blendAlpha &&
+            !hooks.blendOffset &&
+            !hooks.blendDensity &&
+            !hooks.interpolated
+        ) {
             return (_context, x, y, z) => evaluate(x, y, z);
         }
         return (context, x, y, z) =>
             (hooks.beardifier && context.beardifier !== undefined) ||
             (hooks.blendAlpha && context.blendAlpha !== undefined) ||
             (hooks.blendOffset && context.blendOffset !== undefined) ||
-            (hooks.blendDensity && context.blendDensity !== undefined)
+            (hooks.blendDensity && context.blendDensity !== undefined) ||
+            (hooks.interpolated && context.interpolationBuffersEnabled)
                 ? closure(context, x, y, z)
                 : evaluate(x, y, z);
     }

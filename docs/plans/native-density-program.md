@@ -49,6 +49,9 @@ Each step is its own pull request, proven by the bit comparison against the clos
 5. **Done: the aquifer in C.** `ChunkSampler`'s cell walk hands each filled cell's densities to a native aquifer, which runs `NoiseBasedAquifer`'s cell search, pressure and fluid picking over its six density programs and the aquifer's Xoroshiro positional random, and writes each block's fluid and fluid-tick flag. A cell whose context sets a structure or blending hook, or a sampler given its own fluid picker, keeps the TypeScript aquifer, which also stays for the column probes and the carvers.
    - Bits: four overworld, amplified and large biomes chunks that hold water, lava and fluid ticks give the same block and flag at every position as the TypeScript aquifer.
    - Counts: TypeScript `computeSubstance` calls per terrain tile fall from about 34,500 to about 1,000, the probes and carvers outside the walk.
+6. **Done: `interpolated` in point programs.** A point program lays an `interpolated` node out as a record over its input, and the C samples it per block as `compile.ts`'s `sampleAt` does: the cell's corners from a lattice cache, interpolated along x, then y, then z. The ore veins' density, richness and gap run in C this way, where they ran as closures. A sample whose context has interpolation buffers on keeps its closure, since the buffers hold the cell walk's values in Java's volume order; an `interpolated` node under another stays in TypeScript.
+   - Bits: every router and aquifer tree of every vanilla setting matches its closures with buffers off, `final_density` and the vein trees among them.
+   - Counts: per terrain tile, the ore vein placer's 1,837 placements evaluate their trees in C, about 2,300 more native samples a tile and that many fewer closure trees.
 
 ## Risks
 
