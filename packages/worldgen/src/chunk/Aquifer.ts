@@ -39,6 +39,9 @@ export const WAY_BELOW_MIN_Y = -32512;
 export const DIMENSION_MIN_Y = -2032;
 
 /** The 13 chunk offsets an aquifer cell checks for a nearby surface. */
+/** The aquifer cells around a block's anchor that it picks its closest four from: 2 by 3 by 2. */
+const NEIGHBORS = 12;
+
 const SURFACE_SAMPLING_OFFSETS_IN_CHUNKS: readonly (readonly [number, number])[] = [
     [0, 0],
     [-2, -1],
@@ -130,6 +133,19 @@ export class NoiseBasedAquifer implements Aquifer {
      * field avoids the per-block closure and tuple that holder used to cost here.
      */
     private barrierNoiseValue = Number.NaN;
+    /**
+     * The anchor whose twelve neighboring aquifer cells {@link neighborIndex} and the neighbor
+     * locations hold, NaN before the first block. The cells depend only on the anchor, which a
+     * block shares with the blocks of its 16 by 12 by 16 neighborhood, so a block in the same
+     * anchor reads them here instead of looking each one up again.
+     */
+    private anchorX = Number.NaN;
+    private anchorY = Number.NaN;
+    private anchorZ = Number.NaN;
+    private readonly neighborIndex = new Int32Array(NEIGHBORS);
+    private readonly neighborX = new Int32Array(NEIGHBORS);
+    private readonly neighborY = new Int32Array(NEIGHBORS);
+    private readonly neighborZ = new Int32Array(NEIGHBORS);
     private readonly barrierNoise: DensitySampler;
     private readonly floodednessNoise: DensitySampler;
     private readonly spreadNoise: DensitySampler;
@@ -220,6 +236,9 @@ export class NoiseBasedAquifer implements Aquifer {
         const xAnchor = gridX(blockX + SAMPLE_OFFSET_X);
         const yAnchor = gridY(blockY + SAMPLE_OFFSET_Y);
         const zAnchor = gridZ(blockZ + SAMPLE_OFFSET_Z);
+        if (xAnchor !== this.anchorX || yAnchor !== this.anchorY || zAnchor !== this.anchorZ) {
+            this.loadNeighbors(xAnchor, yAnchor, zAnchor);
+        }
         let distance1 = Number.MAX_SAFE_INTEGER;
         let distance2 = Number.MAX_SAFE_INTEGER;
         let distance3 = Number.MAX_SAFE_INTEGER;
@@ -229,48 +248,37 @@ export class NoiseBasedAquifer implements Aquifer {
         let closest3 = 0;
         let closest4 = 0;
 
-        for (let dx = 0; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dz = 0; dz <= 1; dz++) {
-                    const index = this.getIndex(xAnchor + dx, yAnchor + dy, zAnchor + dz);
-                    if (this.locationKnown[index] === 0) {
-                        const random = this.positionalRandomFactory.at(xAnchor + dx, yAnchor + dy, zAnchor + dz);
-                        this.locationX[index] = fromGridX(xAnchor + dx, random.nextIntBounded(X_RANGE));
-                        this.locationY[index] = fromGridY(yAnchor + dy, random.nextIntBounded(Y_RANGE));
-                        this.locationZ[index] = fromGridZ(zAnchor + dz, random.nextIntBounded(Z_RANGE));
-                        this.locationKnown[index] = 1;
-                    }
-
-                    const offsetX = (this.locationX[index] ?? 0) - blockX;
-                    const offsetY = (this.locationY[index] ?? 0) - blockY;
-                    const offsetZ = (this.locationZ[index] ?? 0) - blockZ;
-                    const newDistance = offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ;
-                    if (distance1 >= newDistance) {
-                        closest4 = closest3;
-                        closest3 = closest2;
-                        closest2 = closest1;
-                        closest1 = index;
-                        distance4 = distance3;
-                        distance3 = distance2;
-                        distance2 = distance1;
-                        distance1 = newDistance;
-                    } else if (distance2 >= newDistance) {
-                        closest4 = closest3;
-                        closest3 = closest2;
-                        closest2 = index;
-                        distance4 = distance3;
-                        distance3 = distance2;
-                        distance2 = newDistance;
-                    } else if (distance3 >= newDistance) {
-                        closest4 = closest3;
-                        closest3 = index;
-                        distance4 = distance3;
-                        distance3 = newDistance;
-                    } else if (distance4 >= newDistance) {
-                        closest4 = index;
-                        distance4 = newDistance;
-                    }
-                }
+        // The neighbors in Java's order, dx outermost, then dy, then dz; ties keep that order.
+        for (let neighbor = 0; neighbor < NEIGHBORS; neighbor++) {
+            const index = this.neighborIndex[neighbor] ?? 0;
+            const offsetX = (this.neighborX[neighbor] ?? 0) - blockX;
+            const offsetY = (this.neighborY[neighbor] ?? 0) - blockY;
+            const offsetZ = (this.neighborZ[neighbor] ?? 0) - blockZ;
+            const newDistance = offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ;
+            if (distance1 >= newDistance) {
+                closest4 = closest3;
+                closest3 = closest2;
+                closest2 = closest1;
+                closest1 = index;
+                distance4 = distance3;
+                distance3 = distance2;
+                distance2 = distance1;
+                distance1 = newDistance;
+            } else if (distance2 >= newDistance) {
+                closest4 = closest3;
+                closest3 = closest2;
+                closest2 = index;
+                distance4 = distance3;
+                distance3 = distance2;
+                distance2 = newDistance;
+            } else if (distance3 >= newDistance) {
+                closest4 = closest3;
+                closest3 = index;
+                distance4 = distance3;
+                distance3 = newDistance;
+            } else if (distance4 >= newDistance) {
+                closest4 = index;
+                distance4 = newDistance;
             }
         }
 
@@ -329,6 +337,33 @@ export class NoiseBasedAquifer implements Aquifer {
                   similarity(distance1, distance4) >= FLOWING_UPDATE_SIMILARITY &&
                   !status1.equals(this.getAquiferStatus(closest4));
         return fluidState;
+    }
+
+    /** Looks up the twelve aquifer cells around an anchor, placing each one the first time it is seen. */
+    private loadNeighbors(xAnchor: number, yAnchor: number, zAnchor: number): void {
+        let neighbor = 0;
+        for (let dx = 0; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dz = 0; dz <= 1; dz++) {
+                    const index = this.getIndex(xAnchor + dx, yAnchor + dy, zAnchor + dz);
+                    if (this.locationKnown[index] === 0) {
+                        const random = this.positionalRandomFactory.at(xAnchor + dx, yAnchor + dy, zAnchor + dz);
+                        this.locationX[index] = fromGridX(xAnchor + dx, random.nextIntBounded(X_RANGE));
+                        this.locationY[index] = fromGridY(yAnchor + dy, random.nextIntBounded(Y_RANGE));
+                        this.locationZ[index] = fromGridZ(zAnchor + dz, random.nextIntBounded(Z_RANGE));
+                        this.locationKnown[index] = 1;
+                    }
+                    this.neighborIndex[neighbor] = index;
+                    this.neighborX[neighbor] = this.locationX[index] ?? 0;
+                    this.neighborY[neighbor] = this.locationY[index] ?? 0;
+                    this.neighborZ[neighbor] = this.locationZ[index] ?? 0;
+                    neighbor++;
+                }
+            }
+        }
+        this.anchorX = xAnchor;
+        this.anchorY = yAnchor;
+        this.anchorZ = zAnchor;
     }
 
     private getIndex(cellX: number, cellY: number, cellZ: number): number {
