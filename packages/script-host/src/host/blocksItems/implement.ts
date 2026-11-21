@@ -5,7 +5,7 @@
  *
  * Left without behavior, because JSPrismarine gives the script host no seam to the system behind
  * them yet: the sign, piston, jukebox and cauldron components (#3302), the redstone producer and
- * instrument components (#3303), `Block.liquidCanFlowFromDirection` (#3304), item containers
+ * instrument components (#3303), item containers
  * (#3305), the crafter, entity storage, block dynamic property and custom component instance
  * classes (#3306), and named ticks, which wait for the `onNamedTick` hook (#3297, #3307). The
  * `Enchant*` loot functions and `BannerPattern` come only from loot tables and banners, which the

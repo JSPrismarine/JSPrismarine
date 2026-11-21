@@ -524,7 +524,6 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
     - Left: the sign, piston, jukebox and cauldron components
       ([#3302](https://github.com/JSPrismarine/JSPrismarine/issues/3302)), the redstone producer and
       instrument components ([#3303](https://github.com/JSPrismarine/JSPrismarine/issues/3303)),
-      `liquidCanFlowFromDirection` ([#3304](https://github.com/JSPrismarine/JSPrismarine/issues/3304)),
       item containers ([#3305](https://github.com/JSPrismarine/JSPrismarine/issues/3305)), the
       crafter, entity storage, block property and custom component instance classes
       ([#3306](https://github.com/JSPrismarine/JSPrismarine/issues/3306)) and named ticks

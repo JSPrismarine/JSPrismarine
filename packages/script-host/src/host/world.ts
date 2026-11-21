@@ -198,6 +198,15 @@ export interface ScriptBlockTypeInfo {
         readonly states: Readonly<Record<string, ScriptStateValue>>;
         readonly water: ScriptWaterAnswers;
     }[];
+    /**
+     * The permutations that stop water flowing in from some directions, each with the sides it
+     * closes, as `Block.liquidCanFlowFromDirection` answers. Absent or empty when every
+     * permutation lets water in from every side.
+     */
+    readonly liquidFlowStops?: readonly {
+        readonly states: Readonly<Record<string, ScriptStateValue>>;
+        readonly stops: readonly ('up' | 'down' | 'north' | 'south' | 'east' | 'west')[];
+    }[];
     readonly liquid: boolean;
     readonly air: boolean;
     /** Whether a block of the type is solid and stops movement, as `Block.isSolid` answers. */

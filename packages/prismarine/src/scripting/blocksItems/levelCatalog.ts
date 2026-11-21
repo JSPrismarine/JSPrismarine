@@ -6,6 +6,7 @@
  */
 import {
     scriptBlockFacts,
+    scriptBlockLiquidFlow,
     scriptBlockStates,
     scriptBlockTypes,
     scriptEnchantments,
@@ -30,6 +31,7 @@ export interface CatalogContent {
 
 const BLOCK_TYPES = new Map(scriptBlockTypes.map((row) => [row.id, row]));
 const BLOCK_FACTS = new Map(scriptBlockFacts.map((row) => [row.id, row]));
+const LIQUID_FLOW = new Map(scriptBlockLiquidFlow.map((row) => [row.id, row.permutations]));
 const ITEMS = new Map(scriptItems.map((row) => [row.id, row]));
 
 /** A block type the vanilla tables describe, joined from the permutation and placed-block tables. */
@@ -37,12 +39,14 @@ const vanillaBlock = (id: string): ScriptBlockTypeInfo | undefined => {
     const type = BLOCK_TYPES.get(id);
     if (type === undefined) return undefined;
     const facts = BLOCK_FACTS.get(id);
+    const flow = LIQUID_FLOW.get(id);
     return {
         localizationKey: type.localizationKey,
         tags: type.tags,
         item: type.item,
         water: type.water,
         waterPermutations: type.waterPermutations,
+        ...(flow === undefined ? {} : { liquidFlowStops: flow }),
         liquid: facts?.liquid ?? false,
         air: facts?.air ?? false,
         solid: facts?.solid ?? true,
