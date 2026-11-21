@@ -49,7 +49,7 @@ package's `_LIBRARY` environment variable at a library you built.
 
 `` The native manifest needs `build` and `baseUrl` strings ``
 
-Thrown as `NativeLibraryErrors.InvalidNativeManifest`, which extends `Error`.
+Thrown as `NativeLibraryErrors.InvalidNativeManifest`, which extends `NativeLibraryError`.
 
 The package's native manifest is malformed, so the package was published broken. Reinstall
 it, or report it.
@@ -58,7 +58,7 @@ it, or report it.
 
 `The native manifest's entry for {key} is malformed`
 
-Thrown as `NativeLibraryErrors.InvalidNativeManifestEntry`, which extends `Error`.
+Thrown as `NativeLibraryErrors.InvalidNativeManifestEntry`, which extends `NativeLibraryError`.
 
 The package's native manifest has a malformed platform entry, so the package was published
 broken. Reinstall it, or report it.

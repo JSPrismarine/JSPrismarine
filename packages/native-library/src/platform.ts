@@ -38,6 +38,21 @@ export const platformKey = (
     libc: LinuxLibc = platform === 'linux' ? linuxLibc() : 'gnu'
 ): string => (platform === 'linux' ? `linux-${arch}-${libc}` : `${platform}-${arch}`);
 
+/** Every operating system `process.platform` can name. */
+const OPERATING_SYSTEMS = [
+    'aix',
+    'android',
+    'cygwin',
+    'darwin',
+    'freebsd',
+    'haiku',
+    'linux',
+    'netbsd',
+    'openbsd',
+    'sunos',
+    'win32'
+] as const satisfies readonly NodeJS.Platform[];
+
 /**
  * The operating system a platform key is for.
  * @param key - A key from {@link platformKey}, such as `linux-x64-gnu`.
@@ -45,7 +60,7 @@ export const platformKey = (
  */
 export const operatingSystemOf = (key: string): NodeJS.Platform => {
     const os = key.slice(0, key.indexOf('-'));
-    return os === 'win32' || os === 'darwin' || os === 'android' ? os : 'linux';
+    return OPERATING_SYSTEMS.find((platform) => platform === os) ?? 'linux';
 };
 
 /**

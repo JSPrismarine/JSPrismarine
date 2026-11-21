@@ -65,10 +65,16 @@ export const NativeLibraryErrors = defineErrors('native-library', {
      * The package's native manifest is malformed, so the package was published broken. Reinstall
      * it, or report it.
      */
-    InvalidNativeManifest: 'The native manifest needs `build` and `baseUrl` strings',
+    InvalidNativeManifest: {
+        message: 'The native manifest needs `build` and `baseUrl` strings',
+        base: NativeLibraryError
+    },
     /**
      * The package's native manifest has a malformed platform entry, so the package was published
      * broken. Reinstall it, or report it.
      */
-    InvalidNativeManifestEntry: "The native manifest's entry for {key} is malformed"
+    InvalidNativeManifestEntry: {
+        message: "The native manifest's entry for {key} is malformed",
+        base: NativeLibraryError
+    }
 });

@@ -15,4 +15,4 @@ Breaking changes:
 - `@jsprismarine/script-host/manifest` is removed. Import the manifest parser from `@jsprismarine/native-library/manifest`.
 - In a checkout, `@jsprismarine/native-network` on a platform without a published build now says how to build the library instead of saying no build is published.
 
-A packager's `libraryForPlatform` now replaces an installed file that fails its digest check with the published build instead of throwing.
+A packager's `libraryForPlatform` now replaces an installed file that fails its digest check with the published build instead of throwing. In a checkout whose native sources differ from the published builds, nothing is downloaded, so it still throws there.
