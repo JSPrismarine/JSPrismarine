@@ -155,6 +155,59 @@ const FAMILY_BY_TAG: readonly (readonly [string, string])[] = [
     ['minecraft:logs', 'jsprismarine:log']
 ];
 
+/** A state value as the palette holds it, where a boolean is 0 or 1. */
+const paletteValue = (value: string | number | boolean | undefined): string | number | undefined =>
+    typeof value === 'boolean' ? Number(value) : value;
+
+/** Minecraft yaws for a placer looking each horizontal way: 0 is south and 90 is west. */
+const LOOKING: readonly (readonly [facing: string, yaw: number])[] = [
+    ['south', 0],
+    ['west', 90],
+    ['north', 180],
+    ['east', 270]
+];
+
+/** The clicks a placement scenario tries: each face, and a side low, at the middle and high. */
+const CLICKS: readonly (readonly [face: BlockFace, y: number])[] = [
+    ['up', 0.5],
+    ['down', 0.5],
+    ['north', 0.25],
+    ['north', 0.5],
+    ['north', 0.75]
+];
+
+/**
+ * Places a block for every look direction and click, and compares each placed state with the
+ * Bedrock state Java's state maps to, on the states Java's placement decides.
+ */
+const placementDifference = (
+    subject: BlockSubject,
+    java: (facing: string, face: BlockFace, y: number) => Readonly<Record<string, string>>
+): string | undefined => {
+    for (const [facing, yaw] of LOOKING) {
+        for (const [face, y] of CLICKS) {
+            const properties = { ...java(facing, face, y), waterlogged: 'false' };
+            const mapped = javaBlockStateToBedrock(subject.javaId, properties);
+            if (mapped.kind !== 'mapped') return `Java's ${JSON.stringify(properties)} maps to no Bedrock state`;
+            const harness = bind(subject);
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.place(ORIGIN, {
+                face,
+                faceLocation: { x: 0.5, y, z: 0.5 },
+                placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 5, z: 0 }, yaw }
+            });
+            const placed = harness.block(ORIGIN).states;
+            const differs = Object.entries(mapped.bedrock.states).find(
+                ([name, value]) => paletteValue(placed[name]) !== paletteValue(value)
+            );
+            if (differs !== undefined) {
+                return `looking ${facing} and clicking ${face} at ${y}, its ${differs[0]} is ${String(placed[differs[0]])}, Java's is ${String(differs[1])}`;
+            }
+        }
+    }
+    return undefined;
+};
+
 const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
     {
         name: 'family-matches-java-group',
@@ -826,6 +879,30 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'stairs-placement',
+        java: "A stair faces the way its placer looks, and sits upside down when placed against a block's underside or the upper half of a side.",
+        reference: 'Java StairBlock.getStateForPlacement',
+        subjects: () => tagMembers('minecraft:stairs'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) =>
+            placementDifference(subject, (facing, face, y) => ({
+                facing,
+                half: face !== 'down' && (face === 'up' || y <= 0.5) ? 'bottom' : 'top',
+                shape: 'straight'
+            }))
+    },
+    {
+        name: 'slab-placement',
+        java: "A slab takes the top half when placed against a block's underside or the upper half of a side, and the bottom half otherwise.",
+        reference: 'Java SlabBlock.getStateForPlacement',
+        subjects: () => tagMembers('minecraft:slabs'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) =>
+            placementDifference(subject, (_facing, face, y) => ({
+                type: face === 'down' || (face !== 'up' && y > 0.5) ? 'top' : 'bottom'
+            }))
+    },
+    {
         name: 'pillar-axis',
         java: "A log, pillar or other rotated pillar placed against a face lies along that face's axis.",
         reference: 'Java RotatedPillarBlock.getStateForPlacement',
@@ -947,7 +1024,9 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'observer-pulse-delay': ['neighbor-update'],
     'torch-inversion-delay': ['neighbor-update'],
     'lamp-off-delay': ['neighbor-update', 'scheduled-tick'],
-    'pillar-axis': ['placement']
+    'pillar-axis': ['placement'],
+    'stairs-placement': ['placement'],
+    'slab-placement': ['placement']
 };
 
 const scenarios: readonly BehaviorScenario<BlockSubject>[] = blockScenarios.map((scenario) => {
