@@ -102,6 +102,15 @@ Thrown as `ProtocolWireErrors.JavaChunkHasBlockEntities`, which extends `Error`.
 A Java Edition chunk carries block entities, which this server's chunk reader does not read
 yet. Seen when reading another server's chunk.
 
+## `PROTOCOL_JAVA_ENTITY_DATA_SERIALIZER_UNREAD`
+
+`An entity data entry uses serializer {serializer}, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaEntityDataSerializerUnread`, which extends `Error`.
+
+A Java Edition entity data entry uses a serializer this server's reader does not read: it
+sends the shared flags and the pose only. Seen when reading another server's entity data.
+
 ## `PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE`
 
 `A compressed frame names {length} bytes, outside what threshold {threshold} allows`

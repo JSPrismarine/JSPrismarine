@@ -18,6 +18,7 @@ import {
     Respawn,
     SectionBlocksUpdate,
     SetCreativeModeSlot,
+    SetEntityData,
     SetEquipment,
     SetHealth,
     UseItemOn,
@@ -268,5 +269,23 @@ describe('Set Equipment', () => {
         expect(
             decodeJavaPacket(SetEquipment, readJavaPacketId(encodeJavaPacket(SetEquipment, equipment)).body)
         ).toEqual(equipment);
+    });
+});
+
+describe('Set Entity Metadata', () => {
+    it('writes each entry as index, serializer and value, the flags a byte and the pose a VarInt, then the end', () => {
+        const data = {
+            entityId: 3,
+            entries: [
+                { index: 0, serializer: 0, value: 0x02 },
+                { index: 6, serializer: 20, value: 5 }
+            ]
+        };
+        const body = encodeJavaPacket(SetEntityData, data).subarray(idOf(SetEntityData).length);
+
+        expect([...body]).toEqual([3, 0, 0, 0x02, 6, 20, 5, 0xff]);
+        expect(decodeJavaPacket(SetEntityData, readJavaPacketId(encodeJavaPacket(SetEntityData, data)).body)).toEqual(
+            data
+        );
     });
 });

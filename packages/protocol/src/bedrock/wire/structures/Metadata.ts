@@ -249,6 +249,16 @@ export class MetadataWriter {
         this.setDataFlag(flagId >= 64 ? FLAGS_TWO : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
+    /**
+     * Whether one of the entity's generic flags is set, in whichever of the two flag longs
+     * {@link setGenericFlag} writes it to.
+     * @param {number} flagId - The flag id.
+     * @returns {boolean} The flag value.
+     */
+    public getGenericFlag(flagId: number): boolean {
+        return this.getDataFlag(flagId >= 64 ? FLAGS_TWO : MetadataFlag.INDEX, BigInt(flagId % 64));
+    }
+
     /** Returns all stored properties keyed by their actor data id. */
     public getData() {
         return this.metadata;

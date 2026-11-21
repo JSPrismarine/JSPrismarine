@@ -565,3 +565,77 @@ export const SetEquipment = defineJavaPacket('Set Equipment', PACKETS.play.clien
     entityId: varInt,
     equipment: equipmentList
 });
+
+/** The entity data serializers this server writes, by their 26.3 registration ids. */
+export enum JavaEntityDataSerializer {
+    Byte = 0,
+    Int = 1,
+    Pose = 20
+}
+
+/** One entity data entry: its index on the entity, its serializer and its value. */
+export interface JavaEntityDataEntry {
+    readonly index: number;
+    readonly serializer: JavaEntityDataSerializer;
+    readonly value: number;
+}
+
+/** The byte that ends an entity's data. */
+const END_OF_ENTITY_DATA = 0xff;
+
+/** The entries, each as its index, its serializer's VarInt id and its value, then {@link END_OF_ENTITY_DATA}. */
+const entityData = custom<JavaEntityDataEntry[]>(
+    'Entity Metadata',
+    (s, entries) => {
+        for (const { index, serializer, value } of entries) {
+            s.writeByte(index);
+            varInt.write(s, serializer);
+            if (serializer === JavaEntityDataSerializer.Byte) s.writeByte(value);
+            else varInt.write(s, value);
+        }
+        s.writeByte(END_OF_ENTITY_DATA);
+    },
+    (s) => {
+        const entries: JavaEntityDataEntry[] = [];
+        for (let index = s.readByte(); index !== END_OF_ENTITY_DATA; index = s.readByte()) {
+            const serializer = varInt.read(s);
+            if (serializer === JavaEntityDataSerializer.Byte) entries.push({ index, serializer, value: s.readByte() });
+            else if (serializer === JavaEntityDataSerializer.Int || serializer === JavaEntityDataSerializer.Pose) {
+                entries.push({ index, serializer, value: varInt.read(s) });
+            } else throw new ProtocolWireErrors.JavaEntityDataSerializerUnread({ serializer });
+        }
+        return entries;
+    }
+);
+
+/** `Set Entity Metadata` (clientbound): some of an entity's data, by index. */
+export const SetEntityData = defineJavaPacket('Set Entity Metadata', PACKETS.play.clientbound.set_entity_data, {
+    entityId: varInt,
+    entries: entityData
+});
+
+/** The bits of an entity's shared flags, at entity data index 0. */
+export enum JavaEntityFlag {
+    OnFire = 0x01,
+    Crouching = 0x02,
+    Sprinting = 0x08,
+    Swimming = 0x10,
+    Invisible = 0x20,
+    Glowing = 0x40,
+    FallFlying = 0x80
+}
+
+/** Poses, by vanilla's `Pose` order, at entity data index 6. */
+export enum JavaPose {
+    Standing = 0,
+    FallFlying = 1,
+    Sleeping = 2,
+    Swimming = 3,
+    Crouching = 5
+}
+
+/** The entity data indices every entity has. */
+export enum JavaEntityDataIndex {
+    SharedFlags = 0,
+    Pose = 6
+}

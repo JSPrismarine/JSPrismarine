@@ -440,5 +440,10 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * A Java Edition item stack the server sent carries data components, which this server's
      * reader does not read: it sends plain stacks. Seen when reading another server's inventory.
      */
-    JavaItemComponentsUnread: 'An item stack carries {count} data components, which this server does not read'
+    JavaItemComponentsUnread: 'An item stack carries {count} data components, which this server does not read',
+    /**
+     * A Java Edition entity data entry uses a serializer this server's reader does not read: it
+     * sends the shared flags and the pose only. Seen when reading another server's entity data.
+     */
+    JavaEntityDataSerializerUnread: 'An entity data entry uses serializer {serializer}, which this server does not read'
 });
