@@ -11,7 +11,7 @@ import type { Addon } from '../../packages/addon-tools/src/addon.ts';
 import { ADDON_ICON_FILE, ADDON_TAGS, packAddon } from '../../packages/addon-tools/src/addon.ts';
 import type { AddonListingFile } from '../../packages/addon-tools/src/addonIndex.ts';
 import { compareAddonVersions } from '../../packages/addon-tools/src/addonIndex.ts';
-import { renderAddonReadme } from './addonReadme.mts';
+import { addonReadmeMarkdown, renderAddonReadme } from './addonReadme.mts';
 import type { ListingsLock, LockedListingAddon } from './listings.mts';
 import { extensionOf, FIRST_PARTY_REPOSITORY, isPassiveImage, sha256Of } from './listings.mts';
 import type { JsonLdFrontmatter, JsonObject } from './structuredData.mts';
@@ -49,6 +49,11 @@ export interface MarketBuild {
     readonly pages: readonly MarketAddonPage[];
     /** Icons and screenshots, by their path under the site's public folder. */
     readonly media: ReadonlyMap<string, Uint8Array>;
+    /**
+     * Each README as Markdown for its page's Markdown copy, by addon id, kept out of the page's own
+     * data since the page shows the HTML. An addon whose README could not be read has none.
+     */
+    readonly readmes: ReadonlyMap<string, string>;
 }
 
 /** Whether a tag is one the filters offer. */
@@ -62,7 +67,9 @@ interface Draft {
     readonly card: Omit<MarketAddon, 'deprecated'>;
     readonly deprecated?: Omit<MarketDeprecation, 'replacedByPath' | 'replacedByTitle'>;
     /** Reads the page's screenshots and README, adding its media to the build's. */
-    readonly content: (media: Map<string, Uint8Array>) => Promise<Pick<MarketAddonPage, 'screenshots' | 'readmeHtml'>>;
+    readonly content: (
+        media: Map<string, Uint8Array>
+    ) => Promise<Pick<MarketAddonPage, 'screenshots' | 'readmeHtml'> & { readonly readmeMarkdown?: string }>;
 }
 
 /** Fills in a deprecation's replacement when the marketplace lists it. */
@@ -137,14 +144,13 @@ function firstPartyDraft(addon: Addon, input: MarketInput, locked: LockedListing
                 sources.set(file, `/${mediaDir}/${name}`);
                 return { file, src: `/${mediaDir}/${name}`, alt };
             });
-            const readme = renderAddonReadme(input.firstPartyReadme(addon), {
-                community: false,
-                screenshots: sources,
-                resolveLink: (href) => input.firstPartyLink(addon, href)
-            });
+            const text = input.firstPartyReadme(addon);
+            const resolveLink = (href: string) => input.firstPartyLink(addon, href);
+            const readme = renderAddonReadme(text, { community: false, screenshots: sources, resolveLink });
             return {
                 screenshots: shots.filter(({ file }) => !readme.shown.has(file)).map(({ src, alt }) => ({ src, alt })),
-                readmeHtml: readme.html
+                readmeHtml: readme.html,
+                readmeMarkdown: addonReadmeMarkdown(text, resolveLink)
             };
         }
     };
@@ -213,17 +219,17 @@ function communityDraft(locked: LockedListingAddon, input: MarketInput): Draft {
             const bytes = listing?.readme === undefined ? undefined : await input.download(listing.readme);
             if (bytes === undefined)
                 return { screenshots: shots.map(({ src, alt }) => ({ src, alt })), readmeHtml: '' };
-            const readme = renderAddonReadme(new TextDecoder().decode(bytes), {
-                community: true,
-                screenshots: sources,
-                // Relative links resolve from the addon's folder, which the release workflow reads from addons/.
-                resolveLink: (href) => new URL(href, `https://github.com/${repository}/blob/HEAD/addons/${name}/`).href
-            });
+            const text = new TextDecoder().decode(bytes);
+            // Relative links resolve from the addon's folder, which the release workflow reads from addons/.
+            const resolveLink = (href: string) =>
+                new URL(href, `https://github.com/${repository}/blob/HEAD/addons/${name}/`).href;
+            const readme = renderAddonReadme(text, { community: true, screenshots: sources, resolveLink });
             return {
                 screenshots: shots
                     .filter(({ file }) => file === undefined || !readme.shown.has(file))
                     .map(({ src, alt }) => ({ src, alt })),
-                readmeHtml: readme.html
+                readmeHtml: readme.html,
+                readmeMarkdown: addonReadmeMarkdown(text, resolveLink)
             };
         }
     };
@@ -259,7 +265,12 @@ export async function buildMarket(input: MarketInput): Promise<MarketBuild> {
 
     const media = new Map<string, Uint8Array>();
     const pages: MarketAddonPage[] = [];
-    for (const [i, draft] of drafts.entries()) pages.push({ ...addons[i]!, ...(await draft.content(media)) });
+    const readmes = new Map<string, string>();
+    for (const [i, draft] of drafts.entries()) {
+        const { readmeMarkdown, ...content } = await draft.content(media);
+        pages.push({ ...addons[i]!, ...content });
+        if (readmeMarkdown !== undefined) readmes.set(draft.card.id, readmeMarkdown);
+    }
     return {
         market: {
             addons,
@@ -267,7 +278,8 @@ export async function buildMarket(input: MarketInput): Promise<MarketBuild> {
             repositories: new Set(addons.map(({ repository }) => repository)).size
         },
         pages,
-        media
+        media,
+        readmes
     };
 }
 

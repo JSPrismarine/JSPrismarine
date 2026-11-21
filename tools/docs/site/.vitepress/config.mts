@@ -10,7 +10,7 @@ import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
 import { changelogUrl, loadChangelog, releaseDates } from '../../changelog.mts';
 import { markdownHeaders, writeLlmsFiles, writeMarkdownPages } from '../../llms.mts';
-import { packagesMarkdown, releasesMarkdown } from '../../llmsPages.mts';
+import { ADDON_COPIES_FILE, packagesMarkdown, releasesMarkdown } from '../../llmsPages.mts';
 import { loadProject } from '../../project.mts';
 import { isStagedPage, pageSource, pageUrl, sections, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
@@ -137,7 +137,15 @@ export default defineConfig({
                 [
                     'releases.md',
                     releasesMarkdown(loadChangelog(), { dateOf: releaseDates(), changelogUrl: changelogUrl() })
-                ]
+                ],
+                // The staging step writes the addon pages' copies, since it builds the marketplace.
+                ...Object.entries(
+                    // Written by assemble.mts as page file to Markdown; parsed JSON is an untyped boundary.
+                    JSON.parse(readFileSync(path.join(siteConfig.srcDir, ADDON_COPIES_FILE), 'utf8')) as Record<
+                        string,
+                        string
+                    >
+                )
             ])
         };
         const markdownPages = writeMarkdownPages(site);

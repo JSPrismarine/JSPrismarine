@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderAddonReadme } from './addonReadme.mts';
+import { addonReadmeMarkdown, renderAddonReadme } from './addonReadme.mts';
 
 const render = (markdown: string, community = true, screenshots = new Map<string, string>()) =>
     renderAddonReadme(markdown, {
@@ -136,5 +136,27 @@ describe('renderAddonReadme', () => {
 
     it('leaves rel off JSPrismarine’s own README', () => {
         expect(render('[a](https://x.test)', false).html).toBe('<p><a href="https://x.test">a</a></p>\n');
+    });
+});
+
+describe('addonReadmeMarkdown', () => {
+    const resolve = (href: string) => new URL(href, 'https://github.com/acme/addons/blob/HEAD/addons/warps/').href;
+
+    it('drops the first heading and shifts the rest so the shallowest is an H2, leaving code alone', () => {
+        expect(
+            addonReadmeMarkdown('# Warps\n\nIntro.\n\n# Using it\n\n```sh\n# a comment\n```\n\n## Limits\n', resolve)
+        ).toBe('Intro.\n\n## Using it\n\n```sh\n# a comment\n```\n\n### Limits\n');
+    });
+
+    it('points relative links and images where the page points them, and keeps the rest', () => {
+        expect(
+            addonReadmeMarkdown(
+                '# Warps\n\n![Bar](media/bar.png) [Config](./config.md) [Usage](#usage) [Docs](https://example.test/)\n',
+                resolve
+            )
+        ).toBe(
+            '![Bar](https://github.com/acme/addons/blob/HEAD/addons/warps/media/bar.png) ' +
+                '[Config](https://github.com/acme/addons/blob/HEAD/addons/warps/config.md) [Usage](#usage) [Docs](https://example.test/)\n'
+        );
     });
 });
