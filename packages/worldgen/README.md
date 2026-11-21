@@ -156,8 +156,9 @@ a time over the cell's 128 blocks rather than one closure chain per block. The p
 one record of 32-bit words per distinct node in `CellProgram.nodes`, its constants in
 `CellProgram.constants`. Its `interpolated` nodes fill cells in Java's volume order, the order
 `doFill` builds terrain in. Where the native library loads, a whole cell fills there in one call
-from its `interpolated` cells' corners, with the same bits; a cell whose context sets a structure
-or blending hook the tree holds runs in TypeScript. `density`, `column`
+from its `interpolated` cells' corners, with the same bits, and the noise aquifer decides the
+cell's fluids there too, with the same answers as `NoiseBasedAquifer`; a cell whose context sets a
+structure or blending hook runs in TypeScript. `density`, `column`
 and `fill` sample one block at a time in the order of Java's per-block `sampleValue`. The two
 orders differ in the last bits of a float, so they can differ at a block whose density sits within
 those bits of zero.

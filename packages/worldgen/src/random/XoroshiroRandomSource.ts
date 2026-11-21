@@ -356,6 +356,14 @@ export class XoroshiroPositionalRandomFactory implements PositionalRandomFactory
         this.hiLo = laneLoOf(seedHi);
     }
 
+    /**
+     * The factory's seed as four unsigned 32-bit lanes: its low half's high and low words, then its
+     * high half's, which a native positional random starts from.
+     */
+    public get seedLanes(): readonly [number, number, number, number] {
+        return [this.loHi, this.loLo, this.hiHi, this.hiLo];
+    }
+
     /** @inheritDoc */
     public at(x: number, y: number, z: number): RandomSource {
         positionalSeedLanes(x, y, z);

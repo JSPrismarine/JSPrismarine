@@ -37,6 +37,10 @@ it, and `find(candidate, ...target)` returns the nearest leaf.
 lays a density tree out as, and `fill(corners, out)` fills a whole interpolation cell from its
 `interpolated` cells' corners with the same bits as the TypeScript interpreter.
 
+`native.createAquifer(source)` registers the noise aquifer of one chunk extent from its six density
+programs, its positional seed and its fluids, and `fill(densities, cell, out)` decides every block of
+an interpolation cell with the same answers as `@jsprismarine/worldgen`'s `NoiseBasedAquifer`.
+
 `native.biomeJitter(seedHi, seedLo, x, y, z)` returns the jitter bits Java's `BiomeManager` draws
 for one biome lattice point, packed into one number.
 

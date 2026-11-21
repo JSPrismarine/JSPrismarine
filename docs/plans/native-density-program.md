@@ -42,10 +42,13 @@ Each step is its own pull request, proven by the bit comparison against the clos
 3. **Done: the aquifer's, surface's and climate's trees in C.** The aquifer, the surface pass's preliminary surface and ore veins, and the biome climate sampler read their trees through `RandomState.densitySampler`, the same point programs with the same hook fallback.
    - Bits: every router and aquifer tree of every vanilla setting matches its closures, except the nether's two legacy climate noises and the End's islands, which keep their closures.
    - Counts: an overworld chunk's terrain fill makes 0 noise calls from TypeScript, where it made 1,079. Sampling the climate at 1,536 positions makes 0, where it made 112.
-   - The aquifer's own logic, its pressure and fluid picking, is still TypeScript.
+   - The aquifer's own logic, its pressure and fluid picking, stayed in TypeScript; step 5 moves it.
 4. **Done: the per-block cell program in C**, from step 1's records. One call per cell fills each `interpolated` node from its eight corners in `fillCell`'s order and runs the records over them. The corners still come from the point programs through the context's corner cache. A program holding a fallback record, or a cell whose context sets a hook the records hold, stays on the TypeScript interpreter.
    - Bits: every vanilla setting's `final_density` matches the TypeScript interpreter over a whole chunk, and so does a tree per operator.
    - Counts: every cell the overworld walk fills, 262 per terrain tile, runs in C, where all of them ran the TypeScript interpreter.
+5. **Done: the aquifer in C.** `ChunkSampler`'s cell walk hands each filled cell's densities to a native aquifer, which runs `NoiseBasedAquifer`'s cell search, pressure and fluid picking over its six density programs and the aquifer's Xoroshiro positional random, and writes each block's fluid and fluid-tick flag. A cell whose context sets a structure or blending hook, or a sampler given its own fluid picker, keeps the TypeScript aquifer, which also stays for the column probes and the carvers.
+   - Bits: four overworld, amplified and large biomes chunks that hold water, lava and fluid ticks give the same block and flag at every position as the TypeScript aquifer.
+   - Counts: TypeScript `computeSubstance` calls per terrain tile fall from about 34,500 to about 1,000, the probes and carvers outside the walk.
 
 ## Risks
 

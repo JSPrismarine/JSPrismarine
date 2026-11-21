@@ -153,6 +153,12 @@ export interface InterpolatedCell {
     corners(context: SampleContext, x0: number, y0: number, z0: number, out: Float64Array, at: number): void;
 }
 
+/** A tree's point program as the environment runs it, and the hooks the tree reaches. */
+interface NativeEvaluator {
+    readonly evaluate: (x: number, y: number, z: number) => number;
+    readonly hooks: PointProgramHooks;
+}
+
 /** Fills a whole cell from its interpolated cells' corners, such as the native cell program. */
 export type CellFill = (corners: Float64Array, out: Float64Array) => void;
 
@@ -251,6 +257,8 @@ export class DensityFunctionCompiler {
     private readonly bounds = new Map<DensityFunctionNode, DensityBoundSampler>();
     private readonly interpolatedCells = new Map<DensityFunctionNode, InterpolatedCell>();
     private readonly densitySamplers = new Map<DensityFunctionNode, DensitySampler>();
+    /** Each tree's point program, or null for a tree with none. */
+    private readonly nativePrograms = new Map<DensityFunctionNode, NativeEvaluator | null>();
     private readonly cellPrograms = new Map<DensityFunctionNode, Map<string, CellProgram>>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
@@ -1068,10 +1076,19 @@ export class DensityFunctionCompiler {
         return this.nativeProgram(node)?.evaluate;
     }
 
-    /** A tree's point program in the environment and the hooks it reaches, or undefined. */
-    private nativeProgram(
-        node: DensityFunctionNode
-    ): { evaluate: (x: number, y: number, z: number) => number; hooks: PointProgramHooks } | undefined {
+    /**
+     * A tree's point program in the environment and the hooks it reaches, or undefined. Built once
+     * per tree, so the trees a chunk asks for again share one program.
+     */
+    private nativeProgram(node: DensityFunctionNode): NativeEvaluator | undefined {
+        const cached = this.nativePrograms.get(node);
+        if (cached !== undefined) return cached ?? undefined;
+        const created = this.encodeNativeProgram(node);
+        this.nativePrograms.set(node, created ?? null);
+        return created;
+    }
+
+    private encodeNativeProgram(node: DensityFunctionNode): NativeEvaluator | undefined {
         const environment = this.environment;
         let encoded: PointProgram | undefined;
         const evaluate = environment.pointProgram?.(() => {

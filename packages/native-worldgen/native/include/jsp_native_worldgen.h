@@ -216,4 +216,47 @@ JWG_EXPORT void jwg_cell_destroy(double handle);
  */
 JWG_EXPORT void jwg_cell_fill(double handle, const double *corners, double *out);
 
+/* The fluid codes jwg_aquifer_fill writes, and the bit that asks for a fluid tick. */
+#define JWG_FLUID_AIR 0
+#define JWG_FLUID_WATER 1
+#define JWG_FLUID_LAVA 2
+/* The dimension's default fluid when it is neither water, lava nor air. */
+#define JWG_FLUID_OTHER 3
+/* No fluid: the position keeps the dimension's default block. */
+#define JWG_FLUID_NONE 4
+#define JWG_FLUID_SCHEDULE 0x80
+
+/* The density programs an aquifer reads: barrier, floodedness, spread, lava, exclusion, surface level. */
+#define JWG_AQUIFER_PROGRAMS 6
+
+/*
+ * Registers the noise-driven aquifer of one chunk extent. programs holds JWG_AQUIFER_PROGRAMS
+ * point program handles; the seed lanes are the aquifer's Xoroshiro positional factory, its low
+ * half then its high half, each as unsigned high and low 32 bits; extent holds the lowest block x,
+ * y and z, then the highest, inclusive. default_fluid is one of the JWG_FLUID_ codes but NONE, and
+ * skip_sampling_above_y is NoiseBasedAquifer's cutoff. Returns its handle, or 0.
+ */
+JWG_EXPORT double jwg_aquifer_create(
+    const double *programs,
+    double seed_lo_hi,
+    double seed_lo_lo,
+    double seed_hi_hi,
+    double seed_hi_lo,
+    const int32_t *extent,
+    int32_t sea_level,
+    int32_t default_fluid,
+    int32_t skip_sampling_above_y
+);
+
+/* Frees an aquifer. A handle of 0 is ignored. */
+JWG_EXPORT void jwg_aquifer_destroy(double handle);
+
+/*
+ * Runs the aquifer over one cell's densities, in the cell walk's order. cell holds the first x, y
+ * and z, the last, inclusive, and the x and z strides of densities and out, whose y stride is 1.
+ * Writes each block's fluid code, with JWG_FLUID_SCHEDULE set where a fluid tick is wanted.
+ * Returns 1, or 0 when a block reads a cell outside the extent, which leaves out incomplete.
+ */
+JWG_EXPORT int32_t jwg_aquifer_fill(double handle, const double *densities, const int32_t *cell, uint8_t *out);
+
 #endif

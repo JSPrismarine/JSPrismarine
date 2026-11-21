@@ -65,6 +65,19 @@ interface NativeSymbols {
     ): number;
     jwg_cell_destroy(handle: number): void;
     jwg_cell_fill(handle: number, corners: Float64Array, out: Float64Array): void;
+    jwg_aquifer_create(
+        programs: Float64Array,
+        seedLoHi: number,
+        seedLoLo: number,
+        seedHiHi: number,
+        seedHiLo: number,
+        extent: Int32Array,
+        seaLevel: number,
+        defaultFluid: number,
+        skipSamplingAboveY: number
+    ): number;
+    jwg_aquifer_destroy(handle: number): void;
+    jwg_aquifer_fill(handle: number, densities: Float64Array, cell: Int32Array, out: Uint8Array): number;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -82,8 +95,46 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_biome_jitter: ['f64', ['f64', 'f64', 'f64', 'f64', 'f64']],
     jwg_cell_create: ['f64', ['buffer', 'i32', 'buffer', 'i32', 'i32', 'i32', 'i32']],
     jwg_cell_destroy: ['void', ['f64']],
-    jwg_cell_fill: ['void', ['f64', 'buffer', 'buffer']]
+    jwg_cell_fill: ['void', ['f64', 'buffer', 'buffer']],
+    jwg_aquifer_create: ['f64', ['buffer', 'f64', 'f64', 'f64', 'f64', 'buffer', 'i32', 'i32', 'i32']],
+    jwg_aquifer_destroy: ['void', ['f64']],
+    jwg_aquifer_fill: ['i32', ['f64', 'buffer', 'buffer', 'buffer']]
 };
+
+/** The fluid codes {@link NativeAquifer.fill} writes, `JWG_FLUID_*` in the C. */
+export const NativeFluid = {
+    air: 0,
+    water: 1,
+    lava: 2,
+    /** The dimension's default fluid when it is neither water, lava nor air. */
+    other: 3,
+    /** No fluid: the position keeps the dimension's default block. */
+    none: 4,
+    /** Set on a code whose position wants a fluid tick. */
+    schedule: 0x80
+} as const;
+
+/** What {@link NativeWorldgen.createAquifer} needs: `@jsprismarine/worldgen`'s noise aquifer for one chunk extent. */
+export interface NativeAquiferSource {
+    /** The barrier, floodedness, spread, lava, exclusion and surface level programs, in that order. */
+    readonly programs: readonly [
+        NativeDensityProgram,
+        NativeDensityProgram,
+        NativeDensityProgram,
+        NativeDensityProgram,
+        NativeDensityProgram,
+        NativeDensityProgram
+    ];
+    /** The aquifer's Xoroshiro positional seed as four unsigned 32-bit lanes, low half first. */
+    readonly seedLanes: readonly [number, number, number, number];
+    /** The lowest block x, y and z of the extent, then the highest, inclusive. */
+    readonly extent: readonly [number, number, number, number, number, number];
+    readonly seaLevel: number;
+    /** One of {@link NativeFluid}'s codes but `none`. */
+    readonly defaultFluid: number;
+    /** The highest y the aquifer samples cells for. */
+    readonly skipSamplingAboveY: number;
+}
 
 /** The 32-bit words of one cell program record, `JWG_CELL_WORDS` in the C. */
 export const CELL_WORDS = 6;
@@ -165,12 +216,14 @@ export class NativeWorldgen {
     /** Frees a climate tree once it is collected. */
     private readonly climates: FinalizationRegistry<number>;
     private readonly cells: FinalizationRegistry<number>;
+    private readonly aquifers: FinalizationRegistry<number>;
 
     private constructor(bound: BoundNative<NativeSymbols>) {
         this.bound = bound;
         // A program's handle is registered negated, so one registry frees both kinds.
         this.climates = new FinalizationRegistry((handle) => bound.symbols.jwg_climate_destroy(handle));
         this.cells = new FinalizationRegistry((handle) => bound.symbols.jwg_cell_destroy(handle));
+        this.aquifers = new FinalizationRegistry((handle) => bound.symbols.jwg_aquifer_destroy(handle));
         this.finalizer = new FinalizationRegistry((handle) =>
             handle < 0 ? bound.symbols.jwg_program_destroy(-handle) : bound.symbols.jwg_stack_destroy(handle)
         );
@@ -328,6 +381,34 @@ export class NativeWorldgen {
     }
 
     /**
+     * Registers the noise aquifer of one chunk extent, which decides each position's fluid in C with
+     * the same answers as `@jsprismarine/worldgen`'s `NoiseBasedAquifer`.
+     * @param source - Its programs, seed, extent and fluids.
+     * @returns The aquifer, which keeps its programs alive.
+     * @throws {NativeWorldgenErrors.AquiferNotCreated} When a program is destroyed, the extent is
+     *   empty, the default fluid is not a fluid code, or memory runs out.
+     */
+    public createAquifer(source: NativeAquiferSource): NativeAquifer {
+        const symbols = this.bound.symbols;
+        const [loHi, loLo, hiHi, hiLo] = source.seedLanes;
+        const handle = symbols.jwg_aquifer_create(
+            Float64Array.from(source.programs, (program) => program.nativeHandle),
+            loHi,
+            loLo,
+            hiHi,
+            hiLo,
+            Int32Array.from(source.extent),
+            source.seaLevel,
+            source.defaultFluid,
+            source.skipSamplingAboveY
+        );
+        if (handle === 0) throw new NativeWorldgenErrors.AquiferNotCreated();
+        const aquifer = new NativeAquifer(symbols, handle, source.programs, () => this.aquifers.unregister(aquifer));
+        this.aquifers.register(aquifer, handle, aquifer);
+        return aquifer;
+    }
+
+    /**
      * The jitter bits of one biome lattice point, as Java's `BiomeManager` derives them.
      * @param seedHi - The zoom seed's high 32 bits, unsigned.
      * @param seedLo - The zoom seed's low 32 bits, unsigned.
@@ -444,6 +525,14 @@ export class NativeDensityProgram {
         return this.symbols.jwg_program_eval(this.handle, x, y, z);
     }
 
+    /**
+     * The program's handle, for native code that runs it. It stays valid until {@link destroy},
+     * so keep this program alive while that code names it; 0 after.
+     */
+    public get nativeHandle(): number {
+        return this.handle;
+    }
+
     /** Frees the program's native memory. Later calls throw. Its stacks stay alive. */
     public destroy(): void {
         if (this.handle === 0) return;
@@ -501,6 +590,54 @@ export class NativeCellProgram {
         if (this.handle === 0) return;
         this.forget();
         this.symbols.jwg_cell_destroy(this.handle);
+        this.handle = 0;
+    }
+}
+
+/** A chunk extent's noise aquifer in native memory, made by {@link NativeWorldgen.createAquifer}. */
+export class NativeAquifer {
+    private readonly symbols: NativeSymbols;
+    private readonly forget: () => void;
+    /** The programs the aquifer runs, held so they live as long as it does. */
+    public readonly programs: readonly NativeDensityProgram[];
+    private handle: number;
+
+    /**
+     * Use {@link NativeWorldgen.createAquifer}.
+     * @internal
+     */
+    public constructor(
+        symbols: NativeSymbols,
+        handle: number,
+        programs: readonly NativeDensityProgram[],
+        forget: () => void
+    ) {
+        this.symbols = symbols;
+        this.handle = handle;
+        this.programs = programs;
+        this.forget = forget;
+    }
+
+    /**
+     * Decides the fluid of every block of one cell, x, then z, then y from the top down, the order
+     * the terrain cell walk visits them in.
+     * @param densities - The final density of each block.
+     * @param cell - The first x, y and z, the last, inclusive, and the x and z strides of
+     *   `densities` and `out`, whose y stride is 1.
+     * @param out - Receives each block's {@link NativeFluid} code.
+     * @returns False when a block lies outside the extent, which leaves `out` incomplete.
+     * @throws {NativeWorldgenErrors.StackDestroyed} After {@link destroy}.
+     */
+    public fill(densities: Float64Array, cell: Int32Array, out: Uint8Array): boolean {
+        if (this.handle === 0) throw new NativeWorldgenErrors.StackDestroyed();
+        return this.symbols.jwg_aquifer_fill(this.handle, densities, cell, out) === 1;
+    }
+
+    /** Frees the aquifer's native memory. Later calls throw. Its programs stay alive. */
+    public destroy(): void {
+        if (this.handle === 0) return;
+        this.forget();
+        this.symbols.jwg_aquifer_destroy(this.handle);
         this.handle = 0;
     }
 }
