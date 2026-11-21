@@ -809,6 +809,13 @@ export class DensityFunctionCompiler {
                 };
 
                 const bufferValueCount = cellSizeXz * cellSizeY * cellSizeXz;
+                // Java's volume path weights by `i * (1f / size)` rather than `i / size`; the two
+                // agree for the power-of-two sizes vanilla uses and can differ for others.
+                const inverseCellSizeXz = f32(1 / cellSizeXz);
+                const inverseCellSizeY = f32(1 / cellSizeY);
+                const volumeAlphaXz = Float64Array.from({ length: cellSizeXz }, (_, step) =>
+                    f32(step * inverseCellSizeXz)
+                );
                 if (!this.precomputeInterpolationCells || bufferValueCount > MAX_INTERPOLATION_BUFFER_VALUES) {
                     return sampleAt;
                 }
@@ -843,50 +850,38 @@ export class DensityFunctionCompiler {
                         corners[base + 7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
                     }
 
+                    // Java's `InterpolatedFunction$Sampler.fillCell`, the order `doFill` builds terrain in:
+                    // the four z edges first, then x, then y as a running sum of one step per block.
+                    // Its per-block `sampleValue` interpolates x, then y, then z, which `sampleAt`
+                    // keeps; the two differ in the last bits, and terrain follows this one.
                     const base = id << 3;
                     const corners = context.interpolationCorners;
-                    const scratch = context.interpolationBufferScratch(id, cellSizeXz * 4 + cellSizeXz * cellSizeY * 2);
-                    const verticalOffset = cellSizeXz * 4;
-                    // Reuse each x-stage across y/z, then each x/y-stage across z, preserving Java's f32 lerp order.
-                    for (let localX = 0; localX < cellSizeXz; localX++) {
-                        const alphaX = alphaXz[localX] ?? 0;
-                        const horizontalBase = localX * 4;
-                        const cornerBase = base;
-                        const c0 = corners[cornerBase] ?? 0;
-                        const c1 = corners[cornerBase + 1] ?? 0;
-                        const c2 = corners[cornerBase + 2] ?? 0;
-                        const c3 = corners[cornerBase + 3] ?? 0;
-                        const c4 = corners[cornerBase + 4] ?? 0;
-                        const c5 = corners[cornerBase + 5] ?? 0;
-                        const c6 = corners[cornerBase + 6] ?? 0;
-                        const c7 = corners[cornerBase + 7] ?? 0;
-                        const p0 = f32(c0 + f32(alphaX * f32(c1 - c0)));
-                        const p1 = f32(c2 + f32(alphaX * f32(c3 - c2)));
-                        const p2 = f32(c4 + f32(alphaX * f32(c5 - c4)));
-                        const p3 = f32(c6 + f32(alphaX * f32(c7 - c6)));
-                        scratch[horizontalBase] = p0;
-                        scratch[horizontalBase + 1] = p1;
-                        scratch[horizontalBase + 2] = p2;
-                        scratch[horizontalBase + 3] = p3;
-
-                        for (let localY = 0; localY < cellSizeY; localY++) {
-                            const alphaYWeight = alphaY[localY] ?? 0;
-                            const verticalBase = verticalOffset + (localX * cellSizeY + localY) * 2;
-                            scratch[verticalBase] = f32(p0 + f32(alphaYWeight * f32(p1 - p0)));
-                            scratch[verticalBase + 1] = f32(p2 + f32(alphaYWeight * f32(p3 - p2)));
-                        }
-
-                        for (let localZ = 0; localZ < cellSizeXz; localZ++) {
-                            const alphaZ = alphaXz[localZ] ?? 0;
+                    const c000 = corners[base] ?? 0;
+                    const c100 = corners[base + 1] ?? 0;
+                    const c010 = corners[base + 2] ?? 0;
+                    const c110 = corners[base + 3] ?? 0;
+                    const c001 = corners[base + 4] ?? 0;
+                    const c101 = corners[base + 5] ?? 0;
+                    const c011 = corners[base + 6] ?? 0;
+                    const c111 = corners[base + 7] ?? 0;
+                    for (let localZ = 0; localZ < cellSizeXz; localZ++) {
+                        const alphaZ = volumeAlphaXz[localZ] ?? 0;
+                        const e00 = f32(c000 + f32(alphaZ * f32(c001 - c000)));
+                        const e01 = f32(c100 + f32(alphaZ * f32(c101 - c100)));
+                        const e10 = f32(c010 + f32(alphaZ * f32(c011 - c010)));
+                        const e11 = f32(c110 + f32(alphaZ * f32(c111 - c110)));
+                        for (let localX = 0; localX < cellSizeXz; localX++) {
+                            const alphaX = volumeAlphaXz[localX] ?? 0;
+                            const low = f32(e00 + f32(alphaX * f32(e01 - e00)));
+                            const high = f32(e10 + f32(alphaX * f32(e11 - e10)));
+                            const step = f32(f32(high - low) * inverseCellSizeY);
+                            // Java starts the sum at `low + step * startY`; a cell's first block has
+                            // startY 0, and the addition is kept because it turns a -0 into +0.
+                            let value = f32(low + f32(step * 0));
                             const outputBase = (localX * cellSizeXz + localZ) * cellSizeY;
-                            for (let localY = cellSizeY - 1; localY >= 0; localY--) {
-                                const verticalBase = verticalOffset + (localX * cellSizeY + localY) * 2;
-                                const q0 = scratch[verticalBase] ?? 0;
-                                const q1 = scratch[verticalBase + 1] ?? 0;
-                                output[outputBase + localY] =
-                                    localX === 0 && localY === 0 && localZ === 0
-                                        ? (corners[base] ?? 0)
-                                        : f32(q0 + f32(alphaZ * f32(q1 - q0)));
+                            for (let localY = 0; localY < cellSizeY; localY++) {
+                                output[outputBase + localY] = value;
+                                value = f32(value + step);
                             }
                         }
                     }

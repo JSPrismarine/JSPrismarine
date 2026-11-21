@@ -305,6 +305,33 @@ export interface JavaColumnVectors {
     columns: { x: number; z: number; runs: JavaColumnRun[] }[];
 }
 
+/** `final_density` over one whole chunk as the worldgen oracle dumped it, hashed per 16-block section. */
+export interface JavaDensityVolumeChunk {
+    /** The `worldgen/noise_settings` identifier, such as `minecraft:overworld`. */
+    settings: string;
+    chunkX: number;
+    chunkZ: number;
+    minY: number;
+    height: number;
+    /** SHA-256 of each section's float bits from `sampleVolume`, the path Java builds terrain from. */
+    sampleVolume: string[];
+    /** The same hashes from Java's per-block `sampleValue`, which differs in the last bits. */
+    sampleValue: string[];
+    /** One column's raw float bits from `sampleVolume`, bottom to top. */
+    column: { x: number; z: number; bits: number[] };
+}
+
+/** Whole-chunk `final_density` for two chunks under each of the seven vanilla noise settings. */
+export interface JavaDensityVolumeVectors {
+    seed: string;
+    chunks: JavaDensityVolumeChunk[];
+}
+
+/** Reads the whole-chunk `final_density` hashes the worldgen oracle dumped for seed 1234. */
+export const loadJavaDensityVolumes = (): JavaDensityVolumeVectors =>
+    // Parsed JSON boundary; JavaDensityVolumeVectors is the dumper's documented shape.
+    readJson(join(worldgenRoot, 'vectors', javaServerCacheFolder, 'density-volume.json')) as JavaDensityVolumeVectors;
+
 /** Reads the nine Java overworld columns the worldgen oracle dumped for seed 1234. */
 export const loadJavaColumns = (): JavaColumnVectors =>
     // Parsed JSON boundary; JavaColumnVectors is the dumper's documented shape.

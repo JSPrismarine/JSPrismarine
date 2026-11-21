@@ -245,6 +245,13 @@ export const REFERENCES = {
         'nine Java overworld columns at seed 1234, aquifers applied'
     ),
 
+    /** `final_density` over whole chunks from both of Java's density paths, hashed per section. */
+    worldgenDensityVolumes: committed(
+        'worldgen-density-volumes',
+        `packages/worldgen/vectors/${javaServerCacheFolder}/density-volume.json`,
+        "final_density over 14 whole chunks from Java's sampleVolume and sampleValue paths"
+    ),
+
     /** Java's climate parameter lists with the biome each sample point resolves to. */
     worldgenBiomePoints: committed(
         'worldgen-biome-points',
