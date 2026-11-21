@@ -72,6 +72,20 @@ describe('FunctionExecutor.run', () => {
         expect(runner.commandLines).toEqual(['say hi']);
     });
 
+    it('hands a `function … with` line to the runner, which has the world to read its compound from', () => {
+        const { executor, runner } = executorOf({
+            'pack:outer': 'function pack:greet with storage pack:args\nfunction pack:greet with entity @s name\n',
+            'pack:greet': '$say hello $(name)\n'
+        });
+        const report = executor.run('pack:outer', { source });
+
+        expect(runner.commandLines).toEqual([
+            'function pack:greet with storage pack:args',
+            'function pack:greet with entity @s name'
+        ]);
+        expect(report.diagnostics).toEqual([]);
+    });
+
     it('substitutes macro arguments given on the call line', () => {
         const { executor, runner } = executorOf({
             'pack:outer': 'function pack:greet {"name":"Steve"}\n',

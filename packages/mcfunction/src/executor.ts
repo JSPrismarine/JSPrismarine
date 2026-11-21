@@ -128,6 +128,13 @@ interface Frame {
 
 const CALL_PATTERN = /^function[ \t]+(\S+)[ \t]*([\s\S]*)$/;
 
+/**
+ * The arguments of `function <id> with block|entity|storage …`, which read a compound out of the
+ * world. The executor has no world, so it hands such a line to the runner as a command, the way it
+ * hands `execute … run function`, and the server's `/function` reads the compound.
+ */
+const WITH_ARGUMENTS_PATTERN = /^with[ \t]/;
+
 /** Reads a JSON object as an argument compound; anything else is rejected. */
 const parseJsonArguments = (text: string): MacroArguments | undefined => {
     let parsed: unknown;
@@ -292,7 +299,7 @@ export class FunctionExecutor<TSource = unknown> {
             if (!charge(frame.functionId, entry.line)) break;
 
             const call = CALL_PATTERN.exec(entry.command);
-            if (call) {
+            if (call && !WITH_ARGUMENTS_PATTERN.test(call[2] ?? '')) {
                 this.handleCall(call, frame, entry, invoke, diagnostics);
                 continue;
             }

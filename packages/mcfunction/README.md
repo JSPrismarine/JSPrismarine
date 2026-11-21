@@ -154,8 +154,9 @@ The one exception is a `function` line, which the executor reads itself. A call 
 rather than a command, and handling it here is what keeps nesting on the queue. The line form is
 `function <id>`, `function #<tag>`, or either of those followed by an argument compound. The
 compound is read as JSON by default, because SNBT needs a parser this package does not own; pass
-`parseArguments` to supply one. Java's `function <id> with block|entity|storage` forms need a world
-to read from and are not supported yet.
+`parseArguments` to supply one. Java's `function <id> with block|entity|storage …` forms read their
+compound from the world, which the executor does not have, so it hands such a line to the runner as
+a command, the way it hands `execute … run function`.
 
 ## Why the executor uses a queue
 
