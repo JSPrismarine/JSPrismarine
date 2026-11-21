@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 3 and the first two parts of phase 4 are built. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phases 1 to 4 are built. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -180,8 +180,11 @@ by a function in `tools/docs/llmsPages.mts` that `buildEnd` passes to the writer
   community addon's copy says it is listed without review and that its README is the author's text.
 - Releases: the newest releases' changes by level, from the changelog that `changelog.mts` parses
   for the Releases page too.
-- Parity and Benchmarks: their headline numbers and a link to the page. The tracker's case data and
-  the benchmark history are too large and too detailed to be useful as text.
+- Parity: the behavior score and the score over every comparison, each family's counts, and each
+  family's first open gaps, from the same summary the page renders. The page fetches every case;
+  the copy links it for them.
+- Benchmarks: the newest run's median for every figure, by scenario and server, whether the run
+  was quiet, with wall clock figures marked indicative, and a link to its raw `results.json`.
 - The landing page, Contributors and the Brand kit get no Markdown page. `/llms.txt` lists the
   last two under `Optional` at their HTML pages.
 
@@ -236,7 +239,7 @@ the built site.
 4. Markdown bodies for the component pages, in three pull requests:
    1. Done: Packages and Releases.
    2. Done: the addon pages and the marketplace.
-   3. Parity and Benchmarks.
+   3. Done: Parity and Benchmarks.
 5. `/api/llms.txt` from TypeDoc's sidebar and package Markdown.
 6. The `<link rel="alternate">` head entry.
 
