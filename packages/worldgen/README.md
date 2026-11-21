@@ -214,9 +214,10 @@ terrain fill then runs no octave in TypeScript, in every vanilla noise setting.
 
 The trees under `final_density`'s `interpolated` nodes, which run at each cell's corners, run in
 the library too. `DensityFunctionCompiler` lays each one out as a point program that the C
-evaluates one corner at a time, with the closures' bits. A cell whose context has a structure or
-blending hook set keeps its closures, since those hooks live in TypeScript, and so does a tree that
-reaches `pow`, `log` or the end islands' noise. The aquifer, the surface pass's preliminary surface
+evaluates one corner at a time, with the closures' bits. A sample whose context sets a structure or
+blending hook the tree reaches keeps its closure, since those hooks live in TypeScript; a hook the
+tree never reaches, such as a structure's beard, which vanilla adds outside the `interpolated`
+nodes, leaves it native. So does a tree that reaches `pow`, `log` or the end islands' noise. The aquifer, the surface pass's preliminary surface
 and ore veins, and the climate sampler read their trees the same way through
 `RandomState.densitySampler`. `RandomState.nativeSampler` gives a tree's native evaluator alone.
 The biome climate search runs there too: a climate index registers its flattened tree with the
