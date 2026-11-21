@@ -821,6 +821,35 @@ describe('world', () => {
                 expect(systems.tick(1).randomTicked).toBe(3);
             });
 
+            it("keeps a chunk's section corners while its section list is unchanged", () => {
+                const { view, world } = worldOf();
+                const seen: BlockPosition[] = [];
+                let sections = [4, 5];
+                const systems = new WorldSystems({
+                    view: { ...view, randomTickChunks: () => [{ x: 0, z: 0, sections }] },
+                    world: {
+                        ...world,
+                        sectionRuntimeIds: (origin) => {
+                            seen.push(origin);
+                            return undefined;
+                        }
+                    }
+                });
+
+                systems.tick(1);
+                systems.tick(2);
+                // The same two corner objects both ticks: nothing new per section per tick.
+                expect(seen).toHaveLength(4);
+                expect(seen[2]).toBe(seen[0]);
+                expect(seen[3]).toBe(seen[1]);
+
+                // A chunk hands out a new list when a write changes it, and gets new corners.
+                sections = [4];
+                systems.tick(3);
+                expect(seen[4]).not.toBe(seen[0]);
+                expect(seen[4]).toEqual({ x: 0, y: 64, z: 0 });
+            });
+
             it('draws nothing at all when the world names no chunks, which is an empty server', () => {
                 const { blocks, view, world } = worldOf();
                 for (let y = -64; y < 320; y++) {

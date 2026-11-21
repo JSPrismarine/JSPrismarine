@@ -95,4 +95,14 @@ describe('EngineBlockCache', () => {
         expect(ticks(wheat)).toBe(before);
         expect(cache.randomTickingLookup()(wheat)).toBe(cache.get(wheat).randomTicking);
     });
+
+    it('hands out one random tick lookup for as long as the content build stands', () => {
+        let content = testContent();
+        const cache = createEngineBlockCache(() => content);
+        const first = cache.randomTickingLookup();
+
+        expect(cache.randomTickingLookup()).toBe(first);
+        content = { ...content };
+        expect(cache.randomTickingLookup()).not.toBe(first);
+    });
 });

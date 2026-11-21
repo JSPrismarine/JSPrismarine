@@ -19,6 +19,7 @@ import { worldBlockEntities } from './contentAdapter';
 import { createEngineBlockCache } from './EngineBlockCache';
 import { maxY } from './Dimension';
 import { takesRandomTicks } from './randomTickSections';
+import type { ReadonlySubChunk } from './chunk/SubChunk';
 import type { World } from './World';
 import type { WorldSystemsAccess } from './WorldSystems';
 
@@ -44,6 +45,16 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
     const blockCache = createEngineBlockCache(() => world.getServer().getContent());
 
     const dimension = world.getDimension();
+
+    // One reader for every section's random tick draws, pointed at the next section by
+    // `sectionRandomTickIds`: a tick asks for one per section of every simulated chunk, and a
+    // closure each was most of what random ticks allocated.
+    let tickSection: ReadonlySubChunk | undefined;
+    let ticks: (runtimeId: number) => boolean = () => false;
+    const readTickSection = (x: number, y: number, z: number): number | undefined => {
+        const runtimeId = tickSection?.getBlockRuntimeId(x & 15, y & 15, z & 15);
+        return runtimeId !== undefined && ticks(runtimeId) ? runtimeId : undefined;
+    };
 
     const readBlock = (at: BlockPosition): BlockRef => {
         const runtimeId = world.loadedBlockRuntimeIdAt(at.x, at.y, at.z);
@@ -78,11 +89,9 @@ export const createEngineWorld = (world: World): WorldSystemsAccess & ExplosionW
         sectionRandomTickIds: (origin) => {
             const section = world.getLoadedChunk(origin.x >> 4, origin.z >> 4)?.getSubChunk(origin.y >> 4);
             if (section === null || section === undefined) return undefined;
-            const ticks = blockCache.randomTickingLookup();
-            return (x, y, z) => {
-                const runtimeId = section.getBlockRuntimeId(x & 15, y & 15, z & 15);
-                return ticks(runtimeId) ? runtimeId : undefined;
-            };
+            tickSection = section;
+            ticks = blockCache.randomTickingLookup();
+            return readTickSection;
         },
         getBlockByRuntimeId: (runtimeId) => blockCache.get(runtimeId).block,
         isRandomlyTickingRuntimeId: (runtimeId) => blockCache.get(runtimeId).randomTicking,

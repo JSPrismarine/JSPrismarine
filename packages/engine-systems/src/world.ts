@@ -175,7 +175,8 @@ export interface WorldAccess {
      * it takes random ticks, and undefined when it does not. Found once per section, so the host settles
      * what a runtime id's facts depend on once rather than on every draw. Preferred over
      * {@link sectionRuntimeIds} with {@link isRandomlyTickingRuntimeId}, and undefined when the
-     * section is not loaded.
+     * section is not loaded. A host may hand out one reader for every section and point it at the
+     * next one on each call, so a caller uses a reader only until it asks for another.
      * @param origin - The section's lowest corner.
      */
     sectionRandomTickIds?(origin: BlockPosition): ((x: number, y: number, z: number) => number | undefined) | undefined;
