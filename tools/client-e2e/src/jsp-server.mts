@@ -73,7 +73,8 @@ export const SCRIPT_LOOK_ROTATION = { x: 30, y: 90 } as const;
 
 /**
  * What the client e2e script pack tells a player at each first spawn of a login, followed by how
- * many logins the dynamic property it keeps on the player has counted, this one included.
+ * many logins the dynamic property it keeps on the player has counted, this one included, and the
+ * player's name.
  */
 export const SCRIPT_VISITS_MESSAGE = 'client-e2e script: visit ';
 
@@ -557,9 +558,8 @@ export const startServer = async (
             '    if (!initialSpawn) return;',
             `    const visits = (player.getDynamicProperty('${SCRIPT_VISITS_PROPERTY}') ?? 0) + 1;`,
             `    player.setDynamicProperty('${SCRIPT_VISITS_PROPERTY}', visits);`,
-            // Through the world, and without the name: the player's own members are invalid until its
-            // entity enters its store (#3422). The properties go through the store player meanwhile.
-            `    world.sendMessage(\`${SCRIPT_VISITS_MESSAGE}\${visits}\`);`,
+            // The player's own members, which work at the first spawn as on BDS (#3422).
+            `    player.sendMessage(\`${SCRIPT_VISITS_MESSAGE}\${visits} \${player.name}\`);`,
             '});',
             '',
             'world.afterEvents.weatherChange.subscribe((event) => {',

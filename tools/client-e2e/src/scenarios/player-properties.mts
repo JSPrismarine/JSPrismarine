@@ -1,7 +1,7 @@
 /**
  * Verifies a script's player dynamic properties outlive a logout: the client e2e script counts a
- * player's logins in a dynamic property on the player and says the count at each first spawn, so
- * the same player logging in twice hears `visit 1` and then `visit 2`.
+ * player's logins in a dynamic property on the player and tells the player the count and their name
+ * at each first spawn, so the same player logging in twice hears `visit 1` and then `visit 2`.
  */
 import assert from 'node:assert/strict';
 
@@ -14,10 +14,17 @@ import { onlineCount, untilTicks } from '../scenario.mts';
 /** The name both visits log in with, so the second finds the record the first left. */
 const RETURNING = 'jsp-e2e-visits';
 
-/** Whether the player's chat shows the script's line for a visit count, which only this scenario's logins produce while it runs. */
+/**
+ * Whether the player's chat shows the script's line for a visit count, which only this scenario's
+ * logins produce while it runs. The script reads the name and sends the line through the player at
+ * its first spawn, so the line also shows the player was valid then.
+ */
 const chatShowsVisit = async (client: CinnabarClient, visit: number): Promise<boolean> => {
     const { chat } = await client.state();
-    return Array.isArray(chat) && chat.map(String).some((line) => line.endsWith(`${SCRIPT_VISITS_MESSAGE}${visit}`));
+    return (
+        Array.isArray(chat) &&
+        chat.map(String).some((line) => line.endsWith(`${SCRIPT_VISITS_MESSAGE}${visit} ${RETURNING}`))
+    );
 };
 
 export const playerProperties: Scenario = {

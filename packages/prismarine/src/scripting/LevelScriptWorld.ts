@@ -146,6 +146,12 @@ export interface ScriptWorldPlayer {
     transfer?(target: ScriptTransferTarget): void;
     /** Draws, redraws or removes debug shapes, as a `PrimitiveShapesPacket`. A player without it sees none. */
     drawDebugShapes?(changes: readonly ScriptDebugShapeChange[]): void;
+    /**
+     * Whether the player's entity is in the level yet. A player who joined is told to the scripts at
+     * once, and their first `playerSpawn` waits for this, since a script reads the player through
+     * the entity. A player without it counts as spawned.
+     */
+    readonly spawned?: boolean;
 }
 
 /** What {@link LevelScriptWorld} reads of its level. */
@@ -243,6 +249,8 @@ export class LevelScriptWorld implements ScriptWorld {
     private readonly stopListening: () => void;
     /** The players the scripts were last told about, by id, with their names. */
     private known = new Map<string, string>();
+    /** The players the scripts were told joined, whose first `playerSpawn` waits for their entity. */
+    private readonly unspawned = new Set<string>();
     /** The players in the level when the running script flush began; undefined between flushes. */
     private presentAtFlush: ReadonlySet<string> | undefined;
     /** The debug shapes the level's scripts draw now, by id. */
@@ -672,17 +680,24 @@ export class LevelScriptWorld implements ScriptWorld {
      */
     public takeEvents(): readonly ScriptWorldEvent[] {
         this.sources.worldEvents?.poll();
-        const now = new Map(this.sources.players().map((player) => [player.id, player.name ?? ''] as const));
+        const players = this.sources.players();
+        const now = new Map(players.map((player) => [player.id, player.name ?? ''] as const));
         const presence: ScriptWorldEvent[] = [];
         const leaving = new Map<string, string>();
         for (const [playerId, playerName] of this.known) {
             if (now.has(playerId)) continue;
+            this.unspawned.delete(playerId);
             if (this.presentAtFlush?.has(playerId) === true) leaving.set(playerId, playerName);
             else presence.push({ type: 'playerLeave', playerId, playerName });
         }
-        for (const [playerId, playerName] of now) {
-            if (this.known.has(playerId)) continue;
-            presence.push({ type: 'playerJoin', playerId, playerName });
+        for (const player of players) {
+            const playerId = player.id;
+            if (!this.known.has(playerId)) {
+                presence.push({ type: 'playerJoin', playerId, playerName: player.name ?? '' });
+                this.unspawned.add(playerId);
+            }
+            if (!this.unspawned.has(playerId) || player.spawned === false) continue;
+            this.unspawned.delete(playerId);
             presence.push({ type: 'playerSpawn', playerId, initialSpawn: true });
         }
         this.known = new Map([...now, ...leaving]);

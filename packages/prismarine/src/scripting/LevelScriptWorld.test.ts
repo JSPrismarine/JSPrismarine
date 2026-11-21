@@ -102,6 +102,23 @@ describe('LevelScriptWorld', () => {
         expect(world.takeEvents()).toEqual([{ type: 'chatSend', sender: '7', message: 'mine' }]);
     });
 
+    it("holds a joined player's first playerSpawn until their entity is in the level", () => {
+        let spawned = false;
+        const { world } = scriptWorld({
+            players: () => [{ id: '7', name: 'Steve', sendMessage: () => {}, spawned }]
+        });
+
+        const joined = world.takeEvents();
+        const waiting = world.takeEvents();
+        spawned = true;
+        const arrived = world.takeEvents();
+
+        expect(joined).toEqual([{ type: 'playerJoin', playerId: '7', playerName: 'Steve' }]);
+        expect(waiting).toEqual([]);
+        expect(arrived).toEqual([{ type: 'playerSpawn', playerId: '7', initialSpawn: true }]);
+        expect(world.takeEvents()).toEqual([]);
+    });
+
     it('tells a player who leaves during a script flush as gone in the next flush, and one who left before it at once', () => {
         let present = [
             { id: '1', name: 'Early', sendMessage: () => {} },
