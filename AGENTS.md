@@ -200,10 +200,11 @@ the change does to one pull request push, and keep each count level or lower:
   for behavior that differs by platform.
 
 Gate work on what the diff reaches, through path filters and `vitest --changed`. Work that only has
-to pass once before a merge, such as every protocol, every platform and release builds, belongs in
-the jobs that run once per merge. Put the before and after counts in the pull request description,
-as [Measuring performance](#measuring-performance) asks. [The CI speed plan](docs/plans/ci-speed.md)
-records the current counts and the changes under way.
+to pass once before a merge, such as every protocol, every platform and the Bedrock Dedicated
+Server suites, belongs in the merge group: `ci.yml` runs every tier in full on `merge_group`, and
+a push to master reuses the group's results for the same tree. Put the before and after counts in
+the pull request description, as [Measuring performance](#measuring-performance) asks.
+[The CI speed plan](docs/plans/ci-speed.md) records the current counts and the changes under way.
 
 ## Running a test server
 

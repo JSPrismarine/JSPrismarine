@@ -278,6 +278,14 @@ jobs:
                   run="$(gh api "${runs}&event=schedule" --jq '.workflow_runs[0].id // empty')"
                   if [ -z "$run" ]; then run="$(gh api "${runs}&event=push" --jq '.workflow_runs[0].id // empty')"; fi
                   if [ -z "$run" ]; then echo 'No recorded times; every file weighs the same.'; exit 0; fi
+                  # A push that reused a merge group's results kept none; the group's run did.
+                  for suite in unit real-data; do
+                      if ! gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run}/artifacts?name=vitest-junit-${suite}-1" --jq '.total_count' | grep -qv '^0$'; then
+                          group="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+                          if [ -n "$group" ]; then run="$group"; fi
+                          break
+                      fi
+                  done
                   for suite in unit real-data; do
                       gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern "vitest-junit-${suite}-*" \
                           --dir "$RUNNER_TEMP/durations/${suite}" || echo "No recorded ${suite} times in run ${run}."
@@ -450,7 +458,7 @@ jobs:
                   set -o pipefail
                   pin="$(node tools/client-e2e/src/pin-matrix.mts --latest-only | jq -r 'map(select(.transport == "raknet"))[0].name')"
                   for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
-                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=5" --jq '.workflow_runs[].id')"
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&status=completed&per_page=5" --jq '.workflow_runs[] | select(.event == "push" or .event == "merge_group") | .id')"
                       for run in $runs; do
                           dir="$RUNNER_TEMP/scenario-coverage/$run"
                           gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'scenario-coverage-*' --dir "$dir" 2> /dev/null || continue
@@ -585,7 +593,10 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
-                  for run in $(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=master&event=push&status=success&per_page=5" --jq '.workflow_runs[].id'); do
+                  # Master pushes that reuse a merge group's results keep no times, so the groups' runs
+                  # are searched after them.
+                  runs="repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?status=success&per_page=5"
+                  for run in $(gh api "${runs}&branch=master&event=push" --jq '.workflow_runs[].id') $(gh api "${runs}&event=merge_group" --jq '.workflow_runs[].id'); do
                       dir="$RUNNER_TEMP/suite-times/$run"
                       gh run download "$run" --repo "$GITHUB_REPOSITORY" --pattern 'e2e-suite-times-*' --dir "$dir" 2> /dev/null || continue
                       mapfile -t files < <(find "$dir" -name suite-times.json)
@@ -946,7 +957,9 @@ jobs:
                       packages/parity/dist/dashboard.md
                   retention-days: 90
 
-            # Any completed push run of the base commit that kept a report will do. The base
+            # Any completed push or merge group run of the base commit that kept a report will do.
+            # A push whose merge group run passed everything keeps no report of its own, so the
+            # group's run, which tested the same commit, stands in for it. The base
             # commit's own run is often still going when a pull request is rebased onto it, or was
             # cancelled while pending behind another push, so the search walks back master's
             # history to the newest commit that kept one. Finding none leaves `found` false, and
@@ -963,7 +976,7 @@ jobs:
               run: |
                   found=false
                   for commit in $(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=${BASE}&per_page=${DEPTH}" --jq '.[].sha'); do
-                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&event=push&status=completed&per_page=10" --jq '.workflow_runs[].id')"
+                      runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${commit}&status=completed&per_page=10" --jq '.workflow_runs[] | select(.event == "push" or .event == "merge_group") | .id')"
                       for run in $runs; do
                           if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name parity-report --dir "$RUNNER_TEMP/parity-base" 2> /dev/null \
                               && [ -f "$RUNNER_TEMP/parity-base/tracker.json" ]; then
