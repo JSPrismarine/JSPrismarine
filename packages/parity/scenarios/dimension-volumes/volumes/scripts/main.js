@@ -121,9 +121,43 @@ whenLoaded(() => {
                                 : { includeTypes: ['minecraft:dirt'], closest, location }
                         )
                         .getBlockLocationIterator()
-                ].map((at) => `${at.x} ${at.y} ${at.z}`)
+                ]
+                    .map((at) => `${at.x} ${at.y} ${at.z}`)
+                    // BDS returns a hash set's order, so only which blocks it picked is compared.
+                    .sort()
             )
         );
+    });
+    // Pairs and rings of blocks at one distance from an empty location, so `closest` must pick
+    // among exact ties, one axis at a time and then across the axes (#3317).
+    attempt('getBlocks closest pairs', () => {
+        const pick = (blocks, location, closest) => {
+            const volume = new BlockVolume({ x: 1, y: 40, z: 1 }, { x: 9, y: 48, z: 9 });
+            overworld.fillBlocks(volume, 'minecraft:air');
+            for (const at of blocks) overworld.getBlock(at).setType('minecraft:dirt');
+            return [
+                ...overworld
+                    .getBlocks(volume, { includeTypes: ['minecraft:dirt'], closest, location })
+                    .getBlockLocationIterator()
+            ]
+                .map((at) => `${at.x} ${at.y} ${at.z}`)
+                .sort();
+        };
+        const center = { x: 5, y: 44, z: 5 };
+        const faces = [
+            { x: 4, y: 44, z: 5 },
+            { x: 6, y: 44, z: 5 },
+            { x: 5, y: 43, z: 5 },
+            { x: 5, y: 45, z: 5 },
+            { x: 5, y: 44, z: 4 },
+            { x: 5, y: 44, z: 6 }
+        ];
+        return {
+            x: pick(faces.slice(0, 2), center, 1),
+            y: pick(faces.slice(2, 4), center, 1),
+            z: pick(faces.slice(4, 6), center, 1),
+            faces: [1, 2, 3, 4, 5].map((closest) => pick(faces, center, closest))
+        };
     });
     attempt('containsBiomes', () => [
         overworld.containsBiomes(box, { includeBiomes: ['minecraft:plains'] }, false),
