@@ -263,6 +263,50 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'void'
             }
         }
+    },
+    levels: {
+        kind: 'methods',
+        summary:
+            "The server's levels, each a world of its own with its dimensions, players' records and scripts. A level is named by its name, unique among the attached ones, or by its UUID. The pack's scripts run in one level; a pack that every level loads runs once in each.",
+        properties: {
+            current: { type: 'LevelInfo', summary: "The level the pack's scripts run in." }
+        },
+        methods: {
+            list: {
+                summary:
+                    'Every level the server knows: the attached ones first, then the detached ones `levels.json` keeps.',
+                parameters: '',
+                returns: 'readonly LevelInfo[]'
+            },
+            levelOf: {
+                summary: 'The level the player is in. Throws a `TypeError` for a player who left.',
+                parameters: 'player: Player',
+                returns: 'LevelInfo'
+            },
+            transfer: {
+                summary:
+                    "Moves the player to an attached level: to where they last were there, or to its spawn when they have never been in it or `toSpawn` is set. They leave their record behind and pick up the level's, except the parts a `player-data-groups` group shares. Resolves to whether the move landed. Rejects for a level that is not attached.",
+                parameters: 'player: Player, level: string, options?: LevelTransferOptions',
+                returns: 'Promise<boolean>'
+            },
+            create: {
+                summary:
+                    'Creates a level, records it in `levels.json` and attaches it. Rejects for a name that is taken or not 1 to 64 letters, digits, `_` or `-`.',
+                parameters: 'name: string, options?: LevelCreateOptions',
+                returns: 'Promise<LevelInfo>'
+            },
+            attach: {
+                summary: 'Attaches a detached level `levels.json` records, so players can go there again.',
+                parameters: 'level: string',
+                returns: 'Promise<LevelInfo>'
+            },
+            detach: {
+                summary:
+                    "Saves a level, moves its players to the entry level and detaches it. Its files stay. Rejects for the entry level and a level `config.json` names. Detaching the pack's own level stops its scripts there, so the promise never settles.",
+                parameters: 'level: string',
+                returns: 'Promise<void>'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -322,6 +366,47 @@ export const JSPRISMARINE_TYPES = {
                 summary: 'Takes the bar off the screen for good. Does nothing to a bar that is no longer valid.',
                 parameters: '',
                 returns: 'void'
+            }
+        }
+    },
+    LevelInfo: {
+        kind: 'interface',
+        summary: 'One level, as the server knew it when the pack asked.',
+        properties: {
+            id: { type: 'string', summary: "The level's UUID, which stays the same across restarts and renames." },
+            name: { type: 'string', summary: "The level's name." },
+            attached: { type: 'boolean', summary: 'Whether the level is attached, so players can be in it.' },
+            entry: { type: 'boolean', summary: 'Whether players join the server in this level.' },
+            players: {
+                type: 'readonly string[]',
+                summary: 'The names of the players in the level, empty for a detached one.'
+            }
+        }
+    },
+    LevelTransferOptions: {
+        kind: 'interface',
+        summary: 'How `levels.transfer` moves a player.',
+        properties: {
+            toSpawn: {
+                type: 'boolean',
+                optional: true,
+                summary: "Sends the player to the level's spawn even when they were there before."
+            }
+        }
+    },
+    LevelCreateOptions: {
+        kind: 'interface',
+        summary: 'The world a new level gets.',
+        properties: {
+            preset: {
+                type: 'string',
+                optional: true,
+                summary: 'The world preset, such as `minecraft:flat`. `minecraft:normal` when left out.'
+            },
+            seed: {
+                type: 'string',
+                optional: true,
+                summary: 'The world seed, read as `config.json` reads one. A random seed when left out.'
             }
         }
     },
@@ -590,7 +675,14 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'revokeFromGroup',
     'addToGroup',
     'removeFromGroup',
-    'onPermissionsChange'
+    'onPermissionsChange',
+    'levels',
+    'currentLevel',
+    'levelOf',
+    'transferPlayer',
+    'createLevel',
+    'attachLevel',
+    'detachLevel'
 ] as const;
 
 /**
@@ -694,6 +786,29 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        afterEvents: freeze({ permissionsChange })',
         '    });',
         '})()'
+    ].join('\n'),
+    levels: [
+        '(() => {',
+        '    const info = (json) => (json === undefined ? undefined : deepFreeze(parse(json)));',
+        '    // The host settles the promise on a later flush, with an error message or a value as JSON.',
+        '    const pending = (start) =>',
+        '        new NewPromise((resolve, reject) =>',
+        '            start((error, json) => (error === undefined ? resolve(info(json)) : reject(new NewError(error))))',
+        '        );',
+        '    return freeze({',
+        '        get current() { return info(host.currentLevel()); },',
+        '        list: () => info(host.levels()),',
+        '        levelOf: (player) => info(host.levelOf(player)),',
+        '        transfer: (player, level, options) =>',
+        '            pending((settle) => host.transferPlayer(player, level, options === undefined ? undefined : options.toSpawn, settle)),',
+        '        create: (name, options) =>',
+        '            pending((settle) =>',
+        '                host.createLevel(name, options === undefined ? undefined : options.preset, options === undefined ? undefined : options.seed, settle)',
+        '            ),',
+        '        attach: (level) => pending((settle) => host.attachLevel(level, settle)),',
+        '        detach: (level) => pending((settle) => host.detachLevel(level, settle))',
+        '    });',
+        '})()'
     ].join('\n')
 };
 
@@ -712,11 +827,23 @@ export const PERMISSION_HOST_FUNCTIONS = [
     'onPermissionsChange'
 ] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
 
+/** The host functions behind `levels`, installed only on a server that manages levels. */
+export const LEVEL_HOST_FUNCTIONS = [
+    'levels',
+    'currentLevel',
+    'levelOf',
+    'transferPlayer',
+    'createLevel',
+    'attachLevel',
+    'detachLevel'
+] as const satisfies readonly (typeof JSPRISMARINE_HOST_FUNCTIONS)[number][];
+
 /** A member the host object must have more than its existence for, by the check its source makes. */
 const MEMBER_GUARDS: Readonly<Record<string, string>> = {
     config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`,
     // Without the permission files a server installs none of these, and the module leaves `permissions` out.
-    permissions: `host.${PERMISSION_HOST_FUNCTIONS[0]} !== undefined`
+    permissions: `host.${PERMISSION_HOST_FUNCTIONS[0]} !== undefined`,
+    levels: `host.${LEVEL_HOST_FUNCTIONS[0]} !== undefined`
 };
 
 /** The getters of a member whose properties read the server, each through `host.read`. */
@@ -762,6 +889,8 @@ export const jsprismarineServerSource = (info: JsprismarineServerInfo): string =
         '    const freeze = Object.freeze;',
         '    const parse = JSON.parse;',
         '    const stringify = JSON.stringify;',
+        '    const NewPromise = Promise;',
+        '    const NewError = Error;',
         '    const deepFreeze = (value) => {',
         '        if (typeof value === "object" && value !== null) {',
         '            for (const key of Object.keys(value)) deepFreeze(value[key]);',

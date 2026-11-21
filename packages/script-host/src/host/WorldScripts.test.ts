@@ -16,6 +16,8 @@ import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import type {
     JsprismarineServerMembers,
     ScriptBossBarState,
+    ScriptLevelInfo,
+    ScriptLevelMembers,
     ScriptPerformance,
     ScriptPermissionMembers,
     ScriptPermissionsChange
@@ -736,6 +738,7 @@ system.run(() => {
             public readonly pings = new Map<string, number>();
             public readonly calls: string[] = [];
             public permissions?: RecordingPermissions;
+            public levels?: ScriptLevelMembers;
             public performance(): ScriptPerformance {
                 return this.current;
             }
@@ -1387,6 +1390,83 @@ system.run(() => {
             );
             return { scripts, world, log, permissions: members.permissions };
         };
+
+        /** Level operations that finish when the test says so. */
+        class RecordingLevels implements ScriptLevelMembers {
+            public readonly started: string[] = [];
+            public readonly finish: Array<(outcome: { value?: unknown; error?: Error }) => void> = [];
+            private readonly lobby: ScriptLevelInfo = {
+                id: 'lobby-id',
+                name: 'lobby',
+                attached: true,
+                entry: true,
+                players: []
+            };
+            public current(): ScriptLevelInfo {
+                return this.lobby;
+            }
+            public list(): readonly ScriptLevelInfo[] {
+                return [this.lobby];
+            }
+            public levelOf(): ScriptLevelInfo {
+                return this.lobby;
+            }
+            private later<T>(call: string): Promise<T> {
+                this.started.push(call);
+                return new Promise<T>((resolve, reject) => {
+                    this.finish.push(({ value, error }) =>
+                        // The test passes the value the operation answers.
+                        error === undefined ? resolve(value as T) : reject(error)
+                    );
+                });
+            }
+            public transfer(player: string, level: string, toSpawn: boolean): Promise<boolean> {
+                return this.later(`transfer ${player} ${level} ${toSpawn}`);
+            }
+            public create(name: string, preset?: string, seed?: string): Promise<ScriptLevelInfo> {
+                return this.later(`create ${name} ${preset} ${seed}`);
+            }
+            public attach(level: string): Promise<ScriptLevelInfo> {
+                return this.later(`attach ${level}`);
+            }
+            public detach(level: string): Promise<void> {
+                return this.later(`detach ${level}`);
+            }
+        }
+
+        it('settles a level operation on the flush after the server finishes it, rejecting with its message', async () => {
+            const members = new RecordingMembers();
+            const levels = new RecordingLevels();
+            members.levels = levels;
+            const { scripts, log } = start(
+                [
+                    writePack(`import { system } from '@minecraft/server';
+                        import('@jsprismarine/server').then(({ levels }) => {
+                            console.warn('current', levels.current.name, Object.isFrozen(levels.current));
+                            levels.create('skyblock', { preset: 'minecraft:flat' }).then((level) => console.warn('created', level.id, Object.isFrozen(level)));
+                            levels.detach('lobby').catch((error) => console.warn('refused', error.message));
+                        });`)
+                ],
+                { members }
+            );
+            scripts.flush();
+            expect(levels.started).toEqual(['create skyblock minecraft:flat undefined', 'detach lobby']);
+            expect(log.printed()).toEqual(['current lobby true']);
+
+            levels.finish[0]?.({
+                value: { id: 'sky-id', name: 'skyblock', attached: true, entry: false, players: [] }
+            });
+            levels.finish[1]?.({ error: new Error('Level lobby is the level players join first') });
+            await Promise.resolve();
+            expect(log.printed()).toEqual(['current lobby true']);
+
+            scripts.flush();
+            expect(log.printed()).toEqual([
+                'current lobby true',
+                'created sky-id true',
+                'refused Level lobby is the level players join first'
+            ]);
+        });
 
         it('reads and writes permissions through the server, naming the member in an argument error', () => {
             const { scripts, world, log, permissions } = startWithPermissions(

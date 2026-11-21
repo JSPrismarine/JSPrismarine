@@ -8,6 +8,8 @@ import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPac
 import type {
     JsprismarineServerMembers,
     ScriptBossBarState,
+    ScriptLevelInfo,
+    ScriptLevelMembers,
     ScriptPermissionMembers
 } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
@@ -18,6 +20,11 @@ import type PlayerSession from '../network/PlayerSession';
 import type { PermissionManager } from '../permission/PermissionManager';
 import { checkExpiry, checkNode } from '../permission/model';
 import type Server from '../Server';
+import { SeedGenerator } from '../utils/Seed';
+import type { Level } from '../world/Level';
+import { DEFAULT_CREATED_PRESET } from '../world/LevelRegistry';
+import { transferToLevel } from '../world/levelTransfer';
+import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 
 /** The wire's color of each color a script names. */
 const BAR_COLORS: Readonly<Record<JsprismarineBossBarColor, BossBarColor>> = {
@@ -264,10 +271,69 @@ export const scriptPermissionMembers = (
 };
 
 /**
+ * `levels` of `@jsprismarine/server` over the world manager, for the runtime of one level.
+ * @param server - The server whose levels they read and change.
+ * @param level - The level the runtime's packs run in.
+ * @param sessionOf - The session of a player, by the entity id the scripts know them by.
+ */
+export const scriptLevelMembers = (
+    server: Server,
+    level: Level,
+    sessionOf: (player: string) => PlayerSession | undefined
+): ScriptLevelMembers => {
+    const manager = () => server.getWorldManager();
+    const infoOf = (attached: Level): ScriptLevelInfo => ({
+        id: attached.id,
+        name: attached.name,
+        attached: true,
+        entry: attached === manager().getEntryLevel(),
+        players: server
+            .getSessionManager()
+            .getSessions()
+            .filter((session) => session.getWorld().getLevel() === attached)
+            .map((session) => session.identity.name)
+    });
+    return {
+        current: () => infoOf(level),
+        list: () => {
+            const attached = manager().getLevels();
+            const ids = new Set(attached.map((each) => each.id));
+            return [
+                ...attached.map(infoOf),
+                ...manager()
+                    .getRegisteredLevels()
+                    .filter((record) => !ids.has(record.id))
+                    .map((record) => ({ id: record.id, name: record.name, attached: false, entry: false, players: [] }))
+            ];
+        },
+        levelOf: (player) => {
+            const session = sessionOf(player);
+            return session === undefined ? undefined : infoOf(session.getWorld().getLevel());
+        },
+        transfer: async (player, name, toSpawn) => {
+            const target = manager().getLevel(name) ?? manager().getLevelById(name);
+            if (target === undefined) throw new PrismarineWorldErrors.LevelNotAttached({ name });
+            const session = sessionOf(player);
+            return session === undefined ? false : transferToLevel(server, session, target, { toSpawn });
+        },
+        create: async (name, preset, seed) =>
+            infoOf(
+                await manager().createLevel(name, {
+                    preset: preset ?? DEFAULT_CREATED_PRESET,
+                    seed: seed ?? SeedGenerator().toString()
+                })
+            ),
+        attach: async (name) => infoOf(await manager().attachLevel(name)),
+        detach: (name) => manager().detachLevel(name)
+    };
+};
+
+/**
  * The members of `@jsprismarine/server` that reach a running server.
  * @param server - The server whose ticker, sessions and transports they read.
+ * @param level - The level the runtime's packs run in.
  */
-export const scriptServerMembers = (server: Server): JsprismarineServerMembers => {
+export const scriptServerMembers = (server: Server, level: Level): JsprismarineServerMembers => {
     const sessionOf = (player: string): PlayerSession | undefined =>
         server
             .getSessionManager()
@@ -278,6 +344,7 @@ export const scriptServerMembers = (server: Server): JsprismarineServerMembers =
         permissions: scriptPermissionMembers(server.getPermissionManager(), sessionOf, () =>
             server.getSessionManager().getSessions()
         ),
+        levels: scriptLevelMembers(server, level, sessionOf),
         performance: () => ({
             tps: server.getTPS(),
             tpsAverages: server.getTPSAverages(),

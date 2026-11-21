@@ -15,7 +15,8 @@ import type { RegisteredLevel } from '../world/LevelRegistry';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { collectAsyncCommands } from './deferred';
-import { DEFAULT_CREATED_PRESET, registerWorldCommand, worldSubcommandNode } from './worldCommand';
+import { DEFAULT_CREATED_PRESET } from '../world/LevelRegistry';
+import { registerWorldCommand, worldSubcommandNode } from './worldCommand';
 
 describe('/world', () => {
     let registry: CommandRegistry<CommandSource>;

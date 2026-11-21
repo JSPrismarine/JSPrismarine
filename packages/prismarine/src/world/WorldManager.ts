@@ -546,15 +546,15 @@ export default class WorldManager implements Service {
      * moves its players to the entry level's spawn, saves and closes it, and announces it
      * detached. Its files stay, so loading it again opens the same save.
      *
-     * @param folderName - The level's name.
+     * @param nameOrId - The level's name or UUID.
      * @throws {Error} When no attached level has the name, or it is the entry level, which players
      *   join first.
      */
-    public detachLevel(folderName: string): Promise<void> {
+    public detachLevel(nameOrId: string): Promise<void> {
         return this.operations.run(async () => {
-            const level = this.getLevel(folderName);
+            const level = this.getLevel(nameOrId) ?? this.getLevelById(nameOrId);
             if (level === undefined || this.states.get(level.id) !== 'attached')
-                throw new PrismarineWorldErrors.LevelNotAttached({ name: folderName });
+                throw new PrismarineWorldErrors.LevelNotAttached({ name: nameOrId });
             if (level === this.entryLevel) throw new PrismarineWorldErrors.EntryLevelCannotDetach({ name: level.name });
             if (this.origins.get(level.id) === 'config')
                 throw new PrismarineWorldErrors.ConfigLevelCannotDetach({ name: level.name });
