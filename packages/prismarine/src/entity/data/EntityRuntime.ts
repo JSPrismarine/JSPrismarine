@@ -89,7 +89,14 @@ import type {
     VillagerRaidState,
     VillagerTask
 } from '@jsprismarine/entity-brains';
-import { blocksAttacks, entityData, maxDamage, potionDurationScale, weapon } from '@jsprismarine/items';
+import {
+    blocksAttacks,
+    cooldownCategoryOf,
+    entityData,
+    maxDamage,
+    potionDurationScale,
+    weapon
+} from '@jsprismarine/items';
 import type { HolderSet, ItemType } from '@jsprismarine/items';
 import { shieldDurabilityCost } from '@jsprismarine/item-behaviors/behaviors/combat';
 import type { RecipeBook } from '@jsprismarine/recipes';
@@ -211,6 +218,7 @@ import { javaBlockTagsForBedrock } from '../../content/javaTags';
 import { AREA_EFFECT_CLOUD, AreaEffectClouds, instantEffect, isAreaEffectCloud } from './areaEffectCloud';
 import { EvokerFangs, isEvokerFangs } from './evokerFangs';
 import { OminousItemSpawners, isOminousItemSpawner } from './ominousItemSpawner';
+import { isArrow } from './arrows';
 import { DEFLECTED_ARROW_FIRE_TICKS, DEFLECTED_ARROW_SPEED, deflectsArrow } from './dragonArrows';
 import { DRAGON_FIREBALL, breathSearchBox, dragonBreathOf } from './dragonFireball';
 import {
@@ -1211,12 +1219,14 @@ export class EntityRuntime implements EntityScene {
             guards: damageGuards(damageReads, this.damageSensing),
             modifiers: damageModifiers(damageReads, this.damageSensing),
             commit: (intent, computation, requested) => this.commitDamage(intent, computation, requested),
-            reject: (intent, guard) =>
+            reject: (intent, guard) => {
+                if (guard.name === 'hit_grace') this.blockedInGrace(intent);
                 this.store.occurred({
                     kind: 'occurrence',
                     occurrence: 'action-rejected',
                     data: { action: 'damage', entity: BigInt(intent.target), guard: guard.name }
-                })
+                });
+            }
         });
         this.store.addInverseWriter((inverse) => this.writeInverse(inverse));
         this.droppedItems = new DroppedItems({
@@ -3531,23 +3541,25 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined) return { taken: 0, died: false };
         const source = intent.source;
 
+        // `hurtServer` runs what a raised shield does before the blow, and a blow it took whole
+        // pushes nothing.
+        const blocking = computation.modifiers.find((modifier) => modifier.name === ITEM_BLOCKING);
+        const wholeBlocked = blocking !== undefined && blocking.amountAfter <= 0;
+
         let fresh = true;
         if (source.graced === true) {
             const grace = this.hitGraces.get(entity.id);
             fresh = grace === undefined || grace.ticks <= 0 || source.bypassesGrace === true;
+            // Java's `lastHurt` is what got past the shield.
             this.setHitGrace(entity.id, {
                 ticks: fresh || grace === undefined ? INVULNERABILITY_TICKS : grace.ticks,
-                last: intent.amount
+                last: blocking?.amountAfter ?? intent.amount
             });
         }
 
         const absorbed = computation.modifiers.find((modifier) => modifier.name === 'absorption');
         if (absorbed !== undefined) this.setAbsorption(entity, this.absorptionOf(entity) + absorbed.value);
 
-        // `hurtServer` runs what a raised shield does before the blow, and a blow it took whole
-        // pushes nothing.
-        const blocking = computation.modifiers.find((modifier) => modifier.name === ITEM_BLOCKING);
-        const wholeBlocked = blocking !== undefined && blocking.amountAfter <= 0;
         if (blocking !== undefined) this.blockedBlow(entity, intent, -blocking.value, wholeBlocked);
 
         const taken = computation.amount;
@@ -4159,15 +4171,29 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * How much of a blow a target's raised shield blocks, Java's `LivingEntity.applyItemBlocking`:
-     * nothing for a damage type the shield's `bypassed_by` names, and otherwise what its damage
-     * reductions take of a blow from in front, measured from where the blow came from.
+     * nothing for a damage type the shield's `bypassed_by` names or for an arrow with Piercing,
+     * and otherwise what its damage reductions take of a blow from in front, measured from where
+     * the blow came from.
      */
     private blockedBy(target: DataEntity, intent: DamageIntent, amount: number): number {
         const rules = this.raisedShieldOf(target)?.type.params(blocksAttacks);
         if (rules === undefined) return 0;
         if (rules.bypassed_by !== undefined && this.inDamageSet(rules.bypassed_by, intent.cause)) return 0;
+        if (this.pierces(intent)) return 0;
         const angle = blockingAngle(target.position, target.body.yaw, this.blowOrigin(intent));
         return blockedDamage(rules, amount, angle, (set) => this.inDamageSet(set, intent.cause));
+    }
+
+    /**
+     * Whether a blow came from an arrow with Piercing, which a shield lets through: Java's
+     * `AbstractArrow.getPierceLevel() > 0`. A crossbow writes its Piercing level into the
+     * arrows it fires.
+     */
+    private pierces(intent: DamageIntent): boolean {
+        const contact = intent.projectile === undefined ? undefined : this.store.get(intent.projectile);
+        if (contact === undefined || !isArrow(contact.identifier)) return false;
+        const level = contact.spawnData?.['piercing'];
+        return typeof level === 'number' && level > 0;
     }
 
     /**
@@ -4198,12 +4224,25 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
+     * What a raised shield does to a blow the grace period then turns away. Java's
+     * `LivingEntity.hurtServer` runs `applyItemBlocking` before the grace check, so the shield
+     * still wears, sounds, and is disabled by an axe.
+     */
+    private blockedInGrace(intent: DamageIntent): void {
+        const defender = this.store.get(intent.target);
+        if (defender === undefined || intent.amount <= 0) return;
+        const blocked = this.blockedBy(defender, intent, intent.amount);
+        if (blocked > 0) this.blockedBlow(defender, intent, blocked, blocked >= intent.amount);
+    }
+
+    /**
      * What a blow a raised shield blocked does besides, Java's `applyItemBlocking` and the
      * `blockUsingItem` it calls: the shield takes its `item_damage` of what it blocked and plays
      * its block sound, and a living attacker's `blockedByItem` runs, unless the blow was a
      * projectile. A weapon with `disable_blocking_for_seconds`, an axe, then disables the shield
      * for that long, scaled by the shield's `disable_cooldown_scale`, as `Player.blockUsingItem`
-     * does.
+     * does, and a player's client is sent the shield's cooldown, as `ItemCooldowns.addCooldown`
+     * sends it.
      *
      * @param blocked - What the shield took off the blow.
      * @param whole - Whether it took all of it.
@@ -4239,6 +4278,7 @@ export class EntityRuntime implements EntityScene {
         const ticks = disableTicks(seconds, rules.disable_cooldown_scale);
         if (ticks <= 0) return;
         this.setShieldDisabled(defender.id, this.world.level.gameTime() + ticks);
+        this.host.itemCooldown?.(defender.id, cooldownCategoryOf(shield.type), ticks);
         if (rules.disabled_sound !== undefined)
             this.host.playSoundAt?.(defender.position, bedrockSoundOf(rules.disabled_sound));
     }

@@ -191,6 +191,14 @@ export interface EntityHostFacts {
      */
     hurtFeedback?(id: number): void;
     /**
+     * Starts an item cooldown on a player's client, as Java's `ItemCooldowns.addCooldown` reaches
+     * it with a cooldown packet. Nothing is sent for a runtime id no client watches as itself.
+     * @param id - The player's runtime id.
+     * @param category - The Bedrock cooldown category, such as `shield`.
+     * @param ticks - How long the cooldown runs.
+     */
+    itemCooldown?(id: number, category: string, ticks: number): void;
+    /**
      * Announces that an entity's data-defined death hold began, so clients play the long
      * death animation. Only the ender dragon's `minecraft:behavior.dragondeath` starts one.
      * @param id - The data-driven entity's runtime id.

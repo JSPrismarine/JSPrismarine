@@ -448,6 +448,9 @@ export class TestEntityWorld {
     /** Entities whose death animation the host was asked to announce. */
     public readonly deathAnimations: number[] = [];
 
+    /** Every item cooldown the host was asked to start on a player's client. */
+    public readonly itemCooldowns: { id: number; category: string; ticks: number }[] = [];
+
     /** Every damage commit the host heard, in order, as the advancement triggers hear them. */
     public readonly commits: DamageCommit[] = [];
 
@@ -635,6 +638,7 @@ export class TestEntityWorld {
             villagerRaidEffect: (id, effect) => this.villagerRaidEffects.push({ id, effect }),
             attackSound: (id) => this.attackSounds.push(id),
             startDeathAnimation: (id) => this.deathAnimations.push(id),
+            itemCooldown: (id, category, ticks) => this.itemCooldowns.push({ id, category, ticks }),
             damageCommitted: (commit) => {
                 this.commits.push(commit);
                 this.onCommit?.(commit);

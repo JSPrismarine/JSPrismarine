@@ -66,7 +66,8 @@ const shieldBearer = (random: readonly number[] = [0.5]) => {
                 },
                 component_groups: { stunned: { 'minecraft:is_stunned': {} } },
                 events: { 'minecraft:become_stunned': { add: { component_groups: ['stunned'] } } }
-            }
+            },
+            'minecraft:arrow': { components: { 'minecraft:collision_box': { width: 0.25, height: 0.25 } } }
         }
     );
     const player = fixture.runtime.spawnPlayer(PLAYER, GROUND);
@@ -91,7 +92,31 @@ const shieldBearer = (random: readonly number[] = [0.5]) => {
         fixture.runtime.attack(attacker.body, fixture.runtime.mobById(PLAYER)!, amount);
         return attacker;
     };
-    return { ...fixture, world, player, impulses, health, raise, hit };
+    const axeBlow = () => {
+        const axeman = fixture.runtime.spawn('minecraft:cow', { ...GROUND, x: -1.5 });
+        if (axeman === undefined) throw new Error('the fixture declares no cow');
+        axeman.body.setEquipment({ mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
+        fixture.runtime.attack(axeman.body, fixture.runtime.mobById(PLAYER)!, 4);
+    };
+    const pass = (ticks: number) => {
+        for (let tick = 0; tick < ticks; tick += 1) {
+            world.advance(1);
+            fixture.runtime.tick(world.world.level.gameTime());
+        }
+    };
+    /** An arrow from in front, fired from a crossbow with `piercing` levels of Piercing. */
+    const shoot = (piercing: number) => {
+        const arrow = fixture.runtime.spawn('minecraft:arrow', { ...GROUND, x: -1.5 }, { data: { piercing } });
+        if (arrow === undefined) throw new Error('the fixture declares no arrow');
+        return fixture.runtime.damage({
+            target: PLAYER,
+            projectile: arrow.id,
+            cause: 'projectile',
+            amount: 4,
+            source: { route: 'component', graced: true }
+        });
+    };
+    return { ...fixture, world, player, impulses, health, raise, hit, axeBlow, pass, shoot };
 };
 
 describe('a raised shield in the entity runtime', () => {
@@ -131,26 +156,59 @@ describe('a raised shield in the entity runtime', () => {
         const bearer = shieldBearer();
         bearer.raise(10);
         const full = bearer.health();
-        const axeman = bearer.runtime.spawn('minecraft:cow', { ...GROUND, x: -1.5 })!;
-        axeman.body.setEquipment({ mainhand: { identifier: 'minecraft:iron_axe', count: 1 } });
-        bearer.runtime.attack(axeman.body, bearer.runtime.mobById(PLAYER)!, 4);
+        bearer.axeBlow();
         expect(bearer.health()).toBe(full);
+        // `ItemCooldowns.addCooldown` tells the client, which greys the shield out.
+        expect(bearer.world.itemCooldowns).toEqual([{ id: PLAYER, category: 'shield', ticks: 100 }]);
 
         // Once the blow's grace period is over, the next lands, and after 100 ticks the shield is back.
-        const pass = (ticks: number) => {
-            for (let tick = 0; tick < ticks; tick += 1) {
-                bearer.world.advance(1);
-                bearer.runtime.tick(bearer.world.world.level.gameTime());
-            }
-        };
-        pass(20);
+        bearer.pass(20);
         bearer.hit('minecraft:cow', undefined, 6);
         const hurt = bearer.health();
         expect(hurt).toBeLessThan(full);
-        pass(100);
+        bearer.pass(100);
         const healed = bearer.health();
         bearer.hit('minecraft:cow', undefined, 6);
         expect(bearer.health()).toBe(healed);
+    });
+
+    it("is disabled by an axe's blow inside the grace period, which hurtServer checks after the shield", () => {
+        const bearer = shieldBearer();
+        bearer.raise(10);
+        const full = bearer.health();
+        bearer.hit('minecraft:cow', undefined, 4);
+        // The grace period of the first blow turns the axe away, but the shield has met it first.
+        bearer.axeBlow();
+        expect(bearer.health()).toBe(full);
+        expect(bearer.world.itemCooldowns).toEqual([{ id: PLAYER, category: 'shield', ticks: 100 }]);
+
+        bearer.pass(20);
+        bearer.hit('minecraft:cow', undefined, 6);
+        expect(bearer.health()).toBeLessThan(full);
+    });
+
+    it('lets a harder blow inside the grace period through for what got past the shield before', () => {
+        const bearer = shieldBearer();
+        bearer.raise(10);
+        const full = bearer.health();
+        // Taken whole, so the grace period measures against nothing that got through.
+        bearer.hit('minecraft:cow', undefined, 4);
+        bearer.runtime.playerSystems.setSneaking(bearer.player, false);
+        bearer.hit('minecraft:cow', undefined, 3);
+        expect(bearer.health()).toBe(full - 3);
+    });
+
+    it('lets an arrow with Piercing past it, as AbstractArrow.getPierceLevel decides', () => {
+        const plain = shieldBearer();
+        plain.raise(10);
+        const full = plain.health();
+        plain.shoot(0);
+        expect(plain.health()).toBe(full);
+
+        const piercing = shieldBearer();
+        piercing.raise(10);
+        piercing.shoot(1);
+        expect(piercing.health()).toBeLessThan(full);
     });
 
     it('stuns a blocked ravager by its minecraft:ravager_blocked, or throws the defender back', () => {

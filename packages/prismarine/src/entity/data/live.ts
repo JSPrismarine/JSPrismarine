@@ -39,6 +39,7 @@ import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { entityIds } from '../entityIds';
 import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
+import PlayerStartItemCooldownPacket from '@jsprismarine/protocol/bedrock/packet/PlayerStartItemCooldownPacket';
 import { actorHealthIn, actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -564,6 +565,15 @@ const liveHost = (
 
         world.sendActorEvent(target, ActorEvent.HURT_ANIMATION);
         world.sendActorSound(target, LevelSoundEvent.HURT);
+    },
+    itemCooldown: (id, category, ticks) => {
+        const session = options.liveWorld()?.viewerOf(BigInt(id));
+        if (session === undefined) return;
+        session.released(
+            session
+                .getConnection()
+                .sendDataPacket(new PlayerStartItemCooldownPacket({ itemCategory: category, durationTicks: ticks }))
+        );
     },
     startDeathAnimation: (id) => {
         const world = options.liveWorld();

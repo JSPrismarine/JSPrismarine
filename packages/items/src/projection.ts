@@ -305,6 +305,15 @@ const ARMOR_SLOTS: Readonly<Record<string, string>> = {
 };
 
 /**
+ * The Bedrock cooldown category an item's cooldown runs under: Java's cooldown group, which is the
+ * `minecraft:use_cooldown` group or else the item's own identifier, without the `minecraft:`
+ * namespace, the way the client's `minecraft:cooldown` component and
+ * `PlayerStartItemCooldownPacket` name it.
+ */
+export const cooldownCategoryOf = (type: ItemType): string =>
+    (type.params(useCooldown)?.cooldown_group ?? type.identifier).replace('minecraft:', '');
+
+/**
  * Picks the Bedrock enchanting category for an item.
  *
  * Java has no such field, so it is derived: the `mineable/*` tag in the
@@ -572,7 +581,7 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
     const cooldown = type.params(useCooldown);
     if (cooldown !== undefined) {
         projected['minecraft:cooldown'] = {
-            category: (cooldown.cooldown_group ?? type.identifier).replace('minecraft:', ''),
+            category: cooldownCategoryOf(type),
             duration: cooldown.seconds,
             type: 'use'
         };
