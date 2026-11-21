@@ -2,12 +2,15 @@ import type {
     Diagnostic,
     EnchantmentView,
     GrammarExtensions,
+    ItemModifier,
     ItemStack,
     ItemStackOps,
+    Predicate,
+    PredicateContext,
     RandomSource,
     ReferenceResolver
 } from '@jsprismarine/predicates';
-import { DiagnosticCollector } from '@jsprismarine/predicates';
+import { DiagnosticCollector, parseItemModifier, parsePredicate } from '@jsprismarine/predicates';
 
 import type { LootContentOptions, LootContextOptions } from './content';
 import { createLootContext } from './content';
@@ -282,6 +285,55 @@ export class LootRegistry {
         });
 
         return rollLootTable(table, context, { luck: request.luck, split, dynamic, slots });
+    }
+
+    /**
+     * Compiles an item modifier that lives outside a loot table, such as a villager trade's
+     * `given_item_modifier`, with the references this registry resolves. Diagnostics land in
+     * {@link diagnostics} under `path`.
+     */
+    public itemModifier(json: unknown, path: string): ItemModifier {
+        return parseItemModifier(json, {
+            resolver: this.resolver,
+            extensions: this.options.extensions,
+            diagnostics: this.diagnostics,
+            path
+        }).value;
+    }
+
+    /**
+     * Compiles a condition that lives outside a loot table, such as a villager trade's
+     * `merchant_predicate`, the same way {@link itemModifier} compiles a modifier.
+     */
+    public predicate(json: unknown, path: string): Predicate {
+        return parsePredicate(json, {
+            resolver: this.resolver,
+            extensions: this.options.extensions,
+            diagnostics: this.diagnostics,
+            path
+        }).value;
+    }
+
+    /**
+     * A loot context over this registry's content seams, for a modifier or a condition a caller
+     * runs outside a table, as {@link roll} builds one for a table.
+     *
+     * @param randomSequence - The named stream the draws come from, as a table's `random_sequence`
+     *   names one; undefined for the registry's unkeyed stream.
+     */
+    public context(
+        randomSequence: string | undefined,
+        request: Omit<LootContextOptions, 'content'> = {}
+    ): PredicateContext {
+        const random = request.random ?? this.sequences.forSequence(randomSequence);
+        return createLootContext({
+            ...request,
+            random,
+            diagnostics: request.diagnostics ?? this.diagnostics,
+            items: request.items ?? this.options.items,
+            enchantments: request.enchantments ?? this.options.enchantments?.(random),
+            content: this.content
+        });
     }
 
     /**

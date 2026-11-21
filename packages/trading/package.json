@@ -11,6 +11,11 @@
                 "import": "./dist/index.js",
                 "module": "./dist/index.js"
             },
+            "./javaTrades": {
+                "types": "./dist/javaTrades.d.ts",
+                "import": "./dist/javaTrades.js",
+                "module": "./dist/javaTrades.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -26,6 +31,10 @@
         ".": {
             "jsprismarine:dist": "./dist/index.js",
             "default": "./src/index.ts"
+        },
+        "./javaTrades": {
+            "jsprismarine:dist": "./dist/javaTrades.js",
+            "default": "./src/javaTrades.ts"
         },
         "./package.json": "./package.json"
     },

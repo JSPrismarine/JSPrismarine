@@ -6792,6 +6792,7 @@ export class EntityRuntime implements EntityScene {
         const built = merchantFor(entity.instance, {
             content: this.content(),
             random: this.world.random,
+            position: entity.position,
             ...(saved === undefined ? {} : { snapshot: saved }),
             report: (code, message) => this.report(`${entity.identifier} trade table ${code}: ${message}`)
         });

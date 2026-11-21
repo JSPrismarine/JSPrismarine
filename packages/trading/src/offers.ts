@@ -76,13 +76,53 @@ export interface OfferGenerationOptions {
  * The first tier is always available, and the scan stops at the first tier
  * whose requirement the trader has not met.
  */
-export const unlockedTierCount = (table: TradeTable, traderExp: number): number => {
+export const unlockedTierCount = (table: TradeTable, traderExp: number): number =>
+    unlockedTiers(
+        table.tiers.map((tier) => tier.totalExpRequired),
+        traderExp
+    );
+
+/**
+ * How many tiers a trader with this much experience has unlocked, from the experience each tier
+ * needs: the first always, then each whose requirement it meets, stopping at the first it does not.
+ */
+export const unlockedTiers = (requirements: readonly number[], traderExp: number): number => {
     let unlocked = 0;
-    for (const tier of table.tiers) {
-        if (unlocked > 0 && traderExp < tier.totalExpRequired) break;
+    for (const required of requirements) {
+        if (unlocked > 0 && traderExp < required) break;
         unlocked += 1;
     }
-    return Math.min(unlocked, table.tiers.length);
+    return unlocked;
+};
+
+/**
+ * Where a trader's offers come from, a tier at a time: a Bedrock trade table, or Java's trade
+ * sets.
+ */
+export interface OfferSource {
+    /** The experience each tier needs, in tier order. The first tier is always unlocked. */
+    readonly tierRequirements: readonly number[];
+    /**
+     * Draws the offers of the tiers from `from` up to, not including, `to`.
+     *
+     * @param traderExp - The trader's experience, which a Bedrock table's draw reads.
+     */
+    draw(from: number, to: number, traderExp: number): readonly TradeOffer[];
+}
+
+/**
+ * A Bedrock trade table as an {@link OfferSource}. Each draw generates every unlocked tier and keeps
+ * the new ones, so the stream draws exactly what it did before sources existed.
+ */
+export const tableOfferSource = (options: OfferGenerationOptions): OfferSource => {
+    const tierRequirements = options.table.tiers.map((tier) => tier.totalExpRequired);
+    return {
+        tierRequirements,
+        draw: (from, to, traderExp) =>
+            generateOffers({ ...options, traderExp: Math.max(traderExp, tierRequirements[to - 1] ?? 0) }).filter(
+                (offer) => offer.tier >= from
+            )
+    };
 };
 
 /** Draws an integer in the inclusive range. */
