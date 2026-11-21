@@ -110,9 +110,12 @@ group's nodes are its own nodes followed by its parents' depth first, and an inh
 the weight of the direct group that inherits it, so a light parent of a heavy group still decides
 before a lighter direct group. The walk keeps a set of the groups it has visited and never enters
 one twice, so it ends even on a file that names a cycle; `parent add` and the file loader refuse a
-parent that would make a group its own ancestor. The first node that decides the query wins, where a specific node
-decides before a wildcard at the same tier, and a negation decides before a grant at the same
-specificity. Expired nodes and memberships are skipped and pruned on the next write. The primary
+parent that would make a group its own ancestor. Groups of equal weight are visited in name order,
+so the result is the same on every run. A tier is one holder's set of nodes: the user, or one
+direct group with its parents. The first node that decides the query wins, where a specific node
+decides before a wildcard in the same tier, and a negation decides before a grant at the same
+specificity in the same tier. So a denial in the lighter of two groups never overrides a grant in
+the heavier, and a grant and a denial of the same node at equal weight resolve by name order. Expired nodes and memberships are skipped and pruned on the next write. The primary
 group is the heaviest group the user holds directly.
 
 Meta resolves in the same order: the user's own meta, then each direct group by weight with its
@@ -179,7 +182,9 @@ command or a script goes through the same code path the config files use, so com
 
 `<target>` is an entity selector for online players or a name. A name resolves against the `name`
 stored on each user. When it matches more than one kind, the command refuses and shows the
-qualified forms it accepts, `xbox:Steve`, `java:Steve` or `offline:Steve`. The qualified form is
+qualified forms it accepts, `xbox:Steve`, `java:Steve` or `offline:Steve`. Two stored users of
+one kind can carry the same last-seen name, so the qualified form also takes the key itself,
+`xbox:2535428842768200`, and the refusal lists each candidate with its key. The qualified form is
 command syntax only and never appears in a file or an API.
 
 ### The script module
