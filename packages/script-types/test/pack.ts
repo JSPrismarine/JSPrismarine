@@ -53,6 +53,28 @@ if (jsp !== undefined) {
         registration.unregister();
         void [text, names];
     }
+
+    if ('permissions' in jsp) {
+        const { permissions } = jsp;
+        const player = { id: '-4294967295' };
+        const allowed: boolean = permissions.has(player, 'minecraft.command.kick');
+        const groups: readonly string[] = permissions.groupsOf(player);
+        const primary: string = permissions.primaryGroupOf(player);
+        const prefix: string | undefined = permissions.metaOf(player, 'prefix');
+        permissions.grant(player, 'minecraft.command.me', '2030-01-01T00:00:00Z');
+        permissions.grant('vip', 'minecraft.command.*');
+        permissions.revoke('vip', 'minecraft.command.*');
+        permissions.addToGroup(player, 'vip', '30d');
+        permissions.removeFromGroup(player, 'vip');
+        const callback = permissions.afterEvents.permissionsChange.subscribe((event) => {
+            const changed: string | undefined = event.player?.id ?? event.group;
+            void changed;
+        });
+        permissions.afterEvents.permissionsChange.unsubscribe(callback);
+        // @ts-expect-error A group is named by a string, not a number.
+        permissions.grant(7, 'a.b');
+        void [allowed, groups, primary, prefix];
+    }
 }
 
 export {};

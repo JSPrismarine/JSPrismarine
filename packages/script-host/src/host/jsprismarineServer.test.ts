@@ -34,7 +34,16 @@ const recordingHost = () => {
         register: record('register', () => 3),
         unregister: record('unregister', () => undefined),
         resolve: record('resolve', (text) => String(text).toUpperCase()),
-        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }]))
+        namespaces: record('namespaces', () => JSON.stringify([{ namespace: 'player', keys: ['name', 'ping'] }])),
+        hasPermission: record('hasPermission', (_player, node) => node === 'a.b'),
+        groupsOf: record('groupsOf', () => JSON.stringify(['vip', 'default'])),
+        primaryGroupOf: record('primaryGroupOf', () => 'vip'),
+        metaOf: record('metaOf', (_player, key) => (key === 'prefix' ? '[VIP] ' : undefined)),
+        grant: record('grant', () => undefined),
+        revoke: record('revoke', () => undefined),
+        addToGroup: record('addToGroup', () => undefined),
+        removeFromGroup: record('removeFromGroup', () => undefined),
+        onPermissionsChange: record('onPermissionsChange', () => undefined)
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     return { host, calls };
 };
@@ -52,6 +61,58 @@ const at = (value: unknown, key: string): unknown =>
     typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined;
 
 describe('@jsprismarine/server', () => {
+    it('reads and writes permissions through the host, and dispatches a change to its subscribers', () => {
+        const { host, calls } = recordingHost();
+        const namespace = namespaceOf(host);
+        const permissions = namespace.permissions;
+        const dispatch = calls.find(([name]) => name === 'onPermissionsChange')?.[1];
+        if (typeof dispatch !== 'function') throw new TypeError('The member did not hand the host a dispatcher');
+        const player = { id: '7' };
+        const seen: unknown[] = [];
+        const callback = (event: unknown) => void seen.push(event);
+
+        const has = at(permissions, 'has');
+        const groupsOf = at(permissions, 'groupsOf');
+        const grant = at(permissions, 'grant');
+        const signal = at(at(permissions, 'afterEvents'), 'permissionsChange');
+        const subscribe = at(signal, 'subscribe');
+        const unsubscribe = at(signal, 'unsubscribe');
+        if (
+            typeof has !== 'function' ||
+            typeof groupsOf !== 'function' ||
+            typeof grant !== 'function' ||
+            typeof subscribe !== 'function' ||
+            typeof unsubscribe !== 'function'
+        ) {
+            throw new TypeError('The member lacks a function');
+        }
+
+        expect(has(player, 'a.b')).toBe(true);
+        expect(groupsOf(player)).toEqual(['vip', 'default']);
+        expect(Object.isFrozen(groupsOf(player))).toBe(true);
+        grant('vip', 'a.b', '2030-01-01T00:00:00Z');
+        expect(subscribe(callback)).toBe(callback);
+        dispatch(player, 'vip');
+        unsubscribe(callback);
+        dispatch(undefined, undefined);
+
+        expect(seen).toEqual([{ player, group: 'vip' }]);
+        expect(Object.isFrozen(seen[0])).toBe(true);
+        expect(calls.filter(([name]) => name === 'grant')).toEqual([['grant', 'vip', 'a.b', '2030-01-01T00:00:00Z']]);
+        expect(Object.isFrozen(permissions)).toBe(true);
+        expect(Object.isFrozen(signal)).toBe(true);
+    });
+
+    it('leaves permissions out of a namespace whose host has no permission functions', () => {
+        const { host } = recordingHost();
+        const { hasPermission: _hasPermission, ...without } = host;
+
+        const namespace = namespaceOf(without);
+
+        expect('permissions' in namespace).toBe(false);
+        expect('placeholders' in namespace).toBe(true);
+    });
+
     it('makes only the fixed values and the ones the server supplied without a host', () => {
         const namespace = namespaceOf();
 
@@ -105,7 +166,8 @@ describe('@jsprismarine/server', () => {
         update({ progress: 0.5 });
         hide();
 
-        expect(calls).toEqual([
+        // Making the namespace hands the host the permission dispatcher first; the rest are the calls made here.
+        expect(calls.filter(([name]) => name !== 'onPermissionsChange')).toEqual([
             ['ping', player],
             ['showBar', player, { text: 'TPS' }],
             ['barValid', 7],
@@ -139,7 +201,7 @@ describe('@jsprismarine/server', () => {
         expect(Object.isFrozen(at(at(namespaces, '0'), 'keys'))).toBe(true);
         expect(at(placeholders, 'namespaces')).not.toBe(namespaces);
 
-        expect(calls).toEqual([
+        expect(calls.filter(([name]) => name !== 'onPermissionsChange')).toEqual([
             ['register', 'demo', provider],
             ['resolve', '{demo:name}', player],
             ['unregister', 3],

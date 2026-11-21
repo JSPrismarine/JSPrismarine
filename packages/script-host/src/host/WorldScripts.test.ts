@@ -13,7 +13,14 @@ import { WorldScripts } from './WorldScripts';
 import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
-import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
+import type {
+    JsprismarineServerMembers,
+    ScriptPermissionMembers,
+    ScriptPermissionsChange,
+    ScriptPermissionSubject,
+    ScriptBossBarState,
+    ScriptPerformance
+} from './jsprismarineMembers';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {
@@ -687,10 +694,56 @@ system.run(() => {
         });
 
         /** A server whose performance and pings the test sets, and which records every boss bar call. */
+        /** The permission files as a double: one group list per player, `vip` with a prefix, and every write recorded. */
+        class RecordingPermissions implements ScriptPermissionMembers {
+            public readonly groups = new Map<string, string[]>();
+            public readonly writes: string[] = [];
+            public readonly listeners = new Set<(change: ScriptPermissionsChange) => void>();
+            public has(player: string, node: string): boolean {
+                return node === 'minecraft.command.me' && this.groupsOf(player).includes('vip');
+            }
+            public groupsOf(player: string): readonly string[] {
+                return [...(this.groups.get(player) ?? []), 'default'];
+            }
+            public primaryGroupOf(player: string): string {
+                return this.groupsOf(player)[0] ?? 'default';
+            }
+            public metaOf(player: string, key: string): string | undefined {
+                return key === 'prefix' && this.groupsOf(player).includes('vip') ? '[VIP] ' : undefined;
+            }
+            public weightOf(player: string): number {
+                return this.primaryGroupOf(player) === 'vip' ? 10 : 0;
+            }
+            public grant(subject: ScriptPermissionSubject, node: string, expires?: string): void {
+                if (node.includes(' ')) throw new RangeError(`Permission node "${node}" is not spelled as scope.name`);
+                this.writes.push(`grant ${JSON.stringify(subject)} ${node} ${expires ?? ''}`.trimEnd());
+            }
+            public revoke(subject: ScriptPermissionSubject, node: string): void {
+                this.writes.push(`revoke ${JSON.stringify(subject)} ${node}`);
+            }
+            public addToGroup(player: string, group: string, expires?: string): void {
+                if (group === 'nobody') throw new Error(`No permission group named "${group}"`);
+                this.groups.set(player, [group, ...(this.groups.get(player) ?? [])]);
+                this.writes.push(`addToGroup ${player} ${group} ${expires ?? ''}`.trimEnd());
+                this.changed({ player, group: undefined });
+            }
+            public removeFromGroup(player: string, group: string): void {
+                this.writes.push(`removeFromGroup ${player} ${group}`);
+            }
+            public onChange(listener: (change: ScriptPermissionsChange) => void): () => void {
+                this.listeners.add(listener);
+                return () => void this.listeners.delete(listener);
+            }
+            public changed(change: ScriptPermissionsChange): void {
+                for (const listener of this.listeners) listener(change);
+            }
+        }
+
         class RecordingMembers implements JsprismarineServerMembers {
             public current: ScriptPerformance = { tps: 20, tpsAverages: [20, 20, 20], lastTickMs: 0, averageTickMs: 0 };
             public readonly pings = new Map<string, number>();
             public readonly calls: string[] = [];
+            public permissions?: RecordingPermissions;
             public performance(): ScriptPerformance {
                 return this.current;
             }
@@ -1056,6 +1109,121 @@ system.run(() => {
                 'before registering 0',
                 'tick 5 "AB"'
             ]);
+        });
+
+        /** A pack over members whose permission files are the recording double. */
+        const startWithPermissions = (body: string) => {
+            const members = new RecordingMembers();
+            members.permissions = new RecordingPermissions();
+            const world = new MemoryWorld();
+            const { scripts, log } = start(
+                [
+                    writePack(`import { system, world } from '@minecraft/server';
+                        const show = (label, call) => {
+                            try { console.warn(label, JSON.stringify(call())); } catch (error) { console.warn(label, String(error)); }
+                        };
+                        let jsp;
+                        import('@jsprismarine/server').then((module) => { jsp = module; });
+                        ${body}`)
+                ],
+                { world, members }
+            );
+            return { scripts, world, log, permissions: members.permissions };
+        };
+
+        it('reads and writes permissions through the server, naming the member in an argument error', () => {
+            const { scripts, world, log, permissions } = startWithPermissions(
+                `system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    show('before', () => [jsp.permissions.has(steve, 'minecraft.command.me'), jsp.permissions.groupsOf(steve), jsp.permissions.primaryGroupOf(steve), jsp.permissions.metaOf(steve, 'prefix')]);
+                    jsp.permissions.addToGroup(steve, 'vip', '30d');
+                    show('after', () => [jsp.permissions.has(steve, 'minecraft.command.me'), jsp.permissions.groupsOf(steve), jsp.permissions.primaryGroupOf(steve), jsp.permissions.metaOf(steve, 'prefix')]);
+                    show('frozen', () => Object.isFrozen(jsp.permissions.groupsOf(steve)));
+                    jsp.permissions.grant(steve, 'minecraft.command.kick', '2030-01-01T00:00:00Z');
+                    jsp.permissions.grant('vip', 'minecraft.command.*');
+                    jsp.permissions.revoke('vip', 'minecraft.command.*');
+                    jsp.permissions.revoke(steve, 'minecraft.command.kick');
+                    jsp.permissions.removeFromGroup(steve, 'vip');
+                    show('bad node', () => jsp.permissions.grant(steve, 'bad node'));
+                    show('bad group', () => jsp.permissions.addToGroup(steve, 'nobody'));
+                    show('subject', () => jsp.permissions.grant(7, 'a.b'));
+                    show('node', () => jsp.permissions.has(steve, 7));
+                    show('player', () => jsp.permissions.has({ id: '1' }, 'a.b'));
+                    show('perms', () => jsp.placeholders.resolve('{perms:primary_group} {perms:groups} {perms:prefix}{perms:suffix} {perms:weight}', steve));
+                    show('no one', () => jsp.placeholders.resolve('{perms:primary_group}'));
+                }, 1);`
+            );
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual([
+                'before [false,["default"],"default",null]',
+                'after [true,["vip","default"],"vip","[VIP] "]',
+                'frozen true',
+                'bad node RangeError: Permission node "bad node" is not spelled as scope.name',
+                'bad group Error: No permission group named "nobody"',
+                'subject TypeError: permissions.grant takes a Player or a group name as its subject',
+                'node TypeError: permissions.has takes a string as its node',
+                'player TypeError: permissions.has takes a Player as its player',
+                'perms "vip vip, default [VIP]  10"',
+                'no one "{perms:primary_group}"'
+            ]);
+            expect(permissions.writes).toEqual([
+                `addToGroup ${steve} vip 30d`,
+                `grant {"player":"${steve}"} minecraft.command.kick 2030-01-01T00:00:00Z`,
+                'grant {"group":"vip"} minecraft.command.*',
+                'revoke {"group":"vip"} minecraft.command.*',
+                `revoke {"player":"${steve}"} minecraft.command.kick`,
+                `removeFromGroup ${steve} vip`
+            ]);
+        });
+
+        it("tells permissionsChange subscribers of each change with the pack's own player object, until they unsubscribe or the scripts stop", () => {
+            const { scripts, world, log, permissions } = startWithPermissions(
+                `let seen = 0;
+                const callback = jsp === undefined ? undefined : undefined;
+                system.runTimeout(() => {
+                    const steve = world.getAllPlayers()[0];
+                    const subscribed = jsp.permissions.afterEvents.permissionsChange.subscribe((event) => {
+                        seen += 1;
+                        show('change ' + seen, () => [event.player === steve ? 'own object' : event.player === undefined ? 'nobody' : 'copy', event.group, Object.isFrozen(event)]);
+                        if (seen === 3) jsp.permissions.afterEvents.permissionsChange.unsubscribe(subscribed);
+                    });
+                }, 1);`
+            );
+            const steve = world.join('Steve');
+            scripts.flush();
+            scripts.flush();
+            permissions.changed({ player: steve, group: undefined });
+            permissions.changed({ player: undefined, group: 'vip' });
+            permissions.changed({ player: '999', group: 'vip' });
+            permissions.changed({ player: steve, group: undefined });
+            scripts.reload();
+            scripts.flush();
+            scripts.flush();
+            permissions.changed({ player: steve, group: undefined });
+
+            // The reloaded pack subscribes again at its first tick and hears the last change.
+            expect(log.printed()).toEqual([
+                'change 1 ["own object",null,true]',
+                'change 2 ["nobody","vip",true]',
+                'change 3 ["nobody","vip",true]',
+                'change 1 ["own object",null,true]'
+            ]);
+            expect(permissions.listeners.size).toBe(1);
+            scripts.shutdown();
+            expect(permissions.listeners.size).toBe(0);
+        });
+
+        it('leaves permissions out when the server has no permission files', () => {
+            const { scripts, log } = startWithMembers(
+                `system.runTimeout(() => show('members', () => ['permissions' in jsp, 'placeholders' in jsp]), 1);`
+            );
+            scripts.flush();
+            scripts.flush();
+
+            expect(log.printed()).toEqual(['members [false,true]']);
         });
 
         it('passes no player to a resolver for a player who left', () => {

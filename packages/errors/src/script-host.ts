@@ -411,6 +411,8 @@ export const ScriptHostErrors = defineErrors('script-host', {
      * `@jsprismarine/script-types` name.
      */
     JspModuleArgument: { message: '{member} takes {expected} as its {argument}', base: TypeError },
+    /** A pack called a member of `@jsprismarine/server` this server does not provide, which it should have checked for with `in`. */
+    JspMemberUnavailable: '{member} of @jsprismarine/server is not available on this server',
     /**
      * A pack registered a placeholder namespace or key that is not a name: lowercase letters,
      * digits and underscores, starting with a letter, so that `{namespace:key}` in a text is
