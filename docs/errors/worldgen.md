@@ -180,33 +180,6 @@ Thrown as `WorldgenErrors.DensityFunctionCycle`, which extends `RangeError`.
 A world generation file, from a datapack or the generated Java data, defines density
 functions that refer to each other in a loop, so none can be computed.
 
-## `WORLDGEN_DENSITY_VOLUME_OUTPUT_TOO_SMALL`
-
-`Density volume output needs {count} values, got {outputCount}`
-
-Thrown as `WorldgenErrors.DensityVolumeOutputTooSmall`, which extends `RangeError`.
-
-A density volume was given a buffer too small for its samples. This is a bug in world
-generation; report it with the stack trace.
-
-## `WORLDGEN_DENSITY_VOLUME_TOO_FAR`
-
-`Density volume end coordinates exceed the safe integer range`
-
-Thrown as `WorldgenErrors.DensityVolumeTooFar`, which extends `RangeError`.
-
-A density volume was sampled at coordinates too large to compute exactly. This is a bug in
-world generation; report it with the stack trace.
-
-## `WORLDGEN_DENSITY_VOLUME_TOO_LARGE`
-
-`Density volume sample count exceeds the safe integer range`
-
-Thrown as `WorldgenErrors.DensityVolumeTooLarge`, which extends `RangeError`.
-
-A density volume was asked for more samples than can be counted exactly. This is a bug in
-world generation; report it with the stack trace.
-
 ## `WORLDGEN_DIMENSION_TOO_TALL`
 
 `{path}: min_y + height has to be at most {maxYExclusive}, got {value}`
@@ -478,15 +451,6 @@ Thrown as `WorldgenErrors.InvalidBitCount`, which extends `RangeError`.
 Generation code drew more random bits than one draw holds. This is a bug in world generation;
 report it with the stack trace.
 
-## `WORLDGEN_INVALID_DENSITY_VOLUME`
-
-`Density volume origins and sizes must be safe integer block coordinates`
-
-Thrown as `WorldgenErrors.InvalidDensityVolume`, which extends `RangeError`.
-
-A density volume was sampled at a position or size that is not a whole block coordinate. This
-is a bug in world generation; report it with the stack trace.
-
 ## `WORLDGEN_INVALID_GAUSSIAN_CACHE_STATE`
 
 `Invalid Gaussian cache state`
@@ -619,42 +583,6 @@ Thrown as `WorldgenErrors.MinYNotMultipleOf16`, which extends `RangeError`.
 A world generation file, from a datapack or the generated Java data, defines a dimension type
 whose `min_y` is not a multiple of 16.
 
-## `WORLDGEN_MISSING_DENSITY_VOLUME_INPUT`
-
-`Missing density volume input {input}`
-
-Thrown as `WorldgenErrors.MissingDensityVolumeInput`, which extends `Error`.
-
-The density volume plan reads a buffer it never filled. This is a bug in world generation;
-report it with the stack trace.
-
-## `WORLDGEN_MISSING_DENSITY_VOLUME_INPUTS`
-
-`Missing density volume inputs {left} and {right}`
-
-Thrown as `WorldgenErrors.MissingDensityVolumeInputs`, which extends `Error`.
-
-The density volume plan reads buffers it never filled. This is a bug in world generation;
-report it with the stack trace.
-
-## `WORLDGEN_MISSING_DENSITY_VOLUME_INSTRUCTION`
-
-`Missing density volume instruction {instructionIndex}`
-
-Thrown as `WorldgenErrors.MissingDensityVolumeInstruction`, which extends `Error`.
-
-The density volume plan skips an instruction. This is a bug in world generation; report it
-with the stack trace.
-
-## `WORLDGEN_MISSING_DENSITY_VOLUME_OUTPUT`
-
-`Missing density volume output {outputIndex}`
-
-Thrown as `WorldgenErrors.MissingDensityVolumeOutput`, which extends `Error`.
-
-The density volume plan has no output. This is a bug in world generation; report it with the
-stack trace.
-
 ## `WORLDGEN_MISSING_NOISE_PARAMETER`
 
 `Noise parameters are missing the required field {field}`
@@ -663,15 +591,6 @@ Thrown as `WorldgenErrors.MissingNoiseParameter`, which extends `TypeError`.
 
 A world generation file, from a datapack or the generated Java data, defines a noise without
 a field it needs.
-
-## `WORLDGEN_MISSING_VOLUME_WORKSPACE`
-
-`Volume density workspace is missing`
-
-Thrown as `WorldgenErrors.MissingVolumeWorkspace`, which extends `Error`.
-
-Chunk sampling asked for its volume buffers before they were set up. This is a bug in world
-generation; report it with the stack trace.
 
 ## `WORLDGEN_NO_DENSITY_FUNCTION_IS_REGISTERED`
 
