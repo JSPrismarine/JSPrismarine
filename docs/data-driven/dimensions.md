@@ -116,7 +116,22 @@ mode and where they were. A player moving to another level leaves one record beh
 the other, or starts fresh at the level's spawn when they have never been there, and their client
 is told the new level's game rules, clock, weather, custom dimensions and scoreboard. A player who
 logs out in a level other than the entry level comes back in it: `player-levels.json`, beside
-`levels.json`, records which level each such player was last in. For each entry it reads the config in either spelling, reads the stems the save was
+`levels.json`, records which level each such player was last in.
+
+`player-data-groups` in `config.json` lets levels share parts of the record, such as a minigame
+network's lobby and arenas sharing the inventory. Each group names its levels and the parts their
+players share; a player moving between two levels of a group takes those parts along, and every
+other part stays with each level:
+
+```json
+{
+    "player-data-groups": {
+        "minigames": { "levels": ["lobby", "arena"], "share": ["inventory", "armor", "experience"] }
+    }
+}
+```
+
+The parts are <!-- fact:world.playerDataParts -->`inventory`, `armor`, `offhand`, `enderChest`, `health`, `hunger`, `experience`, `gamemode`, `abilities`, `spawnPoint` and `position`<!-- /fact -->. For each entry it reads the config in either spelling, reads the stems the save was
 generated with, resolves the stems from the preset, the entry's `dimensions` and the saved ones in
 that order of rising priority, and resolves the dimension types the stems name. A type the vanilla
 three do not cover is read from the datapack registries, which is the first point at which a

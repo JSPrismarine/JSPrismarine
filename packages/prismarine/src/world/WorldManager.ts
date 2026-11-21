@@ -175,6 +175,8 @@ export default class WorldManager implements Service {
             await this.loadLevel(data, name);
         }
 
+        for (const problem of config.getPlayerDataGroupProblems()) this.server.getLogger().warn(`${problem}.`);
+
         // Then the levels created while the server ran, those recorded as attached.
         await this.playerLevels.load();
         await this.registry.load();

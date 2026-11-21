@@ -4,6 +4,8 @@ import { isLogLevel } from '@jsprismarine/logger/levels';
 import { isRecord } from '../utils/isRecord';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
+import { readPlayerDataGroups } from '../world/playerDataGroups';
+import type { PlayerDataGroup } from '../world/playerDataGroups';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
 import type { FileMigrations, MigrationLogger } from './FileMigrations';
@@ -87,6 +89,8 @@ const COMMENTS = {
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
     worlds: 'Every world the server loads, by name, with its preset, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
+    'player-data-groups':
+        'Groups of levels whose players share parts of their record, by group name: each lists its levels and the parts they share, from inventory, armor, offhand, enderChest, health, hunger, experience, gamemode, abilities, spawnPoint and position. Every other part, and every level in no group, keeps a record of its own.',
     'max-players': 'How many players may be online at once.',
     gamemode: 'The default game mode for new players: survival, creative, adventure or spectator.',
     difficulty: 'How dangerous the monsters are: peaceful, easy, normal or hard.',
@@ -210,6 +214,7 @@ const BSTATS_COMMENT = [
  * nothing, so an unset one keeps following the setting it defaults to, such as `server-port`.
  */
 export const OPTIONAL_SETTINGS = [
+    'player-data-groups',
     'server-udp-ports',
     'server-public-ip',
     'query-port',
@@ -321,7 +326,8 @@ const DEFAULTS = {
     'script-debugger-auto-attach': 'disabled',
     'script-debugger-auto-attach-connect-address': '',
     'script-debugger-auto-attach-timeout': 0,
-    'script-debugger-passcode': ''
+    'script-debugger-passcode': '',
+    'player-data-groups': {}
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'> & {
     stats: { bstats: Required<BStatsConfig> };
 };
@@ -445,6 +451,10 @@ export class Config {
     private serverIp: string = DEFAULTS['server-ip'];
     private levelName: string = DEFAULTS['level-name'];
     private worlds: Record<string, WorldData> = defaultWorlds();
+    /** The groups of levels whose players share parts of their record; see `player-data-groups`. */
+    private playerDataGroups: readonly PlayerDataGroup[] = [];
+    /** What `player-data-groups` held that the server left out, for the log. */
+    private playerDataGroupProblems: readonly string[] = [];
     private maxPlayers: number = DEFAULTS['max-players'];
     private gamemode: string = DEFAULTS.gamemode;
     private difficulty: string = DEFAULTS.difficulty;
@@ -600,6 +610,9 @@ export class Config {
         this.serverIp = read('server-ip', DEFAULTS['server-ip']);
         this.levelName = read('level-name', DEFAULTS['level-name']);
         this.worlds = read<Record<string, WorldData>>('worlds', this.worlds);
+        const groups = readPlayerDataGroups(config.get('player-data-groups'));
+        this.playerDataGroups = groups.groups;
+        this.playerDataGroupProblems = groups.problems;
         this.maxPlayers = read('max-players', DEFAULTS['max-players']);
         this.gamemode = read('gamemode', DEFAULTS.gamemode);
         this.difficulty = read('difficulty', DEFAULTS.difficulty);
@@ -871,6 +884,16 @@ export class Config {
 
     public getWorlds(): Record<string, WorldData> {
         return this.worlds;
+    }
+
+    /** The groups of levels whose players share parts of their record, from `player-data-groups`. */
+    public getPlayerDataGroups(): readonly PlayerDataGroup[] {
+        return this.playerDataGroups;
+    }
+
+    /** What `player-data-groups` held that the server left out, each a sentence without its full stop. */
+    public getPlayerDataGroupProblems(): readonly string[] {
+        return this.playerDataGroupProblems;
     }
 
     /**

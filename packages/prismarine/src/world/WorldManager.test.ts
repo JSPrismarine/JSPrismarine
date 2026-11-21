@@ -158,6 +158,7 @@ const buildManager = (
             stub<Config>({
                 getLevelName: () => levelName,
                 getWorlds: () => worlds,
+                getPlayerDataGroupProblems: () => [],
                 setWorld,
                 // Nothing preloads: the start region is covered by the world tests.
                 getPreloadRadius: () => 0,

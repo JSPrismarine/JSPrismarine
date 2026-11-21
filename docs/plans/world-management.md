@@ -84,7 +84,7 @@ Out of scope for now:
        returning player joins the level they left from. The scoreboard's packets go to the level's
        players only, and an arriving player is shown the new level's displays: slice 7 put each
        command on its level's scoreboard, but the packets still go to every player.
-9. [ ] **Shared player data.** A config setting groups levels whose players share a record, and
+9. [x] **Shared player data.** A config setting groups levels whose players share a record, and
        each group lists the parts it shares: inventory, armor, offhand, ender chest, experience,
        health, hunger, effects, game mode, abilities, position, spawn point. A part a group leaves
        out stays per level, and a level in no group shares nothing.
