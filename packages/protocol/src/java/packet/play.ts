@@ -1,9 +1,153 @@
-/** The play phase. Ids come from the release's generated table. */
+/**
+ * The play phase. Ids come from the release's generated table, and the layouts that changed in
+ * 26.x were read off the vanilla server's own encoders: `Login (play)` gained `onlineMode`, and
+ * `Confirm Teleportation` carries the position and rotation the client accepted.
+ */
+import { bool, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import { PACKETS } from '../versions/26.3/packets';
-import { textComponent } from '../wire/javaTypes';
+import { double, float, int, long, optionalVarInt, textComponent, varInt } from '../wire/javaTypes';
+import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
 /** `Disconnect (play)` (clientbound): ends the connection, with the reason as a text component. */
 export const PlayDisconnect = defineJavaPacket('Disconnect (play)', PACKETS.play.clientbound.disconnect, {
     reason: textComponent
 });
+
+/** `Login (play)` (clientbound): the player's entity, the world it spawns in and the server's settings. */
+export const PlayLogin = defineJavaPacket('Login (play)', PACKETS.play.clientbound.login, {
+    entityId: int,
+    hardcore: bool,
+    dimensions: list(identifier),
+    maxPlayers: varInt,
+    viewDistance: varInt,
+    simulationDistance: varInt,
+    reducedDebugInfo: bool,
+    showDeathScreen: bool,
+    doLimitedCrafting: bool,
+    /** The dimension type's network id: its index in the `minecraft:dimension_type` registry. */
+    dimensionType: varInt,
+    dimension: identifier,
+    hashedSeed: long,
+    gameMode: varInt,
+    /** The game mode before the last change, or null for none. */
+    previousGameMode: optionalVarInt,
+    isDebug: bool,
+    isFlat: bool,
+    deathLocation: optional(record({ dimension: identifier, position: long })),
+    portalCooldown: varInt,
+    seaLevel: varInt,
+    onlineMode: bool,
+    enforcesSecureChat: bool
+});
+
+/** `Synchronize Player Position` (clientbound): moves the client's own player, which confirms it by id. */
+export const SynchronizePlayerPosition = defineJavaPacket(
+    'Synchronize Player Position',
+    PACKETS.play.clientbound.player_position,
+    {
+        teleportId: varInt,
+        x: double,
+        y: double,
+        z: double,
+        velocityX: double,
+        velocityY: double,
+        velocityZ: double,
+        yaw: float,
+        pitch: float,
+        /** Which of the fields are relative, as `Relative` bits; zero for an absolute move. */
+        flags: int
+    }
+);
+
+/** `Confirm Teleportation` (serverbound): the client applied a position, and where it put the player. */
+export const ConfirmTeleportation = defineJavaPacket(
+    'Confirm Teleportation',
+    PACKETS.play.serverbound.accept_teleportation,
+    { teleportId: varInt, x: double, y: double, z: double, yaw: float, pitch: float }
+);
+
+/** `Game Event` (clientbound): a change of state the client applies, by event number. */
+export const GameEvent = defineJavaPacket('Game Event', PACKETS.play.clientbound.game_event, {
+    event: uint8,
+    value: float
+});
+
+/** The `Game Event` that tells a joining client to wait for chunks around it before showing the world. */
+export const START_WAITING_FOR_LEVEL_CHUNKS = 13;
+
+/** `Set Center Chunk` (clientbound): the chunk the client's view is centered on. */
+export const SetCenterChunk = defineJavaPacket('Set Center Chunk', PACKETS.play.clientbound.set_chunk_cache_center, {
+    x: varInt,
+    z: varInt
+});
+
+/** `Chunk Batch Start` (clientbound): chunks follow, which the client times. */
+export const ChunkBatchStart = defineJavaPacket('Chunk Batch Start', PACKETS.play.clientbound.chunk_batch_start, {});
+
+/** `Chunk Batch Finished` (clientbound): how many chunks the batch held. */
+export const ChunkBatchFinished = defineJavaPacket(
+    'Chunk Batch Finished',
+    PACKETS.play.clientbound.chunk_batch_finished,
+    { batchSize: varInt }
+);
+
+/** `Chunk Batch Received` (serverbound): how many chunks a tick the client would like next. */
+export const ChunkBatchReceived = defineJavaPacket(
+    'Chunk Batch Received',
+    PACKETS.play.serverbound.chunk_batch_received,
+    { chunksPerTick: float }
+);
+
+/** `Clientbound Keep Alive (play)`: a number the client must send back, or the server drops it. */
+export const ClientboundKeepAlive = defineJavaPacket(
+    'Clientbound Keep Alive (play)',
+    PACKETS.play.clientbound.keep_alive,
+    {
+        id: long
+    }
+);
+
+/** `Serverbound Keep Alive (play)`: the number the server sent. */
+export const ServerboundKeepAlive = defineJavaPacket(
+    'Serverbound Keep Alive (play)',
+    PACKETS.play.serverbound.keep_alive,
+    {
+        id: long
+    }
+);
+
+/** The flags byte the move packets end with: on the ground, and against a wall. */
+const moveFlags = uint8;
+
+/** `Set Player Position` (serverbound). */
+export const MovePlayerPos = defineJavaPacket('Set Player Position', PACKETS.play.serverbound.move_player_pos, {
+    x: double,
+    y: double,
+    z: double,
+    flags: moveFlags
+});
+
+/** `Set Player Position and Rotation` (serverbound). */
+export const MovePlayerPosRot = defineJavaPacket(
+    'Set Player Position and Rotation',
+    PACKETS.play.serverbound.move_player_pos_rot,
+    { x: double, y: double, z: double, yaw: float, pitch: float, flags: moveFlags }
+);
+
+/** `Set Player Rotation` (serverbound). */
+export const MovePlayerRot = defineJavaPacket('Set Player Rotation', PACKETS.play.serverbound.move_player_rot, {
+    yaw: float,
+    pitch: float,
+    flags: moveFlags
+});
+
+/** `Set Player Movement Flags` (serverbound). */
+export const MovePlayerStatusOnly = defineJavaPacket(
+    'Set Player Movement Flags',
+    PACKETS.play.serverbound.move_player_status_only,
+    { flags: moveFlags }
+);
+
+/** The move flags' bit for a player standing on the ground. */
+export const MOVE_ON_GROUND = 0x01;

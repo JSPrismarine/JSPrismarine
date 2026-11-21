@@ -991,6 +991,16 @@
                 "import": "./dist/java/versions/26.3/blockStates.js",
                 "module": "./dist/java/versions/26.3/blockStates.js"
             },
+            "./java/chunk/levelChunk": {
+                "types": "./dist/java/chunk/levelChunk.d.ts",
+                "import": "./dist/java/chunk/levelChunk.js",
+                "module": "./dist/java/chunk/levelChunk.js"
+            },
+            "./java/chunk/palettedContainer": {
+                "types": "./dist/java/chunk/palettedContainer.d.ts",
+                "import": "./dist/java/chunk/palettedContainer.js",
+                "module": "./dist/java/chunk/palettedContainer.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1846,6 +1856,14 @@
         "./java/versions/26.3/blockStates": {
             "jsprismarine:dist": "./dist/java/versions/26.3/blockStates.js",
             "default": "./src/java/versions/26.3/blockStates.ts"
+        },
+        "./java/chunk/levelChunk": {
+            "jsprismarine:dist": "./dist/java/chunk/levelChunk.js",
+            "default": "./src/java/chunk/levelChunk.ts"
+        },
+        "./java/chunk/palettedContainer": {
+            "jsprismarine:dist": "./dist/java/chunk/palettedContainer.js",
+            "default": "./src/java/chunk/palettedContainer.ts"
         },
         "./package.json": "./package.json"
     },

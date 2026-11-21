@@ -420,5 +420,15 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * and a list of properties. Regenerate it with `pnpm --filter @jsprismarine/bedrock-data run
      * dump:java-protocol`.
      */
-    JavaBlockStateRowMalformed: 'Block state row {index} is not [name, firstId, properties]'
+    JavaBlockStateRowMalformed: 'Block state row {index} is not [name, firstId, properties]',
+    /**
+     * A Java Edition paletted container names a bits per entry its kind never uses, so the chunk
+     * or the packet carrying it is malformed. Seen when reading another server's chunk.
+     */
+    JavaPalettedContainerBits: 'A paletted container of {entries} entries cannot use {bits} bits per entry',
+    /**
+     * A Java Edition chunk carries block entities, which this server's chunk reader does not read
+     * yet. Seen when reading another server's chunk.
+     */
+    JavaChunkHasBlockEntities: 'A chunk carries {count} block entities, which this server does not read'
 });

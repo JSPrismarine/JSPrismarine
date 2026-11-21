@@ -43,12 +43,52 @@ export const javaBlockStateRows = (rows: readonly unknown[]): JavaBlockStateRow[
 /** One release's block state ids. */
 export class JavaBlockStates {
     private readonly rows = new Map<string, JavaBlockStateRow>();
+    /** The rows in id order, which {@link JavaBlockStates.stateOf} searches. */
+    private readonly ordered: readonly JavaBlockStateRow[];
 
     /**
      * @param rows - The release's rows.
      */
+    /** How many states the release has, which sizes a direct paletted container's entries. */
+    public readonly size: number;
+
     public constructor(rows: readonly JavaBlockStateRow[]) {
-        for (const row of rows) this.rows.set(row[0], row);
+        let size = 0;
+        for (const row of rows) {
+            this.rows.set(row[0], row);
+            size = Math.max(size, row[1] + row[2].reduce((count, [, values]) => count * values.length, 1));
+        }
+        this.size = size;
+        this.ordered = [...rows].sort((a, b) => a[1] - b[1]);
+    }
+
+    /**
+     * The block and property values of a state id, the inverse of {@link JavaBlockStates.idOf}.
+     * @param id - The state's network id.
+     * @returns The block's name and every property's value, or undefined for an id past the last state.
+     */
+    public stateOf(id: number): { name: string; properties: Record<string, string> } | undefined {
+        // Rows are in id order, each block's states one contiguous run.
+        let low = 0;
+        let high = this.ordered.length - 1;
+        while (low <= high) {
+            const middle = (low + high) >> 1;
+            const row = this.ordered[middle]!;
+            const count = row[2].reduce((product, [, values]) => product * values.length, 1);
+            if (id < row[1]) high = middle - 1;
+            else if (id >= row[1] + count) low = middle + 1;
+            else {
+                const properties: Record<string, string> = {};
+                let index = id - row[1];
+                for (let at = row[2].length - 1; at >= 0; at--) {
+                    const [property, values] = row[2][at]!;
+                    properties[property] = values[index % values.length]!;
+                    index = Math.floor(index / values.length);
+                }
+                return { name: row[0], properties };
+            }
+        }
+        return undefined;
     }
 
     /**

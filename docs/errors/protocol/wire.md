@@ -93,6 +93,15 @@ Thrown as `ProtocolWireErrors.JavaBlockStateRowMalformed`, which extends `Error`
 A release's generated `blockStates.json` has a row that is not a block name, a first state id
 and a list of properties. Regenerate it with `pnpm --filter
 
+## `PROTOCOL_JAVA_CHUNK_HAS_BLOCK_ENTITIES`
+
+`A chunk carries {count} block entities, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaChunkHasBlockEntities`, which extends `Error`.
+
+A Java Edition chunk carries block entities, which this server's chunk reader does not read
+yet. Seen when reading another server's chunk.
+
 ## `PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE`
 
 `A compressed frame names {length} bytes, outside what threshold {threshold} allows`
@@ -112,6 +121,15 @@ Thrown as `ProtocolWireErrors.JavaPacketHasTrailingBytes`, which extends `Error`
 A Java Edition packet has bytes after the fields this server reads, so the client wrote a
 layout this server does not read. The connection is dropped; a client of another release,
 or a modified one, is the usual cause.
+
+## `PROTOCOL_JAVA_PALETTED_CONTAINER_BITS`
+
+`A paletted container of {entries} entries cannot use {bits} bits per entry`
+
+Thrown as `ProtocolWireErrors.JavaPalettedContainerBits`, which extends `Error`.
+
+A Java Edition paletted container names a bits per entry its kind never uses, so the chunk
+or the packet carrying it is malformed. Seen when reading another server's chunk.
 
 ## `PROTOCOL_JAVA_REGISTRY_ENTRY_HAS_DATA`
 

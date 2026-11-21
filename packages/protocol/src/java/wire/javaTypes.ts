@@ -20,11 +20,42 @@ export const varInt: WireType<number> = custom<number>(
     (s) => s.readUnsignedVarInt() | 0
 );
 
+/** `Optional VarInt`: zero for none, or the value plus one, as vanilla's `OPTIONAL_VAR_INT` writes it. */
+export const optionalVarInt: WireType<number | null> = custom<number | null>(
+    'Optional VarInt',
+    (s, v) => s.writeUnsignedVarInt(v === null ? 0 : (v + 1) >>> 0),
+    (s) => {
+        const value = s.readUnsignedVarInt() | 0;
+        return value === 0 ? null : value - 1;
+    }
+);
+
 /** `Unsigned Short`: a big-endian unsigned 16-bit integer. */
 export const unsignedShort: WireType<number> = custom<number>(
     'Unsigned Short',
     (s, v) => s.writeUnsignedShort(v),
     (s) => s.readUnsignedShort()
+);
+
+/** `Int`: a big-endian signed 32-bit integer. */
+export const int: WireType<number> = custom<number>(
+    'Int',
+    (s, v) => s.writeInt(v),
+    (s) => s.readInt()
+);
+
+/** `Float`: a big-endian IEEE 754 single. */
+export const float: WireType<number> = custom<number>(
+    'Float',
+    (s, v) => s.writeFloat(v),
+    (s) => s.readFloat()
+);
+
+/** `Double`: a big-endian IEEE 754 double. */
+export const double: WireType<number> = custom<number>(
+    'Double',
+    (s, v) => s.writeDouble(v),
+    (s) => s.readDouble()
 );
 
 /** `Long`: a big-endian signed 64-bit integer. */
