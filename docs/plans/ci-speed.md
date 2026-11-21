@@ -235,10 +235,10 @@ Renovate and the release pull request start two in five of all runs.
    push now publishes when `@jsprismarine/server`'s version is not on npm, or when no changesets
    are pending, which retries a publish that failed. It sets pending changesets aside while it
    publishes, since a release commit can carry changesets that landed after the release pull
-   request's last refresh. A push updates the release pull request only when none is open, or
-   when the release branch's last commit is six hours old. A schedule every six hours also refreshes the release pull request,
-   with no publish script, so it never publishes. GitHub ran none of those scheduled runs in the
-   first day, so a push has to refresh it too. A release
+   request's last refresh. Every push with pending changesets opens or updates the release pull
+   request, so it holds every changeset on master and merging it leaves none behind. Refreshing
+   it at most every six hours, on a schedule and then on pushes, left changesets on each release
+   commit, and the run that published it opened the next release pull request at once. A release
    pull request that falls behind master is still tested against master when it merges, by the
    `strict` rule now and by the merge queue after phase 7.
 
