@@ -51,6 +51,7 @@ import type {
     BiomeSource,
     BiomeSourceDefinition,
     CarverConfig,
+    CellFluids,
     CarverStarts,
     DensityFunctionNode,
     LocalBiomes,
@@ -2645,14 +2646,17 @@ export class DataDrivenGenerator implements Generator {
         // cell after eight blocks and makes the density stack refetch its eight corners, which
         // a chunk paid 57177 times where the lattice holds 768 cells. The blocks and their
         // fluid update flags are the same either way; only the order they are asked in moves.
+        const visitBlock = (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean): void => {
+            if (y < floor || y > ceiling || state === 'minecraft:air') return;
+            writeTerrainName(x, y, z, state);
+            // Java's `doFill` marks the fluid the aquifer asked to update for post-processing,
+            // which ticks it once the chunk is in a world. The flag is only ever set on fluid.
+            if (scheduleFluidUpdate) region.markForPostProcessing(x, y, z);
+        };
+        // A cell the native aquifer decided arrives whole, and the region writes it in one loop.
+        const visitCell = (blocks: CellFluids): void => region.writeTerrainCell(blocks, floor, ceiling);
         for (let cell = 0; cell < sampler.cellCount; cell++) {
-            sampler.forEachCellBlock(cell, (x, y, z, state, scheduleFluidUpdate) => {
-                if (y < floor || y > ceiling || state === 'minecraft:air') return;
-                writeTerrainName(x, y, z, state);
-                // Java's `doFill` marks the fluid the aquifer asked to update for post-processing,
-                // which ticks it once the chunk is in a world. The flag is only ever set on fluid.
-                if (scheduleFluidUpdate) region.markForPostProcessing(x, y, z);
-            });
+            sampler.forEachCellBlock(cell, visitBlock, visitCell);
 
             // A yield is a trip around the event loop, which on a loaded host costs more than
             // the work it interrupts: a fixed yield every four columns spent most of a preload

@@ -15,6 +15,29 @@ import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 /** The registry name the aquifer random factory is keyed by. */
 export const AQUIFER_SEED = 'minecraft:aquifer';
 
+/**
+ * One cell's blocks as codes, which {@link ChunkSampler.forEachCellBlock} hands a bulk visitor
+ * instead of visiting each block: a cell the native aquifer decided, or one holding only the
+ * global fluid. The object is reused for the next cell.
+ */
+export interface CellFluids {
+    readonly firstX: number;
+    readonly lastX: number;
+    readonly firstY: number;
+    readonly lastY: number;
+    readonly firstZ: number;
+    readonly lastZ: number;
+    /** The index steps of {@link codes} along x and z; along y it is 1. */
+    readonly strideX: number;
+    readonly strideZ: number;
+    /** Each block's code, at `(x - firstX) * strideX + (z - firstZ) * strideZ + (y - firstY)`. */
+    readonly codes: Uint8Array;
+    /** The block a code stands for, once {@link scheduleBit} is cleared from it. */
+    readonly blockNames: readonly string[];
+    /** Set on a code whose block wants a fluid tick. */
+    readonly scheduleBit: number;
+}
+
 /** The side length of a chunk column in blocks. */
 export const CHUNK_SIZE = 16;
 
@@ -117,6 +140,12 @@ export class ChunkSampler {
     /** The block each {@link NativeFluid} code but `none` stands for. */
     private readonly fluidNames: readonly string[];
     private nativeAquiferCells = 0;
+    /** The {@link CellFluids} handed to a bulk visitor, rewritten for each cell. */
+    private cellFluids:
+        | {
+              -readonly [Key in keyof CellFluids]: CellFluids[Key];
+          }
+        | undefined;
     private walkingCell = false;
     /** Final density over one whole cell at a time, when the cell is the interpolation cell. */
     private readonly cellProgram: CellProgram | undefined;
@@ -158,7 +187,8 @@ export class ChunkSampler {
 
         this.fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
         this.customFluidPicker = options.fluidPicker !== undefined;
-        this.fluidNames = [AIR, WATER, LAVA, settings.defaultFluid];
+        // Indexed by NativeFluid code: air, water, lava, the default fluid, then none's default block.
+        this.fluidNames = [AIR, WATER, LAVA, settings.defaultFluid, settings.defaultBlock];
 
         // Taken from final density alone. The shared compiler also holds the surface pass's
         // `chunk_surface_level`, whose cell is 16 by 1, and once that compiles the compiler's
@@ -296,10 +326,15 @@ export class ChunkSampler {
      * @param cell - A cell index below {@link ChunkSampler.cellCount}. Indices run from the top
      *   of the dimension down, so a caller that stops early has filled the sky and not the
      *   bedrock.
+     * @param visit - Called for each block, unless `visitCell` takes the cell.
+     * @param visitCell - Takes the whole cell at once where the native aquifer decided it or the
+     *   walk proved it holds only the global fluid, in place of a `visit` call per block; the
+     *   other cells still go to `visit`.
      */
     public forEachCellBlock(
         cell: number,
-        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void
+        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void,
+        visitCell?: (cell: CellFluids) => void
     ): void {
         const cellZ = cell % this.cellsZ;
         const remainder = (cell - cellZ) / this.cellsZ;
@@ -330,6 +365,10 @@ export class ChunkSampler {
             this.densityCallsSkipped += blockCount;
             this.aquiferCallsSkipped += blockCount;
 
+            if (visitCell !== undefined && !this.verifySkippedCells) {
+                this.visitProvenCell(firstX, lastX, firstY, lastY, firstZ, lastZ, visitCell);
+                return;
+            }
             for (let x = firstX; x <= lastX; x++) {
                 for (let z = firstZ; z <= lastZ; z++) {
                     for (let y = lastY; y >= firstY; y--) {
@@ -351,7 +390,18 @@ export class ChunkSampler {
             const strideX = this.cellSizeXz * this.cellSizeY;
             if (
                 densities !== undefined &&
-                this.visitNativeAquiferCell(densities, firstX, lastX, firstY, lastY, firstZ, lastZ, strideX, visit)
+                this.visitNativeAquiferCell(
+                    densities,
+                    firstX,
+                    lastX,
+                    firstY,
+                    lastY,
+                    firstZ,
+                    lastZ,
+                    strideX,
+                    visit,
+                    visitCell
+                )
             ) {
                 return;
             }
@@ -437,7 +487,8 @@ export class ChunkSampler {
         firstZ: number,
         lastZ: number,
         strideX: number,
-        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void
+        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void,
+        visitCell: ((cell: CellFluids) => void) | undefined
     ): boolean {
         // Its programs answer structure and blending hooks neutrally, which a set hook would not.
         const context = this.context;
@@ -465,22 +516,81 @@ export class ChunkSampler {
         this.nativeAquiferCells++;
 
         const names = this.fluidNames;
+        if (visitCell !== undefined) {
+            visitCell(this.cellView(firstX, lastX, firstY, lastY, firstZ, lastZ, codes));
+            return true;
+        }
         for (let x = firstX; x <= lastX; x++) {
             for (let z = firstZ; z <= lastZ; z++) {
                 for (let y = lastY; y >= firstY; y--) {
                     const code = codes[(x - firstX) * strideX + (z - firstZ) * this.cellSizeY + (y - firstY)]!;
                     const fluid = code & ~NativeFluid.schedule;
-                    visit(
-                        x,
-                        y,
-                        z,
-                        fluid === NativeFluid.none ? this.defaultBlock : names[fluid]!,
-                        (code & NativeFluid.schedule) !== 0
-                    );
+                    visit(x, y, z, names[fluid]!, (code & NativeFluid.schedule) !== 0);
                 }
             }
         }
         return true;
+    }
+
+    /**
+     * Hands a cell the walk proved holds only the global fluid to a bulk visitor. Those blocks
+     * depend on y alone, so one code a row fills the cell.
+     */
+    private visitProvenCell(
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number,
+        visitCell: (cell: CellFluids) => void
+    ): void {
+        const codes = (this.fluidCodes ??= new Uint8Array(this.cellSizeXz * this.cellSizeXz * this.cellSizeY));
+        const names = this.fluidNames;
+        const strideX = this.cellSizeXz * this.cellSizeY;
+        for (let y = firstY; y <= lastY; y++) {
+            // A proven cell exists only under the global picker, which reads y alone.
+            const code = names.indexOf(this.fluidPicker(firstX, y, firstZ).at(y));
+            for (let x = firstX; x <= lastX; x++) {
+                for (let z = firstZ; z <= lastZ; z++) {
+                    codes[(x - firstX) * strideX + (z - firstZ) * this.cellSizeY + (y - firstY)] = code;
+                }
+            }
+        }
+        visitCell(this.cellView(firstX, lastX, firstY, lastY, firstZ, lastZ, codes));
+    }
+
+    /** The reused {@link CellFluids} view of one cell's codes. */
+    private cellView(
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number,
+        codes: Uint8Array
+    ): CellFluids {
+        const view = (this.cellFluids ??= {
+            firstX,
+            lastX,
+            firstY,
+            lastY,
+            firstZ,
+            lastZ,
+            strideX: this.cellSizeXz * this.cellSizeY,
+            strideZ: this.cellSizeY,
+            codes,
+            blockNames: this.fluidNames,
+            scheduleBit: NativeFluid.schedule
+        });
+        view.firstX = firstX;
+        view.lastX = lastX;
+        view.firstY = firstY;
+        view.lastY = lastY;
+        view.firstZ = firstZ;
+        view.lastZ = lastZ;
+        view.codes = codes;
+        return view;
     }
 
     /**
