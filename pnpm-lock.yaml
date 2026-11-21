@@ -2173,6 +2173,24 @@ importers:
         specifier: 2.9.1
         version: 2.9.1
 
+  tools/server-benchmark:
+    dependencies:
+      '@jsprismarine/binaryutils':
+        specifier: workspace:*
+        version: link:../../packages/binaryutils
+      '@jsprismarine/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      '@jsprismarine/nbt':
+        specifier: workspace:*
+        version: link:../../packages/nbt
+      '@jsprismarine/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+
 packages:
 
   '@actions/core@3.0.1':
