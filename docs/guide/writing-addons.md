@@ -29,8 +29,9 @@ tps-bar/
     └── main.js
 ```
 
-Every file in the folder goes into the pack, except those whose names start with a dot. A symbolic
-link fails the build, so keep real files there.
+Every file in the folder goes into the pack, except those whose names start with a dot and those
+under <!-- fact:addons.mediaDirectory -->`media/`<!-- /fact -->, which holds the screenshots for the
+addon's listing. A symbolic link fails the build, so keep real files there.
 
 ## The manifest
 
@@ -87,8 +88,11 @@ and versions the server offers.
   `minServer` the server meets.
 - `license` is an SPDX expression, such as `MIT` or `Apache-2.0`.
 
-The file takes no other keys, so a version written here by mistake fails the build rather than
-disagreeing with the manifest.
+Beside <!-- fact:addons.requiredKeys -->`description`, `minServer` and `license`<!-- /fact -->, the
+file takes only the listing keys
+<!-- fact:addons.listingKeys -->`title`, `tags`, `authors`, `screenshots`, `deprecated` and `replacedBy`<!-- /fact -->,
+which the [addon tools' README](../../packages/addon-tools/README.md#the-listing) describes. Any
+other key fails the build, so a version written here by mistake cannot disagree with the manifest.
 
 ## The README
 

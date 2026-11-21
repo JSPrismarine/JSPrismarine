@@ -30,7 +30,16 @@ import {
     packFileName,
     serializeAddonIndex
 } from '../../packages/addon-tools/src/addonIndex.ts';
-import { ADDON_FILES, ADDON_MODULE_TYPES } from '../../packages/addon-tools/src/addon.ts';
+import {
+    ADDON_FILES,
+    ADDON_ICON_FILE,
+    ADDON_JSON_OPTIONAL_KEYS,
+    ADDON_JSON_REQUIRED_KEYS,
+    ADDON_MEDIA_DIRECTORY,
+    ADDON_MODULE_TYPES,
+    ADDON_SCREENSHOT_TYPES,
+    ADDON_TAGS
+} from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
 import { USAGE as ADDON_TOOLS_USAGE } from '../../packages/addon-tools/src/command.ts';
 import type { AddonsFile, AddonsLockFile } from '../../packages/prismarine/src/addons/addonFiles.ts';
@@ -150,8 +159,8 @@ function wrap(words: readonly string[], width = 100) {
 }
 
 /** "a", "a and b", "a, b and c". */
-const list = (items: readonly string[]) =>
-    items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+const list = (items: readonly string[], conjunction = 'and') =>
+    items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} ${conjunction} ${items.at(-1)}`;
 
 /** A Markdown table with padded columns, matching how Prettier formats one. */
 function table(header: readonly string[], rawRows: readonly (readonly string[])[]) {
@@ -1175,6 +1184,12 @@ async function addonFacts() {
         'addons.catalog': addonCatalog(await loadAddons(), command.name),
         'addons.files': list(ADDON_FILES.map(inlineCode)),
         'addons.moduleTypes': list(ADDON_MODULE_TYPES.map(inlineCode)),
+        'addons.requiredKeys': list(ADDON_JSON_REQUIRED_KEYS.map(inlineCode)),
+        'addons.listingKeys': list(ADDON_JSON_OPTIONAL_KEYS.map(inlineCode)),
+        'addons.tags': list(ADDON_TAGS.map(inlineCode)),
+        'addons.mediaDirectory': inlineCode(`${ADDON_MEDIA_DIRECTORY}/`),
+        'addons.iconFile': inlineCode(ADDON_ICON_FILE),
+        'addons.screenshotTypes': list(ADDON_SCREENSHOT_TYPES.map(inlineCode), 'or'),
         'addons.releaseTag': inlineCode(ADDON_RELEASE_TAG),
         'addons.indexFile': inlineCode(ADDON_INDEX_FILE),
         'addons.indexSchemaVersion': inlineCode(String(ADDON_INDEX_SCHEMA_VERSION)),
