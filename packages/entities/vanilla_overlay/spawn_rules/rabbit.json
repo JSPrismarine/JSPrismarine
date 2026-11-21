@@ -24,7 +24,9 @@
                 },
                 "minecraft:herd": {
                     "min_size": 2,
-                    "max_size": 3
+                    "max_size": 3,
+                    "event": "minecraft:entity_born",
+                    "event_skip_count": 1
                 },
                 "minecraft:biome_filter": {
                     "any_of": [
@@ -60,7 +62,9 @@
                 },
                 "minecraft:herd": {
                     "min_size": 2,
-                    "max_size": 3
+                    "max_size": 3,
+                    "event": "minecraft:entity_born",
+                    "event_skip_count": 1
                 },
                 "minecraft:biome_filter": {
                     "any_of": [
@@ -93,7 +97,9 @@
                 },
                 "minecraft:herd": {
                     "min_size": 2,
-                    "max_size": 3
+                    "max_size": 3,
+                    "event": "minecraft:entity_born",
+                    "event_skip_count": 1
                 },
                 "minecraft:biome_filter": {
                     "test": "has_biome_tag",
@@ -118,7 +124,9 @@
                 },
                 "minecraft:herd": {
                     "min_size": 2,
-                    "max_size": 6
+                    "max_size": 6,
+                    "event": "minecraft:entity_born",
+                    "event_skip_count": 1
                 },
                 "minecraft:biome_filter": {
                     "any_of": [
@@ -146,7 +154,9 @@
                 },
                 "minecraft:herd": {
                     "min_size": 2,
-                    "max_size": 4
+                    "max_size": 4,
+                    "event": "minecraft:entity_born",
+                    "event_skip_count": 1
                 },
                 "minecraft:biome_filter": {
                     "test": "has_biome_tag",

@@ -556,8 +556,12 @@ the files already have: a spider's skeleton jockey, a strider's riders, a rabbit
 color, a villager's missing profession, a tropical fish's pattern and colors, and a sulfur cube's
 size. The overlay's `biomes/` files tag the snowy taiga and the ice spikes for snow foxes and white
 rabbits as Java's biome tags do, and its sulfur cube spawn rule gives a herd's later members the small
-roll Java gives them. The `variant-at-spawn`, `tropical-fish-look`, `jockey-riders` and
-`jockey-chance` rows check each rule against Java.
+roll Java gives them. A fox, rabbit, strider or villager spawned on its own, by a spawn egg, `/summon`
+or as a herd's first member, is grown, as Java's `AgeableMob.finalizeSpawn` leaves it. The overlay's
+rabbit and strider spawn rules give the baby roll to the herd's later members instead: every rabbit
+after the first is a baby, and each later strider is one half the time. The vanilla fox rule already
+makes a fox herd's third member on a baby, as Java does. The `variant-at-spawn`, `tropical-fish-look`,
+`jockey-riders`, `jockey-chance` and `lone-spawn-grown` rows check each rule against Java.
 
 One cycle reads the pool's cap, samples 8 chunks within 4 chunks of each player, tries 3 positions
 per chunk for the surface pass and 3 for the underground pass, collects every rule condition that

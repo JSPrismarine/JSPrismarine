@@ -154,3 +154,42 @@ export const spawnScenarios: readonly BehaviorScenario<NaturalSpawn>[] = [
         }
     }
 ];
+
+/**
+ * Java mobs whose `finalizeSpawn` makes a baby only of a spawn group's later members: a lone spawn
+ * passes no group data, so `AgeableMob.finalizeSpawn` sees a group size of 0 and leaves it grown.
+ * `Rabbit.RabbitGroupData`, `Fox.FoxGroupData`, `Strider` and `AbstractVillager` each make their
+ * own group data for a lone spawn. Other ageable mobs, such as the hoglin, roll a baby on their own.
+ */
+const GROWN_ALONE = ['minecraft:fox', 'minecraft:rabbit', 'minecraft:strider', 'minecraft:villager'] as const;
+
+/** How many evenly spaced rolls a lone spawn is drawn with, so every branch of a `randomize` is taken. */
+const LONE_SPAWN_ROLLS = 100;
+
+/** Mobs spawned on their own, as a spawn egg, `/summon` or a spawn group's first member places them. */
+export const spawnAgeScenarios: readonly BehaviorScenario<string>[] = [
+    {
+        name: 'lone-spawn-grown',
+        java: 'A fox, rabbit, strider or villager spawned on its own is never a baby.',
+        reference: 'Java AgeableMob.finalizeSpawn and its group data; issue #3182',
+        covers: (javaId) => javaId,
+        subjects: () => GROWN_ALONE,
+        idOf: (javaId) => javaId,
+        run: (javaId) => {
+            const entity = javaEntityTypeToBedrock(javaId);
+            if (entity.kind !== 'mapped') return `${javaId} maps to no Bedrock entity`;
+            const types = serverContent().entities.types;
+            const babies = Array.from(
+                { length: LONE_SPAWN_ROLLS },
+                (_, step) => (step + 0.5) / LONE_SPAWN_ROLLS
+            ).filter((roll) => {
+                const spawned = types.spawn(entity.bedrock, { environment: { random: { next: () => roll } } });
+                spawned.applyQueuedEvents();
+                return spawned.hasComponent('minecraft:is_baby');
+            });
+            return babies.length === 0
+                ? undefined
+                : `${babies.length} of ${LONE_SPAWN_ROLLS} lone spawns of ${entity.bedrock} are babies`;
+        }
+    }
+];

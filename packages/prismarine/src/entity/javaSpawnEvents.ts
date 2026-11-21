@@ -70,6 +70,16 @@ const mapNodes = (
     };
 };
 
+/**
+ * An event without the branches that add `group` themselves, such as a `randomize` branch that
+ * makes the mob a baby. A `randomize` left with one branch always takes it.
+ */
+const without = (declared: Record<string, unknown>, group: string) =>
+    mapNodes(declared, (node) => {
+        const added = isRecord(node.add) ? node.add.component_groups : undefined;
+        return Array.isArray(added) && added.includes(group) ? null : undefined;
+    });
+
 /** The groups that seat a skeleton of some kind on a spider. */
 const SPIDER_BIOME_JOCKEYS = [
     'minecraft:spider_stray_jockey',
@@ -214,30 +224,46 @@ const JAVA_SPAWN_RULINGS: readonly JavaSpawnRuling[] = [
     {
         // Java `Strider.finalizeSpawn`: an adult takes a zombified piglin jockey on
         // `nextInt(30) == 0` and otherwise a baby strider jockey on `nextInt(10) == 0`. Of 300
-        // adults that is 10 and 29. Babies keep Bedrock's half of the spawns.
+        // adults that is 10 and 29. Its group data's baby chance is 0.5, which `AgeableMob` rolls
+        // only for a spawn group's later members, so a strider spawned on its own is an adult and
+        // the spawn rule's herd rolls the baby for the rest.
         entity: 'minecraft:strider',
-        events: {
-            'minecraft:entity_spawned': {
+        events: { 'minecraft:entity_spawned': { trigger: 'jsprismarine:spawn_adult' } },
+        added: {
+            'jsprismarine:spawn_adult': {
                 randomize: [
                     weighted(261, { trigger: 'spawn_adult' }),
                     weighted(10, { trigger: 'spawn_adult_piglin_jockey' }),
-                    weighted(29, { trigger: 'spawn_adult_parent_jockey' }),
-                    weighted(300, { trigger: 'spawn_baby' })
+                    weighted(29, { trigger: 'spawn_adult_parent_jockey' })
+                ]
+            },
+            'jsprismarine:spawn_group_member': {
+                randomize: [
+                    weighted(1, { trigger: 'jsprismarine:spawn_adult' }),
+                    weighted(1, { trigger: 'spawn_baby' })
                 ]
             }
         }
     },
     {
+        // Java `Rabbit.RabbitGroupData`'s baby chance is 1, which `AgeableMob` rolls only for a
+        // spawn group's later members: a rabbit spawned on its own is grown, and the spawn rule's
+        // herd makes every one after it a baby through `minecraft:entity_born`.
         entity: 'minecraft:rabbit',
-        events: { 'minecraft:entity_spawned': javaRabbitCoat, 'minecraft:entity_born': javaRabbitCoat }
+        events: {
+            'minecraft:entity_spawned': (declared) => javaRabbitCoat(without(declared, 'baby')),
+            'minecraft:entity_born': javaRabbitCoat
+        }
     },
     {
         // Java `Fox.Variant.byBiome`: a snow fox in a biome tagged `spawns_snow_foxes`, where
-        // Bedrock reads whether the ground is snow covered.
+        // Bedrock reads whether the ground is snow covered. `Fox.finalizeSpawn` makes a baby only
+        // of a spawn group's third member on, which the vanilla spawn rule's herd already does
+        // through `minecraft:entity_born`, so a fox spawned on its own is grown.
         entity: 'minecraft:fox',
         events: {
             'minecraft:entity_spawned': (declared) =>
-                mapNodes(declared, (node) => {
+                mapNodes(without(declared, 'minecraft:fox_baby'), (node) => {
                     if (addsGroup(node, 'minecraft:fox_arctic'))
                         return {
                             filters: { test: 'has_biome_tag', value: 'spawns_snow_foxes' },
@@ -254,11 +280,12 @@ const JAVA_SPAWN_RULINGS: readonly JavaSpawnRuling[] = [
     },
     {
         // Java `Villager.finalizeSpawn` leaves a spawned villager without a profession until it
-        // claims a workstation. Bedrock's spawn event deals out one of the fourteen.
+        // claims a workstation. Bedrock's spawn event deals out one of the fourteen. Its group
+        // data, `AgeableMobGroupData(false)` from `AbstractVillager`, never spawns a baby.
         entity: 'minecraft:villager',
         events: {
             'minecraft:entity_spawned': (declared) =>
-                mapNodes(declared, (node) =>
+                mapNodes(without(declared, 'baby'), (node) =>
                     addsGroup(node, 'farmer') ? add('unskilled', 'behavior_peasant', 'basic_schedule') : undefined
                 )
         }
