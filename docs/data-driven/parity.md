@@ -59,23 +59,39 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 
 | Group | Rows | What it measures |
 | --- | --- | --- |
-| `registry` | blocks, items, entities, biomes | The catalogs the server ships against the Bedrock captures |
-| `mapping` | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, and the three registries no published pairing covers |
-| `blocks` | properties, portals | Every Bedrock block state's property row against the Java 26.3 jar dump; the portal, frame and lighting blocks the portal rules name, with the states they read, against the palette capture |
-| `items` | components | Java's items and data component types against the Bedrock item capture |
-| `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
-| `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
-| `entities` | stats, addactor | The nine shared mob stats against Java's attribute dump; a packet row per actor type |
-| `integration` | tags, entity-runtime, entity-coverage, spawning, client-packets | Loaded tags through resolved registries; a representative entity behavior; every composed entity declaration through runtime spawn and tick; natural spawning through composed vanilla rules; client join payloads |
-| `worldgen` | biomes, terrain, corpus, features, structures, determinism, dimensions | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit; Java's dimension types and world presets through the parsers, and one chunk per vanilla dimension |
-| `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
-| `gameplay` | brain-effects, end-fight | Sniffer digging loot, warden sonic-boom damage, and villager raid host effects against Java 26.3; end crystal and dragon definitions, item and actor ids, the seed-derived spike table, and exit podium cells |
-| `protocol` | negotiation, wire-roundtrip, dimension-change | Each registered protocol version negotiates its own codec from a real first packet; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
-| `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
+| `registry` | <!-- fact:parity.families.registry -->blocks, items, items-2225, items-2259, entities, biomes<!-- /fact --> | The catalogs the server ships against the Bedrock captures |
+| `mapping` | <!-- fact:parity.families.mapping -->blocks, items, entities, registries, untranslated, blockentities<!-- /fact --> | Chunker's totality property per mapping domain, and the registries no published pairing covers |
+| `blocks` | <!-- fact:parity.families.blocks -->properties, portals, behavior<!-- /fact --> | Every Bedrock block state's property row against the Java jar dump; the portal blocks against the palette capture; and what each Java block does, against the server |
+| `items` | <!-- fact:parity.families.items -->components, behavior<!-- /fact --> | Java's item components against the Bedrock item capture; and what each Java item does, against the server |
+| `recipes` | <!-- fact:parity.families.recipes -->registry<!-- /fact --> | Java's vanilla recipe files, parsed and compiled through the mapping |
+| `loot` | <!-- fact:parity.families.loot -->tables, distribution<!-- /fact --> | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
+| `entities` | <!-- fact:parity.families.entities -->stats, addactor, behavior<!-- /fact --> | The shared mob stats against Java's attribute dump; a packet row per actor type; and what each Java entity does, against the server |
+| `integration` | <!-- fact:parity.families.integration -->tags, block-behaviors, entity-runtime, spawning, entity-coverage, client-packets<!-- /fact --> | Loaded tags through resolved registries; entity behavior, spawning and client join payloads through the server's runtime |
+| `worldgen` | <!-- fact:parity.families.worldgen -->biomes, spawn, terrain, features, corpus, structures, determinism, dimensions, blending<!-- /fact --> | Java's biome lookups, spawn chunks and dumped columns; the generation corpus, this server's own output recorded at a named commit; Java's dimension types and presets through the parsers |
+| `commands` | <!-- fact:parity.families.commands -->tree, answers<!-- /fact --> | The published command tree and the console's answers against the pinned Bedrock Dedicated Server |
+| `gameplay` | <!-- fact:parity.families.gameplay -->end-fight, brain-effects, combat-advancements, raids, datapack, mechanics, block-targets<!-- /fact --> | Java gameplay no single block, item or mob owns: game rules, mob effects, enchantments, damage types, recipes, advancements and player and world systems, plus the End fight, raids and brain effects |
+| `protocol` | <!-- fact:parity.families.protocol -->negotiation, wire-roundtrip, dimension-change<!-- /fact --> | Each registered protocol version negotiates its own codec from a real first packet; declarative layouts re-encode a real server's bytes; the packet sequence a world change sends round-trips through every codec |
+| `scripting` | <!-- fact:parity.families.scripting -->lifecycle, events, engine, ui, world, entities, blocks, items, gametest, commands, components, net, admin, debug<!-- /fact --> | What behavior pack scripts record on the pinned Bedrock Dedicated Server against JSPrismarine |
+| `conformance` | <!-- fact:parity.families.conformance -->claim, classification, exclusions<!-- /fact --> | The claim, the table it counts, and the exclusions |
 
 Each test file covers one family and wraps its tests in a top-level `describe` whose title is the
 family id. That title is the whole wiring: the dashboard groups tests by splitting the test's full
 name, so there is no mapping file to keep in step.
+
+### Behavior rows come from Java
+
+The `blocks.behavior`, `items.behavior`, `entities.behavior` and `gameplay.mechanics` families list
+what each Java block, item, entity and system does, read from Java's own data and the pinned
+server jar rather than from what the server implements. A block has a row for each `BlockBehaviour`
+hook its Java class overrides, such as using it, its support or its redstone signal, and for its
+mining time, blast resistance, piston reaction, light and fire odds. An item has a row for each
+Java component it carries and each `Item` hook its class overrides. An entity has a row for each
+component its definition declares, each goal its Java class registers and each activity its Java
+brain registers. `gameplay.mechanics` has one for each game rule's effect, mob effect,
+enchantment, damage type, recipe and advancement, and for the player and world systems Java runs
+in code. A row no scenario compares is `not measured` and stays in the behavior score's
+denominator, so the score falls when Java has behavior nothing checks.
+[`packages/parity/README.md`](../../packages/parity/README.md) lists the sources of each row.
 
 ### Reference data, and rows that are not measured
 
