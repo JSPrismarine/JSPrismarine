@@ -16,14 +16,12 @@
 import type { ItemSlot, SlotTarget, SlotWriteMode } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
-import { equippableSlotsOf } from '../../entity/data/equippable';
 import type { DataEntity } from '../../entity/data/DataEntity';
 import { dropOfItem, itemOfDrop } from '../../inventory/persistence';
 import type { HeldSlot, SlotHolder, SlotNameOptions, SlotRole } from '../../inventory/slotAddress';
-import { SLOT_OFFSET_LIMIT, resolveSlotName } from '../../inventory/slotAddress';
+import { SLOT_OFFSET_LIMIT, mobSlotHolder, resolveSlotName } from '../../inventory/slotAddress';
 import type { Item } from '../../item/Item';
 import { itemFromContent } from '../../item/itemFromContent';
-import { isRecord } from '../../utils/isRecord';
 import { blockContainerAt } from './containers';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolveTarget, unsupported, worldOf } from './support';
 
@@ -38,18 +36,10 @@ interface OpenedHolder {
     finish(): void;
 }
 
-/** A mob as a slot holder: its inventory, what its container is for, and what it can wear. */
+/** A mob opened for a command: its slots, and the alias a mount's armor slot takes. */
 const mobHolder = (entity: DataEntity): OpenedHolder => {
-    const { body, instance } = entity;
-    const declared = instance.componentParams('minecraft:inventory');
-    const containerType =
-        isRecord(declared) && typeof declared['containerType'] === 'string' ? declared['containerType'] : undefined;
-    const holder: SlotHolder = {
-        kind: 'mob',
-        inventory: body.inventory,
-        containerType,
-        equippable: equippableSlotsOf(instance)
-    };
+    const { body } = entity;
+    const holder = mobSlotHolder(entity);
 
     return {
         holder,

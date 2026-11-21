@@ -7,11 +7,17 @@ import { javaSlotIds, resolveSlotName } from './slotAddress';
 
 const player = (): SlotHolder => ({ kind: 'player', inventory: new EntityInventory(PLAYER_LAYOUT) });
 
-const mob = (size = 0, containerType?: string, equippable: readonly EquippableSlot[] = []): SlotHolder => ({
+const mob = (
+    size = 0,
+    containerType?: string,
+    equippable: readonly EquippableSlot[] = [],
+    chested = false
+): SlotHolder => ({
     kind: 'mob',
     inventory: new EntityInventory(mobLayout(size)),
     containerType,
-    equippable
+    equippable,
+    chested
 });
 
 /** A tamed horse: saddle in slot 0 and armor in slot 1, as Bedrock's `minecraft:equippable` lists them. */
@@ -21,8 +27,11 @@ const horse = () =>
         { slot: 1, acceptedItems: ['horsearmoriron', 'horsearmordiamond'] }
     ]);
 
-/** A tamed llama at full strength: sixteen slots, its carpet in slot 1 and the rest its chest. */
-const llama = () => mob(16, 'horse', [{ slot: 1, acceptedItems: ['carpet'] }]);
+/**
+ * A tamed llama at full strength: sixteen slots, its carpet in slot 0 and the rest its chest. The
+ * carpet shows at 1 on the mount screen, which is the `slot` its equippable declares.
+ */
+const llama = (chested = true) => mob(16, 'horse', [{ slot: 1, acceptedItems: ['carpet'] }], chested);
 
 const slotsOf = (name: string, holder: SlotHolder, index?: number) => {
     const resolved = resolveSlotName({ name, ...(index === undefined ? {} : { index }) }, holder);
@@ -89,10 +98,16 @@ describe("Java's slot names", () => {
     });
 
     it("reads a llama's chest past its carpet", () => {
-        expect(slotsOf('horse.0', llama())).toEqual([{ container: 'inventory', slot: 0 }]);
+        expect(slotsOf('armor.body', llama())).toEqual([{ container: 'inventory', slot: 0, alias: 'body' }]);
+        expect(slotsOf('horse.0', llama())).toEqual([{ container: 'inventory', slot: 1 }]);
         expect(slotsOf('horse.1', llama())).toEqual([{ container: 'inventory', slot: 2 }]);
         expect(slotsOf('horse.*', llama())).toHaveLength(15);
         expect(slotsOf('saddle', llama())).toBe('The target does not have slot saddle');
+    });
+
+    it('gives a mount no chest slots until it carries a chest, as Java does', () => {
+        expect(slotsOf('horse.0', llama(false))).toBe('The target does not have slot horse.0');
+        expect(slotsOf('slot.chest', llama(false), 0)).toBe('That entity has no slot.chest slots');
     });
 
     it("reads a villager's pocket and a chest minecart's container", () => {
@@ -143,6 +158,7 @@ describe("Bedrock's slot groups", () => {
         expect(slotsOf('slot.armor.body', horse(), 0)).toEqual([{ container: 'inventory', slot: 1, alias: 'body' }]);
         expect(slotsOf('slot.equippable', horse(), 1)).toEqual([{ container: 'inventory', slot: 1 }]);
         expect(slotsOf('slot.chest', llama(), 1)).toEqual([{ container: 'inventory', slot: 2 }]);
+        expect(slotsOf('slot.equippable', llama(), 0)).toEqual([{ container: 'inventory', slot: 0 }]);
     });
 
     it('refuse an index outside the group with the range it takes, as Bedrock words it', () => {
