@@ -608,7 +608,7 @@
         "landmines-testing/no-flake-masking": 4
     },
     "packages/worldgen/src/chunk/golden.test.ts": {
-        "landmines-testing/no-flake-masking": 4
+        "landmines-testing/no-flake-masking": 2
     },
     "packages/worldgen/src/density/density.test.ts": {
         "landmines-testing/no-test-doubles": 1
