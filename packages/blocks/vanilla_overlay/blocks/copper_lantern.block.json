@@ -22,7 +22,7 @@
                 "origin": [-3, 0, -3],
                 "size": [6, 8, 6]
             },
-            "jsprismarine:behavior": "jsprismarine:copper",
+            "jsprismarine:behavior": "jsprismarine:lantern",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
                 "random_tick": true,

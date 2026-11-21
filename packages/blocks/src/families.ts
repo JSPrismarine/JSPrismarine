@@ -157,6 +157,10 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
         ]
     },
     { behavior: 'jsprismarine:sculk', contains: ['sculk'] },
+    // Ahead of copper: a copper torch is a torch, and a copper lantern a lantern that the lantern
+    // family weathers, waxes and scrapes as copper.
+    { behavior: 'jsprismarine:torch', suffix: ['torch'] },
+    { behavior: 'jsprismarine:lantern', contains: ['lantern'] },
     { behavior: 'jsprismarine:copper', contains: ['copper'] },
     { behavior: 'jsprismarine:candle', contains: ['candle'] },
     { behavior: 'jsprismarine:cake', contains: ['cake'] },
@@ -167,8 +171,6 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
     { behavior: 'jsprismarine:composter', exact: ['composter'] },
     { behavior: 'jsprismarine:flower_pot', exact: ['flower_pot'] },
     { behavior: 'jsprismarine:concrete_powder', suffix: ['concrete_powder'] },
-    { behavior: 'jsprismarine:torch', suffix: ['torch'] },
-    { behavior: 'jsprismarine:lantern', contains: ['lantern'] },
     { behavior: 'jsprismarine:leaves', contains: ['leaves'] },
     { behavior: 'jsprismarine:sapling', contains: ['sapling', 'propagule'] },
     {

@@ -33,7 +33,8 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // random tick to grow twisting and weeping vines, which sets its blocks' flag, and when
         // the overlay gave each per-state light level a permutation and every family took
         // `onPlace` for a pillar block's axis, which adds permutations and sets that flag, and
-        // when the overlay gave each per-state light dampening a permutation too.
-        expect(digest).toBe('bdd0c69ced5770da16f1c35db1ec8e7bf7e81ba0fdb61ec6b78dae3b90e32f8f');
+        // when the overlay gave each per-state light dampening a permutation too, and when copper
+        // torches and lanterns moved to the torch and lantern families.
+        expect(digest).toBe('e76ee331b56c5d7bbb50cca608a2e5169d09f2d08ef625512814b57386c98ced');
     });
 });

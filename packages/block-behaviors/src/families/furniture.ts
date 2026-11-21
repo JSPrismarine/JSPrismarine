@@ -188,7 +188,7 @@ export const cakeFamily = defineFamily(
 /** Candles, up to four per block, lit by flint and steel and snuffed by hand. */
 export const candleFamily = defineFamily(
     'jsprismarine:candle',
-    'Stacks up to four candles in one block, lights to flint and steel, snuffs to a bare hand, and goes out when water reaches it.',
+    'Stacks up to four candles in one block, lights to flint and steel, snuffs to a bare hand, goes out when water reaches it, and pops without a block underneath.',
     {
         onPlace: (event, world) => {
             const previous = event.previous;
@@ -212,6 +212,8 @@ export const candleFamily = defineFamily(
             return true;
         },
         onNeighborChanged: (event, world) => {
+            // Java's CandleBlock and CandleCakeBlock need something solid underneath.
+            if (popWithoutSupport(world, event.block)) return;
             if (!stateBoolean(event.block, 'lit')) return;
             for (const face of ['up', 'north', 'south', 'west', 'east'] as const) {
                 const neighbor = world.getBlock(offset(event.block.position, face));

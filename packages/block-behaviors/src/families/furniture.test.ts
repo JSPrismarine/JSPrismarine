@@ -138,6 +138,7 @@ describe('candleFamily', () => {
 
     it('lights to flint and steel, snuffs by hand, and goes out in water', () => {
         const harness = bindFamily(candleFamily, 'minecraft:candle');
+        harness.dimension.set({ ...block, y: block.y - 1 }, 'minecraft:stone');
         harness.dimension.set(block, 'minecraft:candle', { candles: 0, lit: false });
 
         expect(harness.interact(block)).toBeUndefined();
@@ -156,6 +157,15 @@ describe('candleFamily', () => {
         harness.neighborChanged(block, 'up');
 
         expect(harness.dimension.stateAt(block, 'lit')).toBe(false);
+    });
+
+    it("pops with nothing underneath, as Java's CandleBlock.canSurvive asks for", () => {
+        const harness = bindFamily(candleFamily, 'minecraft:candle');
+        harness.dimension.set(block, 'minecraft:candle', { candles: 0, lit: false });
+
+        harness.neighborChanged(block, 'down');
+
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:air');
     });
 
     it('leaves an unlit candle alone for the item that would stack another on it', () => {
