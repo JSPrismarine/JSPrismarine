@@ -752,6 +752,26 @@ Thrown as `ProtocolWireErrors.InvalidUuidLength`, which extends `Error`.
 A UUID was read from a value that is not 16 bytes. This is a bug in the protocol codecs;
 report it with the stack trace.
 
+### `PROTOCOL_JAVA_PACKET_HAS_TRAILING_BYTES`
+
+`{name} has {unread} unread bytes after its fields`
+
+Thrown as `ProtocolWireErrors.JavaPacketHasTrailingBytes`, which extends `Error`.
+
+A Java Edition packet has bytes after the fields this server reads, so the client wrote a
+layout this server does not read. The connection is dropped; a client of another release,
+or a modified one, is the usual cause.
+
+### `PROTOCOL_JAVA_STRING_TOO_LONG`
+
+`A string of {length} characters is longer than the {max} its field allows`
+
+Thrown as `ProtocolWireErrors.JavaStringTooLong`, which extends `Error`.
+
+A Java Edition client sent a string longer than its field allows, so the packet is
+malformed. The connection is dropped; a modified client, or one that writes the protocol
+differently than this server reads it, is the usual cause.
+
 ### `PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA`
 
 `The payload carries no Data in the {layout} layout of this protocol version`

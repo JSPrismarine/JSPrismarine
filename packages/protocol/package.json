@@ -906,6 +906,36 @@
                 "import": "./dist/bedrock/wire/versions/v2259.js",
                 "module": "./dist/bedrock/wire/versions/v2259.js"
             },
+            "./java/packet/JavaPacket": {
+                "types": "./dist/java/packet/JavaPacket.d.ts",
+                "import": "./dist/java/packet/JavaPacket.js",
+                "module": "./dist/java/packet/JavaPacket.js"
+            },
+            "./java/packet/handshake": {
+                "types": "./dist/java/packet/handshake.d.ts",
+                "import": "./dist/java/packet/handshake.js",
+                "module": "./dist/java/packet/handshake.js"
+            },
+            "./java/packet/login": {
+                "types": "./dist/java/packet/login.d.ts",
+                "import": "./dist/java/packet/login.js",
+                "module": "./dist/java/packet/login.js"
+            },
+            "./java/packet/status": {
+                "types": "./dist/java/packet/status.d.ts",
+                "import": "./dist/java/packet/status.js",
+                "module": "./dist/java/packet/status.js"
+            },
+            "./java/versions/javaReleases": {
+                "types": "./dist/java/versions/javaReleases.d.ts",
+                "import": "./dist/java/versions/javaReleases.js",
+                "module": "./dist/java/versions/javaReleases.js"
+            },
+            "./java/wire/javaTypes": {
+                "types": "./dist/java/wire/javaTypes.d.ts",
+                "import": "./dist/java/wire/javaTypes.js",
+                "module": "./dist/java/wire/javaTypes.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1693,6 +1723,30 @@
         "./bedrock/structure/CameraPreset": {
             "jsprismarine:dist": "./dist/bedrock/structure/CameraPreset.js",
             "default": "./src/bedrock/structure/CameraPreset.ts"
+        },
+        "./java/packet/JavaPacket": {
+            "jsprismarine:dist": "./dist/java/packet/JavaPacket.js",
+            "default": "./src/java/packet/JavaPacket.ts"
+        },
+        "./java/packet/handshake": {
+            "jsprismarine:dist": "./dist/java/packet/handshake.js",
+            "default": "./src/java/packet/handshake.ts"
+        },
+        "./java/packet/login": {
+            "jsprismarine:dist": "./dist/java/packet/login.js",
+            "default": "./src/java/packet/login.ts"
+        },
+        "./java/packet/status": {
+            "jsprismarine:dist": "./dist/java/packet/status.js",
+            "default": "./src/java/packet/status.ts"
+        },
+        "./java/versions/javaReleases": {
+            "jsprismarine:dist": "./dist/java/versions/javaReleases.js",
+            "default": "./src/java/versions/javaReleases.ts"
+        },
+        "./java/wire/javaTypes": {
+            "jsprismarine:dist": "./dist/java/wire/javaTypes.js",
+            "default": "./src/java/wire/javaTypes.ts"
         },
         "./package.json": "./package.json"
     },
