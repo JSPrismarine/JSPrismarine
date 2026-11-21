@@ -50,3 +50,4 @@ packages/prismarine/src/world/__fixtures__/player-record.json
 .claude/worktrees/
 packages/protocol/src/java/versions/*/configuration.json
 packages/protocol/src/java/versions/*/blockStates.json
+packages/protocol/src/java/versions/*/registries.json

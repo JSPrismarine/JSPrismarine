@@ -1,7 +1,8 @@
 /**
  * Writes `packages/protocol/src/java/versions/<release>/release.ts`, `packets.ts` and
- * `blockStates.json`: the Java Edition release's protocol number, its packet ids by phase and
- * direction, and the rows every block state id follows from.
+ * `blockStates.json` and `registries.json`: the Java Edition release's protocol number, its packet
+ * ids by phase and direction, the rows every block state id follows from, and the static registries
+ * a play packet names entries of by number.
  *
  * The protocol number is the server jar's `version.json`, and the ids are the data generator's
  * `reports/packets.json`, which `ensure:worldgen` leaves in the cache. This is a capture-time
@@ -14,7 +15,14 @@ import { join, resolve } from 'node:path';
 import { isRecord } from '../isRecord.ts';
 import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
 import { javaServerJarPath, packageDir, worldgenCachePaths } from '../java/worldgen-cache.ts';
-import { blockStateRows, blockStatesSource, packetTableSource, releaseSource } from './source.ts';
+import {
+    blockStateRows,
+    blockStatesSource,
+    packetTableSource,
+    releaseSource,
+    STATIC_REGISTRIES,
+    staticRegistriesSource
+} from './source.ts';
 import type { PacketTable, ReportBlock } from './source.ts';
 
 const release = await resolveJavaRelease(process.argv);
@@ -56,6 +64,12 @@ const blocksPath = join(worldgenCachePaths(release.version).reports, 'reports', 
 const blocks = JSON.parse(readFileSync(blocksPath, 'utf8')) as Record<string, ReportBlock>;
 const rows = blockStateRows(blocks);
 writeFileSync(join(outDir, 'blockStates.json'), blockStatesSource(rows));
+
+// The static registries a play packet names entries of by number, which the client knows itself.
+const registriesPath = join(worldgenCachePaths(release.version).reports, 'reports', 'registries.json');
+// Extracted game data: parsed, never executed.
+const registries: unknown = JSON.parse(readFileSync(registriesPath, 'utf8'));
+writeFileSync(join(outDir, 'registries.json'), staticRegistriesSource(registries, STATIC_REGISTRIES));
 console.log(
     `Wrote ${release.version}'s release, packet ids and ${rows.length} blocks' states (protocol ${jar.protocol_version}) to ${outDir}`
 );

@@ -1001,6 +1001,16 @@
                 "import": "./dist/java/chunk/palettedContainer.js",
                 "module": "./dist/java/chunk/palettedContainer.js"
             },
+            "./java/versions/javaRegistry": {
+                "types": "./dist/java/versions/javaRegistry.d.ts",
+                "import": "./dist/java/versions/javaRegistry.js",
+                "module": "./dist/java/versions/javaRegistry.js"
+            },
+            "./java/versions/26.3/registries": {
+                "types": "./dist/java/versions/26.3/registries.d.ts",
+                "import": "./dist/java/versions/26.3/registries.js",
+                "module": "./dist/java/versions/26.3/registries.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1864,6 +1874,14 @@
         "./java/chunk/palettedContainer": {
             "jsprismarine:dist": "./dist/java/chunk/palettedContainer.js",
             "default": "./src/java/chunk/palettedContainer.ts"
+        },
+        "./java/versions/javaRegistry": {
+            "jsprismarine:dist": "./dist/java/versions/javaRegistry.js",
+            "default": "./src/java/versions/javaRegistry.ts"
+        },
+        "./java/versions/26.3/registries": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/registries.js",
+            "default": "./src/java/versions/26.3/registries.ts"
         },
         "./package.json": "./package.json"
     },

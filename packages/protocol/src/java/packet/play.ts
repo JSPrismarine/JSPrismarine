@@ -3,9 +3,12 @@
  * 26.x were read off the vanilla server's own encoders: `Login (play)` gained `onlineMode`, and
  * `Confirm Teleportation` carries the position and rotation the client accepted.
  */
+import { ProtocolWireErrors } from '@jsprismarine/errors/protocol/wire';
+
 import { bool, custom, list, optional, record, uint8 } from '../../wire/fieldTypes';
 import { PACKETS } from '../versions/26.3/packets';
-import { double, float, int, javaString, long, optionalVarInt, textComponent, varInt } from '../wire/javaTypes';
+import { double, float, int, javaString, long, optionalVarInt, textComponent, uuid, varInt } from '../wire/javaTypes';
+import { profileProperty } from './login';
 import { identifier } from './configuration';
 import { defineJavaPacket } from './JavaPacket';
 
@@ -193,3 +196,86 @@ export const CHANGE_GAME_MODE = 3;
 
 /** `Player Loaded` (serverbound): the client has the world around it and shows the player. */
 export const PlayerLoaded = defineJavaPacket('Player Loaded', PACKETS.play.serverbound.player_loaded, {});
+
+/** An angle as one byte: 256 steps to a turn. */
+const angle = custom<number>(
+    'Angle',
+    (s, degrees) => s.writeByte(Math.round((((degrees % 360) + 360) % 360) * (256 / 360)) & 0xff),
+    (s) => (s.readByte() * 360) / 256
+);
+
+/**
+ * A low-precision vector, which carries a spawned entity's velocity. Only the zero vector, one zero
+ * byte, is written and read: the server sends entities at rest.
+ */
+const restingVelocity = custom<null>(
+    'LpVec3',
+    (s) => s.writeByte(0),
+    (s) => {
+        const first = s.readByte();
+        if (first !== 0) throw new ProtocolWireErrors.JavaVelocityNotAtRest();
+        return null;
+    }
+);
+
+/** `Spawn Entity` (clientbound): an entity coming into view, by type id, at rest. */
+export const AddEntity = defineJavaPacket('Spawn Entity', PACKETS.play.clientbound.add_entity, {
+    entityId: varInt,
+    uuid,
+    type: varInt,
+    x: double,
+    y: double,
+    z: double,
+    velocity: restingVelocity,
+    pitch: angle,
+    yaw: angle,
+    headYaw: angle,
+    data: varInt
+});
+
+/** `Remove Entities` (clientbound): entities leaving view. */
+export const RemoveEntities = defineJavaPacket('Remove Entities', PACKETS.play.clientbound.remove_entities, {
+    entityIds: list(varInt)
+});
+
+/** `Teleport Entity` (clientbound): an entity's absolute position and facing. */
+export const TeleportEntity = defineJavaPacket('Teleport Entity', PACKETS.play.clientbound.teleport_entity, {
+    entityId: varInt,
+    x: double,
+    y: double,
+    z: double,
+    velocityX: double,
+    velocityY: double,
+    velocityZ: double,
+    yaw: float,
+    pitch: float,
+    /** Which of the fields are relative, as `Relative` bits; zero for an absolute move. */
+    flags: int,
+    onGround: bool
+});
+
+/** `Set Head Rotation` (clientbound): where an entity's head faces. */
+export const RotateHead = defineJavaPacket('Set Head Rotation', PACKETS.play.clientbound.rotate_head, {
+    entityId: varInt,
+    headYaw: angle
+});
+
+/** `Player Info Update` actions, as bits of the set the packet opens with. */
+export enum PlayerInfoAction {
+    AddPlayer = 0x01,
+    UpdateListed = 0x08
+}
+
+/**
+ * `Player Info Update` (clientbound) adding players to the tab list: their profile, and listed.
+ * The action set is fixed to adding and listing, whose fields each entry carries in that order.
+ */
+export const PlayerInfoAdd = defineJavaPacket('Player Info Update', PACKETS.play.clientbound.player_info_update, {
+    actions: uint8,
+    players: list(record({ uuid, name: javaString(16), properties: list(profileProperty), listed: bool }))
+});
+
+/** `Player Info Remove` (clientbound): players leaving the tab list. */
+export const PlayerInfoRemove = defineJavaPacket('Player Info Remove', PACKETS.play.clientbound.player_info_remove, {
+    uuids: list(uuid)
+});

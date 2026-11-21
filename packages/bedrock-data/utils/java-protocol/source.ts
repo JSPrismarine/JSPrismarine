@@ -114,3 +114,29 @@ export const blockStateRows = (report: Readonly<Record<string, ReportBlock>>): B
  */
 export const blockStatesSource = (rows: readonly BlockStateRow[]): string =>
     `[\n${rows.map((row) => `    ${JSON.stringify(row)}`).join(',\n')}\n]\n`;
+
+/** The static registries `registries.json` holds, by the report's name. */
+export const STATIC_REGISTRIES = ['minecraft:entity_type', 'minecraft:item'] as const;
+
+/**
+ * The JSON of the static registries: each one's entry names in network id order, under its name
+ * without the namespace.
+ * @param report - The data generator's registries report.
+ * @param names - The registries to write.
+ * @returns The file text.
+ * @throws Error for a registry the report lacks, or ids that are not 0 to the entry count.
+ */
+export const staticRegistriesSource = (report: unknown, names: readonly string[]): string => {
+    const out: string[] = [];
+    for (const name of names) {
+        // Extracted game data in the report's shape; a missing entry list throws below.
+        const registry = (report as Record<string, { entries?: Record<string, { protocol_id: number }> }>)[name];
+        if (registry?.entries === undefined) throw new Error(`the registries report has no ${name}`);
+        const entries = Object.entries(registry.entries).sort(([, a], [, b]) => a.protocol_id - b.protocol_id);
+        entries.forEach(([entry, { protocol_id }], index) => {
+            if (protocol_id !== index) throw new Error(`${name} ${entry} has id ${protocol_id}, not ${index}`);
+        });
+        out.push(`    "${name.replace(/^minecraft:/, '')}": ${JSON.stringify(entries.map(([entry]) => entry))}`);
+    }
+    return `{\n${out.join(',\n')}\n}\n`;
+};

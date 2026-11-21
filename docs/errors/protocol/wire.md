@@ -160,6 +160,15 @@ Thrown as `ProtocolWireErrors.JavaTextComponentNotString`, which extends `Error`
 A Java Edition client sent a text component that is not plain text, which the server does
 not read yet. The connection is dropped.
 
+## `PROTOCOL_JAVA_VELOCITY_NOT_AT_REST`
+
+`A spawned entity carries a velocity, which this server does not read`
+
+Thrown as `ProtocolWireErrors.JavaVelocityNotAtRest`, which extends `Error`.
+
+A Java Edition entity spawn carries a velocity, which this server's reader does not read: it
+sends entities at rest. Seen when reading another server's spawn.
+
 ## `PROTOCOL_MISSING_ATTRIBUTE_LAYER_DATA`
 
 `The payload carries no Data in the {layout} layout of this protocol version`

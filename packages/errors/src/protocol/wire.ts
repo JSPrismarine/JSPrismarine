@@ -430,5 +430,10 @@ export const ProtocolWireErrors = defineErrors('protocol/wire', {
      * A Java Edition chunk carries block entities, which this server's chunk reader does not read
      * yet. Seen when reading another server's chunk.
      */
-    JavaChunkHasBlockEntities: 'A chunk carries {count} block entities, which this server does not read'
+    JavaChunkHasBlockEntities: 'A chunk carries {count} block entities, which this server does not read',
+    /**
+     * A Java Edition entity spawn carries a velocity, which this server's reader does not read: it
+     * sends entities at rest. Seen when reading another server's spawn.
+     */
+    JavaVelocityNotAtRest: 'A spawned entity carries a velocity, which this server does not read'
 });
