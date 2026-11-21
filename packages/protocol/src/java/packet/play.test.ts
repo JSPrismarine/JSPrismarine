@@ -18,6 +18,7 @@ import {
     Respawn,
     SectionBlocksUpdate,
     SetCreativeModeSlot,
+    SetEquipment,
     SetHealth,
     UseItemOn,
     SetCenterChunk,
@@ -248,5 +249,24 @@ describe('health and respawn packets', () => {
         // The login's spawn fields start after its first nine fields (12 bytes here) and run to its last two.
         expect(respawn.subarray(0, -1)).toEqual(login.subarray(idOf(PlayLogin).length + 12, -2));
         expect(respawn.at(-1)).toBe(3);
+    });
+});
+
+describe('Set Equipment', () => {
+    it('marks every slot but the last as followed by more, and reads the list back', () => {
+        const equipment = {
+            entityId: 9,
+            equipment: [
+                { slot: 0, item: { item: 1, count: 1 } },
+                { slot: 5, item: null }
+            ]
+        };
+        const body = encodeJavaPacket(SetEquipment, equipment).subarray(idOf(SetEquipment).length);
+
+        // Entity 9; main hand (0x80 | 0) with one of item 1; head (5), last, empty.
+        expect([...body]).toEqual([9, 0x80, 1, 1, 0, 0, 5, 0]);
+        expect(
+            decodeJavaPacket(SetEquipment, readJavaPacketId(encodeJavaPacket(SetEquipment, equipment)).body)
+        ).toEqual(equipment);
     });
 });

@@ -519,3 +519,49 @@ export const Respawn = defineJavaPacket('Respawn', PACKETS.play.clientbound.resp
     ...SPAWN_INFO,
     dataToKeep: uint8
 });
+
+/** Equipment slots, by vanilla's `EquipmentSlot` order, which numbers them on the wire. */
+export enum JavaEquipmentSlot {
+    MainHand = 0,
+    OffHand = 1,
+    Feet = 2,
+    Legs = 3,
+    Chest = 4,
+    Head = 5,
+    Body = 6,
+    Saddle = 7
+}
+
+/** One slot of an entity's equipment and what is in it. */
+export interface JavaEquipment {
+    readonly slot: JavaEquipmentSlot;
+    readonly item: JavaItemStack | null;
+}
+
+/** The bit a slot's byte carries while more slots follow it. */
+const MORE_EQUIPMENT = 0x80;
+
+/** The equipment list: each slot's byte, with {@link MORE_EQUIPMENT} on all but the last, then its stack. */
+const equipmentList = custom<JavaEquipment[]>(
+    'Equipment',
+    (s, entries) =>
+        entries.forEach(({ slot, item }, index) => {
+            s.writeByte(index < entries.length - 1 ? slot | MORE_EQUIPMENT : slot);
+            itemStack.write(s, item);
+        }),
+    (s) => {
+        const entries: JavaEquipment[] = [];
+        for (let more = true; more;) {
+            const byte = s.readByte();
+            more = (byte & MORE_EQUIPMENT) !== 0;
+            entries.push({ slot: byte & ~MORE_EQUIPMENT, item: itemStack.read(s) });
+        }
+        return entries;
+    }
+);
+
+/** `Set Equipment` (clientbound): what an entity holds and wears, slot by slot; at least one slot. */
+export const SetEquipment = defineJavaPacket('Set Equipment', PACKETS.play.clientbound.set_equipment, {
+    entityId: varInt,
+    equipment: equipmentList
+});
