@@ -46,8 +46,14 @@ import { GAMETEST, GameTests } from './gametest';
 import type { ComponentKind } from './customContent';
 import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
+import type { AddonConfigStore } from './addonConfig';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
-import { JSPRISMARINE_HOST_FUNCTIONS, JSPRISMARINE_MODULE, jsprismarineServerSource } from './jsprismarineServer';
+import {
+    JSPRISMARINE_CONFIG_FUNCTIONS,
+    JSPRISMARINE_HOST_FUNCTIONS,
+    JSPRISMARINE_MODULE,
+    jsprismarineServerSource
+} from './jsprismarineServer';
 import type { JsprismarineServerMembers } from './jsprismarineMembers';
 import { bossBarOptions, ScriptBossBars } from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
@@ -178,6 +184,11 @@ export interface WorldScriptsOptions {
      * server would.
      */
     readonly members?: JsprismarineServerMembers;
+    /**
+     * The packs' config files, which `@jsprismarine/server`'s `config` reads, writes and
+     * follows. Without it, the module leaves `config` out.
+     */
+    readonly addonConfig?: AddonConfigStore;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog?: WatchdogSettings;
@@ -235,6 +246,12 @@ interface LoadedPack {
     setNow?: ScriptHandle;
     /** Its `@jsprismarine/server` namespace, made the first time it imports the module. */
     jsp?: ScriptHandle;
+    /** Its `config.afterEvents.change` callbacks, in subscription order. */
+    configListeners?: ScriptHandle[];
+    /** Stops the watch on its config file, once `config` has started one. */
+    stopConfigWatch?: () => void;
+    /** Whether its config file changed since the last flush looked. */
+    configChanged?: boolean;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
     /**
@@ -514,6 +531,7 @@ export class WorldScripts {
                 },
                 () => withinBudget() && !this.stopped
             );
+            this.dispatchConfigChanges();
             const events = [...this.lifecycleEvents.splice(0), ...this.options.world.takeEvents()];
             let dispatched = 0;
             for (const group of groupByType(events)) {
@@ -620,6 +638,8 @@ export class WorldScripts {
         for (const loaded of this.loaded) {
             // So does a placeholder namespace, whose resolver is one of the pack's functions.
             this.placeholders.release(loaded.pack);
+            loaded.stopConfigWatch?.();
+            for (const listener of loaded.configListeners ?? []) this.engine.free(listener);
             loaded.forms?.destroy();
             loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
@@ -943,6 +963,7 @@ export class WorldScripts {
             return player;
         };
         const barId = (value: ScriptValue): number => (typeof value === 'number' ? value : 0);
+        const store = this.options.addonConfig;
         const functions: Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> =
             {
                 read: (name, index) => {
@@ -996,6 +1017,38 @@ export class WorldScripts {
                     }
                     return JSON.stringify(parseShorthand(shorthand));
                 },
+                readConfig: () => {
+                    const value = store?.read(loaded.pack);
+                    return value === undefined ? undefined : JSON.stringify(value);
+                },
+                writeConfig: (json) => {
+                    if (typeof json !== 'string' || store === undefined) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.write',
+                            expected: 'a value JSON can carry',
+                            argument: 'value'
+                        });
+                    }
+                    // The pack's own JSON.stringify wrote it, so it parses.
+                    store.write(loaded.pack, JSON.parse(json) as unknown);
+                    return undefined;
+                },
+                onConfigChange: (callback) => {
+                    if (!(callback instanceof ScriptHandle)) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.afterEvents.change.subscribe',
+                            expected: 'a function',
+                            argument: 'callback'
+                        });
+                    }
+                    this.watchConfig(loaded);
+                    (loaded.configListeners ??= []).push(engine.duplicate(callback));
+                    return undefined;
+                },
+                offConfigChange: (callback) => {
+                    if (callback instanceof ScriptHandle) this.unsubscribeConfig(loaded, callback);
+                    return undefined;
+                },
                 renderTemplate: (source, shorthand, value) => {
                     const member = 'placeholders.render';
                     if (typeof source !== 'string') {
@@ -1012,12 +1065,77 @@ export class WorldScripts {
                     );
                 }
             };
+        const configFunctions: readonly string[] = JSPRISMARINE_CONFIG_FUNCTIONS;
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
+            // Without a store the module leaves `config` out, which it tells by the functions' absence.
+            if (store === undefined && configFunctions.includes(name)) continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
         }
         return host;
+    }
+
+    /** Starts following a pack's config file, once, so the next flush after a change raises its event. */
+    private watchConfig(loaded: LoadedPack): void {
+        const store = this.options.addonConfig;
+        if (store === undefined || loaded.stopConfigWatch !== undefined) return;
+        loaded.stopConfigWatch = store.watch(loaded.pack, () => {
+            loaded.configChanged = true;
+        });
+    }
+
+    /** Takes a callback off a pack's `config.afterEvents.change`, when it is subscribed. */
+    private unsubscribeConfig(loaded: LoadedPack, callback: ScriptHandle): void {
+        const listeners = loaded.configListeners ?? [];
+        const same = this.engine.evaluate('(a, b) => a === b');
+        if (!(same instanceof ScriptHandle)) return;
+        try {
+            const index = listeners.findIndex(
+                (listener) => this.engine.call(same, undefined, listener, callback) === true
+            );
+            if (index < 0) return;
+            const [removed] = listeners.splice(index, 1);
+            if (removed !== undefined) this.engine.free(removed);
+        } finally {
+            this.engine.free(same);
+        }
+    }
+
+    /**
+     * Raises `config.afterEvents.change` for each pack whose file changed since the last flush,
+     * with the file's value read now, so several changes in one tick give one event.
+     */
+    private dispatchConfigChanges(): void {
+        const store = this.options.addonConfig;
+        if (store === undefined) return;
+        for (const loaded of this.loaded) {
+            if (loaded.configChanged !== true || this.stopped) continue;
+            loaded.configChanged = false;
+            const listeners = loaded.configListeners ?? [];
+            if (listeners.length === 0) continue;
+            const value = store.read(loaded.pack);
+            const json = value === undefined ? undefined : JSON.stringify(value);
+            const engine = this.engine;
+            engine.inContext(loaded.context, () => {
+                const make = engine.evaluate(
+                    '(json) => { const deepFreeze = (value) => { if (typeof value === "object" && value !== null) { for (const key of Object.keys(value)) deepFreeze(value[key]); Object.freeze(value); } return value; }; return Object.freeze({ value: json === undefined ? undefined : deepFreeze(JSON.parse(json)) }); }',
+                    '<jsprismarine/server config>'
+                );
+                if (!(make instanceof ScriptHandle)) return;
+                try {
+                    for (const listener of [...listeners]) {
+                        if (this.stopped || !listeners.includes(listener)) continue;
+                        const event = engine.call(make, undefined, json);
+                        if (!(event instanceof ScriptHandle)) continue;
+                        this.invoke(loaded, listener, 'default', [event]);
+                        engine.free(event);
+                    }
+                } finally {
+                    engine.free(make);
+                }
+            });
+        }
     }
 
     /** What a render reads from the world, for the player the text is for. */

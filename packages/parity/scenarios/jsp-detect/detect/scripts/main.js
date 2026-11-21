@@ -57,6 +57,7 @@ const describe = (jsp) => ({
     getPing: 'getPing' in jsp ? typeof jsp.getPing : 'absent',
     bossBars: 'bossBars' in jsp ? typesOf(jsp.bossBars) : 'absent',
     placeholders: 'placeholders' in jsp ? typesOf(jsp.placeholders) : 'absent',
+    config: 'config' in jsp ? typesOf(jsp.config) : 'absent',
     allFrozen: Object.values(jsp).every((value) => Object.isFrozen(value))
 });
 
