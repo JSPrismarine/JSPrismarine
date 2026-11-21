@@ -5,8 +5,18 @@
  * them absolute when the copy is written.
  */
 
+import { type TrackerSummary } from '../../packages/parity/src/dashboard/trackerSummary.ts';
+import {
+    behaviorProgress,
+    type TrackerProgressCounts,
+    trackerPrimaryProgressPercent,
+    trackerProgressTotal
+} from '../../packages/parity/src/dashboard/trackerProgress.ts';
+import { METRICS } from '../server-benchmark/src/summary.mts';
 import { type ChangelogRelease, type ChangeKind, SHOWN_RELEASES } from './changelog.mts';
 import type { ProjectData } from './project.mts';
+import type { BenchmarkPageData } from './site/benchmarks.data.mts';
+import { GAPS_PER_FAMILY } from './site/parity.data.mts';
 import {
     installCommand,
     type Market,
@@ -139,6 +149,100 @@ export function marketMarkdown(market: Market, description: string) {
                   `## Community addons\n\nListed, not reviewed: JSPrismarine checks that each download matches its hash, not what its scripts do.\n\n${community.map(entry).join('\n')}`
               ]
             : [])
+    ]
+        .join('\n\n')
+        .concat('\n');
+}
+
+/** A family's or a group's pass rate, as the tracker shows it: passed of measured checks plus open work. */
+const progress = (passed: number, counts: TrackerProgressCounts) =>
+    `${trackerPrimaryProgressPercent(passed, trackerProgressTotal(counts))}% (${passed} of ${trackerProgressTotal(counts)})`;
+
+/**
+ * The parity tracker: the behavior score, every family's counts and each family's first open gaps,
+ * from the summary the page renders. The page itself loads every case; the copy keeps the summary.
+ */
+export function parityMarkdown(summary: TrackerSummary, { description }: { description: string }) {
+    const behavior = behaviorProgress(summary.families);
+    const families = summary.families.map(
+        (family) =>
+            `| \`${family.id}\` | ${family.group} | ${progress(family.passed, family)} | ${family.failed} | ${family.deferred} | ${family.defects} | ${family.notMeasured} | ${family.intentional} |`
+    );
+    const gaps = summary.families
+        .filter(({ openGaps }) => openGaps.length > 0)
+        .map(({ id, openGaps }) =>
+            [
+                `### \`${id}\``,
+                openGaps
+                    .map(
+                        (gap) =>
+                            `- \`${gap.title}\` (${gap.status})${gap.details ? `: ${gap.details.replace(/\s+/g, ' ').trim()}` : ''}`
+                    )
+                    .join('\n')
+            ].join('\n\n')
+        );
+    return [
+        '# Parity tracker',
+        description,
+        `From the parity suite's run of ${summary.generatedAt.slice(0, 10)}, at commit \`${summary.sourceCommit.slice(0, 11)}\`.`,
+        [
+            `- Behavior: ${trackerPrimaryProgressPercent(behavior.passed, behavior.tracked)}% of the comparisons of what the server does in play pass (${behavior.passed} of ${behavior.tracked}).`,
+            `- Every comparison: ${progress(summary.passed, summary)}, data tables included.`,
+            `- ${summary.failed} failing, ${summary.deferred} deferred, ${summary.defects} known defects, ${summary.notMeasured} not measured and ${summary.intentional} intentional differences.`
+        ].join('\n'),
+        '## Families',
+        [
+            '| Family | Group | Passing | Failing | Deferred | Defects | Not measured | Intentional |',
+            '| --- | --- | --- | --- | --- | --- | --- | --- |',
+            ...families
+        ].join('\n'),
+        ...(gaps.length
+            ? [
+                  `## Open gaps\n\nEach family's first ${GAPS_PER_FAMILY} open gaps: failing checks, then known defects, then deferred work. The [tracker](/parity) lists them all.`,
+                  ...gaps
+              ]
+            : [])
+    ]
+        .join('\n\n')
+        .concat('\n');
+}
+
+/** A benchmark figure as the copy prints it: four significant digits, or a dash for none. */
+const figure = (value: number | null) => (value === null ? '–' : String(Number(value.toPrecision(4))));
+
+/**
+ * The benchmark page: the newest run's median for every figure, server by server and scenario by
+ * scenario, with whether the run was quiet and where its raw data is.
+ */
+export function benchmarksMarkdown(
+    { file, results, summary }: BenchmarkPageData,
+    { description, repositoryUrl }: { description: string; repositoryUrl: string }
+) {
+    const scenarios = results.scenarios.map((scenario) => {
+        const cells = summary.cells.filter((cell) => cell.scenario === scenario.id);
+        const servers = cells.map(({ server }) => {
+            const described = results.servers[server];
+            return described ? `${described.name} ${described.version}` : server;
+        });
+        const rows = METRICS.map(
+            ({ id, kind, better }) =>
+                `| \`${id}\` | ${kind}${kind === 'wall' ? ', indicative' : ''} | ${better} | ${cells.map((cell) => figure(cell.metrics[id].median)).join(' | ')} |`
+        );
+        return [
+            `## \`${scenario.id}\``,
+            `${scenario.bots} bots, view distance ${scenario.viewDistance}, ${scenario.steps} travel steps of ${scenario.stepBlocks} blocks. Medians of each server's finished runs.`,
+            [
+                `| Figure | Kind | Better | ${servers.join(' | ')} |`,
+                `| --- | --- | --- | ${servers.map(() => '---').join(' | ')} |`,
+                ...rows
+            ].join('\n')
+        ].join('\n\n');
+    });
+    return [
+        '# Benchmarks',
+        description,
+        `The newest run, from ${results.startedAt.slice(0, 10)}: ${summary.quietRounds} of ${summary.rounds} rounds stayed at or under a one minute load of ${results.quietLoadLimit}, so the run is ${summary.quiet ? 'quiet' : 'indicative'}. Wall clock figures move with everything else on the machine and are indicative either way. Its raw data is [\`${file}\`](${repositoryUrl}/blob/master/${file}).`,
+        ...scenarios
     ]
         .join('\n\n')
         .concat('\n');

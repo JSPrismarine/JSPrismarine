@@ -10,7 +10,7 @@ import type { TrackerIndex } from './.vitepress/theme/parity.ts';
  * Open gaps each family lists in the page's HTML. The full list arrives with the case chunks; this
  * keeps a snapshot with thousands of failures from rendering every one of them into the page.
  */
-const GAPS_PER_FAMILY = 10;
+export const GAPS_PER_FAMILY = 10;
 
 /** Where `docs:stage` writes the tracker index and its case chunks. */
 const trackerDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public', 'parity-tracker');
@@ -33,23 +33,25 @@ export function readTrackerIndex(): TrackerIndex | null {
     return JSON.parse(readFileSync(indexFile, 'utf8')) as TrackerIndex;
 }
 
+/** The page's summary of the staged snapshot, with its case chunks, or null when none is staged. */
+export function readParityPage(): ParityPageData | null {
+    const index = readTrackerIndex();
+    if (!index) return null;
+    const cases = index.caseChunks.flatMap(
+        // `docs:stage` writes these files from the typed parity tracker generator.
+        (name) => JSON.parse(readFileSync(path.join(trackerDir, name), 'utf8')) as TrackerCase[]
+    );
+    return { summary: summarizeTracker({ ...index, cases }, GAPS_PER_FAMILY), caseChunks: index.caseChunks };
+}
+
 declare const data: ParityPageData | null;
 export { data };
 
 export default {
     watch: ['./public/parity-tracker/index.json'],
     load(): ParityPageData | null {
-        const index = readTrackerIndex();
-        if (!index) {
-            console.warn('No parity tracker snapshot is staged; run `pnpm run docs:stage` to stage one.');
-            return null;
-        }
-        const cases = index.caseChunks.flatMap(
-            (name) => JSON.parse(readFileSync(path.join(trackerDir, name), 'utf8')) as TrackerCase[]
-        );
-        return {
-            summary: summarizeTracker({ ...index, cases }, GAPS_PER_FAMILY),
-            caseChunks: index.caseChunks
-        };
+        const page = readParityPage();
+        if (!page) console.warn('No parity tracker snapshot is staged; run `pnpm run docs:stage` to stage one.');
+        return page;
     }
 };
