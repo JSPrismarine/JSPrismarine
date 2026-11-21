@@ -1,0 +1,3 @@
+{
+    "$comment": "The pinned sources the native library is built from. It has none beyond native/src, so this file only marks a checkout: a published package carries no native sources."
+}

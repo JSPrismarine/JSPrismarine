@@ -22,7 +22,11 @@ export type NativePointer = bigint | number;
 export interface BoundNative<Symbols> {
     /** One function per symbol; an optional symbol the library lacks is undefined. */
     readonly symbols: Symbols;
-    /** The address of a buffer's memory, which never moves while the buffer lives. */
+    /**
+     * The address of a buffer's memory. It stays valid only while the buffer is alive and is
+     * neither transferred nor resized, so keep it unchanged until native code is done with the
+     * address.
+     */
     pointerOf(memory: ArrayBufferLike): NativePointer;
     close(): void;
 }

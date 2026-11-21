@@ -25,6 +25,7 @@ const packagePages = [
     'packages/bedrock-data/README.md',
     'packages/commands/README.md',
     'packages/leveldb/README.md',
+    'packages/native-worldgen/README.md',
     'packages/parity/README.md',
     'packages/prismarine/src/content/README.md',
     'packages/script-host/README.md',

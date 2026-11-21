@@ -1,0 +1,91 @@
+{
+    "name": "@jsprismarine/native-worldgen",
+    "version": "0.23.2",
+    "description": "Terrain generation's hot loops in C, loaded through node:ffi and bun:ffi, with the same bits as @jsprismarine/worldgen",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "exports": {
+            ".": {
+                "types": "./dist/NativeWorldgen.d.ts",
+                "import": "./dist/NativeWorldgen.js",
+                "module": "./dist/NativeWorldgen.js"
+            },
+            "./library": {
+                "types": "./dist/library.d.ts",
+                "import": "./dist/library.js",
+                "module": "./dist/library.js"
+            },
+            "./install": {
+                "types": "./dist/install.d.ts",
+                "import": "./dist/install.js",
+                "module": "./dist/install.js"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "native/manifest.json",
+        "scripts/postinstall.mjs",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "module": "./dist/NativeWorldgen.js",
+    "types": "./dist/NativeWorldgen.d.ts",
+    "exports": {
+        ".": {
+            "jsprismarine:dist": "./dist/NativeWorldgen.js",
+            "default": "./src/NativeWorldgen.ts"
+        },
+        "./library": {
+            "jsprismarine:dist": "./dist/library.js",
+            "default": "./src/library.ts"
+        },
+        "./install": {
+            "jsprismarine:dist": "./dist/install.js",
+            "default": "./src/install.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "build:watch": "vite build --watch",
+        "test": "vitest run",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
+        "build:native": "node scripts/build-native.mts",
+        "postinstall": "node scripts/postinstall.mjs"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "jsprismarine",
+        "minecraft",
+        "worldgen",
+        "noise",
+        "ffi"
+    ],
+    "author": "JSPrismarine",
+    "license": "(MIT OR MPL-2.0)",
+    "bugs": {
+        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
+    },
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/native-worldgen",
+    "devDependencies": {
+        "@types/node": "26.6.6",
+        "glob": "14.0.6",
+        "rimraf": "6.1.4",
+        "tsx": "4.23.15",
+        "typescript": "7.0.2",
+        "vite": "8.3.8",
+        "vitest": "5.1.1"
+    },
+    "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
+        "@jsprismarine/native-library": "workspace:*"
+    }
+}

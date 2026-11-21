@@ -1,0 +1,4 @@
+{
+	global: jwg_*;
+	local: *;
+};

@@ -68,6 +68,7 @@
         { "path": "./packages/protocol/tsconfig.json" },
         { "path": "./packages/raknet/tsconfig.json" },
         { "path": "./packages/server/tsconfig.json" },
-        { "path": "./packages/native-library/tsconfig.json" }
+        { "path": "./packages/native-library/tsconfig.json" },
+        { "path": "./packages/native-worldgen/tsconfig.json" }
     ]
 }

@@ -93,6 +93,7 @@ import {
 } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { DEFAULT_ALLOWED_MODULES } from '../../packages/script-host/src/host/pack.ts';
 import { STEPS_PER_MILLISECOND } from '../../packages/script-host/src/host/WorldScripts.ts';
+import { nativeWorldgenLibrary } from '../../packages/native-worldgen/src/library.ts';
 import { PUBLISHED_PLATFORMS } from '../../packages/script-host/src/platform.ts';
 import { currentBeta } from '../../packages/script-host/src/shape/resolve.ts';
 import {
@@ -758,6 +759,21 @@ function fluidFacts() {
         'fluidReplacement.default': fallback,
         'fluidReplacement.tag': `#${tag}`,
         'settling.neighbors': String(side * side - 1)
+    };
+}
+
+/** The environment variables native-worldgen's library reads, named by its `NativeLibrary`. */
+function nativeWorldgenFacts() {
+    const library = nativeWorldgenLibrary;
+    return {
+        'nativeWorldgen.environment.table': `\n${table(
+            ['Variable', 'What it does'],
+            [
+                [inlineCode(library.libraryEnv), 'Loads this file instead of the installed build, checked as well.'],
+                [inlineCode(`${library.skipDownloadEnv}=1`), 'The install script downloads nothing.'],
+                [inlineCode(library.baseUrlEnv), 'Downloads from another host, or reads from a directory.']
+            ]
+        )}\n`
     };
 }
 
@@ -1502,6 +1518,7 @@ export async function loadFacts(): Promise<Facts> {
             ...fluidFacts(),
             ...replicationFacts(),
             ...blendingFacts(),
+            ...nativeWorldgenFacts(),
             ...parityFamilyFacts(),
             ...e2eFacts(),
             ...entityFacts()
