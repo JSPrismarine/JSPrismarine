@@ -91,4 +91,18 @@ if (placeholders !== undefined) {
     void [text, names, template.rawtext.length, again.text, next];
 }
 
+if (jsp !== undefined && 'config' in jsp) {
+    const { config } = jsp;
+    const value: unknown = config.value;
+    const callback = config.afterEvents.change.subscribe((event) => {
+        const changed: unknown = event.value;
+        void changed;
+    });
+    config.afterEvents.change.unsubscribe(callback);
+    config.write({ interval: 20 });
+    // @ts-expect-error The value is read-only; `write` changes the file.
+    config.value = {};
+    void value;
+}
+
 export {};

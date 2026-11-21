@@ -35,7 +35,12 @@ const recordingHost = () => {
         hideBar: record('hideBar', () => undefined),
         barValid: record('barValid', (id) => id === 7),
         setListName: record('setListName', () => undefined),
-        resetListName: record('resetListName', () => undefined)
+        resetListName: record('resetListName', () => undefined),
+        readConfig: record('readConfig', () => JSON.stringify({ interval: 20, groups: { vip: 'x' } })),
+        writeConfig: record('writeConfig', () => undefined),
+        onConfigChange: record('onConfigChange', () => undefined),
+        offConfigChange: record('offConfigChange', () => undefined),
+        setConfigEventMaker: record('setConfigEventMaker', () => undefined)
     } satisfies Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], unknown>;
     const placeholdersHost = {
         register: record('register', () => 3),
@@ -126,6 +131,8 @@ describe('@jsprismarine/server', () => {
         hide();
 
         expect(calls).toEqual([
+            // Making the namespace registers the config event maker before any call of the test's.
+            ['setConfigEventMaker', expect.any(Function)],
             ['ping', player],
             ['showBar', player, { text: 'TPS' }],
             ['barValid', 7],
@@ -150,6 +157,8 @@ describe('@jsprismarine/server', () => {
         reset(player);
 
         expect(calls).toEqual([
+            // Making the namespace registers the config event maker before any call of the test's.
+            ['setConfigEventMaker', expect.any(Function)],
             ['setListName', player, '§aSteve'],
             ['resetListName', player]
         ]);
@@ -214,6 +223,53 @@ describe('@jsprismarine/server', () => {
         ]);
     });
 
+    it('reads the config through the host as a frozen value, writes it as JSON, and forwards the subscriptions', () => {
+        const { host, calls } = recordingHost();
+        const { config } = namespaceOf(host);
+        const value = at(config, 'value');
+        expect(value).toEqual({ interval: 20, groups: { vip: 'x' } });
+        expect(Object.isFrozen(value)).toBe(true);
+        expect(Object.isFrozen(at(value, 'groups'))).toBe(true);
+        expect(at(config, 'value')).not.toBe(value);
+
+        const write = at(config, 'write');
+        const signal = at(at(config, 'afterEvents'), 'change');
+        const subscribe = at(signal, 'subscribe');
+        const unsubscribe = at(signal, 'unsubscribe');
+        if (typeof write !== 'function' || typeof subscribe !== 'function' || typeof unsubscribe !== 'function') {
+            throw new TypeError('config has no methods');
+        }
+        write({ interval: 40 });
+        const callback = () => {};
+        expect(subscribe(callback)).toBe(callback);
+        unsubscribe(callback);
+
+        expect(calls).toEqual([
+            ['setConfigEventMaker', expect.any(Function)],
+            ['readConfig'],
+            ['readConfig'],
+            ['writeConfig', '{"interval":40}'],
+            ['onConfigChange', callback],
+            ['offConfigChange', callback]
+        ]);
+    });
+
+    it('leaves config out of a host without the config functions', () => {
+        const { host } = recordingHost();
+        const {
+            readConfig: _read,
+            writeConfig: _write,
+            onConfigChange: _on,
+            offConfigChange: _off,
+            setConfigEventMaker: _maker,
+            ...without
+        } = host;
+        const namespace = namespaceOf(without);
+
+        expect('config' in namespace).toBe(false);
+        expect('bossBars' in namespace).toBe(true);
+    });
+
     it('declares every member, property and type it defines, under the module name, with its summary', () => {
         const typings = jsprismarineServerTypings();
 
@@ -248,8 +304,18 @@ describe('@jsprismarine/server', () => {
             const declaration = type.kind === 'interface' ? `export interface ${name} {` : `export type ${name} =`;
             expect(typings).toContain(`    /** ${type.summary} */\n    ${declaration}`);
         }
-        expect(typings).toContain('        resolve(key: string, player?: Player): string | number | undefined;');
+        expect(typings).toContain(
+            '        resolve(key: string, player?: MinecraftPlayer): string | number | undefined;'
+        );
+        expect(typings).toContain("    import type { Player as MinecraftPlayer } from '@minecraft/server';");
         expect(typings).toContain('    export type TemplateNode =\n        | { readonly text: string }');
         expect(typings).toContain('        readonly nextChangeTick?: number;');
+        expect(typings).toContain('    export const config: {\n');
+        expect(typings).toContain('        readonly value: unknown;');
+        expect(typings).toContain('        readonly afterEvents: AddonConfigEvents;');
+        expect(typings).toContain('        write(value: unknown): void;');
+        expect(typings).toContain(
+            '        subscribe(callback: (event: AddonConfigChangeEvent) => void): (event: AddonConfigChangeEvent) => void;'
+        );
     });
 });

@@ -296,8 +296,12 @@ addon can set and clear without leaving residue, and a ranks addon can set once 
        `score` from the scoreboard and `selector` as player names. A gradient colors each
        character with the nearest of Bedrock's `§` colors and ends with `§r`. A `with` on a
        `translate` is checked and dropped.
-7. [ ] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
-       guide.
+7. [x] [#3379](https://github.com/JSPrismarine/JSPrismarine/issues/3379) **The config member.** `config` in the module, the file watch, and the writing-addons
+       guide. The server's `Watcher` is the dev supervisor's, so `AddonConfigFiles` in prismarine
+       watches the `addons/` folder itself with `fs.watch` and settles an editor's burst of events
+       into one change. The file is `<folder>.config.json` beside any pack's folder, which is
+       `addons/<name>.config.json` for an addon. `change` also has `unsubscribe`, as every signal
+       does.
 8. [x] [#3405](https://github.com/JSPrismarine/JSPrismarine/issues/3405) **Player dynamic properties survive logout.** The player record carries the actor's
        `persistentNbt`, so a property a script set is there at the next login and after a restart,
        as on BDS. A parity scenario covers it.

@@ -46,8 +46,10 @@ import { GAMETEST, GameTests } from './gametest';
 import type { ComponentKind } from './customContent';
 import { CustomContent } from './customContent';
 import { installInputsSource, randomState } from './inputs';
+import type { AddonConfigStore } from './addonConfig';
 import type { JsprismarineServerInfo } from './jsprismarineServer';
 import {
+    JSPRISMARINE_CONFIG_FUNCTIONS,
     JSPRISMARINE_HOST_FUNCTIONS,
     JSPRISMARINE_MODULE,
     JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS,
@@ -185,6 +187,11 @@ export interface WorldScriptsOptions {
      * would.
      */
     readonly members?: JsprismarineServerMembers;
+    /**
+     * The packs' config files, which `@jsprismarine/server`'s `config` reads, writes and
+     * follows. Without it, the module leaves `config` out.
+     */
+    readonly addonConfig?: AddonConfigStore;
     /** The world's seed, which `Math.random` is seeded from. */
     readonly seed: bigint;
     readonly watchdog?: WatchdogSettings;
@@ -244,6 +251,16 @@ interface LoadedPack {
     jsp?: ScriptHandle;
     /** Its `@jsprismarine/placeholders` namespace, made the first time it imports the module. */
     placeholders?: ScriptHandle;
+    /** Its `config.afterEvents.change` callbacks, in subscription order. */
+    configListeners?: ScriptHandle[];
+    /** Makes a `change` event from the file's JSON, with the intrinsics its module captured. */
+    configEventMaker?: ScriptHandle;
+    /** A `change` the flush budget cut short: the value as JSON and the callbacks still due. */
+    configDelivery?: { readonly json: string | undefined; readonly remaining: ScriptHandle[] };
+    /** Stops the watch on its config file, once `config` has started one. */
+    stopConfigWatch?: () => void;
+    /** Whether its config file changed since the last flush looked. */
+    configChanged?: boolean;
     /** Its `@minecraft/server-ui` forms, when it declares the module. */
     forms?: PackForms;
     /**
@@ -526,6 +543,7 @@ export class WorldScripts {
                 },
                 () => withinBudget() && !this.stopped
             );
+            work += this.dispatchConfigChanges(() => withinBudget() && !this.stopped);
             const events = [...this.lifecycleEvents.splice(0), ...this.options.world.takeEvents()];
             let dispatched = 0;
             for (const group of groupByType(events)) {
@@ -633,6 +651,9 @@ export class WorldScripts {
         for (const loaded of this.loaded) {
             // So does a placeholder namespace, whose resolver is one of the pack's functions.
             this.placeholders.release(loaded.pack);
+            loaded.stopConfigWatch?.();
+            for (const listener of loaded.configListeners ?? []) this.engine.free(listener);
+            if (loaded.configEventMaker !== undefined) this.engine.free(loaded.configEventMaker);
             loaded.forms?.destroy();
             loaded.net?.destroy();
             for (const handle of loaded.instances.values()) this.engine.free(handle);
@@ -959,6 +980,7 @@ export class WorldScripts {
             throw new ScriptHostErrors.NotAnObject({ what: 'The @jsprismarine/server host' });
         const playerOf = (value: ScriptValue, member: string) => this.playerArgument(loaded, value, member);
         const barId = (value: ScriptValue): number => (typeof value === 'number' ? value : 0);
+        const store = this.options.addonConfig;
         const functions: Record<(typeof JSPRISMARINE_HOST_FUNCTIONS)[number], (...args: ScriptValue[]) => ScriptValue> =
             {
                 read: (name, index) => {
@@ -999,9 +1021,50 @@ export class WorldScripts {
                 resetListName: (value) => {
                     names.reset(playerOf(value, 'playerList.reset').id);
                     return undefined;
+                },
+                readConfig: () => {
+                    const value = store?.read(loaded.pack);
+                    return value === undefined ? undefined : JSON.stringify(value);
+                },
+                writeConfig: (json) => {
+                    if (typeof json !== 'string' || store === undefined) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.write',
+                            expected: 'a value JSON can carry',
+                            argument: 'value'
+                        });
+                    }
+                    // The pack's own JSON.stringify wrote it, so it parses.
+                    store.write(loaded.pack, JSON.parse(json) as unknown);
+                    return undefined;
+                },
+                onConfigChange: (callback) => {
+                    if (!(callback instanceof ScriptHandle) || !this.isFunction(loaded, callback)) {
+                        throw new ScriptHostErrors.JspModuleArgument({
+                            member: 'config.afterEvents.change.subscribe',
+                            expected: 'a function',
+                            argument: 'callback'
+                        });
+                    }
+                    this.watchConfig(loaded);
+                    (loaded.configListeners ??= []).push(engine.duplicate(callback));
+                    return undefined;
+                },
+                offConfigChange: (callback) => {
+                    if (callback instanceof ScriptHandle) this.unsubscribeConfig(loaded, callback);
+                    return undefined;
+                },
+                setConfigEventMaker: (maker) => {
+                    if (!(maker instanceof ScriptHandle)) return undefined;
+                    if (loaded.configEventMaker !== undefined) engine.free(loaded.configEventMaker);
+                    loaded.configEventMaker = engine.duplicate(maker);
+                    return undefined;
                 }
             };
+        const configFunctions: readonly string[] = JSPRISMARINE_CONFIG_FUNCTIONS;
         for (const name of JSPRISMARINE_HOST_FUNCTIONS) {
+            // Without a store the module leaves `config` out, which it tells by the functions' absence.
+            if (store === undefined && configFunctions.includes(name)) continue;
             const fn = engine.hostFunction(name, functions[name]);
             engine.set(host, name, fn);
             engine.free(fn);
@@ -1016,6 +1079,90 @@ export class WorldScripts {
             throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player', argument: 'player' });
         }
         return player;
+    }
+
+    /** Starts following a pack's config file, once, so the next flush after a change raises its event. */
+    private watchConfig(loaded: LoadedPack): void {
+        const store = this.options.addonConfig;
+        if (store === undefined || loaded.stopConfigWatch !== undefined) return;
+        loaded.stopConfigWatch = store.watch(loaded.pack, () => {
+            loaded.configChanged = true;
+        });
+    }
+
+    /** Takes a callback off a pack's `config.afterEvents.change`, when it is subscribed. */
+    /**
+     * Takes every subscription of a callback off a pack's `config.afterEvents.change`. With the
+     * last one gone the watch stops and a change not yet delivered is dropped, so a pack that
+     * subscribes again later starts from the file as it is then.
+     */
+    private unsubscribeConfig(loaded: LoadedPack, callback: ScriptHandle): void {
+        const listeners = loaded.configListeners ?? [];
+        const same = this.engine.evaluate('(a, b) => a === b');
+        if (!(same instanceof ScriptHandle)) return;
+        try {
+            for (let index = listeners.length - 1; index >= 0; index--) {
+                const listener = listeners[index];
+                if (listener === undefined || this.engine.call(same, undefined, listener, callback) !== true) continue;
+                listeners.splice(index, 1);
+                const due = loaded.configDelivery?.remaining ?? [];
+                if (due.includes(listener)) due.splice(due.indexOf(listener), 1);
+                this.engine.free(listener);
+            }
+        } finally {
+            this.engine.free(same);
+        }
+        if (listeners.length > 0) return;
+        loaded.stopConfigWatch?.();
+        loaded.stopConfigWatch = undefined;
+        loaded.configChanged = false;
+        loaded.configDelivery = undefined;
+    }
+
+    /**
+     * Raises `config.afterEvents.change` for each pack whose file changed since the last flush,
+     * with the file's value read now, so several changes in one tick give one event. Each callback
+     * counts as one entry of the flush, and the ones the budget leaves run on the next flush, with
+     * the value that was read, before any later change is read.
+     * @param allowed - Whether the flush has room for another callback.
+     * @returns How many callbacks ran.
+     */
+    private dispatchConfigChanges(allowed: () => boolean): number {
+        const store = this.options.addonConfig;
+        if (store === undefined) return 0;
+        let delivered = 0;
+        for (const loaded of this.loaded) {
+            if (loaded.configDelivery === undefined && loaded.configChanged === true) {
+                loaded.configChanged = false;
+                const listeners = loaded.configListeners ?? [];
+                if (listeners.length === 0) continue;
+                const value = store.read(loaded.pack);
+                const json = value === undefined ? undefined : JSON.stringify(value);
+                loaded.configDelivery = { json, remaining: [...listeners] };
+            }
+            const delivery = loaded.configDelivery;
+            const maker = loaded.configEventMaker;
+            if (delivery === undefined || maker === undefined) continue;
+            while (delivery.remaining.length > 0 && allowed()) {
+                const listener = delivery.remaining.shift();
+                if (listener === undefined) break;
+                delivered++;
+                // The event is made inside the pack's error boundary, as the callback runs.
+                this.guarded(loaded, () => {
+                    const event = this.engine.inContext(loaded.context, () =>
+                        this.engine.call(maker, undefined, delivery.json)
+                    );
+                    if (!(event instanceof ScriptHandle)) return;
+                    try {
+                        this.invoke(loaded, listener, 'default', [event]);
+                    } finally {
+                        this.engine.free(event);
+                    }
+                });
+            }
+            if (delivery.remaining.length === 0) loaded.configDelivery = undefined;
+        }
+        return delivered;
     }
 
     /** What a render reads from the world, for the player the text is for. */

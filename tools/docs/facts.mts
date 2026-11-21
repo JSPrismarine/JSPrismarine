@@ -54,6 +54,7 @@ import { SCRIPT_MODULE_HISTORIES } from '../../packages/script-host/src/generate
 import type { MemberDefinition, TypeDefinition } from '../../packages/script-host/src/host/jsprismarineServer.ts';
 import { PLACEHOLDER_NAME } from '../../packages/script-host/src/host/placeholders.ts';
 import { CONDITION_JOINERS, CONDITION_OPERATORS } from '../../packages/script-host/src/host/templates.ts';
+import { DEFAULT_SETTLE_MS } from '../../packages/prismarine/src/scripting/addonConfig.ts';
 import {
     JSPRISMARINE_PLACEHOLDER_TYPES,
     JSPRISMARINE_PLACEHOLDERS,
@@ -508,7 +509,8 @@ function scriptingFacts() {
         // The pattern a namespace or key matches, as the registry tests it.
         'scripting.placeholderName': inlineCode(PLACEHOLDER_NAME.source.replace(/^\^|\$$/g, '')),
         'scripting.conditionOperators': list(CONDITION_OPERATORS.map(inlineCode)),
-        'scripting.conditionJoiners': list(CONDITION_JOINERS.map(inlineCode))
+        'scripting.conditionJoiners': list(CONDITION_JOINERS.map(inlineCode)),
+        'scripting.configSettleMs': String(DEFAULT_SETTLE_MS)
     };
 }
 

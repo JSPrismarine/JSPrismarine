@@ -14,6 +14,7 @@ import { viewDirection } from './serverEntities';
 import type { ScriptValue } from '../values';
 import { MemoryWorld } from '../testing/memoryWorld.test-utils';
 import type { JsprismarineServerMembers, ScriptBossBarState, ScriptPerformance } from './jsprismarineMembers';
+import type { AddonConfigStore } from './addonConfig';
 
 /** What a runtime wrote to the content log, by level. */
 class Log {
@@ -81,6 +82,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             critical?: CriticalException[];
             betaApis?: boolean;
             members?: JsprismarineServerMembers;
+            addonConfig?: AddonConfigStore;
         } = {}
     ) => {
         const world = options.world ?? new MemoryWorld();
@@ -96,6 +98,7 @@ describe.skipIf(!scriptHostAvailable())('WorldScripts', () => {
             ...(options.watchdog === undefined ? {} : { watchdog: options.watchdog }),
             ...(options.betaApis === undefined ? {} : { betaApis: options.betaApis }),
             ...(options.members === undefined ? {} : { members: options.members }),
+            ...(options.addonConfig === undefined ? {} : { addonConfig: options.addonConfig }),
             onShutdown: (reason) => options.critical?.push(reason)
         });
         runtimes.push(scripts);
@@ -1340,7 +1343,9 @@ system.run(() => {
             scripts.flush();
 
             // A module namespace lists its exports in name order.
-            expect(log.printed()).toEqual(['config [false,["bossBars","getPing","jsprismarine","performance"]]']);
+            expect(log.printed()).toEqual([
+                'config [false,["bossBars","getPing","jsprismarine","performance","playerList"]]'
+            ]);
         });
 
         it("renders a selector node through the world's selector grammar, filters included", () => {

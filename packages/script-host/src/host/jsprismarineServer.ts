@@ -173,6 +173,27 @@ export const JSPRISMARINE_SERVER = {
                 returns: 'void'
             }
         }
+    },
+    config: {
+        kind: 'methods',
+        summary:
+            "The pack's config file: `<folder>.config.json` beside the pack's folder, which for an addon installed as `addons/<name>/` is `addons/<name>.config.json`. The owner edits it and the pack reads it. The server parses it; the pack checks the shape itself.",
+        properties: {
+            value: {
+                type: 'unknown',
+                summary:
+                    'The parsed JSON of the file, as a new frozen value each read, or `undefined` while there is no file. A file that fails to parse keeps the last value, and the content log says so once.'
+            },
+            afterEvents: { type: 'AddonConfigEvents', summary: 'What the file does.' }
+        },
+        methods: {
+            write: {
+                summary:
+                    "Rewrites the file with the value as JSON, so the pack's commands and the owner's editor change the same thing. `change` fires for it as for an edit. Throws a `TypeError` for a value JSON cannot carry.",
+                parameters: 'value: unknown',
+                returns: 'void'
+            }
+        }
     }
 } as const satisfies Readonly<Record<string, MemberDefinition>>;
 
@@ -232,6 +253,46 @@ export const JSPRISMARINE_TYPES = {
                 summary: 'Takes the bar off the screen for good. Does nothing to a bar that is no longer valid.',
                 parameters: '',
                 returns: 'void'
+            }
+        }
+    },
+    AddonConfigEvents: {
+        kind: 'interface',
+        summary: "Events about the pack's config file.",
+        properties: {
+            change: {
+                type: 'AddonConfigChangeSignal',
+                summary:
+                    "Fires on the first flush after the server's watch reports the settled change to the file, by an editor or by `config.write`. The watch waits for a burst of writes to settle, so one save gives one event."
+            }
+        }
+    },
+    AddonConfigChangeSignal: {
+        kind: 'interface',
+        summary: 'Subscribes to changes of the config file, as a `@minecraft/server` signal does.',
+        properties: {},
+        methods: {
+            subscribe: {
+                summary:
+                    'Calls the callback after each change, with the new value. Gives the callback back, for `unsubscribe`.',
+                parameters: 'callback: (event: AddonConfigChangeEvent) => void',
+                returns: '(event: AddonConfigChangeEvent) => void'
+            },
+            unsubscribe: {
+                summary: 'Stops calling a callback `subscribe` took.',
+                parameters: 'callback: (event: AddonConfigChangeEvent) => void',
+                returns: 'void'
+            }
+        }
+    },
+    AddonConfigChangeEvent: {
+        kind: 'interface',
+        summary: 'A change of the config file.',
+        properties: {
+            value: {
+                type: 'unknown',
+                summary:
+                    'The parsed JSON of the file after the change, frozen, or `undefined` when the file is gone. A file that fails to parse gives the last value.'
             }
         }
     }
@@ -396,7 +457,12 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'hideBar',
     'barValid',
     'setListName',
-    'resetListName'
+    'resetListName',
+    'readConfig',
+    'writeConfig',
+    'onConfigChange',
+    'offConfigChange',
+    'setConfigEventMaker'
 ] as const;
 
 /**
@@ -412,6 +478,18 @@ export const JSPRISMARINE_PLACEHOLDERS_HOST_FUNCTIONS = [
     'namespaces',
     'parseTemplate',
     'renderTemplate'
+] as const;
+
+/**
+ * The host functions a server gives only when it keeps config files for the packs, and the
+ * member that needs them: without the first, the module leaves the member out.
+ */
+export const JSPRISMARINE_CONFIG_FUNCTIONS = [
+    'readConfig',
+    'writeConfig',
+    'onConfigChange',
+    'offConfigChange',
+    'setConfigEventMaker'
 ] as const;
 
 /**
@@ -437,7 +515,28 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '    setDisplayName: (player, name) => host.setListName(player, name),',
         '    reset: (player) => host.resetListName(player)',
         '})'
+    ].join('\n'),
+    config: [
+        '(() => {',
+        '    const change = freeze({',
+        '        subscribe(callback) { host.onConfigChange(callback); return callback; },',
+        '        unsubscribe(callback) { host.offConfigChange(callback); }',
+        '    });',
+        '    // The event is made here, with the intrinsics this module captured, not with whatever the',
+        '    // pack has put on its globals since.',
+        '    host.setConfigEventMaker((json) => freeze({ value: json === undefined ? undefined : deepFreeze(parse(json)) }));',
+        '    return freeze({',
+        '        get value() { const json = host.readConfig(); return json === undefined ? undefined : deepFreeze(parse(json)); },',
+        '        write(value) { host.writeConfig(stringify(value)); },',
+        '        afterEvents: freeze({ change })',
+        '    });',
+        '})()'
     ].join('\n')
+};
+
+/** A member the host object must have more than its existence for, by the check its source makes. */
+const MEMBER_GUARDS: Readonly<Record<string, string>> = {
+    config: `host.${JSPRISMARINE_CONFIG_FUNCTIONS[0]} !== undefined`
 };
 
 /** The getters of a member whose properties read the server, each through `host.read`. */
@@ -475,11 +574,21 @@ export const jsprismarineServerSource = (info: JsprismarineServerInfo): string =
             return `    namespace[${key}] = freeze(${JSON.stringify(values)});`;
         }
         const source = member.kind === 'live' ? liveSource(member.properties) : callable[name];
-        return `    if (host !== undefined) namespace[${key}] = ${source};`;
+        const guard = MEMBER_GUARDS[name];
+        return `    if (host !== undefined${guard === undefined ? '' : ` && ${guard}`}) namespace[${key}] = ${source};`;
     });
     return [
         '((host) => {',
         '    const freeze = Object.freeze;',
+        '    const parse = JSON.parse;',
+        '    const stringify = JSON.stringify;',
+        '    const deepFreeze = (value) => {',
+        '        if (typeof value === "object" && value !== null) {',
+        '            for (const key of Object.keys(value)) deepFreeze(value[key]);',
+        '            freeze(value);',
+        '        }',
+        '        return value;',
+        '    };',
         '    const namespace = {};',
         ...members,
         '    return freeze(namespace);',
