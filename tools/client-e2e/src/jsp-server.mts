@@ -243,7 +243,8 @@ const fixturePackFormat = (release: string = javaServerCacheFolder): Record<stri
  * @param options.javaVersion - The `content-java-version` the server runs: a Java release
  *   `sources.json` pins. Defaults to the default release.
  * @param options.addons - Addons from the repository's `addons/` folder, by name, that the server
- *   loads as world packs, as an installed addon is.
+ *   loads as world packs, as an installed addon is. The server loads a built copy in its folder.
+ * @param options.addonConfigs - The config file of each addon, by name.
  * @throws When the process exits or the readiness line does not appear in time.
  */
 export const startServer = async (
@@ -264,6 +265,8 @@ export const startServer = async (
         protocolWindow?: number;
         javaVersion?: string;
         addons?: readonly string[];
+        /** The config file of each addon, by name, written beside its copy before the server starts. */
+        addonConfigs?: Readonly<Record<string, unknown>>;
         /** Listens for Java Edition clients on this TCP port, as `java-enabled` and `java-port` do. */
         javaPort?: number;
     } = {}
@@ -291,10 +294,22 @@ export const startServer = async (
     const dir = options.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-server-'));
     fs.mkdirSync(dir, { recursive: true });
 
-    // The server loads each addon's folder as it is, so its package builds the scripts from the
-    // TypeScript sources first.
-    const addons = (options.addons ?? []).map((name) => path.join(repoRoot, 'addons', name));
-    for (const addon of addons) execFileSync('pnpm', ['--dir', addon, 'run', 'build'], { stdio: 'inherit' });
+    // Each addon's package builds its scripts from the TypeScript sources, and the server loads a
+    // copy in its own folder, so the config file an addon writes beside its folder stays out of
+    // the repository.
+    const addons = (options.addons ?? []).map((name) => {
+        const source = path.join(repoRoot, 'addons', name);
+        execFileSync('pnpm', ['--dir', source, 'run', 'build'], { stdio: 'inherit' });
+        const copy = path.join(dir, 'e2e-addons', name);
+        fs.cpSync(source, copy, {
+            recursive: true,
+            filter: (file) => !['node_modules', 'src'].includes(path.relative(source, file).split(path.sep)[0] ?? '')
+        });
+        const config = options.addonConfigs?.[name];
+        if (config !== undefined)
+            fs.writeFileSync(path.join(dir, 'e2e-addons', `${name}.config.json`), JSON.stringify(config, null, 4));
+        return copy;
+    });
 
     const datapack = path.join(dir, 'client-e2e-datapack');
     const customDimension = path.join(datapack, 'data', 'client_e2e', 'dimension_type', 'custom.json');

@@ -52,6 +52,8 @@ export interface Scenario {
         secondLevel?: boolean;
         /** Installs these addons from the repository's `addons/` folder, by name, as world packs. */
         addons?: readonly string[];
+        /** The config file of each addon, by name, as the server starts with it. */
+        addonConfigs?: Readonly<Record<string, unknown>>;
     };
     run: (context: ScenarioContext) => Promise<void>;
 }
