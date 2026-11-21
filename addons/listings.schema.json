@@ -1,0 +1,59 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://jsprismarine.dev/addons/listings.schema.json",
+    "title": "Addon listings",
+    "description": "The addons from other repositories that the marketplace on jsprismarine.dev lists. JSPrismarine's own addons need no entry.",
+    "type": "object",
+    "required": ["listings"],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": { "type": "string" },
+        "listings": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["repository", "addons"],
+                "additionalProperties": false,
+                "properties": {
+                    "repository": {
+                        "description": "The GitHub repository whose addons release publishes the addons, owner/repo.",
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+                    },
+                    "addons": {
+                        "description": "The addons of the repository the site lists. A new addon needs its own reviewed pull request.",
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "oneOf": [
+                                { "$ref": "#/$defs/name" },
+                                {
+                                    "type": "object",
+                                    "required": ["name"],
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "name": { "$ref": "#/$defs/name" },
+                                        "deprecated": {
+                                            "description": "A maintainer's reason for deprecating the addon, which its pages show.",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "pattern": "^[^\\r\\n]+$"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "$defs": {
+        "name": {
+            "description": "The addon's name: its folder in the repository and its name in addon install.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+    }
+}
