@@ -88,7 +88,7 @@ Out of scope for now:
        each group lists the parts it shares: inventory, armor, offhand, ender chest, experience,
        health, hunger, effects, game mode, abilities, position, spawn point. A part a group leaves
        out stays per level, and a level in no group shares nothing.
-10. [ ] **Commands.** `/world list | create | attach | detach | tp`, with permissions nodes, and the
+10. [x] **Commands.** `/world list | create | attach | detach | tp`, with permissions nodes, and the
         console the same.
 11. [ ] **Script API.** `@jsprismarine/server` lists levels and moves a player between them, and
         creates, attaches and detaches levels where the pack's permissions allow it.
