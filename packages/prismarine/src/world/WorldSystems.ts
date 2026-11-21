@@ -224,6 +224,11 @@ export class WorldSystems {
     /** Chunks the light ring requires whose first light has not finished, in the order to finish them. */
     private readonly unreadyChunks = new Map<number, { readonly x: number; readonly z: number }>();
     /** Chunks whose first light has finished; see {@link isLightReady}. */
+    /** Section corners by the section list a chunk handed out; see {@link sectionOriginsOf}. */
+    private readonly sectionOrigins = new WeakMap<
+        Iterable<number>,
+        { readonly x: number; readonly z: number; readonly origins: readonly SectionOrigin[] }
+    >();
     private readonly readyChunks = new Set<number>();
     private readonly lightHintsByChunk = new Map<number, Map<number, { revision: number; hint: LightSectionHint }>>();
 
@@ -598,16 +603,33 @@ export class WorldSystems {
 
         let ticked = 0;
         for (const chunk of this.randomTickChunks()) {
-            const sections: SectionOrigin[] = [];
-            for (const section of chunk.sections) {
-                sections.push({ x: chunk.x * SECTION_SIZE, y: section * SECTION_SIZE, z: chunk.z * SECTION_SIZE });
-            }
+            const sections = this.sectionOriginsOf(chunk);
             if (sections.length === 0) continue;
 
             ticked += this.engine.runRandomTicks(this.randomPositions, sections, speed);
         }
 
         return ticked;
+    }
+
+    /**
+     * The corners of a chunk's random tick sections.
+     *
+     * A chunk hands back the same section list until a block write changes it, so the corners
+     * built for that list serve every tick until then, rather than a new object per section per
+     * tick.
+     */
+    private sectionOriginsOf(chunk: RandomTickChunk): readonly SectionOrigin[] {
+        const list = chunk.sections;
+        const known = typeof list === 'object' ? this.sectionOrigins.get(list) : undefined;
+        if (known !== undefined && known.x === chunk.x && known.z === chunk.z) return known.origins;
+
+        const origins: SectionOrigin[] = [];
+        for (const section of list) {
+            origins.push({ x: chunk.x * SECTION_SIZE, y: section * SECTION_SIZE, z: chunk.z * SECTION_SIZE });
+        }
+        if (typeof list === 'object') this.sectionOrigins.set(list, { x: chunk.x, z: chunk.z, origins });
+        return origins;
     }
 
     /**

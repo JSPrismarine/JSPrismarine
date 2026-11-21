@@ -50,6 +50,8 @@ export const createEngineBlockCache = (contentAtCall: () => ServerContent): Engi
     let content: ServerContent | undefined;
     let schemaRevision = -1;
     const byRuntimeId = new Map<number, EngineBlockFacts>();
+    let lookupBuild: ServerContent | undefined;
+    let lookup: ((runtimeId: number) => boolean) | undefined;
 
     /** The content build now, after dropping every fact remembered for a different one. */
     const currentContent = (): ServerContent => {
@@ -92,8 +94,14 @@ export const createEngineBlockCache = (contentAtCall: () => ServerContent): Engi
         get: (runtimeId) => factsOf(runtimeId, currentContent()),
         randomTickingLookup() {
             const current = currentContent();
-            // A lookup kept past a content reload checks the new build, as `get` would.
-            return (runtimeId) => factsOf(runtimeId, content === current ? current : currentContent()).randomTicking;
+            // The same function for as long as the build stands, so asking costs no allocation.
+            if (lookupBuild !== current || lookup === undefined) {
+                lookupBuild = current;
+                // A lookup kept past a content reload checks the new build, as `get` would.
+                lookup = (runtimeId) =>
+                    factsOf(runtimeId, content === current ? current : currentContent()).randomTicking;
+            }
+            return lookup;
         }
     };
 };
