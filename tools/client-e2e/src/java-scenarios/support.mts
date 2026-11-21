@@ -24,3 +24,18 @@ export const joinWorld = async ({ client, server, javaPort }: JavaScenarioContex
         await new Promise((resolve) => setTimeout(resolve, 1_000));
     }
 };
+
+/**
+ * Waits until the player is in the world, where selectors such as `@a` find it: once its client
+ * says it loaded, which follows the loading screen.
+ */
+export const inWorld = async ({ server }: JavaScenarioContext): Promise<void> => {
+    const deadline = Date.now() + 30_000;
+    for (;;) {
+        const found = server.waitForLine(/Found \d+ entit/, 10_000);
+        server.command('testfor @a');
+        if (/Found [1-9]/.test(await found)) return;
+        if (Date.now() > deadline) throw new Error('the Java player never entered the world');
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+};

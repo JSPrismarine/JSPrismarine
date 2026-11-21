@@ -18,6 +18,7 @@ import { startServer } from './jsp-server.mts';
 import { blocks } from './java-scenarios/blocks.mts';
 import { chat } from './java-scenarios/chat.mts';
 import { entities } from './java-scenarios/entities.mts';
+import { inventory } from './java-scenarios/inventory.mts';
 import { join } from './java-scenarios/join.mts';
 import { mining } from './java-scenarios/mining.mts';
 
@@ -34,7 +35,7 @@ export interface JavaScenario {
     run(context: JavaScenarioContext): Promise<void>;
 }
 
-const SCENARIOS: readonly JavaScenario[] = [join, chat, entities, blocks, mining];
+const SCENARIOS: readonly JavaScenario[] = [join, chat, entities, blocks, mining, inventory];
 
 /** A TCP port nothing listens on. */
 const freeTcpPort = (): Promise<number> =>
