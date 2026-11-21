@@ -5,20 +5,16 @@ import BossEventPacket, {
 } from '@jsprismarine/protocol/bedrock/packet/BossEventPacket';
 import { describe, expect, it } from 'vitest';
 
+import { BossBar } from '../../network/BossBar';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
 import { sessionContext } from '../../testing/handlerContext.test.helper';
-import { BossBar } from '../BossBar';
-import BossEventHandler from './BossEventHandler';
+import QueryBossBarHandler from './QueryBossBarHandler';
 
 /** The boss events among everything a fake connection captured, in send order. */
 const bossEvents = (sent: unknown[]) => sent.filter((packet) => packet instanceof BossEventPacket);
 
-/** A serverbound boss event asking about `targetActorId`. */
-const query = (targetActorId: bigint, eventType = BossEventUpdateType.Query) =>
-    Object.assign(new BossEventPacket(), { targetActorId, eventType });
-
-describe('BossEventHandler', () => {
-    it('answers a Query with an Add carrying the bar state the player already has', async () => {
+describe('QueryBossBarHandler', () => {
+    it('answers with an Add carrying the bar state the player already has', async () => {
         const { session, sent } = fakePlayer();
         const bar = new BossBar({
             actorUniqueId: 42n,
@@ -30,7 +26,7 @@ describe('BossEventHandler', () => {
         await bar.addPlayer(session);
         sent.length = 0;
 
-        await new BossEventHandler().handle(query(42n), sessionContext(session));
+        await new QueryBossBarHandler().handle({ kind: 'queryBossBar', actor: 42n }, sessionContext(session));
 
         const events = bossEvents(sent);
         expect(events).toHaveLength(1);
@@ -42,25 +38,11 @@ describe('BossEventHandler', () => {
         expect(events[0]?.overlay).toBe(BossBarOverlay.Notched10);
     });
 
-    it('leaves a Query about an actor with no bar for that player unanswered', async () => {
+    it('leaves a query about an actor with no bar for that player unanswered', async () => {
         const { session, sent } = fakePlayer();
-        const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
-        await bar.addPlayer(session);
-        sent.length = 0;
 
-        await new BossEventHandler().handle(query(7n), sessionContext(session));
+        await new QueryBossBarHandler().handle({ kind: 'queryBossBar', actor: 99n }, sessionContext(session));
 
-        expect(bossEvents(sent)).toHaveLength(0);
-    });
-
-    it('ignores a serverbound event that is not a Query', async () => {
-        const { session, sent } = fakePlayer();
-        const bar = new BossBar({ actorUniqueId: 42n, name: 'Ender Dragon' });
-        await bar.addPlayer(session);
-        sent.length = 0;
-
-        await new BossEventHandler().handle(query(42n, BossEventUpdateType.Remove), sessionContext(session));
-
-        expect(bossEvents(sent)).toHaveLength(0);
+        expect(bossEvents(sent)).toEqual([]);
     });
 });

@@ -17,9 +17,9 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 
 | PR | Slice | State |
 | --- | --- | --- |
-| 1 | This plan, ADR 0026 and ADR 0027 | In review |
-| 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | In review |
-| 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Not started |
+| 1 | This plan, ADR 0026 and ADR 0027 | Done, [#3402](https://github.com/JSPrismarine/JSPrismarine/pull/3402). |
+| 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
+| 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | In review |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: movement, inventory, interaction, the rest | Not started |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | Not started |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
@@ -133,9 +133,12 @@ second.
 ### Migration
 
 PR 3 lands the table, the decoder shape, the dispatcher change and three migrated handlers chosen
-for their spread: `InteractHandler` (input lane, view-only checks), `CommandRequestHandler` (read
-lane) and `AnimateHandler` (broadcast through the replicator). PR 4 migrates the remaining 71 in
-four pull requests, grouped by area, so a regression names its area. Each PR runs the Bedrock
+for their spread: `InteractHandler` (input lane, with a view-only check in the decoder and a world
+check in the intent handler), `AnimateHandler` (input lane, broadcast through the replicator) and
+`BossEventHandler` (read lane). `CommandRequestHandler` was the first choice for the read-lane
+proof and waits for PR 5: its acknowledgement echoes the request's Bedrock origin data, which is
+the presenter's to send, not an intent handler's. PR 4 migrates the remaining 71 in four pull
+requests, grouped by area, so a regression names its area. Each PR runs the Bedrock
 client e2e suite, and the replay traces under `packages/prismarine` keep producing the same
 digests, since a decoder plus an intent handler does what the handler did.
 

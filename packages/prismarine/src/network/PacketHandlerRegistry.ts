@@ -1,7 +1,12 @@
 import * as Handlers from './Handlers';
+import * as Decoders from './decoder/Decoders';
 
 import type Server from '../Server';
+import type { IntentKind } from '../input/Intent';
+import { IntentHandlerRegistry } from '../input/IntentHandlerRegistry';
 import Timer from '../utils/Timer';
+import { decodedHandler } from './decoder/decodedHandler';
+import type { PacketDecoder, PacketDecoderClass } from './decoder/PacketDecoder';
 import type { ConnectionHandler } from './handler/ConnectionContext';
 import { strictestLane } from '@jsprismarine/protocol/handler/Lane';
 import type { InputContext, SessionContext } from './handler/HandlerContext';
@@ -11,23 +16,53 @@ import { PrismarineNetworkErrors } from '@jsprismarine/errors/prismarine/network
 /** Handler kind stored by the server; phases determine which one receives a packet. */
 export type RegisteredHandler = ConnectionHandler<any> | SessionHandler<any>;
 
-/** Server-owned dispatch handlers, keyed by protocol packet name. */
+/**
+ * Server-owned dispatch handlers, keyed by protocol packet name.
+ *
+ * A packet has either a handler or a decoder
+ * ([ADR 0027](../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)). A decoder is
+ * registered as a handler too, wrapped so that it runs in the lane its intents need and hands
+ * each intent to {@link PacketHandlerRegistry.getIntentHandlers}.
+ */
 export default class PacketHandlerRegistry {
     private readonly server: Pick<Server, 'getLogger'>;
     private readonly handlers: Map<string, RegisteredHandler> = new Map();
+    private readonly intents: IntentHandlerRegistry;
 
-    public constructor(server: Pick<Server, 'getLogger'>) {
+    /**
+     * @param server - Where the registry logs.
+     * @param intents - The intent handlers decoders dispatch to; built over the server's logger
+     *   when left out.
+     */
+    public constructor(server: Pick<Server, 'getLogger'>, intents?: IntentHandlerRegistry) {
         this.server = server;
+        this.intents = intents ?? new IntentHandlerRegistry(server.getLogger());
     }
 
-    /** Register all packet handlers when the server starts. */
+    /** Register the intent handlers, the packet handlers and the decoders when the server starts. */
     public async enable(): Promise<void> {
+        this.intents.enable();
         await this.registerHandlers();
     }
 
-    /** Clear all packet handlers when the server stops. */
+    /** Clear every handler and decoder when the server stops. */
     public async disable(): Promise<void> {
         this.handlers.clear();
+        this.intents.disable();
+    }
+
+    /** The intent handlers the decoders dispatch to, where a plugin registers behavior once. */
+    public getIntentHandlers(): IntentHandlerRegistry {
+        return this.intents;
+    }
+
+    /**
+     * Register a decoder for the packet it reads, wrapped into a handler in its intents' lane.
+     *
+     * @throws When the packet already has a handler or a decoder.
+     */
+    public registerDecoder<P, K extends IntentKind>(packetName: string, decoder: PacketDecoder<P, K>): void {
+        this.registerHandler(packetName, decodedHandler(packetName, decoder, this.intents));
     }
 
     /** Register a handler for the packet name it handles. */
@@ -94,6 +129,8 @@ export default class PacketHandlerRegistry {
     private async registerHandlers(): Promise<void> {
         const timer = new Timer();
         Object.values(Handlers).forEach((Handler) => this.registerHandler(Handler.PacketName, new Handler()));
+        const decoders: readonly PacketDecoderClass[] = Object.values(Decoders);
+        decoders.forEach((Decoder) => this.registerDecoder(Decoder.PacketName, new Decoder()));
         this.server
             .getLogger()
             .verbose(`Registered §b${this.handlers.size}§r packet handler(s) (took §e${timer.stop()} ms§r)!`);

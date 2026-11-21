@@ -20,12 +20,14 @@ import { LANES, strictestLane } from '@jsprismarine/protocol/handler/Lane';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
-const registeredHandlers = async () => {
+const registeredHandlerEntries = async () => {
     const logger = new Logger();
     const registry = new PacketHandlerRegistry({ getLogger: () => logger });
     await registry.enable();
-    return [...registry.getHandlers().values()];
+    return registry.getHandlers().entries();
 };
+
+const registeredHandlers = async () => [...(await registeredHandlerEntries())].map(([, handler]) => handler);
 
 const isIdentifier = (node: Node): node is Identifier => node.kind === SyntaxKind.Identifier;
 const isPropertyAccess = (node: Node): node is PropertyAccessExpression =>
@@ -235,9 +237,12 @@ describe('network/handler/Lane', () => {
     });
 
     it('puts the handlers that relay to other players in the input lane', async () => {
-        const lanes = new Map((await registeredHandlers()).map((handler) => [handler.constructor.name, handler.lane]));
+        // By packet name, since a decoded packet's handler is a wrapper with no class of its own.
+        const lanes = new Map(
+            [...(await registeredHandlerEntries())].map(([packet, handler]) => [packet, handler.lane])
+        );
 
-        for (const relay of ['ActorEventHandler', 'AnimateHandler', 'EmoteHandler', 'LevelSoundEventHandler']) {
+        for (const relay of ['ActorEventPacket', 'AnimatePacket', 'EmotePacket', 'LevelSoundEventPacket']) {
             expect(lanes.get(relay), relay).toBe('input');
         }
     });
@@ -281,7 +286,7 @@ describe('network/handler/Lane', () => {
 
     it('flags the world access it guards against', () => {
         expect(worldAccess(`${here}SetPlayerGameTypeHandler.ts`)).toContain('calls session.sendGamemode');
-        expect(worldAccess(`${here}AnimateHandler.ts`).some((use) => use.includes('getWorld'))).toBe(true);
+        expect(worldAccess(`${here}ActorEventHandler.ts`).some((use) => use.includes('getWorld'))).toBe(true);
     });
 
     it('follows a connection the handler keeps in a variable', () => {

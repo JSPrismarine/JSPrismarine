@@ -35,7 +35,7 @@ export default class EmoteHandler implements InputLaneHandler<EmotePacket> {
         }
 
         // The sender's own world, and only the clients that have them on screen - the same
-        // scope `AnimateHandler` relays an arm swing in - which replication works out when the
+        // scope the `animate` intent relays an arm swing in - which replication works out when the
         // tick seals. Through the session manager an emote reached every player on the server,
         // including ones in another world and ones that were never sent a spawn for the actor
         // the emote names.

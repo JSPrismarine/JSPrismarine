@@ -1,10 +1,8 @@
 import ActorEventHandler from './handler/ActorEventHandler';
 import ActorPickRequestHandler from './handler/ActorPickRequestHandler';
-import AnimateHandler from './handler/AnimateHandler';
 import AnvilDamageHandler from './handler/AnvilDamageHandler';
 import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
 import BookEditHandler from './handler/BookEditHandler';
-import BossEventHandler from './handler/BossEventHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import ClientCameraAimAssistHandler from './handler/ClientCameraAimAssistHandler';
@@ -17,7 +15,6 @@ import DisconnectHandler from './handler/DisconnectHandler';
 import EmoteHandler from './handler/EmoteHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
 import ScriptMessageHandler from './handler/ScriptMessageHandler';
-import InteractHandler from './handler/InteractHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import LabTableHandler from './handler/LabTableHandler';
@@ -75,11 +72,9 @@ import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 export {
     ActorEventHandler,
     ActorPickRequestHandler,
-    AnimateHandler,
     AnvilDamageHandler,
     BlockPickRequestHandler,
     BookEditHandler,
-    BossEventHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
     ClientCameraAimAssistHandler,
@@ -91,7 +86,6 @@ export {
     DisconnectHandler,
     EmoteHandler,
     EmoteListHandler,
-    InteractHandler,
     InventoryTransactionHandler,
     ItemStackRequestHandler,
     LabTableHandler,
