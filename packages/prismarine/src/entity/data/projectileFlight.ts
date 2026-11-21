@@ -23,6 +23,11 @@ type FlightOrder =
     | 'bullet'
     /** Java's `LlamaSpit.tick`: the move, then air drag and gravity. */
     | 'spit'
+    /**
+     * Java's `AbstractHurtingProjectile.tick`: `applyInertia` speeds the projectile up along its
+     * heading and then keeps its inertia's share, before the move, with no gravity.
+     */
+    | 'hurting'
     /** The Bedrock component: the move, then gravity, then the component's inertia. */
     | 'component';
 
@@ -35,7 +40,24 @@ export interface ProjectileFlight {
     readonly airDrag: number;
     /** The share of its speed the projectile keeps per tick in water. */
     readonly waterDrag: number;
+    /** Blocks per tick added along its heading each tick, `accelerationPower`; hurting projectiles only. */
+    readonly acceleration?: number;
 }
+
+/**
+ * `AbstractHurtingProjectile`'s `accelerationPower` of 0.1, `getInertia` and `getLiquidInertia`:
+ * the fireballs, and a wither skull that is not dangerous.
+ */
+const HURTING: ProjectileFlight = {
+    order: 'hurting',
+    gravity: 0,
+    airDrag: float(0.95),
+    waterDrag: float(0.8),
+    acceleration: 0.1
+};
+
+/** `AbstractWindCharge`: no acceleration, and an inertia of 1 in the air and in water. */
+const WIND_CHARGE: ProjectileFlight = { order: 'hurting', gravity: 0, airDrag: 1, waterDrag: 1, acceleration: 0 };
 
 /** `AbstractArrow.getDefaultGravity`, `getAirDrag` and `getWaterInertia`. */
 const ARROW: ProjectileFlight = { order: 'arrow', gravity: 0.05, airDrag: float(0.99), waterDrag: float(0.6) };
@@ -59,7 +81,15 @@ const JAVA_FLIGHT: ReadonlyMap<string, ProjectileFlight> = new Map([
     // `ShulkerBullet.getDefaultGravity`; Java's bullet applies no drag.
     ['minecraft:shulker_bullet', { order: 'bullet', gravity: 0.04, airDrag: 1, waterDrag: 1 }],
     // `LlamaSpit.getDefaultGravity` and `getAirDrag`; Java discards spit that enters water.
-    ['minecraft:llama_spit', { order: 'spit', gravity: 0.06, airDrag: float(0.99), waterDrag: float(0.99) }]
+    ['minecraft:llama_spit', { order: 'spit', gravity: 0.06, airDrag: float(0.99), waterDrag: float(0.99) }],
+    ['minecraft:fireball', HURTING],
+    ['minecraft:small_fireball', HURTING],
+    ['minecraft:dragon_fireball', HURTING],
+    ['minecraft:wither_skull', HURTING],
+    // `WitherSkull.getInertia` for a dangerous skull, which Bedrock spawns as its own type.
+    ['minecraft:wither_skull_dangerous', { ...HURTING, airDrag: float(0.73) }],
+    ['minecraft:wind_charge_projectile', WIND_CHARGE],
+    ['minecraft:breeze_wind_charge_projectile', WIND_CHARGE]
 ]);
 
 /** The gravity Bedrock's projectile component falls back to when it names none. */
@@ -115,6 +145,19 @@ export const velocityBeforeMove = (
             return scaled(fallen(velocity, flight.gravity), inWater ? flight.waterDrag : flight.airDrag);
         case 'bullet':
             return fallen(velocity, flight.gravity);
+        case 'hurting': {
+            const speed = Math.hypot(velocity.x, velocity.y, velocity.z);
+            // `Vec3.normalize` gives a zero vector for a speed below 1e-5.
+            const push = speed < 1e-5 ? 0 : (flight.acceleration ?? 0) / speed;
+            return scaled(
+                {
+                    x: velocity.x + velocity.x * push,
+                    y: velocity.y + velocity.y * push,
+                    z: velocity.z + velocity.z * push
+                },
+                inWater ? flight.waterDrag : flight.airDrag
+            );
+        }
         case 'spit':
         case 'component':
             return velocity;
@@ -142,6 +185,7 @@ export const velocityAfterMove = (
             return scaled(fallen(velocity, flight.gravity), inWater ? flight.waterDrag : flight.airDrag);
         case 'throwable':
         case 'bullet':
+        case 'hurting':
             return velocity;
     }
 };
