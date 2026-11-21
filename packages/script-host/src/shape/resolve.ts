@@ -29,9 +29,11 @@ export interface ResolveOptions {
 
 /**
  * Why BDS refuses a dependency. BDS creates no context for a pack refused for an unknown module
- * or version, and logs that beside the reason; the other refusals it logs alone.
+ * or version, and logs that beside the reason; the other refusals it logs alone. `alpha` is the one
+ * BDS does not make: it loads an alpha API that this server has no shape for.
  */
-export type ResolveFailure = 'not-allowed' | 'unknown-module' | 'unknown-version' | 'beta-disabled' | 'internal';
+export type ResolveFailure =
+    'not-allowed' | 'unknown-module' | 'unknown-version' | 'beta-disabled' | 'internal' | 'alpha';
 
 /** The API BDS serves for a dependency, or the content log line it refuses the pack with. */
 export type Resolution =
@@ -40,6 +42,8 @@ export type Resolution =
 
 /** The version tag and the version word that ask for a beta. Any other tag, such as `alpha`, does not. */
 const BETA = 'beta';
+/** The version tag and the version word that ask for an alpha API. */
+const ALPHA = 'alpha';
 
 /** The beta a module's history serves: its newest beta version, which BDS calls the current one. */
 export const currentBeta = (history: ModuleHistory): string | undefined =>
@@ -56,6 +60,10 @@ export const currentBeta = (history: ModuleHistory): string | undefined =>
  * - A beta version, `-beta` or the word `beta`, needs the Beta APIs experiment, which BDS checks
  *   before it checks the version. Beta versions do not follow semver: a pack gets the one beta BDS
  *   ships, and the word `beta` names it.
+ * - An alpha version, `-alpha` or the word `alpha`, loads on BDS without the experiment, but no
+ *   metadata describes its API, so there is nothing to bind it to. It is refused with a message of
+ *   this server's that says so, where BDS would load the pack
+ *   ([#3233](https://github.com/JSPrismarine/JSPrismarine/issues/3233)).
  * - Any other version is refused with the versions BDS ships. BDS's list also has a `0.1.0` and an
  *   `-alpha` version for each module, which the metadata does not describe, so this list leaves
  *   them out.
@@ -87,6 +95,15 @@ export const resolveDependency = (dependency: ModuleDependency, options: Resolve
     }
 
     const parsed = parseVersion(version);
+    if (version === ALPHA || parsed?.tag === ALPHA) {
+        return {
+            ok: false,
+            reason: 'alpha',
+            message:
+                `Plugin [${label}] - requesting dependency on alpha APIs [${module} - ${version}], which JSPrismarine cannot serve: ` +
+                `BDS ships them, but no published metadata describes their API. Depend on a stable or beta version instead.`
+        };
+    }
     const beta = currentBeta(history);
     const asksForBeta = version === BETA || parsed?.tag === BETA;
     const invalid = (): Resolution => {

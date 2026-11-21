@@ -150,6 +150,10 @@ The server picks versions the way BDS does:
 - A beta version needs the world's Beta APIs experiment, and loads only when it is the one beta in
   the table. The word `beta` in place of a version names that one. Beta versions don't follow
   semantic versioning, so an older or newer beta is refused, as BDS refuses it.
+- An alpha version, such as `3.0.0-alpha`, or the word `alpha`, is refused. BDS loads one, but
+  Mojang publishes no description of the alpha APIs for the server to serve, so the message says
+  that and asks for a stable or beta version
+  ([#3233](https://github.com/JSPrismarine/JSPrismarine/issues/3233)).
 - A module the world's `permissions.json` doesn't allow is refused. The last column says which
   modules a server without a `config/` folder allows. To use another one, such as
   `@minecraft/server-net`, add it to `allowed_modules` in `config/default/permissions.json`.

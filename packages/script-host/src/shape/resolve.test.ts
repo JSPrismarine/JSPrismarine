@@ -88,6 +88,21 @@ describe('resolveDependency', () => {
         }
     );
 
+    it.each(['3.0.0-alpha', 'alpha'])(
+        'refuses alpha version %s, which BDS loads, saying no metadata describes it',
+        (version) => {
+            for (const betaApis of [false, true]) {
+                expect(resolveDependency(server(version), { ...options, betaApis })).toEqual({
+                    ok: false,
+                    reason: 'alpha',
+                    message:
+                        `Plugin [jsp probe - 1.0.0] - requesting dependency on alpha APIs [@minecraft/server - ${version}], which JSPrismarine cannot serve: ` +
+                        'BDS ships them, but no published metadata describes their API. Depend on a stable or beta version instead.'
+                });
+            }
+        }
+    );
+
     it.each([
         ['2.12.0-beta', '2.12.0-beta'],
         ['2.13.0-beta', '2.13.0-beta'],
