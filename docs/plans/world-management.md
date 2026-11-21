@@ -78,7 +78,7 @@ Out of scope for now:
 7. [x] **Explicit level context.** Command sources, block access, network contexts and the Java
        session carry their level, and the `getDefaultWorld()` calls go. `level-name` names the entry
        level only.
-8. [ ] **Player transfer.** Moving between levels as one operation: the player's record saved to
+8. [x] **Player transfer.** Moving between levels as one operation: the player's record saved to
        the old level's player data and read from the new one's, the client given the new level's
        game rules, clock, weather and `DimensionData`, and the two script runtimes told. A
        returning player joins the level they left from. The scoreboard's packets go to the level's

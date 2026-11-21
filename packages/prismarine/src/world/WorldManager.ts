@@ -23,6 +23,8 @@ import { dimensionTypesOf, loadOf, resolveStems } from './resolveStems';
 import type { World } from './World';
 import { WorldgenCatalog } from './WorldgenCatalog';
 import { LEVELS_FILE_NAME, LevelRegistry } from './LevelRegistry';
+import { transferToLevel } from './levelTransfer';
+import { PLAYER_LEVELS_FILE_NAME, PlayerLevels } from './PlayerLevels';
 import type { RegisteredLevel } from './LevelRegistry';
 import type { WorldGenSettings } from './WorldPersistence';
 import LevelAttachedEvent from '../events/level/LevelAttachedEvent';
@@ -83,6 +85,8 @@ export default class WorldManager implements Service {
     private readonly origins = new Map<string, LevelOrigin>();
     /** The levels created while the server ran, which `levels.json` records. */
     private readonly registry: LevelRegistry;
+    /** The level each player was last in, when not the entry level. */
+    private readonly playerLevels: PlayerLevels;
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
     /** The `level-name` level, which a joining player enters first. */
@@ -95,10 +99,19 @@ export default class WorldManager implements Service {
     private readonly providers = new LevelProviders();
     private readonly server: Server;
 
-    public constructor(server: Server) {
+    /** How a detach moves a player out of its level: {@link transferToLevel}, unless a test hands in another. */
+    private readonly transfer: typeof transferToLevel;
+
+    /**
+     * @param server - The server.
+     * @param options - `transfer` replaces how a detach moves a player to the entry level.
+     */
+    public constructor(server: Server, options: { readonly transfer?: typeof transferToLevel } = {}) {
         this.server = server;
+        this.transfer = options.transfer ?? transferToLevel;
         this.worldgen = new WorldgenCatalog(server);
         this.registry = new LevelRegistry(withCwd(LEVELS_FILE_NAME), server.getLogger());
+        this.playerLevels = new PlayerLevels(withCwd(PLAYER_LEVELS_FILE_NAME), server.getLogger());
         server.getLogger().verbose(`Registered §b${this.worldgen.factories.kinds().length}§r generator kind(s)!`);
 
         // Here rather than in a world, because this runs before the shutdown awaits anything -
@@ -163,6 +176,7 @@ export default class WorldManager implements Service {
         }
 
         // Then the levels created while the server ran, those recorded as attached.
+        await this.playerLevels.load();
         await this.registry.load();
         for (const record of this.registry.all()) {
             if (record.state !== 'attached') continue;
@@ -225,6 +239,22 @@ export default class WorldManager implements Service {
             await this.registry.put({ ...record, state: 'attached' });
             return level;
         });
+    }
+
+    /** The level each player was last in, which a transfer between levels records. */
+    public getPlayerLevels(): PlayerLevels {
+        return this.playerLevels;
+    }
+
+    /**
+     * The attached level a returning player left from, or undefined for the entry level, or for a
+     * level that is not attached now, whose player then joins the entry level.
+     */
+    public returningLevelOf(playerKey: string): Level | undefined {
+        const id = this.playerLevels.levelOf(playerKey);
+        if (id === undefined) return undefined;
+        const level = this.getLevelById(id);
+        return level !== undefined && this.states.get(level.id) === 'attached' ? level : undefined;
     }
 
     /** The levels `levels.json` records, attached and detached. */
@@ -551,7 +581,11 @@ export default class WorldManager implements Service {
                 .filter((session) => session.getWorld().getLevel() === level);
         const leaving = inLevel();
         if (leaving.length === 0) return;
-        for (const session of leaving) session.setWorld(this.entryWorld);
+        for (const session of leaving) {
+            void this.transfer(this.server, session, this.entryLevel).catch((error: unknown) => {
+                this.server.getLogger().error(error);
+            });
+        }
         if (inLevel().length === 0) return;
 
         const events = this.server.getKernel().events;

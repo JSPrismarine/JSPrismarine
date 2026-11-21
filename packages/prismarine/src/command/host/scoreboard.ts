@@ -17,7 +17,9 @@ import {
     ScorePacketEntryAction
 } from '@jsprismarine/protocol';
 
+import type { NetworkPacket } from '@jsprismarine/protocol';
 import type Server from '../../Server';
+import type { Level } from '../../world/Level';
 import type { Scoreboard } from '../../world/Scoreboard';
 import { DISPLAY_SLOTS } from '../../world/Scoreboard';
 import { carryOut, refuse } from './support';
@@ -39,13 +41,69 @@ const OPERATIONS: Readonly<Record<string, (target: number, source: number) => nu
 const SWAP = '><';
 
 /**
+ * The packets that draw one display slot from scratch: the objective's header, then every score
+ * in it, or the slot emptied when nothing is shown there.
+ */
+export const displayPackets = (scoreboard: Scoreboard, slot: string): NetworkPacket<unknown>[] => {
+    const display = scoreboard.display(slot);
+    if (display === undefined) {
+        const packet = new SetDisplayObjectivePacket();
+        packet.displaySlotName = slot;
+        return [packet];
+    }
+
+    const header = new SetDisplayObjectivePacket();
+    header.displaySlotName = slot;
+    header.objectiveName = display.objective;
+    header.objectiveDisplayName = scoreboard.displayNameOf(display.objective);
+    header.criteriaName = scoreboard.criterionOf(display.objective);
+    header.sortOrder =
+        display.sortOrder === 'descending' ? ObjectiveSortOrder.Descending : ObjectiveSortOrder.Ascending;
+
+    const lines = scoreboard.holdersOf(display.objective);
+    if (lines.length === 0) return [header];
+
+    const scores = new SetScorePacket();
+    scores.entries = lines.map((line) => ({
+        action: ScorePacketEntryAction.ChangeFakePlayer as const,
+        scoreboardId: scoreboard.identityOf(line.holder),
+        objectiveName: display.objective,
+        scoreValue: line.value,
+        fakePlayerName: line.holder
+    }));
+    return [header, scores];
+};
+
+/** The packets that draw every display slot of a scoreboard, as a player arriving in its level sees them. */
+export const scoreboardPackets = (scoreboard: Scoreboard): NetworkPacket<unknown>[] =>
+    DISPLAY_SLOTS.flatMap((slot) => displayPackets(scoreboard, slot));
+
+/**
  * Builds the `scoreboard` group over one scoreboard.
  *
  * @param server - The live server, for the clients a change is sent to.
- * @param scoreboard - The state, read on each command: the default level's
- *   on a server, which exists only once the worlds have loaded.
+ * @param scoreboard - The state, read on each command, which exists only once the worlds have
+ *   loaded.
+ * @param level - The level the scoreboard belongs to, whose players alone see its changes. Left
+ *   out, every player does.
  */
-export const scoreboardCommandHost = (server: Server, scoreboard: () => Scoreboard): ScoreboardCommandHost => {
+export const scoreboardCommandHost = (
+    server: Server,
+    scoreboard: () => Scoreboard,
+    level?: () => Level
+): ScoreboardCommandHost => {
+    /** Sends a packet to the players of the scoreboard's level. */
+    const send = (packet: NetworkPacket<unknown>): void => {
+        if (level === undefined) {
+            carryOut(server.broadcastPacket(packet), undefined);
+            return;
+        }
+        const here = level();
+        for (const session of server.getSessionManager().getSessions()) {
+            if (session.getWorld().getLevel() === here) session.released(session.send(packet));
+        }
+    };
+
     /**
      * Tells every client about one holder's score in one objective.
      *
@@ -72,40 +130,12 @@ export const scoreboardCommandHost = (server: Server, scoreboard: () => Scoreboa
                       fakePlayerName: holder
                   }
         ];
-        carryOut(server.broadcastPacket(packet), undefined);
+        send(packet);
     };
 
     /** Draws a slot from scratch: the objective's header, then every score in it. */
     const sendDisplay = (slot: string): void => {
-        const display = scoreboard().display(slot);
-        if (display === undefined) {
-            const packet = new SetDisplayObjectivePacket();
-            packet.displaySlotName = slot;
-            carryOut(server.broadcastPacket(packet), undefined);
-            return;
-        }
-
-        const header = new SetDisplayObjectivePacket();
-        header.displaySlotName = slot;
-        header.objectiveName = display.objective;
-        header.objectiveDisplayName = scoreboard().displayNameOf(display.objective);
-        header.criteriaName = scoreboard().criterionOf(display.objective);
-        header.sortOrder =
-            display.sortOrder === 'descending' ? ObjectiveSortOrder.Descending : ObjectiveSortOrder.Ascending;
-        carryOut(server.broadcastPacket(header), undefined);
-
-        const lines = scoreboard().holdersOf(display.objective);
-        if (lines.length === 0) return;
-
-        const scores = new SetScorePacket();
-        scores.entries = lines.map((line) => ({
-            action: ScorePacketEntryAction.ChangeFakePlayer as const,
-            scoreboardId: scoreboard().identityOf(line.holder),
-            objectiveName: display.objective,
-            scoreValue: line.value,
-            fakePlayerName: line.holder
-        }));
-        carryOut(server.broadcastPacket(scores), undefined);
+        for (const packet of displayPackets(scoreboard(), slot)) send(packet);
     };
 
     /** The objective an existing score names, refusing when nobody declared it. */
@@ -129,7 +159,7 @@ export const scoreboardCommandHost = (server: Server, scoreboard: () => Scoreboa
 
             const packet = new RemoveObjectivePacket();
             packet.objectiveName = name;
-            carryOut(server.broadcastPacket(packet), undefined);
+            send(packet);
             for (const slot of cleared) sendDisplay(slot);
             return true;
         },

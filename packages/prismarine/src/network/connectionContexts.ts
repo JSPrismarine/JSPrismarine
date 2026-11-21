@@ -11,7 +11,10 @@ import { entityIds } from '../entity/entityIds';
 import { EYE_HEIGHT } from '../entity/playerEyes';
 import { StorePlayer } from '../entity/storePlayer';
 import { currentTickWaitTracker } from '../world/TickWaits';
+import { OVERWORLD_STEM_ID } from '@jsprismarine/worldgen';
+import { playerKeyOf } from '../playerIdentity';
 import type Server from '../Server';
+import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import { createConnectedPlayer } from './createConnectedPlayer';
 import type { ConnectionContext, JoinPreparation, LoginIdentity, LoginServices } from './handler/ConnectionContext';
@@ -20,21 +23,32 @@ import { InputQueue } from './InputQueue';
 import { accountLinksToken } from '../modules/tokens';
 import type PlayerSession from './PlayerSession';
 
-/** The login's preparation of a player, over the default world. */
+/**
+ * The world a joining player is built in: the Overworld of the attached level they last left
+ * from, or the entry level's.
+ */
+export const returningWorldOf = (server: Server, playerKey: string): World => {
+    const worlds = server.getWorldManager();
+    return worlds.returningLevelOf(playerKey)?.loadedWorld(OVERWORLD_STEM_ID) ?? worlds.getEntryWorld();
+};
+
+/** The login's preparation of a player, in the level they left from or the entry level. */
 const joinPreparationOf = (server: Server): JoinPreparation => ({
     async prepare(connection: ClientConnection, identity: LoginIdentity): Promise<PlayerSession | null> {
         // Resolved here because this is where a world is first available and awaiting is
         // allowed. An entity has to be given somewhere to be, so there is no longer a moment
         // where one exists at the origin waiting to be told where it really is.
-        const world = server.getWorldManager().getEntryWorld();
-        const spawn = await world.getSpawnPosition();
-        // The entity id is drawn here, and the store player enters a store only at
-        // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
-        // filed below, so a login rejected before then leaves nothing behind.
         // A linked account plays as the account it is linked to: the primary's record, key and name.
         const links = server.getKernel().get(accountLinksToken);
         const account = links.resolve(accountOf(identity));
         if (account.linkedFrom === undefined) await links.noteLogin(account);
+        // A player who logged out in another level comes back in it, and anyone else in the
+        // entry level; the level's record then puts them in the dimension they left.
+        const world = returningWorldOf(server, playerKeyOf(account));
+        const spawn = await world.getSpawnPosition();
+        // The entity id is drawn here, and the store player enters a store only at
+        // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
+        // filed below, so a login rejected before then leaves nothing behind.
         const player = new StorePlayer(entityIds.next(), { ...account, uuid: UUID.fromString(account.uuid) });
         player.skin = identity.skin;
         player.device = identity.device;

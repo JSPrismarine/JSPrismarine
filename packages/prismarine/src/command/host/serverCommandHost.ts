@@ -78,7 +78,7 @@ export const serverCommandHost = (
     return {
         entities: entityCommandHost(server, scoreboard),
         world: worldCommandHost(server, level),
-        scoreboard: scoreboardCommandHost(server, scoreboard),
+        scoreboard: scoreboardCommandHost(server, scoreboard, level),
         data: dataCommandHost(server, sequences, level),
         server: serverSideCommandHost(server, onStopRequested)
     };

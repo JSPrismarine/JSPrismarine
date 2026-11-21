@@ -33,6 +33,7 @@ import type { DimensionType } from './DimensionType';
 import type { Generator } from './Generator';
 import type { TerrainCacheSettings } from './GeneratorFactories';
 import { findJavaWorldgenSources } from './generators/datadriven/javaWorldgenSources';
+import type { transferToLevel } from './levelTransfer';
 import WorldManager from './WorldManager';
 import { ChunkCompletionQueue } from './ChunkCompletionQueue';
 
@@ -177,7 +178,18 @@ const buildManager = (
         releaseOnShutdown: () => {}
     });
 
-    const manager = new WorldManager(server);
+    /**
+     * Each move a detach asked for, by player and level. The move itself is the session's, which
+     * these tests have no network for: it lands at once, in the level's Overworld.
+     */
+    const transfers: Array<{ readonly session: PlayerSession; readonly level: string }> = [];
+    const transfer: typeof transferToLevel = async (_server, session, level) => {
+        transfers.push({ session, level: level.name });
+        const arrival = level.loadedWorld(OVERWORLD_STEM_ID);
+        if (arrival !== undefined) session.setWorld(arrival);
+        return true;
+    };
+    const manager = new WorldManager(server, { transfer });
     /** How many generators each kind built, by dimension type id. */
     const builds = new Map<string, number>();
     /** The noise settings ids the registries carried when each dimension type's generator was built. */
@@ -202,7 +214,18 @@ const buildManager = (
         });
     }
 
-    return { manager, kernel, sessions, logged, setWorld, builds, noiseSettingsSeen, workersSeen, terrainCacheSeen };
+    return {
+        manager,
+        kernel,
+        sessions,
+        transfers,
+        logged,
+        setWorld,
+        builds,
+        noiseSettingsSeen,
+        workersSeen,
+        terrainCacheSeen
+    };
 };
 
 describe('WorldManager', () => {
@@ -510,27 +533,41 @@ describe('WorldManager', () => {
         await manager.disable();
     });
 
+    it('sends a returning player to the attached level they left from, and to the entry level otherwise', async () => {
+        const { manager } = buildManager('main', { main: entryOf() });
+        await manager.enable();
+        const arena = await manager.createLevel('arena', entryOf());
+        await manager.getPlayerLevels().set('Steve', arena.id);
+        await manager.getPlayerLevels().set('Alex', '13f251b3-41c9-4271-b2d1-d4abde28890b');
+
+        expect(manager.returningLevelOf('Steve')).toBe(arena);
+        expect(manager.returningLevelOf('Alex')).toBeUndefined();
+        expect(manager.returningLevelOf('Notch')).toBeUndefined();
+        await manager.detachLevel('arena');
+        expect(manager.returningLevelOf('Steve')).toBeUndefined();
+
+        await manager.disable();
+    });
+
     it('moves the players of a detaching level to the entry level first', async () => {
-        const { manager, sessions } = buildManager('main', { main: entryOf() });
+        const { manager, sessions, transfers } = buildManager('main', { main: entryOf() });
         await manager.enable();
         const other = await manager.createLevel('other', entryOf());
         const otherWorld = other.loadedWorld(OVERWORLD_STEM_ID);
         if (otherWorld === undefined) throw new Error('the other level has an Overworld');
         let world = otherWorld;
-        const moves: string[] = [];
-        sessions.push(
-            stub<PlayerSession>({
-                getWorld: () => world,
-                setWorld: (to) => {
-                    moves.push(to.getLevel().name);
-                    world = to;
-                }
-            })
-        );
+        const session = stub<PlayerSession>({
+            getWorld: () => world,
+            setWorld: (to) => {
+                world = to;
+            }
+        });
+        sessions.push(session);
 
         await manager.detachLevel('other');
 
-        expect(moves).toEqual(['main']);
+        expect(transfers).toEqual([{ session, level: 'main' }]);
+        expect(world.getLevel()).toBe(manager.getEntryLevel());
         expect(other.isClosed()).toBe(true);
 
         await manager.disable();

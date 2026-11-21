@@ -5,6 +5,8 @@
  * Bedrock client's does: intents run by the same handlers, in the same input step, and movement
  * through `applyClientMovement` ([ADR 0027](../../../../../docs/adr/0027-player-inputs-are-decoded-into-intents.md)).
  */
+import { returningWorldOf } from '../connectionContexts';
+import { playerKeyOf } from '../../playerIdentity';
 import {
     createDefaultSkinImage,
     DEFAULT_SKIN_RESOURCE_PATCH,
@@ -115,7 +117,6 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
 
     return {
         join: async (profile, verified, id, send) => {
-            const world = server.getWorldManager().getEntryWorld();
             const connection = new ClientConnection(javaSide(id), server.getLogger());
             connection.codec = latestCodec;
             connection.phase = 'play';
@@ -126,6 +127,8 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
             const links = server.getKernel().get(accountLinksToken);
             const identity = links.resolve({ name: profile.name, xuid: '', uuid: profile.id, subject });
             if (identity.linkedFrom === undefined) await links.noteLogin(identity);
+            // In the level they last left from, as a Bedrock login is.
+            const world = returningWorldOf(server, playerKeyOf(identity));
             const player = new StorePlayer(entityIds.next(), {
                 uuid: UUID.fromString(profile.id),
                 name: identity.name,
