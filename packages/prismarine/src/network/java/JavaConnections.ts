@@ -34,7 +34,20 @@ import {
     SetCompression
 } from '@jsprismarine/protocol/java/packet/login';
 import { PingRequest, PongResponse, StatusRequest, StatusResponse } from '@jsprismarine/protocol/java/packet/status';
-import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
+import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
+import {
+    ChunkBatchFinished,
+    ChunkBatchStart,
+    ClientboundKeepAlive,
+    ConfirmTeleportation,
+    GameEvent,
+    PlayDisconnect,
+    PlayLogin,
+    ServerboundKeepAlive,
+    SetCenterChunk,
+    START_WAITING_FOR_LEVEL_CHUNKS,
+    SynchronizePlayerPosition
+} from '@jsprismarine/protocol/java/packet/play';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 import { PACKETS } from '@jsprismarine/protocol/java/versions/26.3/packets';
 import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaReleases';
@@ -46,6 +59,10 @@ import type { Transport } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
 import { hasJoined, offlineUuid, serverHash } from './javaAuth';
 import { compressFrame, decompressFrame } from '@jsprismarine/protocol/java/wire/compression';
+
+import type Chunk from '../../world/chunk/Chunk';
+import type { JavaChunkLight } from './javaChunk';
+import { JavaChunkTranslator } from './javaChunk';
 
 /** What a server list ping shows, read when the ping arrives: the RakNet pong's server name. */
 export interface JavaStatusSource {
@@ -65,7 +82,27 @@ export interface JavaLoginOptions {
     /** Asks the session server; {@link hasJoined} against Mojang unless a test gives another. */
     readonly hasJoined?: typeof hasJoined;
     readonly log: Pick<Logger, 'debug' | 'info'>;
+    /** The world a player who reaches play is shown; without one, the join ends there. */
+    readonly world?: JavaWorldHost;
 }
+
+/** What a Java player in play is shown of the world, until they join it as a player. */
+export interface JavaWorldHost {
+    /** Where a joining player stands. */
+    spawn(): Promise<{ readonly x: number; readonly y: number; readonly z: number }>;
+    /** One chunk of the default world, generated or loaded when it has to be. */
+    chunk(x: number, z: number): Promise<Chunk>;
+    /** The world's light, which a chunk carries to a Java client, settled before it is read. */
+    light(): JavaChunkLight;
+    /** How many chunks out from the player the client is sent. */
+    viewDistance(): number;
+    /** The game mode a joining player has, as Java numbers it: 0 survival to 3 spectator. */
+    gameMode(): number;
+    maxPlayers(): number;
+}
+
+/** How often the server sends a keep-alive, as vanilla does; a client that misses two is dropped. */
+const KEEP_ALIVE_INTERVAL_MS = 15_000;
 
 /**
  * The smallest packet a connection compresses, which the vanilla server's
@@ -73,10 +110,17 @@ export interface JavaLoginOptions {
  */
 const COMPRESSION_THRESHOLD = 256;
 
+/** The dimension type registry a client was configured with, in network id order. */
+const DIMENSION_TYPES: readonly string[] =
+    CONFIGURATION.registries.find(({ registry }) => registry === 'minecraft:dimension_type')?.entries ?? [];
+
 /** Every packet a client may send in the configuration phase. */
 const CONFIGURATION_SERVERBOUND: ReadonlySet<number> = new Set(Object.values(PACKETS.configuration.serverbound));
 
-/** The reason the join ends with as it reaches play, until Java Edition players can play. */
+/** Every packet a client may send in the play phase. */
+const PLAY_SERVERBOUND: ReadonlySet<number> = new Set(Object.values(PACKETS.play.serverbound));
+
+/** The reason the join ends with as it reaches play, when the server shows Java clients no world. */
 const JOIN_REFUSAL = 'This server does not take Java Edition players yet.';
 
 /** A player name the vanilla server accepts: one to sixteen letters, digits and underscores. */
@@ -91,6 +135,8 @@ interface JavaConnectionState {
     /** The name and token of a login waiting for its encryption response. */
     pending?: { readonly name: string; readonly verifyToken: Buffer };
     profile?: JavaProfile;
+    /** The keep-alive timer, and the id the client has not yet answered, once the player is in play. */
+    keepAlive?: { readonly timer: NodeJS.Timeout; awaiting: bigint | undefined };
 }
 
 /**
@@ -117,6 +163,8 @@ export class JavaConnections {
     private readonly askSessionServer: typeof hasJoined;
     /** The session id every `Login Success` carries, one for as long as the server runs, as vanilla's is. */
     private readonly sessionId = randomUUID();
+    /** The world's chunks as Java clients are sent them. */
+    private readonly chunks = new JavaChunkTranslator();
 
     /**
      * Subscribes to the transport's connections and makes the RSA key the logins encrypt with.
@@ -134,7 +182,11 @@ export class JavaConnections {
         transport.onConnect(
             (connection) => void this.connections.set(connection.id, { connection, phase: 'handshake' })
         );
-        transport.onDisconnect((id) => void this.connections.delete(id));
+        transport.onDisconnect((id) => {
+            const state = this.connections.get(id);
+            if (state?.keepAlive !== undefined) clearInterval(state.keepAlive.timer);
+            this.connections.delete(id);
+        });
         transport.onFrame((frame, id) => this.receive(frame, id));
     }
 
@@ -178,15 +230,28 @@ export class JavaConnections {
                     if (packetId === AcknowledgeFinishConfiguration.id) {
                         expect(AcknowledgeFinishConfiguration);
                         state.phase = 'play';
-                        // Until the play phase is written, a join ends as it reaches it.
-                        this.send(state, PlayDisconnect, { reason: JOIN_REFUSAL });
-                        return await state.connection.close();
+                        if (this.options.world === undefined) {
+                            this.send(state, PlayDisconnect, { reason: JOIN_REFUSAL });
+                            return await state.connection.close();
+                        }
+                        return await this.beginPlay(state, this.options.world);
                     }
                     // The client's settings, its brand and the like, which nothing reads yet.
                     if (CONFIGURATION_SERVERBOUND.has(packetId)) return;
                     throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
                 case 'play':
-                    return;
+                    if (packetId === ServerboundKeepAlive.id) {
+                        const { id: answered } = expect(ServerboundKeepAlive);
+                        if (state.keepAlive?.awaiting === answered) state.keepAlive.awaiting = undefined;
+                        return;
+                    }
+                    if (packetId === ConfirmTeleportation.id) {
+                        expect(ConfirmTeleportation);
+                        return;
+                    }
+                    // Movement, chat and the rest wait for the player to join the world.
+                    if (PLAY_SERVERBOUND.has(packetId)) return;
+                    throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
             }
         } catch (error) {
             this.options.log.debug(
@@ -303,6 +368,84 @@ export class JavaConnections {
         }
         this.send(state, UpdateTags, { registries: CONFIGURATION.tags });
         this.send(state, FinishConfiguration, {});
+    }
+
+    /**
+     * Shows a player who reached play the world around spawn, in the order vanilla sends it: the
+     * login, the position, the event that tells the client to wait for chunks, the chunk its view
+     * centers on, then the chunks around it as one batch. Keep-alives start, and a client that
+     * leaves one unanswered for a whole interval is dropped, as vanilla drops it.
+     */
+    private async beginPlay(state: JavaConnectionState, world: JavaWorldHost): Promise<void> {
+        const spawn = await world.spawn();
+        const radius = world.viewDistance();
+        this.send(state, PlayLogin, {
+            // The player has no entity in the world yet; this id is the connection's own.
+            entityId: state.connection.id,
+            hardcore: false,
+            dimensions: ['minecraft:overworld', 'minecraft:the_nether', 'minecraft:the_end'],
+            maxPlayers: world.maxPlayers(),
+            viewDistance: radius,
+            simulationDistance: radius,
+            reducedDebugInfo: false,
+            showDeathScreen: true,
+            doLimitedCrafting: false,
+            dimensionType: Math.max(0, DIMENSION_TYPES.indexOf('minecraft:overworld')),
+            dimension: 'minecraft:overworld',
+            hashedSeed: 0n,
+            gameMode: world.gameMode(),
+            previousGameMode: null,
+            isDebug: false,
+            isFlat: false,
+            deathLocation: null,
+            portalCooldown: 0,
+            seaLevel: 63,
+            onlineMode: this.options.onlineMode(),
+            enforcesSecureChat: false
+        });
+        this.send(state, SynchronizePlayerPosition, {
+            teleportId: 1,
+            x: spawn.x,
+            y: spawn.y,
+            z: spawn.z,
+            velocityX: 0,
+            velocityY: 0,
+            velocityZ: 0,
+            yaw: 0,
+            pitch: 0,
+            flags: 0
+        });
+        this.send(state, GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
+        const centerX = Math.floor(spawn.x) >> 4;
+        const centerZ = Math.floor(spawn.z) >> 4;
+        this.send(state, SetCenterChunk, { x: centerX, z: centerZ });
+
+        const around: { x: number; z: number }[] = [];
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) around.push({ x: centerX + dx, z: centerZ + dz });
+        }
+        // Nearest first, so the client can show the ground under the player before the rest.
+        around.sort((a, b) => Math.hypot(a.x - centerX, a.z - centerZ) - Math.hypot(b.x - centerX, b.z - centerZ));
+        this.send(state, ChunkBatchStart, {});
+        for (const { x, z } of around) {
+            this.send(state, LevelChunkWithLight, this.chunks.columnOf(await world.chunk(x, z), world.light()));
+        }
+        this.send(state, ChunkBatchFinished, { batchSize: around.length });
+
+        const keepAlive = {
+            awaiting: undefined as bigint | undefined,
+            timer: setInterval(() => {
+                if (keepAlive.awaiting !== undefined) {
+                    this.options.log.debug(`Java connection ${state.connection.id} missed a keep-alive; closing it`);
+                    void state.connection.close();
+                    return;
+                }
+                keepAlive.awaiting = BigInt(Date.now());
+                this.send(state, ClientboundKeepAlive, { id: keepAlive.awaiting });
+            }, KEEP_ALIVE_INTERVAL_MS)
+        };
+        keepAlive.timer.unref();
+        state.keepAlive = keepAlive;
     }
 
     /** Ends a login with a reason the client shows. */

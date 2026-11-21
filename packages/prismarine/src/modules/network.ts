@@ -52,6 +52,12 @@ import { errorMessage } from '../utils/errorMessage';
 import { networkToken } from './tokens';
 import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
 
+/** The game modes a Java client numbers, by the name `gamemode` in the config gives them. */
+const JAVA_GAME_MODES: Readonly<Record<string, number>> = { survival: 0, creative: 1, adventure: 2, spectator: 3 };
+
+/** The most chunks out from spawn a joining Java player is sent, while they all go in one batch. */
+const JAVA_JOIN_RADIUS = 8;
+
 /** The IPv4 bind address meaning every interface, which is what turns on the IPv6 listener too. */
 const IPV4_WILDCARD = '0.0.0.0';
 /** Every IPv6 interface, where the IPv6 listener binds. */
@@ -374,11 +380,33 @@ export class ServerNetworking implements Networking {
     ): { transport: TcpTransport; connections: JavaConnections } {
         const logger = this.server.getLogger();
         const transport = new TcpTransport(ids, logger);
+        const server = this.server;
+        const config = server.getConfig();
+        const world = () => server.getWorldManager().getDefaultWorld();
         const connections = new JavaConnections(transport, {
             status: serverName,
             brand: serverName.getName(),
-            onlineMode: () => this.server.getConfig().getOnlineMode(),
-            log: logger
+            onlineMode: () => config.getOnlineMode(),
+            log: logger,
+            world: {
+                spawn: async () => {
+                    const spawn = await world().getSpawnPosition();
+                    // The middle of the spawn block, as a vanilla server places a joining player.
+                    return { x: Math.floor(spawn.getX()) + 0.5, y: spawn.getY(), z: Math.floor(spawn.getZ()) + 0.5 };
+                },
+                chunk: (x, z) => world().getChunk(x, z),
+                light: () => {
+                    const systems = world().getSystems();
+                    return {
+                        sky: (x, y, z) => systems.getSkyLight(x, y, z),
+                        block: (x, y, z) => systems.getBlockLight(x, y, z)
+                    };
+                },
+                // One batch at join, so a modest radius until chunks stream as the player moves.
+                viewDistance: () => Math.min(config.getViewDistance(), JAVA_JOIN_RADIUS),
+                gameMode: () => JAVA_GAME_MODES[config.getGamemode()] ?? 0,
+                maxPlayers: () => config.getMaxPlayers()
+            }
         });
         listening.push(
             transport.listen(address, port).catch((cause: Error) => {

@@ -21,22 +21,21 @@ if (queued > 0) {
 }
 ```
 
-## This light never reaches a player
+## Who sees this light
 
-The Bedrock protocol has no light packet, and neither `LevelChunkPacket` nor `SubChunkPacket`
-carries a sky-light or block-light array. The client computes and renders light itself from the
-block palette it already has, which is the opposite of Java Edition, where the server ships both
-arrays in the chunk packet plus a dedicated light-update packet.
+A Bedrock client never sees it. The Bedrock protocol has no light packet, and neither
+`LevelChunkPacket` nor `SubChunkPacket` carries a sky-light or block-light array: the client
+computes and renders light itself from the block palette it already has. When this engine and a
+Bedrock client disagree, the player sees the client's answer and the server acts on this one.
 
-So nothing here changes what a player sees. The server keeps its own light because three rules read
-it:
+A Java Edition client sees exactly this light. Java ships both arrays in its chunk packet, so the
+server sends a joining Java player the light this engine holds for each chunk it is shown.
+
+The server also keeps it because three rules read it:
 
 - Mob spawning, which tests the light level of a candidate block.
 - Crop growth, which needs a minimum level to advance a stage.
 - Daylight detectors, which turn the sky level into a redstone signal.
-
-When this engine and the client disagree, the player sees the client's answer and the server acts on
-this one. There is no packet that settles the argument.
 
 ## What is deliberately missing
 

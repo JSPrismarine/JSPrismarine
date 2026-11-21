@@ -25,7 +25,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
-| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, in review. |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, in review. |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
@@ -325,12 +325,23 @@ applies across editions:
 A per-world narrowing of the setting, which ADR 0025 already leaves room for, stays open and gets
 an issue with PR 1.
 
+### The edition translation
+
+A value both editions name, a block state or a biome, goes through one `EditionTranslation` with
+`toJava` and `toBedrock`, which joins `@jsprismarine/mapping`'s name mappings in both directions to
+each side's numbers: Bedrock runtime ids, and Java network ids from `JavaBlockStates.idOf` and its
+inverse `stateOf`. Each answer is remembered both ways. A chunk going out uses `toJava`; a block a
+Java player places will use `toBedrock`. A Bedrock-only block is sent as stone, and a Java state
+the mapping cannot place becomes its listed fallback or air. Items and entity types join the same
+interface when their slices need them.
+
 ### Light
 
 The Java chunk packet carries the sky and block light arrays from `@jsprismarine/lighting` from
-PR 9, so a world is lit on arrival. Incremental light updates after block changes go with the
-blocks slice in PR 10. The lighting README's statement that its light never reaches a player is
-rewritten in PR 9.
+PR 9, so a world is lit on arrival. PR 9b reads them through the world's settled light reads, one
+chunk at a time, gives every section above a chunk's highest block one shared full-sky array, and
+lists dark sections as empty, as vanilla does; the lighting README says who sees its light now.
+Incremental light updates after block changes go with the blocks slice in PR 10.
 
 ## 8. Identity
 

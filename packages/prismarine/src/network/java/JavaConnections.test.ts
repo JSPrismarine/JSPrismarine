@@ -13,7 +13,17 @@ import {
     UpdateTags
 } from '@jsprismarine/protocol/java/packet/configuration';
 import { defineJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
-import { PlayDisconnect } from '@jsprismarine/protocol/java/packet/play';
+import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
+import {
+    ChunkBatchFinished,
+    ChunkBatchStart,
+    GameEvent,
+    PlayDisconnect,
+    PlayLogin,
+    SetCenterChunk,
+    START_WAITING_FOR_LEVEL_CHUNKS,
+    SynchronizePlayerPosition
+} from '@jsprismarine/protocol/java/packet/play';
 import { CONFIGURATION } from '@jsprismarine/protocol/java/versions/26.3/configuration';
 import { PACKETS } from '@jsprismarine/protocol/java/versions/26.3/packets';
 import { ClientIntent, Intention } from '@jsprismarine/protocol/java/packet/handshake';
@@ -31,6 +41,7 @@ import { NEWEST_JAVA_RELEASE } from '@jsprismarine/protocol/java/versions/javaRe
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { javaClient } from '../../testing/javaClient.test-utils';
+import Chunk from '../../world/chunk/Chunk';
 import { ConnectionIds } from '../transport/ConnectionId';
 import { TcpTransport } from '../transport/TcpTransport';
 import type { JavaProfile } from './javaAuth';
@@ -152,6 +163,61 @@ describe('JavaConnections', () => {
             reason: 'This server does not take Java Edition players yet.'
         });
         await java.closed;
+    });
+
+    it('shows a player who reaches play the world around spawn, in the order vanilla sends it', async () => {
+        transport = new TcpTransport(new ConnectionIds(), quiet);
+        const asked: string[] = [];
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            log: quiet,
+            world: {
+                spawn: async () => ({ x: 8.5, y: -60, z: 8.5 }),
+                chunk: async (x, z) => {
+                    asked.push(`${x},${z}`);
+                    return new Chunk(x, z);
+                },
+                light: () => ({ sky: () => 15, block: () => 0 }),
+                viewDistance: () => 1,
+                gameMode: () => 1,
+                maxPlayers: () => 20
+            }
+        });
+        await transport.listen('127.0.0.1', 0);
+        const java = await configuring(transport.port()!);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        java.send(ServerboundKnownPacks, await java.receive(ClientboundKnownPacks));
+        for (const _ of CONFIGURATION.registries) await java.receive(RegistryData);
+        await java.receive(UpdateTags);
+        await java.receive(FinishConfiguration);
+        java.send(AcknowledgeFinishConfiguration, {});
+
+        const login = await java.receive(PlayLogin);
+        const position = await java.receive(SynchronizePlayerPosition);
+        const event = await java.receive(GameEvent);
+        const center = await java.receive(SetCenterChunk);
+        await java.receive(ChunkBatchStart);
+        const chunks = [];
+        for (let i = 0; i < 9; i++) chunks.push(await java.receive(LevelChunkWithLight));
+        const finished = await java.receive(ChunkBatchFinished);
+        java.destroy();
+
+        expect(login).toMatchObject({
+            dimension: 'minecraft:overworld',
+            gameMode: 1,
+            previousGameMode: null,
+            viewDistance: 1
+        });
+        expect(position).toMatchObject({ teleportId: 1, x: 8.5, y: -60, z: 8.5 });
+        expect(event).toEqual({ event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
+        expect(center).toEqual({ x: 0, z: 0 });
+        // The chunk under the player first, then the eight around it.
+        expect([chunks[0]!.x, chunks[0]!.z]).toEqual([0, 0]);
+        expect(new Set(chunks.map(({ x, z }) => `${x},${z}`))).toEqual(new Set(asked));
+        expect(finished).toEqual({ batchSize: 9 });
     });
 
     it('ends the join of a client without the pack the registries come from', async () => {
