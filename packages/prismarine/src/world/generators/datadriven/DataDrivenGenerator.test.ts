@@ -715,10 +715,14 @@ describe.skipIf(!enabled)('the data-driven overworld', { tags: ['real-data'] }, 
             // own cells is the jittered lookups of carvers, the surface and the decoration of the
             // chunks around it, where the memo has evicted the cell. Translation also repacked every
             // cell from the biome source, which took this to 21,211 for 13,824 cells; packing from
-            // the tile's cells leaves 15,476.
+            // the tile's cells leaves about 15,400. The surface pass also reads the eight cells
+            // around each block it folds a biome condition over, which holds more cells in the memo
+            // and evicts more: 15,700 to 16,800 here. Which cells collide depends on the order the
+            // terrain passes interleave in, which their wall-clock yields decide, so the count moves
+            // between runs and the bound leaves room for that while still failing at 21,211.
             const cells = side * side * (Dimensions.Overworld.height / 4) * 16;
             expect(ownCellSearches).toBeGreaterThanOrEqual(cells);
-            expect(ownCellSearches).toBeLessThan(cells * 1.2);
+            expect(ownCellSearches).toBeLessThan(cells * 1.3);
         });
     });
 
