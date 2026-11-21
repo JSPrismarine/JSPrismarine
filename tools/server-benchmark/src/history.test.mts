@@ -262,6 +262,20 @@ describe('buildHistory', () => {
         ]);
     });
 
+    it("divides a pinned server's figures into the other JSPrismarine run when its own transport's is missing", () => {
+        // CI benchmarks JSPrismarine over NetherNet only; Bedrock Dedicated Server speaks RakNet.
+        const history = buildHistory([
+            results({
+                startedAt: '2026-11-21T03:00:00.000Z',
+                runs: [run('jsprismarine-nethernet', 1_000), run('bds', 4_000)]
+            })
+        ]);
+        const bds = chart(history, 'columnsPerCpuSecond')!.series.filter((line) => line.reference === 'bds');
+        expect(bds.map((line) => [line.server, line.points.map((point) => [point.run, point.value])])).toEqual([
+            ['jsprismarine-nethernet', [[0, 4]]]
+        ]);
+    });
+
     it('keeps one run per stretch of runs that measured the same inputs', () => {
         const history = buildHistory([
             results({ startedAt: '2026-11-21T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 100)] }),

@@ -14,6 +14,19 @@ export const BASELINE: Readonly<Record<Transport, ServerId>> = {
     raknet: 'jsprismarine-raknet'
 };
 
+/**
+ * The JSPrismarine runs another server may be compared with, in order of preference: the one over
+ * the server's own transport, then the other, since one JSPrismarine process serves both transports
+ * and CI runs only NetherNet. Empty when the server is JSPrismarine or is not in the results.
+ */
+export const baselinesOf = (servers: BenchmarkResults['servers'], server: ServerId): ServerId[] => {
+    const transport = servers[server]?.transport;
+    if (transport === undefined) return [];
+    const preferred = BASELINE[transport];
+    if (preferred === server) return [];
+    return [preferred, ...Object.values(BASELINE).filter((baseline) => baseline !== preferred && baseline !== server)];
+};
+
 /** How much a figure depends on the machine's clock and load. */
 export type MetricKind =
     /** Counted by the code: bytes and chunks. The same on every machine. */
