@@ -9,10 +9,10 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { isRecord } from './isRecord.mts';
+import { readResultsFiles } from './resultsFiles.mts';
 
 /**
  * The files that can move a figure, as `on.push.paths` globs: the servers' packages and the pins
@@ -74,18 +74,12 @@ export const readInputs = (repo: string): string | null => {
 
 /**
  * Whether `current` differs from the fingerprint the newest results file in `benchmarksDir`
- * recorded. A missing file, or one written before fingerprints were recorded, counts as changed.
+ * recorded, by the time the runs started. A missing file, or one written before fingerprints were recorded, counts as changed.
  */
 export const inputsChanged = (current: string | null, benchmarksDir: string): boolean => {
-    const newest = existsSync(benchmarksDir)
-        ? readdirSync(benchmarksDir)
-              .filter((entry) => existsSync(path.join(benchmarksDir, entry, 'results.json')))
-              .sort()
-              .at(-1)
-        : undefined;
+    const newest = readResultsFiles(benchmarksDir).at(-1);
     if (current === null || newest === undefined) return true;
-    const results: unknown = JSON.parse(readFileSync(path.join(benchmarksDir, newest, 'results.json'), 'utf8'));
-    return !isRecord(results) || results.inputs !== current;
+    return !isRecord(newest.results) || newest.results.inputs !== current;
 };
 
 if (import.meta.main) {

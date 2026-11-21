@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildHistory, historyView } from './history.mts';
 import { RESULTS_SCHEMA, commitSource, parseCommitSource } from './results.mts';
+import { resultsDirName } from './resultsFiles.mts';
 import { METRICS } from './summary.mts';
 
 import type { BenchmarkResults, RunResult, ServerDescription, ServerId, Transport } from './results.mts';
@@ -110,7 +111,7 @@ const results = ({
         rounds: [{ round: 0, order: [], load: { start: [0.5, 0.5, 0.5], end: [0.5, 0.5, 0.5] }, quiet }],
         runs
     };
-    return { file: `docs/research/benchmarks/${startedAt.slice(0, 10)}/results.json`, results: file };
+    return { file: `docs/research/benchmarks/${resultsDirName(new Date(startedAt))}/results.json`, results: file };
 };
 
 const chart = (history: ReturnType<typeof buildHistory>, metric: string) =>
@@ -289,6 +290,19 @@ describe('buildHistory', () => {
             ['2026-11-24', 0]
         ]);
         expect(chart(history, 'peakRssMiB')!.series[0]!.points.map((point) => point.value)).toEqual([100, 300, 400]);
+    });
+
+    it('keeps two runs from one day that measured different inputs, in the order they started', () => {
+        const history = buildHistory([
+            results({ startedAt: '2026-11-21T19:00:00.000Z', inputs: 'b', runs: [run('pumpkin', 500, 200)] }),
+            results({ startedAt: '2026-11-21T03:00:00.000Z', inputs: 'a', runs: [run('pumpkin', 500, 100)] })
+        ]);
+        expect(history.runs.map((entry) => entry.startedAt)).toEqual([
+            '2026-11-21T03:00:00.000Z',
+            '2026-11-21T19:00:00.000Z'
+        ]);
+        expect(new Set(history.runs.map((entry) => entry.file)).size).toBe(2);
+        expect(chart(history, 'peakRssMiB')!.series[0]!.points.map((point) => point.value)).toEqual([100, 200]);
     });
 
     it('keeps the first quiet run of a stretch when the first was not quiet', () => {

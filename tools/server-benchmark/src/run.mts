@@ -26,6 +26,7 @@ import {
 } from './benchmark.mts';
 import { readInputs } from './inputs.mts';
 import { RESULTS_SCHEMA, SCENARIO_IDS, SERVER_IDS, mergeSettings } from './results.mts';
+import { resultsDirName } from './resultsFiles.mts';
 import { DEFAULT_PORT, REPO, SERVERS, bdsPin, useJspExecutable } from './servers.mts';
 import { isQuietLoad, quietLoadLimit } from './summary.mts';
 
@@ -54,7 +55,7 @@ const HELP = `Usage: pnpm run bench:servers [options]
   --port <n>              Port every server listens on (19132, each server's default).
   --cooldown <seconds>    Longest wait for the load to settle before a run (180).
   --skip-unavailable      Leave out a server this host cannot run instead of stopping.
-  --out <file>            Results file (docs/research/benchmarks/<date>/results.json).
+  --out <file>            Results file (docs/research/benchmarks/<start time>/results.json).
   --work <dir>            Directory for the servers' data (a new temporary directory).
   --jsp-executable <file> Benchmark this packaged JSPrismarine executable instead of the built
                           entry under Node.js, as CI does with the Bun AOT build.
@@ -177,8 +178,7 @@ const main = async (): Promise<void> => {
 
     const startedAt = new Date();
     const out = path.resolve(
-        values.out ??
-            path.join(REPO, 'docs', 'research', 'benchmarks', startedAt.toISOString().slice(0, 10), 'results.json')
+        values.out ?? path.join(REPO, 'docs', 'research', 'benchmarks', resultsDirName(startedAt), 'results.json')
     );
     const workDir = path.resolve(values.work ?? mkdtempSync(path.join(tmpdir(), 'jsp-server-benchmark-')));
     mkdirSync(path.dirname(out), { recursive: true });

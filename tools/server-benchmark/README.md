@@ -64,19 +64,25 @@ release into `node_modules/.cache/jsprismarine/pumpkin/` and checks its SHA-256 
 A full run takes more than an hour. The [Server benchmark workflow](../../.github/workflows/benchmark.yml)
 runs it on one fixed GitHub-hosted Linux x86-64 runner image when master changes a package, the
 harness or the lockfile, every week, and on demand. `BENCHMARK_MAX_RUNS` and
-`BENCHMARK_WINDOW_HOURS` at the top of the workflow cap how many runs measure in a window; a run
-past the cap ends without measuring. A scheduled or push run also ends without measuring when
-nothing that can move a figure has changed since the newest results file on master, as
-[What changed](#what-changed) describes. A dispatch from the Actions tab always measures. Each run
-replaces the branch of one standing pull request with its results file.
+`BENCHMARK_WINDOW_HOURS` at the top of the workflow cap how many push and scheduled runs measure in
+a window, so pushes never queue runs back to back; a run past the cap ends without measuring. A
+scheduled or push run also ends without measuring when nothing that can move a figure has changed
+since the newest results file on master, as [What changed](#what-changed) describes. A dispatch
+from the Actions tab always measures and does not count toward the cap. Each run rebuilds the
+branch of one standing pull request on master with its results file, and keeps the results files
+already on that branch that master does not have yet.
 
 ## The results file
 
-The harness writes `docs/research/benchmarks/<date>/results.json`, rewriting it after every run so
-an interrupted benchmark keeps what it measured. It holds every run's raw measurements, the load
+The harness writes `docs/research/benchmarks/<start>/results.json`, rewriting it after every run so
+an interrupted benchmark keeps what it measured. `<start>` is the UTC time the benchmark started,
+to the second and without colons, such as `2026-11-21T031500Z`, so every benchmark on one day keeps
+a file of its own. Older benchmarks sit under a directory named by date alone. Whatever the
+directory name, the history and the benchmark page order the files by the `startedAt` each one
+records. It holds every run's raw measurements, the load
 averages before and after each run and round, the host, each server's version, build and command
 line, and every setting the harness changed from a server's default, with the reason. The benchmark
-page reads the newest file and computes its medians and ranges with `src/summary.mts`.
+page reads the file that started last and computes its medians and ranges with `src/summary.mts`.
 
 ## What changed
 

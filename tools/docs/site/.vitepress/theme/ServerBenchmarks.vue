@@ -254,7 +254,9 @@ const historyCharts = computed(() =>
 );
 
 const runTime = (run: number) => Date.parse(history.value?.runs[run]?.startedAt ?? '');
-const runDate = (run: number) => history.value?.runs[run]?.startedAt.slice(0, 10) ?? '';
+/** A run's start in UTC to the minute, since two runs can share a day. */
+const startStamp = (startedAt: string) => `${startedAt.slice(0, 10)} ${startedAt.slice(11, 16)} UTC`;
+const runStamp = (run: number) => startStamp(history.value?.runs[run]?.startedAt ?? '');
 const shortSha = (sha: string) => sha.slice(0, 7);
 const historyDomain = computed((): [number, number] => {
     const times = drawn.value.map((run) => Date.parse(run.startedAt));
@@ -279,7 +281,7 @@ const chartLine = (chart: HistoryChart, series: HistorySeries): ChartLine => {
     for (const point of series.points) {
         const run = history.value!.runs[point.run]!;
         const tip = [
-            runDate(point.run),
+            runStamp(point.run),
             run.commit === null ? null : `commit ${shortSha(run.commit)}`,
             series.reference === null ? null : `${serverName(series.reference)} ${run.versions[series.reference]}`,
             historyFormat(chart)(point.value)
@@ -310,7 +312,7 @@ const panelLabel = (chart: HistoryChart, title: string, series: readonly History
     const lines = series.map((line) => {
         const first = line.points[0]!;
         const last = line.points.at(-1)!;
-        return `${serverName(line.server)} from ${format(first.value)} on ${runDate(first.run)} to ${format(last.value)} on ${runDate(last.run)}`;
+        return `${serverName(line.server)} from ${format(first.value)} on ${runStamp(first.run)} to ${format(last.value)} on ${runStamp(last.run)}`;
     });
     return `${METRIC_COPY[chart.metric].label}, ${title}: ${lines.join('; ')}`;
 };
@@ -554,7 +556,7 @@ const ratioCaption = (metric: MetricId) =>
                     <table>
                         <thead>
                             <tr>
-                                <th scope="col">Date</th>
+                                <th scope="col">Started</th>
                                 <th scope="col">Commit</th>
                                 <th scope="col">Runner CPU</th>
                                 <th scope="col">Pumpkin</th>
@@ -566,8 +568,8 @@ const ratioCaption = (metric: MetricId) =>
                         <tbody>
                             <tr v-for="run in [...history.runs].reverse()" :key="run.file">
                                 <td>
-                                    <a v-if="run.runUrl" :href="run.runUrl">{{ run.startedAt.slice(0, 10) }}</a>
-                                    <template v-else>{{ run.startedAt.slice(0, 10) }}</template>
+                                    <a v-if="run.runUrl" :href="run.runUrl">{{ startStamp(run.startedAt) }}</a>
+                                    <template v-else>{{ startStamp(run.startedAt) }}</template>
                                 </td>
                                 <td>
                                     <a v-if="run.commit" :href="`${repository}/commit/${run.commit}`"

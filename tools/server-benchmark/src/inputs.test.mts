@@ -62,6 +62,19 @@ describe('inputsChanged', () => {
         expect(inputsChanged('old', benchmarks)).toBe(true);
     });
 
+    it('compares with the run that started last when two runs share a day', () => {
+        const writeRun = (entry: string, startedAt: string, inputs: string) => {
+            dir ??= mkdtempSync(path.join(tmpdir(), 'jsp-inputs-'));
+            mkdirSync(path.join(dir, entry));
+            writeFileSync(path.join(dir, entry, 'results.json'), JSON.stringify({ startedAt, inputs }));
+            return dir;
+        };
+        writeRun('2026-11-21T190000Z', '2026-11-21T19:00:00.000Z', 'evening');
+        const benchmarks = writeRun('2026-11-21T030000Z', '2026-11-21T03:00:00.000Z', 'morning');
+        expect(inputsChanged('evening', benchmarks)).toBe(false);
+        expect(inputsChanged('morning', benchmarks)).toBe(true);
+    });
+
     it('counts a file without a fingerprint, no file and uncommitted inputs as changed', () => {
         expect(inputsChanged('new', path.join(tmpdir(), 'jsp-inputs-missing'))).toBe(true);
         const benchmarks = write('2026-11-21');
