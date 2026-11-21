@@ -179,7 +179,6 @@ reviews:
             - "DRAFT:"
             - DO NOT MERGE
             - 🚀 Release packages
-            - point the manifest at builds
         # Skip pull requests opened by bots: dependency updates, the release pull request and
         # runner migrations. The names match exactly, so each bot is listed by its full login.
         ignore_usernames:

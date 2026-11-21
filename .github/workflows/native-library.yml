@@ -6,10 +6,9 @@ name: Native library
 # project. scripts/native/packages.mts names the packages and their platforms.
 #
 # On master, when the native sources no longer match the manifest, it attaches the builds to a
-# GitHub release named for the sources' hash and opens a pull request, set to merge once its
-# checks pass, that points the manifest at them. Called with `publish`, it does the same, and
-# commits the manifest straight to any branch but master. A pull request that changes the
-# sources needs neither: every job that installs builds its own library meanwhile
+# GitHub release named for the sources' hash and commits a manifest that points at them straight
+# to master. Called with `publish`, it does the same on the branch it runs on. A pull request that
+# changes the sources needs neither: every job that installs builds its own library meanwhile
 # (.github/common/native-library).
 #
 # Each package's own workflow (native-network.yml, script-host.yml, native-worldgen.yml) calls this
@@ -74,10 +73,7 @@ jobs:
             NATIVE_LIBRARY: ${{ needs.describe.outputs.library }}
             NATIVE_PLATFORM: ${{ matrix.platform }}
         steps:
-            # The machine user's token, so the manifest's pull request runs the required checks.
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  token: ${{ secrets.MACHINE_USER }}
 
             # Linux builds run in containers: Debian 12 sets the glibc floor at 2.36, and Alpine
             # builds against musl. Their compilers are build tools, not user ones.
@@ -227,7 +223,11 @@ jobs:
             PACKAGE_DIR: ${{ needs.describe.outputs.dir }}
             NATIVE_LIBRARY: ${{ needs.describe.outputs.library }}
         steps:
+            # The machine user's token: it may push to master past the merge queue, which
+            # GITHUB_TOKEN may not, and its push runs master's workflows on the new manifest.
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  token: ${{ secrets.MACHINE_USER }}
 
             - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               with:
@@ -283,8 +283,6 @@ jobs:
 
             - name: 📝 Commit the manifest
               if: ${{ steps.sources.outputs.publish == 'true' }}
-              env:
-                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
               run: |
                   hash=${{ steps.release.outputs.hash }}
                   tag=${{ steps.release.outputs.tag }}
@@ -295,20 +293,13 @@ jobs:
                   git add "$PACKAGE_DIR/native/manifest.json"
                   # Another run may have published these sources first.
                   if git diff --cached --quiet; then exit 0; fi
-                  # .coderabbit.yaml skips review of pull requests whose title holds "point the manifest at builds".
-                  message="build($PACKAGE): point the manifest at builds $hash"
-                  git commit -m "$message"
-                  if [ "$GITHUB_REF_NAME" != master ]; then
-                      # The branch may have moved while the builds ran; the manifest is the only file this touches.
+                  git commit -m "build($PACKAGE): point the manifest at builds $hash" \
+                      -m "The builds of native sources $hash are attached to the release $tag."
+                  # The branch may have moved while the builds ran, and may move again between the
+                  # rebase and the push. The manifest is the only file this touches.
+                  for attempt in 1 2 3 4 5; do
                       git pull --rebase origin "$GITHUB_REF_NAME"
-                      git push origin "HEAD:$GITHUB_REF_NAME"
-                      exit 0
-                  fi
-                  # master takes changes through pull requests that pass its required checks.
-                  branch="$PACKAGE/manifest-$hash"
-                  git push --force origin "HEAD:refs/heads/$branch"
-                  if ! gh pr view "$branch" >/dev/null 2>&1; then
-                      gh pr create --base master --head "$branch" --title "$message" \
-                          --body "Points $PACKAGE_NAME's manifest at the builds of native sources $hash, which its native library workflow attached to the release $tag."
-                  fi
-                  gh pr merge "$branch" --auto --rebase
+                      if git push origin "HEAD:$GITHUB_REF_NAME"; then exit 0; fi
+                      sleep $((attempt * 5))
+                  done
+                  exit 1
