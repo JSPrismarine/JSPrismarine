@@ -6,7 +6,7 @@ import type { Server as HttpServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { AddonIndexEntry } from '@jsprismarine/addon-tools/addonIndex';
+import type { AddonIndexEntry, AddonListing } from '@jsprismarine/addon-tools/addonIndex';
 import { createAddonIndex, serializeAddonIndex } from '@jsprismarine/addon-tools/addonIndex';
 import { releaseDownloadUrl } from '@jsprismarine/addon-tools/build';
 import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
@@ -96,13 +96,21 @@ const fakeGitHub = async () => {
     /** Publishes packs on a source's release, with the index listing them. */
     const publish = (
         source: string,
-        addons: readonly { name: string; version: string; bytes: Uint8Array; minServer?: string; sha256?: string }[]
+        addons: readonly {
+            name: string;
+            version: string;
+            bytes: Uint8Array;
+            minServer?: string;
+            sha256?: string;
+            deprecated?: string;
+            replacedBy?: string;
+        }[]
     ): AddonIndexEntry[] => {
         const base = releaseDownloadUrl(source);
-        const entries = addons.map(({ name, version, bytes, minServer, sha256 }) => {
+        const entries = addons.map(({ name, version, bytes, minServer, sha256, deprecated, replacedBy }) => {
             const url = `${base}/${name}-${version}.mcpack`;
             files.set(new URL(url).pathname, bytes);
-            return {
+            const entry: AddonIndexEntry = {
                 name,
                 version,
                 description: 'Does a thing.',
@@ -110,6 +118,18 @@ const fakeGitHub = async () => {
                 url,
                 sha256: sha256 ?? sha256Of(bytes)
             };
+            if (deprecated === undefined) return entry;
+            const listing: AddonListing = {
+                title: name,
+                license: 'MIT',
+                tags: [],
+                authors: [],
+                deprecated,
+                ...(replacedBy === undefined ? {} : { replacedBy }),
+                readme: { url: `${base}/${name}-${version}.md`, sha256: '0'.repeat(64) },
+                screenshots: []
+            };
+            return { ...entry, listing };
         });
         files.set(
             new URL(`${base}/index.json`).pathname,
@@ -290,6 +310,60 @@ describe('AddonManager', () => {
         expect(await installedVersion('warps')).toBe('2.0.0');
         expect(await addons.update('warps')).toEqual([]);
         expect(logged).toContain('warps 2.0.0 is up to date');
+    });
+
+    it('warns that an install or update is deprecated, with its replacement, and locks why', async () => {
+        github.publish('someone/packs', [
+            {
+                name: 'warps',
+                version: '1.0.0',
+                bytes: pack('1.0.0'),
+                deprecated: 'Use warps-plus instead.',
+                replacedBy: 'someone/packs/warps-plus'
+            }
+        ]);
+        const addons = manager();
+
+        await addons.install('someone/packs/warps');
+
+        const warning =
+            'warn: warps 1.0.0 is deprecated: "Use warps-plus instead." Install its replacement with addon install someone/packs/warps-plus.';
+        expect(logged).toContain(warning);
+        expect(await readJson(ADDONS_LOCK_FILE)).toMatchObject({
+            addons: { warps: { deprecated: 'Use warps-plus instead.', replacedBy: 'someone/packs/warps-plus' } }
+        });
+
+        logged.length = 0;
+        expect(await addons.update()).toEqual([]);
+        expect(logged).toEqual(['warps 1.0.0 is up to date', warning]);
+    });
+
+    it('records a deprecation on update that a lock from an older server lacks, without reinstalling', async () => {
+        // The version was published deprecated; a server from before listings locked it without the reason.
+        const [entry] = github.publish('someone/packs', [
+            { name: 'warps', version: '1.0.0', bytes: pack('1.0.0'), deprecated: 'No longer kept up.' }
+        ]);
+        const addons = manager();
+        await addons.install('someone/packs/warps');
+        const pinned = {
+            source: 'someone/packs',
+            name: 'warps',
+            version: '1.0.0',
+            url: entry!.url,
+            sha256: entry!.sha256
+        };
+        await writeFile(
+            path.join(directory, ADDONS_LOCK_FILE),
+            JSON.stringify({ lockfileVersion: 1, addons: { warps: pinned } })
+        );
+        reloads = 0;
+        logged.length = 0;
+
+        expect(await addons.update()).toEqual([]);
+
+        expect(reloads).toBe(0);
+        expect(logged).toContain('warn: warps 1.0.0 is deprecated: "No longer kept up."');
+        expect((await addons.list())[0]?.locked).toEqual({ ...pinned, deprecated: 'No longer kept up.' });
     });
 
     it('restores a locked addon whose folder is missing from its locked URL, without the index', async () => {

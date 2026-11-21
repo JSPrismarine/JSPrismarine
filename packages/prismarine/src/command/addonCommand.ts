@@ -9,7 +9,7 @@ import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
 import type { InstalledAddon } from '../addons/AddonManager';
-import { isPathLock } from '../addons/addonFiles';
+import { isPathLock, isSourceLock } from '../addons/addonFiles';
 import type { AddonRequest } from '../addons/addonFiles';
 import { isConsoleSource } from './consoleSource';
 import { deferCommandWork } from './deferred';
@@ -28,7 +28,9 @@ const listLine = ({ key, request, locked }: InstalledAddon): string => {
     const from = describeRequest(key, request);
     if (locked === undefined) return `§e${key}§r from ${from}, not installed yet; addon sync installs it`;
     const linked = isPathLock(locked) && locked.sha256 === undefined ? ', linked to the folder' : '';
-    return `§e${key}§r ${locked.version} from ${from}${linked}`;
+    const reason = isSourceLock(locked) ? locked.deprecated : undefined;
+    const deprecated = reason === undefined ? '' : `, §cdeprecated§r: ${reason}`;
+    return `§e${key}§r ${locked.version} from ${from}${linked}${deprecated}`;
 };
 
 /**

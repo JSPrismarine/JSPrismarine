@@ -4,7 +4,8 @@
  * - `addons.json` says what the owner asked for, keyed by each addon's local name. The `addon`
  *   command writes it, and the owner may edit it by hand.
  * - `addons.lock.json` pins what was installed for each key: where it came from, its version and
- *   its SHA-256. Only the command writes it.
+ *   its SHA-256, and, for an addon from a source, whether its listing deprecates that version.
+ *   Only the command writes it.
  *
  * A key is also the addon's folder under `addons/`, so two sources' addons with the same name
  * install side by side under different keys.
@@ -13,7 +14,13 @@ import { randomUUID } from 'node:crypto';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { isAddonName, isAddonRange, isAddonVersion } from '@jsprismarine/addon-tools/addonIndex';
+import {
+    isAddonInstallId,
+    isAddonName,
+    isAddonRange,
+    isAddonRepository,
+    isAddonVersion
+} from '@jsprismarine/addon-tools/addonIndex';
 import { PrismarineAddonErrors } from '@jsprismarine/errors/prismarine/addon';
 
 import { isRecord } from '../utils/isRecord';
@@ -33,11 +40,8 @@ export const ADDONS_DIRECTORY = 'addons';
 /** The source a bare addon name installs from: JSPrismarine's own repository. */
 export const DEFAULT_ADDON_SOURCE = 'JSPrismarine/JSPrismarine';
 
-/** `<owner>/<repo>`, as GitHub spells a repository. */
-const REPOSITORY = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
-
 /** Whether a string names a GitHub repository, `<owner>/<repo>`. */
-export const isAddonSource = (source: string): boolean => REPOSITORY.test(source);
+export const isAddonSource = (source: string): boolean => isAddonRepository(source);
 
 const SHA256 = /^[0-9a-f]{64}$/;
 
@@ -50,15 +54,23 @@ export type AddonRequest =
     /** A folder or an `.mcpack` on disk, relative to the server's folder unless absolute. */
     | { readonly path: string };
 
+/** Why an addon's author deprecated a version, as its index entry's listing says. */
+export interface AddonDeprecation {
+    /** The author's reason, such as `Use warps-plus instead.` */
+    readonly deprecated?: string;
+    /** The install id of the addon that replaces it. */
+    readonly replacedBy?: string;
+}
+
 /** What one key resolved to and was installed from. */
 export type LockedAddon =
-    | {
+    | ({
           readonly source: string;
           readonly name: string;
           readonly version: string;
           readonly url: string;
           readonly sha256: string;
-      }
+      } & AddonDeprecation)
     | { readonly url: string; readonly name: string; readonly version: string; readonly sha256: string }
     /** A folder has no hash: the addon's folder links to it, so edits show after `/reload`. */
     | { readonly path: string; readonly name: string; readonly version: string; readonly sha256?: string };
@@ -135,8 +147,20 @@ const parseLocked = (key: string, value: unknown): LockedAddon => {
     }
     if (!optional('url')) throw fail(`${where} has neither a url nor a path`);
     const url = text('url', isHttpsUrl, 'an https URL');
-    if (optional('source'))
-        return { source: text('source', isAddonSource, 'an owner/repo'), name, version, url, sha256: sha256() };
+    if (optional('source')) {
+        const source = text('source', isAddonSource, 'an owner/repo');
+        const deprecated = optional('deprecated') ? text('deprecated') : undefined;
+        const replacedBy = optional('replacedBy') ? text('replacedBy', isAddonInstallId, 'an install id') : undefined;
+        return {
+            source,
+            name,
+            version,
+            url,
+            sha256: sha256(),
+            ...(deprecated === undefined ? {} : { deprecated }),
+            ...(replacedBy === undefined ? {} : { replacedBy })
+        };
+    }
     return { url, name, version, sha256: sha256() };
 };
 
