@@ -98,10 +98,27 @@ jobs:
                   started_at="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')"
                   echo "started_at=$started_at" >> "$GITHUB_OUTPUT"
 
+            # The release plan the pending changesets make, which names the server's next version.
+            # A nightly is a prerelease of that version, not of the one already released.
+            - name: 📦 Install
+              uses: ./.github/common/install
+              with:
+                  root-only: 'true'
+
+            # `changeset status` also lists packages changed since `master` without a changeset, and
+            # fails when it cannot find where HEAD left `master`, which a pull request's shallow
+            # checkout has no branch for. The plan comes from the changeset files alone, so a
+            # `master` at HEAD is enough.
+            - name: 🗒️ Read the release plan
+              run: |
+                  git rev-parse --verify -q refs/heads/master > /dev/null || git branch master HEAD
+                  pnpm exec changeset status --output "$RUNNER_TEMP/release-plan.json"
+
             - name: 🏷️ Set nightly version
               id: metadata
               env:
                   BUILD_TYPE: nightly
+                  RELEASE_PLAN: ${{ runner.temp }}/release-plan.json
                   GITHUB_RUN_STARTED_AT: ${{ steps.start_time.outputs.started_at }}
               run: node .github/scripts/set-build-metadata.mjs
 

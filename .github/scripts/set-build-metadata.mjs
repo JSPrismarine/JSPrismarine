@@ -12,10 +12,25 @@ if (!buildGitHash || !/^[a-f0-9]{40}$/i.test(buildGitHash)) {
     throw new Error('GITHUB_SHA must contain the full 40-character commit hash');
 }
 
-const baseVersion = buildType === 'release' ? process.env.RELEASE_VERSION : serverPackage.version;
-if (!baseVersion) throw new Error('A base version is required to build JSPrismarine');
+/**
+ * The version the next release gives the server: its entry in the release plan that
+ * `changeset status --output` wrote to `RELEASE_PLAN`, or a patch bump when no pending changeset
+ * touches it. A nightly is a prerelease of that version, so it sorts above the release it was built
+ * after and meets an addon's `minServer` for the release it leads up to.
+ */
+const nextServerVersion = () => {
+    const planPath = process.env.RELEASE_PLAN;
+    if (!planPath) throw new Error('Nightly builds require RELEASE_PLAN, the output of `changeset status --output`');
+    // Parsed JSON: changesets' release plan, `{ releases: [{ name, newVersion }] }`.
+    const plan = JSON.parse(readFileSync(planPath, 'utf8'));
+    const planned = plan.releases?.find((release) => release.name === serverPackage.name)?.newVersion;
+    if (planned) return planned;
+    const [major, minor, patch] = serverPackage.version.split('-')[0].split('.').map(Number);
+    return `${major}.${minor}.${patch + 1}`;
+};
 
-let buildVersion = baseVersion;
+let buildVersion = process.env.RELEASE_VERSION;
+if (buildType === 'release' && !buildVersion) throw new Error('Release builds require RELEASE_VERSION');
 if (buildType === 'nightly') {
     const runNumber = process.env.GITHUB_RUN_NUMBER;
     if (!runNumber || !/^\d+$/.test(runNumber)) {
@@ -26,7 +41,7 @@ if (buildType === 'nightly') {
     const runDate = new Date(startedAt);
     if (Number.isNaN(runDate.getTime())) throw new Error(`Invalid workflow start time: ${startedAt}`);
     const date = runDate.toISOString().slice(0, 10).replaceAll('-', '');
-    buildVersion = process.env.BUILD_VERSION ?? `${baseVersion}-nightly.${date}.${runNumber}`;
+    buildVersion = process.env.BUILD_VERSION || `${nextServerVersion()}-nightly.${date}.${runNumber}`;
 }
 
 const metadata = {
