@@ -5,6 +5,7 @@ import type {
     DensitySampler,
     InterpolationCellSize
 } from './density/compile';
+import type { CellProgram } from './density/cellProgram';
 import { DensityFunctionCompiler } from './density/compile';
 import type { DensityFunctionNode } from './density/DensityFunction';
 import { SampleContext } from './density/SampleContext';
@@ -96,6 +97,14 @@ export class RandomState {
     /** Compiles a density function tree against this seed, reusing earlier compilations. */
     public sampler(node: DensityFunctionNode): DensitySampler {
         return this.compiler.compile(node);
+    }
+
+    /**
+     * Compiles a density function tree into a program that evaluates it over a whole
+     * interpolation cell at a time, bit for bit as the terrain fill's per-block samples would.
+     */
+    public cellProgram(node: DensityFunctionNode, cell: InterpolationCellSize): CellProgram {
+        return this.compiler.cellProgram(node, cell);
     }
 
     /**

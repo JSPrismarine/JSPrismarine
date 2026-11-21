@@ -7,6 +7,8 @@ import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
 import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
 import { densityInputsOf } from './DensityFunction';
+import { cube, square, squeeze } from './arithmetic';
+import { CellProgram } from './cellProgram';
 import type { SampleContext } from './SampleContext';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
@@ -107,6 +109,21 @@ export interface DensityFunctionCompilerOptions {
     readonly maximumGeneratedFunctionLength?: number;
 }
 
+/**
+ * The values of one `interpolated` node over a whole cell, filled in Java's volume order.
+ *
+ * `values` returns the context's buffer for the node, laid out x-major, then z, then y, and filled
+ * for the cell whose minimum corner is given. The buffer is reused for the node's next cell, so
+ * read it before asking for another.
+ */
+export interface InterpolatedCell {
+    /** The cell side across x and z, in blocks. */
+    readonly xz: number;
+    /** The cell height, in blocks. */
+    readonly y: number;
+    values(context: SampleContext, x0: number, y0: number, z0: number): Float64Array;
+}
+
 /** Large datapack interpolation cells stay on the scalar path to avoid large per-context buffers. */
 const MAX_INTERPOLATION_BUFFER_VALUES = 4096;
 
@@ -116,14 +133,6 @@ const constantSampler = (value: number): DensitySampler => {
 };
 
 const isConstant = (node: DensityFunctionNode): node is { type: 'constant'; value: number } => node.type === 'constant';
-
-const square = (value: number): number => f32(value * value);
-const cube = (value: number): number => f32(f32(value * value) * value);
-
-const squeeze = (value: number): number => {
-    const clamped = clamp(value, -1, 1);
-    return f32(f32(clamped / 2) - f32(cube(clamped) / 24));
-};
 
 const roundToInteger = (value: number, type: 'ceil' | 'floor' | 'round' | 'truncate'): number => {
     switch (type) {
@@ -198,6 +207,8 @@ const endIslandHeight = (noise: Noise, sectionX: number, sectionZ: number): numb
 export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
     private readonly bounds = new Map<DensityFunctionNode, DensityBoundSampler>();
+    private readonly interpolatedCells = new Map<DensityFunctionNode, InterpolatedCell>();
+    private readonly cellPrograms = new Map<DensityFunctionNode, Map<string, CellProgram>>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private readonly cellSizes = new Map<DensityFunctionNode, InterpolationCellSize | undefined>();
     private readonly domainAxesByNode = new Map<DensityFunctionNode, number>();
@@ -323,6 +334,38 @@ export class DensityFunctionCompiler {
         let maximum = Number.NEGATIVE_INFINITY;
         for (const value of context.interpolationBuffer(id, valueCount)) maximum = Math.max(maximum, value);
         return maximum;
+    }
+
+    /**
+     * The whole-cell values of an `interpolated` node, or undefined when the node is not
+     * `interpolated` or its cells are too large to buffer.
+     */
+    public interpolatedCell(node: DensityFunctionNode): InterpolatedCell | undefined {
+        if (node.type !== 'interpolated') return undefined;
+        this.compile(node);
+        return this.interpolatedCells.get(node);
+    }
+
+    /**
+     * Compiles a tree into a program that evaluates it over a whole cell at a time; see
+     * {@link CellProgram}. Programs are kept per tree and cell size.
+     */
+    public cellProgram(node: DensityFunctionNode, cell: InterpolationCellSize): CellProgram {
+        const key = `${cell.xz}x${cell.y}`;
+        let byCell = this.cellPrograms.get(node);
+        if (byCell === undefined) {
+            byCell = new Map();
+            this.cellPrograms.set(node, byCell);
+        }
+        let program = byCell.get(key);
+        if (program === undefined) {
+            program = new CellProgram(node, cell, {
+                sampler: (input) => this.compile(input),
+                interpolatedCell: (input) => this.interpolatedCell(input)
+            });
+            byCell.set(key, program);
+        }
+        return program;
     }
 
     /**
@@ -887,6 +930,16 @@ export class DensityFunctionCompiler {
                     }
                 };
 
+                const cellValues = (context: SampleContext, x0: number, y0: number, z0: number): Float64Array => {
+                    const filled = context.filledInterpolationBuffer(id, x0, y0, z0);
+                    if (filled !== undefined) return filled;
+                    const output = context.interpolationBuffer(id, bufferValueCount);
+                    fillCell(context, x0 / cellSizeXz, y0 / cellSizeY, z0 / cellSizeXz, output);
+                    context.markInterpolationBufferFilled(id, x0, y0, z0);
+                    return output;
+                };
+                this.interpolatedCells.set(node, { xz: cellSizeXz, y: cellSizeY, values: cellValues });
+
                 return (context, x, y, z) => {
                     if (!context.interpolationBuffersEnabled) return sampleAt(context, x, y, z);
 
@@ -900,11 +953,7 @@ export class DensityFunctionCompiler {
                     const outputIndex = (xInCell * cellSizeXz + zInCell) * cellSizeY + yInCell;
                     const cached = context.interpolationBufferValue(id, x0, y0, z0, outputIndex);
                     if (cached !== undefined) return cached;
-
-                    const output = context.interpolationBuffer(id, bufferValueCount);
-                    fillCell(context, x0 / cellSizeXz, y0 / cellSizeY, z0 / cellSizeXz, output);
-                    context.markInterpolationBufferFilled(id, x0, y0, z0);
-                    return output[outputIndex] ?? 0;
+                    return cellValues(context, x0, y0, z0)[outputIndex] ?? 0;
                 };
             }
 

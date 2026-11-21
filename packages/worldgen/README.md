@@ -148,12 +148,15 @@ its three draws in Java's order. Given a cell bound from `RandomState.boundSampl
 vein density once per interpolation cell and skips the cells where it cannot be positive, which
 in vanilla is almost all of them; the blocks and draws stay the same.
 
-**Chunk sampling.** `ChunkSampler` samples `final_density` per block and runs the aquifer over the
-result, for one block, one column or a whole 16 by 16 chunk. `column` and `fill` go top-down;
-`forEachCellBlock` walks the chunk one interpolation cell at a time, which is what a generator
-filling a whole chunk should use. A sample answers the same in either order, so the choice is
-only about how long an `interpolated` node can hold its eight cell corners: a column walk leaves
-a cell every eight blocks, a cell walk every 128.
+**Chunk sampling.** `ChunkSampler` evaluates `final_density` and runs the aquifer over the
+result, for one block, one column or a whole 16 by 16 chunk. `forEachCellBlock` walks the chunk one
+interpolation cell at a time and is what a generator filling a whole chunk should use: it fills
+each cell's densities at once through a `CellProgram`, which evaluates the density tree one node at
+a time over the cell's 128 blocks rather than one closure chain per block, and its `interpolated`
+nodes fill cells in Java's volume order, the order `doFill` builds terrain in. `density`, `column`
+and `fill` sample one block at a time in the order of Java's per-block `sampleValue`. The two
+orders differ in the last bits of a float, so they can differ at a block whose density sits within
+those bits of zero.
 
 **Dimensions.** Five parsers read the documents that bind a dimension to a generator, all with
 path-qualified errors. `parseDimensionType` reads a `dimension_type` file in its 26.3 shape
