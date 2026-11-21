@@ -200,8 +200,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
      level and flushes in its default world's tick, before that world's change log seals. The
      version 2 packs' early execution runs once the worlds have loaded, just before the version 1
      packs, since no script can observe the world in early execution.
-   - Left: `/reload` reloads scripts but not function files
-     ([#3225](https://github.com/JSPrismarine/JSPrismarine/issues/3225)); the replay trace does not
+   - Left: the replay trace does not
      record the admitted clock yet ([#3226](https://github.com/JSPrismarine/JSPrismarine/issues/3226));
      the `script-world-message` client-e2e scenario has not run anywhere
      ([#3227](https://github.com/JSPrismarine/JSPrismarine/issues/3227)); the milliseconds-to-steps

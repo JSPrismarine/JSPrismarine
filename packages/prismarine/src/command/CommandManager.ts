@@ -27,6 +27,7 @@ import type { CommandExecutor, CommandTarget } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import { markConsoleSource } from './consoleSource';
 import type { FunctionContent } from './function/load';
+import { readBehaviorPackFunctions, withBehaviorPackFunctions } from './function/behaviorPackFunctions';
 import { FunctionRuntime } from './function/runtime';
 import { functionContentOf, loadServerFunctions } from './function/load';
 import { dimensionIdOf, entityRefOf, playerSessionOf } from './host/support';
@@ -221,7 +222,7 @@ export class CommandManager implements Service {
      */
     public getFunctionRuntime(): FunctionRuntime {
         this.functions ??= new FunctionRuntime({
-            loaded: loadServerFunctions(this.functionContent ?? functionContentOf(this.server.getContent())),
+            loaded: loadServerFunctions(this.functionContent ?? this.serverFunctionContent()),
             dispatch: (commandLine, source) => this.runFunctionLine(commandLine, source),
             report: (diagnostic) => {
                 const where = diagnostic.functionId
@@ -233,6 +234,26 @@ export class CommandManager implements Service {
             }
         });
         return this.functions;
+    }
+
+    /**
+     * The functions the server runs on its own: the content build's datapack functions, then the
+     * world's behavior packs' `functions` folders, read from disk.
+     */
+    private serverFunctionContent(): FunctionContent {
+        const packs = readBehaviorPackFunctions(this.server.getWorldPackDirectories());
+        for (const problem of packs.problems) this.server.getLogger().warn(`§cfunction:§r ${problem}`);
+        return withBehaviorPackFunctions(functionContentOf(this.server.getContent()), packs);
+    }
+
+    /**
+     * Compiles the functions again from their files, as Bedrock's `/reload` does: an edited
+     * behavior pack function runs as edited from then on. What `/schedule` put off is dropped with
+     * the functions it named.
+     */
+    public reloadFunctions(): void {
+        this.functions = undefined;
+        this.getFunctionRuntime();
     }
 
     /**

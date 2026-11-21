@@ -8,7 +8,8 @@ category: Guides
 
 JSPrismarine dispatches commands through a Java-shaped Brigadier tree and publishes that tree to
 Bedrock clients as the flat overload list their client expects. It also runs Java `.mcfunction`
-files out of a datapack, with function tags, macros and `/schedule`.
+files out of a datapack, with function tags, macros and `/schedule`, and the `.mcfunction` files of
+the world's behavior packs.
 
 This page is for a server operator or datapack author. It says which commands you can type today,
 what the two editions disagree about and what that costs you, which commands the server leaves out
@@ -301,6 +302,20 @@ with any error does not load at all, which is what the Java server does.
 
 A function's id comes from its path, using the singular `function` directory that format 121 uses:
 `data/greeter/function/setup/stage.mcfunction` loads as `greeter:setup/stage`.
+
+### Behavior pack functions
+
+A behavior pack the world loads, from `content-world-packs` or an installed addon, keeps its
+functions under `functions/`, as Bedrock does. A function is named by its path there without the
+extension, in the `minecraft` namespace: `functions/init/ouch.mcfunction` runs as
+`/function init/ouch`. `functions/tick.json` lists functions to run every tick in its `values`,
+and the lists of every pack add up, as they do on Bedrock. A pack later in the list replaces an
+earlier pack's function of the same name, and a behavior pack function replaces a datapack function
+of the same id.
+
+These files are read from the pack folders, not from the content build, so `/reload` reads them
+again: an edited function runs as edited from then on, without a restart. `/reload` drops what
+`/schedule` put off with the functions it named.
 
 ### Macros
 

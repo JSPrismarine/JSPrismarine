@@ -17,7 +17,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import type { ContentTags } from '../../content/tags';
 
 /** The registry a datapack's function tags live in, as `routeDatapackPath` names it. */
-const FUNCTION_TAG_REGISTRY = 'function';
+export const FUNCTION_TAG_REGISTRY = 'function';
 
 /**
  * The two halves of a content build this module reads.

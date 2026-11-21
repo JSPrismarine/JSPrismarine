@@ -777,10 +777,15 @@ describe('the server command host', () => {
     });
 
     describe('reload', () => {
-        it('reloads the behavior pack scripts and the permission files, as Bedrock’s /reload does, and keeps the server running', () => {
+        it('reloads the behavior pack functions, scripts and the permission files, as Bedrock’s /reload does, and keeps the server running', () => {
             const calls: string[] = [];
             permissionReloads.length = 0;
             const server = Object.assign(Object.create(fixture.server), {
+                getCommandManager: () => ({
+                    reloadFunctions: () => {
+                        calls.push('reloadFunctions');
+                    }
+                }),
                 reloadScripts: async () => {
                     calls.push('reloadScripts');
                 },
@@ -791,7 +796,7 @@ describe('the server command host', () => {
 
             serverCommandHost(server).server.reload();
 
-            expect(calls).toEqual(['reloadScripts']);
+            expect(calls).toEqual(['reloadFunctions', 'reloadScripts']);
             expect(permissionReloads).toEqual(['permissions.reload']);
         });
     });

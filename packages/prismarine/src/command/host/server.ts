@@ -160,10 +160,12 @@ export const serverSideCommandHost = (
             onStopRequested(shutdown);
             return carryOut(shutdown, undefined);
         },
-        // Bedrock's `/reload`: the behavior pack scripts start over, and the server keeps running.
-        // The permission files are read again with them.
-        reload: () =>
-            carryOut(Promise.all([server.reloadScripts(), server.getPermissionManager().reload()]), undefined),
+        // Bedrock's `/reload`: the behavior pack functions compile again from their files, the
+        // scripts start over, and the server keeps running. The permission files are read again with them.
+        reload: () => {
+            server.getCommandManager().reloadFunctions();
+            return carryOut(Promise.all([server.reloadScripts(), server.getPermissionManager().reload()]), undefined);
+        },
 
         ticking: {
             rate: () => server.getTickControl().getTickRate(),
