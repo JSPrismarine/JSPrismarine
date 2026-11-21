@@ -21,8 +21,11 @@
 /* The interface version; the binding refuses a library that answers another. */
 #define JWG_ABI_VERSION 1
 
-/* The number of doubles per layer in jwg_stack_create's params: x, y and z offsets, frequency, amplitude. */
-#define JWG_LAYER_PARAMS 5
+/*
+ * The number of doubles per layer in jwg_stack_create's params: x, y and z offsets, frequency,
+ * amplitude, and the smear scale (0 for plain Perlin noise).
+ */
+#define JWG_LAYER_PARAMS 6
 
 JWG_EXPORT int32_t jwg_abi_version(void);
 

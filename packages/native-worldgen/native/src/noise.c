@@ -20,6 +20,8 @@ typedef struct {
     double ox, oy, oz;
     double freq;
     float amp;
+    /* SmearedPerlinNoise's fudgeYScale, or 0 for plain Perlin noise. */
+    double smear;
 } Layer;
 
 typedef struct {
@@ -62,10 +64,26 @@ static inline float dot(int g, float x, float y, float z) {
 
 static inline float lerpf(float a, float from, float to) { return (float)(from + (float)(a * (float)(to - from))); }
 
+/* SmearedPerlinNoise's SHIFT_UP_EPSILON, a float widened to a double as the TypeScript holds it. */
+static const double SHIFT_UP_EPSILON = (double)1e-7f;
+
 static float sample(const Layer *l, double x, double y, double z) {
     double wx = wrap(x) + l->ox, wy = wrap(y) + l->oy, wz = wrap(z) + l->oz;
     int32_t fx = to_int32(floor(wx)), fy = to_int32(floor(wy)), fz = to_int32(floor(wz));
-    float rx = (float)(wx - fx), ry = (float)(wy - fy), rz = (float)(wz - fz);
+    double relative_y = wy - fy;
+    float rx = (float)(wx - fx), rz = (float)(wz - fz);
+    /* The interpolation weight always reads the true y fraction. */
+    float weight_y = (float)relative_y;
+    /*
+     * Smeared noise snaps the y fraction the lattice reads down to a multiple of the smear scale,
+     * measured from the sample's own y when that is the smaller of the two.
+     */
+    float ry = weight_y;
+    if (l->smear > 0) {
+        double limit = y >= 0 && y < relative_y ? y : relative_y;
+        double fudge = to_int32(floor(limit / l->smear + SHIFT_UP_EPSILON)) * l->smear;
+        ry = (float)(relative_y - fudge);
+    }
     const uint8_t *p = l->perm;
     /* Unsigned, so a sum past the int range wraps as JavaScript's & does instead of overflowing. */
     uint32_t ux = (uint32_t)fx, uy = (uint32_t)fy, uz = (uint32_t)fz;
@@ -81,7 +99,7 @@ static float sample(const Layer *l, double x, double y, double z) {
     float d101 = dot(p[(xy10 + 1) & 0xff] & 15, rx1, ry, rz1);
     float d011 = dot(p[(xy01 + 1) & 0xff] & 15, rx, ry1, rz1);
     float d111 = dot(p[(xy11 + 1) & 0xff] & 15, rx1, ry1, rz1);
-    float ax = smoothstep(rx), ay = smoothstep(ry), az = smoothstep(rz);
+    float ax = smoothstep(rx), ay = smoothstep(weight_y), az = smoothstep(rz);
     float q0 = lerpf(ay, lerpf(ax, d000, d100), lerpf(ax, d010, d110));
     float q1 = lerpf(ay, lerpf(ax, d001, d101), lerpf(ax, d011, d111));
     return lerpf(az, q0, q1);
@@ -108,6 +126,7 @@ double jwg_stack_create(const uint8_t *perms, const double *params, int32_t coun
         s->layers[i].oz = layer[2];
         s->layers[i].freq = layer[3];
         s->layers[i].amp = (float)layer[4];
+        s->layers[i].smear = layer[5];
     }
     return (double)(uintptr_t)s;
 }

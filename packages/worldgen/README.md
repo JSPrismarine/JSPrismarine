@@ -203,17 +203,18 @@ injection point rather than a stub:
 
 ## Noise in the native library
 
-Every `worldgen/noise` entry is an octave stack of Perlin noise. When
+Every `worldgen/noise` entry is an octave stack of Perlin noise, and `old_blended_noise` samples
+three stacks of smeared Perlin noise. When
 [`@jsprismarine/native-worldgen`](../native-worldgen/README.md)'s library loads on the thread, a
-`RandomState` mirrors each stack into it and samples it there. The bits are the same: the C does
-each `f32()` as one float operation and is built without fused multiply-adds. A chunk's terrain fill
-then runs none of their Perlin octaves in TypeScript.
+`RandomState` mirrors each of those stacks into it and samples it there. The bits are the same: the
+C does each `f32()` as one float operation and is built without fused multiply-adds. A chunk's
+terrain fill then runs no octave in TypeScript, in every vanilla noise setting.
 
 Without a build for the machine, or under a runtime without an FFI, every noise stays in
 TypeScript. `new RandomState(data, seed, settings, { nativeNoise: false })` keeps it there on
 purpose, which the `worldgen.terrain` parity family does to hold both paths to Java's vectors. The
-two nether noises Java still builds through the pre-1.18 octave chain, and the smeared, blended and
-simplex noises, stay in TypeScript for now.
+two nether noises Java still builds through the pre-1.18 octave chain, and the end islands' simplex
+noise, stay in TypeScript for now.
 
 ## The world blender
 

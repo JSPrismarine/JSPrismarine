@@ -1,6 +1,7 @@
 import { clamp, f32, floor, floorDiv, floorMod, lerpF } from '../math';
 import { BLENDED_NOISE_SEED, createBlendedNoiseSampler } from '../noise/BlendedNoise';
 import type { Noise } from '../noise/GradientNoise';
+import type { NoiseStack } from '../noise/NoiseStack';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
@@ -97,6 +98,11 @@ export interface CompileEnvironment {
     random(id: string): RandomSource;
     /** Returns the legacy random source the outer end islands are seeded from. */
     endIslandRandom(): RandomSource;
+    /**
+     * Returns an octave stack with the same bits, such as its mirror in the native library. Absent,
+     * stacks are sampled as they are.
+     */
+    stack?(noise: NoiseStack): Noise;
 }
 
 /** Options for comparing the scalar interpolation path with reusable cell buffers. */
@@ -614,7 +620,12 @@ export class DensityFunctionCompiler {
                 return (_context, x, _y, z) => f32(noise.get3(z * 0.25, x * 0.25, 0) * 4);
             }
             case 'old_blended_noise': {
-                const sample = createBlendedNoiseSampler(this.environment.random(BLENDED_NOISE_SEED), node);
+                const environment = this.environment;
+                const sample = createBlendedNoiseSampler(
+                    environment.random(BLENDED_NOISE_SEED),
+                    node,
+                    (noise) => environment.stack?.(noise) ?? noise
+                );
                 return (_context, x, y, z) => sample(x, y, z);
             }
             case 'end_outer_islands': {

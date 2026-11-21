@@ -1,5 +1,6 @@
 import { clamp, f32, lerpF } from '../math';
 import type { RandomSource } from '../random/RandomSource';
+import type { Noise } from './GradientNoise';
 import type { NoiseStack } from './NoiseStack';
 import { NoiseStackBuilder } from './NoiseStack';
 import { SmearedPerlinNoise } from './SmearedPerlinNoise';
@@ -86,9 +87,14 @@ export const createBlendedNoiseFbmSet = (
  */
 export const createBlendedNoiseSampler = (
     random: RandomSource,
-    parameters: BlendedNoiseParameters
+    parameters: BlendedNoiseParameters,
+    /** Replaces each octave stack with one of the same bits, such as a native mirror. */
+    stack: (noise: NoiseStack) => Noise = (noise) => noise
 ): ((x: number, y: number, z: number) => number) => {
-    const { minLimitNoise, maxLimitNoise, mainNoise } = createBlendedNoiseFbmSet(random, parameters);
+    const fbm = createBlendedNoiseFbmSet(random, parameters);
+    const minLimitNoise = stack(fbm.minLimitNoise);
+    const maxLimitNoise = stack(fbm.maxLimitNoise);
+    const mainNoise = stack(fbm.mainNoise);
     const xzMultiplier = BASE_SCALE * parameters.xzScale;
     const yMultiplier = BASE_SCALE * parameters.yScale;
     const mainXzMultiplier = xzMultiplier / parameters.xzFactor;

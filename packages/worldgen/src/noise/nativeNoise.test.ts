@@ -4,8 +4,12 @@ import registryVectors from '../../vectors/26.3/surface-registries.json' with { 
 import { ChunkSampler } from '../chunk/ChunkSampler';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
-import { nativeWorldgen, NativeStackNoise } from './nativeNoise';
+import { LegacyRandomSource } from '../random/LegacyRandomSource';
+import { createBlendedNoiseSampler } from './BlendedNoise';
+import type { BlendedNoiseParameters } from './BlendedNoise';
+import { nativeWorldgen, NativeStackNoise, withNativeStack } from './nativeNoise';
 import { PerlinNoise } from './PerlinNoise';
+import { SmearedPerlinNoise } from './SmearedPerlinNoise';
 
 const parseDocuments = (source: Record<string, string>): Map<string, unknown> =>
     new Map(Object.entries(source).map(([id, document]) => [id, JSON.parse(document) as unknown]));
@@ -82,6 +86,34 @@ describe.runIf(available)('worldgen noise in the native library', () => {
         expect(mismatches).toEqual([]);
     });
 
+    it("samples old blended noise's smeared stacks natively, with the same bits", () => {
+        const library = nativeWorldgen();
+        if (library === undefined) throw new TypeError('the suite runs only where the library loads');
+        // The three vanilla base_3d_noise shapes: overworld, nether and end.
+        const shapes: BlendedNoiseParameters[] = [
+            { xzScale: 0.25, yScale: 0.125, xzFactor: 80, yFactor: 160, smearScaleMultiplier: 8 },
+            { xzScale: 0.25, yScale: 0.375, xzFactor: 80, yFactor: 60, smearScaleMultiplier: 8 },
+            { xzScale: 0.25, yScale: 0.25, xzFactor: 80, yFactor: 160, smearScaleMultiplier: 4 }
+        ];
+        const xyz = positions(500);
+        const mismatches: string[] = [];
+        for (const shape of shapes) {
+            const reference = createBlendedNoiseSampler(new LegacyRandomSource(1234n), shape);
+            const fast = createBlendedNoiseSampler(new LegacyRandomSource(1234n), shape, (stack) =>
+                withNativeStack(library, stack)
+            );
+            for (let index = 0; index < xyz.length; index += 3) {
+                // Terrain samples y inside the world's height, where smearing snaps the lattice.
+                const [x, y, z] = [xyz[index] ?? 0, ((xyz[index + 1] ?? 0) % 384) - 64, xyz[index + 2] ?? 0];
+                if (bitsOf(fast(x, y, z)) !== bitsOf(reference(x, y, z))) {
+                    mismatches.push(`${JSON.stringify(shape)} at ${x},${y},${z}`);
+                }
+            }
+        }
+
+        expect(mismatches.slice(0, 5)).toEqual([]);
+    });
+
     it('samples a native noise without running a TypeScript octave', () => {
         const noise = native.noise('minecraft:continentalness');
         const octaves = vi.spyOn(PerlinNoise.prototype, 'get3');
@@ -92,14 +124,15 @@ describe.runIf(available)('worldgen noise in the native library', () => {
         expect(counted).toBe(0);
     });
 
-    // Blended noise's smeared octaves override get3 and are not counted here; they have no kernel yet.
-    it("fills a chunk's terrain without one TypeScript Perlin octave sample, where the TypeScript path runs tens of thousands", () => {
+    it("fills a chunk's terrain without one TypeScript octave sample, where the TypeScript path runs tens of thousands", () => {
         const octaveSamples = (state: RandomState): number => {
+            // Smeared octaves override get3, so each class is counted on its own.
             const octaves = vi.spyOn(PerlinNoise.prototype, 'get3');
+            const smeared = vi.spyOn(SmearedPerlinNoise.prototype, 'get3');
             const sampler = new ChunkSampler(state, { chunkX: 3, chunkZ: -5 });
             for (let index = 0; index < sampler.cellCount; index++) sampler.forEachCellBlock(index, () => {});
-            const counted = octaves.mock.calls.length;
-            octaves.mockRestore();
+            const counted = octaves.mock.calls.length + smeared.mock.calls.length;
+            vi.restoreAllMocks();
             return counted;
         };
 
