@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/raknet",
     "version": "0.22.0",
-    "description": "Basic RakNet implementation written in TypeScript",
+    "description": "RakNet, the UDP transport Minecraft: Bedrock Edition connects over, for a server or a client",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",

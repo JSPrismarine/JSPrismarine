@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/bedrock-data",
     "version": "0.22.0",
-    "description": "Minecraft Bedrock game data exported in a nodejs friendly way.",
+    "description": "Minecraft: Bedrock Edition game data for Node.js, captured from Mojang's Bedrock and Java Edition servers",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",

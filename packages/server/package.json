@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/server",
     "version": "0.22.0",
-    "description": "Minecraft: Bedrock Edition dedicated server entrypoint",
+    "description": "The prismarine command line: runs the server in a host process, with a file watcher and the terminal console",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",
