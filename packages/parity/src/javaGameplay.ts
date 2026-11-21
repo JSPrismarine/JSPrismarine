@@ -168,6 +168,28 @@ export const JAVA_MECHANICS: readonly JavaMechanic[] = [
         description:
             'an end portal, the exit portal and end gateways moving a player (EndPortalBlock, TheEndGatewayBlockEntity)'
     },
+    {
+        id: 'fishing',
+        description:
+            'casting a rod, the wait, the bite, reeling in, and the fish, junk and treasure tables (FishingHook)'
+    },
+    {
+        id: 'explosions',
+        description: 'a blast breaking blocks, dropping them with decay, hurting and pushing entities (ServerExplosion)'
+    },
+    {
+        id: 'lighting',
+        description: 'block and sky light spreading and dimming through blocks (LightEngine)'
+    },
+    {
+        id: 'random-ticks',
+        description: 'random_tick_speed blocks of each loaded section ticking each tick (ServerLevel.tickChunk)'
+    },
+    {
+        id: 'mob-griefing',
+        description:
+            'the mobs whose blocks the mob_griefing rule stops: creepers, endermen, ravagers, villagers farming (ServerLevel.getGameRules)'
+    },
     { id: 'statistics', description: 'counting what a player does into their statistics (ServerStatsCounter)' },
     { id: 'advancements', description: 'granting an advancement when its criteria trigger (PlayerAdvancements)' },
     { id: 'recipe-book', description: 'unlocking recipes as a player gets their ingredients (ServerRecipeBook)' }
