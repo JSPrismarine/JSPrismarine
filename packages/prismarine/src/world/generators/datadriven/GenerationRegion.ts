@@ -22,7 +22,7 @@ import type {
 } from '@jsprismarine/features';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import type { BedrockBlockState } from '@jsprismarine/structures';
-import type { SurfaceChunk } from '@jsprismarine/worldgen';
+import type { CellFluids, SurfaceChunk } from '@jsprismarine/worldgen';
 
 import type { TemplateSource, TemplateTarget } from './javaTemplatePlacement';
 import { placeJavaTemplate } from './javaTemplatePlacement';
@@ -36,6 +36,9 @@ const READ_THROUGH_TERRAIN = Symbol('GenerationRegion read-through terrain');
 
 const AIR = 'minecraft:air';
 const AIR_STATE: BlockState = { name: AIR, properties: {} };
+/** {@link GenerationRegion.writeTerrainCell}'s mark for a code it skips, and one not yet resolved. */
+const AIR_SLOT = -1;
+const UNRESOLVED_SLOT = -2;
 
 /**
  * The blocks Java 26.3 gives a post-process position, and how far above the block it is.
@@ -474,6 +477,8 @@ export class GenerationRegion {
     private readonly originX: number;
     private readonly originZ: number;
     private states: Uint16Array<ArrayBuffer>;
+    /** {@link writeTerrainCell}'s palette slot per block code. */
+    private terrainCellSlots: Int32Array | undefined;
     private terrainSources: readonly (GenerationRegion | undefined)[] | undefined;
     /**
      * A feature view's own writes, one array per terrain tile in `terrainSources` order, made on
@@ -882,6 +887,57 @@ export class GenerationRegion {
             }
             return true;
         };
+    }
+
+    /**
+     * Writes one terrain cell the native aquifer decided, within `floor` to `ceiling`: each block
+     * but `minecraft:air`, as {@link createTerrainNameWriter}'s writer would, and a fluid tick
+     * wherever a written block asks for one.
+     *
+     * A cell's blocks are a handful of names, so each is resolved to its palette slot once, and
+     * while the tile is still fresh the slots go straight into the buffer; after that each block
+     * takes {@link writeName}'s bookkeeping.
+     *
+     * @internal Used only by the datadriven terrain pass, after {@link createTerrainNameWriter}.
+     */
+    public writeTerrainCell(cell: CellFluids, floor: number, ceiling: number): void {
+        const names = cell.blockNames;
+        const slots = (this.terrainCellSlots ??= new Int32Array(names.length));
+        // Resolved on first use, so new names join the palette in the order the blocks are written,
+        // as they do through the name writer.
+        slots.fill(UNRESOLVED_SLOT);
+        const codes = cell.codes;
+        const scheduleBit = cell.scheduleBit;
+        const lowY = Math.max(cell.firstY, floor, this.minY);
+        const highY = Math.min(cell.lastY, ceiling, this.maxY);
+        for (let x = cell.firstX; x <= cell.lastX; x++) {
+            for (let z = cell.firstZ; z <= cell.lastZ; z++) {
+                const column = this.columnIndex(x, z);
+                if (column === -1) continue;
+                const base = (x - cell.firstX) * cell.strideX + (z - cell.firstZ) * cell.strideZ - cell.firstY;
+                for (let y = highY; y >= lowY; y--) {
+                    const code = codes[base + y]!;
+                    const blockCode = code & ~scheduleBit;
+                    let slot = slots[blockCode]!;
+                    if (slot === UNRESOLVED_SLOT) {
+                        const name = names[blockCode]!;
+                        slot = name === AIR ? AIR_SLOT : this.paletteSlotForName(name);
+                        slots[blockCode] = slot;
+                    }
+                    if (slot === AIR_SLOT) continue;
+                    // The same test the name writer makes: air of another name, or a tile no longer
+                    // fresh, takes the full bookkeeping.
+                    if (!this.directTerrainWriting || this.isAirByPaletteSlot[slot]) {
+                        this.writeName(x, y, z, names[blockCode]!);
+                    } else {
+                        this.states[column * this.height + (y - this.minY)] = slot;
+                        if (y > this.highest[column]!) this.highest[column] = y;
+                    }
+                    // Java's `doFill` marks the fluid the aquifer asked to update for post-processing.
+                    if ((code & scheduleBit) !== 0) this.markForPostProcessing(x, y, z);
+                }
+            }
+        }
     }
 
     /**

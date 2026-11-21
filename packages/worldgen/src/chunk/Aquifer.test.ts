@@ -60,6 +60,41 @@ describe.runIf(process.env.JSP_NATIVE_WORLDGEN_REQUIRE === '1' || nativeWorldgen
             return blocks;
         };
 
+        it('hands proven and native cells whole to a bulk visitor, with the blocks the per-block visit gives', () => {
+            const state = new RandomState(vanillaData, 1234n, vanillaData.settings('minecraft:overworld'));
+            const perBlock = walk(new ChunkSampler(state, { chunkX: -6, chunkZ: 2 }));
+            const sampler = new ChunkSampler(state, { chunkX: -6, chunkZ: 2 });
+            const bulk: string[] = [];
+            let wholeCells = 0;
+            for (let cell = 0; cell < sampler.cellCount; cell++) {
+                sampler.forEachCellBlock(
+                    cell,
+                    (x, y, z, block, tick) => bulk.push(`${x},${y},${z} ${block} ${tick}`),
+                    (blocks) => {
+                        wholeCells++;
+                        for (let x = blocks.firstX; x <= blocks.lastX; x++) {
+                            for (let z = blocks.firstZ; z <= blocks.lastZ; z++) {
+                                for (let y = blocks.lastY; y >= blocks.firstY; y--) {
+                                    const code =
+                                        blocks.codes[
+                                            (x - blocks.firstX) * blocks.strideX +
+                                                (z - blocks.firstZ) * blocks.strideZ +
+                                                (y - blocks.firstY)
+                                        ]!;
+                                    const block = blocks.blockNames[code & ~blocks.scheduleBit];
+                                    bulk.push(`${x},${y},${z} ${block} ${(code & blocks.scheduleBit) !== 0}`);
+                                }
+                            }
+                        }
+                    }
+                );
+            }
+
+            expect(bulk).toEqual(perBlock);
+            // Every cell arrives whole: the proven ones, and the filled ones the native aquifer decided.
+            expect(wholeCells).toBe(sampler.cellCount);
+        });
+
         const withAquifers = vanillaData.noiseSettingsIds.filter(
             (id) => vanillaData.settings(id).aquifers !== undefined
         );

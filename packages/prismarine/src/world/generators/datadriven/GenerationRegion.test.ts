@@ -1004,6 +1004,72 @@ describe('terrain name writer', () => {
         expect(() => built.createTerrainNameWriter()).toThrow('fresh, untracked region');
     });
 
+    describe('a terrain cell the native aquifer decided', () => {
+        /** Codes for a 4 by 8 by 4 cell at (4, -64, 8): every kind of block, with ticks on some fluids. */
+        const NAMES = ['minecraft:air', 'minecraft:water', 'minecraft:lava', 'minecraft:water', 'minecraft:stone'];
+        const SCHEDULE = 0x80;
+        const cellOf = () => {
+            const codes = new Uint8Array(4 * 4 * 8);
+            for (let index = 0; index < codes.length; index++) {
+                const code = (index * 7) % NAMES.length;
+                codes[index] = code === 1 && index % 3 === 0 ? code | SCHEDULE : code;
+            }
+            return {
+                firstX: 4,
+                lastX: 7,
+                firstY: -64,
+                lastY: -57,
+                firstZ: 8,
+                lastZ: 11,
+                strideX: 32,
+                strideZ: 8,
+                codes,
+                blockNames: NAMES,
+                scheduleBit: SCHEDULE
+            };
+        };
+        /** What the terrain pass's per-block visit writes for the same cell. */
+        const writeEachBlock = (region: GenerationRegion, floor: number, ceiling: number): void => {
+            const write = region.createTerrainNameWriter();
+            const cell = cellOf();
+            for (let x = cell.firstX; x <= cell.lastX; x++) {
+                for (let z = cell.firstZ; z <= cell.lastZ; z++) {
+                    for (let y = cell.lastY; y >= cell.firstY; y--) {
+                        const code = cell.codes[(x - 4) * 32 + (z - 8) * 8 + (y + 64)]!;
+                        const name = NAMES[code & ~SCHEDULE]!;
+                        if (y < floor || y > ceiling || name === 'minecraft:air') continue;
+                        write(x, y, z, name);
+                        if ((code & SCHEDULE) !== 0) region.markForPostProcessing(x, y, z);
+                    }
+                }
+            }
+        };
+
+        it('leaves the blocks, column tops and fluid ticks the per-block writes leave', () => {
+            // A floor and ceiling inside the cell, so both clip it.
+            const [floor, ceiling] = [-62, -59];
+            const each = terrainTile(0, 0);
+            writeEachBlock(each, floor, ceiling);
+            const whole = terrainTile(0, 0);
+            whole.createTerrainNameWriter();
+            whole.writeTerrainCell(cellOf(), floor, ceiling);
+
+            expect(whole.centerBlockSlots()).toEqual(each.centerBlockSlots());
+            expect(whole.centerFluidTicks()).toEqual(each.centerFluidTicks());
+            expect(whole.centerFluidTicks().length).toBeGreaterThan(0);
+        });
+
+        it('tracks each write once the region is no longer a fresh tile', () => {
+            const built = terrainTile(0, 0);
+            built.createTerrainNameWriter();
+            built.beginWriteTracking();
+            built.writeTerrainCell(cellOf(), -64, 319);
+
+            const tracked = built.takeTrackedPatches()[0]?.blocks ?? [];
+            expect(tracked.length).toBe(cellOf().codes.filter((code) => (code & ~SCHEDULE) !== 0).length);
+        });
+    });
+
     it('returns to tracked writes if the region starts tracking during a terrain write sequence', () => {
         const built = terrainTile(0, 0);
         const writeTerrain = built.createTerrainNameWriter();
