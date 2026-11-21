@@ -1,5 +1,6 @@
 import type {
     CompileEnvironment,
+    DensityBoundSampler,
     DensityFunctionCompilerOptions,
     DensitySampler,
     DensityVolumeEvaluator,
@@ -96,6 +97,14 @@ export class RandomState {
     /** Compiles a density function tree against this seed, reusing earlier compilations. */
     public sampler(node: DensityFunctionNode): DensitySampler {
         return this.compiler.compile(node);
+    }
+
+    /**
+     * Compiles a function that bounds a density function tree's samples over a box of blocks;
+     * see {@link DensityFunctionCompiler.boundSampler} for the box it needs.
+     */
+    public boundSampler(node: DensityFunctionNode): DensityBoundSampler {
+        return this.compiler.boundSampler(node);
     }
 
     /**
