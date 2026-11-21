@@ -532,7 +532,7 @@ const HARVESTS: ReadonlyMap<string, Harvest> = new Map<string, Harvest>([
 /**
  * `minecraft:behavior.raid_garden`, which the rabbit and the fox carry. The entity walks to a
  * ripe crop it raids and eats into it; a `max_to_eat` of 0 sets no limit. Crops whose growth the
- * goal knows follow Java's rules ({@link HARVESTS}); any other block a pack lists is broken.
+ * goal knows follow Java's rules (`HARVESTS`); any other block a pack lists is broken.
  */
 export const raidGarden = goal<RaidGardenParams>({
     name: 'minecraft:behavior.raid_garden',
@@ -980,7 +980,7 @@ export interface PlaceBlockParams {
 }
 
 /** One entry of `randomly_placeable_blocks`: a block, its states, and when it may be placed. */
-interface PlaceableBlock {
+export interface PlaceableBlock {
     readonly name: string;
     readonly states: GoalBlockStates;
     readonly filter: Filter | undefined;

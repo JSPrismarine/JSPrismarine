@@ -26,7 +26,7 @@ const cameraPreset = t.custom<CameraPresetData>(
  */
 export const cameraPresetsPacket = definePacket('CameraPresetsPacket', {
     /**
-     * `Camera Presets`: a varuint32 count, then one {@link cameraPreset} each. The docs print a single
+     * `Camera Presets`: a varuint32 count, then one `cameraPreset` each. The docs print a single
      * `CameraPresets` object; the captured payload `bedrock-data/src/jsp/v2193/wire/0xc6.bin` (identical at
      * v2225) carries the count.
      */

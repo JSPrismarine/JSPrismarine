@@ -30,7 +30,7 @@ export const worldKeyOf = (dimension: string, level: string | undefined): string
 
 /**
  * Reads a key back into the world it names.
- * @param key - A key {@link worldKeyOf} made.
+ * @param key - A key `worldKeyOf` made.
  * @returns The dimension, and the level when it is not the default.
  */
 export const worldOfKey = (key: string): { readonly dimension: string; readonly level: string | undefined } => {

@@ -40,7 +40,7 @@ export const fnv1a32 = (data: Buffer): number => {
     return hash | 0;
 };
 
-/** What a block state property can hold. A flag is a boolean, not 0 or 1 - see {@link stateTag}. */
+/** What a block state property can hold. A flag is a boolean, not 0 or 1 - see `stateTag`. */
 export type BlockStateValue = string | number | boolean;
 
 /**

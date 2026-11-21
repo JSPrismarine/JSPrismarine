@@ -10,6 +10,6 @@ import { Vector3 } from '@jsprismarine/math';
  */
 export const EYE_HEIGHT = 1.62;
 
-/** The position a player reports when their feet are at `feet`: the same spot, {@link EYE_HEIGHT} up. */
+/** The position a player reports when their feet are at `feet`: the same spot, `EYE_HEIGHT` up. */
 export const eyePositionAt = (feet: Vector3): Vector3 =>
     new Vector3(feet.getX(), feet.getY() + EYE_HEIGHT, feet.getZ());

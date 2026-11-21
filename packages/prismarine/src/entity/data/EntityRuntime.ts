@@ -780,7 +780,7 @@ export interface EntityRuntimeOptions {
 }
 
 /** The host view exposed to the runtime, with its per-tick player index. */
-interface RuntimeEntityHostFacts extends EntityHostFacts {
+export interface RuntimeEntityHostFacts extends EntityHostFacts {
     playerById(id: number): ContentEntity | undefined;
 }
 
@@ -2913,7 +2913,7 @@ export class EntityRuntime implements EntityScene {
      * The body one `EntityInstance` drives.
      *
      * Every instance the runtime made is in the index, except the one being
-     * constructed now, which is why {@link EntityRuntime.spawning} exists.
+     * constructed now, which is why `EntityRuntime.spawning` exists.
      */
     public bodyOf(instance: EntityInstance): MobBody | undefined {
         return this.byInstance.get(instance)?.body ?? this.spawning;
@@ -4594,7 +4594,7 @@ export class EntityRuntime implements EntityScene {
      * Spawns a projectile with its owner and launch velocity recorded in the live entity runtime.
      *
      * Its hits are read from `minecraft:projectile`, and its flight from Java's class for a vanilla
-     * type or from that component otherwise ({@link projectileFlight}); a type without the
+     * type or from that component otherwise (`projectileFlight`); a type without the
      * component is refused instead of leaving a body that can only fall like an ordinary entity.
      *
      * @param identifier - The projectile entity definition to instantiate.
@@ -4638,7 +4638,7 @@ export class EntityRuntime implements EntityScene {
      * Detonates an entity, which is what `minecraft:behavior.swell` stands
      * still for.
      *
-     * Java's ray cast through {@link detonate}, so a creeper now carves the
+     * Java's ray cast through `detonate`, so a creeper now carves the
      * hole it should: the blocks it can reach come out through their own loot
      * tables, everything in range is hurt by how much of the blast it can see,
      * and the entity itself goes with it.
@@ -6344,8 +6344,8 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * Restocks a villager's trades at its job site, by Java's `Villager.shouldRestock` rule: only
-     * when something was used, at most {@link RESTOCKS_PER_DAY} times a day and only once more than
-     * {@link RESTOCK_GAP_TICKS} have passed since the last one. A villager with a player at its screen waits.
+     * when something was used, at most `RESTOCKS_PER_DAY` times a day and only once more than
+     * `RESTOCK_GAP_TICKS` have passed since the last one. A villager with a player at its screen waits.
      */
     public villagerRestock(body: MobBody): void {
         const entity = this.store.get(body.id);
@@ -6907,7 +6907,7 @@ export class EntityRuntime implements EntityScene {
 
     /**
      * How many ticks of cold a living body has taken in powder snow, up to
-     * {@link TICKS_REQUIRED_TO_FREEZE}; 0 for one that is warm.
+     * `TICKS_REQUIRED_TO_FREEZE`; 0 for one that is warm.
      */
     public frozenTicksOf(id: number): number {
         return this.frozenTicks.get(id) ?? 0;
@@ -6923,7 +6923,7 @@ export class EntityRuntime implements EntityScene {
      * Runs one tick of powder snow's cold on a living body, as Java's `LivingEntity.aiStep` does.
      *
      * A body whose box is in powder snow and that can freeze takes a tick of cold, up to
-     * {@link TICKS_REQUIRED_TO_FREEZE}; out of the snow it warms by two a tick. A fully frozen
+     * `TICKS_REQUIRED_TO_FREEZE`; out of the snow it warms by two a tick. A fully frozen
      * body takes a `freezing` blow every {@link FREEZE_HURT_INTERVAL} ticks: 1, or 5 for a type in
      * Java's `freeze_hurts_extra_types` tag or one that declares `minecraft:freezing_vulnerable`.
      * Whether it can freeze is what its damage sensing makes of a freezing blow, which is where
@@ -7207,7 +7207,7 @@ export class EntityRuntime implements EntityScene {
         return block !== undefined && this.content().tags.includes('block', CLIMBABLE_TAG, block.identifier);
     }
 
-    /** Applies projectile gravity and drag ({@link projectileFlight}), swept collisions, and the active component's hit actions. */
+    /** Applies projectile gravity and drag (`projectileFlight`), swept collisions, and the active component's hit actions. */
     private coastProjectile(entity: DataEntity, params: Record<string, unknown>): void {
         const state = this.projectiles.get(entity.id) ?? { hitEntities: new Set<number>() };
         this.projectiles.set(entity.id, state);

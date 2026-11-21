@@ -63,7 +63,7 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
  */
 export const PLAYER_SOFT_ENUM = 'Player';
 
-/** The command ran; the work it started is parked with {@link deferCommandWork}. */
+/** The command ran; the work it started is parked with `deferCommandWork`. */
 const RAN = 1;
 
 /** Runs async work from a synchronous body, reporting what it settles with as feedback. */

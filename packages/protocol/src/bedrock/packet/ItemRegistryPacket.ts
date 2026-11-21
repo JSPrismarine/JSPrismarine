@@ -5,10 +5,9 @@ import { layoutAt } from '../../wire/WireLayout';
 
 import type NetworkBinaryStream from '../../NetworkBinaryStream';
 import type { ProtocolContext } from '../ProtocolContext';
-import type { ItemRegistryPayload } from '../wire/definitions/itemRegistry';
+import type { ItemRegistryEntry, ItemRegistryPayload } from '../wire/definitions/itemRegistry';
 
-/** One `ItemData` entry of `ItemRegistryPacket`. */
-export type ItemRegistryEntry = ItemRegistryPayload['items'][number];
+export type { ItemRegistryEntry } from '../wire/definitions/itemRegistry';
 
 /** The decoded `ItemRegistryPacket`: the `Item Data` array in wire order. */
 export interface ItemRegistry extends ItemRegistryPayload {

@@ -200,7 +200,7 @@ export class CompressionCodec {
         }
     }
 
-    /** Reads a batch's prefix byte with {@link maxDecompressedLength} already applied. */
+    /** Reads a batch's prefix byte with `maxDecompressedLength` already applied. */
     public decompress(algorithm: PacketCompressionAlgorithm, payload: Buffer): Buffer {
         return CompressionCodec.decompress(algorithm, payload, this.maxDecompressedLength);
     }

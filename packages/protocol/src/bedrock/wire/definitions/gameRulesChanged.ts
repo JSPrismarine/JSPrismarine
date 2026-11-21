@@ -23,6 +23,6 @@ const gameRule = t.custom<GameRule>(
 
 /** The `GameRulesChangedPacket` field list; the class doc carries the wire provenance. */
 export const gameRulesChangedPacket = definePacket('GameRulesChangedPacket', {
-    /** `Rule Data`: a varuint32 count, then one {@link gameRule} each. */
+    /** `Rule Data`: a varuint32 count, then one `gameRule` each. */
     rulesList: t.list(gameRule)
 });

@@ -86,7 +86,7 @@ export interface ReferencedIdentifier {
  * names is reported too.
  *
  * `id` is absent because it is the one name 26.3 reuses across grammars;
- * {@link registryForId} decides it from the object the field sits in, and
+ * `registryForId` decides it from the object the field sits in, and
  * {@link registryForField} is where both rules meet.
  */
 const IDENTIFIER_FIELDS: Readonly<Record<string, string>> = {
@@ -249,7 +249,7 @@ const PACK_REGISTRIES: Readonly<Record<string, JavaRegistryId>> = {
  * The registries the report walks for references. The dimension and worldgen
  * registries are left out. Their files name blocks as `{ Name, Properties }`
  * states, features by `feature`, biomes by `biome` and noise settings by
- * `settings`, none of which {@link IDENTIFIER_FIELDS} reads; the heuristic
+ * `settings`, none of which `IDENTIFIER_FIELDS` reads; the heuristic
  * would catch only the `block` strings of flat layers and processor rules
  * and report a fraction of what the files reference. `@jsprismarine/worldgen`
  * resolves those references as it parses the files.
@@ -278,14 +278,14 @@ const inPackStack = (definitions: Definitions, registry: string, id: string): bo
  * Walks every loaded Java definition and reports each referenced Java
  * identifier with its resolution, sorted by registry and id. Tag members
  * count against the registry their tag file tags; every other reference
- * counts by field name per {@link IDENTIFIER_FIELDS}, except `id`, which
- * {@link registryForId} decides from its siblings.
+ * counts by field name per `IDENTIFIER_FIELDS`, except `id`, which
+ * `registryForId` decides from its siblings.
  *
  * The resolver is asked first, so a reviewed loss stays a loss even when the
  * stack also defines the identifier; references the resolver does not know
  * fall back to the pack stack.
  *
- * @param definitions - The composed pack stack, as {@link import('./load').load} returns it.
+ * @param definitions - The composed pack stack, as {@link load} returns it.
  * @param resolver - The Bedrock-side resolver; defaults to {@link unknownResolver}.
  * @returns One entry per distinct referenced identifier, sorted by registry then id.
  */

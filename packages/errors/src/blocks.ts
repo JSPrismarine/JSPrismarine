@@ -6,7 +6,7 @@ import { ContentError } from '@jsprismarine/errors/content';
  * name the block does not carry, a runtime id outside the palette, a palette
  * built with a duplicate identifier.
  *
- * Bad pack data is not an error. It comes back as a {@link Diagnostic} so one
+ * Bad pack data is not an error. It comes back as a `Diagnostic` so one
  * broken file cannot stop a load, which is the rule `@jsprismarine/packs` and
  * `@jsprismarine/content` already follow.
  */

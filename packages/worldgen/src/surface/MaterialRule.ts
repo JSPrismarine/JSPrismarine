@@ -118,7 +118,7 @@ export interface MaterialRuleSource {
 /**
  * The parsed `material_rule` and `material_condition` registries for one data pack stack.
  *
- * Parsing is lazy and memoized per identifier, the way {@link import('../WorldgenData').WorldgenData}
+ * Parsing is lazy and memoized per identifier, the way {@link WorldgenData}
  * handles density functions, and a reference cycle is reported rather than left to overflow the
  * stack at sample time.
  */

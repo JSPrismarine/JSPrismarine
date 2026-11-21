@@ -174,7 +174,7 @@ export interface StructureStartOptions {
     readonly isPossibleBiome: (biome: string) => boolean;
     /** The builder for each `worldgen/structure` type. */
     readonly builders: ReadonlyMap<string, StructureBuilder>;
-    /** Called for every worker-local start-cache miss, before {@link StructureStartSource.buildStart}. */
+    /** Called for every worker-local start-cache miss, before `StructureStartSource.buildStart`. */
     readonly onBuildStart?: (set: string, chunkX: number, chunkZ: number, elapsedMs: number) => void;
 }
 

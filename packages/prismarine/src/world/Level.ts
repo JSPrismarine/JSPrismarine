@@ -98,7 +98,7 @@ export interface LevelOptions {
     readonly server: Server;
     /** The one provider for every dimension of this save. The level opens and closes it. */
     readonly provider: BaseProvider;
-    /** The world seed, as a 64-bit value. See {@link import('../utils/Seed').worldSeedOf}. */
+    /** The world seed, as a 64-bit value. See `worldSeedOf`. */
     readonly seed: bigint;
     /**
      * The resolved level stems, keyed by dimension id such as `minecraft:the_nether`, in the
@@ -1052,7 +1052,7 @@ export class Level {
 
     /**
      * Writes the whole level in one pass: every loaded world's players and chunks, and the level
-     * data. See {@link LevelSave.save}.
+     * data. See `LevelSave.save`.
      */
     public async save(): Promise<void> {
         await this.saves.save([...this.worlds()]);
@@ -1069,7 +1069,7 @@ export class Level {
 
     /**
      * Settles once the pass whose cut is taken has committed, or at once when none is pending;
-     * see {@link LevelSave.pendingCommit}.
+     * see `LevelSave.pendingCommit`.
      */
     public async pendingSave(): Promise<void> {
         await this.saves.pendingCommit();
@@ -1078,7 +1078,7 @@ export class Level {
     /**
      * Writes the level's own state through the provider: the spawn, rules, weather and stems
      * into the provider's record, and the spawn, clock, generator and Nether scale into
-     * `level.dat`. Queued behind a pass that is running; see {@link LevelSave.saveLevelData}.
+     * `level.dat`. Queued behind a pass that is running; see `LevelSave.saveLevelData`.
      *
      * A level whose spawn is still unknown writes everything else and leaves the stored spawn
      * where it is. Overwriting a real spawn point with a guess would be worse than the gap.

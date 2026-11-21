@@ -370,8 +370,6 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /**
-     * @inheritdoc
-     *
      * A trader's offers go to every player with a trade screen open on it, whose prices the
      * trade screen works out for that player, and a slot goes to the player that carries it.
      */
@@ -393,10 +391,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /**
-     * @inheritdoc
-     *
      * Each occurrence is encoded once for each codec and compression group of its audience, as
-     * {@link sendToAll} does, and the audience is worked out once, here, rather than by the code
+     * `sendToAll` does, and the audience is worked out once, here, rather than by the code
      * that made the occurrence.
      */
     public flushOccurrences(): void {
@@ -491,8 +487,6 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /**
-     * @inheritdoc
-     *
      * One deflate per protocol version rather than one per block. An ocean draining into a cavern changes
      * a few thousand blocks in a tick, and each of those used to be its own batch and its own
      * synchronous zlib pass on the tick thread - which is most of what the tick was doing.
@@ -725,8 +719,6 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /**
-     * @inheritdoc
-     *
      * One `BlockActorDataPacket` per position rather than a shared batch, which is the
      * opposite of what {@link flushBlockChanges} does and right for the opposite reason. The
      * block changes are thousands of twenty-byte packets with the same contents for everyone;

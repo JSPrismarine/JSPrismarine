@@ -234,7 +234,7 @@ export const mergeJavaDefinition = (mode: MergeMode, previous: unknown, data: un
  * earlier ones, which is vanilla's rule.
  *
  * @param target - The Java release whose data pack format gates `pack.mcmeta` and its overlays.
- *   Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
+ *   Defaults to `DEFAULT_JAVA_DATA_TARGET`.
  */
 export const loadDatapack = (
     path: string,

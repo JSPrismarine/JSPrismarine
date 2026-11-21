@@ -12,7 +12,8 @@ import type { JsprismarineBossBarColor } from './jsprismarineServer';
 import type { JSPRISMARINE_SERVER } from './jsprismarineServer';
 import { JSPRISMARINE_TYPES } from './jsprismarineServer';
 
-type PerformanceProperties = (typeof JSPRISMARINE_SERVER)['performance']['properties'];
+/** The properties the `performance` member of `@jsprismarine/server` declares. */
+export type PerformanceProperties = (typeof JSPRISMARINE_SERVER)['performance']['properties'];
 
 /** How fast the server ticks, with a value for each property `performance` declares. */
 export type ScriptPerformance = {

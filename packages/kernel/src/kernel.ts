@@ -152,7 +152,7 @@ export class Kernel<Events extends EventMap = EventMap> {
      * not stopped, because its start never finished.
      *
      * A `stop()` while this is still running wins: no further module starts,
-     * and this rejects with a {@link KernelError} once the module it was
+     * and this rejects with a `KernelError` once the module it was
      * waiting on returns.
      *
      * @throws KernelError when the kernel is already starting or started, when

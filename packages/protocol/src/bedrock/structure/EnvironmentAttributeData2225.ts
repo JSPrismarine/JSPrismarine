@@ -97,7 +97,7 @@ const readTransitionSettings = (stream: NetworkBinaryStream): TransitionSettings
 /**
  * One `EnvironmentAttributeData` as protocol 2225 sends it: a named environment attribute of an
  * attribute layer. Protocol 2225 replaced the 2193 field list (see
- * {@link ./EnvironmentAttributeData.ts | EnvironmentAttributeData}) with a `Payload` variant.
+ * `EnvironmentAttributeData`) with a `Payload` variant.
  *
  * Wire order: `AttributeName` (string), then `Payload` as a Cereal tagged variant, a varuint32
  * selector (the {@link AttributePayloadType} value) followed by the alternative's fields.

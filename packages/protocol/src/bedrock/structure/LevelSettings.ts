@@ -49,7 +49,8 @@ export enum ServerEditorConnectionPolicy {
     MIXED = 3
 }
 
-interface LevelSettingsConfig {
+/** The optional `LevelSettings` fields; each one left out takes its default. */
+export interface LevelSettingsConfig {
     gamemode?: number;
     baseGameVersion?: string;
     generator?: Generator;

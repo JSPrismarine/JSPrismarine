@@ -21,7 +21,7 @@ export const JSPRISMARINE_MODULE = '@jsprismarine/server';
 export const JSPRISMARINE_PLACEHOLDERS_MODULE = '@jsprismarine/placeholders';
 
 /** A property of an object of plain values that stay the same while the server runs. */
-interface ValueProperty {
+export interface ValueProperty {
     readonly type: 'string' | 'number';
     /** Its documentation, which the typings carry. */
     readonly summary: string;
@@ -30,14 +30,14 @@ interface ValueProperty {
 }
 
 /** A property the server answers each time a script reads it. */
-interface LiveProperty {
+export interface LiveProperty {
     /** A number, or a frozen list of them. */
     readonly type: 'number' | 'numbers';
     readonly summary: string;
 }
 
 /** A function or a method: its TypeScript parameters and return type. */
-interface FunctionDefinition {
+export interface FunctionDefinition {
     readonly summary: string;
     /** The parameter list as TypeScript writes it, without the parentheses. */
     readonly parameters: string;
@@ -45,7 +45,7 @@ interface FunctionDefinition {
 }
 
 /** A property of an interface the module declares, typed in TypeScript. */
-interface InterfaceProperty {
+export interface InterfaceProperty {
     readonly type: string;
     readonly summary: string;
     readonly optional?: true;
@@ -545,7 +545,8 @@ export const JSPRISMARINE_PLACEHOLDER_TYPES = {
 /** A boss bar color as a script names it. */
 export type JsprismarineBossBarColor = (typeof JSPRISMARINE_TYPES)['BossBarColor']['values'][number];
 
-type ServerProperties = (typeof JSPRISMARINE_SERVER)['jsprismarine']['properties'];
+/** The properties the `jsprismarine` member of `@jsprismarine/server` declares. */
+export type ServerProperties = (typeof JSPRISMARINE_SERVER)['jsprismarine']['properties'];
 
 /**
  * What the embedder tells `@jsprismarine/server` about the server: every property of

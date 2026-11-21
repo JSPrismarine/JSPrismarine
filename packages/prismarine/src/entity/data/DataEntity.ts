@@ -48,7 +48,7 @@ const MAX_UP_STEP = 0.6;
 const IMPULSE_FLOOR = 0.003;
 
 /** The movement rules the world supplies when a body takes its step. */
-interface MobBodyStepOptions {
+export interface MobBodyStepOptions {
     /** Whether this entity's active navigation may move freely on the vertical axis. */
     readonly allowVertical: boolean;
     /** Whether the active navigation component permits a jump. */
@@ -57,7 +57,7 @@ interface MobBodyStepOptions {
     readonly stepHeight: number;
     /**
      * How high the entity's feet rise over a ledge without a jump, Java's `step_height`
-     * attribute for its type. Absent means {@link MAX_UP_STEP}, Java's default.
+     * attribute for its type. Absent means `MAX_UP_STEP`, Java's default.
      */
     readonly maxUpStep?: number;
     /**
@@ -241,7 +241,7 @@ export class MobBody {
     /**
      * Told whenever the entity moves, so an index over positions can keep up.
      *
-     * {@link EntityRuntime} sets it to refile the body in its spatial index.
+     * `EntityRuntime` sets it to refile the body in its spatial index.
      * An accessor rather than a field because the index is wrong the instant
      * it misses a move, and there are five places that write a position: the
      * walk, the impulse, a knockback, a teleport and being carried.
@@ -252,7 +252,7 @@ export class MobBody {
      * Told about every change to a field a save or a digest reads, with the value before and
      * after it.
      *
-     * {@link EntityRuntime} sets it to append the change to the world's change log. A write
+     * `EntityRuntime` sets it to append the change to the world's change log. A write
      * that leaves a field as it was is not reported, and a position is compared by its
      * coordinates.
      */
@@ -261,7 +261,7 @@ export class MobBody {
     /**
      * Takes the impulses aimed at a body whose client owns its movement, such as a player's.
      *
-     * Set by {@link EntityRuntime} for those bodies only. The server cannot move such a body, so
+     * Set by `EntityRuntime` for those bodies only. The server cannot move such a body, so
      * {@link MobBody.push} hands the impulse here, where it becomes an occurrence replication
      * sends to the client, and the body's velocity stays as it was.
      */

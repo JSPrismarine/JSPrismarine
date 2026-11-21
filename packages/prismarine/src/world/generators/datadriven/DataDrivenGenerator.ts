@@ -231,7 +231,7 @@ export interface DataDrivenGeneratorOptions {
     /**
      * How many chunks of one world are built at once.
      *
-     * Defaults to {@link DEFAULT_CONCURRENCY}. A shutdown refuses everything past this depth
+     * Defaults to `DEFAULT_CONCURRENCY`. A shutdown refuses everything past this depth
      * straight away, so a caller that wants a shutdown to drop a particular request has to keep
      * the depth below the number of requests it makes.
      */
@@ -1355,8 +1355,6 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
-     * @inheritDoc
-     *
      * This implementation returns its retained mutable chunk. Repeated requests for the same
      * seed and position share one object until the generation holder is evicted.
      */
@@ -1587,7 +1585,7 @@ export class DataDrivenGenerator implements Generator {
      * @param cx - Center chunk x.
      * @param cz - Center chunk z.
      * @param seed - The world seed.
-     * @param terrain - The nine tiles in {@link FEATURE_VIEW_TILES} order.
+     * @param terrain - The nine tiles in `FEATURE_VIEW_TILES` order.
      * @param key - The stem's settings and dimension. Defaults to the instance's own.
      * @param blending - The old chunks within the blender's reach of the view, when there are any.
      * @param structureStartPlans - The starts that may reach the chunk, laid out by the thread
@@ -3187,7 +3185,7 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
-     * The worker half of {@link mergeInWorker}: the same merge, then the block pass, with the
+     * The worker half of `mergeInWorker`: the same merge, then the block pass, with the
      * translation the server thread sent standing in for its mapping tables.
      *
      * @param cx - Chunk x.

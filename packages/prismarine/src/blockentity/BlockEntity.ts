@@ -8,7 +8,7 @@ import { Vector3 } from '@jsprismarine/math';
  *
  * `fromNBT` keeps the entire compound it was given. A subclass lifts out the fields it models and
  * deletes them from that copy; `toNBT` starts from what is left and puts the modeled fields back.
- * A type nobody has modeled becomes {@link GenericBlockEntity}, whose remainder is everything, so
+ * A type nobody has modeled becomes `GenericBlockEntity`, whose remainder is everything, so
  * it round-trips byte for byte.
  *
  * That is not tidiness. A world is full of blocks written by versions and behavior packs this

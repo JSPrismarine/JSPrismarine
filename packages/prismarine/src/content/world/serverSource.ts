@@ -320,7 +320,7 @@ export interface ServerWorldHandle extends ServerWorldSource {
     closeLevel(level: string): void;
     /**
      * Captures the seeded random stream of each content adapter already built, under its
-     * {@link worldKeyOf} key, which for the default level is the bare dimension.
+     * `worldKeyOf` key, which for the default level is the bare dimension.
      */
     saveRandomStates(): readonly (readonly [world: string, state: SeededRandomState])[];
     /** Restores exactly the adapter streams represented by a replay state. */

@@ -167,7 +167,7 @@ export class RespawnSearch {
      * @param request - Who is asking, their spawn point and their body.
      * @throws When a world the attempt started building failed to build, or when the search
      *   itself threw. The player's tickets are given up first. A world spawn search that failed
-     *   does not throw: see {@link RespawnSearch.findSpawn}.
+     *   does not throw: see `RespawnSearch.findSpawn`.
      */
     public attempt(request: RespawnRequest): RespawnAttempt {
         const lacks = new Lacks();

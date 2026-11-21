@@ -95,7 +95,7 @@ export interface KeyRange {
  * The manifest works as upstream's does. Opening for writing starts a fresh `MANIFEST-<n>` that
  * holds a snapshot of the current version and repoints `CURRENT` at it. Every flush and compaction
  * then appends one edit to that manifest and syncs it once. Once the manifest passes
- * {@link MANIFEST_ROLL_BYTES} the next edit starts a fresh one, so reopening never replays an
+ * `MANIFEST_ROLL_BYTES` the next edit starts a fresh one, so reopening never replays an
  * unbounded history.
  */
 export class Database {
@@ -885,7 +885,7 @@ export class Database {
     /**
      * Applies an edit and records it in the manifest: appended and synced once, or as part of a
      * fresh snapshot when there is no manifest to append to or it has grown past
-     * {@link MANIFEST_ROLL_BYTES}.
+     * `MANIFEST_ROLL_BYTES`.
      *
      * The tables the edit adds are already on disk and fsynced by the time this runs, and the
      * files it removes are only unlinked afterwards - so at no point does the manifest name a file

@@ -143,13 +143,15 @@ export interface TemplatePieceAction {
     readonly data?: unknown;
 }
 
-type TemplatePieceActionHandler = (
+/** A worker-local callback a template piece runs at one of its data markers. */
+export type TemplatePieceActionHandler = (
     marker: DataMarker,
     writer: StructureWriter,
     random: RandomSource,
     data: unknown
 ) => void;
-type TemplatePiecePostPlacementHandler = (
+/** A worker-local callback a template piece runs once its template is placed. */
+export type TemplatePiecePostPlacementHandler = (
     piece: TemplatePiece,
     writer: StructureWriter,
     random: RandomSource,

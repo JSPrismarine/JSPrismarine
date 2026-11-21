@@ -1425,7 +1425,7 @@ export class LiveEntityRuntime {
  *
  * Held by the server rather than by either end: the content world adapter
  * opens one while it assembles a world's groups, and that `World` looks it up
- * by its dimension and level to tick it. Keyed by both, as {@link worldKeyOf}
+ * by its dimension and level to tick it. Keyed by both, as `worldKeyOf`
  * says why.
  */
 export class EntityRuntimes {

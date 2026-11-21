@@ -181,7 +181,7 @@ export const slimeSpawnRule: EngineSpawnRule = (at, { world, random }) => {
 /**
  * Every engine rule vanilla needs, keyed by the entity it gates.
  *
- * {@link import('./spawner').Spawner} applies these by default. A host that
+ * {@link Spawner} applies these by default. A host that
  * wants a different set passes its own map, and a host that wants none passes
  * an empty one.
  */

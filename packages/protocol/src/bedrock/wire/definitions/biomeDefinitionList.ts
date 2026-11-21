@@ -23,6 +23,6 @@ const biomeDefinitionsTail = t.custom<Buffer>(
  * that reaches the world-generation screen with an empty list disconnects.
  */
 export const biomeDefinitionListPacket = definePacket('BiomeDefinitionListPacket', {
-    /** The biome map and its string list as the network carries them; see {@link biomeDefinitionsTail}. */
+    /** The biome map and its string list as the network carries them; see `biomeDefinitionsTail`. */
     definitions: biomeDefinitionsTail
 });

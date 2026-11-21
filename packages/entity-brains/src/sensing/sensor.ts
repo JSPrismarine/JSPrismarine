@@ -19,7 +19,7 @@ export const DEFAULT_TARGETING_RANGE = 16;
  * A sensor. Java's abstract `Sensor`.
  *
  * {@link Sensor.tick} is final in Java and is here too: it owns the countdown, and
- * {@link Sensor.doTick} is the hook.
+ * `Sensor.doTick` is the hook.
  */
 export abstract class Sensor {
     /** The Java class name, which is what a debug read-out shows. */

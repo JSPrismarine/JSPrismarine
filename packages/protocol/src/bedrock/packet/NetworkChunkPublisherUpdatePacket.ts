@@ -7,7 +7,8 @@ import type { PayloadOf } from '../../wire/define';
 import type NetworkBinaryStream from '../../NetworkBinaryStream';
 import { ProtocolCodecErrors } from '@jsprismarine/errors/protocol/codec';
 
-type WirePayload = PayloadOf<typeof networkChunkPublisherUpdatePacket>;
+/** The `NetworkChunkPublisherUpdatePacket` fields as its wire layout reads them. */
+export type WirePayload = PayloadOf<typeof networkChunkPublisherUpdatePacket>;
 
 /** One entry of `Server Built Chunks List`: an X and a Z chunk coordinate. */
 export interface ChunkCoord extends Record<string, number> {

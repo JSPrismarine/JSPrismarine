@@ -21,6 +21,6 @@ const networkNbtTail = t.custom<Buffer>(
  * to render, sent once at world start.
  */
 export const availableActorIdentifiersPacket = definePacket('AvailableActorIdentifiersPacket', {
-    /** `Identifier List` as network NBT; see {@link networkNbtTail}. */
+    /** `Identifier List` as network NBT; see `networkNbtTail`. */
     identifiers: networkNbtTail
 });

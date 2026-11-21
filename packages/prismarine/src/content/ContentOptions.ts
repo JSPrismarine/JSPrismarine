@@ -27,7 +27,7 @@ import type { WithheldContent } from './withheldContent';
 /** Loads a pack stack. `load` from `@jsprismarine/packs` is the default. */
 export type PackLoader = (stack: PackStack, options: LoadOptions) => LoadResult;
 
-/** How to build a {@link import('./ServerContent').ServerContent}. */
+/** How to build a `ServerContent`. */
 export interface ContentOptions {
     /** The pack stack to load. When absent, {@link PackStackRequest} resolves the default one. */
     readonly stack?: PackStack;

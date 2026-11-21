@@ -152,7 +152,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     protected abstract serializePayload(stream: NetworkBinaryStream, packetData: T, context?: ProtocolContext): void;
 
     /**
-     * Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}.
+     * Legacy mutable-field body hook implemented by `FieldNetworkPacket`.
      * @param _context - Versioned registries and captured data for this connection.
      */
     public encodePayload(_context?: ProtocolContext): void {}
@@ -180,7 +180,7 @@ export default abstract class NetworkPacket<T = unknown> extends BinaryStream {
     protected abstract deserializePayload(stream: NetworkBinaryStream, context?: ProtocolContext): T;
 
     /**
-     * Legacy mutable-field body hook implemented by {@link FieldNetworkPacket}.
+     * Legacy mutable-field body hook implemented by `FieldNetworkPacket`.
      * @param _context - Versioned registries and captured data for this connection.
      */
     public decodePayload(_context?: ProtocolContext): void {}

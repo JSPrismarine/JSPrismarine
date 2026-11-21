@@ -7,7 +7,8 @@ import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
 /** Marks the one decoder path that has exclusive ownership of its index buffer. */
 const OWNED_INDICES = Symbol('BlockStorage owned indices');
 
-interface BlockStorageData {
+/** The contents a block storage starts from: palette indices and the palette they index. */
+export interface BlockStorageData {
     /** One palette index per block, in XZY order. Copied, so the caller may reuse its buffer. */
     blocks?: ArrayLike<number>;
     palette?: number[];

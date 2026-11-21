@@ -115,7 +115,7 @@ export interface IntentPayloads {
 
 /** What the table declares about one intent. */
 export interface IntentDefinition {
-    /** When the intent's handler runs; see {@link Lane}. */
+    /** When the intent's handler runs; see `Lane`. */
     readonly lane: Lane;
 }
 

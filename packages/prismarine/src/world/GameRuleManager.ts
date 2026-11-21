@@ -205,7 +205,7 @@ export default class GameRuleManager {
 
     /**
      * Writes the rules as `GameRulesChangedPacketData`: a varuint32 count, then each rule as
-     * {@link writeGameRule} lays it out. `StartGamePacket` carries this as its Rule Data.
+     * `writeGameRule` lays it out. `StartGamePacket` carries this as its Rule Data.
      * @param stream - The stream to append to.
      */
     public networkSerialize(stream: BinaryStream): void {

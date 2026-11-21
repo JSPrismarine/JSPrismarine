@@ -113,7 +113,7 @@ export interface WorldSystemsView {
     blockRuntimeIdAt?(x: number, y: number, z: number): number | undefined;
     /**
      * One past the highest y a column stores a block for, as
-     * {@link import('@jsprismarine/lighting').BlockLightView.topOfColumn} defines it.
+     * {@link BlockLightView.topOfColumn} defines it.
      *
      * Left out, a fresh chunk's light scan reads every block from the dimension ceiling down,
      * which in an Overworld is mostly open sky.

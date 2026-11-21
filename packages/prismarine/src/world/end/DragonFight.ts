@@ -137,7 +137,7 @@ const deathOf = (dragon: DataEntity): DragonDeath => ({
 /**
  * The persistent dragon fight of one End world.
  *
- * The whole fight runs only while a player is within {@link ARENA_RADIUS} of the dragon's spawn
+ * The whole fight runs only while a player is within `ARENA_RADIUS` of the dragon's spawn
  * point, which also keeps the arena's chunks loaded through that player. An empty arena freezes
  * the fight where it stands.
  *

@@ -21,9 +21,9 @@ export interface ScriptApiLogger {
 
 /** What the host gave an instance it made, which every call of the instance's members receives. */
 export interface HostInstance {
-    /** The instance's {@link ScriptCall.tag}. */
+    /** The instance's `ScriptCall.tag`. */
     readonly tag: number;
-    /** The instance's {@link ScriptCall.state}, or an empty string when it has none. */
+    /** The instance's `ScriptCall.state`, or an empty string when it has none. */
     readonly state: string;
 }
 
@@ -218,9 +218,9 @@ export class ScriptApiContext {
      * Makes an instance of a bound class without running its constructor, for an implementation to
      * return. The caller frees the handle.
      * @param tag - What the instance stands for, which every call of its members receives as
-     *   {@link ScriptCall.tag}, such as an index into the host's own table.
+     *   `ScriptCall.tag`, such as an index into the host's own table.
      * @param state - What the instance holds, which every call of its members receives as
-     *   {@link ScriptCall.state}, such as an entity's id. It lives as long as the instance does.
+     *   `ScriptCall.state`, such as an entity's id. It lives as long as the instance does.
      * @throws {ScriptError} When the module or the class is not bound.
      */
     public create(module: string, className: string, tag = 0, state = ''): ScriptHandle {

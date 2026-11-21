@@ -186,7 +186,7 @@ export class LevelSave {
     }
 
     /**
-     * {@link LevelSave.save}, failing on any write that did not land rather than logging it, for
+     * `LevelSave.save`, failing on any write that did not land rather than logging it, for
      * a replay checkpoint, which cannot copy a save that missed something.
      */
     public async saveForReplay(worlds: readonly SavedWorld[]): Promise<void> {
@@ -203,7 +203,7 @@ export class LevelSave {
      *
      * Not left for the next autosave, because a caller asks for this when the state has to be on
      * disk: the first load writes the spawn it found, and an operator's command saves on
-     * request. Queued behind a pass that is running, like {@link LevelSave.save}.
+     * request. Queued behind a pass that is running, like `LevelSave.save`.
      */
     public async saveLevelData(): Promise<void> {
         this.finishEncoding();

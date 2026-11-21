@@ -135,7 +135,7 @@ export class AddonManager {
      * `addon install`: resolves the newest version the spec allows, downloads it, checks its hash
      * and its `minServer`, unpacks it into `addons/<key>/`, records it in both files and loads it.
      *
-     * @param spec - What to install; see {@link parseAddonSpec}.
+     * @param spec - What to install; see `parseAddonSpec`.
      * @param as - The local name, which a spec that names no addon needs and a second addon of
      *   the same name takes to install beside the first.
      * @returns What was locked.

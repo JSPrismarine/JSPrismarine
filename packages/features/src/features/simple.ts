@@ -384,7 +384,7 @@ const SNOW = blockState('minecraft:snow');
  * Freezes exposed water and lays a snow layer across the chunk.
  *
  * Java decides both from the biome's temperature at the position and from the block light there.
- * Temperature comes through {@link import('../world/FeatureWorld').FeatureWorld.isColdEnoughToSnow}
+ * Temperature comes through {@link FeatureWorld.isColdEnoughToSnow}
  * and light is taken as dark, which is what a chunk being generated has everywhere but under a
  * light-emitting block.
  */

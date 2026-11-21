@@ -334,7 +334,7 @@ const readAction = (
  * protocol version. The echoed Action type byte is read and dropped.
  * @param stream - The stream positioned at Client Request Id.
  * @param protocolVersion - The negotiated protocol version; defaults to 2193.
- * @throws when the action count is above {@link MAX_REQUEST_ACTIONS}, or an action or
+ * @throws when the action count is above `MAX_REQUEST_ACTIONS`, or an action or
  * descriptor type is unknown.
  */
 export const readItemStackRequest = (stream: BinaryStream, protocolVersion = protocolVersion2193): ItemStackRequest => {

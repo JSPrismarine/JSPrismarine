@@ -213,7 +213,7 @@ export default class WorkerServerSocket extends EventEmitter implements RakNetLi
     }
 
     /**
-     * Delivers up to {@link MAX_RECORDS_PER_TICK} worker events in their shared-ring order.
+     * Delivers up to `MAX_RECORDS_PER_TICK` worker events in their shared-ring order.
      * @returns The number of events delivered.
      */
     public pollInbound(): number {

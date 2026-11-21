@@ -109,7 +109,7 @@ const CONTINUATION_INDENT = '    ';
  *
  * Every record starts at the beginning of a line with its timestamp, and every
  * further line of the same record - a stack trace, or a line break inside text
- * a client sent - is indented by {@link CONTINUATION_INDENT}. A player could
+ * a client sent - is indented by `CONTINUATION_INDENT`. A player could
  * otherwise put a line break and a fake `[12:00:00] [INFO]` header into a book
  * title or a name and have it read as a record the server wrote. A lone carriage
  * return counts as a line break, so it cannot hide text in front of it either.

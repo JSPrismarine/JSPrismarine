@@ -99,7 +99,7 @@ const isPrefixCacheFile = (value: unknown): value is PrefixCacheFile =>
  *
  * @param packageVersionOverride - A test seam for proving version changes invalidate a cache key.
  * @param target - The Java release the prefix was loaded for, since its format decides which
- *   datapack overlays applied. Defaults to {@link DEFAULT_JAVA_DATA_TARGET}.
+ *   datapack overlays applied. Defaults to `DEFAULT_JAVA_DATA_TARGET`.
  */
 export const prefixCacheKeyFor = (
     stack: PackStack,

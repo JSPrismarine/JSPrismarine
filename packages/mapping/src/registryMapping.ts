@@ -81,7 +81,7 @@ const bedrockBiomeLossById = new Map<string, BedrockBiomeLoss>(
  * each returns `mapped` or a reviewed `loss`, never `undefined`. Where several Java biomes
  * share one Bedrock biome - the River takes `the_void` as well, and the End takes all five of
  * Java's End biomes - the result names the Java biome the Bedrock one is the counterpart of,
- * which is the one {@link import('./lossList').REGISTRY_LOSSES} does not list.
+ * which is the one {@link REGISTRY_LOSSES} does not list.
  *
  * There is no `passthrough` variant, because a custom biome has no vanilla id to be stored
  * as; an identifier the pinned data does not have is `unknown` whichever namespace it is in.

@@ -31,7 +31,7 @@ export interface NativeSymbols {
     jsp_pc_add_remote_candidate(pc: number, candidate: Uint8Array, mid: Uint8Array): number;
     jsp_pc_local_description(pc: number, buffer: Uint8Array, size: number): number;
     jsp_pc_selected_pair(pc: number, buffer: Uint8Array, size: number): number;
-    /** Missing from a library built before it, which {@link bindLibrary} still loads. */
+    /** Missing from a library built before it, which `bindLibrary` still loads. */
     jsp_pc_round_trip_time?(pc: number): number;
     jsp_pc_close(pc: number): number;
     jsp_pc_delete(pc: number): number;

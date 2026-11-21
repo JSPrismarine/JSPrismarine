@@ -73,7 +73,7 @@ const PARSE_SYMBOL_INDEX_MASK = 0xffff;
  *   the keyword's index in `Chained Subcommand Values` and the index in `Enum Data` of the
  *   enum that holds that keyword.
  * - `Commands`: `Name`, `Description`, `Flags` (uint16), `Permission Level` (string, see
- *   {@link commandPermissionToString}), `Alias Enum` (int32 index into `Enum Data`, -1 when
+ *   `commandPermissionToString`), `Alias Enum` (int32 index into `Enum Data`, -1 when
  *   the command has no aliases), `CommandData Chained Subcommand Indexes` (uint32 list),
  *   then `Overloads`: `isChaining` (bool) and `Parameter Data`: `Name`, `Parse Symbol`
  *   (uint32), `Is Optional?` (bool), `Options` (uint8).

@@ -119,7 +119,7 @@ export const hasValidBlending = (value: object): boolean =>
 
 /**
  * The blender for a chunk, from the old chunks a task carried. Undefined or empty records give
- * {@link Blender.EMPTY}.
+ * `Blender.EMPTY`.
  */
 export const blenderFor = (chunkX: number, chunkZ: number, records: readonly OldChunkRecord[] | undefined): Blender => {
     if (records === undefined || records.length === 0) return Blender.EMPTY;

@@ -323,7 +323,7 @@ export const PARTIAL_BLOCK_PROPERTY_COLLAPSES = [
 
 /**
  * A Bedrock block state whose values no single Java property spells, so there is no word
- * vocabulary for it in {@link import('./blockStates').bedrockBlockStates}.
+ * vocabulary for it in {@link bedrockBlockStates}.
  */
 export interface BlockStateLoss {
     /** The Bedrock state name. */
@@ -361,7 +361,7 @@ const PACKED_FACES = {
 /**
  * The Bedrock states a caller cannot write in Java's words.
  *
- * {@link import('./blockStates').bedrockBlockStates} reads every other state's vocabulary out
+ * {@link bedrockBlockStates} reads every other state's vocabulary out
  * of the block mapping, by finding the one Java property whose values pick its values. These
  * twenty-seven (block, state) pairs have no such property: Bedrock either folds two Java
  * properties into one state or packs several booleans into one number, so a word has nothing to
@@ -901,7 +901,7 @@ const LEGACY_MUTATED_VARIANT = {
 } as const;
 
 /**
- * The Bedrock biomes {@link import('./registryMapping').bedrockBiomeToJava} cannot name in
+ * The Bedrock biomes {@link bedrockBiomeToJava} cannot name in
  * Java, none of which any of Java 26.3's biome documents reaches.
  *
  * All but one are legacy terrain, kept so an old Bedrock world still reads back. A chunk only

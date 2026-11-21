@@ -4,10 +4,9 @@ import { commandBlockUpdatePacket } from '../wire/definitions/commandBlockUpdate
 import { layoutAt } from '../../wire/WireLayout';
 
 import type NetworkBinaryStream from '../../NetworkBinaryStream';
-import type {
-    CommandBlockTarget as WireCommandBlockTarget,
-    CommandBlockUpdatePayload
-} from '../wire/definitions/commandBlockUpdate';
+import type { CommandBlockUpdatePayload } from '../wire/definitions/commandBlockUpdate';
+
+export type { CommandBlockTarget } from '../wire/definitions/commandBlockUpdate';
 
 /** The command block execution mode the client selected; `Normal` is called Impulse in the UI. */
 export enum CommandBlockMode {
@@ -15,9 +14,6 @@ export enum CommandBlockMode {
     Repeating = 1,
     Chain = 2
 }
-
-/** The entity or block targeted by a command block update. */
-export type CommandBlockTarget = WireCommandBlockTarget;
 
 /** The fields the client sends when it closes the command block screen. */
 export type CommandBlockUpdate = CommandBlockUpdatePayload;

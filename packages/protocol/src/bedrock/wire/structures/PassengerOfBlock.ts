@@ -32,7 +32,7 @@ export interface PassengerOfBlock {
     rotation: number;
     /** RotationLimit in degrees 0..360, as a little-endian float. */
     rotationLimit: number;
-    /** EmoteType, one {@link PassengerOfBlockEmoteType} byte. */
+    /** EmoteType, one `PassengerOfBlockEmoteType` byte. */
     emoteType: number;
     /**
      * `BlockType` from protocol 2259: the ridden block's type, a little-endian uint64. Absent,

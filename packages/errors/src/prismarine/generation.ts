@@ -1,6 +1,6 @@
 import { defineErrors, JSPrismarineError } from '@jsprismarine/errors/JSPrismarineError';
 
-/** Raised when a buffer handed to {@link readRegistryBundle} is not a bundle this build reads. */
+/** Raised when a buffer handed to `readRegistryBundle` is not a bundle this build reads. */
 export abstract class RegistryBundleFormatError extends JSPrismarineError {
     public override name = 'RegistryBundleFormatError';
 }

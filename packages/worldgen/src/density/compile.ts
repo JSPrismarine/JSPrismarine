@@ -199,7 +199,7 @@ const endIslandHeight = (noise: Noise, sectionX: number, sectionZ: number): numb
 /**
  * Turns parsed density function trees into closures, once per world seed.
  *
- * One compiler serves every function of one {@link import('../RandomState').RandomState}: it
+ * One compiler serves every function of one {@link RandomState}: it
  * memoizes by tree identity and hands out the cache slot ids that `cache` nodes share, which
  * is what makes `continents` cost one noise evaluation per position even though the router
  * reaches it through five different slots.

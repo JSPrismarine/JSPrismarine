@@ -181,7 +181,7 @@ export class RandomState {
      * Samples one density function at one position with no caching between calls.
      *
      * This is the debug path Java exposes as `sampleBlockValueUncached`; chunk generation goes
-     * through {@link import('./chunk/ChunkSampler').ChunkSampler} instead.
+     * through {@link ChunkSampler} instead.
      */
     public sampleUncached(node: DensityFunctionNode, x: number, y: number, z: number): number {
         return this.sampler(node)(new SampleContext(), x, y, z);

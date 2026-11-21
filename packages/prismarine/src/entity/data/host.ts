@@ -93,7 +93,7 @@ export interface EntityHostFacts {
      * Left out by a host with no live world behind it, which makes the caller roll the
      * table itself and leave the hook unraised, the way it did before this existed.
      *
-     * @param dropsBlock - Whether the block yields anything of itself, which is the
+     * @param options.dropsBlock - Whether the block yields anything of itself, which is the
      *   `doTileDrops` game rule. It still spills what it was holding either way.
      * @returns True when the host took the drops, so the caller owes nothing more for them.
      */

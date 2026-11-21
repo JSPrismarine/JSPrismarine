@@ -2,7 +2,7 @@
 
 The Java Edition enchantment system: the 43 vanilla definitions, the 31 effect component types, the
 enchanting table draw and the anvil. It parses Mojang's JSON once into closures and runs them
-against a `PredicateContext` from [`@jsprismarine/predicates`](../predicates), which supplies the
+against a `PredicateContext` from [`@jsprismarine/predicates`](../predicates/README.md), which supplies the
 conditions, the number providers and the level based values this package composes.
 
 Every rule here was read out of the Java 26.3 server jar, not off a wiki page. The enchanting table
@@ -161,7 +161,7 @@ expands them, including tags that name other tags, which `in_enchanting_table` d
 ## Bedrock projection limits
 
 `projectToBedrock` maps each enchantment through an injected mapper. Adapt
-`javaIdentifierToBedrock('enchantment', id)` from [`@jsprismarine/mapping`](../mapping) to the
+`javaIdentifierToBedrock('enchantment', id)` from [`@jsprismarine/mapping`](../mapping/README.md) to the
 `EnchantmentIdentifierMapper` shape; this package stays unaware that two editions exist.
 
 42 of Java's 43 enchantments have a Bedrock id. `sweeping_edge` does not, and neither does any

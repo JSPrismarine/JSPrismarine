@@ -5,7 +5,8 @@ const COLUMN_CACHE_SIDE = 32;
 const COLUMN_CACHE_SHIFT = Math.log2(COLUMN_CACHE_SIDE);
 const COLUMN_CACHE_SLOTS = COLUMN_CACHE_SIDE * COLUMN_CACHE_SIDE;
 
-class CacheCell {
+/** The memo slot of one compiled `cache` node: the last position it sampled and the value. */
+export class CacheCell {
     public x = 0;
     public y = 0;
     public z = 0;

@@ -68,7 +68,7 @@ export const parseVerticalAnchor = (source: unknown, path: string): VerticalAnch
 /**
  * A draw of one y, Java's `HeightProvider`.
  *
- * It differs from an {@link import('./valueProviders').IntProvider} in taking a
+ * It differs from an {@link IntProvider} in taking a
  * {@link VerticalContext}, because its bounds are anchors rather than numbers.
  */
 export interface HeightProvider {

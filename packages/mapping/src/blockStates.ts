@@ -14,7 +14,7 @@
  * block through {@link javaBlockStates}, works in words, and writes it back through
  * {@link bedrockBlockStates}. The round trip is exact for every state in the pinned palette; the
  * (block, state) pairs that have no word vocabulary at all are the reviewed
- * {@link import('./lossList').BLOCK_STATE_LOSSES} and travel as the Bedrock value untouched.
+ * {@link BLOCK_STATE_LOSSES} and travel as the Bedrock value untouched.
  */
 import { blockStatesTable, blocksTable } from './tables';
 
@@ -56,7 +56,7 @@ const wordsOf = (name: string, state: string): Map<string | number, string> | un
  * this Bedrock block does not carry is dropped - Java's piston `extended` has no Bedrock state,
  * because an extended Bedrock piston is a piston with an arm block in front of it. A state the
  * block does carry and has no vocabulary for travels untouched, which is what a number, a
- * boolean, and the reviewed {@link import('./lossList').BLOCK_STATE_LOSSES} all want.
+ * boolean, and the reviewed {@link BLOCK_STATE_LOSSES} all want.
  *
  * @param {string} name - The namespaced Bedrock block identifier, such as `minecraft:piston`.
  * @param {Readonly<Record<string, BlockStateValue>>} states - The states, which may be spelled Java's way.
