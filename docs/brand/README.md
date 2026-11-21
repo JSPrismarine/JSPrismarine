@@ -307,7 +307,9 @@ The site has one menu, in `tools/docs/site/.vitepress/theme/site-menu/`, drawn f
   raised row with a 1px accent edge that follows its corners (the selected search result looks the
   same), and a breadcrumb above the page names both. No stripe runs down one side of a rounded row. A section's index page counts as current
   in the first menu that lists pages in its folder, even when no menu links the index itself. When
-  the menus link only to sections of the page being read, the first of those links marks it.
+  the menus link only to sections of the page being read, the first of those links marks it. A page
+  two menus list belongs to the first, unless the other claims its pages: Addons claims the
+  marketplace, every addon page and the addon guides, and its breadcrumb links to the marketplace.
 - The Guides menu takes its groups and links from the guide overview (`overviewGroups.mts`), as the
   sidebar does, so the menu, the sidebar and the page always name the same audiences.
 

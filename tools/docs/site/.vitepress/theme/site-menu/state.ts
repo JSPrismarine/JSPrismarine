@@ -1,6 +1,7 @@
 import { useData, useRoute, withBase } from 'vitepress';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 
+import { claimingMenu } from '../menuClaims.ts';
 import type { MegaMenu, ThemeConfigWithMegaMenus } from '../types.ts';
 import type { SearchResult } from './search.ts';
 
@@ -109,13 +110,14 @@ export function useSiteMenu() {
         menuLinks(entry).some((link) => link !== undefined && normalizeRoute(withBase(link)).startsWith(current.value));
 
     /**
-     * The menu that holds the page being read; a page in two menus belongs to the first. A section's
-     * index page belongs to the first menu that lists pages in its folder, so it counts as current
-     * even when no menu links it.
+     * The menu that holds the page being read: the menu that claims it, else the first that lists it.
+     * A section's index page belongs to the first menu that lists pages in its folder, so it counts as
+     * current even when no menu links it.
      */
     const currentMenu = computed(
         () =>
             (
+                claimingMenu(current.value, menus.value) ??
                 menus.value.find((entry) => !entry.link && holdsCurrent(entry)) ??
                 menus.value.find((entry) => !entry.link && holdsSection(entry))
             )?.text

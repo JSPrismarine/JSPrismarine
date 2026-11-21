@@ -3,6 +3,7 @@ import type { ProjectData } from '../../../project.mts';
 import { pageDate, pageRoute, pageSummary, pageTitle, sections } from '../../../sections.mts';
 import { plainText } from '../markdownText.ts';
 import { headline, minecraftRange } from '../theme/landing.ts';
+import { claimingMenu } from '../theme/menuClaims.ts';
 import type { MegaMenu } from '../theme/types.ts';
 import { type CardStyle, landingPage } from './cardImage.ts';
 
@@ -13,7 +14,13 @@ export type Tone = 'accent' | 'mint' | 'signal' | 'ink';
  * Each site menu's tile color. The error reference is signal whatever menu links it, since signal is
  * the color of errors. A menu missing here fails the build.
  */
-export const menuTones: Record<string, Tone> = { Guides: 'accent', Build: 'mint', Project: 'ink', Community: 'accent' };
+export const menuTones: Record<string, Tone> = {
+    Guides: 'accent',
+    Build: 'mint',
+    Addons: 'mint',
+    Project: 'ink',
+    Community: 'accent'
+};
 
 /** A real number the repository records about a page, shown large with its label under it. */
 export interface Figure {
@@ -114,12 +121,13 @@ const menuRoutes = (menu: MegaMenu) =>
     );
 
 /**
- * The menu a page belongs to: the first that links the page, else the first that links a page in its
- * top-level folder, as the site menu marks a section's pages.
+ * The menu a page belongs to: the menu that claims it, else the first that links the page, else the
+ * first that links a page in its top-level folder, as the site menu marks a section's pages.
  */
 function pageMenu(route: string, menus: readonly MegaMenu[]) {
     const folder = route.includes('/') ? `${route.split('/')[0]}/` : undefined;
     return (
+        claimingMenu(`/${route}`, menus) ??
         menus.find((menu) => menuRoutes(menu).includes(route)) ??
         (folder ? menus.find((menu) => menuRoutes(menu).some((link) => link.startsWith(folder))) : undefined)
     );

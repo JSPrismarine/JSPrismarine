@@ -35,7 +35,8 @@ const preview = computed(() => {
     const heading = anchor ? page?.headings.find((entry) => entry.anchor === anchor) : undefined;
     if (!page) return undefined;
     return {
-        crumb: heading ? `${page.section} / ${page.title}` : page.section,
+        // A section's own overview, such as the marketplace, is titled like its section, so it takes no label.
+        crumb: heading ? `${page.section} / ${page.title}` : page.section === page.title ? '' : page.section,
         title: heading?.text ?? page.title,
         description: heading?.excerpt ?? page.description,
         outline: heading ? [] : page.headings.map(({ text }) => text).slice(0, 7)
@@ -81,7 +82,7 @@ const preview = computed(() => {
         </div>
 
         <aside v-if="preview" class="site-panel__preview" aria-hidden="true">
-            <span class="site-panel__crumb">{{ preview.crumb }}</span>
+            <span v-if="preview.crumb" class="site-panel__crumb">{{ preview.crumb }}</span>
             <strong>{{ preview.title }}</strong>
             <p v-if="preview.description">{{ preview.description }}</p>
             <ul v-if="preview.outline.length">
