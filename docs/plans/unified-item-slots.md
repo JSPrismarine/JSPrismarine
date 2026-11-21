@@ -100,6 +100,16 @@ hotbar.
    form, which is its own project. It refuses with a sentence that reads correctly, and an issue
    tracks it.
 
+10. **The player inventory stays `HumanInventory`.** It is a subclass of
+    `EntityInventory` over `PLAYER_LAYOUT`, which sits beside `mobLayout` in
+    `inventory/EntityInventory.ts`, and adds only the stack network id counter
+    (`assignStackNetworkId`, `assignStackNetworkIds`) and `isHotbarSlot`. Keeping the name keeps
+    the `inventory/HumanInventory` entry point and every import of it, where a rename would touch
+    each one for no change in behavior. The armor sums are on `EntityInventory`, since a mob's
+    armor sits in the same container. `EntityInventory` takes the layout's container names as a
+    type parameter, so `inventory.container('armor')` on a player is never undefined, and
+    `containerNamed` serves a name read off the change log or the wire.
+
 ## Slices
 
 | Slice | Change | Packages |
@@ -119,7 +129,7 @@ Slice 2 is independent of 3 to 5. Slices 3, 4 and 5 touch the same files and lan
 | ----- | ----- |
 | 1 | Landed |
 | 2 | Not started |
-| 3 | Not started |
+| 3 | Landed |
 | 4 | Not started |
 | 5 | Not started |
 | 6 | Not started |
