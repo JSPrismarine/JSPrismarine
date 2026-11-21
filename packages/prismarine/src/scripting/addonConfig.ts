@@ -19,6 +19,8 @@ import path from 'node:path';
 import type { AddonConfigStore } from '@jsprismarine/script-host/host/addonConfig';
 import type { ScriptPack } from '@jsprismarine/script-host/host/pack';
 
+import { NEW_FILE_MODE } from '../config/JsonFile';
+
 /**
  * The part of `fs.watch` the store uses: one watch per folder, closed when its last file is
  * no longer watched. Injected so tests fire changes without the file system's timing.
@@ -59,9 +61,6 @@ interface FolderWatch {
     /** The listeners of each file in the folder, by file name. */
     readonly files: Map<string, Set<() => void>>;
 }
-
-/** The mode a config file gets when `write` makes it, the one the server's other files get under the usual umask. */
-const NEW_FILE_MODE = 0o644;
 
 /** The config files of the packs, read, written and watched on disk. */
 export class AddonConfigFiles implements AddonConfigStore {

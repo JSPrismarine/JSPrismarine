@@ -40,6 +40,15 @@ describe('config', () => {
             });
         });
 
+        it('reads a `__proto__` member as a key like any other', () => {
+            const document = parseConfigDocument('{ "meta": { "__proto__": "x", "a": "b" } }');
+
+            const meta = document.get(['meta']);
+            expect(meta).toStrictEqual({ ['__proto__']: 'x', a: 'b' });
+            expect(Object.getPrototypeOf(meta)).toBe(Object.prototype);
+            expect(document.get(['meta', '__proto__'])).toBe('x');
+        });
+
         it('answers has for present, nested and absent paths', () => {
             const document = parseConfigDocument(JSON_SOURCE);
 

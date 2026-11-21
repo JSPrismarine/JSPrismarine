@@ -131,20 +131,36 @@ export const longerLived = <T extends Entry>(first: T, second: T): T =>
 /**
  * `added` merged into `kept`, each spelling once and in the order first seen. `choose` says which
  * of two entries of one spelling stays: the kept one, or the longer lived, as the caller decides.
+ * It decides between two copies within `kept` the same way, so a list that already holds a
+ * spelling twice loses the copy the policy would not keep.
  */
 export const mergeEntries = <T extends Entry>(
     kept: readonly T[],
     added: readonly T[],
     choose: (kept: T, added: T) => T
 ): T[] => {
-    const byKey = new Map(kept.map((entry) => [entryKey(entry), entry]));
-    for (const entry of added) {
+    const byKey = new Map<string, T>();
+    for (const entry of [...kept, ...added]) {
         const key = entryKey(entry);
         const seen = byKey.get(key);
         byKey.set(key, seen === undefined ? entry : choose(seen, entry));
     }
     return [...byKey.values()];
 };
+
+/**
+ * A meta map with `key` set to `value`, or without `key` when `value` is undefined. Built from
+ * entries, so a key such as `__proto__` is an own property like any other, as the file reads it.
+ */
+export const withMeta = (
+    meta: Readonly<Record<string, string>>,
+    key: string,
+    value: string | undefined
+): Record<string, string> =>
+    Object.fromEntries([
+        ...Object.entries(meta).filter(([name]) => name !== key),
+        ...(value === undefined ? [] : [[key, value] as const])
+    ]);
 
 /**
  * The first moment after `now` at which one of these entries expires, or undefined when none

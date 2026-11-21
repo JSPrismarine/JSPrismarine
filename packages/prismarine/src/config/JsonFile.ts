@@ -81,24 +81,43 @@ export const readJsonFile = async (filePath: string, empty: '[]' | '{}'): Promis
 /** Where {@link writeJsonFile} stages a file before it is renamed into place. */
 export const temporaryPathOf = (filePath: string): string => `${filePath}.tmp`;
 
+/** The mode a file the server makes gets, the one its other files get under the usual umask. */
+export const NEW_FILE_MODE = 0o644;
+
+/** The mode a staged file starts with: readable by the server's user alone until it takes the file's own. */
+const STAGING_MODE = 0o600;
+
+/** The permission bits of the file at `filePath`, or those of a new file when there is none. */
+const modeToKeep = async (filePath: string): Promise<number> => {
+    try {
+        return (await fs.promises.stat(filePath)).mode & 0o777;
+    } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return NEW_FILE_MODE;
+        throw error;
+    }
+};
+
 /**
  * Writes a document back to its file, adding its versioned schema reference when it is a
  * runtime-owned JSON file. The text goes to a temporary file beside it, flushed, and is renamed
  * over the file only then, so a crash or a full disk mid-write leaves the file as it was and a
- * reader never sees half of the new text.
+ * reader never sees half of the new text. The temporary file starts readable by the server's
+ * user alone and takes the file's own mode before the rename, so a file the owner made private
+ * stays private.
+ * @returns The text written.
  */
-export const writeJsonFile = async (filePath: string, document: ConfigDocument): Promise<void> => {
+export const writeJsonFile = async (filePath: string, document: ConfigDocument): Promise<string> => {
     const temporary = temporaryPathOf(filePath);
+    const text = toJsonFileContents(filePath, document);
     try {
-        await fs.promises.writeFile(temporary, toJsonFileContents(filePath, document), {
-            encoding: 'utf8',
-            flush: true
-        });
+        await fs.promises.writeFile(temporary, text, { encoding: 'utf8', flush: true, mode: STAGING_MODE });
+        await fs.promises.chmod(temporary, await modeToKeep(filePath));
         await fs.promises.rename(temporary, filePath);
     } catch (error: unknown) {
         await fs.promises.rm(temporary, { force: true }).catch(() => {});
         throw error;
     }
+    return text;
 };
 
 /** The list a document holds at its root, or none when the root is something else. */

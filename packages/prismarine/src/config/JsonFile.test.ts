@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,6 +92,20 @@ describe('config', () => {
                 expect(document.get(['$schema'])).toBe(schemaUrl);
             }
         });
+
+        it.skipIf(process.platform === 'win32')(
+            'keeps the mode of the file it replaces, and gives a new file the usual one',
+            async () => {
+                const file = path.join(directory, 'ops.json');
+                const text = await writeJsonFile(file, parseConfigDocument('[]'));
+                expect(readFileSync(file, 'utf8')).toBe(text);
+                expect(statSync(file).mode & 0o777).toBe(0o644 & ~process.umask());
+
+                chmodSync(file, 0o600);
+                await writeJsonFile(file, parseConfigDocument('[{ "name": "alice" }]'));
+                expect(statSync(file).mode & 0o777).toBe(0o600);
+            }
+        );
 
         it('uses the release build version for schema URLs', () => {
             vi.stubGlobal('BUILD_TYPE', 'release');
