@@ -194,10 +194,18 @@ jobs:
               if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
               run: git reset --hard "$GITHUB_SHA"
 
+            # Written while the pending changesets are still in the tree; the next step consumes them.
+            - name: 📝 Write the release pull request's body
+              if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
+              run: |
+                  pnpm exec changeset status --output "$RUNNER_TEMP/release-plan.json"
+                  node .github/scripts/release-pr-body.mjs "$RUNNER_TEMP/release-plan.json" > "$RUNNER_TEMP/release-pr-body.md"
+
             # Last, since it leaves the checkout on the release branch with the next versions written:
             # the steps above read the release commit's packages, and GitHub Packages publishes them
             # from this tree. A failed release step above still leaves the pull request to refresh.
             - name: 🤝 Create or Update Release Pull Request
+              id: version_pr
               if: ${{ !cancelled() && steps.plan.outputs.pending == 'true' }}
               uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
               with:
@@ -212,6 +220,16 @@ jobs:
                       This is an automated commit triggered by the `release` workflow.
                   pr-title: 🚀 Release packages
                   github-token: ${{ secrets.MACHINE_USER }}
+
+            # changesets/action writes every package's changelog into the body, which runs past
+            # GitHub's size limit and then shows only headings. The body above leads with the
+            # breaking changes and gives every other change one line.
+            - name: 📝 Replace the release pull request's body
+              if: ${{ !cancelled() && steps.version_pr.outputs.pr-number != '' }}
+              env:
+                  GH_TOKEN: ${{ secrets.MACHINE_USER }}
+                  PR: ${{ steps.version_pr.outputs.pr-number }}
+              run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/release-pr-body.md"
 
     executables:
         name: 🗃️ Build standalone executables
