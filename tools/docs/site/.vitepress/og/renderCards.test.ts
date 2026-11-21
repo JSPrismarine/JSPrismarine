@@ -105,8 +105,15 @@ describe('writeCards', () => {
             outDir: second.outDir,
             cacheDir
         });
+        const { versions } = await changed;
         expect(await changed).toMatchObject({ rendered: 1, reused: 1 });
         expect(readdirSync(cacheDir)).toHaveLength(2);
+
+        // A changed card gets a new version, so a link previewer fetches it again; an unchanged one keeps its own.
+        expect(versions.get(cardPath(joining.relativePath))).not.toBe(
+            stats.versions.get(cardPath(joining.relativePath))
+        );
+        expect(versions.get(cardPath(parity.relativePath))).toBe(stats.versions.get(cardPath(parity.relativePath)));
     });
 
     it('renders a cached card again when its file was cut short', async () => {

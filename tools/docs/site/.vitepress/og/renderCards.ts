@@ -8,7 +8,7 @@ import satori from 'satori';
 
 import manifest from '../../../package.json' with { type: 'json' };
 import { palette } from '../theme/tokens.ts';
-import { cardPath, cardSize } from './cardImage.ts';
+import { cardPath, cardSize, versionCardUrls } from './cardImage.ts';
 import { type CardContent, type CardContext, type CardRequest, describeCard } from './cardContent.ts';
 import { bentoCard, heroCard } from './cardLayout.ts';
 import { drawableText, satoriFonts } from './typefaces.ts';
@@ -58,6 +58,12 @@ export interface CardStats {
     rendered: number;
     reused: number;
     bytes: number;
+}
+
+/** The cards `writeCards` wrote: its counts, and each card's version for `versionCardLinks`. */
+export interface WrittenCards extends CardStats {
+    /** A short digest of each card's content and renderer, by its path from `cardPath`. */
+    versions: Map<string, string>;
 }
 
 /** Where `writeCards` reads the repository and writes its output. */
@@ -128,18 +134,23 @@ function drawable(content: CardContent, relativePath: string): CardContent {
  * cached one is copied instead, and cache entries this build did not use are removed. Rendering runs
  * a few cards at a time: satori lays out on this thread while resvg rasterizes on the thread pool.
  */
-export async function writeCards(requests: Iterable<CardRequest>, { context, outDir, cacheDir }: CardTargets) {
+export async function writeCards(
+    requests: Iterable<CardRequest>,
+    { context, outDir, cacheDir }: CardTargets
+): Promise<WrittenCards> {
     await mkdir(cacheDir, { recursive: true });
     const fingerprint = await rendererFingerprint();
     const queue = [...requests].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
     const used = new Set<string>();
     const stats: CardStats = { rendered: 0, reused: 0, bytes: 0 };
+    const versions = new Map<string, string>();
 
     const writeCard = async (request: CardRequest) => {
         const content = drawable(describeCard(request, context), request.relativePath);
         const key = createHash('sha256').update(fingerprint).update(JSON.stringify(content)).digest('hex');
         const cached = path.join(cacheDir, `${key}.png`);
         const target = path.join(outDir, cardPath(request.relativePath));
+        versions.set(cardPath(request.relativePath), key.slice(0, 16));
         await mkdir(path.dirname(target), { recursive: true });
         used.add(`${key}.png`);
         const reused = await readCached(cached);
@@ -166,5 +177,24 @@ export async function writeCards(requests: Iterable<CardRequest>, { context, out
     // Leftover partial files from a stopped build go too, since no build uses them.
     for (const name of await readdir(cacheDir))
         if (!used.has(name)) await rm(path.join(cacheDir, name), { force: true });
-    return stats;
+    return { ...stats, versions };
+}
+
+/**
+ * Versions the card links in every page of the built site with `versionCardUrls`.
+ *
+ * @param versions - From `writeCards`.
+ * @returns How many pages linked to a card.
+ */
+export async function versionCardLinks(outDir: string, versions: ReadonlyMap<string, string>, siteUrl: string) {
+    let pages = 0;
+    const files = (await readdir(outDir, { recursive: true })).filter((file) => file.endsWith('.html'));
+    for (const file of files) {
+        const html = await readFile(path.join(outDir, file), 'utf8');
+        const versioned = versionCardUrls(html, versions, siteUrl);
+        if (versioned === html) continue;
+        await writeFile(path.join(outDir, file), versioned);
+        pages++;
+    }
+    return pages;
 }

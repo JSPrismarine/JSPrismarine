@@ -21,7 +21,7 @@ import { checkImageFiles, imageTags, landingPage } from './og/cardImage.ts';
 import type { CardRequest } from './og/cardContent.ts';
 import { loadCardContext } from './og/cardContext.ts';
 import { resolvePageImage } from './og/pageCards.ts';
-import { writeCards } from './og/renderCards.ts';
+import { versionCardLinks, writeCards } from './og/renderCards.ts';
 
 const repositoryUrl = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
 // The root manifest's homepage is where Cloudflare Pages publishes the site.
@@ -108,8 +108,9 @@ export default defineConfig({
             outDir: siteConfig.outDir,
             cacheDir: path.join(siteConfig.cacheDir, 'og')
         });
+        const linking = await versionCardLinks(siteConfig.outDir, cards.versions, siteUrl);
         console.log(
-            `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes.`
+            `Link preview cards: ${cards.rendered} rendered, ${cards.reused} unchanged since the last build, ${cards.bytes} bytes, linked from ${linking} pages.`
         );
         // Crawlers find the sitemap through robots.txt. Cloudflare adds its managed content signals to
         // the file it serves.

@@ -12,7 +12,8 @@ import {
     imageTags,
     landingPage,
     pageImage,
-    parseImageChoice
+    parseImageChoice,
+    versionCardUrls
 } from './cardImage.ts';
 
 const siteUrl = 'https://docs.example/';
@@ -157,5 +158,36 @@ describe('imageTags', () => {
         expect(tags).not.toHaveProperty('og:image:width');
         expect(tags).not.toHaveProperty('og:image:type');
         expect(tags['og:image']).toBe('https://example.com/a.png');
+    });
+});
+
+describe('versionCardUrls', () => {
+    const versions = new Map([
+        ['og/parity.png', 'aaaa'],
+        ['og/index.png', 'bbbb']
+    ]);
+
+    it("adds each card's version to every link to it: the tags and the structured data", () => {
+        const html = [
+            '<meta property="og:image" content="https://docs.example/og/parity.png">',
+            '<meta name="twitter:image" content="https://docs.example/og/parity.png">',
+            '<script type="application/ld+json">{"image":"https://docs.example/og/parity.png"}</script>'
+        ].join('\n');
+        expect(versionCardUrls(html, versions, siteUrl)).toBe(html.replaceAll('og/parity.png', 'og/parity.png?v=aaaa'));
+    });
+
+    it("gives a page that shows the landing page's card that card's version", () => {
+        expect(
+            versionCardUrls('<meta property="og:image" content="https://docs.example/og/index.png">', versions, siteUrl)
+        ).toContain('og/index.png?v=bbbb"');
+    });
+
+    it('leaves alone an image no card was written for, and a link on another site', () => {
+        const html = [
+            '<meta property="og:image" content="https://docs.example/og/unknown.png">',
+            '<meta property="og:image" content="https://docs.example/brand/card.png">',
+            '<a href="https://elsewhere.example/og/parity.png">'
+        ].join('\n');
+        expect(versionCardUrls(html, versions, siteUrl)).toBe(html);
     });
 });

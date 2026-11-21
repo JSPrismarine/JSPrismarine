@@ -77,6 +77,27 @@ export function defaultCardStyle(relativePath: string): CardStyle {
 /** Where a page's card is published, from its source file: `og/guide/joining.png` for `guide/joining.md`. */
 export const cardPath = (relativePath: string) => `og/${relativePath.replace(/\.md$/, '.png')}`;
 
+/**
+ * A page's HTML with every link to a generated card versioned by the card's content, as
+ * `og/parity.png?v=<version>`. Discord, X, Slack and other link previewers keep an image under its URL
+ * for days or more, so a card under a fixed URL kept showing the parity score or addon count it had
+ * when it was first shared. A card whose content changes gets a new URL, and one that does not keeps
+ * its URL and the previews already made from it. The tags, the structured data and a page that shows
+ * the landing page's card all name a card by its full URL, so this rewrites them alike.
+ *
+ * @param html - A built page.
+ * @param versions - Each card's version, by its path from {@link cardPath}.
+ * @param siteUrl - The site's address, which every card URL starts with.
+ */
+export function versionCardUrls(html: string, versions: ReadonlyMap<string, string>, siteUrl: string): string {
+    const prefix = new URL('og/', siteUrl).href;
+    const card = new RegExp(`${prefix.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}([^"'?#\\s]+\\.png)(?=["'])`, 'g');
+    return html.replace(card, (url, file: string) => {
+        const version = versions.get(`og/${file}`);
+        return version ? `${url}?v=${version}` : url;
+    });
+}
+
 /** The image a page's link preview shows, with what the Open Graph tags say about it. */
 export interface PageImage {
     url: string;
