@@ -1,0 +1,130 @@
+{
+    "$comment": [
+        "What the scripts of scenario `input-permission-events` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.events",
+    "scenario": "input-permission-events",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "inputs",
+            "seq": 1,
+            "tick": 0,
+            "event": "subscribe",
+            "value": "subscribed"
+        },
+        {
+            "pack": "inputs",
+            "seq": 2,
+            "tick": 0,
+            "event": "ready for the client"
+        },
+        {
+            "pack": "inputs",
+            "seq": 3,
+            "tick": 0,
+            "event": "client joined"
+        },
+        {
+            "pack": "inputs",
+            "seq": 4,
+            "tick": 0,
+            "event": "movement off",
+            "value": false
+        },
+        {
+            "pack": "inputs",
+            "seq": 5,
+            "tick": 0,
+            "event": "playerInputPermissionCategoryChange",
+            "value": {
+                "step": "movement off",
+                "category": 2,
+                "enabled": false,
+                "player": "minecraft:player",
+                "playerValid": true
+            }
+        },
+        {
+            "pack": "inputs",
+            "seq": 6,
+            "tick": 0,
+            "event": "movement off again",
+            "value": false
+        },
+        {
+            "pack": "inputs",
+            "seq": 7,
+            "tick": 0,
+            "event": "jump off",
+            "value": false
+        },
+        {
+            "pack": "inputs",
+            "seq": 8,
+            "tick": 0,
+            "event": "playerInputPermissionCategoryChange",
+            "value": {
+                "step": "jump off",
+                "category": 6,
+                "enabled": false,
+                "player": "minecraft:player",
+                "playerValid": true
+            }
+        },
+        {
+            "pack": "inputs",
+            "seq": 9,
+            "tick": 0,
+            "event": "movement on",
+            "value": true
+        },
+        {
+            "pack": "inputs",
+            "seq": 10,
+            "tick": 0,
+            "event": "playerInputPermissionCategoryChange",
+            "value": {
+                "step": "movement on",
+                "category": 2,
+                "enabled": true,
+                "player": "minecraft:player",
+                "playerValid": true
+            }
+        },
+        {
+            "pack": "inputs",
+            "seq": 11,
+            "tick": 0,
+            "event": "camera on while on",
+            "value": true
+        },
+        {
+            "pack": "inputs",
+            "seq": 12,
+            "tick": 0,
+            "event": "jump on",
+            "value": true
+        },
+        {
+            "pack": "inputs",
+            "seq": 13,
+            "tick": 0,
+            "event": "playerInputPermissionCategoryChange",
+            "value": {
+                "step": "jump on",
+                "category": 6,
+                "enabled": true,
+                "player": "minecraft:player",
+                "playerValid": true
+            }
+        }
+    ],
+    "client": []
+}

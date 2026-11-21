@@ -2991,8 +2991,8 @@
         },
         "bds-record:world-event-gaps": {
             "kind": "defect",
-            "reason": "JSPrismarine has no world clocks, script-registered dimensions, pack settings, sound lengths, tripwire or target block redstone, input permissions or entity upgrades, so the world events that report on them and startup's dimension and world clock registries throw NotImplementedError, where BDS lets a script subscribe to each and hands it both registries.",
-            "reference": "#3290, #3291, #3292, #3293, #3294, #3295, #3296"
+            "reason": "JSPrismarine has no world clocks, script-registered dimensions, pack settings, sound lengths, tripwire or target block redstone or entity upgrades, so the world events that report on them and startup's dimension and world clock registries throw NotImplementedError, where BDS lets a script subscribe to each and hands it both registries.",
+            "reference": "#3290, #3291, #3292, #3293, #3294, #3296"
         }
     },
     "scripting.gametest": {},
