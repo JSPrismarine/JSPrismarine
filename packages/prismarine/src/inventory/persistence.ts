@@ -211,6 +211,15 @@ export const restoredItem = (stored: StoredItemStack | null | undefined, content
 export const itemOfDrop = (drop: ItemDrop, content?: ServerContent): Item | null =>
     restoredItem(storedItemDrop(drop), content);
 
+/**
+ * An item stack as a block behavior's drop, which is {@link itemOfDrop} backwards.
+ * @returns The drop, or undefined for an empty slot, air or an empty stack.
+ */
+export const dropOfItem = (item: Item | null): ItemDrop | undefined => {
+    const stored = item === null ? null : storedItem(item);
+    return stored === null ? undefined : itemDropOf(stored);
+};
+
 /** Every slot of one container, empty ones included, so a slot index is its position. */
 const storedSlots = (container: ItemContainer): (StoredItemStack | null)[] =>
     container.items().map((item) => (item === null ? null : storedItem(item)));

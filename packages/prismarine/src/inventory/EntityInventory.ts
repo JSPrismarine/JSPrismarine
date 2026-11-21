@@ -104,6 +104,15 @@ export const mobLayout = (inventorySize: number) =>
 export type MobInventoryContainer = ReturnType<typeof mobLayout>['containers'][number][0];
 
 /**
+ * The container slot an equipment slot reads in a layout with no hotbar, before any alias: a
+ * mob's own `mainhand`, `offhand` and `body` slot, or its `armor` slot.
+ */
+export const mobEquipmentAddress = (slot: MobEquipmentSlot): SlotAddress => {
+    if (slot === 'mainhand' || slot === 'offhand' || slot === 'body') return { container: slot, slot: 0 };
+    return { container: 'armor', slot: ARMOR_SLOT_OF[slot] ?? 0 };
+};
+
+/**
  * Named containers of item slots, laid out for one kind of entity.
  *
  * `C` is the containers the layout has, so {@link EntityInventory.container} returns a container
@@ -216,15 +225,9 @@ export class EntityInventory<C extends InventoryContainer = InventoryContainer> 
         return address;
     }
 
-    private ownAddress(slot: MobEquipmentSlot): SlotAddress | undefined {
-        if (slot === 'mainhand') {
-            return this.hotbar > 0
-                ? { container: 'inventory', slot: this.handSlot }
-                : { container: 'mainhand', slot: 0 };
-        }
-        if (slot === 'offhand' || slot === 'body') return { container: slot, slot: 0 };
-        const armor = ARMOR_SLOT_OF[slot];
-        return armor === undefined ? undefined : { container: 'armor', slot: armor };
+    private ownAddress(slot: MobEquipmentSlot): SlotAddress {
+        if (slot === 'mainhand' && this.hotbar > 0) return { container: 'inventory', slot: this.handSlot };
+        return mobEquipmentAddress(slot);
     }
 
     /** The stack in an equipment slot, or null when it is empty or the layout has no such slot. */
