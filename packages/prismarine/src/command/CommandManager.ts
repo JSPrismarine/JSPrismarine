@@ -20,7 +20,6 @@ import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type Server from '../Server';
-import type { Level } from '../world/Level';
 import type { Service } from '../utils/Service';
 import { collectAsyncCommands, deferCommandWork } from './deferred';
 import Timer from '../utils/Timer';
@@ -180,17 +179,18 @@ export class CommandManager implements Service {
     /** The registry ids the tree validates against, from the content build. */
     private contentIds: Parameters<typeof buildVanillaCommands>[0];
 
-    /** The custom commands each level's behavior pack scripts registered, by level name. */
-    private readonly levelScriptCommands = new Map<string, ScriptCommandSet>();
+    /**
+     * The custom commands each level's behavior pack scripts registered, by level name, and the
+     * default level's under `undefined`, the level a command's dimension leaves unnamed.
+     */
+    private readonly levelScriptCommands = new Map<string | undefined, ScriptCommandSet>();
 
     /** Every level's custom commands, which the tree holds as well. */
     private scriptCommands: ScriptCommandSet | undefined;
 
     /** The custom commands of the level a command runs in, which it runs in. */
     private readonly scriptCommandsOf: ScriptCommandsOf = (from) =>
-        this.levelScriptCommands.get(
-            splitCommandDimension(from.dimension).level ?? this.server.getWorldManager().getDefaultLevel().name
-        );
+        this.levelScriptCommands.get(splitCommandDimension(from.dimension).level);
 
     public constructor(server: Server, onStopCommandComplete?: (stopped: boolean) => void) {
         this.server = server;
@@ -435,14 +435,11 @@ export class CommandManager implements Service {
      * Puts the custom commands a level's behavior pack scripts registered in `startup` into the
      * tree, or takes them out, and sends every player the commands they may run again.
      * @param commands - The commands, or undefined to take the level's last ones out.
-     * @param level - The level whose scripts registered them; left out, the default level.
+     * @param level - The name of the level whose scripts registered them; left out, the default level.
      */
-    public setScriptCommands(
-        commands: ScriptCommandSet | undefined,
-        level: Pick<Level, 'name'> = this.server.getWorldManager().getDefaultLevel()
-    ): void {
-        if (commands === undefined) this.levelScriptCommands.delete(level.name);
-        else this.levelScriptCommands.set(level.name, commands);
+    public setScriptCommands(commands: ScriptCommandSet | undefined, level?: string): void {
+        if (commands === undefined) this.levelScriptCommands.delete(level);
+        else this.levelScriptCommands.set(level, commands);
         this.scriptCommands = allScriptCommands([...this.levelScriptCommands.values()]);
         this.vanilla = buildCommands(
             this.server,

@@ -170,8 +170,10 @@ export const startLevelScripts = async (
                     .getKernel()
                     .events.on('playerDespawn', (event) => listener(String(event.getSession().runtimeId))),
             commands: (commands) => {
-                server.getCommandManager().setScriptCommands(commands, level);
-                return () => server.getCommandManager().setScriptCommands(undefined, level);
+                // A command's dimension names its level only outside the default level.
+                const name = level === server.getWorldManager().getDefaultLevel() ? undefined : level.name;
+                server.getCommandManager().setScriptCommands(commands, name);
+                return () => server.getCommandManager().setScriptCommands(undefined, name);
             },
             components: (sink) => bindScriptComponents(server, level, sink),
             entityEvents: levelEntityEvents(server, level),
