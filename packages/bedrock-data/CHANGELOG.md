@@ -1,5 +1,11 @@
 # @jsprismarine/bedrock-data
 
+## 0.23.1
+
+### Patch Changes
+
+- [#3478](https://github.com/JSPrismarine/JSPrismarine/pull/3478) [`37abdb0`](https://github.com/JSPrismarine/JSPrismarine/commit/37abdb09ee9b2bb654ae123dd527b85d87229102) Thanks [@filiphsps](https://github.com/filiphsps)! - Record each block type's default states in the captured `block-types` table, as the pinned Bedrock Dedicated Server's Script API reports them, legacy states such as `old_log_type` included.
+
 ## 0.23.0
 
 ### Minor Changes

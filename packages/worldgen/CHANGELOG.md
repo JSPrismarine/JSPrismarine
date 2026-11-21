@@ -1,5 +1,17 @@
 # @jsprismarine/worldgen
 
+## 0.23.1
+
+### Patch Changes
+
+- [#3481](https://github.com/JSPrismarine/JSPrismarine/pull/3481) [`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f) Thanks [@filiphsps](https://github.com/filiphsps)! - Export the types the public API already uses, so a consumer can name what a function takes or returns. Each package's entry point now exports the interfaces, type aliases and classes its exported signatures reference, and `@jsprismarine/prismarine` and `@jsprismarine/script-host` publish the modules that define them.
+  
+  `@jsprismarine/protocol` exports five wire types under new names, because the packet API already uses the plain names for other types: `ActorLinkFields`, `AbilityLayerFields`, `SerializedAbilitiesDataFields`, `GameRuleFields` and `UUIDValue`.
+
+- [#3477](https://github.com/JSPrismarine/JSPrismarine/pull/3477) [`6afe243`](https://github.com/JSPrismarine/JSPrismarine/commit/6afe2434c34f74ce16494876b4722365b416388f) Thanks [@filiphsps](https://github.com/filiphsps)! - Evaluate `final_density` a whole interpolation cell at a time in the terrain walk. `ChunkSampler.forEachCellBlock` now fills each cell's densities through a `CellProgram`, which runs the density tree one node at a time over the cell's blocks instead of one chain of closures per block, the way Java 26.3's `sampleVolume` evaluates it. The values are the closures' bit for bit; a node the program has no loop for runs its closure per position. Under every vanilla noise settings `final_density` runs no closure per block, where it ran about thirteen before. `RandomState.cellProgram` and `DensityFunctionCompiler.cellProgram` build one.
+- Updated dependencies [[`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f), [`8876fae`](https://github.com/JSPrismarine/JSPrismarine/commit/8876faec0d0cbd4232446e5081338461e420450e)]:
+  - @jsprismarine/errors@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes

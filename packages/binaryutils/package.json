@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/binaryutils",
-    "version": "0.23.0",
+    "version": "0.23.1",
     "description": "Buffer reading and writing for binary network protocols, without repeated allocations",
     "sideEffects": false,
     "publishConfig": {

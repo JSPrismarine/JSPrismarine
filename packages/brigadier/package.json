@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/brigadier",
-    "version": "0.23.0",
+    "version": "0.23.1",
     "description": "Mojang's Brigadier command parser and dispatcher, ported from Java",
     "sideEffects": false,
     "publishConfig": {

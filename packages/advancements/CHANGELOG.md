@@ -1,5 +1,12 @@
 # @jsprismarine/advancements
 
+## 0.23.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/predicates@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes

@@ -1,5 +1,25 @@
 # @jsprismarine/protocol
 
+## 0.23.1
+
+### Patch Changes
+
+- [#3481](https://github.com/JSPrismarine/JSPrismarine/pull/3481) [`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f) Thanks [@filiphsps](https://github.com/filiphsps)! - Export the types the public API already uses, so a consumer can name what a function takes or returns. Each package's entry point now exports the interfaces, type aliases and classes its exported signatures reference, and `@jsprismarine/prismarine` and `@jsprismarine/script-host` publish the modules that define them.
+  
+  `@jsprismarine/protocol` exports five wire types under new names, because the packet API already uses the plain names for other types: `ActorLinkFields`, `AbilityLayerFields`, `SerializedAbilitiesDataFields`, `GameRuleFields` and `UUIDValue`.
+
+- [#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480) [`8876fae`](https://github.com/JSPrismarine/JSPrismarine/commit/8876faec0d0cbd4232446e5081338461e420450e) Thanks [@filiphsps](https://github.com/filiphsps)! - A Java Edition player who joins is shown the default world around spawn, lit from the server's light engine, and kept connected with keep-alives. Blocks and biomes go through a new two-way edition translation that joins the Java and Bedrock mappings to each side's ids. `@jsprismarine/protocol` gains the Java chunk encoding (paletted containers, heightmaps, light), the play packets the join uses, and `JavaBlockStates.stateOf`, the inverse of `idOf`.
+- Updated dependencies [[`fd86ce8`](https://github.com/JSPrismarine/JSPrismarine/commit/fd86ce879e71bb55a64d0b7fd379a2016c8a3d9f), [`8876fae`](https://github.com/JSPrismarine/JSPrismarine/commit/8876faec0d0cbd4232446e5081338461e420450e)]:
+  - @jsprismarine/blocks@0.23.1
+  - @jsprismarine/errors@0.23.1
+  - @jsprismarine/items@0.23.1
+  - @jsprismarine/minecraft@0.23.1
+  - @jsprismarine/recipes@0.23.1
+  - @jsprismarine/binaryutils@0.23.1
+  - @jsprismarine/content@0.23.1
+  - @jsprismarine/nbt@0.23.1
+  - @jsprismarine/math@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes
