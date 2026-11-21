@@ -65,9 +65,9 @@ commit messages and comments.
   - `pnpm exec turbo gen Package --args <name> <description>` writes `packages/<name>/` and adds
     it to `tsconfig.build.json`. Run `pnpm install` afterwards to link it.
   - `pnpm exec turbo gen Addon --args <name> <title> <description> <minServer>` writes
-    `addons/<name>/` with fresh UUIDs. Run `pnpm run docs:facts` afterwards to list it in the
-    addon catalog, and `node scripts/script-debug-server.mts --update` to give it a VS Code launch
-    configuration.
+    `addons/<name>/` with fresh UUIDs and TypeScript sources in `src/`. Run `pnpm install`
+    afterwards to link it, `pnpm run docs:facts` to list it in the addon catalog, and
+    `node scripts/script-debug-server.mts --update` to give it a VS Code launch configuration.
   - `pnpm exec turbo gen Tool --args <name> <description>` writes `tools/<name>/`, a private
     workspace that runs from source and is never published. Run `pnpm install` afterwards to link it.
 

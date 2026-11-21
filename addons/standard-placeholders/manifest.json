@@ -4,7 +4,7 @@
         "name": "Standard Placeholders",
         "description": "Provides the standard player, server and world placeholders, and /placeholders to list and try them.",
         "uuid": "25071726-e061-4225-99d9-c681a8bf8913",
-        "version": [1, 0, 0],
+        "version": [1, 0, 1],
         "min_engine_version": [1, 26, 60]
     },
     "modules": [
@@ -12,7 +12,7 @@
             "type": "script",
             "language": "javascript",
             "uuid": "3698408d-4fc9-46b7-b3c8-3e4477febdfc",
-            "version": [1, 0, 0],
+            "version": [1, 0, 1],
             "entry": "scripts/main.js"
         }
     ],

@@ -38,7 +38,7 @@ Provides the standard player, server and world placeholders, and /placeholders t
 
 | Version | Runs on | License |
 | ------- | ------- | ------- |
-| `1.0.0` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+| `1.0.1` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
 
 ```text
 addon install standard-placeholders
@@ -50,7 +50,7 @@ Renames the entries in the player list from templates: one per player, per group
 
 | Version | Runs on | License |
 | ------- | ------- | ------- |
-| `1.0.0` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+| `1.0.1` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
 
 ```text
 addon install tab-list
@@ -62,7 +62,7 @@ Shows TPS, MSPT and ping on a boss bar.
 
 | Version | Runs on | License |
 | ------- | ------- | ------- |
-| `1.0.2` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
+| `1.0.3` | JSPrismarine `0.23.0` or newer | (MIT OR MPL-2.0) |
 
 ```text
 addon install tps-bar

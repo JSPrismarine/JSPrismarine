@@ -1,8 +1,41 @@
 /**
  * What the tab list decides on its own: which template a player renders, what the config file may
- * hold, and what a script event's message asks for. Nothing here imports a module, so the tests
- * and the docs build load it directly.
+ * hold, and what a script event's message asks for. Nothing here imports a module at run time, so
+ * the tests and the docs build load it directly.
  */
+import type { Template } from '@jsprismarine/placeholders';
+
+/** A template as a file or a message holds it: a shorthand string or a rawtext-style tree. */
+export type TemplateValue = Template | string;
+
+/** The config file as the list reads it. */
+export interface Config {
+    /** Ticks between two renders. */
+    interval: number;
+    /** The template of every player without one of their own or their group's. */
+    global: TemplateValue | undefined;
+    /** The template of each group, by group name. */
+    readonly groups: Map<string, TemplateValue>;
+    /** What the file held that the list left out, each a sentence without its full stop. */
+    readonly problems: string[];
+}
+
+/** What a `jsp_tablist:*` script event asks for. */
+export type Request =
+    | { readonly kind: 'setGlobal'; readonly template: TemplateValue }
+    | { readonly kind: 'setGroup'; readonly group: string; readonly template: TemplateValue }
+    | { readonly kind: 'clearGroup'; readonly group: string }
+    | {
+          readonly kind: 'setPlayer';
+          readonly player: string;
+          readonly template: TemplateValue;
+          readonly persist: boolean;
+      }
+    | { readonly kind: 'clearPlayer'; readonly player: string };
+
+/** A script event's message read: the request, or why it is refused. */
+export type ParsedMessage =
+    { readonly ok: true; readonly request: Request } | { readonly ok: false; readonly reason: string };
 
 /** Ticks between two renders when the config names none: once a second at 20 TPS. */
 export const DEFAULT_INTERVAL = 20;
@@ -19,28 +52,31 @@ export const EVENTS = Object.freeze({
 /** The words `/tablist` takes first, in the order its enum lists them. */
 export const ACTIONS = Object.freeze(['format', 'reset', 'group', 'player', 'show']);
 
-const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Whether a value is a template: a shorthand string or a rawtext-style tree. */
-export const isTemplate = (value) => typeof value === 'string' || isRecord(value);
+/**
+ * Whether a value is a template: a shorthand string or a rawtext-style tree. Only the outer shape
+ * is checked here; the renderer checks each node, and throws for one it does not know.
+ */
+export const isTemplate = (value: unknown): value is TemplateValue => typeof value === 'string' || isRecord(value);
 
 /**
  * Reads the config file's value. A field of the wrong shape is left out and named in `problems`,
  * so a typo in one group's template does not take every template down.
- * @param {unknown} value - The parsed file, or undefined when there is none.
- * @returns {{ interval: number, global: unknown, groups: Map<string, unknown>, problems: string[] }}
- *   The interval in ticks, the global template, the template of each group, and what was left out.
+ * @param value - The parsed file, or undefined when there is none.
  */
-export const readConfig = (value) => {
-    const problems = [];
-    const config = { interval: DEFAULT_INTERVAL, global: undefined, groups: new Map(), problems };
+export const readConfig = (value: unknown): Config => {
+    const problems: string[] = [];
+    const config: Config = { interval: DEFAULT_INTERVAL, global: undefined, groups: new Map(), problems };
     if (value === undefined) return config;
     if (!isRecord(value)) {
         problems.push('the file is not a JSON object');
         return config;
     }
     if (value.interval !== undefined) {
-        if (Number.isInteger(value.interval) && value.interval >= 1) config.interval = value.interval;
+        if (typeof value.interval === 'number' && Number.isInteger(value.interval) && value.interval >= 1)
+            config.interval = value.interval;
         else problems.push('`interval` is not a whole number of ticks, 1 or more');
     }
     const templates = value.templates;
@@ -67,49 +103,65 @@ export const readConfig = (value) => {
 
 /**
  * The file to write for a config, keeping whatever else the owner put in it.
- * @param {unknown} raw - The file as it is now.
- * @param {{ interval: number, global: unknown, groups: Map<string, unknown> }} config - What to write.
- * @returns {Record<string, unknown>} The file's new value.
+ * @param raw - The file as it is now.
+ * @param config - What to write.
+ * @returns The file's new value.
  */
-export const configFile = (raw, { interval, global, groups }) => {
+export const configFile = (
+    raw: unknown,
+    { interval, global, groups }: Pick<Config, 'interval' | 'global' | 'groups'>
+): Record<string, unknown> => {
     const base = isRecord(raw) ? raw : {};
-    const templates = { ...(isRecord(base.templates) ? base.templates : {}) };
+    const templates: Record<string, unknown> = { ...(isRecord(base.templates) ? base.templates : {}) };
     delete templates.global;
     if (global !== undefined) templates.global = global;
     templates.groups = Object.fromEntries(groups);
-    const file = { ...base, templates };
+    const file: Record<string, unknown> = { ...base, templates };
     // An interval the owner never wrote stays out of the file while it is the default.
     if (interval !== DEFAULT_INTERVAL || base.interval !== undefined) file.interval = interval;
     return file;
 };
 
+/** The levels a player's template comes from, most particular first. */
+export interface TemplateLevels {
+    readonly session?: TemplateValue;
+    readonly persisted?: TemplateValue;
+    readonly group?: string;
+    readonly groups: ReadonlyMap<string, TemplateValue>;
+    readonly global?: TemplateValue;
+}
+
 /**
  * The template a player renders: their own, set for the session or kept on them, then their
  * primary group's, then the global one.
- * @param {{ session?: unknown, persisted?: unknown, group?: string, groups: Map<string, unknown>, global?: unknown }} levels
- * @returns {unknown} The template, or undefined when no level has one.
+ * @returns The template, or undefined when no level has one.
  */
-export const pickTemplate = ({ session, persisted, group, groups, global }) =>
+export const pickTemplate = ({
+    session,
+    persisted,
+    group,
+    groups,
+    global
+}: TemplateLevels): TemplateValue | undefined =>
     session ?? persisted ?? (group === undefined ? undefined : groups.get(group)) ?? global;
 
-const refuse = (reason) => ({ ok: false, reason });
-const accept = (request) => ({ ok: true, request });
+const refuse = (reason: string): ParsedMessage => ({ ok: false, reason });
+const accept = (request: Request): ParsedMessage => ({ ok: true, request });
 
-/** A non-empty string field of a message, or the reason it is missing. */
-const text = (data, field) => {
+/** A non-empty string field of a message, or undefined when it is missing. */
+const text = (data: Record<string, unknown>, field: string): string | undefined => {
     const value = data[field];
     return typeof value === 'string' && value.length > 0 ? value : undefined;
 };
 
 /**
  * What a `jsp_tablist:*` script event asks for.
- * @param {string} id - The event's id.
- * @param {string} message - Its message, JSON.
- * @returns {{ ok: true, request: Record<string, unknown> } | { ok: false, reason: string }} The
- *   request with its `kind`, or why the message is refused.
+ * @param id - The event's id.
+ * @param message - Its message, JSON.
+ * @returns The request with its `kind`, or why the message is refused.
  */
-export const parseMessage = (id, message) => {
-    let data;
+export const parseMessage = (id: string, message: string): ParsedMessage => {
+    let data: unknown;
     try {
         data = JSON.parse(message);
     } catch {

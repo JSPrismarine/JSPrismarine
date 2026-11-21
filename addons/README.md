@@ -7,7 +7,13 @@ Each folder here is one addon, named for it, with its pack files and an `addon.j
 [`@jsprismarine/addon-tools`](../packages/addon-tools/README.md#an-addon) describes the layout
 and what the build checks. Start a new addon from the repository root with
 `pnpm exec turbo gen Addon`, which asks for its name, title, description and oldest server, and
-writes the folder with a fresh manifest. The [Addons workflow](../.github/workflows/addons.yml) builds every
+writes the folder with a fresh manifest. Then run `pnpm install` to link it.
+
+The scripts are TypeScript. Each addon is a workspace package whose `src/` `tsc-ts` compiles into
+`scripts/`, which git ignores, with the settings in [`tsconfig.base.json`](tsconfig.base.json).
+Its `package.json` pins `@minecraft/server`'s typings to the version its manifest depends on.
+`pnpm --filter ./addons/<name> run build` compiles one addon, and the addon build, the docs build
+and the tests compile them on their own. The [Addons workflow](../.github/workflows/addons.yml) builds every
 addon on a pull request that changes one, and on `master` attaches each new version to the
 <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release with the index servers install from.
 

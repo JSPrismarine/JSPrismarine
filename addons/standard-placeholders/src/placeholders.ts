@@ -31,7 +31,7 @@ export const PLACEHOLDERS = {
         weather:
             "The weather in the player's dimension, or the Overworld's: `Clear`, `Rain` or `Thunder`. Left as written until the weather has changed once since the scripts started."
     }
-};
+} as const satisfies Readonly<Record<string, Readonly<Record<string, string>>>>;
 
 /** Ticks in a Minecraft day. */
 const DAY_TICKS = 24_000;
@@ -41,14 +41,14 @@ const DAWN_HOUR = 6;
 export const TICKS_PER_MINUTE = 1200;
 
 /** Two digits, zero padded. */
-const pad = (number) => String(number).padStart(2, '0');
+const pad = (number: number): string => String(number).padStart(2, '0');
 
 /**
  * The time of day as a clock, the way the in-game clock reads it: a day starts at 06:00.
  * @param timeOfDay - Ticks into the day, from 0 to 23999.
  * @returns `HH:MM`.
  */
-export const clockOf = (timeOfDay) => {
+export const clockOf = (timeOfDay: number): string => {
     const ticks = ((timeOfDay % DAY_TICKS) + DAY_TICKS) % DAY_TICKS;
     const hours = (Math.floor(ticks / 1000) + DAWN_HOUR) % 24;
     const minutes = Math.floor(((ticks % 1000) / 1000) * 60);
@@ -59,11 +59,11 @@ export const clockOf = (timeOfDay) => {
  * Ticks as days, hours and minutes, without the units that are zero ahead of the first one that
  * is not, so a fresh server reads `0m` and an old one `1d 2h 3m`.
  */
-export const uptimeOf = (ticks) => {
+export const uptimeOf = (ticks: number): string => {
     const minutes = Math.floor(Math.max(0, ticks) / TICKS_PER_MINUTE);
     const days = Math.floor(minutes / (24 * 60));
     const hours = Math.floor(minutes / 60) % 24;
-    const parts = [];
+    const parts: string[] = [];
     if (days > 0) parts.push(`${days}d`);
     if (parts.length > 0 || hours > 0) parts.push(`${hours}h`);
     parts.push(`${minutes % 60}m`);

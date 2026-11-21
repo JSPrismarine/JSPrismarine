@@ -67,7 +67,7 @@ pack. A script module's `entry` must exist. This is the TPS bar's, with placehol
         "name": "TPS Bar",
         "description": "Shows the server's TPS, MSPT and your ping on a boss bar. Run /tpsbar to turn it on or off.",
         "uuid": "<a new UUID>",
-        "version": [1, 0, 2],
+        "version": [1, 0, 3],
         "min_engine_version": [1, 21, 100]
     },
     "modules": [
@@ -75,7 +75,7 @@ pack. A script module's `entry` must exist. This is the TPS bar's, with placehol
             "type": "script",
             "language": "javascript",
             "uuid": "<another new UUID>",
-            "version": [1, 0, 2],
+            "version": [1, 0, 3],
             "entry": "scripts/main.js"
         }
     ],

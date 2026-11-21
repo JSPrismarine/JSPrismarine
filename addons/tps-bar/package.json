@@ -1,0 +1,18 @@
+{
+    "name": "@jsprismarine/addon-tps-bar",
+    "private": true,
+    "license": "(MIT OR MPL-2.0)",
+    "description": "The tps-bar addon's scripts, built from TypeScript",
+    "type": "module",
+    "scripts": {
+        "build": "tsc-ts -p tsconfig.json",
+        "clean": "rimraf scripts",
+        "typecheck": "tsc-ts --noEmit -p tsconfig.json"
+    },
+    "devDependencies": {
+        "@jsprismarine/script-types": "workspace:*",
+        "@minecraft/server": "2.1.0",
+        "rimraf": "6.1.4",
+        "tsc-ts": "0.1.5"
+    }
+}

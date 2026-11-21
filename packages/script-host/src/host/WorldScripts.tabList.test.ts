@@ -21,7 +21,7 @@ import { readScriptConfig } from './pack';
 import type { ScriptCommandArgument, ScriptCommandOrigin, ScriptCommandOutcome } from './world';
 import { WorldScripts } from './WorldScripts';
 
-const TAB_LIST = addonDirectory('tab-list');
+const TAB_LIST = await addonDirectory('tab-list');
 
 /** The functions `templates.js` exports, typed as the tests call them. */
 interface Templates {

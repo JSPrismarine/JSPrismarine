@@ -8,7 +8,8 @@
  * (microsoft/vscode#27157), so the configuration picked is the only choice: the task links every
  * addon and the extension asks the server for the one its configuration names.
  *
- * - With no flag, as the task runs it, it prepares the data folder that `JSP_DIR` names. It writes
+ * - With no flag, as the task runs it, it builds each addon's scripts from its TypeScript sources
+ *   and prepares the data folder that `JSP_DIR` names. It writes
  *   `config.json` when the folder has none: a flat world, and `script-debugger-auto-attach` in
  *   connect mode to the debugger port. A config.json that exists is left alone, so edits to it
  *   stay. It writes `addons.json` every time, linking each addon, so an addon added since the last
@@ -17,6 +18,7 @@
  * - `--update` writes the configurations into `.vscode/launch.json`, keeping any others.
  * - `--check` fails when `.vscode/launch.json` lacks a configuration, or holds a stale one.
  */
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
@@ -76,14 +78,19 @@ const scriptAddons = (): ScriptAddon[] =>
             return [{ folder, name, moduleUuid: module.uuid }];
         });
 
-/** The launch configuration that debugs one addon. */
+/**
+ * The launch configuration that debugs one addon. The server runs the scripts tsc-ts wrote into
+ * `scripts/`, and the source maps beside them lead the debugger to the sources in `src/`.
+ */
 const launchConfiguration = (addon: ScriptAddon): Record<string, unknown> => ({
     name: `Debug addon scripts: ${addon.name}`,
     type: 'minecraft-js',
     request: 'attach',
     mode: 'listen',
     port: DEBUGGER_PORT,
-    localRoot: `\${workspaceFolder}/addons/${addon.folder}/scripts`,
+    localRoot: `\${workspaceFolder}/addons/${addon.folder}/src`,
+    sourceMapRoot: `\${workspaceFolder}/addons/${addon.folder}/scripts`,
+    generatedSourceRoot: `\${workspaceFolder}/addons/${addon.folder}/scripts`,
     targetModuleUuid: addon.moduleUuid,
     preLaunchTask: TASK_LABEL
 });
@@ -143,6 +150,9 @@ const prepare = (): void => {
         };
         fs.writeFileSync(configFile, `${JSON.stringify(config, null, 4)}\n`);
     }
+
+    // Each addon's package runs tsc-ts on its project, writing `scripts/` and the source maps.
+    execFileSync('pnpm', ['--filter', './addons/*', 'run', 'build'], { cwd: REPOSITORY, stdio: 'inherit' });
 
     const addons = scriptAddons();
     const requests = Object.fromEntries(

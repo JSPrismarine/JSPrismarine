@@ -3,7 +3,7 @@
  * `online-mode` off so the unauthenticated test client can join, plain line console on stdio.
  */
 import type { ChildProcess } from 'node:child_process';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import dgram from 'node:dgram';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -287,6 +287,11 @@ export const startServer = async (
     }
     const dir = options.dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-server-'));
     fs.mkdirSync(dir, { recursive: true });
+
+    // The server loads each addon's folder as it is, so its package builds the scripts from the
+    // TypeScript sources first.
+    const addons = (options.addons ?? []).map((name) => path.join(repoRoot, 'addons', name));
+    for (const addon of addons) execFileSync('pnpm', ['--dir', addon, 'run', 'build'], { stdio: 'inherit' });
 
     const datapack = path.join(dir, 'client-e2e-datapack');
     const customDimension = path.join(datapack, 'data', 'client_e2e', 'dimension_type', 'custom.json');
@@ -697,11 +702,7 @@ export const startServer = async (
             },
             ...(options.secondLevel === true ? { [SECOND_LEVEL]: { seed: '2', preset: 'minecraft:flat' } } : {})
         },
-        'content-world-packs': [
-            behaviorPack,
-            scriptPack,
-            ...(options.addons ?? []).map((name) => path.join(repoRoot, 'addons', name))
-        ],
+        'content-world-packs': [behaviorPack, scriptPack, ...addons],
         'content-datapacks': [datapack],
         ...(options.javaVersion === undefined ? {} : { 'content-java-version': options.javaVersion }),
         // `JSP_E2E_CHUNK_HOST=process` runs chunk generation in the generation host process.

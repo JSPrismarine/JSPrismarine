@@ -1,6 +1,16 @@
+import type { CustomCommandOrigin, CustomCommandResult, Entity, Player } from '@minecraft/server';
 import { CommandPermissionLevel, CustomCommandParamType, CustomCommandStatus, system, world } from '@minecraft/server';
 
-import { clockOf, PLACEHOLDERS, uptimeOf } from './placeholders.js';
+import { clockOf, PLACEHOLDERS, uptimeOf } from './placeholders.ts';
+
+/** The members of `@jsprismarine/server` the providers read, which JSPrismarine 0.23.0 added. */
+type Jsprismarine = Pick<typeof import('@jsprismarine/server'), 'getPing' | 'jsprismarine' | 'performance'>;
+/** `@jsprismarine/placeholders`, the registry. */
+type Placeholders = typeof import('@jsprismarine/placeholders');
+/** The value of one key: text, a number that renders through `String()`, or undefined to leave the token. */
+type Resolver = (key: string, player?: Player) => string | number | undefined;
+/** A namespace the table lists. */
+type Namespace = keyof typeof PLACEHOLDERS;
 
 /** The enum of `/placeholders`'s first word. */
 const ACTIONS = 'jsp:placeholders_action';
@@ -11,9 +21,9 @@ const OVERWORLD = 'overworld';
  * `@jsprismarine/server` once it has loaded, with the members the providers read. Undefined before
  * then, on Bedrock Dedicated Server, and on a JSPrismarine older than 0.23.0.
  */
-let jsp;
+let jsp: Jsprismarine | undefined;
 /** `@jsprismarine/placeholders`, the registry, once it has loaded; undefined where `jsp` is. */
-let placeholders;
+let placeholders: Placeholders | undefined;
 /** `system.currentTick` when the world loaded, which `{server:uptime}` counts from. */
 let started = 0;
 /**
@@ -22,23 +32,32 @@ let started = 0;
  * until its weather changes once, and `{world:weather}` stays as written until then
  * (https://github.com/JSPrismarine/JSPrismarine/issues/3388).
  */
-const weather = new Map();
+const weather = new Map<string, string>();
+
+/** Whether a name is one of the table's namespaces, as `Object.entries` gives it. */
+const isNamespace = (name: string): name is Namespace => name in PLACEHOLDERS;
+
+/** Whether a command's source is a player. */
+const isPlayer = (entity: Entity | undefined): entity is Player => entity?.typeId === 'minecraft:player';
 
 /** A dimension id without its `minecraft:` prefix, the form the weather event names it in. */
-const bare = (dimension) => dimension.replace(/^minecraft:/, '');
+const bare = (dimension: string): string => dimension.replace(/^minecraft:/, '');
 
 /** A number with one decimal, as text. */
-const oneDecimal = (number) => number.toFixed(1);
+const oneDecimal = (number: number): string => number.toFixed(1);
 
-/** The resolvers of each namespace: the key's value, or undefined to leave the token. */
-const resolvers = {
+/**
+ * The resolvers of each namespace: the key's value, or undefined to leave the token. They run
+ * once the registry has them, so `jsp` is set.
+ */
+const resolvers = (server: Jsprismarine): Readonly<Record<Namespace, Resolver>> => ({
     player: (key, player) => {
         if (player === undefined) return undefined;
         switch (key) {
             case 'name':
                 return player.name;
             case 'ping': {
-                const ping = jsp.getPing(player);
+                const ping = server.getPing(player);
                 return ping === undefined ? undefined : Math.round(ping);
             }
             case 'health': {
@@ -66,15 +85,15 @@ const resolvers = {
     server: (key) => {
         switch (key) {
             case 'tps':
-                return oneDecimal(jsp.performance.tps);
+                return oneDecimal(server.performance.tps);
             case 'mspt':
-                return oneDecimal(jsp.performance.averageTickMs);
+                return oneDecimal(server.performance.averageTickMs);
             case 'online':
                 return world.getAllPlayers().length;
             case 'max':
-                return jsp.jsprismarine.maxPlayers;
+                return server.jsprismarine.maxPlayers;
             case 'version':
-                return jsp.jsprismarine.version;
+                return server.jsprismarine.version;
             case 'uptime':
                 return uptimeOf(system.currentTick - started);
             default:
@@ -93,37 +112,40 @@ const resolvers = {
                 return undefined;
         }
     }
-};
+});
 
 /** Registers the three namespaces, each with the keys the table lists. */
-const register = () => {
+const register = (server: Jsprismarine, registry: Placeholders): void => {
+    const resolve = resolvers(server);
     for (const [namespace, keys] of Object.entries(PLACEHOLDERS)) {
-        placeholders.register(namespace, { keys: Object.keys(keys), resolve: resolvers[namespace] });
+        if (isNamespace(namespace))
+            registry.register(namespace, { keys: Object.keys(keys), resolve: resolve[namespace] });
     }
 };
 
 /** The lines `/placeholders list` prints: each namespace with its keys. */
-const listing = () =>
-    placeholders
+const listing = (registry: Placeholders): string =>
+    registry
         .namespaces()
         .map(({ namespace, keys }) => `${namespace}: ${keys.join(', ')}`)
         .join('\n');
 
 /** Runs `/placeholders list` and `/placeholders parse <text>`. */
-const run = (origin, action, text) => {
-    if (jsp === undefined || placeholders === undefined) {
+const run = (origin: CustomCommandOrigin, action: string, text?: string): CustomCommandResult => {
+    const registry = placeholders;
+    if (jsp === undefined || registry === undefined) {
         return {
             status: CustomCommandStatus.Failure,
             message: 'Standard placeholders need JSPrismarine 0.23.0 or newer, and this server is not one.'
         };
     }
-    if (action === 'list') return { status: CustomCommandStatus.Success, message: listing() };
+    if (action === 'list') return { status: CustomCommandStatus.Success, message: listing(registry) };
     if (text === undefined) {
         return { status: CustomCommandStatus.Failure, message: 'Usage: /placeholders parse <text>' };
     }
     const sender = origin.sourceEntity;
-    const player = sender?.typeId === 'minecraft:player' ? sender : undefined;
-    return { status: CustomCommandStatus.Success, message: placeholders.resolve(text, player) };
+    const player = isPlayer(sender) ? sender : undefined;
+    return { status: CustomCommandStatus.Success, message: registry.resolve(text, player) };
 };
 
 system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
@@ -156,7 +178,7 @@ Promise.all([import('@jsprismarine/server'), import('@jsprismarine/placeholders'
         if (!('performance' in server) || !('getPing' in server) || !('register' in registry)) return;
         jsp = server;
         placeholders = registry;
-        register();
+        register(server, registry);
     },
     () => {}
 );
