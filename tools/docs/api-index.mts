@@ -17,7 +17,8 @@ const intro = readFileSync(path.join(packageDirectory, 'api-readme.md'), 'utf8')
 
 const { packages } = loadProject();
 const sections = groupPackages(packages).map((area) => {
-    const links = area.packages.map((pkg) => `- [${pkg.name.slice(pkg.name.indexOf('/') + 1)}](${pkg.name}/index.md)`);
+    // A package TypeDoc leaves out links to its README instead, since the reference has no page for it.
+    const links = area.packages.map((pkg) => `- [${pkg.name.slice(pkg.name.indexOf('/') + 1)}](${pkg.reference})`);
     return [`## ${area.title}`, '', area.description, '', ...links].join('\n');
 });
 

@@ -181,7 +181,7 @@ export class SearchEngine {
                     kind: 'package',
                     title: pkg.name,
                     context: `v${pkg.version}`,
-                    href: `/api/${pkg.name}/`,
+                    href: pkg.reference,
                     description: pkg.description
                 },
                 `${pkg.name.replace('@jsprismarine/', '')} ${pkg.description}`

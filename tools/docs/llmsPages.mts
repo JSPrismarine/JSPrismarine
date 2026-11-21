@@ -10,7 +10,7 @@ import type { ProjectData } from './project.mts';
 import { requirePackage } from './site/.vitepress/theme/landing.ts';
 import { groupPackages } from './site/.vitepress/theme/packageAreas.ts';
 
-/** The Packages page: each published package by its area, with its version, API reference and npm page. */
+/** The Packages page: each published package by its area, with its version, its reference and npm page. */
 export function packagesMarkdown(project: ProjectData) {
     // The package the Packages page shows `pnpm add` with.
     const example = requirePackage(project, '@jsprismarine/nbt').name;
@@ -20,8 +20,8 @@ export function packagesMarkdown(project: ProjectData) {
             description,
             packages
                 .map(
-                    ({ name, version, description }) =>
-                        `- [\`${name}\`](/api/${name}/) ${version}: ${description.replace(/\.$/, '')}. [npm](https://www.npmjs.com/package/${name})`
+                    ({ name, version, description, reference }) =>
+                        `- [\`${name}\`](${reference}) ${version}: ${description.replace(/\.$/, '')}. [npm](https://www.npmjs.com/package/${name})`
                 )
                 .join('\n')
         ].join('\n\n')

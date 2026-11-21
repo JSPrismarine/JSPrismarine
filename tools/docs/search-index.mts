@@ -42,7 +42,7 @@ export interface SearchIndex {
     pages: PageEntry[];
     commands: CommandData[];
     settings: SettingData[];
-    packages: { name: string; description: string; version: string }[];
+    packages: { name: string; description: string; version: string; reference: string }[];
 }
 
 /** Characters of section text kept per heading; enough to match a phrase and show a preview line. */
@@ -151,7 +151,12 @@ export async function writeSearchIndex(siteDir: string) {
         pages,
         commands: registered,
         settings: await loadSettings(),
-        packages: loadProject().packages.map(({ name, description, version }) => ({ name, description, version }))
+        packages: loadProject().packages.map(({ name, description, version, reference }) => ({
+            name,
+            description,
+            version,
+            reference
+        }))
     };
     const target = path.join(siteDir, 'public', 'search-index.json');
     writeFileSync(target, JSON.stringify(index));

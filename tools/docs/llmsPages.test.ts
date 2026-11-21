@@ -12,10 +12,10 @@ describe('packagesMarkdown', () => {
 
     it('lists every published package once, at its API reference and npm page', () => {
         expect(pageTitle(markdown, '')).toBe('Packages');
-        for (const { name, version } of project.packages) {
+        for (const { name, version, reference } of project.packages) {
             const lines = markdown.split('\n').filter((line) => line.startsWith(`- [\`${name}\`]`));
             expect(lines).toHaveLength(1);
-            expect(lines[0]).toContain(`(/api/${name}/) ${version}: `);
+            expect(lines[0]).toContain(`(${reference}) ${version}: `);
             expect(lines[0]).toContain(`(https://www.npmjs.com/package/${name})`);
         }
     });

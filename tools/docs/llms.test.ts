@@ -256,8 +256,11 @@ describe('llmsIndex', () => {
 
     it("lists every page once, outside the landing page and the API reference's own pages", () => {
         const index = llmsIndex(source());
-        const links = index.sections.flatMap(({ links }) => links.map(({ link }) => link.replace(/#.*$/, '')));
-        expect(links.filter((link) => !link.startsWith('/api/@'))).toEqual([
+        // The packages are listed at their references, which are not pages of the fixture.
+        const links = index.sections
+            .filter(({ title }) => title !== 'Packages')
+            .flatMap(({ links }) => links.map(({ link }) => link.replace(/#.*$/, '')));
+        expect(links).toEqual([
             '/guide/running',
             '/data-driven/molang',
             '/data-driven/',
@@ -302,7 +305,7 @@ describe('llmsIndex', () => {
         for (const pkg of project.packages) {
             expect(packages?.links).toContainEqual({
                 title: pkg.name,
-                link: `/api/${pkg.name}/`,
+                link: pkg.reference,
                 note: pkg.description
             });
         }
