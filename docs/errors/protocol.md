@@ -752,6 +752,15 @@ Thrown as `ProtocolWireErrors.InvalidUuidLength`, which extends `Error`.
 A UUID was read from a value that is not 16 bytes. This is a bug in the protocol codecs;
 report it with the stack trace.
 
+### `PROTOCOL_JAVA_BLOCK_STATE_ROW_MALFORMED`
+
+`Block state row {index} is not [name, firstId, properties]`
+
+Thrown as `ProtocolWireErrors.JavaBlockStateRowMalformed`, which extends `Error`.
+
+A release's generated `blockStates.json` has a row that is not a block name, a first state id
+and a list of properties. Regenerate it with `pnpm --filter
+
 ### `PROTOCOL_JAVA_FRAME_LENGTH_OUT_OF_RANGE`
 
 `A compressed frame names {length} bytes, outside what threshold {threshold} allows`

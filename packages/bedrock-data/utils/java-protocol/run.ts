@@ -1,6 +1,7 @@
 /**
- * Writes `packages/protocol/src/java/versions/<release>/release.ts` and `packets.ts`: the Java
- * Edition release's protocol number and its packet ids by phase and direction.
+ * Writes `packages/protocol/src/java/versions/<release>/release.ts`, `packets.ts` and
+ * `blockStates.json`: the Java Edition release's protocol number, its packet ids by phase and
+ * direction, and the rows every block state id follows from.
  *
  * The protocol number is the server jar's `version.json`, and the ids are the data generator's
  * `reports/packets.json`, which `ensure:worldgen` leaves in the cache. This is a capture-time
@@ -13,8 +14,8 @@ import { join, resolve } from 'node:path';
 import { isRecord } from '../isRecord.ts';
 import { readJarVersion, resolveJavaRelease } from '../java/release.ts';
 import { javaServerJarPath, packageDir, worldgenCachePaths } from '../java/worldgen-cache.ts';
-import { packetTableSource, releaseSource } from './source.ts';
-import type { PacketTable } from './source.ts';
+import { blockStateRows, blockStatesSource, packetTableSource, releaseSource } from './source.ts';
+import type { PacketTable, ReportBlock } from './source.ts';
 
 const release = await resolveJavaRelease(process.argv);
 const reportPath = join(worldgenCachePaths(release.version).reports, 'reports', 'packets.json');
@@ -49,4 +50,12 @@ const outDir = resolve(packageDir, '../protocol/src/java/versions', release.vers
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, 'release.ts'), releaseSource(release.version, jar.protocol_version));
 writeFileSync(join(outDir, 'packets.ts'), packetTableSource(release.version, table));
-console.log(`Wrote ${release.version}'s release and packet ids (protocol ${jar.protocol_version}) to ${outDir}`);
+
+const blocksPath = join(worldgenCachePaths(release.version).reports, 'reports', 'blocks.json');
+// Extracted game data: parsed, never executed. The rows check every state's id against it.
+const blocks = JSON.parse(readFileSync(blocksPath, 'utf8')) as Record<string, ReportBlock>;
+const rows = blockStateRows(blocks);
+writeFileSync(join(outDir, 'blockStates.json'), blockStatesSource(rows));
+console.log(
+    `Wrote ${release.version}'s release, packet ids and ${rows.length} blocks' states (protocol ${jar.protocol_version}) to ${outDir}`
+);

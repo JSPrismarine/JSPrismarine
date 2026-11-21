@@ -49,3 +49,4 @@ packages/prismarine/src/world/__fixtures__/player-record.json
 # Linked git worktrees hold other branches
 .claude/worktrees/
 packages/protocol/src/java/versions/*/configuration.json
+packages/protocol/src/java/versions/*/blockStates.json

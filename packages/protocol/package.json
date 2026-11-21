@@ -981,6 +981,16 @@
                 "import": "./dist/java/packet/play.js",
                 "module": "./dist/java/packet/play.js"
             },
+            "./java/versions/javaBlockStates": {
+                "types": "./dist/java/versions/javaBlockStates.d.ts",
+                "import": "./dist/java/versions/javaBlockStates.js",
+                "module": "./dist/java/versions/javaBlockStates.js"
+            },
+            "./java/versions/26.3/blockStates": {
+                "types": "./dist/java/versions/26.3/blockStates.d.ts",
+                "import": "./dist/java/versions/26.3/blockStates.js",
+                "module": "./dist/java/versions/26.3/blockStates.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -1828,6 +1838,14 @@
         "./java/packet/play": {
             "jsprismarine:dist": "./dist/java/packet/play.js",
             "default": "./src/java/packet/play.ts"
+        },
+        "./java/versions/javaBlockStates": {
+            "jsprismarine:dist": "./dist/java/versions/javaBlockStates.js",
+            "default": "./src/java/versions/javaBlockStates.ts"
+        },
+        "./java/versions/26.3/blockStates": {
+            "jsprismarine:dist": "./dist/java/versions/26.3/blockStates.js",
+            "default": "./src/java/versions/26.3/blockStates.ts"
         },
         "./package.json": "./package.json"
     },

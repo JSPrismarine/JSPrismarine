@@ -414,5 +414,11 @@ export const ProtocolWireErrors = defineErrors('protocol', {
      * threshold, past the 8 MiB limit, or other than what its body inflates to. The server closes
      * the connection; a modified client is the usual cause.
      */
-    JavaFrameLengthOutOfRange: 'A compressed frame names {length} bytes, outside what threshold {threshold} allows'
+    JavaFrameLengthOutOfRange: 'A compressed frame names {length} bytes, outside what threshold {threshold} allows',
+    /**
+     * A release's generated `blockStates.json` has a row that is not a block name, a first state id
+     * and a list of properties. Regenerate it with `pnpm --filter @jsprismarine/bedrock-data run
+     * dump:java-protocol`.
+     */
+    JavaBlockStateRowMalformed: 'Block state row {index} is not [name, firstId, properties]'
 });

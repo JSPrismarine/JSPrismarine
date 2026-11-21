@@ -24,10 +24,10 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, done ([#3449](https://github.com/JSPrismarine/JSPrismarine/pull/3449)). Chunks and keep-alive move to PR 9; see section 4. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
-| 8 | Java login, Mojang session verification, configuration phase, registries and tags | In progress. 8a, the release's packet ids generated from the data generator's packets report, done ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)). 8b, the login: Mojang verification, encryption and compression, done ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)). 8c, the configuration phase, in review. |
+| 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
 | 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
-| 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Not started |
+| 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | In progress. The inverse by name, `bedrockBlockStateToJava`, already exists. 11a, Java's block state ids, in review. |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
 
 Issues for the slices after PR 9 are opened when PR 1 merges and linked from this table.
@@ -300,6 +300,14 @@ Bedrock state, picks `waterlogged` from the second block storage layer, and reco
 state with no Java candidate, such as Bedrock-only blocks, in the loss list with a substitute. The
 same inverse is generated for items and entity types, where the forward mapping is nearly one to
 one, and the biome inverse already exists.
+
+The inverse by name and properties, `bedrockBlockStateToJava`, had landed by the time PR 11 began,
+loss list included. What a Java client needs on top is the number: `dump:java-protocol` writes each
+block's first state id and its properties in the order that numbers its states into
+`java/versions/<release>/blockStates.json`, and `JavaBlockStates.idOf` turns a name and properties
+into the id. The report lists a block's properties in another order than the one that numbers its
+states (a chest's `type` before `facing`), so the generator reads the order off the ids, and a test
+checks every state the report lists.
 
 ### The content setting
 

@@ -62,3 +62,55 @@ ${phases.join(',\n')}
 } as const;
 `;
 };
+
+/** One block of the data generator's `reports/blocks.json`. */
+export interface ReportBlock {
+    readonly properties?: Readonly<Record<string, readonly string[]>>;
+    readonly states: readonly { readonly id: number; readonly properties?: Readonly<Record<string, string>> }[];
+}
+
+/** One block's states: its name, the id of its first state, and its properties in the order that numbers them. */
+export type BlockStateRow = [name: string, firstId: number, properties: [name: string, values: string[]][]];
+
+/**
+ * Each block's states as a row, from which every state id follows: the first id, plus the state's
+ * value indices read as a mixed-radix number over the properties in the row's order.
+ *
+ * The report lists a block's properties in another order than the one that numbers its states, so
+ * the order is read off the ids: a property's stride is how far one step of its value moves the id.
+ * `JavaBlockStates.test.ts` in the protocol package checks every reported state against the rows.
+ * @param report - The data generator's blocks report.
+ * @returns The rows, in id order.
+ * @throws Error when a block has no state one step along a property, so the report changed shape.
+ */
+export const blockStateRows = (report: Readonly<Record<string, ReportBlock>>): BlockStateRow[] => {
+    const rows: BlockStateRow[] = [];
+    for (const [name, block] of Object.entries(report)) {
+        const properties = Object.entries(block.properties ?? {});
+        const first = block.states.reduce((lowest, state) => (state.id < lowest.id ? state : lowest));
+        const stride = (property: string, values: readonly string[]): number => {
+            const from = first.properties?.[property] ?? '';
+            const next = { ...first.properties, [property]: values[(values.indexOf(from) + 1) % values.length]! };
+            const stepped = block.states.find((state) =>
+                Object.entries(next).every(([key, value]) => state.properties?.[key] === value)
+            );
+            if (stepped === undefined) throw new Error(`${name} has no state with ${property}=${next[property]}`);
+            return Math.abs(stepped.id - first.id);
+        };
+        const ordered = properties
+            .map(([property, values]) => ({ property, values: [...values], stride: stride(property, values) }))
+            .sort((a, b) => b.stride - a.stride)
+            .map(({ property, values }): [string, string[]] => [property, values]);
+        const row: BlockStateRow = [name, first.id, ordered];
+        rows.push(row);
+    }
+    return rows.sort((a, b) => a[1] - b[1]);
+};
+
+/**
+ * The JSON of the rows, one block a line.
+ * @param rows - The rows.
+ * @returns The file text.
+ */
+export const blockStatesSource = (rows: readonly BlockStateRow[]): string =>
+    `[\n${rows.map((row) => `    ${JSON.stringify(row)}`).join(',\n')}\n]\n`;
