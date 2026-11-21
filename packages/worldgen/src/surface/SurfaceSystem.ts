@@ -11,6 +11,9 @@ import type { MaterialRuleNode } from './MaterialRule';
 import type { LocalBiomes } from './MaterialRuleContext';
 import { MaterialRuleContext } from './MaterialRuleContext';
 import { compileMaterialRuleProgram, MaterialRuleInterpreter } from './MaterialRuleProgram';
+import type { MaterialRuleProgram } from './MaterialRuleProgram';
+import { NativeSurfacePass } from './nativeSurface';
+import { NativeSurfaceLayout } from '@jsprismarine/native-worldgen';
 import type { SurfaceChunk } from './SurfaceChunk';
 import type { WorldGenerationContext } from './VerticalAnchor';
 import { createWorldGenerationContext } from './VerticalAnchor';
@@ -99,6 +102,11 @@ export interface SurfacePass {
      * @returns The block to place, or undefined when no rule matched the position.
      */
     topMaterial(blockX: number, blockY: number, blockZ: number, hasFluid: boolean): string | undefined;
+    /**
+     * How many blocks the native pass handed back to the TypeScript interpreter, because they
+     * reached a condition only it answers; undefined where the whole pass ran in TypeScript.
+     */
+    readonly handedBack?: number;
 }
 
 /** What the surface pass needs besides the chunk it is building. */
@@ -114,6 +122,13 @@ export interface BuildSurfaceOptions {
      * cells. It lets a `biome` condition answer for a block whose candidate cells all agree.
      */
     readonly biomeCellAt?: (quartX: number, quartY: number, quartZ: number) => string;
+    /**
+     * The seed of the jitter `biomeAt`'s `BiomeManager` applies, `BiomeManager.zoomSeed`. With it and
+     * `biomeCellAt`, the pass runs in the native library where it loads.
+     */
+    readonly biomeZoomSeed?: bigint;
+    /** False keeps the pass in TypeScript where the native library would run it. */
+    readonly native?: boolean;
     /** The climate of a biome, which the `temperature` condition and icebergs read. */
     readonly biomeClimate: BiomeClimateLookup;
     /** The memo slots the compiled density functions share; one per chunk. */
@@ -158,6 +173,11 @@ export class SurfaceSystem {
     private readonly icebergPillarRoofNoise: Noise;
     private readonly icebergSurfaceNoise: Noise;
     private readonly noiseRandom: PositionalRandomFactory;
+    /** Each rule program's native pass, or null where it cannot run there. */
+    private readonly nativePasses = new Map<
+        MaterialRuleProgram,
+        { readonly zoomSeed: bigint; readonly pass: NativeSurfacePass | null }
+    >();
 
     public constructor(private readonly randomState: RandomState) {
         const settings = randomState.settings;
@@ -224,41 +244,49 @@ export class SurfaceSystem {
             ...(options.localBiomes === undefined ? {} : { localBiomes: options.localBiomes }),
             ...(options.biomeCellAt === undefined ? {} : { biomeCellAt: options.biomeCellAt })
         });
-        const rule = new MaterialRuleInterpreter(compileMaterialRuleProgram(options.rule), context);
+        const program = compileMaterialRuleProgram(options.rule);
+        const rule = new MaterialRuleInterpreter(program, context);
         const column = new Array<string>(chunk.maxY - chunk.minY + 1);
 
-        for (let localX = 0; localX < CHUNK_SIZE; localX++) {
-            for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                const blockX = minBlockX + localX;
-                const blockZ = minBlockZ + localZ;
-                const startingHeight = chunk.surfaceHeight(localX, localZ) + 1;
-                const surfaceBiome = options.biomeAt(blockX, startingHeight, blockZ);
-                if (surfaceBiome === ERODED_BADLANDS) {
-                    this.erodedBadlandsExtension(chunk, blockX, blockZ, startingHeight);
-                }
+        const native = this.nativePass(options, program, context);
+        let handedBack: number | undefined;
+        if (native !== undefined && options.biomeCellAt !== undefined) {
+            handedBack = this.buildSurfaceNatively(options, native, options.biomeCellAt, context, rule, column);
+        } else {
+            for (let localX = 0; localX < CHUNK_SIZE; localX++) {
+                for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                    const blockX = minBlockX + localX;
+                    const blockZ = minBlockZ + localZ;
+                    const startingHeight = chunk.surfaceHeight(localX, localZ) + 1;
+                    const surfaceBiome = options.biomeAt(blockX, startingHeight, blockZ);
+                    if (surfaceBiome === ERODED_BADLANDS) {
+                        this.erodedBadlandsExtension(chunk, blockX, blockZ, startingHeight);
+                    }
 
-                context.updateXZ(
-                    blockX,
-                    blockZ,
-                    this.surfaceGradientX(chunk, localX, localZ),
-                    this.surfaceGradientZ(chunk, localX, localZ)
-                );
-                this.buildColumn(chunk, context, rule, column, blockX, blockZ, startingHeight);
-
-                if (FROZEN_OCEANS.has(surfaceBiome)) {
-                    this.frozenOceanExtension(
-                        chunk,
-                        options.biomeClimate(surfaceBiome),
-                        context.getMinSurfaceLevel(),
+                    context.updateXZ(
                         blockX,
                         blockZ,
-                        startingHeight
+                        this.surfaceGradientX(chunk, localX, localZ),
+                        this.surfaceGradientZ(chunk, localX, localZ)
                     );
+                    this.buildColumn(chunk, context, rule, column, blockX, blockZ, startingHeight);
+
+                    if (FROZEN_OCEANS.has(surfaceBiome)) {
+                        this.frozenOceanExtension(
+                            chunk,
+                            options.biomeClimate(surfaceBiome),
+                            context.getMinSurfaceLevel(),
+                            blockX,
+                            blockZ,
+                            startingHeight
+                        );
+                    }
                 }
             }
         }
 
         return {
+            ...(handedBack === undefined ? {} : { handedBack }),
             topMaterial: (blockX, blockY, blockZ, hasFluid) => {
                 const localX = blockX & 15;
                 const localZ = blockZ & 15;
@@ -274,6 +302,158 @@ export class SurfaceSystem {
                 return rule.run(blockX, blockY, blockZ);
             }
         };
+    }
+
+    /**
+     * The native pass for a program, made once per program and jitter seed; undefined where the
+     * library does not load, the caller asked for TypeScript, cannot give the biome cells and the
+     * jitter seed, or the context reads the cell walk's interpolation buffers.
+     */
+    private nativePass(
+        options: BuildSurfaceOptions,
+        program: MaterialRuleProgram,
+        context: MaterialRuleContext
+    ): NativeSurfacePass | undefined {
+        const zoomSeed = options.biomeZoomSeed;
+        if (options.native === false || options.biomeCellAt === undefined || zoomSeed === undefined) return undefined;
+        // The C samples interpolated trees per block, as a context with its buffers off does.
+        if (context.sampleContext.interpolationBuffersEnabled) return undefined;
+        const cached = this.nativePasses.get(program);
+        if (cached !== undefined && cached.zoomSeed === zoomSeed) return cached.pass ?? undefined;
+        const pass = NativeSurfacePass.create(program, this.randomState, this.generationContext, zoomSeed);
+        this.nativePasses.set(program, { zoomSeed, pass: pass ?? null });
+        return pass;
+    }
+
+    /**
+     * The pass over a whole chunk in the native library: each column's badlands pillars, records
+     * and categories first, then one call for every column, then the blocks it hands back run on
+     * the interpreter and the frozen ocean icebergs. Each column reads and writes only itself, so
+     * the order across columns does not change a block.
+     */
+    private buildSurfaceNatively(
+        options: BuildSurfaceOptions,
+        native: NativeSurfacePass,
+        biomeCellAt: (quartX: number, quartY: number, quartZ: number) => string,
+        context: MaterialRuleContext,
+        rule: MaterialRuleInterpreter,
+        column: string[]
+    ): number {
+        const chunk = options.chunk;
+        const minBlockX = chunk.chunkX * CHUNK_SIZE;
+        const minBlockZ = chunk.chunkZ * CHUNK_SIZE;
+        const height = chunk.maxY - chunk.minY + 1;
+        const records = native.columnRecords();
+        const blocks = native.blockCategories(height);
+        const surfaceBiomes = new Array<string>(CHUNK_SIZE * CHUNK_SIZE);
+        const minSurfaceLevels = new Float64Array(CHUNK_SIZE * CHUNK_SIZE);
+        const fields = NativeSurfaceLayout.columnFields;
+
+        for (let localX = 0; localX < CHUNK_SIZE; localX++) {
+            for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                const index = localX * CHUNK_SIZE + localZ;
+                const blockX = minBlockX + localX;
+                const blockZ = minBlockZ + localZ;
+                const startingHeight = chunk.surfaceHeight(localX, localZ) + 1;
+                const surfaceBiome = options.biomeAt(blockX, startingHeight, blockZ);
+                surfaceBiomes[index] = surfaceBiome;
+                if (surfaceBiome === ERODED_BADLANDS) {
+                    this.erodedBadlandsExtension(chunk, blockX, blockZ, startingHeight);
+                }
+                const gradientX = this.surfaceGradientX(chunk, localX, localZ);
+                const gradientZ = this.surfaceGradientZ(chunk, localX, localZ);
+                context.updateXZ(blockX, blockZ, gradientX, gradientZ);
+                const minSurfaceLevel = context.getMinSurfaceLevel();
+                minSurfaceLevels[index] = minSurfaceLevel;
+                const record = index * fields;
+                records[record] = startingHeight;
+                records[record + 1] = context.surfaceDepth;
+                records[record + 2] = gradientX;
+                records[record + 3] = gradientZ;
+                records[record + 4] = minSurfaceLevel;
+                records[record + 5] = context.getSurfaceSecondary();
+
+                if (chunk.readColumn !== undefined) chunk.readColumn(localX, localZ, column);
+                else
+                    for (let y = chunk.minY; y <= chunk.maxY; y++)
+                        column[y - chunk.minY] = chunk.getBlock(blockX, y, blockZ);
+                const base = index * height;
+                for (let y = 0; y < height; y++) blocks[base + y] = NativeSurfacePass.categoryOf(column[y]!);
+            }
+        }
+
+        let topY = chunk.minY;
+        for (let index = 0; index < CHUNK_SIZE * CHUNK_SIZE; index++) {
+            topY = Math.max(topY, records[index * fields]!);
+        }
+        const result = native.run(
+            chunk.chunkX,
+            chunk.chunkZ,
+            chunk.minY,
+            height,
+            topY,
+            biomeCellAt,
+            context.sampleContext
+        );
+        const { states, names } = result;
+        for (let index = 0; index < CHUNK_SIZE * CHUNK_SIZE; index++) {
+            const blockX = minBlockX + (index >> 4);
+            const blockZ = minBlockZ + (index & 15);
+            const base = index * height;
+            for (let y = 0; y < height; y++) {
+                const state = states[base + y]!;
+                if (state >= 0) chunk.setBlock(blockX, chunk.minY + y, blockZ, names[state]!);
+            }
+        }
+
+        // The blocks that reached a condition only the TypeScript answers, with their counters.
+        const fallbacks = result.fallbacks;
+        const fallbackFields = NativeSurfaceLayout.fallbackFields;
+        let lastColumn = -1;
+        for (let entry = 0; entry < result.fallbackCount; entry++) {
+            const at = entry * fallbackFields;
+            const block = fallbacks[at]!;
+            const index = Math.floor(block / height);
+            const localX = index >> 4;
+            const localZ = index & 15;
+            const blockX = minBlockX + localX;
+            const blockZ = minBlockZ + localZ;
+            const blockY = chunk.minY + (block % height);
+            if (index !== lastColumn) {
+                context.updateXZ(
+                    blockX,
+                    blockZ,
+                    this.surfaceGradientX(chunk, localX, localZ),
+                    this.surfaceGradientZ(chunk, localX, localZ)
+                );
+                lastColumn = index;
+            }
+            const waterHeight = fallbacks[at + 3]!;
+            context.updateY(
+                fallbacks[at + 1]!,
+                fallbacks[at + 2]!,
+                waterHeight === NativeSurfaceLayout.noWater ? Number.NEGATIVE_INFINITY : waterHeight,
+                blockY
+            );
+            const state = rule.run(blockX, blockY, blockZ);
+            if (state !== undefined) chunk.setBlock(blockX, blockY, blockZ, state);
+        }
+
+        for (let index = 0; index < CHUNK_SIZE * CHUNK_SIZE; index++) {
+            const surfaceBiome = surfaceBiomes[index]!;
+            if (!FROZEN_OCEANS.has(surfaceBiome)) continue;
+            const localX = index >> 4;
+            const localZ = index & 15;
+            this.frozenOceanExtension(
+                chunk,
+                options.biomeClimate(surfaceBiome),
+                minSurfaceLevels[index]!,
+                minBlockX + localX,
+                minBlockZ + localZ,
+                chunk.surfaceHeight(localX, localZ) + 1
+            );
+        }
+        return result.fallbackCount;
     }
 
     private buildColumn(

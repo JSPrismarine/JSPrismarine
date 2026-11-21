@@ -259,4 +259,98 @@ JWG_EXPORT void jwg_aquifer_destroy(double handle);
  */
 JWG_EXPORT int32_t jwg_aquifer_fill(double handle, const double *densities, const int32_t *cell, uint8_t *out);
 
+/* What jwg_surface_chunk writes for a block: a state index, or one of these. */
+#define JWG_SURFACE_UNCHANGED -1
+/* The block reached a condition the C does not answer; the TypeScript runs it. */
+#define JWG_SURFACE_FALLBACK -2
+
+/* An ore vein cell verdict: the vein's density cannot be positive anywhere in the cell. */
+#define JWG_SURFACE_BARREN 1
+
+/* Condition records: JWG_SURFACE_CONDITION_DOUBLES doubles, the type first. */
+#define JWG_SURFACE_CONDITION_DOUBLES 8
+/* The record's last double: nonzero for a condition that reads the column alone. */
+#define JWG_SURFACE_CONDITION_PER_COLUMN 7
+/* [type, biome set offset] */
+#define JWG_SURFACE_BIOME 0
+/* [type, stack handle, min, max, is 3d] */
+#define JWG_SURFACE_NOISE 1
+/* [type, true at and below y, false at and above y, random lanes (4)] */
+#define JWG_SURFACE_VERTICAL_GRADIENT 2
+/* [type, anchor y, surface depth multiplier, add stone depth] */
+#define JWG_SURFACE_Y_ABOVE 3
+/* [type, offset, surface depth multiplier, add stone depth] */
+#define JWG_SURFACE_WATER 4
+#define JWG_SURFACE_STEEP 6
+#define JWG_SURFACE_HOLE 7
+#define JWG_SURFACE_ABOVE_PRELIMINARY_SURFACE 8
+/* [type, offset, add surface depth, secondary depth range, ceiling] */
+#define JWG_SURFACE_STONE_DEPTH 9
+/* Any other type, such as temperature, hands the block back. */
+#define JWG_SURFACE_UNANSWERED 10
+/* [type, true at and below y, false at and above y, legacy random seed's high and low 32 bits] */
+#define JWG_SURFACE_VERTICAL_GRADIENT_LEGACY 11
+
+/* Vein records: density, richness and gap program handles, raw ore chance, the ore, raw ore and
+   filler state indices, the random lanes (4), and whether the chunk call carries cell verdicts. */
+#define JWG_SURFACE_VEIN_DOUBLES 12
+
+/* Column records: starting height, surface depth, the x and z gradients, the lowest surface level
+   and the secondary surface noise. */
+#define JWG_SURFACE_COLUMN_FIELDS 6
+#define JWG_SURFACE_COLUMN_STARTING_HEIGHT 0
+#define JWG_SURFACE_COLUMN_DEPTH 1
+#define JWG_SURFACE_COLUMN_GRADIENT_X 2
+#define JWG_SURFACE_COLUMN_GRADIENT_Z 3
+#define JWG_SURFACE_COLUMN_MIN_SURFACE_LEVEL 4
+#define JWG_SURFACE_COLUMN_SECONDARY 5
+
+/* The fields of jwg_surface_chunk's frame. */
+#define JWG_SURFACE_FRAME_FIELDS 18
+
+/*
+ * Registers a material rule program for the surface pass: ops in MaterialRuleProgram's three-word
+ * layout, condition and vein records as above, biome_set_words words of membership bitsets of
+ * biome_words words each, state_count block states, and the jitter seed's high and low halves.
+ * Returns its handle, or 0 when an op or record names something that does not exist.
+ */
+JWG_EXPORT double jwg_surface_create(
+    const int32_t *ops,
+    int32_t op_count,
+    const double *conditions,
+    int32_t condition_count,
+    const uint32_t *biome_sets,
+    int32_t biome_set_words,
+    int32_t biome_words,
+    const double *veins,
+    int32_t vein_count,
+    int32_t state_count,
+    double zoom_hi,
+    double zoom_lo
+);
+
+/* Frees a surface program. A handle of 0 is ignored. */
+JWG_EXPORT void jwg_surface_destroy(double handle);
+
+/*
+ * Runs the surface pass over one chunk. frame holds the chunk x and z, min y and height, the biome
+ * window (lowest quart x, y, z, then its sizes), and the vein cell window (lowest cell x, y, z, its
+ * sizes, then the cell's size across x and z and up y). columns holds 256 column records, x-major;
+ * blocks one category a block (0 air, 1 water or lava, 2 anything else), column by column from
+ * min y up; biomes the window's biome ids, x-major, then z, then y; verdicts each vein's cells in
+ * the same order. Writes each block's result to out in the blocks' layout, and for each fallback
+ * block its index, stone depth above and below, and water height (INT32_MIN for none) to
+ * fallbacks. Returns how many fallbacks it wrote.
+ */
+JWG_EXPORT int32_t jwg_surface_chunk(
+    double handle,
+    const int32_t *frame,
+    const double *columns,
+    const uint8_t *blocks,
+    const int32_t *biomes,
+    const uint8_t *verdicts,
+    int32_t *out,
+    int32_t *fallbacks
+);
+
 #endif

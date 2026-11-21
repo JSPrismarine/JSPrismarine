@@ -105,4 +105,15 @@ Thrown as `NativeWorldgenErrors.StackNotCreated`, which extends `Error`.
 
 The native library could not allocate a noise stack, because memory ran out or the address
 it got does not fit in the handle a call passes back.
+
+## `NATIVE_WORLDGEN_SURFACE_NOT_CREATED`
+
+`The native worldgen library could not create a surface program`
+
+Thrown as `NativeWorldgenErrors.SurfaceNotCreated`, which extends `Error`.
+
+The native library refused a surface program: an op names a condition, state or vein that
+does not exist or jumps outside the program, a biome set lies outside the bitsets, a vein's
+program is destroyed, or memory ran out. The worldgen package lays out only whole programs,
+so this is a bug; report it.
 <!-- /fact -->

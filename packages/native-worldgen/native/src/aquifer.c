@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "jsp_native_worldgen.h"
+#include "xoroshiro.h"
 
 #define X_RANGE 10
 #define Y_RANGE 9
@@ -101,49 +102,8 @@ static inline FluidStatus global_fluid(const Aquifer *a, int32_t y) {
     return y < a->fluid_threshold ? a->lava_status : a->sea_status;
 }
 
-/* Xoroshiro128++ as XoroshiroRandomSource runs it, from a positional seed. */
-typedef struct {
-    uint64_t lo, hi;
-} Xoroshiro;
-
-static inline uint64_t rotl(uint64_t value, int shift) { return (value << shift) | (value >> (64 - shift)); }
-
-static inline uint64_t xoroshiro_next(Xoroshiro *r) {
-    const uint64_t s0 = r->lo;
-    uint64_t s1 = r->hi;
-    const uint64_t result = rotl(s0 + s1, 17) + s0;
-    s1 ^= s0;
-    r->lo = rotl(s0, 49) ^ s1 ^ (s1 << 21);
-    r->hi = rotl(s1, 28);
-    return result;
-}
-
-/* Java's Xoroshiro nextInt(bound): Lemire's method over the low 32 bits of each output. */
-static int32_t xoroshiro_next_int(Xoroshiro *r, uint32_t bound) {
-    uint64_t product = (uint64_t)(uint32_t)xoroshiro_next(r) * bound;
-    if ((uint32_t)product < bound) {
-        const uint32_t threshold = (uint32_t)(-bound) % bound;
-        while ((uint32_t)product < threshold) product = (uint64_t)(uint32_t)xoroshiro_next(r) * bound;
-    }
-    return (int32_t)(product >> 32);
-}
-
-/* Java's Mth.getSeed, which the positional factory xors into its low half. */
-static uint64_t position_seed(int32_t x, int32_t y, int32_t z) {
-    const int64_t x_term = (int64_t)(int32_t)((uint32_t)x * 3129871u);
-    uint64_t seed = (uint64_t)x_term ^ ((uint64_t)(int64_t)z * 116129781ull) ^ (uint64_t)(int64_t)y;
-    seed = seed * seed * 42317861ull + seed * 11ull;
-    return (uint64_t)((int64_t)seed >> 16);
-}
-
 static Xoroshiro positional_random(const Aquifer *a, int32_t x, int32_t y, int32_t z) {
-    Xoroshiro r = {position_seed(x, y, z) ^ a->seed_lo, a->seed_hi};
-    /* An all-zero state is a fixed point; Java substitutes the golden and silver ratios. */
-    if (r.lo == 0 && r.hi == 0) {
-        r.lo = 0x9E3779B97F4A7C15ull;
-        r.hi = 0x6A09E667F3BCC909ull;
-    }
-    return r;
+    return xoroshiro_at(a->seed_lo, a->seed_hi, x, y, z);
 }
 
 static inline int32_t grid_x(int32_t block) { return floor_div(block, X_SPACING); }

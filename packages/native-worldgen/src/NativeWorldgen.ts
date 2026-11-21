@@ -78,6 +78,31 @@ interface NativeSymbols {
     ): number;
     jwg_aquifer_destroy(handle: number): void;
     jwg_aquifer_fill(handle: number, densities: Float64Array, cell: Int32Array, out: Uint8Array): number;
+    jwg_surface_create(
+        ops: Int32Array,
+        opCount: number,
+        conditions: Float64Array,
+        conditionCount: number,
+        biomeSets: Uint32Array,
+        biomeSetWords: number,
+        biomeWords: number,
+        veins: Float64Array,
+        veinCount: number,
+        stateCount: number,
+        zoomHi: number,
+        zoomLo: number
+    ): number;
+    jwg_surface_destroy(handle: number): void;
+    jwg_surface_chunk(
+        handle: number,
+        frame: Int32Array,
+        columns: Float64Array,
+        blocks: Uint8Array,
+        biomes: Int32Array,
+        verdicts: Uint8Array,
+        out: Int32Array,
+        fallbacks: Int32Array
+    ): number;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -98,8 +123,69 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_cell_fill: ['void', ['f64', 'buffer', 'buffer']],
     jwg_aquifer_create: ['f64', ['buffer', 'f64', 'f64', 'f64', 'f64', 'buffer', 'i32', 'i32', 'i32']],
     jwg_aquifer_destroy: ['void', ['f64']],
-    jwg_aquifer_fill: ['i32', ['f64', 'buffer', 'buffer', 'buffer']]
+    jwg_aquifer_fill: ['i32', ['f64', 'buffer', 'buffer', 'buffer']],
+    jwg_surface_create: [
+        'f64',
+        ['buffer', 'i32', 'buffer', 'i32', 'buffer', 'i32', 'i32', 'buffer', 'i32', 'i32', 'f64', 'f64']
+    ],
+    jwg_surface_destroy: ['void', ['f64']],
+    jwg_surface_chunk: ['i32', ['f64', 'buffer', 'buffer', 'buffer', 'buffer', 'buffer', 'buffer', 'buffer']]
 };
+
+/** The layout of the surface program's records and results, `JWG_SURFACE_*` in the C. */
+export const NativeSurfaceLayout = {
+    /** A block the rule leaves alone. */
+    unchanged: -1,
+    /** A block that reached a condition the C does not answer, which the TypeScript runs. */
+    fallback: -2,
+    /** A vein cell whose density cannot be positive anywhere. */
+    barren: 1,
+    conditionDoubles: 8,
+    /** The condition record's word that is nonzero for a condition that reads the column alone. */
+    conditionPerColumn: 7,
+    veinDoubles: 12,
+    columnFields: 6,
+    frameFields: 18,
+    /** The doubles of one fallback entry: block index, stone depth above and below, water height. */
+    fallbackFields: 4,
+    /** The water height a fallback entry gives where no fluid sits above. */
+    noWater: -2147483648
+} as const;
+
+/** The condition record types of the surface program. */
+export const NativeSurfaceCondition = {
+    biome: 0,
+    noise: 1,
+    verticalGradient: 2,
+    yAbove: 3,
+    water: 4,
+    steep: 6,
+    hole: 7,
+    abovePreliminarySurface: 8,
+    stoneDepth: 9,
+    /** A condition the C does not answer, such as temperature; the block falls back. */
+    unanswered: 10,
+    /** A vertical gradient drawing from Java's legacy random source. */
+    verticalGradientLegacy: 11
+} as const;
+
+/** What {@link NativeWorldgen.createSurface} needs: a material rule program laid out for the C. */
+export interface NativeSurfaceSource {
+    /** The program's ops, three words each. */
+    readonly ops: Int32Array;
+    /** {@link NativeSurfaceLayout.conditionDoubles} doubles per condition. */
+    readonly conditions: Float64Array;
+    /** The biome conditions' membership bitsets, {@link biomeWords} words each. */
+    readonly biomeSets: Uint32Array;
+    readonly biomeWords: number;
+    /** {@link NativeSurfaceLayout.veinDoubles} doubles per ore vein. */
+    readonly veins: Float64Array;
+    /** The density, richness and gap programs the vein records name, kept alive with the program. */
+    readonly programs: readonly NativeDensityProgram[];
+    readonly stateCount: number;
+    /** The biome jitter seed's unsigned high and low 32 bits. */
+    readonly zoomSeed: readonly [number, number];
+}
 
 /** The fluid codes {@link NativeAquifer.fill} writes, `JWG_FLUID_*` in the C. */
 export const NativeFluid = {
@@ -217,6 +303,7 @@ export class NativeWorldgen {
     private readonly climates: FinalizationRegistry<number>;
     private readonly cells: FinalizationRegistry<number>;
     private readonly aquifers: FinalizationRegistry<number>;
+    private readonly surfaces: FinalizationRegistry<number>;
 
     private constructor(bound: BoundNative<NativeSymbols>) {
         this.bound = bound;
@@ -224,6 +311,7 @@ export class NativeWorldgen {
         this.climates = new FinalizationRegistry((handle) => bound.symbols.jwg_climate_destroy(handle));
         this.cells = new FinalizationRegistry((handle) => bound.symbols.jwg_cell_destroy(handle));
         this.aquifers = new FinalizationRegistry((handle) => bound.symbols.jwg_aquifer_destroy(handle));
+        this.surfaces = new FinalizationRegistry((handle) => bound.symbols.jwg_surface_destroy(handle));
         this.finalizer = new FinalizationRegistry((handle) =>
             handle < 0 ? bound.symbols.jwg_program_destroy(-handle) : bound.symbols.jwg_stack_destroy(handle)
         );
@@ -406,6 +494,36 @@ export class NativeWorldgen {
         const aquifer = new NativeAquifer(symbols, handle, source.programs, () => this.aquifers.unregister(aquifer));
         this.aquifers.register(aquifer, handle, aquifer);
         return aquifer;
+    }
+
+    /**
+     * Registers a material rule program for the surface pass, which runs a chunk's columns in C
+     * with the same blocks as `@jsprismarine/worldgen`'s `MaterialRuleInterpreter`.
+     * @param source - The program laid out for the C.
+     * @returns The program, which keeps its density programs alive.
+     * @throws {NativeWorldgenErrors.SurfaceNotCreated} When an op or record names something that
+     *   does not exist, a vein's program is destroyed, or memory runs out.
+     */
+    public createSurface(source: NativeSurfaceSource): NativeSurface {
+        const symbols = this.bound.symbols;
+        const handle = symbols.jwg_surface_create(
+            source.ops,
+            source.ops.length / 3,
+            source.conditions,
+            source.conditions.length / NativeSurfaceLayout.conditionDoubles,
+            source.biomeSets,
+            source.biomeSets.length,
+            source.biomeWords,
+            source.veins,
+            source.veins.length / NativeSurfaceLayout.veinDoubles,
+            source.stateCount,
+            source.zoomSeed[0],
+            source.zoomSeed[1]
+        );
+        if (handle === 0) throw new NativeWorldgenErrors.SurfaceNotCreated();
+        const surface = new NativeSurface(symbols, handle, source.programs, () => this.surfaces.unregister(surface));
+        this.surfaces.register(surface, handle, surface);
+        return surface;
     }
 
     /**
@@ -638,6 +756,57 @@ export class NativeAquifer {
         if (this.handle === 0) return;
         this.forget();
         this.symbols.jwg_aquifer_destroy(this.handle);
+        this.handle = 0;
+    }
+}
+
+/** A surface pass program in native memory, made by {@link NativeWorldgen.createSurface}. */
+export class NativeSurface {
+    private readonly symbols: NativeSymbols;
+    private readonly forget: () => void;
+    /** The density programs its veins run, held so they live as long as it does. */
+    public readonly programs: readonly NativeDensityProgram[];
+    private handle: number;
+
+    /**
+     * Use {@link NativeWorldgen.createSurface}.
+     * @internal
+     */
+    public constructor(
+        symbols: NativeSymbols,
+        handle: number,
+        programs: readonly NativeDensityProgram[],
+        forget: () => void
+    ) {
+        this.symbols = symbols;
+        this.handle = handle;
+        this.programs = programs;
+        this.forget = forget;
+    }
+
+    /**
+     * Runs the surface pass over one chunk; `jwg_surface_chunk` in the C header lays out each buffer.
+     * @returns How many fallback entries it wrote.
+     * @throws {NativeWorldgenErrors.StackDestroyed} After {@link destroy}.
+     */
+    public chunk(
+        frame: Int32Array,
+        columns: Float64Array,
+        blocks: Uint8Array,
+        biomes: Int32Array,
+        verdicts: Uint8Array,
+        out: Int32Array,
+        fallbacks: Int32Array
+    ): number {
+        if (this.handle === 0) throw new NativeWorldgenErrors.StackDestroyed();
+        return this.symbols.jwg_surface_chunk(this.handle, frame, columns, blocks, biomes, verdicts, out, fallbacks);
+    }
+
+    /** Frees the program's native memory. Later calls throw. Its density programs stay alive. */
+    public destroy(): void {
+        if (this.handle === 0) return;
+        this.forget();
+        this.symbols.jwg_surface_destroy(this.handle);
         this.handle = 0;
     }
 }

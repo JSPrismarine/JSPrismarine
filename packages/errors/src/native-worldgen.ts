@@ -61,5 +61,12 @@ export const NativeWorldgenErrors = defineErrors('native-worldgen', {
      * empty, its default fluid is not a fluid code, or memory ran out. The worldgen package only
      * hands over live programs and real extents, so this is a bug; report it.
      */
-    AquiferNotCreated: 'The native worldgen library could not create an aquifer'
+    AquiferNotCreated: 'The native worldgen library could not create an aquifer',
+    /**
+     * The native library refused a surface program: an op names a condition, state or vein that
+     * does not exist or jumps outside the program, a biome set lies outside the bitsets, a vein's
+     * program is destroyed, or memory ran out. The worldgen package lays out only whole programs,
+     * so this is a bug; report it.
+     */
+    SurfaceNotCreated: 'The native worldgen library could not create a surface program'
 });

@@ -155,6 +155,12 @@ export class LegacyRandomSource implements RandomSource {
 export class LegacyPositionalRandomFactory implements PositionalRandomFactory {
     public constructor(private readonly seed: bigint) {}
 
+    /** The factory's seed as two unsigned 32-bit lanes, high then low, which a native draw starts from. */
+    public get seedLanes(): readonly [number, number] {
+        const unsigned = BigInt.asUintN(64, this.seed);
+        return [Number(unsigned >> 32n), Number(unsigned & 0xffffffffn)];
+    }
+
     /** @inheritDoc */
     public at(x: number, y: number, z: number): RandomSource {
         return new LegacyRandomSource(asLong(positionalSeed(x, y, z) ^ this.seed));

@@ -307,12 +307,20 @@ and applies the dimension's material rule tree. All five `material_rule` types a
 | Rules | `block`, `bandlands`, `sequence`, `condition`, `ore_vein` |
 | Conditions | `biome`, `noise_threshold`, `vertical_gradient`, `y_above`, `water`, `temperature`, `steep`, `not`, `hole`, `above_preliminary_surface`, `stone_depth` |
 
-A tree is parsed once into `MaterialRuleNode` values and compiled once into closures bound to a
+A tree is parsed once into `MaterialRuleNode` values and flattened once into a
+`MaterialRuleProgram`, an array of ops that `MaterialRuleInterpreter` runs against a
 `MaterialRuleContext`. Conditions that depend only on the column cache their answer against a
 per-column counter and conditions that depend on the block cache against a per-block counter,
 which is what keeps the surface noise at 256 samples per chunk instead of one per block. Eroded
 badlands pillars and frozen ocean icebergs are code rather than rules in Java, and they are code
 here too.
+
+Where the native library loads and the caller passes `biomeCellAt` and `biomeZoomSeed`, the program
+runs in the library over the whole chunk in one call, with the same blocks: the column walk, the
+conditions, the jittered biome lookup over the chunk's cells and the ore veins. A block that
+reaches a `temperature` condition, a noise that runs in TypeScript or the `bandlands` rule comes
+back with its counters and runs on the interpreter; `SurfacePass.handedBack` counts them.
+`native: false` keeps the pass in TypeScript.
 
 **The biome sources.** `MultiNoiseBiomeSource` holds the seven-axis climate model: six parameter
 ranges plus the tie-breaking offset, quantized by Java's single-precision multiply by 10000.

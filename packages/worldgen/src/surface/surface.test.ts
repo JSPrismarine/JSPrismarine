@@ -17,6 +17,7 @@ import { ChunkSampler } from '../chunk/ChunkSampler';
 import { compileOreVeinRule, ORE_VEIN_SEED } from '../chunk/oreVein';
 import type { DensitySampler } from '../density/compile';
 import { SampleContext } from '../density/SampleContext';
+import { nativeWorldgen } from '../noise/nativeNoise';
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { MATERIAL_CONDITION_TYPES, MATERIAL_RULE_TYPES, MaterialRuleData } from './MaterialRule';
@@ -102,7 +103,8 @@ const runPass = (
     rule: ReturnType<MaterialRuleData['parseRule']>,
     withOwnCells = false,
     withCandidateCells = false,
-    blockByBlock = false
+    blockByBlock = false,
+    nativePass = false
 ) => {
     const chunk = new BlockArraySurfaceChunk({
         chunkX: columnVectors.chunkX,
@@ -142,7 +144,16 @@ const runPass = (
         biomeClimate,
         sampleContext: new SampleContext(),
         ...(withOwnCells ? { localBiomes: ownCellsBox(built, resolver) } : {}),
-        ...(withCandidateCells ? { biomeCellAt: (x: number, y: number, z: number) => biomes.cellBiome(x, y, z) } : {})
+        // The candidate-cell runs measure the TypeScript fold, so they keep the pass in TypeScript.
+        ...(withCandidateCells
+            ? { biomeCellAt: (x: number, y: number, z: number) => biomes.cellBiome(x, y, z), native: false }
+            : {}),
+        ...(nativePass
+            ? {
+                  biomeCellAt: (x: number, y: number, z: number) => biomes.cellBiome(x, y, z),
+                  biomeZoomSeed: biomes.zoomSeed
+              }
+            : {})
     });
     return { chunk, pass, lookups, reads };
 };
@@ -174,8 +185,9 @@ const ownCellsBox = (built: ReturnType<typeof buildChunk>, resolver: (x: number,
 
 const runRule = (
     built: ReturnType<typeof buildChunk>,
-    rule: ReturnType<MaterialRuleData['parseRule']>
-): BlockArraySurfaceChunk => runPass(built, rule).chunk;
+    rule: ReturnType<MaterialRuleData['parseRule']>,
+    nativePass = false
+): BlockArraySurfaceChunk => runPass(built, rule, false, false, false, nativePass).chunk;
 
 /** Turns a built column into the `"<y> <count> <block>"` runs the vector file holds. */
 const runsOf = (chunk: BlockArraySurfaceChunk, blockX: number, blockZ: number): string[] => {
@@ -280,6 +292,7 @@ describe('the surface pass over whole columns', () => {
             let lookups: number;
             let withOwnCells: ReturnType<typeof runPass>;
             let withCandidateCells: ReturnType<typeof runPass>;
+            let native: ReturnType<typeof runPass>;
             let byColumn: ReturnType<typeof runPass>;
             let blockByBlock: ReturnType<typeof runPass>;
             beforeAll(() => {
@@ -289,6 +302,7 @@ describe('the surface pass over whole columns', () => {
                 blockByBlock = runPass(built, materialRuleData.rule(dimension.materialRule), false, false, true);
                 withOwnCells = runPass(built, materialRuleData.rule(dimension.materialRule), true);
                 withCandidateCells = runPass(built, materialRuleData.rule(dimension.materialRule), true, true);
+                native = runPass(built, materialRuleData.rule(dimension.materialRule), false, false, false, true);
             }, 120_000);
 
             it("places the same blocks when a block's eight candidate cells answer its biome conditions", () => {
@@ -326,6 +340,16 @@ describe('the surface pass over whole columns', () => {
                 const blocks = 16 * 16 * (byColumn.chunk.maxY - byColumn.chunk.minY + 1);
                 expect(blockByBlock.reads).toBeGreaterThanOrEqual(blocks);
                 expect(byColumn.reads).toBeLessThan(blockByBlock.reads / 10);
+            });
+
+            it('places the same block as Java in every column through the native pass where the library loads', () => {
+                for (const column of dimension.columns.entries) {
+                    expect(runsOf(native.chunk, column.x, column.z)).toEqual(column.runs);
+                }
+                // The pass ran in the C wherever the library loads, handing back only the blocks that
+                // reach a condition it does not answer.
+                expect(native.pass.handedBack !== undefined).toBe(nativeWorldgen() !== undefined);
+                expect(native.pass.handedBack ?? 0).toBeLessThan(16 * 16 * 16);
             });
 
             it('places the same block as Java in every column, from bedrock to sky', () => {
@@ -372,6 +396,18 @@ describe('one synthetic rule per material condition type', () => {
                 });
             }
         }, 120_000);
+
+        it(`places the same blocks as Java for ${testCase.name} through the native pass where the library loads`, () => {
+            const rule = materialRuleData.parseRule(testCase.rule, testCase.name);
+            const chunk = runRule(overworld, rule, true);
+            for (const column of testCase.columns.entries) {
+                expect({ x: column.x, z: column.z, runs: runsOf(chunk, column.x, column.z) }).toEqual({
+                    x: column.x,
+                    z: column.z,
+                    runs: column.runs
+                });
+            }
+        });
     }
 });
 
