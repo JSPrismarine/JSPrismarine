@@ -98,7 +98,8 @@ describe('the command set', () => {
         // `/gamerule dofiretick` and `doFireTick` then took a boolean, as Bedrock's enum lists them.
         // The packet then listed every command name and alias in `CommandName` and named each
         // alias enum `<command>CommandAliases`, as a Bedrock Dedicated Server sends them.
-        expect(digest).toBe('ab64c00e535cd6118f66983666a5b201343b51a1');
+        // The packet then left out `/gamerule`'s camelCase names, which a Bedrock client refuses.
+        expect(digest).toBe('50951a4f549ab426a6e5df32f87c03511cb3297c');
     });
 });
 

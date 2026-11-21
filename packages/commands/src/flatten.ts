@@ -3,7 +3,7 @@
  * `AvailableCommandsPacket` carries.
  *
  * Bedrock's tree is a list of overloads per command with no redirects, so
- * Java's graph has to become a cartesian expansion. Three shapes do not
+ * Java's graph has to become a cartesian expansion. Four shapes do not
  * survive the trip, and each produces a note rather than a silent drop:
  *
  * - A redirect back to a node already on the path is a cycle, which no finite
@@ -19,6 +19,9 @@
  *   `/execute run <command: CODEBUILDERARGS>` for the same reason.
  * - An argument whose type cannot name a Bedrock parameter type becomes a
  *   string, which the client will not validate or autocomplete.
+ * - A literal with an uppercase letter, such as `/gamerule`'s pre-1.21.11
+ *   `doDaylightCycle`, is left out. The client refuses to register it as a
+ *   keyword, and the server still parses it when a player types it.
  *
  * Fork nodes flatten normally. A Bedrock client can be shown
  * `/execute as @e run say hi`; what it cannot do is run the fan-out, which
@@ -51,7 +54,9 @@ export type FlattenReason =
     /** The node is its own child, and the branch was cut. */
     | 'self-child'
     /** The expansion hit the overload cap and the rest of the branch was cut. */
-    | 'overload-limit';
+    | 'overload-limit'
+    /** A literal has an uppercase letter, which a Bedrock client refuses to register as a keyword. */
+    | 'uppercase-keyword';
 
 /** How much of the node survived. */
 export type FlattenSeverity =
@@ -168,6 +173,12 @@ const isArgument = <S>(node: CommandNode<S>): node is ArgumentCommandNode<S, unk
 
 // A node built without `.executes()` carries `undefined` rather than `null`,
 // and one built without `.redirect()` carries `null`, so both are checked.
+/**
+ * Whether a Bedrock client accepts the name as a command keyword. The client refuses one with an
+ * uppercase letter, logging "Keywords in commands need to be lower case", and drops it.
+ */
+const isBedrockKeyword = (name: string): boolean => name === name.toLowerCase();
+
 const isExecutable = <S>(node: CommandNode<S>): boolean => (node.getCommand() ?? null) !== null;
 const redirectOf = <S>(node: CommandNode<S>): CommandNode<S> | null => node.getRedirect() ?? null;
 
@@ -295,7 +306,10 @@ class Flattener<S> {
             return this.childTails(redirect, new Set([...visited, redirect]), path);
         }
 
-        const values = [...redirect.getChildren()].filter(isLiteral).map((child) => child.getName());
+        const values = [...redirect.getChildren()]
+            .filter(isLiteral)
+            .map((child) => child.getName())
+            .filter(isBedrockKeyword);
         const table = this.chainedTable(values);
         this.note(
             path,
@@ -355,6 +369,16 @@ class Flattener<S> {
             const childVisited = new Set([...visited, child]);
 
             if (isLiteral(child)) {
+                if (!isBedrockKeyword(child.getName())) {
+                    this.note(
+                        childPath,
+                        'uppercase-keyword',
+                        'degraded',
+                        `A Bedrock client refuses the keyword '${child.getName()}' because it is not lower ` +
+                            'case, so the client is not shown it. The server still parses it.'
+                    );
+                    continue;
+                }
                 const continuation = this.continuationsOf(child, childVisited, childPath);
                 // Sibling literals whose continuations are identical collapse
                 // into one enum, which is how `if` and `unless` become

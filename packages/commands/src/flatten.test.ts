@@ -93,10 +93,10 @@ describe('flattening a representable tree', () => {
         registry.register(
             literal<TestSource>('gamerule')
                 .then(
-                    literal<TestSource>('doDaylightCycle').then(argument('value', stringArgument()).executes(succeed))
+                    literal<TestSource>('dodaylightcycle').then(argument('value', stringArgument()).executes(succeed))
                 )
                 .then(
-                    literal<TestSource>('randomTickSpeed').then(argument('value', integerArgument()).executes(succeed))
+                    literal<TestSource>('randomtickspeed').then(argument('value', integerArgument()).executes(succeed))
                 )
         );
 
@@ -224,6 +224,34 @@ describe('flattening what Bedrock cannot represent', () => {
                 reason: 'self-child',
                 severity: 'dropped',
                 message: 'The node is its own child, so the branch was cut.'
+            }
+        ]);
+    });
+
+    it('leaves out a keyword with an uppercase letter, which a Bedrock client refuses', () => {
+        const registry = new CommandRegistry<TestSource>();
+        registry.register(
+            literal<TestSource>('gamerule')
+                .then(literal<TestSource>('advance_time').executes(succeed))
+                .then(literal<TestSource>('doDaylightCycle').executes(succeed))
+                .then(literal<TestSource>('dodaylightcycle').executes(succeed))
+        );
+
+        const { commands, notes } = flattenCommandTree(registry);
+
+        const keywords = commands[0]?.overloads.flatMap((overload) =>
+            overload.parameters.flatMap((parameter) => (parameter.shape.kind === 'enum' ? parameter.shape.values : []))
+        );
+        expect(keywords).toEqual(['advance_time', 'dodaylightcycle']);
+        expect(notes).toEqual([
+            {
+                command: 'gamerule',
+                path: 'gamerule doDaylightCycle',
+                reason: 'uppercase-keyword',
+                severity: 'degraded',
+                message:
+                    "A Bedrock client refuses the keyword 'doDaylightCycle' because it is not lower case, so the " +
+                    'client is not shown it. The server still parses it.'
             }
         ]);
     });
