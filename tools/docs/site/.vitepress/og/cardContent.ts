@@ -246,14 +246,24 @@ export function pageFigure(relativePath: string, context: CardContext): Figure |
 const isIdentifier = (relativePath: string, title: string) =>
     relativePath.startsWith('api/@') || /@[\w.-]+\/[\w.-]+/.test(title);
 
-/** The page's own description, or its package's for an API package page, or else its opening sentence. */
+/**
+ * A page's description when its front matter gives none: its package's for an API package page, or
+ * else its opening sentence as plain text. The page's description tags and its card both use it.
+ *
+ * @returns The description, or undefined when the page opens with no prose to take one from.
+ */
+export function inferredDescription(relativePath: string, context: Pick<CardContext, 'project' | 'source'>) {
+    const api = /^api\/(@[^/]+\/[^/]+)\/index\.md$/.exec(relativePath);
+    const published = api && context.project.packages.find(({ name }) => name === api[1]);
+    return published?.description || plainText(pageSummary(context.source(relativePath))) || undefined;
+}
+
+/** The page's own description, or else the one {@link inferredDescription} gives it. */
 function cardDescription({ relativePath, description }: CardRequest, context: CardContext) {
     if (description) return description;
     // An ADR shows its number and status instead of a description.
     if (relativePath.startsWith('adr/')) return undefined;
-    const api = /^api\/(@[^/]+\/[^/]+)\/index\.md$/.exec(relativePath);
-    const published = api && context.project.packages.find(({ name }) => name === api[1]);
-    return published?.description || plainText(pageSummary(context.source(relativePath))) || undefined;
+    return inferredDescription(relativePath, context);
 }
 
 /** Everything a page's card says, from the page and the repository. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { plainText } from './markdownText.ts';
+import { inlineText, plainText } from './markdownText.ts';
 
 describe('plainText', () => {
     it('keeps link labels and drops code and bold marks', () => {
@@ -14,5 +14,11 @@ describe('plainText', () => {
 
     it('leaves the case of text that opens with code', () => {
         expect(plainText('`const` declarations')).toBe('const declarations');
+    });
+});
+
+describe('inlineText', () => {
+    it('reads Markdown as plainText does, and leaves the case of the first word', () => {
+        expect(inlineText('itemOfSlotValue\\(\\) in [slotLog](./slotLog)')).toBe('itemOfSlotValue() in slotLog');
     });
 });

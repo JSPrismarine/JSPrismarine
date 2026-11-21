@@ -9,11 +9,13 @@ import { megaMenus } from './menus.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { siteIconHead } from '../../brand-assets.mts';
 import { markdownHeaders, writeMarkdownPages } from '../../llms.mts';
+import { loadProject } from '../../project.mts';
 import { isStagedPage, pageSource, pageUrl, sourceUpdatedAt } from '../../sections.mts';
 import { structuredDataHead } from '../../structuredData.mts';
 import { colorSwatchPlugin, colorSwatchTransformer } from './colorSwatches.ts';
 import { sidebar } from './sidebar.mts';
 import { wordmark } from './theme/prism.ts';
+import { pageDescriptions } from './pageDescriptions.ts';
 import { sectionCardsPlugin } from './sectionCards.ts';
 import { codeTheme } from './theme/codeTheme.ts';
 import { packageAreas } from './theme/packageAreas.ts';
@@ -72,6 +74,9 @@ const cardRequests = new Map<string, CardRequest>();
 
 /** The site file each page's `image` front matter names, by source file, checked once the site is built. */
 const imageFiles = new Map<string, string>();
+
+/** Each page's description when its front matter gives none, worked out for every page at once by the first page. */
+let descriptions: Map<string, string> | undefined;
 
 export default defineConfig({
     lang: 'en-US',
@@ -153,7 +158,16 @@ export default defineConfig({
             pageData.description ||
             // The landing page speaks for the site, so its description is the site's.
             (pageData.relativePath === landingPage ? siteConfig.site.description : undefined);
-        const description = ownDescription ?? siteConfig.site.description;
+        // A page without one is described by its own opening sentence rather than the site's description,
+        // which search engines would otherwise see repeated on every such page.
+        descriptions ??= pageDescriptions(siteConfig.pages, {
+            project: loadProject(),
+            menus: megaMenus,
+            source: (relativePath) => readFileSync(path.join(siteConfig.srcDir, relativePath), 'utf8')
+        });
+        const description = ownDescription ?? descriptions.get(pageData.relativePath) ?? siteConfig.site.description;
+        // VitePress writes the page's `<meta name="description">` from this.
+        pageData.description = description;
         const url = pageUrl(pageData.relativePath, siteUrl);
         // A card shows only a description of the page's own, never the site's in its place.
         const { image, card, file } = resolvePageImage(pageData, { title, description: ownDescription, siteUrl });
