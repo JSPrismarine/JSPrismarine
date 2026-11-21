@@ -472,6 +472,11 @@ master, outside that group, and uploads the reports of the pull request run that
 tree. The pull request's unit, real-data and client e2e shards keep those reports as
 `codecov-<flag>.<label>` artifacts for it.
 
+`docs.yml` cancelled its running master build on every push, so on 2026-11-21 none of the 30
+master pushes between 08:50 and 12:07 published the site or its parity tracker. Its master builds
+now queue the way `ci.yml`'s do: the running build finishes, and the newest push's run starts after
+it. Pull request previews still cancel on each push.
+
 ### Phase 10: run only the tests a change reaches (part done)
 
 Added on 2026-11-20. Every run should test only what its changes can reach.

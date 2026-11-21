@@ -39,10 +39,12 @@ permissions:
     contents: read
     pull-requests: read
 
-# A newer push supersedes the old build, on a pull request and on master alike: only the newest
-# master commit's site is ever live, so a build of an older one is work thrown away. Cloudflare
-# Pages makes a deployment live only once its upload completes, so a publish cut short leaves the
-# site as it was.
+# A newer push to a pull request supersedes its old build. On master a build runs to the end, and
+# the next one starts after it: cancelling the running build on each push meant that on a busy day
+# no master build finished, and the live site and its parity tracker stayed hours behind. GitHub
+# keeps one waiting run per group and cancels the older one when another push arrives, so the
+# build that starts next is always the newest master commit's. Cloudflare Pages makes a
+# deployment live only once its upload completes, so a publish cut short leaves the site as it was.
 #
 # A manual run gets a group of its own, so no push and no other manual run cancels it, and it
 # cancels none of theirs. It publishes only while its commit is still master's head; see 🚀 Publish Docs.
@@ -51,7 +53,7 @@ concurrency:
         ${{ github.workflow }}-${{ github.event.pull_request.number ||
         (github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id)) ||
         github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     build-docs:
