@@ -372,6 +372,10 @@ unit tests report after 3 jobs in a row, and branch rules require `✅ CI` alone
 If the merge queue has to wait, master can run `--changed` against the last master commit whose run
 passed, with a full run each night. The baseline is a fixed commit, so it is the same on every runner.
 
+The 5 Executable jobs left pull request pushes ahead of the queue: a pull request builds the
+executables only when it changes the build scripts, the embedded files or the dependencies, and
+master builds them when a nightly is due.
+
 Done when 9 jobs leave each pull request push (the 5 Executable jobs, the 2 generation host jobs,
 CodeQL and the Bedrock Dedicated Server suites), a merged pull request costs one full run, its merge
 group build, master pushes start no test job, and a pull request is never rebased only to catch up
