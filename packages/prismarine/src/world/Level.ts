@@ -31,6 +31,7 @@ import type { ReplayInitialStateManifest } from '../network/ReplayManifest';
 import type { WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { readJsonFile } from '../config/JsonFile';
 import { Dimensions, FIRST_CUSTOM_DIMENSION_ID, dimensionTypeOf } from './DimensionType';
+import { voidStem } from './generators/factories/void';
 import type { DimensionType } from './DimensionType';
 import GameRuleManager, { GameRules } from './GameRuleManager';
 import type { GeneratorFactories, TerrainCacheSettings } from './GeneratorFactories';
@@ -179,8 +180,16 @@ export class Level {
     /** When and how the level is written to disk; see {@link LevelSave}. */
     private readonly saves: LevelSave;
     private readonly respawnSearch: RespawnSearch;
-    private readonly stems: ReadonlyMap<string, LevelStem>;
-    private readonly dimensionTypes: ReadonlyMap<string, DimensionType>;
+    /** Every stem: the config's and the save's, then the ones scripts registered, in that order. */
+    private readonly stems: Map<string, LevelStem>;
+    private readonly dimensionTypes: Map<string, DimensionType>;
+    /**
+     * The stems scripts registered, which the save leaves out: the scripts register them again
+     * each time the level opens, and their types are in no datapack the next start reads.
+     */
+    private readonly scriptStems = new Set<string>();
+    /** Whether the level's first scripts have started, after which no script adds a dimension. */
+    private scriptDimensionsSealed = false;
     private readonly load: ReadonlyMap<string, DimensionLoad>;
     private readonly factories: GeneratorFactories;
     private readonly worldgen: () => JavaWorldgenRegistries;
@@ -274,7 +283,7 @@ export class Level {
         });
         this.seed = options.seed;
         this.javaTarget = options.javaTarget ?? DEFAULT_JAVA_DATA_TARGET;
-        this.stems = options.stems;
+        this.stems = new Map(options.stems);
         this.load = options.load ?? new Map();
         this.factories = options.factories;
         this.worldgen = options.worldgen ?? requireJavaWorldgenRegistries;
@@ -292,7 +301,7 @@ export class Level {
                 overworldStemId: OVERWORLD_STEM_ID
             });
         }
-        this.dimensionTypes = Level.resolveDimensionTypes(this.name, this.stems, options.dimensionTypes);
+        this.dimensionTypes = new Map(Level.resolveDimensionTypes(this.name, this.stems, options.dimensionTypes));
 
         // A rule set after this point goes out to everyone in every world of the level, the
         // same route the clock takes. The worlds are read when the rule changes, not now, so
@@ -368,6 +377,35 @@ export class Level {
     }
 
     // ------------------------------------------------------------------ the dimension set
+
+    /**
+     * Adds a custom dimension a script registered with `StartupEvent.dimensionRegistry`, as BDS
+     * makes one: a void dimension with the Overworld's bounds, -64 to 320, as the
+     * `custom-dimensions` scenario recorded. Its world is built on its first visit.
+     *
+     * A dimension the level already has, from the config or an earlier registration, is
+     * registered again and keeps its definition: on BDS a pack's `dimension/*.json` takes priority
+     * over a script's registration. Once the level's first scripts have started, a reload cannot
+     * add one, which BDS refuses with "Please exit and rejoin your world".
+     *
+     * @param typeId - The dimension's namespaced id, which the script host has checked.
+     * @returns Whether the level has the dimension now.
+     */
+    public registerScriptDimension(typeId: string): 'registered' | 'new-after-reload' {
+        if ([...this.stems.values()].some((stem) => stem.type === typeId)) return 'registered';
+        if (this.scriptDimensionsSealed) return 'new-after-reload';
+        const customIds = [...this.dimensionTypes.values()].filter((type) => type.custom).map((type) => type.bedrockId);
+        const nextId = Math.max(FIRST_CUSTOM_DIMENSION_ID - 1, ...customIds) + 1;
+        this.dimensionTypes.set(typeId, dimensionTypeOf(Dimensions.Overworld.java, typeId, nextId));
+        this.stems.set(typeId, voidStem(typeId));
+        this.scriptStems.add(typeId);
+        return 'registered';
+    }
+
+    /** Ends the registration of script dimensions, once the level's first scripts have started. */
+    public sealScriptDimensions(): void {
+        this.scriptDimensionsSealed = true;
+    }
 
     /** The level's folder name, which is what the tick loop and the logs call it. */
     public getName(): string {
@@ -1142,7 +1180,7 @@ export class Level {
             this.server.getLogger().debug(`No spawn point to save for ${this.name}`);
         }
 
-        const stems = Object.fromEntries(this.stems);
+        const stems = Object.fromEntries([...this.stems].filter(([id]) => !this.scriptStems.has(id)));
         const dragonFight = this.dragonFightState();
         const raids = this.raidState();
         const position = spawn ? { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } : undefined;

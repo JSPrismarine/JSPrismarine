@@ -867,6 +867,19 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
         needs: 'server'
     },
     {
+        id: 'custom-dimensions',
+        family: 'scripting.world',
+        description:
+            "startup's dimensionRegistry.registerCustomDimension adds a void dimension the world then has, with fixed " +
+            'errors for a name BDS refuses, a second registration, a registration once startup is over, and a ' +
+            'dimension a /reload registers that the first run did not.',
+        reference: 'docs/research/data-driven-dimensions.md section 2.3',
+        packs: ['dimensions'],
+        runs: 2,
+        reloadAfter: 'ready for /reload',
+        needs: 'world'
+    },
+    {
         id: 'world-event-gaps',
         family: 'scripting.events',
         description:

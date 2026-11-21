@@ -169,6 +169,11 @@ export const implementCustom = (implementations: ScriptApiImplementations, host:
             'itemComponentRegistry',
             registry('ItemComponentRegistry', TAG.itemComponentRegistry)
         )
+        .implement(SERVER, 'StartupEvent', 'dimensionRegistry', registry('DimensionRegistry', TAG.dimensionRegistry))
+        .implement(SERVER, 'DimensionRegistry', 'registerCustomDimension', (call) => {
+            host.custom.registerDimension(String(call.args[0]));
+            return undefined;
+        })
         .implement(
             SERVER,
             'WorldInitializeBeforeEvent',

@@ -422,7 +422,7 @@ export class WorldScripts {
                 this.loaded.map((each) => readPackBytes(each.pack, path)).find((bytes) => bytes !== undefined),
             free: (handle) => this.engine.free(handle)
         });
-        this.custom = new CustomContent(this.engine);
+        this.custom = this.customContent();
         this.bossBars = options.members === undefined ? undefined : new ScriptBossBars(options.members);
         this.playerListNames = options.members === undefined ? undefined : new ScriptPlayerListNames(options.members);
         const permissions = options.members?.permissions;
@@ -606,6 +606,12 @@ export class WorldScripts {
         this.tick++;
     }
 
+    /** The registries of one run, which add the custom dimensions they take to the world. */
+    private customContent(): CustomContent<LoadedPack> {
+        const world = this.options.world;
+        return new CustomContent(this.engine, (typeId) => world.registerCustomDimension?.(typeId) ?? 'registered');
+    }
+
     /**
      * Reloads every pack, as `/reload` does on BDS: `system.beforeEvents.shutdown`, then a new
      * runtime that runs each pack's top level, `startup` and, in the next flush, `worldLoad`.
@@ -616,7 +622,7 @@ export class WorldScripts {
         this.teardown();
         this.stopped = false;
         this.engine = this.createEngine();
-        this.custom = new CustomContent(this.engine);
+        this.custom = this.customContent();
         this.startEarly();
         this.startWorld();
     }

@@ -1,10 +1,11 @@
 /**
- * The custom commands, command enums and custom components the packs of one runtime register,
- * and the rules BDS checks a registration against.
+ * The custom commands, command enums, custom components and custom dimensions the packs of one
+ * runtime register, and the rules BDS checks a registration against.
  *
  * A pack registers them while `system.beforeEvents.startup` runs, or a version 1 pack while
  * `world.beforeEvents.worldInitialize` does, and at no other time. The messages are the ones the
- * `custom-commands` and `custom-components` scenarios recorded on the pinned BDS.
+ * `custom-commands`, `custom-components` and `custom-dimensions` scenarios recorded on the pinned
+ * BDS.
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 
@@ -64,7 +65,24 @@ export interface PackCustomContent {
      * @throws {TypeError} When a hook is not a function.
      */
     registerComponent(kind: ComponentKind, name: string, component: ScriptHandle): void;
+    /** @throws {ScriptApiError} When BDS refuses the dimension. */
+    registerDimension(typeId: string): void;
 }
+
+/**
+ * What the world answers a custom dimension registration: it has the dimension now, or it is one
+ * the world did not have when it opened and a reload cannot add.
+ */
+export type DimensionRegistration = 'registered' | 'new-after-reload';
+
+/** Adds a custom dimension to the world; see {@link DimensionRegistration}. */
+export type RegisterDimension = (typeId: string) => DimensionRegistration;
+
+/** The characters a custom dimension's name may hold, on either side of its namespace's colon. */
+const DIMENSION_NAME = /^[A-Za-z0-9_.\-/]+:[A-Za-z0-9_.\-/]+$/;
+
+const dimensionError = (errorClass: string, message: string): ScriptApiError =>
+    new ScriptApiError(SERVER, errorClass, message);
 
 /** Why BDS refuses a namespaced name: a missing namespace, or the `minecraft` one. */
 const namespaceError = (name: string): ScriptApiError | undefined => {
@@ -119,11 +137,18 @@ export class CustomContent<Owner> {
         block: new Map(),
         item: new Map()
     };
+    /** The custom dimensions this run registered. */
+    private readonly dimensions = new Set<string>();
 
     /**
      * @param engine - The engine the scripts run in, which holds every handle the registry keeps.
+     * @param registerDimension - Adds a custom dimension to the world. Left out, the world takes
+     *   every registration and adds nothing.
      */
-    public constructor(private readonly engine: ScriptEngine) {}
+    public constructor(
+        private readonly engine: ScriptEngine,
+        private readonly registerDimension: RegisterDimension = () => 'registered'
+    ) {}
 
     /**
      * The registration members of one pack.
@@ -218,6 +243,35 @@ export class CustomContent<Owner> {
                     hooks,
                     eventClasses
                 });
+            },
+            registerDimension: (typeId) => {
+                if (!registering()) {
+                    throw dimensionError(
+                        'CustomDimensionInvalidRegistryError',
+                        `Cannot register custom dimension '${typeId}' outside of StartupEvent.`
+                    );
+                }
+                const refused = namespaceError(typeId);
+                if (refused !== undefined) throw refused;
+                if (!DIMENSION_NAME.test(typeId)) {
+                    throw dimensionError(
+                        'CustomDimensionNameError',
+                        `Custom dimension '${typeId}' has invalid characters.`
+                    );
+                }
+                if (this.dimensions.has(typeId)) {
+                    throw dimensionError(
+                        'CustomDimensionAlreadyRegisteredError',
+                        `Custom dimension '${typeId}' was already registered.`
+                    );
+                }
+                if (this.registerDimension(typeId) === 'new-after-reload') {
+                    throw dimensionError(
+                        'CustomDimensionReloadNewDimensionError',
+                        `Custom dimension '${typeId}' is new and could not be registered on reload. Please exit and rejoin your world.`
+                    );
+                }
+                this.dimensions.add(typeId);
             }
         };
     }

@@ -1063,6 +1063,13 @@ export interface ScriptComponentSink {
 export interface ScriptWorld {
     /** The world's dimensions, as Bedrock names them, such as `minecraft:overworld`. */
     dimensions(): readonly string[];
+    /**
+     * Adds a void dimension a script registered in `startup`, which {@link ScriptWorld.dimensions}
+     * lists from then on. A dimension the world already has is registered again. Once the world's
+     * first scripts have started, a dimension it lacks is `new-after-reload`, as on BDS.
+     * Left out, the world takes every registration and adds no dimension.
+     */
+    registerCustomDimension?(typeId: string): 'registered' | 'new-after-reload';
     /** The ids of the players in the world, in the order they joined. */
     players(): readonly string[];
     /**

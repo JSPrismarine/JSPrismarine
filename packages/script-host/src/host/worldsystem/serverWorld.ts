@@ -10,8 +10,7 @@
  * The world and system members still without behavior wait on systems JSPrismarine does not have
  * yet: a playing sound's controls need sound handles (issue #3314), a pack's structures and
  * jigsaw placement need Bedrock's placement (issue #3315), the locator bar and waypoints their
- * packets (issue #3313), the point-of-interest classes an index (issue #3312), and
- * `registerCustomDimension` the level's custom dimensions (issue #3624).
+ * packets (issue #3313), and the point-of-interest classes an index (issue #3312).
  */
 import { ScriptHostErrors } from '@jsprismarine/errors/script-host';
 

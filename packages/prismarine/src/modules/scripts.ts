@@ -112,6 +112,7 @@ export const startLevelScripts = async (
         sources: {
             dimensions: () =>
                 [...level.getStems().keys()].map((dimension) => level.dimensionTypeOf(dimension).bedrockName),
+            registerCustomDimension: (typeId) => level.registerScriptDimension(typeId),
             players: () =>
                 server
                     .getSessionManager()
@@ -195,6 +196,8 @@ export const startLevelScripts = async (
     // pack's first line stops it.
     if (options.autoAttach) await scripts.debugger.autoAttach();
     scripts.start(overworld);
+    // A reload, or scripts started again from a new pack list, add no dimension, as on BDS.
+    level.sealScriptDimensions();
     return scripts;
 };
 

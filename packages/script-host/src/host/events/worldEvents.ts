@@ -32,8 +32,8 @@ const GAME_RULES: ReadonlyMap<string, string> = (() => {
 /*
  * The world events left without behavior, which throw `NotImplementedError`, because JSPrismarine
  * lacks the game system that would raise them and building it is out of this module's reach:
- * world clocks, `worldClockOn*` and `StartupEvent.worldClockRegistry` (#3290); script-registered
- * dimensions, `StartupEvent.dimensionRegistry` (#3291); pack settings, `packSettingChange` (#3292);
+ * world clocks, `worldClockOn*` and `StartupEvent.worldClockRegistry` (#3290); pack settings,
+ * `packSettingChange` (#3292);
  * a sound's length, `soundCompleted` (#3293); tripwire and target block redstone, `tripWireTrip`
  * and `targetBlockHit` (#3294); entity upgrades, `entityUpgrade` (#3296); and the component hooks `onStepOff`, `onNamedTick`,
  * `onNeighborChanged` and `onBeforeDurabilityDamage` (#3297).

@@ -281,12 +281,23 @@ const runLoadedPacks = async (
     level: ReturnType<typeof fakeLevel>,
     http: ScriptHttpInputs
 ): Promise<string[]> => {
+    // The void dimensions the packs registered, which the level has from then on, as a level does.
+    const registered: string[] = [];
+    let started = false;
     const scripts = await LevelScripts.load({
         packDirectories: scenario.packs.map((pack) => scenarioPackDirectory(scenario, pack)),
         configDirectory: scenarioConfigDirectory(scenario),
         sources: {
-            dimensions: () =>
-                [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
+            dimensions: () => [
+                ...[Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].map((type) => type.bedrockName),
+                ...registered
+            ],
+            registerCustomDimension: (typeId) => {
+                if (registered.includes(typeId)) return 'registered';
+                if (started) return 'new-after-reload';
+                registered.push(typeId);
+                return 'registered';
+            },
             players: () => client?.players() ?? [],
             access: {
                 ...NO_LEVEL_ACCESS,
@@ -320,6 +331,7 @@ const runLoadedPacks = async (
     if (scripts === undefined) throw new Error(`The script host did not load scenario ${scenario.id}'s packs.`);
     try {
         scripts.start({ setScriptPhase: () => {} });
+        started = true;
         const ended = (): boolean =>
             loadedPacks(scenario).every(
                 (pack) =>

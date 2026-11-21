@@ -1,0 +1,185 @@
+{
+    "$comment": [
+        "What the scripts of scenario `custom-dimensions` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.world",
+    "scenario": "custom-dimensions",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "dimensions",
+            "seq": 1,
+            "tick": 0,
+            "event": "register jsp:void"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 2,
+            "tick": 0,
+            "event": "register jsp:void again",
+            "error": "CustomDimensionAlreadyRegisteredError: Custom dimension 'jsp:void' was already registered."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 3,
+            "tick": 0,
+            "event": "register without a namespace",
+            "error": "NamespaceNameError: There was an error with name 'void': string must be prefixed with a namespace (eg. namespace:value)."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 4,
+            "tick": 0,
+            "event": "register in the minecraft namespace",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:void': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 5,
+            "tick": 0,
+            "event": "register minecraft:overworld",
+            "error": "NamespaceNameError: There was an error with name 'minecraft:overworld': string has invalid namespace (minecraft)."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 6,
+            "tick": 0,
+            "event": "register an upper-case name"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 7,
+            "tick": 0,
+            "event": "register a name with a space",
+            "error": "CustomDimensionNameError: Custom dimension 'jsp:a void' has invalid characters."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 8,
+            "tick": 0,
+            "event": "register jsp:second"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 9,
+            "tick": 0,
+            "event": "register after startup",
+            "error": "CustomDimensionInvalidRegistryError: Cannot register custom dimension 'jsp:late' outside of StartupEvent."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 10,
+            "tick": 0,
+            "event": "dimension id",
+            "value": "jsp:void"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 11,
+            "tick": 0,
+            "event": "dimension heightRange",
+            "value": {
+                "min": -64,
+                "max": 320
+            }
+        },
+        {
+            "pack": "dimensions",
+            "seq": 12,
+            "tick": 0,
+            "event": "second dimension id",
+            "value": "jsp:second"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 13,
+            "tick": 0,
+            "event": "dimension without the namespace",
+            "error": "Error: Dimension 'void' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 14,
+            "tick": 0,
+            "event": "dimension that was never registered",
+            "error": "Error: Dimension 'jsp:missing' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 15,
+            "tick": 5,
+            "event": "ready for /reload"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 1,
+            "tick": 0,
+            "event": "register jsp:void"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 2,
+            "tick": 0,
+            "event": "register a dimension new after the reload",
+            "error": "CustomDimensionReloadNewDimensionError: Custom dimension 'jsp:reloaded' is new and could not be registered on reload. Please exit and rejoin your world."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 3,
+            "tick": 0,
+            "event": "register after startup",
+            "error": "CustomDimensionInvalidRegistryError: Cannot register custom dimension 'jsp:late' outside of StartupEvent."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 4,
+            "tick": 0,
+            "event": "dimension id",
+            "value": "jsp:void"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 5,
+            "tick": 0,
+            "event": "dimension heightRange",
+            "value": {
+                "min": -64,
+                "max": 320
+            }
+        },
+        {
+            "pack": "dimensions",
+            "seq": 6,
+            "tick": 0,
+            "event": "second dimension id",
+            "value": "jsp:second"
+        },
+        {
+            "pack": "dimensions",
+            "seq": 7,
+            "tick": 0,
+            "event": "dimension without the namespace",
+            "error": "Error: Dimension 'void' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 8,
+            "tick": 0,
+            "event": "dimension that was never registered",
+            "error": "Error: Dimension 'jsp:missing' is invalid."
+        },
+        {
+            "pack": "dimensions",
+            "seq": 9,
+            "tick": 0,
+            "event": "dimension new after the reload",
+            "error": "Error: Dimension 'jsp:reloaded' is invalid."
+        }
+    ]
+}

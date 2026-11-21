@@ -555,7 +555,6 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       A TNT that `/summon` primes on a BDS with no player leaves the world after 41 ticks without
       exploding, so no capture records the explosion events yet.
     - Left: world clocks ([#3290](https://github.com/JSPrismarine/JSPrismarine/issues/3290)),
-      `dimensionRegistry` ([#3291](https://github.com/JSPrismarine/JSPrismarine/issues/3291)),
       `packSettingChange` ([#3292](https://github.com/JSPrismarine/JSPrismarine/issues/3292)),
       `soundCompleted` ([#3293](https://github.com/JSPrismarine/JSPrismarine/issues/3293)),
       tripwires and target blocks ([#3294](https://github.com/JSPrismarine/JSPrismarine/issues/3294)),
@@ -604,8 +603,10 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       the locator bar and waypoints ([#3313](https://github.com/JSPrismarine/JSPrismarine/issues/3313)),
       the point-of-interest classes behind BDS's runtime condition
       ([#3312](https://github.com/JSPrismarine/JSPrismarine/issues/3312)), and `registerClock`
-      and `registerCustomDimension` ([#3624](https://github.com/JSPrismarine/JSPrismarine/issues/3624))
-      have no behavior. Sky light under an overhang differs from BDS
+      ([#3290](https://github.com/JSPrismarine/JSPrismarine/issues/3290)) have no behavior.
+      `registerCustomDimension` adds a void dimension with the Overworld's bounds that the save
+      leaves out, since the scripts register it again each start, as the `custom-dimensions`
+      scenario recorded. A registration BDS logs as deleted after a reload is not logged. Sky light under an overhang differs from BDS
       ([#3311](https://github.com/JSPrismarine/JSPrismarine/issues/3311)), `/gamerule dofiretick`
       does not parse ([#3310](https://github.com/JSPrismarine/JSPrismarine/issues/3310)), and the
       `dimension-volumes` row waits on `BlockVolume`.

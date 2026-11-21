@@ -49,7 +49,8 @@ const HOST: PackHost = {
         registering: unreachable,
         registerEnum: unreachable,
         registerCommand: unreachable,
-        registerComponent: unreachable
+        registerComponent: unreachable,
+        registerDimension: unreachable
     }
 };
 

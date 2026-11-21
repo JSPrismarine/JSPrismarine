@@ -110,6 +110,8 @@ export const TAG = {
     dimensionType: 38,
     /** A status effect type; its state is the effect's id. */
     effectType: 39,
+    /** `StartupEvent.dimensionRegistry`. */
+    dimensionRegistry: 44,
     /** A signal's tag is this plus its index in the signal list. */
     signal: 100
 } as const;

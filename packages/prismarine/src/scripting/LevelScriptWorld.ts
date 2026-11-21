@@ -161,6 +161,11 @@ export interface ScriptWorldPlayer {
 export interface ScriptWorldSources {
     /** The level's dimensions, as Bedrock names them, in stem order. */
     dimensions(): readonly string[];
+    /**
+     * Adds a void dimension a script registered in `startup`; see
+     * {@link ScriptWorld.registerCustomDimension}. Left out, the level takes no new dimension.
+     */
+    registerCustomDimension?(typeId: string): 'registered' | 'new-after-reload';
     /** The players in the level, in the order they joined. */
     players(): readonly ScriptWorldPlayer[];
     /** The level's weather. */
@@ -391,6 +396,11 @@ export class LevelScriptWorld implements ScriptWorld {
     /** The level's dimensions, as Bedrock names them. */
     public dimensions(): readonly string[] {
         return this.sources.dimensions();
+    }
+
+    /** Adds a void dimension a script registered in `startup`. */
+    public registerCustomDimension(typeId: string): 'registered' | 'new-after-reload' {
+        return this.sources.registerCustomDimension?.(typeId) ?? 'registered';
     }
 
     /** The entity ids of the level's players. */
