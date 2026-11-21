@@ -8,8 +8,9 @@ import type { Noise } from '../noise/GradientNoise';
 import type { PositionalRandomFactory, RandomSource } from '../random/RandomSource';
 import type { RandomState } from '../RandomState';
 import type { MaterialRuleNode } from './MaterialRule';
-import type { LocalBiomes, RuleEvaluator } from './MaterialRuleContext';
-import { compileMaterialRule, MaterialRuleContext } from './MaterialRuleContext';
+import type { LocalBiomes } from './MaterialRuleContext';
+import { MaterialRuleContext } from './MaterialRuleContext';
+import { compileMaterialRuleProgram, MaterialRuleInterpreter } from './MaterialRuleProgram';
 import type { SurfaceChunk } from './SurfaceChunk';
 import type { WorldGenerationContext } from './VerticalAnchor';
 import { createWorldGenerationContext } from './VerticalAnchor';
@@ -79,8 +80,8 @@ const makeBands = (random: RandomSource, bands: string[], baseWidth: number, sta
  *
  * Java's `terrain` status runs the carvers after the surface materials are in, and a carver
  * that cuts through a grass block asks the material rule what the dirt it exposed should
- * become. The rule is compiled once per chunk against one position context, so the answer comes
- * from the pass that compiled it rather than from a second compile per carved block.
+ * become. The rule is bound once per chunk to one position context, so the answer comes from
+ * the pass that bound it rather than from a second binding per carved block.
  *
  * Java builds a fresh context per call instead. The two agree because every cached answer in
  * the context is keyed by the update counters, which both `updateXZ` and `updateY` bump.
@@ -201,7 +202,7 @@ export class SurfaceSystem {
      * Columns are walked from the top down, because the stone depth counters and the water
      * height the rules read are accumulated in that order.
      *
-     * @returns The compiled rule and its context, which the carvers query per carved block.
+     * @returns The bound rule and its context, which the carvers query per carved block.
      */
     public buildSurface(options: BuildSurfaceOptions): SurfacePass {
         const chunk = options.chunk;
@@ -217,7 +218,7 @@ export class SurfaceSystem {
             ...(options.possibleBiomes === undefined ? {} : { possibleBiomes: options.possibleBiomes }),
             ...(options.localBiomes === undefined ? {} : { localBiomes: options.localBiomes })
         });
-        const rule = compileMaterialRule(options.rule, context);
+        const rule = new MaterialRuleInterpreter(compileMaterialRuleProgram(options.rule), context);
 
         for (let localX = 0; localX < CHUNK_SIZE; localX++) {
             for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
@@ -263,7 +264,7 @@ export class SurfaceSystem {
                 // Java passes `Integer.MIN_VALUE` for "nothing above"; this pass spells the
                 // same sentinel `-Infinity`, which is what the `water` condition tests for.
                 context.updateY(1, 1, hasFluid ? blockY + 1 : Number.NEGATIVE_INFINITY, blockY);
-                return rule(blockX, blockY, blockZ);
+                return rule.run(blockX, blockY, blockZ);
             }
         };
     }
@@ -271,7 +272,7 @@ export class SurfaceSystem {
     private buildColumn(
         chunk: SurfaceChunk,
         context: MaterialRuleContext,
-        rule: RuleEvaluator,
+        rule: MaterialRuleInterpreter,
         blockX: number,
         blockZ: number,
         startingHeight: number
@@ -308,7 +309,7 @@ export class SurfaceSystem {
             stoneAboveDepth++;
             context.updateY(stoneAboveDepth, y - nextCeilingStoneY + 1, waterHeight, y);
             if (y >= chunk.minY && y <= chunk.maxY) {
-                const state = rule(blockX, y, blockZ);
+                const state = rule.run(blockX, y, blockZ);
                 if (state !== undefined) chunk.setBlock(blockX, y, blockZ, state);
             }
         }
