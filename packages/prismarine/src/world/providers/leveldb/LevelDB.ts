@@ -70,6 +70,7 @@ import type { ChunkPersistedState, ChunkSaveCutHook } from '../../chunk/Chunk';
 import type { ReadonlySubChunk } from '../../chunk/SubChunk';
 import type { LevelRecords, ProviderSavePass } from '../SavePass';
 import { dynamicPropertiesFromNbt, dynamicPropertiesToNbt } from '../../dynamicProperties';
+import { commandStorageFromNbt, commandStorageToNbt } from './CommandStorageCodec';
 import { scoreboardFromNbt, scoreboardToNbt } from './ScoreboardCodec';
 import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
@@ -127,6 +128,8 @@ const WORLD_DATA_KEY = Buffer.from('jsprismarine:world_data', 'ascii');
 const DYNAMIC_PROPERTIES_KEY = Buffer.from('DynamicProperties', 'ascii');
 /** BDS's record of the scoreboard. */
 const SCOREBOARD_KEY = Buffer.from('scoreboard', 'ascii');
+/** The level's command storage, which BDS has no record for. */
+const COMMAND_STORAGE_KEY = Buffer.from('jsprismarine:command_storage', 'ascii');
 const REPLAY_SNAPSHOT_FORMAT = 'jsprismarine-leveldb-replay-snapshot';
 const REPLAY_SNAPSHOT_VERSION = 1;
 const REPLAY_SNAPSHOT_FILES = [LEVEL_DAT_FILE_NAME, LEVEL_DAT_BACKUP_FILE_NAME, LEVEL_NAME_FILE_NAME] as const;
@@ -1022,7 +1025,7 @@ export default class LevelDB extends BaseProvider {
                 const value = this.levelRecordOf({ ...this.readWorldDataNow(), ...data });
                 if (!this.holds(WORLD_DATA_KEY, value)) batch.put(WORLD_DATA_KEY, value);
             },
-            putLevelRecords: ({ dynamicProperties, scoreboard }) => {
+            putLevelRecords: ({ dynamicProperties, scoreboard, commandStorage }) => {
                 const records: ReadonlyArray<readonly [Buffer, NBTTagCompound | null]> = [
                     [
                         DYNAMIC_PROPERTIES_KEY,
@@ -1033,7 +1036,8 @@ export default class LevelDB extends BaseProvider {
                         scoreboard.objectives.length === 0 && scoreboard.participants.length === 0
                             ? null
                             : scoreboardToNbt(scoreboard)
-                    ]
+                    ],
+                    [COMMAND_STORAGE_KEY, commandStorage.size === 0 ? null : commandStorageToNbt(commandStorage)]
                 ];
                 for (const [key, nbt] of records) {
                     if (nbt === null) {
@@ -1726,20 +1730,24 @@ export default class LevelDB extends BaseProvider {
     }
 
     /**
-     * The world's dynamic properties and the scoreboard, from the records BDS keeps them in.
-     * @returns Null when the save holds neither.
+     * The world's dynamic properties and the scoreboard, from the records BDS keeps them in, and
+     * the command storage from this server's own record.
+     * @returns Null when the save holds none of the three.
      */
     public override readLevelRecords(): LevelRecords | null {
         const properties = this.read(DYNAMIC_PROPERTIES_KEY);
         const scoreboard = this.read(SCOREBOARD_KEY);
-        if (properties === null && scoreboard === null) return null;
+        const commandStorage = this.read(COMMAND_STORAGE_KEY);
+        if (properties === null && scoreboard === null && commandStorage === null) return null;
         return {
             dynamicProperties:
                 properties === null ? new Map() : dynamicPropertiesFromNbt(this.readActorNbt(properties)),
             scoreboard:
                 scoreboard === null
                     ? { objectives: [], participants: [], displays: [], lastId: 0 }
-                    : scoreboardFromNbt(this.readActorNbt(scoreboard))
+                    : scoreboardFromNbt(this.readActorNbt(scoreboard)),
+            commandStorage:
+                commandStorage === null ? new Map() : commandStorageFromNbt(this.readActorNbt(commandStorage))
         };
     }
 

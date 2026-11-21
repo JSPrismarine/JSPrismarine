@@ -293,6 +293,17 @@ Thrown as `PrismarineWorldErrors.InvalidReplaySnapshotPlayerData`, which extends
 A replay's world snapshot does not have the shape the server writes, so the replay is
 damaged.
 
+## `PRISMARINE_INVALID_STORAGE_ID`
+
+`Invalid storage id {id}: expected a resource location such as mypack:state`
+
+Thrown as `PrismarineWorldErrors.InvalidStorageId`, which extends `RangeError`.
+
+A command named a command storage by an id that is not a resource location, such as one with
+an uppercase letter or a space. Write the id as `namespace:path`, with the namespace in
+lowercase letters, digits, `_`, `.` and `-`, and the path in those and `/`. Without a
+namespace the id is in `minecraft`.
+
 ## `PRISMARINE_INVALID_SUB_CHUNK_PALETTE_SIZE`
 
 `Sub chunk storage declares a palette of {paletteSize} entries`
