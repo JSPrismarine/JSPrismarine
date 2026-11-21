@@ -5,8 +5,10 @@ on:
         branches:
             - master
     # Refreshes the release pull request with the changesets that landed since the last refresh. A
-    # push to master only publishes, or opens the release pull request when there is none, because
-    # rewriting it after every push started a full set of checks on it each time.
+    # push to master publishes, opens the release pull request when there is none, and refreshes it
+    # only once it is six hours old, because rewriting it after every push started a full set of
+    # checks on it each time. GitHub delays scheduled runs by hours when it is busy, or drops them,
+    # so the schedule alone left the pull request hours behind master.
     schedule:
         - cron: '23 */6 * * *'
     # Recovery: rebuild and republish the standalone executables of a release whose later jobs
@@ -73,8 +75,9 @@ jobs:
                   token: ${{ secrets.MACHINE_USER }}
 
             # Pending changesets make the changesets step open or update the release pull request;
-            # none make it publish. A push publishes, or opens the release pull request when none is
-            # open. The schedule only updates the release pull request, and never publishes.
+            # none make it publish. A push publishes, opens the release pull request when none is
+            # open, or updates it when its last commit is six hours old, the schedule's interval. The
+            # schedule only updates the release pull request, and never publishes.
             - name: 🔎 Decide what the changesets step does
               id: plan
               env:
@@ -87,13 +90,18 @@ jobs:
                       pending=true
                   fi
                   open="$(gh pr list --repo "$GITHUB_REPOSITORY" --head changeset-release/master --state open --json number --jq length)"
+                  stale=false
+                  if [ "$open" != 0 ]; then
+                      updated="$(gh api "repos/$GITHUB_REPOSITORY/commits/changeset-release/master" --jq .commit.committer.date)"
+                      if (( $(date -u +%s) - $(date -u --date="$updated" +%s) >= 6 * 60 * 60 )); then stale=true; fi
+                  fi
                   run=false
                   if [ "$EVENT" = schedule ]; then
                       [ "$pending" = true ] && run=true
-                  elif [ "$pending" = false ] || [ "$open" = 0 ]; then
+                  elif [ "$pending" = false ] || [ "$open" = 0 ] || [ "$stale" = true ]; then
                       run=true
                   fi
-                  echo "Pending changesets: $pending. Open release pull requests: $open. Run changesets: $run."
+                  echo "Pending changesets: $pending. Open release pull requests: $open (last updated ${updated:-never}). Run changesets: $run."
                   echo "run=$run" >> "$GITHUB_OUTPUT"
 
             - name: 📦 Install
