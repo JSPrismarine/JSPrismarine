@@ -15,7 +15,12 @@ import {
     scriptPotionEffects,
     scriptPotionStacks
 } from '@jsprismarine/bedrock-data/script-catalog';
-import type { ScriptBlockTypeInfo, ScriptCatalog, ScriptItemInfo } from '@jsprismarine/script-host/host/world';
+import type {
+    ScriptBlockTypeInfo,
+    ScriptCatalog,
+    ScriptItemInfo,
+    ScriptLegacyStates
+} from '@jsprismarine/script-host/host/world';
 
 /** What the catalog reads of the server's content: the ids of its block and item types. */
 export interface CatalogContent {
@@ -119,3 +124,16 @@ export const levelCatalog = (content: CatalogContent): ScriptCatalog => ({
             : { effect: row.effect, delivery: row.delivery };
     }
 });
+
+/**
+ * The states BDS's Script API reports for a block type, from the pinned server's capture, or
+ * undefined for a type it did not report. See `ScriptWorld.legacyStates`.
+ */
+export const legacyStatesOf = (typeId: string): ScriptLegacyStates | undefined => {
+    const row = BLOCK_TYPES.get(typeId);
+    if (row?.states === undefined) return undefined;
+    const follows = Object.fromEntries(
+        Object.entries(row.stateRelations ?? {}).map(([name, relation]) => [name, relation.follows ?? []])
+    );
+    return { defaults: row.states, follows };
+};

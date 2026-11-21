@@ -164,6 +164,20 @@ export interface ScriptRgb {
 /** A block state's value. */
 export type ScriptStateValue = string | number | boolean;
 
+/**
+ * How BDS's Script API reports a block type's states: every state of its default permutation, and
+ * for a state another one decides, that state with the value each of its values gives.
+ */
+export interface ScriptLegacyStates {
+    readonly defaults: Readonly<Record<string, ScriptStateValue>>;
+    readonly follows: Readonly<
+        Record<
+            string,
+            readonly { readonly state: string; readonly values: Readonly<Record<string, ScriptStateValue>> }[]
+        >
+    >;
+}
+
 /** What water does to a permutation, by the four `LiquidType.Water` questions of the Script API. */
 export interface ScriptWaterAnswers {
     readonly contain: boolean;
@@ -1103,6 +1117,12 @@ export interface ScriptWorld {
         typeId: string,
         states: Readonly<Record<string, string | number | boolean>>
     ): ScriptBlockPermutation | undefined;
+    /**
+     * The states BDS's Script API reports for a block type beside the ones the world keeps, such
+     * as an oak log's `old_log_type` or a slab's `top_slot_bit`, or undefined for a world without
+     * them. A permutation a script reads carries them, and one a script writes may name them.
+     */
+    legacyStates?(typeId: string): ScriptLegacyStates | undefined;
     /**
      * Looks an item type up.
      * @param typeId - The type with its namespace.

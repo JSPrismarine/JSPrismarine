@@ -45,6 +45,24 @@ export interface ScriptBlockTypeRow {
     readonly id: string;
     readonly localizationKey: string;
     readonly tags: readonly string[];
+    /**
+     * The default permutation's states as `getAllStates` reports them, which include the legacy
+     * states the Script API still reports for a flattened block, such as an oak log's
+     * `old_log_type`.
+     */
+    readonly states?: Readonly<Record<string, ScriptStateValue>>;
+    /** For each state another one decides, that state and the value each of its values gives. */
+    readonly stateRelations?: Readonly<
+        Record<
+            string,
+            {
+                readonly follows?: readonly {
+                    readonly state: string;
+                    readonly values: Readonly<Record<string, ScriptStateValue>>;
+                }[];
+            }
+        >
+    >;
     /** The item `getItemStack` gives, or null for a block with none. */
     readonly item: string | null;
     readonly water: ScriptWaterAnswers;

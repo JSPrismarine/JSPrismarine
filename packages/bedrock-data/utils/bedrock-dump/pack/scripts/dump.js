@@ -142,6 +142,67 @@ const waterPermutationsOf = (blockId, water) => {
     return differing;
 };
 
+/**
+ * How each state of a block type relates to the others across its permutations: one that holds
+ * a single value in every permutation, and for one that varies, each other state that decides it,
+ * with the value it takes for each of that state's values. This is how the legacy states the
+ * Script API still reports for a flattened block, such as a slab's `top_slot_bit` beside
+ * `minecraft:vertical_half`, can be read off the states a server keeps.
+ */
+const stateRelationsOf = (blockId) => {
+    // `resolve` refuses some of the states `getAllStates` reports, such as stone's `stone_type`,
+    // so the permutations are walked over the states it takes, and read back whole.
+    const domains = domainsOf(blockId).filter(({ name, default: value }) => {
+        try {
+            BlockPermutation.resolve(blockId, { [name]: value });
+            return true;
+        } catch {
+            return false;
+        }
+    });
+    const seen = new Map();
+    const base = BlockPermutation.resolve(blockId);
+    for (const states of combinations(domains)) {
+        try {
+            // Each state set on the default permutation, which keeps the states only it reports.
+            let permutation = base;
+            for (const [name, value] of Object.entries(states)) permutation = permutation.withState(name, value);
+            const resolved = permutation.getAllStates();
+            seen.set(JSON.stringify(resolved), resolved);
+        } catch {
+            // A combination the engine refuses names no permutation.
+        }
+    }
+    const permutations = [...seen.values()];
+    if (permutations.length === 0) return {};
+    const names = Object.keys(permutations[0]);
+    const relations = {};
+    for (const name of names) {
+        const values = new Set(permutations.map((states) => JSON.stringify(states[name])));
+        if (values.size === 1) {
+            relations[name] = { constant: permutations[0][name] };
+            continue;
+        }
+        const follows = [];
+        for (const other of names) {
+            if (other === name) continue;
+            const map = {};
+            let decides = true;
+            for (const states of permutations) {
+                const key = String(states[other]);
+                if (key in map && map[key] !== states[name]) {
+                    decides = false;
+                    break;
+                }
+                map[key] = states[name];
+            }
+            if (decides) follows.push({ state: other, values: map });
+        }
+        if (follows.length > 0) relations[name] = { follows };
+    }
+    return relations;
+};
+
 function* blockTypes() {
     for (const type of BlockTypes.getAll()) {
         try {
@@ -155,6 +216,7 @@ function* blockTypes() {
                 // The default permutation's states, which include the legacy states the Script
                 // API still reports for a flattened block, such as an oak log's old_log_type.
                 states: permutation.getAllStates(),
+                stateRelations: stateRelationsOf(type.id),
                 item: stack ? stack.typeId : null,
                 water,
                 waterPermutations: waterPermutationsOf(type.id, water)

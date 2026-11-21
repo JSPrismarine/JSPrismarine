@@ -24,6 +24,7 @@ import type {
     ScriptFormChannel,
     ScriptFormResponse,
     ScriptHttpChannel,
+    ScriptLegacyStates,
     ScriptStructure,
     ScriptStructureStore,
     ScriptTransferTarget,
@@ -38,6 +39,7 @@ import type { ScriptEntitySystems } from '@jsprismarine/script-host/host/entitie
 import { shapeVisibleTo } from '@jsprismarine/script-host/host/world';
 
 import type { ChatManager } from '../chat/ChatManager';
+import { legacyStatesOf } from './blocksItems/levelCatalog';
 import { Scoreboard } from '../world/Scoreboard';
 import type { ScriptEntityEvent } from './scriptEntityEvents';
 import type { ScriptPlayerActions } from './scriptPlayerActions';
@@ -471,6 +473,11 @@ export class LevelScriptWorld implements ScriptWorld {
     /** Completes a block permutation. */
     public resolveBlock(...args: Parameters<ScriptWorld['resolveBlock']>): ReturnType<ScriptWorld['resolveBlock']> {
         return this.access.resolveBlock(...args);
+    }
+
+    /** The states BDS reports for a block type beside the ones the level keeps. */
+    public legacyStates(typeId: string): ScriptLegacyStates | undefined {
+        return legacyStatesOf(typeId);
     }
 
     /** Looks an item type up. */
