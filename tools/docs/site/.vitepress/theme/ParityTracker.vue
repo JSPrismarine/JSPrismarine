@@ -232,8 +232,8 @@ const percentage = trackerProgressPercent;
             />
             <!-- The chips count every comparison; the headline counts behavior checks only. -->
             <p class="overview-counts-label">
-                All comparisons, including data tables:
-                {{ trackerPrimaryProgressPercent(summary.passed, trackerProgressTotal(summary)) }}%
+                {{ trackerPrimaryProgressPercent(summary.passed, trackerProgressTotal(summary)) }}% of all comparisons,
+                data tables included
             </p>
             <ul class="overview-counts" aria-label="All comparisons by status">
                 <li class="status-count passed">
@@ -376,7 +376,10 @@ const percentage = trackerProgressPercent;
                 <summary>
                     <span class="family-title">
                         <span class="family-name">{{ family.id }}</span>
-                        <span class="family-count">{{ count.format(family.matchCount) }} cases</span>
+                        <span class="family-count"
+                            >{{ count.format(family.matchCount) }}
+                            {{ family.matchCount === 1 ? 'case' : 'cases' }}</span
+                        >
                     </span>
                     <span class="family-progress">
                         <span :class="{ 'is-gap': family.passed * 2 < trackerProgressTotal(family) }"
