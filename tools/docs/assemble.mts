@@ -106,9 +106,17 @@ const rootSources = new Map([
     ...addons.map(({ name }): [string, string] => [path.join(repoRoot, addonReadmePath(name)), addonPagePath(name)])
 ]);
 
+/** The image files a docs page may show. */
+const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
+
+/** Where the site serves images from outside `docs/`, such as an addon's screenshot, by their repository path. */
+const repoImageDir = path.join(publicDir, 'repo');
+rmSync(repoImageDir, { recursive: true, force: true });
+
 /**
  * Points relative links at their published, site-absolute pages. A link to a file the site does not publish, such as
- * package source, goes to that file on GitHub instead of a dead page. Absolute URLs stay as written.
+ * package source, goes to that file on GitHub instead of a dead page; an image outside `docs/` is copied into the site,
+ * since GitHub's page for it is not an image. Absolute URLs stay as written.
  */
 function rewriteLinks(markdown: string, sourceFile: string) {
     return markdown.replace(
@@ -125,6 +133,11 @@ function rewriteLinks(markdown: string, sourceFile: string) {
                     !isUnpublished(section, path.relative(path.join(docsRoot, section.dir), resolved)));
             if (!published) {
                 const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
+                if (IMAGE.test(resolved) && !repoPath.startsWith('../') && existsSync(resolved)) {
+                    mkdirSync(path.dirname(path.join(repoImageDir, repoPath)), { recursive: true });
+                    copyFileSync(resolved, path.join(repoImageDir, repoPath));
+                    return `](/repo/${repoPath}${anchor})`;
+                }
                 return `](${blobUrl}/${repoPath}${anchor})`;
             }
             // Site-absolute, so a root page links into a section as reliably as a page inside it.
@@ -167,9 +180,6 @@ function stagePage(sourceFile: string, markdown = readFileSync(sourceFile, 'utf8
     for (const { name } of stale) staleFacts.push(`${label}: ${name}`);
     return rewriteLinks(text, sourceFile);
 }
-
-/** The image files a docs page may show. */
-const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 let pages = 0;
 for (const section of sections) {
