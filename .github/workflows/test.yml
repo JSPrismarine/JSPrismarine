@@ -46,6 +46,10 @@ jobs:
         outputs:
             code: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true' }}
             tests: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || steps.filter.outputs.code == 'true') && github.head_ref != 'changeset-release/master' }}
+            # The Windows and macOS generation host jobs. A pull request runs them only when it
+            # changes the chunk generation package they test; a push, the nightly and a manual run
+            # always do.
+            host: ${{ github.event_name != 'pull_request' || steps.filter.outputs.host == 'true' }}
             passed: ${{ steps.reuse.outputs.passed || '[]' }}
             since: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || steps.since.outputs.sha || '' }}
         steps:
@@ -108,6 +112,12 @@ jobs:
                           - 'docs/data-driven/parity.md'
                           - 'docs/plans/data-driven-vanilla.md'
                           - 'docs/research/edition-behavior-differences.md'
+                      host:
+                          - '.github/workflows/test.yml'
+                          - '.github/common/**'
+                          - 'packages/chunkgen/**'
+                          - 'pnpm-lock.yaml'
+                          - '.nvmrc'
 
     # How many shards each Vitest suite gets, and which files each one runs. A run with a `since`
     # commit runs only the files its changes reach, usually a few dozen, and every shard pays for a
@@ -301,11 +311,13 @@ jobs:
                   retention-days: 14
 
     # The generation host is a forked process with a lowered operating system priority, and
-    # forking, priorities and signals differ by platform. Linux runs these in the job above.
+    # forking, priorities and signals differ by platform. Linux runs these in the job above. The
+    # Windows and macOS pools hold five runners each for the whole organization, so a pull request
+    # starts these two jobs only when it changes the package they test.
     generation-host:
         name: 🧵 Generation host (${{ matrix.os }})
         needs: changes
-        if: ${{ needs.changes.outputs.tests == 'true' }}
+        if: ${{ needs.changes.outputs.tests == 'true' && needs.changes.outputs.host == 'true' }}
         strategy:
             fail-fast: false
             matrix:
