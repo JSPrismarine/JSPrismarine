@@ -2,7 +2,8 @@ import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
 import { CraftingDataPacket, CreativeContentPacket, PlayerActionType, PositionMode } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import { CommandPermissionLevel, ContainerUiId, Dimension, DisconnectReason, Gametype } from '@jsprismarine/minecraft';
+import type { Gametype } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, ContainerUiId, Dimension, DisconnectReason } from '@jsprismarine/minecraft';
 import { advancementChangedDimension, advancementPlayerTick } from '../advancement/triggers';
 import type { PlayerIdentity } from '../playerIdentity';
 import { playerKeyOf } from '../playerIdentity';
@@ -54,7 +55,7 @@ import { CommandEnum } from '@jsprismarine/protocol/bedrock/wire/structures/Comm
 import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ShownActor, ShownEntity } from '../world/ShownActor';
-import { abilitiesPacket, armorPackets, statusEffectPacket } from './replica/firstSight';
+import { armorPackets, statusEffectPacket } from './replica/firstSight';
 import type { ShownPlayer } from '../world/ShownPlayer';
 import type { LiveOffer, TradeContext, TradeResult } from '@jsprismarine/trading';
 import UpdateTradePacket from '@jsprismarine/protocol/bedrock/packet/UpdateTradePacket';
@@ -140,8 +141,6 @@ import { BedrockPresenter } from './presenter/BedrockPresenter';
 import type { SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
-import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
-import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
 import ChunkSender from './ChunkSender';
 import ChunkBatchCache from './ChunkBatchCache';
@@ -1403,17 +1402,7 @@ export default class PlayerSession {
      * @param player - The client-controlled entity
      */
     public async sendSettings(player?: Pick<ShownPlayer, 'gamemode'>): Promise<void> {
-        const target = player ?? this.own();
-
-        const spectator = target.gamemode === Gametype.SPECTATOR;
-        const packet = new UpdateAdventureSettingsPacket({
-            worldImmutable: spectator,
-            noAttackingPlayers: spectator,
-            noAttackingMobs: spectator,
-            autoJump: true,
-            showNameTags: true
-        });
-        await this.connection.sendDataPacket(packet);
+        await this.presenter.sendInteractionSettings((player ?? this.own()).gamemode);
     }
 
     /**
@@ -1447,22 +1436,20 @@ export default class PlayerSession {
     }
 
     /**
-     * Sends `UpdateAbilitiesPacket` describing `player` to this client (`abilitiesPacket`).
+     * Tells this client what `player` may do.
      *
      * @param player - The player described. Defaults to this session's own player.
      */
     public async sendAbilities(player?: ShownPlayer): Promise<void> {
         const target = player ?? this.shown();
-        await this.send(
-            abilitiesPacket({
-                runtimeId: target.getRuntimeId(),
-                gamemode: target.gamemode,
-                canFly: target.metadata.canFly,
-                flying: target.isFlying(),
-                op: target.isOp(),
-                commandLevel: target.getCommandLevel()
-            })
-        );
+        await this.presenter.sendAbilities({
+            runtimeId: target.getRuntimeId(),
+            gamemode: target.gamemode,
+            canFly: target.metadata.canFly,
+            flying: target.isFlying(),
+            op: target.isOp(),
+            commandLevel: target.getCommandLevel()
+        });
     }
 
     public needNewChunks(forceResend = false, dist?: number): Promise<void> {
@@ -2211,20 +2198,14 @@ export default class PlayerSession {
     /**
      * Tells this client which game type a player now has.
      *
-     * `UpdatePlayerGameTypePacket` is what the docs have the server send to every client after
-     * it accepts a game type change, because each client caches the game type and permission
-     * flags of every player it knows about. The Tick is this client's last input tick when the
-     * player is its own, so the client can reconcile the movement it predicted while the packet
-     * was in flight, and zero for anyone else, as the docs allow.
+     * The tick is this client's last input tick when the player is its own, so the client can
+     * reconcile the movement it predicted while the change was in flight, and zero for anyone
+     * else, as the docs allow.
      * @param {ShownPlayer} target - The player whose game type changed.
      */
     public async sendGameTypeFor(target: ShownPlayer): Promise<void> {
-        const packet = new UpdatePlayerGameTypePacket({
-            playerGameType: target.gamemode,
-            targetPlayer: target.getRuntimeId(),
-            tick: target.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n
-        });
-        await this.connection.sendDataPacket(packet);
+        const own = target.getRuntimeId() === this.runtimeId;
+        await this.presenter.sendPlayerGameMode(target.getRuntimeId(), target.gamemode, own ? this.lastInputTick : 0n);
     }
 
     /**

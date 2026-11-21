@@ -1,11 +1,15 @@
-import type { Gametype } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
 import { SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 
 import type ClientConnection from '../ClientConnection';
+import type { AbilityTarget } from '../replica/firstSight';
+import { abilitiesPacket } from '../replica/firstSight';
 import type { MessageKind, SessionPresenter, ShownMessage } from './SessionPresenter';
 
 /**
@@ -51,6 +55,40 @@ export class BedrockPresenter implements SessionPresenter {
         const reply = new SetDefaultGameTypePacket();
         reply.gamemode = gamemode;
         await this.connection.sendDataPacket(reply);
+    }
+
+    /**
+     * Sends `UpdatePlayerGameType`, which the docs have the server send to every client after it
+     * accepts a game type change, because each client caches the game type and permission flags
+     * of every player it knows about.
+     */
+    public async sendPlayerGameMode(runtimeId: bigint, gamemode: Gametype, inputTick: bigint): Promise<void> {
+        await this.connection.sendDataPacket(
+            new UpdatePlayerGameTypePacket({ playerGameType: gamemode, targetPlayer: runtimeId, tick: inputTick })
+        );
+    }
+
+    /**
+     * Sends `UpdateAdventureSettings`. It names no actor and describes the client receiving it,
+     * so it goes to that client alone: a spectator's `worldImmutable` sent to everyone froze the
+     * world for every other client.
+     */
+    public async sendInteractionSettings(gamemode: Gametype): Promise<void> {
+        const spectator = gamemode === Gametype.SPECTATOR;
+        await this.connection.sendDataPacket(
+            new UpdateAdventureSettingsPacket({
+                worldImmutable: spectator,
+                noAttackingPlayers: spectator,
+                noAttackingMobs: spectator,
+                autoJump: true,
+                showNameTags: true
+            })
+        );
+    }
+
+    /** Sends `UpdateAbilities` (`abilitiesPacket`). */
+    public async sendAbilities(target: AbilityTarget): Promise<void> {
+        await this.connection.sendDataPacket(abilitiesPacket(target));
     }
 
     /**

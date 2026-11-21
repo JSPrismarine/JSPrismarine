@@ -14,6 +14,8 @@
  */
 import type { Gametype } from '@jsprismarine/minecraft';
 
+import type { AbilityTarget } from '../replica/firstSight';
+
 /**
  * How a message is shown.
  *
@@ -59,6 +61,31 @@ export interface SessionPresenter {
      * @param gamemode - The default the server holds.
      */
     sendDefaultGameMode(gamemode: Gametype): Promise<void>;
+
+    /**
+     * Tells the client which game mode a player has, its own included, for an edition whose
+     * client keeps every player's game mode.
+     *
+     * @param runtimeId - The player whose game mode it is.
+     * @param gamemode - The player's game mode.
+     * @param inputTick - The client's last input tick when the player is its own, so it can
+     *   reconcile what it predicted meanwhile, and zero for anyone else.
+     */
+    sendPlayerGameMode(runtimeId: bigint, gamemode: Gametype, inputTick: bigint): Promise<void>;
+
+    /**
+     * Tells the client what its own game mode lets it do to the world and to other players.
+     *
+     * @param gamemode - The client's own game mode.
+     */
+    sendInteractionSettings(gamemode: Gametype): Promise<void>;
+
+    /**
+     * Tells the client what a player may do: fly, build, take damage and run commands.
+     *
+     * @param target - The player, the client's own or one it sees.
+     */
+    sendAbilities(target: AbilityTarget): Promise<void>;
 
     /**
      * Answers a client that closed a container screen.

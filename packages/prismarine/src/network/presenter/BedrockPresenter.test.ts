@@ -5,6 +5,8 @@ import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/Containe
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
+import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAdventureSettingsPacket';
+import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 import { describe, expect, it } from 'vitest';
 
 import { BedrockPresenter } from './BedrockPresenter';
@@ -91,6 +93,37 @@ describe('BedrockPresenter', () => {
             message: 'chat.type.achievement',
             parameters: ['Steve', 'Stone Age'],
             needsTranslation: true
+        });
+    });
+
+    it("sends another player's game mode with the tick it was given", async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.sendPlayerGameMode(9n, Gametype.SPECTATOR, 42n);
+
+        const [packet] = sent;
+        if (!(packet instanceof UpdatePlayerGameTypePacket)) throw new Error('expected UpdatePlayerGameTypePacket');
+        expect(packet.getPacketData()).toEqual({ playerGameType: Gametype.SPECTATOR, targetPlayer: 9n, tick: 42n });
+    });
+
+    it('freezes the world for a spectator and leaves it alone for a survival player', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.sendInteractionSettings(Gametype.SPECTATOR);
+        await bedrock.sendInteractionSettings(Gametype.SURVIVAL);
+
+        const [spectator, survival] = sent;
+        if (!(spectator instanceof UpdateAdventureSettingsPacket)) throw new Error('expected UpdateAdventureSettings');
+        if (!(survival instanceof UpdateAdventureSettingsPacket)) throw new Error('expected UpdateAdventureSettings');
+        expect(spectator.getPacketData()).toMatchObject({
+            worldImmutable: true,
+            noAttackingPlayers: true,
+            noAttackingMobs: true
+        });
+        expect(survival.getPacketData()).toMatchObject({
+            worldImmutable: false,
+            noAttackingPlayers: false,
+            noAttackingMobs: false
         });
     });
 });
