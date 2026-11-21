@@ -36,6 +36,7 @@ beforeAll(async () => {
         path.join(stateRoot, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            'java-enabled': false,
             // Login tests do not need a spawn area; the default radius of 10 preloads 441 chunks.
             'preload-radius': 0,
             // UDP 7551 is fixed and shared by every server on the host; joining by address needs none of it.

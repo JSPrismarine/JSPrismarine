@@ -280,6 +280,7 @@ const openSession = async (
         path.join(stateRoot, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            'java-enabled': false,
             'preload-radius': 0,
             'view-distance': 1,
             'max-players': 2,

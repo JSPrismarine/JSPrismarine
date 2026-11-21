@@ -51,6 +51,7 @@ describe('a server teleport of a client that keeps reporting its old position', 
             path.join(stateRoot, 'config.json'),
             JSON.stringify({
                 'online-mode': false,
+                'java-enabled': false,
                 'preload-radius': 0,
                 'view-distance': VIEW_DISTANCE,
                 'enable-ticking': false,

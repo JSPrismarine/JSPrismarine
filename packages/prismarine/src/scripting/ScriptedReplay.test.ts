@@ -128,6 +128,7 @@ const runSession = async (seed: string, wallClock: () => number, replay: boolean
         path.join(root, 'config.json'),
         JSON.stringify({
             'online-mode': false,
+            'java-enabled': false,
             'preload-radius': 0,
             'view-distance': 1,
             'enable-ticking': false,
