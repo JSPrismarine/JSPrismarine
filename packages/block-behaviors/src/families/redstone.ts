@@ -554,6 +554,8 @@ export const redstoneFamily = defineFamily(
             const name = bareName(block.identifier);
 
             if (isRepeater(block.identifier) || isComparator(block.identifier)) {
+                // Java's DiodeBlock.canSurvive needs a rigid block below a repeater or comparator.
+                if (event.face === 'down' && popWithoutSupport(world, block)) return;
                 scheduleDiodeUpdate(world, block);
                 return;
             }

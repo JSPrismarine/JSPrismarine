@@ -199,6 +199,10 @@ const hasPlantSupport = (world: WorldActions, block: HookBlock): boolean => {
 
     const name = bareName(block.identifier);
     if (MUSHROOM_NAMES.has(name)) return mushroomHasSupport(world, block, below);
+    // Java's WaterlilyBlock and FrogspawnBlock sit on water; a lily pad takes ice as well.
+    if (name === 'waterlily' || name === 'frog_spawn') {
+        return isWater(below.identifier) || (name === 'waterlily' && bareName(below.identifier).endsWith('ice'));
+    }
     const tag = PLANT_SUPPORT_TAGS[name] ?? 'minecraft:supports_vegetation';
     const tagged = world.hasBlockTag?.(below, tag);
     if (tagged !== undefined) return tagged;

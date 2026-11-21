@@ -975,22 +975,7 @@
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
         },
-        "pops-without-support:minecraft:comparator": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:frogspawn": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
         "pops-without-support:minecraft:grindstone": {
-            "kind": "defect",
-            "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
-            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"
-        },
-        "pops-without-support:minecraft:lily_pad": {
             "kind": "defect",
             "reason": "The server's family for this block has no support rule for where Java's canSurvive keeps it, so it stays in thin air.",
             "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3557"

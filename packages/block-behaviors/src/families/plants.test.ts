@@ -430,6 +430,20 @@ describe('leavesFamily', () => {
 });
 
 describe('floraFamily', () => {
+    it("keeps a lily pad on water and pops it off anything else, as Java's WaterlilyBlock does", () => {
+        const harness = bindFamily(floraFamily, 'minecraft:waterlily');
+        const pad = { x: 0, y: 2, z: 0 };
+        harness.dimension.set({ x: 0, y: 1, z: 0 }, 'minecraft:water');
+        harness.dimension.set(pad, 'minecraft:waterlily');
+
+        harness.neighborChanged(pad, 'down');
+        expect(harness.dimension.identifierAt(pad)).toBe('minecraft:waterlily');
+
+        harness.dimension.set({ x: 0, y: 1, z: 0 }, 'minecraft:stone');
+        harness.neighborChanged(pad, 'down');
+        expect(harness.dimension.identifierAt(pad)).toBe('minecraft:air');
+    });
+
     it('pops off stone and stays on dirt', () => {
         const harness = bindFamily(floraFamily, 'minecraft:poppy');
         harness.dimension.set(ground, 'minecraft:dirt');

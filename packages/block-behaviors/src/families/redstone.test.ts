@@ -41,6 +41,18 @@ describe('redstoneFamily: tnt', () => {
     });
 });
 
+describe('redstoneFamily: a comparator', () => {
+    it("pops with nothing below it, as Java's DiodeBlock.canSurvive asks", () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:unpowered_comparator');
+        const at = { x: 0, y: 1, z: 0 };
+        harness.dimension.set(at, 'minecraft:unpowered_comparator');
+
+        harness.neighborChanged(at, 'down');
+
+        expect(harness.dimension.identifierAt(at)).toBe('minecraft:air');
+    });
+});
+
 describe('redstoneFamily: the bell', () => {
     it('rings for the entities around it when a player strikes it and when power reaches it', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:bell');

@@ -248,6 +248,9 @@ export const BLOCK_FAMILIES: readonly BlockFamilyRule[] = [
             'fern',
             'petals',
             'lily_pad',
+            // Bedrock's lily pad and frogspawn, which float on water rather than stand on ground.
+            'waterlily',
+            'frog_spawn',
             'eyeblossom',
             'shrub',
             'bush',
