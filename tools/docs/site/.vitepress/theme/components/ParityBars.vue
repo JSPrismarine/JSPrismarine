@@ -7,14 +7,14 @@ import {
     trackerPrimaryProgressPercent,
     trackerProgressPercent
 } from '../../../../../../packages/parity/src/dashboard/trackerProgress.ts';
-import { groupProgress, useTrackerSnapshot } from '../parity';
+import { groupProgress, useTrackerIndex } from '../parity';
 
 /**
  * The gameplay behavior score and one bar per behavior group, counted the way the parity tracker page
  * counts them. Data table comparisons are left out: a matching table does not mean matching behavior.
  */
 withDefaults(defineProps<{ limit?: number }>(), { limit: 5 });
-const { tracker } = useTrackerSnapshot();
+const { tracker } = useTrackerIndex();
 
 const behaviorFamilies = computed(() => tracker.value?.families.filter((family) => isBehaviorFamily(family.id)) ?? []);
 const score = computed(() => {

@@ -20,15 +20,17 @@ export interface TrackerIndex extends TrackerData {
     readonly caseChunks: readonly string[];
 }
 
-/** Loads the tracker snapshot that `docs:stage` writes into the site's public directory. */
-export function useTrackerSnapshot() {
-    const tracker = ref<TrackerData | null>(null);
+/**
+ * Loads the tracker index that `docs:stage` writes into the site's public directory, without its
+ * case chunks. The index holds every family's counts, which is all a summary needs, while the chunks
+ * are megabytes of cases only the tracker page lists (#3346).
+ */
+export function useTrackerIndex() {
+    const tracker = ref<TrackerIndex | null>(null);
     const loadError = ref(false);
     onMounted(async () => {
         try {
-            const index = await fetchJson<TrackerIndex>('index.json');
-            const cases = await fetchCases(index.caseChunks);
-            tracker.value = { ...index, cases, families: withCases(index.families, cases) };
+            tracker.value = await fetchJson<TrackerIndex>('index.json');
         } catch {
             loadError.value = true;
         }
