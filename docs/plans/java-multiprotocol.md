@@ -25,9 +25,9 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started. Lands before PR 10, its first consumer; PR 9 does not need it. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
-| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | Not started |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, in review. |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
-| 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | In progress. The inverse by name, `bedrockBlockStateToJava`, already exists. 11a, Java's block state ids, in review. |
+| 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
 | 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
 
 Issues for the slices after PR 9 are opened when PR 1 merges and linked from this table.
@@ -394,6 +394,14 @@ entity markers, state, entities, chat, movement, interaction) match cinnabar's, 
 [pr-recordings skill](../../.agents/skills/pr-recordings/SKILL.md) gains a Java mode. mcpfabric
 releases about seven weeks after a Java release and has no snapshot builds, so a bring-up carries a
 local build.
+
+PR 9a built the scripted driver: `pnpm run e2e:java` with `tools/client-e2e/headlessmc.json`
+pinning HeadlessMC 3.0.0-RC8, the Fabric loader build and HMC-Specifics for 26.3 by SHA-256, and
+everything they download kept under the repository cache. Two things the docs leave out: pinning
+the loader build gives the game a directory named for it (`fabric-26.3-0.20.1`), which is where
+HMC-Specifics has to go, and a `connect` sent before the client finishes loading its resources
+never completes, so the driver polls `gui` until the loading screen is gone. Its first scenario
+showed the real 26.3 client accepting PR 8's login and configuration and reaching play.
 
 Not chosen, with the reasons as of this date: `@jsprismarine/client` growing a Java mode would test
 our codecs against our codecs. azalea's 26.3 branch has been open for two months. mineflayer and

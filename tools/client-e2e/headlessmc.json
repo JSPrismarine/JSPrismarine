@@ -1,0 +1,16 @@
+{
+    "headlessmc": {
+        "version": "3.0.0-RC8",
+        "url": "https://github.com/3arthqu4ke/headlessmc/releases/download/3.0.0-RC8/headlessmc.jar",
+        "sha256": "a639546527d323f5a13370d8c47c7b7d87f44c2686f8ce93838e6685d3cf25e3"
+    },
+    "releases": {
+        "26.3": {
+            "fabricLoader": "0.20.1",
+            "specifics": {
+                "url": "https://github.com/3arthqu4ke/hmc-specifics/releases/download/26.3-latest/hmc-specifics-26.3-fabric-latest.jar",
+                "sha256": "602ac8accb5125c77afbae4d2dcca115649325f0733943e0e4a9798e7cd75bdc"
+            }
+        }
+    }
+}

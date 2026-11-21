@@ -252,6 +252,8 @@ export const startServer = async (
         protocolWindow?: number;
         javaVersion?: string;
         addons?: readonly string[];
+        /** Listens for Java Edition clients on this TCP port, as `java-enabled` and `java-port` do. */
+        javaPort?: number;
     } = {}
 ): Promise<JspServer> => {
     const layout = options.udpPorts ?? 'shared';
@@ -604,6 +606,7 @@ export const startServer = async (
         // requests to the lookup services.
         'enable-server-public-ip-lookup': false,
         'online-mode': false,
+        ...(options.javaPort === undefined ? {} : { 'java-enabled': true, 'java-port': options.javaPort }),
         // Debug, so the transactions and moves the server drops on purpose, and which loading
         // screens the client opened and closed, show in the evidence log.
         'log-level': 'debug',

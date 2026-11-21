@@ -15,6 +15,11 @@ export const JDK_HOME_ENV = 'JSP_JAVA_HOME';
 export interface JdkRequirement {
     /** Lowest acceptable feature release, such as 25 for the Java Edition 26.3 server jar. */
     readonly minimumMajor: number;
+    /**
+     * Highest acceptable feature release. A launcher that matches the game's Java exactly, as
+     * HeadlessMC does, needs the same release the game names. Defaults to no limit.
+     */
+    readonly maximumMajor?: number;
     /** Executables that must exist under the JDK's `bin/`. Defaults to `java` alone. */
     readonly binaries?: readonly string[];
 }
@@ -53,7 +58,7 @@ export const pathJavaHome = (): string | undefined => {
 };
 
 /** Homes to try, in order: the two environment variables, the macOS registry, then `PATH`. */
-const candidateHomes = (minimumMajor: number): string[] => {
+const candidateHomes = (minimumMajor: number, maximumMajor?: number): string[] => {
     const homes: string[] = [];
     for (const variable of [JDK_HOME_ENV, 'JAVA_HOME']) {
         const home = process.env[variable];
@@ -62,7 +67,8 @@ const candidateHomes = (minimumMajor: number): string[] => {
 
     if (process.platform === 'darwin') {
         try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', `${minimumMajor}+`], {
+            const range = maximumMajor === minimumMajor ? `${minimumMajor}` : `${minimumMajor}+`;
+            const home = execFileSync('/usr/libexec/java_home', ['-v', range], {
                 encoding: 'utf8'
             }).trim();
             if (home) homes.push(home);
@@ -102,13 +108,16 @@ const featureRelease = (javaBinary: string): number => {
  */
 export const findJdkHome = (requirement: JdkRequirement): string => {
     const binaries = requirement.binaries ?? ['java'];
-    for (const home of candidateHomes(requirement.minimumMajor)) {
+    const { minimumMajor, maximumMajor = Number.POSITIVE_INFINITY } = requirement;
+    for (const home of candidateHomes(minimumMajor, requirement.maximumMajor)) {
         if (!binaries.every((binary) => existsSync(jdkBinaryPath(home, binary)))) continue;
-        if (featureRelease(jdkBinaryPath(home, 'java')) >= requirement.minimumMajor) return home;
+        const major = featureRelease(jdkBinaryPath(home, 'java'));
+        if (major >= minimumMajor && major <= maximumMajor) return home;
     }
 
+    const wanted = maximumMajor === minimumMajor ? `${minimumMajor}` : `${minimumMajor} or newer`;
     throw new Error(
-        `No JDK ${requirement.minimumMajor} or newer providing ${binaries.join(' and ')} was found. ` +
+        `No JDK ${wanted} providing ${binaries.join(' and ')} was found. ` +
             `Install one (Temurin, for example) or set ${JDK_HOME_ENV} to a suitable JDK's home directory.`
     );
 };

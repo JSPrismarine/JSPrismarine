@@ -20,6 +20,7 @@
         "bringup:java": "pnpm --filter @jsprismarine/bedrock-data run bringup:java",
         "e2e:client": "c8 pnpm --filter @jsprismarine/client-e2e run e2e",
         "e2e:client:dist": "cross-env JSP_E2E_SERVER_ENTRY=dist c8 pnpm --filter @jsprismarine/client-e2e run e2e",
+        "e2e:java": "pnpm --filter @jsprismarine/client-e2e run e2e:java",
         "fetch:java-server": "node packages/bedrock-data/utils/java/fetch-server.ts",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",

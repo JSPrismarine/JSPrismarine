@@ -200,6 +200,22 @@ session can drive the client directly: launch, join a local server, send input, 
 and capture screenshots or recordings. The [client-e2e skill](../../.agents/skills/client-e2e/SKILL.md)
 holds the workflow and its rules.
 
+## Java Edition
+
+`pnpm run e2e:java [scenario...]` runs the Java Edition scenarios in `src/java-scenarios`: a
+scratch server with `java-enabled` on, and the real Java client at the server's pinned release,
+driven headless. [HeadlessMC](https://github.com/3arthqu4ke/headlessmc) launches it on Fabric
+with LWJGL patched to render nothing, under an offline account, which HeadlessMC allows for
+headless automated runs, and [HMC-Specifics](https://github.com/3arthqu4ke/hmc-specifics) gives
+its console the commands a scenario sends, such as `connect localhost <port>` and `msg <text>`.
+
+`headlessmc.json` pins the launcher, the Fabric loader build and the HMC-Specifics jar for each
+Java release, each download checked against its SHA-256. The launcher, the client, its libraries
+and Fabric go under `node_modules/.cache/jsprismarine/headlessmc`, apart from any Minecraft
+install on the machine, and the first run downloads them. A run needs a JDK of exactly the
+release the client names, 25 for 26.3, found as the other Java tools find one: `JSP_JAVA_HOME`,
+`JAVA_HOME`, `PATH` or macOS's `java_home`.
+
 ## NetherNet's UDP ports
 
 `--udp-ports` picks where NetherNet's UDP goes, so one transport's run covers each layout

@@ -8,7 +8,8 @@
     "scripts": {
         "ensure": "node src/ensure-cinnabar.mts",
         "e2e": "node src/run.mts",
-        "typecheck": "tsc-ts --noEmit"
+        "typecheck": "tsc-ts --noEmit",
+        "e2e:java": "node src/java-run.mts"
     },
     "devDependencies": {
         "@jridgewell/trace-mapping": "^0.3.31",
