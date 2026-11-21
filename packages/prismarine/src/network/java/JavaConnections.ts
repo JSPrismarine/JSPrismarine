@@ -37,6 +37,7 @@ import { PingRequest, PongResponse, StatusRequest, StatusResponse } from '@jspri
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
     ChatCommand,
+    BlockChangedAck,
     ChatMessage,
     ChunkBatchFinished,
     ChunkBatchStart,
@@ -49,6 +50,7 @@ import {
     MovePlayerRot,
     MovePlayerStatusOnly,
     PlayDisconnect,
+    PlayerAction,
     PlayerLoaded,
     PlayLogin,
     ServerboundKeepAlive,
@@ -73,6 +75,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { EYE_HEIGHT } from '../../entity/playerEyes';
 import type Chunk from '../../world/chunk/Chunk';
 import type PlayerSession from '../PlayerSession';
+import { isBlockStatus, javaMiningIntentOf } from './javaMining';
 import type { JavaPlayers } from './javaPlayers';
 import { javaGameModeOf } from './JavaPresenter';
 import type { JavaChunkLight } from './javaChunk';
@@ -529,6 +532,18 @@ export class JavaConnections {
             case MovePlayerRot.id:
             case MovePlayerStatusOnly.id:
                 return this.move(state, session, world, packetId, expect);
+            case PlayerAction.id: {
+                const action = expect(PlayerAction);
+                const intent = javaMiningIntentOf(action, session.getPlayer().gamemode);
+                const applied = intent === undefined ? Promise.resolve() : players.intent(session, intent);
+                // The input step applies the intent and the same synchronous tick sends the blocks
+                // it changed (ADR 0015), so this answer follows them, as vanilla's does. An answer
+                // before them would put the predicted block back on the client's screen for a tick.
+                if (isBlockStatus(action.status)) {
+                    return queue(applied.then(() => this.send(state, BlockChangedAck, { sequence: action.sequence })));
+                }
+                return queue(applied);
+            }
             default:
                 // Packets the milestone does not read yet, such as the client's tick end.
                 return;

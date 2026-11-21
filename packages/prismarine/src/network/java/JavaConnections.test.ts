@@ -15,6 +15,7 @@ import {
 import { defineJavaPacket } from '@jsprismarine/protocol/java/packet/JavaPacket';
 import { LevelChunkWithLight } from '@jsprismarine/protocol/java/chunk/levelChunk';
 import {
+    BlockChangedAck,
     ChatMessage,
     ChunkBatchFinished,
     ChunkBatchStart,
@@ -23,6 +24,8 @@ import {
     MOVE_ON_GROUND,
     MovePlayerPos,
     PlayDisconnect,
+    PlayerAction,
+    PlayerActionStatus,
     PlayerLoaded,
     PlayLogin,
     SetCenterChunk,
@@ -286,7 +289,7 @@ describe('JavaConnections', () => {
         );
     });
 
-    it('reads the next packet while an input waits for its step', async () => {
+    it('reads the next packet while an input waits for its step, and answers a dig once the dig applied', async () => {
         transport = new TcpTransport(new ConnectionIds(), quiet);
         const queued: string[] = [];
         const apply: (() => void)[] = [];
@@ -339,11 +342,18 @@ describe('JavaConnections', () => {
         await java.receive(ChunkBatchFinished);
 
         java.send(PlayerLoaded, {});
+        java.send(PlayerAction, {
+            status: PlayerActionStatus.StartDestroyBlock,
+            position: { x: 8, y: -61, z: 8 },
+            face: 1,
+            sequence: 3
+        });
         java.send(MovePlayerPos, { x: 8.5, y: -60, z: 9.5, flags: MOVE_ON_GROUND });
-        // The move behind the load was read without waiting for the load to apply.
-        await expect.poll(() => queued).toEqual(['playerInitialized', 'move']);
+        // The ack waits for the dig, but the move behind it was read without waiting for either.
+        await expect.poll(() => queued).toEqual(['playerInitialized', 'mineBlock', 'move']);
 
         for (const step of apply) step();
+        expect(await java.receive(BlockChangedAck)).toEqual({ sequence: 3 });
         java.destroy();
     });
 
