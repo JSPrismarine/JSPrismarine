@@ -58,7 +58,7 @@ Out of scope for now:
 ## Slices
 
 1. [x] **The decision.** ADR 0029 and this plan.
-2. [ ] **Level identity.** A level's UUID goes into its save on first load, and existing saves get
+2. [x] **Level identity.** A level's UUID goes into its save on first load, and existing saves get
        one then. `Level` exposes it, and `WorldManager` keys its map by it, with names a lookup on
        the side and one rule for matching them. No behavior changes.
 3. [ ] **Dimension identity.** A table in each save of dimension UUID to Bedrock number, used for

@@ -5,6 +5,7 @@ import { KernelEventBus } from '@jsprismarine/kernel';
  * save. The worlds are empty chunks, so a trip into the Nether finds no footing and forces a
  * portal, which is the case that exercises the most of the creation path.
  */
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -186,6 +187,7 @@ const buildLevel = async ({ entities }: SceneOptions = {}) => {
     });
 
     level = new Level({
+        id: randomUUID(),
         name: 'level',
         path: folder,
         server,

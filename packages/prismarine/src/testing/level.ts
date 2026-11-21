@@ -12,6 +12,8 @@
  * Both are ordinary source rather than test files, so `tsc` checks their members against the
  * real `Level` and the next member a world reaches for is added in one place.
  */
+import { randomUUID } from 'node:crypto';
+
 import type { Vector3 } from '@jsprismarine/math';
 import type { DimensionDefinitionFields } from '@jsprismarine/protocol';
 import type { LevelStem } from '@jsprismarine/worldgen';
@@ -181,6 +183,8 @@ export const fakeLevel = (options: FakeLevelOptions = {}): Level => {
 
 /** What a test says about a real level over a real provider. */
 export interface TestLevelOptions {
+    /** The level's UUID. Defaults to a new one. */
+    readonly id?: string;
     readonly name: string;
     /** The level folder, where the legacy `level.json` and the fallback player records live. */
     readonly path: string;
@@ -216,6 +220,7 @@ export const testLevel = (options: TestLevelOptions): Level => {
         generator: { type: TEST_GENERATOR_KIND, settings: undefined }
     };
     const level = new Level({
+        id: options.id ?? randomUUID(),
         name: options.name,
         path: options.path,
         server: options.server,

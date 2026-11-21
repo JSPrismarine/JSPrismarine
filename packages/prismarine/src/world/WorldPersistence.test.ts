@@ -210,6 +210,16 @@ describe('persisted stems', () => {
     });
 });
 
+describe('persisted level id', () => {
+    it('reads a UUID in lower case, and drops a value that is not one', () => {
+        expect(
+            parseWorldPersistenceData(JSON.stringify({ levelId: '6E714018-3251-45C9-9C56-9188446848CE' })).levelId
+        ).toBe('6e714018-3251-45c9-9c56-9188446848ce');
+        expect(parseWorldPersistenceData(JSON.stringify({ levelId: 'main' }))).toEqual({});
+        expect(parseWorldPersistenceData(JSON.stringify({ levelId: 7 }))).toEqual({});
+    });
+});
+
 describe('persisted dragon fight', () => {
     it('reads a full fight state back equal through JSON', () => {
         const data: WorldPersistenceData = {

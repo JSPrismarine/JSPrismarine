@@ -5,6 +5,7 @@
  * `level.dat` and one provider record for every dimension, and a second level over the same
  * folder reading back what the first wrote.
  */
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -131,6 +132,7 @@ const buildLevel = (
     ]);
 
     const level = new Level({
+        id: randomUUID(),
         name,
         path: folder,
         server,

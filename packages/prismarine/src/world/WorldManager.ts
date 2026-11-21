@@ -23,6 +23,7 @@ import type { WorldGenSettings } from './WorldPersistence';
 
 import LevelDB from './providers/leveldb/LevelDB';
 
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import type { WorldData } from '../config/JsonConfigTypes';
 import { PrismarineWorldErrors } from '@jsprismarine/errors/prismarine/world';
@@ -49,11 +50,19 @@ const DEFAULT_WORLD_PROVIDER = 'LevelDB';
  */
 export type ProviderClass = new (folderPath: string, server: Server) => BaseProvider;
 
-/** A level built and registered, and whether its save had no stems before this load. */
+/** A level built and registered, and whether its save had no stems or no UUID before this load. */
 interface PreparedLevel {
     readonly level: Level;
-    /** True when the save carried no `worldGenSettings`, which the first load then writes. */
+    /** True when the save carried no `worldGenSettings` or no `levelId`, which the first load then writes. */
     readonly firstLoad: boolean;
+}
+
+/** What a save already holds that decides the level built over it. */
+interface SavedLevel {
+    /** The stems the save was generated with, or undefined for a save that has none yet. */
+    readonly worldGenSettings?: WorldGenSettings;
+    /** The level's UUID, or undefined for a save written before levels had one. */
+    readonly levelId?: string;
 }
 
 /**
@@ -61,7 +70,7 @@ interface PreparedLevel {
  * default level holds a dimension.
  */
 export default class WorldManager implements Service {
-    /** The loaded levels by folder name, in load order. */
+    /** The loaded levels by UUID, in load order. */
     private readonly levels = new Map<string, Level>();
     /** Each dimension name asked for, resolved to the dimension type id it names; the table never changes. */
     private readonly dimensionIds = new Map<string, string>();
@@ -149,7 +158,7 @@ export default class WorldManager implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
-        await Promise.all([...this.levels.keys()].map(async (name) => this.unloadWorld(name)));
+        await Promise.all([...this.levels.values()].map(async (level) => this.unloadWorld(level.name)));
         this.providers.clear();
     }
 
@@ -267,9 +276,9 @@ export default class WorldManager implements Service {
         // The config holds whatever the file said; this is where it becomes a seed.
         const seed = worldSeedOf(worldData.seed);
         const provider = new providerClass(levelPath, this.server);
-        const saved = await this.savedWorldGenSettings(provider, folderName, seed);
+        const saved = await this.savedLevel(provider, folderName, seed);
 
-        const stems = resolveStems(normalized, this.presets(), saved, (line) => {
+        const stems = resolveStems(normalized, this.presets(), saved.worldGenSettings, (line) => {
             logger.warn(`World '${folderName}': ${line}`);
         });
         const load = new Map(loadOf(normalized, stems));
@@ -289,6 +298,8 @@ export default class WorldManager implements Service {
         };
 
         const level = new Level({
+            // A save from before levels had a UUID gets one now, which its first load writes.
+            id: saved.levelId ?? randomUUID(),
             name: folderName,
             path: levelPath,
             server: this.server,
@@ -319,26 +330,26 @@ export default class WorldManager implements Service {
             }),
             onWorldBuilt: (world) => this.registerWorld(world)
         });
-        this.levels.set(folderName, level);
+        this.levels.set(level.id, level);
 
-        return { level, firstLoad: saved === undefined };
+        return { level, firstLoad: saved.worldGenSettings === undefined || saved.levelId === undefined };
     }
 
     /**
-     * The stems a save was generated with, or undefined for a save that has none yet.
+     * What a save already holds of its level: the stems it was generated with and its UUID.
      *
      * The provider is opened and closed again for the read: the level that will own it does not
      * exist until the stems are known, and the level opens the provider itself.
      */
-    private async savedWorldGenSettings(
-        provider: BaseProvider,
-        name: string,
-        seed: bigint
-    ): Promise<WorldGenSettings | undefined> {
+    private async savedLevel(provider: BaseProvider, name: string, seed: bigint): Promise<SavedLevel> {
         provider.setLevel({ name, seed });
         await provider.enable();
         try {
-            return (await provider.readWorldData())?.worldGenSettings;
+            const data = await provider.readWorldData();
+            return {
+                ...(data?.worldGenSettings === undefined ? {} : { worldGenSettings: data.worldGenSettings }),
+                ...(data?.levelId === undefined ? {} : { levelId: data.levelId })
+            };
         } finally {
             await provider.disable();
         }
@@ -417,7 +428,7 @@ export default class WorldManager implements Service {
         }
 
         await level.disable();
-        this.levels.delete(level.name);
+        this.levels.delete(level.id);
         // After the save, which reads them: a level loaded again under this name would otherwise
         // be handed the runtimes, and the entities, of this one.
         if (this.server.hasEntityRuntime()) this.server.getContentWorld().closeLevel(level.name);
@@ -434,13 +445,21 @@ export default class WorldManager implements Service {
         return this.getLevel(folderName) !== undefined;
     }
 
-    /** The loaded level of a folder name, compared case-insensitively, or undefined. */
+    /**
+     * The loaded level of a folder name, or undefined. Names compare case-insensitively, as
+     * every lookup by name here does, since the folders they name do on some file systems.
+     */
     public getLevel(folderName: string): Level | undefined {
         const wanted = folderName.toLowerCase();
         for (const level of this.levels.values()) {
             if (level.name.toLowerCase() === wanted) return level;
         }
         return undefined;
+    }
+
+    /** The loaded level with a UUID, or undefined. */
+    public getLevelById(id: string): Level | undefined {
+        return this.levels.get(id.toLowerCase());
     }
 
     /** Every loaded level, in load order. */
@@ -497,7 +516,7 @@ export default class WorldManager implements Service {
 
     /** A level by folder name, or the default level when none is named. */
     private levelOf(level: string | undefined): Level | undefined {
-        return level === undefined ? this.defaultLevel : this.levels.get(level);
+        return level === undefined ? this.defaultLevel : this.getLevel(level);
     }
 
     /**
