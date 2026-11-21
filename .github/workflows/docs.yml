@@ -126,6 +126,32 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-docs-og-
 
+            # TypeDoc and the parity suite take most of the build, and both read only the packages
+            # and their configs. Each output is cached under the hash of what it reads, so a run
+            # that leaves the packages alone reuses what an earlier run built. The build checks the
+            # stamp it restores and runs a step whose inputs changed (tools/docs/build-cache.mts).
+            - name: Hash what the slow steps read
+              id: docs_inputs
+              working-directory: tools/docs
+              run: |
+                  api="$(node --import tsx build-cache-cli.mts key api)"
+                  tracker="$(node --import tsx build-cache-cli.mts key tracker)"
+                  { echo "api=$api"; echo "tracker=$tracker"; } >> "$GITHUB_OUTPUT"
+
+            - name: Cache the API reference
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: tools/docs/site/api
+                  key: ${{ runner.os }}-docs-api-${{ steps.docs_inputs.outputs.api }}
+
+            - name: Cache the parity tracker
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: |
+                      packages/parity/dist/tracker.json
+                      packages/parity/dist/tracker.inputs
+                  key: ${{ runner.os }}-docs-parity-tracker-${{ steps.docs_inputs.outputs.tracker }}
+
             - name: 📖 Build docs
               env:
                   # The contributors page reads GitHub's contributor list at build time.
