@@ -565,6 +565,18 @@ describe.runIf(enabled)('the vanilla entity pack', { tags: ['real-data'] }, () =
         expect(javaFollowRange('minecraft:villager_v2')).toBe(16);
     });
 
+    it('gives a stat Java decides to an entity whose Bedrock file declares no component for it', () => {
+        // Bedrock's zombie declares no `minecraft:follow_range`, so the fallback 16 bounded its
+        // chase although its targeting reaches 35, Java's base.
+        const zombie = types.spawn('minecraft:zombie', {
+            environment: { random: { next: () => 0 }, javaStats: java_entity_attributes }
+        });
+        expect(zombie.type.declaredComponents).not.toContain('minecraft:follow_range');
+        expect(zombie.attributes.value('follow_range', 16)).toBe(
+            javaEntityStats('minecraft:zombie', java_entity_attributes)?.attributes['minecraft:follow_range']
+        );
+    });
+
     it('keeps every reviewed exception on a stat the two editions still disagree on', () => {
         for (const row of JAVA_STAT_EXCEPTIONS) {
             const java = javaEntityStats(row.identifier, java_entity_attributes);

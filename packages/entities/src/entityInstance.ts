@@ -412,6 +412,10 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.restoring = options.restoring ?? false;
         this.parents = options.parents ?? [];
         this.rebuild([], []);
+        // Java decides these stats whether or not the Bedrock file declares them (ADR 0001):
+        // Bedrock's zombie declares no follow range, and Java's is 35, not the fallback 16.
+        for (const [name, base] of bases)
+            if (this.attributes.get(name) === undefined) this.attributes.define(name, { base });
     }
 
     /** The entity type, with its component groups and its parsed definition. */
