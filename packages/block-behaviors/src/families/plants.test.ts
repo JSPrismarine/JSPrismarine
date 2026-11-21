@@ -623,6 +623,21 @@ describe('floraFamily', () => {
 });
 
 describe('bambooFamily', () => {
+    it('pops a dead coral fan without the wall behind it, and keeps one that has it', () => {
+        const harness = bindFamily(bambooFamily, 'minecraft:dead_brain_coral_wall_fan');
+        const fan = { x: 0, y: 1, z: 0 };
+        // Facing north (2), the fan hangs on the block to its south.
+        harness.dimension.set({ x: 0, y: 1, z: 1 }, 'minecraft:stone');
+        harness.dimension.set(fan, 'minecraft:dead_brain_coral_wall_fan', { coral_direction: 2 });
+
+        harness.neighborChanged(fan, 'south');
+        expect(harness.dimension.identifierAt(fan)).toBe('minecraft:dead_brain_coral_wall_fan');
+
+        harness.dimension.set({ x: 0, y: 1, z: 1 }, 'minecraft:air');
+        harness.neighborChanged(fan, 'south');
+        expect(harness.dimension.identifierAt(fan)).toBe('minecraft:air');
+    });
+
     it("grows a kelp head up into water at Java's chance and leaves its body alone", () => {
         const harness = bindFamily(bambooFamily, 'minecraft:kelp');
         harness.dimension.set({ x: 0, y: 0, z: 0 }, 'minecraft:kelp', { kelp_age: 2 });

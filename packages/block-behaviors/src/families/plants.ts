@@ -484,6 +484,9 @@ export const floraFamily = defineFamily(
     }
 );
 
+/** A coral wall fan's `coral_direction`, the way it faces: west, east, north and south. */
+const CORAL_FACINGS: readonly HorizontalFace[] = ['west', 'east', 'north', 'south'];
+
 /** The stalks and the water plants: bamboo, kelp, chorus, coral and sea pickles. */
 export const bambooFamily = defineFamily(
     'jsprismarine:bamboo',
@@ -507,6 +510,14 @@ export const bambooFamily = defineFamily(
         onNeighborChanged: (event, world) => {
             const name = bareName(event.block.identifier);
             if (name.includes('coral')) {
+                // Java's coral plants and fans need a sturdy face below, and a wall fan the wall it
+                // hangs on, which is behind the way it faces; dead or alive.
+                if (!name.endsWith('coral_block')) {
+                    const attached = name.endsWith('wall_fan')
+                        ? opposite(CORAL_FACINGS[stateNumber(event.block, 'coral_direction')] ?? 'north')
+                        : 'down';
+                    if (event.face === attached && popWithoutSupport(world, event.block, attached)) return;
+                }
                 if (event.face !== 'up') return;
                 const wet = isWater(world.getBlock(offset(event.block.position, 'up'))?.identifier ?? AIR);
                 if (!wet && !name.startsWith('dead_')) world.scheduleTick(event.block.position, 60);
