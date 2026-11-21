@@ -516,6 +516,34 @@ const scenarios: readonly BehaviorScenario<ItemSubject>[] = [
         }
     },
     {
+        name: 'weapon-hit',
+        aspects: () => ['minecraft:weapon'],
+        java: 'A hit that lands costs a weapon its item_damage_per_attack in durability, and disables a raised shield for its disable_blocking_for_seconds; both default to 1 and 0.',
+        reference: 'Java Weapon.hurtEnemy and Weapon.disableBlockingForSeconds',
+        subjects: () => withComponent('minecraft:weapon'),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            current = createTestWorld();
+            const stack = stackOf(subject.bedrock);
+            stack.type.hooks.dispatch('onHitEntity', {
+                itemStack: stack,
+                source: player,
+                hitEntity: player,
+                hadEffect: true
+            });
+            const rules = subject.components['minecraft:weapon'];
+            const perAttack = field(rules, 'item_damage_per_attack') ?? 1;
+            const disableSeconds = field(rules, 'disable_blocking_for_seconds') ?? 0;
+            const spent = current.performed('consume-durability')[0]?.amount ?? 0;
+            if (spent !== perAttack) return `a hit costs ${spent} durability, Java ${String(perAttack)}`;
+            const disabled = current.performed('disable-shield')[0]?.ticks ?? 0;
+            const javaTicks = Math.round(Number(disableSeconds) * 20);
+            return disabled === javaTicks
+                ? undefined
+                : `a hit disables a shield for ${disabled} ticks, Java ${javaTicks}`;
+        }
+    },
+    {
         name: 'mining-damages-tool',
         aspects: () => ['minecraft:max_damage'],
         java: 'Breaking a block with hardness above zero costs a tool the durability its `damage_per_block` names.',
