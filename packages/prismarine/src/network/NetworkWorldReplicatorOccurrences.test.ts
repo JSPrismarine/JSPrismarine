@@ -26,7 +26,9 @@ import type { World } from '../world/World';
 import type ClientConnection from './ClientConnection';
 import Codec2193 from './codec/Codec2193';
 import Codec2225 from './codec/Codec2225';
-import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
+import PlaySoundHandler from '../input/handlers/PlaySoundHandler';
+import { viewOf } from './decoder/DecodeView';
+import LevelSoundEventDecoder from './decoder/LevelSoundEventDecoder';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 import type PlayerSession from './PlayerSession';
 
@@ -423,7 +425,10 @@ describe('network', () => {
                 });
                 const { context } = inputContext(session, { log: stub<Logger>({ verbose: () => {} }) });
 
-                new LevelSoundEventHandler().handle(incoming, context);
+                // Through the decoder and the intent handler, as the dispatcher runs them.
+                for (const intent of new LevelSoundEventDecoder().decode(incoming, viewOf(session, context.log))) {
+                    new PlaySoundHandler().handle(intent, context);
+                }
                 await replicator.flushOccurrences();
 
                 expect(sender.sent).toHaveLength(0);

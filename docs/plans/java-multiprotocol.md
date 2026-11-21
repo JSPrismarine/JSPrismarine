@@ -20,7 +20,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 1 | This plan, ADR 0026 and ADR 0027 | Done, [#3402](https://github.com/JSPrismarine/JSPrismarine/pull/3402). |
 | 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | In review |
-| 4 | Remaining Bedrock handlers migrated, one PR per area: movement, inventory, interaction, the rest | Not started |
+| 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | In progress. Interaction (actor event, emote, level sound, text) in review. |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | Not started |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
@@ -138,7 +138,12 @@ check in the intent handler), `AnimateHandler` (input lane, broadcast through th
 `BossEventHandler` (read lane). `CommandRequestHandler` was the first choice for the read-lane
 proof and waits for PR 5: its acknowledgement echoes the request's Bedrock origin data, which is
 the presenter's to send, not an intent handler's. PR 4 migrates the remaining 71 in four pull
-requests, grouped by area, so a regression names its area. Each PR runs the Bedrock
+requests, grouped by area, so a regression names its area. A handler that only logs and drops a
+packet, such as the map requests and the pick requests, has no behavior to move and stays a
+handler until a behavior exists for it; ADR 0027's rule applies to a packet with game meaning the
+server acts on. The handlers whose packets are Bedrock's own inventory protocol, the item stack
+request and the inventory transaction, wait for the inventory slice in PR 10, where the neutral
+inventory intents are designed with the Java click-slot protocol beside them. Each PR runs the Bedrock
 client e2e suite, and the replay traces under `packages/prismarine` keep producing the same
 digests, since a decoder plus an intent handler does what the handler did.
 

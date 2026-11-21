@@ -341,9 +341,6 @@
         "landmines-testing/no-flake-masking": 7,
         "landmines-testing/no-test-doubles": 4
     },
-    "packages/prismarine/src/network/handler/ActorEventHandler.test.ts": {
-        "landmines-testing/no-test-doubles": 1
-    },
     "packages/prismarine/src/network/handler/InventoryTransactionHandler.test.ts": {
         "landmines-testing/no-test-doubles": 4
     },
