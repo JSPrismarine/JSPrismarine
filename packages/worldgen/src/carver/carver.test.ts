@@ -175,6 +175,27 @@ describe('the carver start memory', () => {
         expect(asked).toBe(sourceChunks);
         expect(asked).toBeLessThan(side * side * 17 * 17);
     });
+
+    it("walks a source chunk's tunnels once and replays them for every chunk they can reach", () => {
+        const listed = [carverNamed('minecraft:cave'), carverNamed('minecraft:canyon')];
+        const starts = createCarverStarts(SEED, () => listed);
+        const output = CarvingMask.forChunk(context);
+        carveChunk({ seed: SEED, chunkX: 0, chunkZ: 0, carversAt: () => listed, context, output, starts });
+
+        // A source chunk that starts a carver near the first target, whose plans the next target reads.
+        let source: [number, number] | undefined;
+        for (let x = -8; x <= 8 && source === undefined; x++) {
+            for (let z = -8; z <= 8 && source === undefined; z++) {
+                if (starts.at(x, z).started.length > 0) source = [x, z];
+            }
+        }
+        if (source === undefined) throw new Error('no source chunk around the origin starts a carver');
+        const plans = starts.plansAt(source[0], source[1], context);
+        carveChunk({ seed: SEED, chunkX: 1, chunkZ: 0, carversAt: () => listed, context, output, starts });
+
+        expect(plans.length).toBe(starts.at(source[0], source[1]).started.length);
+        expect(starts.plansAt(source[0], source[1], context)).toBe(plans);
+    });
 });
 
 describe('the carving mask', () => {

@@ -161,7 +161,8 @@ export const parseCarver = (source: unknown, path = '<carver>'): CarverConfig =>
 };
 
 /** Whether a position inside the ellipsoid stays solid. */
-type SkipChecker = (xd: number, yd: number, zd: number, y: number) => boolean;
+/** Whether an ellipsoid leaves one block of its box alone, from the block's offsets in radii and its y. */
+export type SkipChecker = (xd: number, yd: number, zd: number, y: number) => boolean;
 
 /** Opens an ellipsoid of blocks, clipped to the target chunk. */
 const carveEllipsoid = (
@@ -222,10 +223,162 @@ const canReach = (
 const caveSkip = (xd: number, yd: number, zd: number, floorLevel: number): boolean =>
     yd <= floorLevel ? true : xd * xd + yd * yd + zd * zd >= 1;
 
+/** The numbers of one {@link CarvePlan} event: kind, jump, x, y, z, radii, skip, then the reach inputs. */
+const EVENT_WORDS = 11;
+/** An ellipsoid every target chunk carves, a cave's room. */
+const EVENT_CARVE = 0;
+/** An ellipsoid a target chunk carves only while the tunnel can still reach it. */
+const EVENT_REACHING_CARVE = 1;
+/** The start of a tunnel; its jump is the first event after the tunnel and its branches. */
+const EVENT_TUNNEL = 2;
+
+/**
+ * Where a source chunk's carvers open blocks, as a list of ellipsoids in the order Java carves
+ * them, independent of the chunk being carved.
+ *
+ * A carver's walk draws from randoms seeded by its source chunk alone, so it is the same for
+ * every chunk within eight of it. Only two steps read the target: `canReach`, which ends a tunnel
+ * once it can no longer reach the target, and the ellipsoid, which clips to it. The plan records
+ * the whole walk, and {@link replayCarvePlan} applies those two steps for one target, so a source
+ * chunk's tunnels are walked once instead of once per chunk they could reach.
+ */
+export class CarvePlan {
+    /** {@link EVENT_WORDS} numbers per event. */
+    public readonly events: Float64Array;
+    /** The skip checks the events name, one per cave or canyon. */
+    public readonly skips: readonly SkipChecker[];
+
+    public constructor(events: Float64Array, skips: readonly SkipChecker[]) {
+        this.events = events;
+        this.skips = skips;
+    }
+}
+
+/** Builds a {@link CarvePlan} as a carver walks. */
+class CarvePlanRecorder {
+    private readonly words: number[] = [];
+    private readonly skips: SkipChecker[] = [];
+
+    public skip(check: SkipChecker): number {
+        return this.skips.push(check) - 1;
+    }
+
+    public carve(
+        x: number,
+        y: number,
+        z: number,
+        horizontalRadius: number,
+        verticalRadius: number,
+        skip: number
+    ): void {
+        this.words.push(EVENT_CARVE, 0, x, y, z, horizontalRadius, verticalRadius, skip, 0, 0, 0);
+    }
+
+    public reachingCarve(
+        step: number,
+        distance: number,
+        thickness: number,
+        x: number,
+        y: number,
+        z: number,
+        horizontalRadius: number,
+        verticalRadius: number,
+        skip: number
+    ): void {
+        this.words.push(
+            EVENT_REACHING_CARVE,
+            0,
+            x,
+            y,
+            z,
+            horizontalRadius,
+            verticalRadius,
+            skip,
+            step,
+            distance,
+            thickness
+        );
+    }
+
+    /** Opens a tunnel and returns its event, which {@link end} closes. */
+    public begin(): number {
+        this.words.push(EVENT_TUNNEL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        return this.words.length / EVENT_WORDS - 1;
+    }
+
+    public end(tunnel: number): void {
+        this.words[tunnel * EVENT_WORDS + 1] = this.words.length / EVENT_WORDS;
+    }
+
+    public finish(): CarvePlan {
+        return new CarvePlan(Float64Array.from(this.words), this.skips);
+    }
+}
+
+/**
+ * Carves one target chunk from a plan: every room, and each tunnel's ellipsoids until the tunnel
+ * can no longer reach the chunk, which also drops the branches it would have split into.
+ */
+export const replayCarvePlan = (plan: CarvePlan, chunkX: number, chunkZ: number, output: CarverOutput): void => {
+    const events = plan.events;
+    const replay = (from: number, to: number, inTunnel: boolean): void => {
+        for (let event = from; event < to;) {
+            const at = event * EVENT_WORDS;
+            const kind = events[at]!;
+            if (kind === EVENT_TUNNEL) {
+                const after = events[at + 1]!;
+                replay(event + 1, after, true);
+                event = after;
+                continue;
+            }
+            if (
+                inTunnel &&
+                kind === EVENT_REACHING_CARVE &&
+                !canReach(
+                    chunkX,
+                    chunkZ,
+                    events[at + 2]!,
+                    events[at + 4]!,
+                    events[at + 8]!,
+                    events[at + 9]!,
+                    events[at + 10]!
+                )
+            ) {
+                return;
+            }
+            carveEllipsoid(
+                chunkX,
+                chunkZ,
+                events[at + 2]!,
+                events[at + 3]!,
+                events[at + 4]!,
+                events[at + 5]!,
+                events[at + 6]!,
+                output,
+                plan.skips[events[at + 7]!]!
+            );
+            event++;
+        }
+    };
+    replay(0, events.length / EVENT_WORDS, false);
+};
+
+/** Records the ellipsoids of one started carver of a source chunk. */
+const recordCarver = (
+    config: CarverConfig,
+    context: WorldGenerationContext,
+    random: RandomSource,
+    sourceChunkX: number,
+    sourceChunkZ: number
+): CarvePlan => {
+    const plan = new CarvePlanRecorder();
+    if (config.type === 'cave') recordCave(config, context, random, sourceChunkX, sourceChunkZ, plan);
+    else recordCanyon(config, context, random, sourceChunkX, sourceChunkZ, plan);
+    return plan.finish();
+};
+
 const createTunnel = (
     config: CaveCarverConfig,
-    chunkX: number,
-    chunkZ: number,
     tunnelSeed: bigint,
     startX: number,
     startY: number,
@@ -238,9 +391,10 @@ const createTunnel = (
     step: number,
     dist: number,
     yScale: number,
-    output: CarverOutput,
-    skip: SkipChecker
+    plan: CarvePlanRecorder,
+    skip: number
 ): void => {
+    const tunnel = plan.begin();
     const random = new LegacyRandomSource(tunnelSeed);
     const splitPoint = random.nextIntBounded(Math.trunc(dist / 2)) + Math.trunc(dist / 4);
     const steep = random.nextIntBounded(6) === 0;
@@ -271,8 +425,6 @@ const createTunnel = (
             const halfPi = f32(Math.PI / 2);
             createTunnel(
                 config,
-                chunkX,
-                chunkZ,
                 random.nextLong(),
                 x,
                 y,
@@ -285,13 +437,11 @@ const createTunnel = (
                 currentStep,
                 dist,
                 1,
-                output,
+                plan,
                 skip
             );
             createTunnel(
                 config,
-                chunkX,
-                chunkZ,
                 random.nextLong(),
                 x,
                 y,
@@ -304,37 +454,36 @@ const createTunnel = (
                 currentStep,
                 dist,
                 1,
-                output,
+                plan,
                 skip
             );
+            plan.end(tunnel);
             return;
         }
 
         if (random.nextIntBounded(4) === 0) continue;
-        if (!canReach(chunkX, chunkZ, x, z, currentStep, dist, thickness)) return;
-        carveEllipsoid(
-            chunkX,
-            chunkZ,
+        plan.reachingCarve(
+            currentStep,
+            dist,
+            thickness,
             x,
             y,
             z,
             horizontalRadius * horizontalRadiusMultiplier,
             verticalRadius * verticalRadiusMultiplier,
-            output,
             skip
         );
     }
+    plan.end(tunnel);
 };
 
-const carveCave = (
+const recordCave = (
     config: CaveCarverConfig,
     context: WorldGenerationContext,
     random: RandomSource,
-    chunkX: number,
-    chunkZ: number,
     sourceChunkX: number,
     sourceChunkZ: number,
-    output: CarverOutput
+    plan: CarvePlanRecorder
 ): void => {
     const caveCount = sampleInt(config.count, random);
     for (let cave = 0; cave < caveCount; cave++) {
@@ -345,14 +494,14 @@ const carveCave = (
         const verticalRadiusMultiplier = sampleFloat(config.verticalRadiusMultiplier, random);
         const startVerticalRadiusMultiplier = sampleFloat(config.startVerticalRadiusMultiplier, random);
         const floorLevel = sampleFloat(config.floorLevel, random);
-        const skip: SkipChecker = (xd, yd, zd) => caveSkip(xd, yd, zd, floorLevel);
+        const skip = plan.skip((xd, yd, zd) => caveSkip(xd, yd, zd, floorLevel));
 
         let tunnels = 1;
         if (random.nextIntBounded(4) === 0) {
             const yScale = sampleFloat(config.roomVerticalRadiusMultiplier, random);
             const roomThickness = f32(1 + f32(random.nextFloat() * 6));
             const horizontalRadius = 1.5 + f32(mthSin(f32(Math.PI / 2)) * roomThickness);
-            carveEllipsoid(chunkX, chunkZ, x + 1, y, z, horizontalRadius, horizontalRadius * yScale, output, skip);
+            plan.carve(x + 1, y, z, horizontalRadius, horizontalRadius * yScale, skip);
             tunnels += random.nextIntBounded(4);
         }
 
@@ -366,8 +515,6 @@ const carveCave = (
             const distance = MAX_TUNNEL_DISTANCE - random.nextIntBounded(Math.trunc(MAX_TUNNEL_DISTANCE / 4));
             createTunnel(
                 config,
-                chunkX,
-                chunkZ,
                 random.nextLong(),
                 x,
                 y,
@@ -380,22 +527,20 @@ const carveCave = (
                 0,
                 distance,
                 startVerticalRadiusMultiplier,
-                output,
+                plan,
                 skip
             );
         }
     }
 };
 
-const carveCanyon = (
+const recordCanyon = (
     config: CanyonCarverConfig,
     context: WorldGenerationContext,
     random: RandomSource,
-    chunkX: number,
-    chunkZ: number,
     sourceChunkX: number,
     sourceChunkZ: number,
-    output: CarverOutput
+    plan: CarvePlanRecorder
 ): void => {
     const startX = sourceChunkX * 16 + random.nextIntBounded(16);
     const startY = sampleHeight(config.y, random, context);
@@ -416,8 +561,11 @@ const carveCanyon = (
         widthFactorPerHeight[index] = f32(widthFactor * widthFactor);
     }
 
-    const skip: SkipChecker = (xd, yd, zd, y) =>
-        (xd * xd + zd * zd) * (widthFactorPerHeight[y - context.minGenY - 1] as number) + (yd * yd) / 6 >= 1;
+    const skip = plan.skip(
+        (xd, yd, zd, y) =>
+            (xd * xd + zd * zd) * (widthFactorPerHeight[y - context.minGenY - 1] as number) + (yd * yd) / 6 >= 1
+    );
+    const tunnel = plan.begin();
 
     let x = startX;
     let y = startY;
@@ -456,9 +604,9 @@ const carveCanyon = (
         );
 
         if (tunnelRandom.nextIntBounded(4) === 0) continue;
-        if (!canReach(chunkX, chunkZ, x, z, currentStep, distance, thickness)) return;
-        carveEllipsoid(chunkX, chunkZ, x, y, z, horizontalRadius, verticalRadius, output, skip);
+        plan.reachingCarve(currentStep, distance, thickness, x, y, z, horizontalRadius, verticalRadius, skip);
     }
+    plan.end(tunnel);
 };
 
 /** Whether a chunk starts this carver, which is the first draw the carver's random makes. */
@@ -511,7 +659,15 @@ export interface SourceChunkCarvers {
 /** Remembers {@link SourceChunkCarvers} per source chunk. */
 export interface CarverStarts {
     at(sourceChunkX: number, sourceChunkZ: number): SourceChunkCarvers;
+    /**
+     * The plans of a source chunk's started carvers, in {@link SourceChunkCarvers.started}'s
+     * order, recorded on first use and kept for the chunks around it.
+     */
+    plansAt(sourceChunkX: number, sourceChunkZ: number, context: WorldGenerationContext): readonly CarvePlan[];
 }
+
+/** Source chunks whose plans a {@link CarverStarts} keeps, direct-mapped on the low five bits of x and z. */
+const CARVE_PLAN_SLOTS = 32 * 32;
 
 /** Source chunks a {@link CarverStarts} holds, direct-mapped on the low six bits of x and z. */
 const CARVER_START_SLOTS = 64 * 64;
@@ -528,7 +684,29 @@ export const createCarverStarts = (seed: bigint, carversAt: CarveChunkOptions['c
     const keyX = new Int32Array(CARVER_START_SLOTS);
     const keyZ = new Int32Array(CARVER_START_SLOTS);
     const entries = new Array<SourceChunkCarvers | undefined>(CARVER_START_SLOTS);
-    return {
+    const planKeyX = new Int32Array(CARVE_PLAN_SLOTS);
+    const planKeyZ = new Int32Array(CARVE_PLAN_SLOTS);
+    const plans = new Array<readonly CarvePlan[] | undefined>(CARVE_PLAN_SLOTS);
+    const starts: CarverStarts = {
+        plansAt: (sourceChunkX, sourceChunkZ, context) => {
+            const slot = (sourceChunkX & 31) | ((sourceChunkZ & 31) << 5);
+            const cached = plans[slot];
+            if (cached !== undefined && planKeyX[slot] === sourceChunkX && planKeyZ[slot] === sourceChunkZ)
+                return cached;
+
+            const { carvers, started } = starts.at(sourceChunkX, sourceChunkZ);
+            const recorded = started.map((index) => {
+                const config = carvers[index] as CarverConfig;
+                // The carver draws on from where its start draw left the random.
+                const random = largeFeatureRandom(asLong(seed + BigInt(index)), sourceChunkX, sourceChunkZ);
+                isStartChunk(config, random);
+                return recordCarver(config, context, random, sourceChunkX, sourceChunkZ);
+            });
+            planKeyX[slot] = sourceChunkX;
+            planKeyZ[slot] = sourceChunkZ;
+            plans[slot] = recorded;
+            return recorded;
+        },
         at: (sourceChunkX, sourceChunkZ) => {
             const slot = (sourceChunkX & 63) | ((sourceChunkZ & 63) << 6);
             const cached = entries[slot];
@@ -547,6 +725,7 @@ export const createCarverStarts = (seed: bigint, carversAt: CarveChunkOptions['c
             return entry;
         }
     };
+    return starts;
 };
 
 /**
@@ -587,37 +766,8 @@ export const carveChunk = (options: CarveChunkOptions): void => {
     const starts = options.starts ?? createCarverStarts(options.seed, options.carversAt);
     for (let dx = -8; dx <= 8; dx++) {
         for (let dz = -8; dz <= 8; dz++) {
-            const sourceChunkX = options.chunkX + dx;
-            const sourceChunkZ = options.chunkZ + dz;
-            const { carvers, started } = starts.at(sourceChunkX, sourceChunkZ);
-            for (const index of started) {
-                const config = carvers[index] as CarverConfig;
-                // The carver draws on from where its start draw left the random.
-                const random = largeFeatureRandom(asLong(options.seed + BigInt(index)), sourceChunkX, sourceChunkZ);
-                isStartChunk(config, random);
-                if (config.type === 'cave') {
-                    carveCave(
-                        config,
-                        options.context,
-                        random,
-                        options.chunkX,
-                        options.chunkZ,
-                        sourceChunkX,
-                        sourceChunkZ,
-                        options.output
-                    );
-                } else {
-                    carveCanyon(
-                        config,
-                        options.context,
-                        random,
-                        options.chunkX,
-                        options.chunkZ,
-                        sourceChunkX,
-                        sourceChunkZ,
-                        options.output
-                    );
-                }
+            for (const plan of starts.plansAt(options.chunkX + dx, options.chunkZ + dz, options.context)) {
+                replayCarvePlan(plan, options.chunkX, options.chunkZ, options.output);
             }
         }
     }
