@@ -180,7 +180,6 @@ export class SampleContext {
     private readonly cells: CacheCell[] = [];
     private readonly cornerCaches: CornerCache[] = [];
     private interpolationCellBuffers: (Float64Array | undefined)[] = [];
-    private interpolationFillScratch: (Float64Array | undefined)[] = [];
     private interpolationBufferOrigins = new Float64Array(0);
     private interpolationBufferFilled = new Uint8Array(0);
     /** The current cell origin per node id, three doubles each, NaN while no cell is current. */
@@ -265,17 +264,6 @@ export class SampleContext {
         return created;
     }
 
-    /** Returns reusable corner-stage values for filling an interpolation cell. */
-    public interpolationBufferScratch(id: number, valueCount: number): Float64Array {
-        if (id >= this.interpolationFillScratch.length) this.growInterpolation(id);
-        const existing = this.interpolationFillScratch[id];
-        if (existing !== undefined && existing.length === valueCount) return existing;
-
-        const created = new Float64Array(valueCount);
-        this.interpolationFillScratch[id] = created;
-        return created;
-    }
-
     /** Records a cell origin only after its output buffer has been filled completely. */
     public markInterpolationBufferFilled(id: number, x: number, y: number, z: number): void {
         const origin = id * 3;
@@ -334,12 +322,9 @@ export class SampleContext {
         this.interpolationBufferFilled = bufferFilled;
 
         const buffers = new Array<Float64Array | undefined>(count);
-        const fillScratch = new Array<Float64Array | undefined>(count);
         for (let index = 0; index < this.interpolationCellBuffers.length; index++) {
             buffers[index] = this.interpolationCellBuffers[index];
-            fillScratch[index] = this.interpolationFillScratch[index];
         }
         this.interpolationCellBuffers = buffers;
-        this.interpolationFillScratch = fillScratch;
     }
 }
