@@ -1,5 +1,3 @@
-import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
-
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type { Item } from '../../item/Item';
@@ -23,9 +21,7 @@ export default class CloseContainerHandler implements IntentHandler<'closeContai
      * The answer says `Server Initiated Close` false whatever the client wrote, since the player
      * closed this one. A window the session never opened is logged and still answered: the client
      * has already taken the screen down and waits for the answer before it opens the next
-     * container, and the same packet is what it sends back after a close the server forced. The
-     * answer is the one Bedrock packet this handler builds; it moves to the Bedrock presenter when
-     * the session's outbound contract is split by edition.
+     * container, and the same packet is what it sends back after a close the server forced.
      */
     public handle(
         { window, containerType }: Intent<'closeContainer'>,
@@ -46,11 +42,7 @@ export default class CloseContainerHandler implements IntentHandler<'closeContai
             log.debug(`${session.identity.name} closed container ${window}, which it did not have open`);
         }
 
-        const pk = new ContainerClosePacket();
-        pk.containerId = window;
-        pk.containerType = containerType;
-        pk.serverInitiatedClose = false;
-        step.output(session.getConnection().sendDataPacket(pk));
+        step.output(session.presenter.containerClosed(window, containerType));
 
         this.emptyCraftingGrid(session, left, step);
     }

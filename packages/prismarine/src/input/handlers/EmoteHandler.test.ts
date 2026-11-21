@@ -40,7 +40,7 @@ const setup = (xuid: string) => {
 };
 
 describe('input/handlers/EmoteHandler', () => {
-    it('relays the emote under the sender XUID with the ServerSide flag, posts the event and logs it', () => {
+    it("relays the emote under the sender XUID with the client's flags, posts the event and logs it", () => {
         const { logged, relayed, context, outputs, posted } = setup('steve-xuid');
 
         new EmoteHandler().handle(
@@ -59,7 +59,7 @@ describe('input/handlers/EmoteHandler', () => {
                 lengthTicks: 40,
                 xuid: 'steve-xuid',
                 platformId: 'p',
-                flags: EmoteFlags.MuteChat | EmoteFlags.ServerSide
+                flags: EmoteFlags.MuteChat
             }
         ]);
         expect(logged).toEqual([`Steve played emote ${EMOTE_ID} for 40 ticks`]);

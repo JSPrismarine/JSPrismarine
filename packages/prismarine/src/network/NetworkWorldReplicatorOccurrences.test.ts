@@ -451,7 +451,8 @@ describe('network', () => {
                     lengthTicks: 40,
                     xuid: 'steve-xuid',
                     platformId: 'p',
-                    flags: EmoteFlags.ServerSide
+                    // The client's flags; the encoder adds the server's own.
+                    flags: EmoteFlags.MuteChat
                 };
 
                 sealOccurrences(replicator, { kind: 'occurrence', occurrence: 'emote', data });
@@ -463,7 +464,7 @@ describe('network', () => {
                     emoteLengthTicks: 40,
                     xuid: 'steve-xuid',
                     platformId: 'p',
-                    flags: EmoteFlags.ServerSide
+                    flags: EmoteFlags.MuteChat | EmoteFlags.ServerSide
                 });
                 const decoder = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 256 });
                 const [frame] = tracking.frames;

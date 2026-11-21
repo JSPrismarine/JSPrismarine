@@ -39,7 +39,7 @@ import { encodePacketBatchFromBuffersBySize, encodePacketsForCodec, FullFlushFra
 import type { EncodedPacketBatch } from './encodePacketBatch';
 import ActorEventPacket from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import AnimatePacket from '@jsprismarine/protocol/bedrock/packet/AnimatePacket';
-import EmotePacket from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
+import EmotePacket, { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
 import BlockActorDataPacket from '@jsprismarine/protocol/bedrock/packet/BlockActorDataPacket';
 import BlockPos from '@jsprismarine/protocol/bedrock/structure/BlockPos';
 import LevelSoundEventPacket from '@jsprismarine/protocol/bedrock/packet/LevelSoundEventPacket';
@@ -106,7 +106,10 @@ const animatePacketOf = ({ entity, action, data, swingSource }: OccurrenceKinds[
     return packet;
 };
 
-/** A player's emote, as the players that see it are shown it: a packet the server encodes itself. */
+/**
+ * A player's emote, as the players that see it are shown it: a packet the server encodes itself,
+ * with the `ServerSide` flag the docs require on the copy a server sends.
+ */
 const emotePacketOf = ({
     entity,
     emote,
@@ -121,7 +124,7 @@ const emotePacketOf = ({
     packet.emoteLengthTicks = lengthTicks;
     packet.xuid = xuid;
     packet.platformId = platformId;
-    packet.flags = flags;
+    packet.flags = flags | EmoteFlags.ServerSide;
     return packet;
 };
 

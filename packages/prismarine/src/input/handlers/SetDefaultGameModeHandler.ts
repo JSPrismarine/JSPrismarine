@@ -1,6 +1,5 @@
 import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 
 import type { HandlerConfig, HandlerServices, InputContext } from '../../network/handler/HandlerContext';
 import type PlayerSession from '../../network/PlayerSession';
@@ -51,17 +50,9 @@ const fileDefault = (
     });
 };
 
-/**
- * Tells one client the default the server holds.
- *
- * The one Bedrock packet this handler builds. It moves to the Bedrock presenter when the
- * session's outbound contract is split by edition.
- */
-const sendDefault = async (config: Pick<HandlerConfig, 'getGamemode'>, session: PlayerSession): Promise<void> => {
-    const reply = new SetDefaultGameTypePacket();
-    reply.gamemode = getGametypeId(config.getGamemode());
-    await session.getConnection().sendDataPacket(reply);
-};
+/** Tells one client the default the server holds. */
+const sendDefault = (config: Pick<HandlerConfig, 'getGamemode'>, session: PlayerSession): Promise<void> =>
+    session.presenter.sendDefaultGameMode(getGametypeId(config.getGamemode()));
 
 /**
  * Applies the default game mode a player picked for the server.

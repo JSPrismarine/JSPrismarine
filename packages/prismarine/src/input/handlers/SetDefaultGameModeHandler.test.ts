@@ -13,6 +13,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import { WorldMessages } from '../../world/WorldMessages';
+import { BedrockPresenter } from '../../network/presenter/BedrockPresenter';
 import SetDefaultGameModeHandler from './SetDefaultGameModeHandler';
 
 /**
@@ -55,8 +56,9 @@ const fakeServer = ({
         const where = { world };
         const session = stub<PlayerSession>({
             identity: identityNamed(name, uuid),
-            getConnection: () =>
-                stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) }),
+            presenter: new BedrockPresenter(
+                stub<ClientConnection>({ sendDataPacket: async (packet) => void packets.push(packet) })
+            ),
             getWorld: () => where.world,
             setGamemode: async (mode?: Gametype) => void applied.push([name, mode]),
             released: (sends) => void sends.catch((error: unknown) => void logged.push(String(error)))

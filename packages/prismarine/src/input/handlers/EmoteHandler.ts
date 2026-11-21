@@ -1,5 +1,3 @@
-import { EmoteFlags } from '@jsprismarine/protocol/bedrock/packet/EmotePacket';
-
 import PlayerEmoteEvent from '../../events/player/PlayerEmoteEvent';
 import type { InputContext } from '../../network/handler/HandlerContext';
 import type { Intent } from '../Intent';
@@ -8,9 +6,9 @@ import type { IntentHandler } from '../IntentHandler';
 /**
  * The player played an emote.
  *
- * The emote is relayed as a fresh packet encoded by the server, carrying the sender's own XUID
- * and the `ServerSide` flag the docs require on the copy the server sends, so a client cannot
- * sign the emote with somebody else's account. The server does not check that the sender owns
+ * The emote is relayed under the sender's own XUID, from the server's record, so a client cannot
+ * sign the emote with somebody else's account. The flags are the client's; the encoder adds what
+ * its edition requires on the server's copy. The server does not check that the sender owns
  * the emote. The relay reaches the sender's own world, and only the clients that have them on
  * screen, which replication works out when the tick seals.
  */
@@ -29,7 +27,7 @@ export default class EmoteHandler implements IntentHandler<'emote'> {
             // The server's record of who this is, not the client's.
             xuid: session.identity.xuid,
             platformId,
-            flags: flags | EmoteFlags.ServerSide
+            flags
         });
 
         services.events.post('playerEmote', new PlayerEmoteEvent(session, emote));

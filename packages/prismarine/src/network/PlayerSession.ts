@@ -134,9 +134,10 @@ import DeathInfoPacket from '@jsprismarine/protocol/bedrock/packet/DeathInfoPack
 import ActorEventPacket, { ActorEvent } from '@jsprismarine/protocol/bedrock/packet/ActorEventPacket';
 import SetActorDataPacket from '@jsprismarine/protocol/bedrock/packet/SetActorDataPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
-import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
-import { SetHealthPacket, SetTimePacket } from '@jsprismarine/protocol';
+import { SetHealthPacket } from '@jsprismarine/protocol';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
+import type { SessionPresenter } from './presenter/SessionPresenter';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
@@ -380,6 +381,12 @@ export default class PlayerSession {
 
     /** Who logged in on this session. */
     public readonly identity: PlayerIdentity;
+    /**
+     * What turns the server's outbound calls into packets of this client's edition
+     * ([ADR 0026](../../../../docs/adr/0026-java-is-a-second-protocol-family-over-one-world.md)).
+     * The session's own send methods that the contract covers delegate to it.
+     */
+    public readonly presenter: SessionPresenter;
 
     /** Where {@link PlayerSession.getPlayer} finds the player by {@link PlayerSession.runtimeId}. */
     private readonly players: SessionPlayers<SessionPlayer>;
@@ -601,6 +608,7 @@ export default class PlayerSession {
     ) {
         this.server = server;
         this.connection = connection;
+        this.presenter = new BedrockPresenter(connection);
         this.runtimeId = player.runtimeId;
         this.identity = player.identity;
         this.players = players;
@@ -2183,18 +2191,16 @@ export default class PlayerSession {
      * Send the current tick to a client.
      * @param {number} tick - The tick
      */
-    public async sendTime(tick: number): Promise<void> {
-        const pk = new SetTimePacket({ time: tick });
-        await this.connection.sendDataPacket(pk);
+    public sendTime(tick: number): Promise<void> {
+        return this.presenter.sendTime(tick);
     }
 
     /**
      * Send gamemode to a client.
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
-    public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket({ gametype: gamemode ?? this.own().gamemode });
-        await this.connection.sendDataPacket(packet);
+    public sendGamemode(gamemode?: Gametype): Promise<void> {
+        return this.presenter.sendGamemode(gamemode ?? this.own().gamemode);
     }
 
     /**
