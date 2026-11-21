@@ -303,6 +303,29 @@ const blockScenarios: readonly BehaviorScenario<BlockSubject>[] = [
         }
     },
     {
+        name: 'detector-rail-trigger',
+        java: 'A detector rail powers while a minecart is on it, ignores anything else, and releases once the minecart has gone.',
+        reference: 'Java DetectorRailBlock entityInside, checkPressed and tick',
+        subjects: () => [subjectOf('minecraft:detector_rail')].flatMap((subject) => subject ?? []),
+        idOf: (subject) => subject.javaId,
+        run: (subject) => {
+            const harness = bind(subject);
+            harness.dimension.set(BELOW, 'minecraft:stone');
+            harness.dimension.set(ORIGIN, subject.bedrock, subject.states);
+            harness.dimension.addEntity('minecraft:player', ORIGIN);
+            harness.stepOn(ORIGIN);
+            if (harness.dimension.stateAt(ORIGIN, 'rail_data_bit') === true) return 'a player on it powered it';
+            const cart = harness.dimension.addEntity('minecraft:minecart', ORIGIN);
+            harness.stepOn(ORIGIN, { identifier: 'minecraft:minecart', position: ORIGIN });
+            if (harness.dimension.stateAt(ORIGIN, 'rail_data_bit') !== true) return 'a minecart on it did not power it';
+            harness.dimension.removeEntity(cart);
+            harness.tick(ORIGIN);
+            if (harness.dimension.stateAt(ORIGIN, 'rail_data_bit') !== false)
+                return 'it stayed powered once the minecart had gone';
+            return undefined;
+        }
+    },
+    {
         name: 'plant-needs-ground',
         java: 'A flower or sapling breaks and drops when the block it grows on is removed.',
         reference: 'Java BushBlock updateShape and canSurvive',
@@ -1044,6 +1067,7 @@ const SCENARIO_ASPECTS: Readonly<Record<string, readonly string[]>> = {
     'hand-toggle': ['interaction'],
     'button-pulse': ['interaction', 'scheduled-tick'],
     'pressure-plate-trigger': ['entity-contact', 'scheduled-tick'],
+    'detector-rail-trigger': ['entity-contact', 'scheduled-tick'],
     'plant-needs-ground': ['support'],
     'mushroom-needs-dark-or-mycelium': ['support'],
     'door-needs-ground': ['support'],

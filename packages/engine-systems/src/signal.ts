@@ -28,6 +28,9 @@ const REDSTONE_TORCH = { lit: 'minecraft:redstone_torch', unlit: 'minecraft:unli
 const REPEATER = { powered: 'minecraft:powered_repeater', unpowered: 'minecraft:unpowered_repeater' } as const;
 const COMPARATOR = { powered: 'minecraft:powered_comparator', unpowered: 'minecraft:unpowered_comparator' } as const;
 const OBSERVER = 'minecraft:observer';
+/** Java's `DetectorRailBlock`, which keeps its `POWERED` in Bedrock's `rail_data_bit`. */
+const DETECTOR_RAIL = 'minecraft:detector_rail';
+const RAIL_POWERED_STATE = 'rail_data_bit';
 const LEVER = 'minecraft:lever';
 const DIRECTIONS_BY_NAME: Readonly<Record<string, Direction | undefined>> = {
     down: 'down',
@@ -121,6 +124,7 @@ export const ownSignalOf = (world: WorldAccess, at: BlockPosition, block: BlockR
     if (isButton(name)) return booleanState(block, BUTTON_PRESSED_STATE) ? SIGNAL_MAX : SIGNAL_NONE;
     if (isPressurePlate(name) || isDaylightDetector(name)) return numberState(block, SIGNAL_STATE);
     if (name === OBSERVER) return booleanState(block, OBSERVER_POWERED_STATE) ? SIGNAL_MAX : SIGNAL_NONE;
+    if (name === DETECTOR_RAIL) return booleanState(block, RAIL_POWERED_STATE) ? SIGNAL_MAX : SIGNAL_NONE;
     if (name === REPEATER.powered) return SIGNAL_MAX;
     if (name === COMPARATOR.powered) return world.getBlockEntityData(at)?.comparatorOutput ?? SIGNAL_NONE;
     return SIGNAL_NONE;
@@ -130,6 +134,7 @@ export const ownSignalOf = (world: WorldAccess, at: BlockPosition, block: BlockR
 export const isSignalSource = (block: BlockRef): boolean => {
     const { name } = block;
     if (name === REDSTONE_WIRE || name === REDSTONE_BLOCK || name === OBSERVER || name === LEVER) return true;
+    if (name === DETECTOR_RAIL) return true;
     if (name === REDSTONE_TORCH.lit || name === REDSTONE_TORCH.unlit) return true;
     return isButton(name) || isPressurePlate(name) || isDaylightDetector(name) || isDiode(name);
 };
@@ -181,7 +186,9 @@ export const strongSignalOf = (world: WorldAccess, at: BlockPosition, direction:
     if (name === LEVER || isButton(name)) {
         return connectedDirectionOf(block) === direction ? ownSignalOf(world, at, block) : SIGNAL_NONE;
     }
-    if (isPressurePlate(name)) return direction === 'up' ? ownSignalOf(world, at, block) : SIGNAL_NONE;
+    // Both power the block they rest on strongly, `getDirectSignal` with `Direction.UP`.
+    if (isPressurePlate(name) || name === DETECTOR_RAIL)
+        return direction === 'up' ? ownSignalOf(world, at, block) : SIGNAL_NONE;
     if (isDiode(name) || name === OBSERVER) return weakSignalOf(world, at, direction);
     return SIGNAL_NONE;
 };

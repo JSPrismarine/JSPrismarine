@@ -34,7 +34,8 @@ describe('resolved block state allocation', { tags: ['real-data'] }, () => {
         // the overlay gave each per-state light level a permutation and every family took
         // `onPlace` for a pillar block's axis, which adds permutations and sets that flag, and
         // when the overlay gave each per-state light dampening a permutation too, and when copper
-        // torches and lanterns moved to the torch and lantern families.
-        expect(digest).toBe('e76ee331b56c5d7bbb50cca608a2e5169d09f2d08ef625512814b57386c98ced');
+        // torches and lanterns moved to the torch and lantern families, and when the rails took a
+        // scheduled tick for the detector rail, which sets their flag.
+        expect(digest).toBe('6ea3d59b2379866f6aa44c762b76279d94367c59b5fdf5c55e8a812f7033a8f0');
     });
 });
