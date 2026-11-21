@@ -103,7 +103,15 @@ const mergeable = (held: ContentItemDrop, drop: ContentItemDrop): boolean =>
     held.lore === undefined &&
     drop.lore === undefined &&
     held.enchantments === undefined &&
-    drop.enchantments === undefined;
+    drop.enchantments === undefined &&
+    [held, drop].every(
+        (stack) =>
+            stack.canPlaceOn === undefined &&
+            stack.canDestroy === undefined &&
+            stack.keepOnDeath === undefined &&
+            stack.lockMode === undefined &&
+            stack.dynamicProperties === undefined
+    );
 
 /**
  * Puts stacks into a container, growing matching stacks before taking an empty

@@ -540,8 +540,7 @@ order of the breadth slices, and each breadth slice names the corpus packs it ma
       ([#3298](https://github.com/JSPrismarine/JSPrismarine/issues/3298)), `getMapColor` ignores the
       biome and the permutation ([#3299](https://github.com/JSPrismarine/JSPrismarine/issues/3299)),
       `setWaterlogged` writes nothing ([#3300](https://github.com/JSPrismarine/JSPrismarine/issues/3300)),
-      a chest slot loses a stack's lock, block lists and dynamic properties
-      ([#3301](https://github.com/JSPrismarine/JSPrismarine/issues/3301)), and a `setCanDestroy` of a
+      and a `setCanDestroy` of a
       block with legacy variants, such as stone, lists only the block where BDS lists every variant.
       `EnchantmentTypes.getAll` lists every enchantment, where BDS listed two in one scenario by no
       rule found.

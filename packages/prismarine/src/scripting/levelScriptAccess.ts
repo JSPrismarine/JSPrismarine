@@ -15,8 +15,10 @@ import type {
     ScriptCommandSource,
     ScriptEntityState,
     ScriptEquipmentSlot,
-    ScriptItem
+    ScriptItem,
+    ScriptProperties
 } from '@jsprismarine/script-host/host/world';
+import type { ItemDynamicProperties } from '@jsprismarine/block-behaviors';
 import { ATTRIBUTES } from '@jsprismarine/entities/attributes';
 import type { AttributeName, AttributeSpec } from '@jsprismarine/entities/attributes';
 
@@ -70,6 +72,18 @@ export const scriptItemOf = (item: Item | null): ScriptItem | null => {
     };
 };
 
+/** A stack's dynamic properties as a script reads them, by pack and then by id. */
+const scriptPropertiesOf = (properties: ItemDynamicProperties): ReadonlyMap<string, ScriptProperties> =>
+    new Map(Object.entries(properties).map(([pack, values]) => [pack, new Map(Object.entries(values))]));
+
+/** A script's dynamic properties of a stack as a drop keeps them, leaving out a pack with none. */
+const dropPropertiesOf = (properties: ReadonlyMap<string, ScriptProperties>): ItemDynamicProperties =>
+    Object.fromEntries(
+        [...properties]
+            .filter(([, values]) => values.size > 0)
+            .map(([pack, values]) => [pack, Object.fromEntries(values)])
+    );
+
 /** A container slot's stack as a script reads it, or null for an empty one. */
 const scriptItemOfDrop = (drop: ContentItemDrop | undefined): ScriptItem | null => {
     if (drop === undefined || drop.identifier === 'minecraft:air' || drop.count <= 0) return null;
@@ -78,29 +92,46 @@ const scriptItemOfDrop = (drop: ContentItemDrop | undefined): ScriptItem | null 
         amount: drop.count,
         ...(drop.customName === undefined ? {} : { nameTag: drop.customName }),
         ...(drop.lore === undefined || drop.lore.length === 0 ? {} : { lore: drop.lore }),
-        ...(drop.damage === undefined || drop.damage <= 0 ? {} : { damage: drop.damage })
+        ...(drop.damage === undefined || drop.damage <= 0 ? {} : { damage: drop.damage }),
+        ...(drop.canDestroy === undefined || drop.canDestroy.length === 0 ? {} : { canDestroy: drop.canDestroy }),
+        ...(drop.canPlaceOn === undefined || drop.canPlaceOn.length === 0 ? {} : { canPlaceOn: drop.canPlaceOn }),
+        ...(drop.keepOnDeath === true ? { keepOnDeath: true } : {}),
+        ...(drop.lockMode === undefined ? {} : { lockMode: drop.lockMode }),
+        ...(drop.dynamicProperties === undefined
+            ? {}
+            : { dynamicProperties: scriptPropertiesOf(drop.dynamicProperties) })
     };
 };
 
 /**
  * A script's stack as a container slot holds it. A stack the slot already held keeps what a
- * script cannot see of it, such as its enchantments and durability, when only its count or its
- * name changed.
+ * script cannot see of it, such as its enchantments, when only what a script sees changed.
  */
 const dropOfScriptItem = (item: ScriptItem, held: ContentItemDrop | undefined): ContentItemDrop => {
     const {
         customName: _name,
         lore: _lore,
         damage: _damage,
+        canDestroy: _canDestroy,
+        canPlaceOn: _canPlaceOn,
+        keepOnDeath: _keepOnDeath,
+        lockMode: _lockMode,
+        dynamicProperties: _dynamicProperties,
         ...kept
     } = held?.identifier === item.typeId ? held : { identifier: '' };
+    const properties = dropPropertiesOf(item.dynamicProperties ?? new Map());
     return {
         ...kept,
         identifier: item.typeId,
         count: item.amount,
         ...(item.nameTag === undefined ? {} : { customName: item.nameTag }),
         ...(item.lore === undefined || item.lore.length === 0 ? {} : { lore: item.lore }),
-        ...(item.damage === undefined || item.damage <= 0 ? {} : { damage: item.damage })
+        ...(item.damage === undefined || item.damage <= 0 ? {} : { damage: item.damage }),
+        ...(item.canDestroy === undefined || item.canDestroy.length === 0 ? {} : { canDestroy: item.canDestroy }),
+        ...(item.canPlaceOn === undefined || item.canPlaceOn.length === 0 ? {} : { canPlaceOn: item.canPlaceOn }),
+        ...(item.keepOnDeath === true ? { keepOnDeath: true } : {}),
+        ...(item.lockMode === undefined ? {} : { lockMode: item.lockMode }),
+        ...(Object.keys(properties).length === 0 ? {} : { dynamicProperties: properties })
     };
 };
 

@@ -237,7 +237,13 @@ export const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDr
         left.customName === right.customName &&
         sameList(left.lore, right.lore) &&
         sameEnchantments(left.enchantments, right.enchantments) &&
-        sameDrops(left.contents, right.contents)
+        sameDrops(left.contents, right.contents) &&
+        sameList(left.canPlaceOn, right.canPlaceOn) &&
+        sameList(left.canDestroy, right.canDestroy) &&
+        (left.keepOnDeath ?? false) === (right.keepOnDeath ?? false) &&
+        left.lockMode === right.lockMode &&
+        // Plain JSON records in the order a script set them, so two equal sets print the same.
+        JSON.stringify(left.dynamicProperties ?? {}) === JSON.stringify(right.dynamicProperties ?? {})
     );
 };
 
