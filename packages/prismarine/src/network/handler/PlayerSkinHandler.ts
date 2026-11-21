@@ -114,7 +114,7 @@ export default class PlayerSkinHandler implements InputLaneHandler<PlayerSkinPac
         // The entry the session manager sends to whoever joins later was built at login.
         const playerList = services.sessions.getPlayerList();
         const entry = playerList.get(identity.uuid);
-        if (entry !== undefined) playerList.set(identity.uuid, entry.withSkin(packet.skin));
+        if (entry !== undefined) playerList.set(identity.uuid, { ...entry, skin: packet.skin });
 
         const relay = new PlayerSkinPacket();
         relay.uuid = packet.uuid;

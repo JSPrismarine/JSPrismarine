@@ -15,6 +15,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { Gametype } from '@jsprismarine/minecraft';
 
+import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
 
 /**
@@ -122,6 +123,13 @@ export interface SessionPresenter {
      *   edition that echoes it puts in the answer.
      */
     containerClosed(window: number, clientContainerType: number): Promise<void>;
+
+    /**
+     * Gives a joining client the whole player list.
+     *
+     * @param players - Everyone listed, the client's own player included.
+     */
+    sendPlayerList(players: readonly ListedPlayer[]): Promise<void>;
 
     /**
      * Moves a player on the client, the client's own one included.

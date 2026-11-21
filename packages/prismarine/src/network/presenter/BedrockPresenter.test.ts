@@ -4,6 +4,10 @@ import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/proto
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
+import PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
+import { PlayerListAction } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
+import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
@@ -151,5 +155,30 @@ describe('BedrockPresenter', () => {
             teleportData: null,
             tick: 0n
         });
+    });
+
+    it('lists every player in one Add, neither as a teacher nor as the host', async () => {
+        const { sent, presenter: bedrock } = presenter();
+        const listed = (name: string, runtimeId: bigint) => ({
+            uuid: UUID.fromRandom(),
+            runtimeId,
+            name,
+            xuid: '',
+            platformChatId: '',
+            buildPlatform: 7,
+            skin: new Skin()
+        });
+
+        await bedrock.sendPlayerList([listed('Steve', 1n), listed('Alex', 2n)]);
+
+        const [packet] = sent;
+        if (!(packet instanceof PlayerListPacket)) throw new Error('expected PlayerListPacket');
+        expect(packet.type).toBe(PlayerListAction.TYPE_ADD);
+        expect(
+            packet.entries.map((entry) => [entry.getName(), entry.getRuntimeId(), entry.isTeacher(), entry.isHost()])
+        ).toEqual([
+            ['Steve', 1n, false, false],
+            ['Alex', 2n, false, false]
+        ]);
     });
 });

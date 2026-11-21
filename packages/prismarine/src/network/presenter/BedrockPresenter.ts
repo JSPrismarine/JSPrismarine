@@ -9,8 +9,10 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/UpdatePlayerGameTypePacket';
 
 import type ClientConnection from '../ClientConnection';
+import type { ListedPlayer } from '../playerListEntry';
 import type { AbilityTarget } from '../replica/firstSight';
 import { abilitiesPacket } from '../replica/firstSight';
+import { playerListAddOf } from './bedrockPlayerList';
 import type { MessageKind, MoveMode, SessionPresenter, ShownMessage, ShownMove } from './SessionPresenter';
 
 /**
@@ -98,6 +100,11 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends `UpdateAbilities` (`abilitiesPacket`). */
     public async sendAbilities(target: AbilityTarget): Promise<void> {
         await this.connection.sendDataPacket(abilitiesPacket(target));
+    }
+
+    /** Sends one `PlayerList` Add with every entry. */
+    public async sendPlayerList(players: readonly ListedPlayer[]): Promise<void> {
+        await this.connection.sendDataPacket(playerListAddOf(players));
     }
 
     /** Sends `MovePlayer`. */

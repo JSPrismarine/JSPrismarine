@@ -124,9 +124,8 @@ import type { ChunkCoord } from '@jsprismarine/protocol/bedrock/packet/NetworkCh
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
 import PlayerActionPacket from '@jsprismarine/protocol/bedrock/packet/PlayerActionPacket';
-import PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
-import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
-import { playerListEntryOf, setPlayerListName } from './playerListEntry';
+import { playerListAddOf, playerListRemoveOf } from './presenter/bedrockPlayerList';
+import { listedPlayerOf, setPlayerListName } from './playerListEntry';
 import RemoveActorPacket from '@jsprismarine/protocol/bedrock/packet/RemoveActorPacket';
 import { PlayerRespawnState } from '@jsprismarine/minecraft';
 import RespawnPacket from '@jsprismarine/protocol/bedrock/packet/RespawnPacket';
@@ -3174,30 +3173,22 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const entry = playerListEntryOf(this.shown());
+        const entry = listedPlayerOf(this.shown());
 
         this.server.getSessionManager().getPlayerList().set(this.identity.uuid, entry);
 
-        const packet = new PlayerListPacket();
-        packet.type = PlayerListAction.TYPE_ADD;
-        packet.entries.push(entry);
-        await this.server.broadcastPacket(packet);
+        await this.server.broadcastPacket(playerListAddOf([entry]));
     }
 
     /**
      * Removes a player from other players list
      */
     public async removeFromPlayerList(): Promise<void> {
-        const entry = new PlayerListEntry({
-            uuid: this.own().getUUID()
-        });
+        const uuid = this.own().getUUID();
 
         this.server.getSessionManager().getPlayerList().delete(this.identity.uuid);
 
-        const packet = new PlayerListPacket();
-        packet.type = PlayerListAction.TYPE_REMOVE;
-        packet.entries.push(entry);
-        await this.server.broadcastPacket(packet);
+        await this.server.broadcastPacket(playerListRemoveOf([uuid]));
     }
 
     /**
@@ -3220,10 +3211,7 @@ export default class PlayerSession {
      * Sends the full player list to the player.
      */
     public async sendPlayerList(): Promise<void> {
-        const packet = new PlayerListPacket();
-        packet.type = PlayerListAction.TYPE_ADD;
-        packet.entries = Array.from(this.server.getSessionManager().getPlayerList().values());
-        await this.send(packet);
+        await this.presenter.sendPlayerList([...this.server.getSessionManager().getPlayerList().values()]);
     }
 
     /**

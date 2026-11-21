@@ -1,35 +1,41 @@
-import PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
-import { PlayerListAction, PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
+import type PlayerListPacket from '@jsprismarine/protocol/bedrock/packet/PlayerListPacket';
+import type Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
+import type UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 
 import type { ShownPlayer } from '../world/ShownPlayer';
+import { playerListAddOf, playerListRemoveOf } from './presenter/bedrockPlayerList';
 
 /**
- * A player's entry in the player list, which is how every other client learns its name, its
- * skin and the platform it plays on before it ever comes into view.
+ * A player as every client's player list shows it, which is how every other client learns its
+ * name, its skin and the platform it plays on before it ever comes into view.
+ */
+export interface ListedPlayer {
+    readonly uuid: UUID;
+    readonly runtimeId: bigint;
+    /** The name the list shows, the login name unless a script set another. */
+    readonly name: string;
+    readonly xuid: string;
+    readonly platformChatId: string;
+    /** The platform the player plays on, or -1 when it is not known. */
+    readonly buildPlatform: number;
+    readonly skin: Skin;
+}
+
+/**
+ * A player's entry in the player list.
  * @param player - The player to list. Its skin is required: the login handshake always sends one.
  * @param name - The name the list shows, the login name unless a script set another.
- * @returns The entry `PlayerListPacket` carries.
+ * @returns The entry.
  */
-export const playerListEntryOf = (player: ShownPlayer, name = player.getName()): PlayerListEntry =>
-    new PlayerListEntry({
-        uuid: player.getUUID(),
-        runtimeId: player.getRuntimeId(),
-        name,
-        xuid: player.xuid,
-        platformChatId: player.platformChatId,
-        buildPlatform: player.device?.os ?? -1,
-        skin: player.skin!,
-        isTeacher: false,
-        isHost: false
-    });
-
-/** A player list packet of one action over some entries. */
-const playerListPacketOf = (type: PlayerListAction, entries: PlayerListEntry[]): PlayerListPacket => {
-    const packet = new PlayerListPacket();
-    packet.type = type;
-    packet.entries = entries;
-    return packet;
-};
+export const listedPlayerOf = (player: ShownPlayer, name = player.getName()): ListedPlayer => ({
+    uuid: player.getUUID(),
+    runtimeId: player.getRuntimeId(),
+    name,
+    xuid: player.xuid,
+    platformChatId: player.platformChatId,
+    buildPlatform: player.device?.os ?? -1,
+    skin: player.skin!
+});
 
 /**
  * Replaces the name a player's entry shows: in the session manager's list, which a later joiner
@@ -45,17 +51,17 @@ const playerListPacketOf = (type: PlayerListAction, entries: PlayerListEntry[]):
  * @param name - The name to show, or the login name when left out.
  */
 export const setPlayerListName = async (
-    list: Map<string, PlayerListEntry>,
+    list: Map<string, ListedPlayer>,
     broadcast: (packet: PlayerListPacket) => Promise<void>,
     player: ShownPlayer,
     uuid: string,
     name?: string
 ): Promise<void> => {
     if (!list.has(uuid)) return;
-    const entry = playerListEntryOf(player, name);
+    const entry = listedPlayerOf(player, name);
     list.set(uuid, entry);
-    await broadcast(playerListPacketOf(PlayerListAction.TYPE_REMOVE, [new PlayerListEntry({ uuid: entry.getUUID() })]));
+    await broadcast(playerListRemoveOf([entry.uuid]));
     const current = list.get(uuid);
     if (current === undefined) return;
-    await broadcast(playerListPacketOf(PlayerListAction.TYPE_ADD, [current]));
+    await broadcast(playerListAddOf([current]));
 };

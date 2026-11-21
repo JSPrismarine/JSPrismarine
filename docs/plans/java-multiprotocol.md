@@ -21,7 +21,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | Done, [#3418](https://github.com/JSPrismarine/JSPrismarine/pull/3418). |
 | 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | Interaction, session settings and block interfaces done ([#3421](https://github.com/JSPrismarine/JSPrismarine/pull/3421), [#3429](https://github.com/JSPrismarine/JSPrismarine/pull/3429), [#3431](https://github.com/JSPrismarine/JSPrismarine/pull/3431)). Movement and inventory wait for their slices. |
-| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, in review. |
+| 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | In progress. 5a, the contract and the sends intent handlers made themselves (time, game mode, default game mode, container close), done ([#3435](https://github.com/JSPrismarine/JSPrismarine/pull/3435)). 5b, chat and system messages, done ([#3441](https://github.com/JSPrismarine/JSPrismarine/pull/3441)). 5c, abilities, interaction settings and other players' game modes, done ([#3444](https://github.com/JSPrismarine/JSPrismarine/pull/3444)). 5d, position and look, done ([#3448](https://github.com/JSPrismarine/JSPrismarine/pull/3448)). 5e, the player list, in review. |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Not started |
@@ -186,6 +186,12 @@ PR 5d moves position and look. What produced a move is a `MoveMode` (`normal`, `
 `teleport`, `headRotation`) in place of Bedrock's `PositionMode`, through `setPlayerPosition`,
 `sendMove`, `PlayerMoveEvent` and the command host, and the session keeps the teleport
 acknowledgement it waits for.
+
+PR 5e moves the player list. The roster holds a `ListedPlayer`, plain data, rather than Bedrock's
+entry, and the presenter sends a joining client the whole list. The roster's own broadcasts, a
+player added, removed or renamed, still build one Bedrock packet compressed once per codec: a skin
+is large, and compressing it once per receiving player is the cost PR 6's encoders, keyed by
+edition and codec, exist to avoid.
 
 The order the first milestone needs is chunks, position and look, chat and system messages, time,
 game mode and abilities, the player list, and keep-alive. Entities, windows, inventories, block

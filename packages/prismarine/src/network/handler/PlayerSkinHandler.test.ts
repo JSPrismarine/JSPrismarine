@@ -11,9 +11,9 @@ import Skin from '@jsprismarine/protocol/bedrock/wire/structures/skin/Skin';
 import type PlayerSession from '../PlayerSession';
 import type ClientConnection from '../ClientConnection';
 import type { SessionPhase } from '../SessionPhase';
-import { PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
 import PlayerSkinPacket from '@jsprismarine/protocol/bedrock/packet/PlayerSkinPacket';
 import PlayerSkinHandler from './PlayerSkinHandler';
+import type { ListedPlayer } from '../playerListEntry';
 
 const SENDER_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
 
@@ -71,17 +71,15 @@ const setUp = () => {
     const debug = vi.fn();
 
     // The entry built at login, which `sendPlayerList` hands to whoever joins later.
-    const loginEntry = new PlayerListEntry({
+    const loginEntry: ListedPlayer = {
         uuid: UUID.fromString(SENDER_UUID),
         runtimeId: 7n,
         name: 'runner',
         xuid: '2535400000000000',
+        platformChatId: '',
         buildPlatform: 8,
-        skin: sender.player.skin,
-        isTeacher: false,
-        isHost: false,
-        color: 0xff112233
-    });
+        skin: sender.player.skin!
+    };
     const playerList = new Map([[SENDER_UUID, loginEntry]]);
 
     const sessions = stub<SessionManager>({
@@ -157,13 +155,8 @@ describe('PlayerSkinHandler', () => {
         const entry = playerList.get(SENDER_UUID);
         expect(entry).toBeDefined();
         expect(entry).not.toBe(loginEntry);
-        expect(entry?.getSkin()).toBe(packet.skin);
-        expect(entry?.getRuntimeId()).toBe(7n);
-        expect(entry?.getName()).toBe('runner');
-        expect(entry?.getXUID()).toBe('2535400000000000');
-        expect(entry?.getBuildPlatform()).toBe(8);
-        expect(entry?.getColor()).toBe(0xff112233 | 0);
-        expect(loginEntry.getSkin()?.getId()).toBe('runner-old');
+        expect(entry).toEqual({ ...loginEntry, skin: packet.skin });
+        expect(loginEntry.skin.getId()).toBe('runner-old');
     });
 
     it('drops a packet that names another player', async () => {

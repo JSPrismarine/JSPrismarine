@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { stub } from '../testing/stub.test.helper';
 import type { ShownPlayer } from '../world/ShownPlayer';
-import { playerListEntryOf, setPlayerListName } from './playerListEntry';
+import { listedPlayerOf, setPlayerListName } from './playerListEntry';
 
 const STEVE_UUID = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0';
 
@@ -50,7 +50,7 @@ const steve = () =>
 /** The list with the entry built at login, and a broadcast that keeps every packet it gets. */
 const setUp = () => {
     const player = steve();
-    const list = new Map([[STEVE_UUID, playerListEntryOf(player)]]);
+    const list = new Map([[STEVE_UUID, listedPlayerOf(player)]]);
     const broadcast: PlayerListPacket[] = [];
     const rename = (name?: string) =>
         setPlayerListName(
@@ -78,13 +78,7 @@ describe('setPlayerListName', () => {
         // `sendPlayerList` sends the list's values, so this is what a player who joins later sees.
         const entry = list.get(STEVE_UUID)!;
         expect(entry).not.toBe(login);
-        expect(entry.getName()).toBe('§aSteve');
-        expect([entry.getUUID().toString(), entry.getRuntimeId(), entry.getXUID(), entry.getSkin()]).toEqual([
-            login.getUUID().toString(),
-            login.getRuntimeId(),
-            login.getXUID(),
-            login.getSkin()
-        ]);
+        expect(entry).toEqual({ ...login, name: '§aSteve' });
     });
 
     it('sends every client a Remove for the entry and then an Add with the name', async () => {
@@ -104,13 +98,13 @@ describe('setPlayerListName', () => {
 
         await rename();
 
-        expect(list.get(STEVE_UUID)?.getName()).toBe('Steve');
+        expect(list.get(STEVE_UUID)?.name).toBe('Steve');
         expect(sent().at(-1)).toEqual([PlayerListAction.TYPE_ADD, ['Steve']]);
     });
 
     it('adds the entry the list holds once the Remove has gone, and none for a player who left meanwhile', async () => {
         const player = steve();
-        const list = new Map([[STEVE_UUID, playerListEntryOf(player)]]);
+        const list = new Map([[STEVE_UUID, listedPlayerOf(player)]]);
         const sent: [PlayerListAction, string | null][] = [];
         /** Settles each broadcast only when the test says, as a slow transport would. */
         const releases: (() => void)[] = [];
@@ -138,9 +132,9 @@ describe('setPlayerListName', () => {
         sent.length = 0;
 
         // A skin change replaces the entry while the Remove is on its way; the Add carries the new entry, name kept.
-        list.set(STEVE_UUID, playerListEntryOf(player));
+        list.set(STEVE_UUID, listedPlayerOf(player));
         const renaming = setPlayerListName(list, broadcast, player, STEVE_UUID, 'renamed');
-        list.set(STEVE_UUID, list.get(STEVE_UUID)!.withSkin(classicSkin()));
+        list.set(STEVE_UUID, { ...list.get(STEVE_UUID)!, skin: classicSkin() });
         await settle(renaming);
         expect(sent).toEqual([
             [PlayerListAction.TYPE_REMOVE, null],

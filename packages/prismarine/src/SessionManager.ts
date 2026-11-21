@@ -2,9 +2,9 @@ import type ClientConnection from './network/ClientConnection';
 import type PlayerSession from './network/PlayerSession';
 import type { SessionPlayer } from './network/sessionPlayers';
 import type { ConnectionId } from './network/transport/ConnectionId';
-import type { PlayerListEntry } from '@jsprismarine/protocol/bedrock/wire/structures/PlayerListEntry';
 import type { PlayerIdentity } from './playerIdentity';
 import { sameAccount } from './playerIdentity';
+import type { ListedPlayer } from './network/playerListEntry';
 
 /** A connection whose login named an account, and the join it is running for it, if any. */
 interface LoginClaim {
@@ -22,7 +22,7 @@ export interface ReplacedLogin {
 
 export default class SessionManager {
     private readonly connections: Map<ConnectionId, ClientConnection> = new Map();
-    private readonly playerList: Map<string, PlayerListEntry> = new Map();
+    private readonly playerList: Map<string, ListedPlayer> = new Map();
 
     /**
      * The account each logging-in or live connection holds, so that a login can find the other
@@ -123,7 +123,7 @@ export default class SessionManager {
         return replaced;
     }
 
-    public getPlayerList(): Map<string, PlayerListEntry> {
+    public getPlayerList(): Map<string, ListedPlayer> {
         return this.playerList;
     }
 

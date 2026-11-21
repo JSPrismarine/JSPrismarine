@@ -25,7 +25,7 @@ import type { Config } from '../../config/Config';
 import { Item } from '../../item/Item';
 import Codec2193 from '../../network/codec/Codec2193';
 import { NetworkWorldReplicator } from '../../network/NetworkWorldReplicator';
-import { playerListEntryOf } from '../../network/playerListEntry';
+import { listedPlayerOf } from '../../network/playerListEntry';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import type Server from '../../Server';
 import { fakePlayer } from '../../testing/fakePlayer.test.helper';
@@ -352,12 +352,12 @@ describe('a store player shown to other clients', () => {
         const identity = identityOf('Steve');
         const { player, actor } = await spawn(identity);
 
-        const entry = playerListEntryOf(actor);
-        expect(entry.getUUID().equals(identity.uuid)).toBe(true);
-        expect(entry.getName()).toBe('Steve');
-        expect(entry.getXUID()).toBe(identity.xuid);
-        expect(entry.getSkin()).toBe(player.skin);
-        expect(entry.getRuntimeId()).toBe(actor.getRuntimeId());
+        const entry = listedPlayerOf(actor);
+        expect(entry.uuid.equals(identity.uuid)).toBe(true);
+        expect(entry.name).toBe('Steve');
+        expect(entry.xuid).toBe(identity.xuid);
+        expect(entry.skin).toBe(player.skin);
+        expect(entry.runtimeId).toBe(actor.getRuntimeId());
     });
 
     it('stays on screen through its death and leaves every screen once when it leaves the store', async () => {
