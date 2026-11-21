@@ -25,7 +25,7 @@ import { loadJavaEntityAttributes } from '../goldens.ts';
 import { realStack, seededDraws, serverContent } from '../serverStack.ts';
 import { withProbe } from './goalProbe.ts';
 import type { EntitySubject } from './subjects.ts';
-import { componentValues, entitiesDeclaring, field } from './subjects.ts';
+import { componentValues, entitiesDeclaring, field, javaEntityIds, mappedEntity } from './subjects.ts';
 
 /**
  * The stats and movement scenarios: what an entity spawns with, how hard it hits, how its move
@@ -227,6 +227,57 @@ const STAT_ASPECTS: readonly StatAspect[] = [
     { component: 'minecraft:flying_speed', stat: 'flying_speed' },
     { component: 'minecraft:horse.jump_strength', stat: 'jump_strength' }
 ];
+
+/** The stats Java decides that a Bedrock file can leave out, with the components that declare each. */
+const UNDECLARED_STATS: readonly { readonly stat: SharedStat; readonly components: readonly string[] }[] = [
+    { stat: 'follow_range', components: ['minecraft:follow_range'] },
+    { stat: 'knockback_resistance', components: ['minecraft:knockback_resistance'] },
+    { stat: 'attack_damage', components: ['minecraft:attack_damage', 'minecraft:attack'] }
+];
+
+/** The stats Java decides and publishes for a type whose Bedrock file declares no component for them. */
+const undeclaredJavaStats = (subject: EntitySubject): readonly SharedStat[] => {
+    const declared = serverContent().entities.registry.get(subject.bedrock)?.declaredComponents ?? [];
+    return UNDECLARED_STATS.flatMap(({ stat, components }) =>
+        javaStat(subject.javaId, stat) !== undefined &&
+        statRuling(subject.bedrock, stat).kind === 'java' &&
+        !components.some((component) => declared.includes(component))
+            ? [stat]
+            : []
+    );
+};
+
+/**
+ * A stat Java decides on a type whose Bedrock file declares no component for it. ADR 0001 gives
+ * the stat to Java whatever the file says, so the server runs Java's number rather than its own
+ * fallback: Bedrock's zombie declares no follow range, and Java's is 35, not 16.
+ */
+const undeclaredStatScenario: BehaviorScenario<EntitySubject> = {
+    name: 'spawn-undeclared-java-stat',
+    java: "An entity spawns with every stat ADR 0001 gives to Java at Java's value, even when its Bedrock file declares no component for it.",
+    reference:
+        "Java follow_range, knockback_resistance and attack_damage in each type's createAttributes (packages/bedrock-data/src/jsp/java/26.3/entity_attributes.json); docs/adr/0001-entity-stat-authority.md",
+    subjects: () =>
+        javaEntityIds().flatMap((javaId) => {
+            const subject = mappedEntity(javaId);
+            return subject === undefined || undeclaredJavaStats(subject).length === 0 ? [] : [subject];
+        }),
+    idOf: (subject) => subject.javaId,
+    aspects: (subject) => undeclaredJavaStats(subject),
+    run: (subject) => {
+        const differences = withSpawned(subject.bedrock, (entity) =>
+            undeclaredJavaStats(subject).flatMap((stat) => {
+                const attribute = SHARED_STATS[stat].attribute;
+                const server = attribute === undefined ? undefined : entity.instance.attributes.get(attribute)?.base;
+                const java = javaStat(subject.javaId, stat);
+                return server === java
+                    ? []
+                    : [`the server spawns it with ${stat} ${server ?? 'undeclared'}, where Java has ${String(java)}`];
+            })
+        );
+        return differences.length === 0 ? undefined : differences.join('; ');
+    }
+};
 
 /** The goals that land a melee blow, which is all `minecraft:attack`'s damage is read by. */
 const MELEE_GOALS = [
@@ -1357,6 +1408,7 @@ const preferredPathScenario: BehaviorScenario<EntitySubject> = {
 /** Every scenario of this module, before its open gaps are named. */
 const scenarios: readonly BehaviorScenario<EntitySubject>[] = [
     ...STAT_ASPECTS.map(statScenario),
+    undeclaredStatScenario,
     attackScenario,
     turnScenario,
     navigationScenario,
