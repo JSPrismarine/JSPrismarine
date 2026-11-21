@@ -1,6 +1,6 @@
 # llms.txt for the docs site
 
-Written 2026-11-21 on `docs/llms-txt-plan`. Nothing is built yet. [What we know](#what-we-know)
+Written 2026-11-21 on `docs/llms-txt-plan`. Phase 1 is built on `feat/docs-llms-markdown-pages`. [What we know](#what-we-know)
 records how the docs build works today, [Design](#design) proposes what to publish and how to
 generate it, and [Decisions](#decisions) records what the maintainer settled on 2026-11-21.
 
@@ -148,15 +148,16 @@ error catalog would crowd out the guides for a reader with a smaller context.
 
 ### Turning a page into Markdown for a model
 
-The per-page files and `llms-full.txt` use the staged Markdown with these changes, in one function
-that both use:
+The per-page files and `llms-full.txt` use the staged Markdown, through `pageMarkdown` in
+`tools/docs/llms.mts`. Staging has already filled the docs facts and taken their markers out, and the
+staged pages use no VitePress containers, since they are written for GitHub. `pageMarkdown` makes
+two changes:
 
-- Remove the front matter, but keep its `description` as the paragraph under the title when the
-  page has no opening paragraph.
-- Remove the `<!-- fact:name -->` and `<!-- /fact -->` markers and keep the value between them.
-- Turn site-absolute links into absolute URLs, pointing at the `.md` file when the target is a page
-  that has one, and keep the anchor.
-- Turn VitePress containers (`::: tip`) into blockquotes with their label.
+- Remove the front matter. Its `title` becomes the H1 when the page has none, and its
+  `description` the paragraph under the title when the page has no opening paragraph.
+- Turn site-absolute and relative links into absolute URLs, pointing at the `.md` file when the
+  target is a page that has one, and keep the anchor. A link to a heading on the same page stays as
+  written.
 
 A page built from a Vue component gets a Markdown body written from the data the component renders:
 
@@ -211,8 +212,8 @@ the built site.
 
 ## Phases
 
-1. `llms.mts` with the page-to-Markdown function and per-page `.md` files for the staged sections,
-   the `_headers` entry and the tests for them.
+1. Done: `llms.mts` with the page-to-Markdown function and per-page `.md` files for the staged
+   sections, the `_headers` entry and the tests for them.
 2. `/llms.txt` from the sections, overview groups and packages, and the footer link.
 3. `/llms-full.txt` with its byte budget.
 4. Markdown bodies for the component pages: Packages, addons, Releases, Parity and Benchmarks.
