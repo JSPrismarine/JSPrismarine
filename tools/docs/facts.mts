@@ -57,9 +57,12 @@ import {
 import {
     builtInGroup,
     DEFAULT_PLAYER_PERMISSIONS,
-    PERMISSIONS_BACKUP_NAME,
-    PERMISSIONS_SCHEMA_VERSION
+    PERMISSIONS_FILE_NAME,
+    PERMISSIONS_MIGRATIONS,
+    PERMISSIONS_SCHEMA_VERSION,
+    VERSION_3_DEFAULT_PERMISSIONS
 } from '../../packages/prismarine/src/permission/PermissionsFile.ts';
+import { backupPathOf } from '../../packages/prismarine/src/config/FileMigrations.ts';
 import { PERMS_COMMAND_PERMISSION, PERMS_SUBCOMMANDS } from '../../packages/prismarine/src/command/permsCommand.ts';
 import {
     ADDONS_DIRECTORY,
@@ -419,7 +422,9 @@ function permissionFacts() {
         'permissions.levelRange': `${CommandPermissionLevel.ANY} to ${CommandPermissionLevel.OWNER}`,
         'permissions.operatorLevel': String(CommandPermissionLevel.OWNER),
         'permissions.schemaVersion': String(PERMISSIONS_SCHEMA_VERSION),
-        'permissions.backupFile': inlineCode(PERMISSIONS_BACKUP_NAME),
+        'permissions.backupFile': inlineCode(backupPathOf(PERMISSIONS_FILE_NAME, PERMISSIONS_MIGRATIONS.unversioned)),
+        'permissions.unversioned': String(PERMISSIONS_MIGRATIONS.unversioned),
+        'permissions.version3Nodes': list(VERSION_3_DEFAULT_PERMISSIONS.map((node) => inlineCode(node))),
         'permissions.perms.node': inlineCode(PERMS_COMMAND_PERMISSION),
         'permissions.perms.subcommandNodes': list(
             PERMS_SUBCOMMANDS.map((sub) => inlineCode(`${PERMS_COMMAND_PERMISSION}.${sub}`))
@@ -457,7 +462,13 @@ const missingSetting = (key: string): never => {
 async function configFacts() {
     const rows = (await loadSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
     const optional = (await loadOptionalSettings()).map(({ key, comment }) => [`\`${key}\``, comment]);
+    const { CONFIG_MIGRATIONS } = await import('../../packages/prismarine/src/config/Config.ts');
     return {
+        'config.schemaVersion': String(CONFIG_MIGRATIONS.current),
+        'config.backupFile': inlineCode(backupPathOf(CONFIG_MIGRATIONS.fileName, CONFIG_MIGRATIONS.unversioned)),
+        'config.secondBackupFile': inlineCode(
+            backupPathOf(CONFIG_MIGRATIONS.fileName, CONFIG_MIGRATIONS.unversioned, 2)
+        ),
         'config.count': String(rows.length),
         'config.table': `\n${table(['Setting', 'What it does'], rows)}\n`,
         // Read when present, never written: a fresh file leaves them out.

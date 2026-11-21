@@ -12,11 +12,13 @@ import type PlayerSession from '../network/PlayerSession';
 import type { ConfigDocument } from '../config/ConfigDocument';
 import { parseConfigDocument } from '../config/ConfigDocument';
 import type { OpEntry } from '../config/JsonConfigTypes';
+import { migrateFile } from '../config/FileMigrations';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { subjectEntryOf, subjectOfEntry } from '../config/subjectEntry';
 import type { Subject } from '../identity/Subject';
 import { sameSubject, subjectId } from '../identity/Subject';
 import { cwd, withCwd } from '../utils/cwd';
+import { hasErrorCode } from '../utils/hasErrorCode';
 import { isRecord } from '../utils/isRecord';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type { Entry, Group, Membership, Node, User } from './model';
@@ -42,10 +44,9 @@ import {
     documentOf,
     dropParentCycles,
     groupPath,
-    layoutOf,
-    migrateLegacyPermissions,
-    PERMISSIONS_BACKUP_NAME,
+    isCurrentLayout,
     PERMISSIONS_FILE_NAME,
+    PERMISSIONS_MIGRATIONS,
     PERMISSIONS_SCHEMA_VERSION,
     readPermissions,
     removePendingEntries,
@@ -82,9 +83,6 @@ const OPS_FILE_NAME = 'ops.json';
 const RELOAD_DEBOUNCE_MS = 150;
 /** The longest wait a timer takes; an expiry further off waits this long and looks again. */
 const MAX_TIMER_MS = 2 ** 31 - 1;
-
-/** Whether a thrown value is a system error with this code. */
-const hasErrorCode = (error: unknown, code: string): boolean => isRecord(error) && error.code === code;
 
 /**
  * Anything that can be checked for command permissions: the console, or a player-like object
@@ -471,7 +469,7 @@ export class PermissionManager implements Service {
         }
         const document = parseConfigDocument(text);
         const root = document.get([]);
-        if (!isRecord(root) || layoutOf(root) !== 'current') {
+        if (!isRecord(root) || !isCurrentLayout(root)) {
             throw new PrismarineServerErrors.PermissionsFileNotLoaded({
                 permissionFileName: PERMISSION_FILE_NAME,
                 supported: PERMISSIONS_SCHEMA_VERSION
@@ -790,49 +788,26 @@ export class PermissionManager implements Service {
     }
 
     /**
-     * Reads `permissions.json`, writing a fresh one when there is none and migrating one written
-     * before `schemaVersion` existed, with the old file kept beside it as `permissions.json.bak`.
-     * A file that lacks `default` or `operator` reads as if it had a fresh file's, and a parent
-     * that would make a group its own ancestor is dropped with a log line.
+     * Reads `permissions.json`, writing a fresh one when there is none and bringing an older one to
+     * the current layout through {@link PERMISSIONS_MIGRATIONS}, which keeps the original beside it.
+     * A file that lacks `default` or `operator` reads as if it had a fresh file's, and a parent that
+     * would make a group its own ancestor is dropped with a log line.
      */
     private async readPermissionsFile(): Promise<{ readonly loaded: LoadedPermissions; readonly text: string }> {
         const file = withCwd(PERMISSION_FILE_NAME);
         try {
-            let text: string;
-            if (fs.existsSync(file)) {
-                text = await fs.promises.readFile(file, 'utf8');
-            } else {
+            let migrated = await migrateFile(file, PERMISSIONS_MIGRATIONS, this.server.getLogger());
+            if (migrated === undefined) {
                 // A first start has no file yet; making one is routine, not a warning.
                 this.server.getLogger().info(`Created the default permissions in ${PERMISSION_FILE_NAME}.`);
-                text = await writeJsonFile(file, defaultPermissionsDocument());
+                const document = defaultPermissionsDocument();
+                const text = await writeJsonFile(file, document);
+                migrated = { document, text, from: PERMISSIONS_SCHEMA_VERSION, to: PERMISSIONS_SCHEMA_VERSION };
             }
-
-            let document = parseConfigDocument(text.trim() === '' ? '{}' : text);
-            let root = document.get([]);
-            if (!isRecord(root))
-                throw new PrismarineServerErrors.PermissionsNotObject({ permissionFileName: PERMISSION_FILE_NAME });
-
-            const layout = layoutOf(root);
-            if (layout === 'absent') {
-                await this.backUp(file);
-                document = migrateLegacyPermissions(root);
-                text = await writeJsonFile(file, document);
-                root = document.get([]);
-                this.server
-                    .getLogger()
-                    .info(
-                        `Migrated ${PERMISSION_FILE_NAME} to schema version ${PERMISSIONS_SCHEMA_VERSION}; the old file is ${PERMISSIONS_BACKUP_NAME}.`
-                    );
-            } else if (layout === 'other') {
-                throw new PrismarineServerErrors.PermissionsSchemaUnsupported({
-                    permissionFileName: PERMISSION_FILE_NAME,
-                    schemaVersion: String(root.schemaVersion),
-                    supported: PERMISSIONS_SCHEMA_VERSION
-                });
-            }
-            if (!isRecord(root))
-                throw new PrismarineServerErrors.PermissionsNotObject({ permissionFileName: PERMISSION_FILE_NAME });
-            const loaded = readPermissions(root);
+            const { document, text } = migrated;
+            // The migration refuses a root that is not an object, so this only narrows the type.
+            const root = document.get([]);
+            const loaded = readPermissions(isRecord(root) ? root : {});
             for (const name of [DEFAULT_GROUP, OPERATOR_GROUP] as const) {
                 if (!loaded.groups.has(name)) loaded.groups.set(name, builtInGroup(name));
             }
@@ -848,23 +823,6 @@ export class PermissionManager implements Service {
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new PrismarineServerErrors.InvalidPermissionsEntry({ permissionFileName: PERMISSION_FILE_NAME });
-        }
-    }
-
-    /**
-     * Copies the file a migration is about to replace to `permissions.json.bak`. A backup already
-     * there is the older file, so it stays and the copy is skipped with a log line.
-     */
-    private async backUp(file: string): Promise<void> {
-        try {
-            await fs.promises.copyFile(file, withCwd(PERMISSIONS_BACKUP_NAME), fs.constants.COPYFILE_EXCL);
-        } catch (error: unknown) {
-            if (!hasErrorCode(error, 'EEXIST')) throw error;
-            this.server
-                .getLogger()
-                .info(
-                    `${PERMISSIONS_BACKUP_NAME} already exists and is kept; ${PERMISSION_FILE_NAME} is not copied over it.`
-                );
         }
     }
 

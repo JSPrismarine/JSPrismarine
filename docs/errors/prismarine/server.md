@@ -415,26 +415,8 @@ A group's parent must be another group; a group cannot inherit itself.
 
 Thrown as `PrismarineServerErrors.PermissionsFileNotLoaded`, which extends `Error`.
 
-`permissions.json` is no longer a version 2 file while the server runs, so an edit cannot
-be saved into it. Restore the file, or run `/perms reload` after fixing it.
-
-## `PRISMARINE_PERMISSIONS_NOT_OBJECT`
-
-`{permissionFileName} must hold an object`
-
-Thrown as `PrismarineServerErrors.PermissionsNotObject`, which extends `Error`.
-
-`permissions.json` is not a JSON object. Fix it, or delete it to have the server write a
-fresh one.
-
-## `PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED`
-
-`{permissionFileName} has schemaVersion {schemaVersion}, and this server reads up to {supported}`
-
-Thrown as `PrismarineServerErrors.PermissionsSchemaUnsupported`, which extends `Error`.
-
-`permissions.json` names a `schemaVersion` this server does not read, so it was written by
-a newer server. Update the server, or restore the file an older one wrote.
+`permissions.json` is no longer at the version this server writes while the server runs, so
+an edit cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
 
 ## `PRISMARINE_PLAYER_NOT_FOUND`
 

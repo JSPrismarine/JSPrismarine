@@ -1,7 +1,7 @@
 import { testKernel } from '../testing/kernel.test.helper';
 import { KernelEventBus } from '@jsprismarine/kernel';
 import type { ServerEvents } from '../events/ServerEvents';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,7 @@ import { stub } from '../testing/stub.test.helper';
 import { canExecute, PermissionManager } from './PermissionManager';
 import type { PermissionChange, PermissionManagerServer } from './PermissionManager';
 import { DEFAULT_GROUP, OPERATOR_GROUP } from './model';
+import { VERSION_3_DEFAULT_PERMISSIONS } from './PermissionsFile';
 import { identityNamed } from '../testing/sessionIdentity.test.helper';
 import type { Subject } from '../identity/Subject';
 
@@ -122,7 +123,7 @@ describe('permission', () => {
             expect(text).toContain('// Users by platform:');
             expect(permissions()).toStrictEqual({
                 $schema: `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/permissions.schema.json`,
-                schemaVersion: 2,
+                schemaVersion: 3,
                 groups: {
                     default: {
                         weight: 0,
@@ -164,17 +165,24 @@ describe('permission', () => {
 }
 `;
 
-            it('turns a file without a schemaVersion into groups and pending users, keeping the old file as .bak, with the last record of a UUID as the old loader read it', async () => {
+            it('turns a file without a schemaVersion into groups and pending users, keeping the old file as .v1.bak, with the last record of a UUID as the old loader read it', async () => {
                 writeFileSync(permissionsFile(), LEGACY);
                 opsFile('Op');
 
                 await manager.enable();
 
-                expect(readFileSync(`${permissionsFile()}.bak`, 'utf8')).toBe(LEGACY);
+                expect(readFileSync(`${permissionsFile()}.v1.bak`, 'utf8')).toBe(LEGACY);
                 expect(permissions()).toMatchObject({
-                    schemaVersion: 2,
+                    schemaVersion: 3,
                     groups: {
-                        default: { weight: 0, parents: [], nodes: [{ node: 'minecraft.command.help' }], meta: {} },
+                        default: {
+                            weight: 0,
+                            parents: [],
+                            nodes: ['minecraft.command.help', ...VERSION_3_DEFAULT_PERMISSIONS].map((node) => ({
+                                node
+                            })),
+                            meta: {}
+                        },
                         operator: { weight: 100, parents: [], nodes: [{ node: 'minecraft.command.*' }], meta: {} }
                     },
                     users: { xbox: {}, java: {}, offline: {} },
@@ -267,28 +275,65 @@ describe('permission', () => {
                 });
             });
 
-            it.each(['3', '"2"', '1.5'])(
-                'refuses a file whose schemaVersion is %s rather than the number 2, without rewriting it',
-                async (version) => {
+            it.each([
+                { version: '4', code: 'PRISMARINE_FILE_VERSION_TOO_NEW' },
+                { version: '"2"', code: 'PRISMARINE_FILE_VERSION_INVALID' },
+                { version: '1.5', code: 'PRISMARINE_FILE_VERSION_INVALID' }
+            ])(
+                'refuses a file whose schemaVersion is $version rather than a whole number up to 3, without rewriting it',
+                async ({ version, code }) => {
                     const text = `{ "schemaVersion": ${version}, "groups": {}, "users": {} }`;
                     writeFileSync(permissionsFile(), text);
 
                     await expect(manager.enable()).rejects.toThrow('Invalid permissions.json file.');
 
-                    expect(logger.error).toHaveBeenCalledWith(
-                        expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
-                    );
+                    expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ code }));
                     expect(permissionsText()).toBe(text);
-                    expect(existsSync(`${permissionsFile()}.bak`)).toBe(false);
+                    expect(readdirSync(directory).filter((name) => name.endsWith('.bak'))).toEqual([]);
                 }
             );
 
-            it('gives `default` nothing when the old file names no valid default permissions, as the old loader did', async () => {
+            it('adds the link nodes to the default group of a version 2 file once, and keeps it as .v2.bak', async () => {
+                const text = JSON.stringify({
+                    schemaVersion: 2,
+                    groups: {
+                        default: { weight: 0, parents: [], nodes: [{ node: 'minecraft.command.help' }], meta: {} },
+                        vip: { weight: 10, parents: ['default'], nodes: [{ node: 'minecraft.command.me' }], meta: {} }
+                    },
+                    users: { offline: {} }
+                });
+                writeFileSync(permissionsFile(), text);
+
+                await manager.enable();
+                await manager.disable();
+                await manager.enable();
+
+                expect(readFileSync(`${permissionsFile()}.v2.bak`, 'utf8')).toBe(text);
+                expect(readdirSync(directory).filter((name) => name.endsWith('.bak'))).toEqual([
+                    'permissions.json.v2.bak'
+                ]);
+                expect(permissions()).toMatchObject({
+                    schemaVersion: 3,
+                    groups: {
+                        default: {
+                            nodes: ['minecraft.command.help', ...VERSION_3_DEFAULT_PERMISSIONS].map((node) => ({
+                                node
+                            }))
+                        },
+                        vip: { nodes: [{ node: 'minecraft.command.me' }] }
+                    }
+                });
+                for (const node of VERSION_3_DEFAULT_PERMISSIONS) expect(manager.has(steve, node)).toBe(true);
+            });
+
+            it('gives `default` only the nodes later versions add when the old file names no valid default permissions, as the old loader read it', async () => {
                 writeFileSync(permissionsFile(), '{ "defaultPermissions": "help", "players": [] }');
 
                 await manager.enable();
 
-                expect(manager.groupOf(DEFAULT_GROUP)?.nodes).toEqual([]);
+                expect(manager.groupOf(DEFAULT_GROUP)?.nodes.map(({ node }) => node)).toEqual([
+                    ...VERSION_3_DEFAULT_PERMISSIONS
+                ]);
                 expect(manager.has(steve, 'minecraft.command.help')).toBe(false);
             });
 
@@ -310,7 +355,7 @@ describe('permission', () => {
                 writeFileSync(
                     permissionsFile(),
                     JSON.stringify({
-                        schemaVersion: 2,
+                        schemaVersion: 3,
                         groups: { vip: { weight: 1, parents: [], nodes: [], meta: {} } },
                         users: {},
                         pending: [
@@ -365,7 +410,7 @@ describe('permission', () => {
             writeFileSync(
                 permissionsFile(),
                 JSON.stringify({
-                    schemaVersion: 2,
+                    schemaVersion: 3,
                     groups: {
                         a: {
                             weight: 1,
@@ -539,7 +584,7 @@ describe('permission', () => {
             it('knows the bytes a hand-edited file holds, so a file without `$schema` is not read as changed', async () => {
                 writeFileSync(
                     permissionsFile(),
-                    JSON.stringify({ schemaVersion: 2, groups: {}, users: { offline: {} } }, null, 4)
+                    JSON.stringify({ schemaVersion: 3, groups: {}, users: { offline: {} } }, null, 4)
                 );
                 await manager.enable();
 
@@ -583,7 +628,7 @@ describe('permission', () => {
                 await manager.grantUser(steve, 'a.b');
 
                 expect(permissions()).toMatchObject({
-                    schemaVersion: 2,
+                    schemaVersion: 3,
                     groups: { default: expect.anything(), operator: expect.anything(), vip: expect.anything() },
                     users: { offline: { Steve: { nodes: [{ node: 'a.b' }] } } }
                 });
@@ -619,17 +664,17 @@ describe('permission', () => {
 
                 expect(manager.groupOf('vip')).toBeUndefined();
                 expect(manager.has(steve, 'x.y')).toBe(true);
-                expect(existsSync(`${permissionsFile()}.bak`)).toBe(true);
+                expect(existsSync(`${permissionsFile()}.v1.bak`)).toBe(true);
                 expect(permissions()).toMatchObject({
-                    schemaVersion: 2,
-                    groups: { default: { nodes: [{ node: 'x.y' }] } },
+                    schemaVersion: 3,
+                    groups: { default: { nodes: ['x.y', ...VERSION_3_DEFAULT_PERMISSIONS].map((node) => ({ node })) } },
                     users: { offline: { Steve: { nodes: [{ node: 'a.b' }] } } }
                 });
             });
 
             it('refuses an edit while the file on disk declares a schemaVersion this server does not read, and rewrites nothing', async () => {
                 await manager.enable();
-                const text = '{ "schemaVersion": 3, "groups": {}, "users": {} }';
+                const text = '{ "schemaVersion": 4, "groups": {}, "users": {} }';
                 writeFileSync(permissionsFile(), text);
 
                 await expect(manager.grantUser(steve, 'a.b')).rejects.toThrow('Invalid permissions.json file.');
@@ -638,7 +683,7 @@ describe('permission', () => {
                 expect(manager.has(steve, 'minecraft.command.help')).toBe(true);
                 expect(permissionsText()).toBe(text);
                 expect(logger.error).toHaveBeenCalledWith(
-                    expect.objectContaining({ code: 'PRISMARINE_PERMISSIONS_SCHEMA_UNSUPPORTED' })
+                    expect.objectContaining({ code: 'PRISMARINE_FILE_VERSION_TOO_NEW' })
                 );
             });
 
@@ -892,7 +937,7 @@ describe('permission', () => {
                 writeFileSync(
                     permissionsFile(),
                     JSON.stringify({
-                        schemaVersion: 2,
+                        schemaVersion: 3,
                         groups: {},
                         users: {},
                         pending: [{ name: 'alice', legacyUuid: 'u-a', groups: [], nodes: [{ node: 'a.b' }], meta: {} }]
@@ -998,8 +1043,7 @@ describe('permission', () => {
                 'jsprismarine.command.plugins',
                 'jsprismarine.command.version',
                 'jsprismarine.command.tps',
-                'jsprismarine.command.link',
-                'jsprismarine.command.unlink'
+                ...VERSION_3_DEFAULT_PERMISSIONS
             ]);
         });
 

@@ -59,9 +59,14 @@ export class ConfigBuilder {
      * @param filePath - The `.json` file to read and write.
      * @param keyOrder - Where a new top-level key is inserted, so the file keeps one order no
      *   matter which part of the server writes a key first.
+     * @param initialize - Writes what a file this builder creates starts with, such as its version.
      * @throws Error when the file extension is not `.json`.
      */
-    public constructor(filePath: string, keyOrder?: readonly string[]) {
+    public constructor(
+        filePath: string,
+        keyOrder?: readonly string[],
+        initialize?: (document: ConfigDocument) => void
+    ) {
         const parsed = path.parse(filePath);
         if (parsed.ext.toLowerCase() !== '.json') {
             throw new PrismarineServerErrors.UnsupportedConfigType();
@@ -73,8 +78,10 @@ export class ConfigBuilder {
         if (created) fs.writeFileSync(filePath, '{}\n', 'utf8');
 
         this.path = filePath;
-        if (created && path.basename(filePath) === 'config.json') {
-            this.write(this.read());
+        if (created && (initialize !== undefined || path.basename(filePath) === 'config.json')) {
+            const document = this.read();
+            initialize?.(document);
+            this.write(document);
         }
     }
 

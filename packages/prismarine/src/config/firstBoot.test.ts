@@ -37,6 +37,7 @@ describe('the config file a boot generates', () => {
     /** How the keys are defined in code: `Config` first, then the content settings. */
     const DEFINITION_ORDER = [
         '$schema',
+        'schemaVersion',
         'log-level',
         'server-port',
         'server-portv6',
