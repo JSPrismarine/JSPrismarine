@@ -107,6 +107,8 @@ const COMMENTS = {
     'java-enabled':
         'Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.',
     'java-port': 'The TCP port Java Edition clients connect to. They look for 25565.',
+    'account-linking':
+        'Whether a player can link their Java Edition and Xbox accounts with /link, so both play as one player with one record. Off, each account is its own player and links already made are kept but ignored.',
     'server-udp-ports':
         "The UDP ports NetherNet players use, as Bedrock Dedicated Server's server-udp-ports. A single port, such as 19489, puts every player on it. A range, such as 19400-19500, spreads players over its ports and reuses a port once every port has a player. Either can be a public:local mapping for a server behind NAT or port forwarding, such as 29489:19489 or 21200-21300:19400-19500, with the same number of ports on each side. Commas join entries whose local ports form one continuous range. Unset or empty, it is server-port, shared with RakNet. A port that is also server-port or server-portv6 is shared with RakNet. Ignored when enable-nethernet is off.",
     'server-public-ip':
@@ -271,6 +273,7 @@ const DEFAULTS = {
     'enable-nethernet': true,
     'java-enabled': false,
     'java-port': 25565,
+    'account-linking': true,
     'server-udp-ports': '',
     'server-public-ip': '',
     'enable-server-public-ip-lookup': true,
@@ -418,6 +421,7 @@ export class Config {
     private enableNetherNet: boolean = DEFAULTS['enable-nethernet'];
     private javaEnabled: boolean = DEFAULTS['java-enabled'];
     private javaPort: number = DEFAULTS['java-port'];
+    private accountLinking: boolean = DEFAULTS['account-linking'];
     private serverUdpPorts: string = DEFAULTS['server-udp-ports'];
     private serverPublicIp: string = DEFAULTS['server-public-ip'];
     private enableServerPublicIpLookup: boolean = DEFAULTS['enable-server-public-ip-lookup'];
@@ -573,6 +577,7 @@ export class Config {
         this.enableNetherNet = read('enable-nethernet', DEFAULTS['enable-nethernet']);
         this.javaEnabled = read('java-enabled', DEFAULTS['java-enabled']);
         this.javaPort = read('java-port', DEFAULTS['java-port']);
+        this.accountLinking = read('account-linking', DEFAULTS['account-linking']);
         // Unset, NetherNet's UDP and query follow the server port, as Bedrock Dedicated Server's
         // server-udp-ports does; reading them writes nothing.
         this.serverUdpPorts = readUnwritten('server-udp-ports', DEFAULTS['server-udp-ports']);
@@ -1093,6 +1098,11 @@ export class Config {
     /** The TCP port Java Edition clients connect to. */
     public getJavaPort(): number {
         return this.javaPort;
+    }
+
+    /** Whether players can link a Java Edition account and an Xbox account into one player. */
+    public getAccountLinking(): boolean {
+        return this.accountLinking;
     }
 
     /** The NetherNet UDP ports setting, unparsed, in Bedrock Dedicated Server's syntax; empty means the server port. */

@@ -34,7 +34,9 @@ export const DEFAULT_PLAYER_PERMISSIONS: readonly string[] = [
     'minecraft.command.me',
     'jsprismarine.command.plugins',
     'jsprismarine.command.version',
-    'jsprismarine.command.tps'
+    'jsprismarine.command.tps',
+    'jsprismarine.command.link',
+    'jsprismarine.command.unlink'
 ];
 
 /** A user the file knows, with the subject it is filed under. */

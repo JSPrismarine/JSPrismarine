@@ -35,6 +35,7 @@ import { softwareLabel } from '../version';
 import { registerAddonCommand } from './addonCommand';
 import { deferCommandWork } from './deferred';
 import { registerGametestCommand } from './gametestCommand';
+import { LINK_COMMAND_PERMISSIONS, registerLinkCommands } from './linkCommand';
 import { PERMS_COMMAND_PERMISSION, registerPermsCommand } from './permsCommand';
 import { resolvePlayer } from './host/support';
 import { PrismarineCommandErrors } from '@jsprismarine/errors/prismarine/command';
@@ -53,7 +54,8 @@ export const JSPRISMARINE_COMMAND_PERMISSIONS: Readonly<Record<string, string>> 
     ban: 'minecraft.command.ban',
     pardon: 'minecraft.command.pardon',
     addon: 'jsprismarine.command.addon',
-    perms: PERMS_COMMAND_PERMISSION
+    perms: PERMS_COMMAND_PERMISSION,
+    ...LINK_COMMAND_PERMISSIONS
 };
 
 /**
@@ -401,4 +403,5 @@ export const registerJsprismarineCommands = (registry: CommandRegistry<CommandSo
     registerGametestCommand(registry, server);
     registerAddonCommand(registry, server);
     registerPermsCommand(registry, server);
+    registerLinkCommands(registry, server);
 };

@@ -133,7 +133,9 @@ describe('permission', () => {
                             'minecraft.command.me',
                             'jsprismarine.command.plugins',
                             'jsprismarine.command.version',
-                            'jsprismarine.command.tps'
+                            'jsprismarine.command.tps',
+                            'jsprismarine.command.link',
+                            'jsprismarine.command.unlink'
                         ].map((node) => ({ node })),
                         meta: {}
                     },
@@ -995,7 +997,9 @@ describe('permission', () => {
                 'minecraft.command.me',
                 'jsprismarine.command.plugins',
                 'jsprismarine.command.version',
-                'jsprismarine.command.tps'
+                'jsprismarine.command.tps',
+                'jsprismarine.command.link',
+                'jsprismarine.command.unlink'
             ]);
         });
 

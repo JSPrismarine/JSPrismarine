@@ -43,6 +43,7 @@ import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import { broadcastSharedBatches } from './network/MinecraftSession';
 import type { PermissionManager } from './permission/PermissionManager';
 import { bansModule } from './modules/bans';
+import { accountLinksModule } from './modules/accountLinks';
 import { commandsModule, loadFunctionsModule } from './modules/commands';
 import { contentModule } from './modules/content';
 import { packetHandlersModule } from './modules/packetHandlers';
@@ -471,6 +472,7 @@ export default class Server {
         kernel.register(packetHandlersModule(this.packetHandlerRegistry));
         kernel.register(permissionsModule(this));
         kernel.register(bansModule(this));
+        kernel.register(accountLinksModule(this));
         kernel.register(socialModule(this));
         kernel.register(tickerModule(this.ticker));
         kernel.register(networkModule(this.networking));

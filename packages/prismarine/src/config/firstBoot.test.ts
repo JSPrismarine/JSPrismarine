@@ -66,6 +66,7 @@ describe('the config file a boot generates', () => {
         'enable-nethernet',
         'java-enabled',
         'java-port',
+        'account-linking',
         'enable-server-public-ip-lookup',
         'enable-lan-visibility',
         'packet-compression-level',

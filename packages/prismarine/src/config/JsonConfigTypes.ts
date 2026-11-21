@@ -177,6 +177,8 @@ export interface ConfigFile {
     'use-raknet-worker'?: boolean;
     /** Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to. */
     'enable-nethernet'?: boolean;
+    /** Whether a Java Edition account and an Xbox account can be linked into one player. */
+    'account-linking'?: boolean;
     /** Whether to answer Java Edition clients on `java-port`. */
     'java-enabled'?: boolean;
     /** The TCP port Java Edition clients connect to. */
@@ -295,6 +297,7 @@ export const CONFIG_KEY_ORDER = [
     'enable-nethernet',
     'java-enabled',
     'java-port',
+    'account-linking',
     'server-udp-ports',
     'server-public-ip',
     'enable-server-public-ip-lookup',

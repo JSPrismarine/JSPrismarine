@@ -387,7 +387,7 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->45<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->46<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
@@ -422,6 +422,7 @@ above it. The list comes from the code that writes the file, so it matches what 
 | `enable-nethernet`                    | Whether to accept clients over NetherNet, the WebRTC transport Bedrock Dedicated Server defaults to.                                                                                                                                                                                                                                                |
 | `java-enabled`                        | Whether to answer Java Edition clients on java-port. The server shows in their server list; joining is not open to them yet.                                                                                                                                                                                                                        |
 | `java-port`                           | The TCP port Java Edition clients connect to. They look for 25565.                                                                                                                                                                                                                                                                                  |
+| `account-linking`                     | Whether a player can link their Java Edition and Xbox accounts with /link, so both play as one player with one record. Off, each account is its own player and links already made are kept but ignored.                                                                                                                                             |
 | `enable-server-public-ip-lookup`      | Whether NetherNet looks up the public address when server-public-ip is empty, by asking a few free web services at startup, and offers it to a player whose join would otherwise carry no public address. Off, it offers only what server-public-ip and the player give it. Ignored when enable-nethernet is off.                                   |
 | `enable-lan-visibility`               | Whether players on the local network see the server among their LAN games.                                                                                                                                                                                                                                                                          |
 | `packet-compression-level`            | The zlib level for outgoing batches, from -1 (zlib's default) to 9.                                                                                                                                                                                                                                                                                 |
@@ -556,6 +557,25 @@ health or hunger bar the server keeps current.
 When another program holds `java-port`, the server does not start, and its error names the port.
 Free it, change `java-port`, or set `java-enabled` to `false`.
 
+### Linked accounts
+
+With `account-linking` on, as it is by default, a player who owns both editions can link their
+Java Edition account and their Xbox account, so both play as one player: one saved record, one set
+of permissions, and one live session, so a login on the second edition replaces the first. Type
+`/link` on one edition to get a short code, then, within five minutes, `/link <code>` on the other.
+The account that asked for the code leads: from its next login, the other account plays as it, by
+its name. The other account's own record stays saved, and `/unlink` on either side brings it back.
+
+Only accounts a sign-in vouched for can link, so linking needs `online-mode` on. The links are kept
+in `account-links.json` beside the ban list. With `account-linking` off, `/link` and `/unlink` say
+so, each account is its own player, and the links already made are kept but ignored.
+
+A fresh `permissions.json` grants `jsprismarine.command.link` and `jsprismarine.command.unlink` to
+every player.
+
+Players of both editions may share a name without linking: a Java Edition player and a Bedrock
+player called Steve can both play, and each keeps a record of their own.
+
 ### Query
 
 With `enable-query` on, which is the default, the server answers the GameSpy4 query protocol
@@ -679,7 +699,7 @@ the migration succeeds.
 
 `permissions.json` holds two sections, `groups` and `users`. Every player holds the `default`
 group, and every operator holds `operator` as well, so a fresh file is enough to run a server: it
-lets every player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, and gives
+lets every player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/tps`, `/unlink` and `/version`<!-- /fact -->, and gives
 operators <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->, which is every node. A file with a rank looks like this:
 
 <!-- fact:permissions.example -->

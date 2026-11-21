@@ -10,6 +10,7 @@ import type { StatsRegistry } from '../stats/StatsRegistry';
 import type WorldManager from '../world/WorldManager';
 import type { Networking } from './network';
 import type { Ticker } from './ticker';
+import type { AccountLinks } from '../identity/AccountLinks';
 
 /** Where the current content build is read from; the build itself is replaced on every start. */
 export interface ContentSource {
@@ -22,6 +23,9 @@ export interface ContentSource {
 
 /** The ban list, provided by the `prismarine:bans` module. */
 export const bansToken = createToken<BanManager>('prismarine:bans');
+
+/** The server's account links. */
+export const accountLinksToken = createToken<AccountLinks>('prismarine:account-links');
 /** Operator status and permission grants, provided by the `prismarine:permissions` module. */
 export const permissionsToken = createToken<PermissionManager>('prismarine:permissions');
 /** The chat forwarder, provided by the `prismarine:social` module. */

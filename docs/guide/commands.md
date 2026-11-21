@@ -7,7 +7,7 @@ category: Guides
 
 # Command reference
 
-JSPrismarine answers <!-- fact:commands.server -->67<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
+JSPrismarine answers <!-- fact:commands.server -->69<!-- /fact --> commands: the vanilla set it implements, plus a few of its own
 such as `/tps` and `/version`. The table below lists each one with its description, the permission
 node that gates it in `permissions.json` and the permission level it needs. It is generated from the
 commands the server registers, so it lists exactly what a server of this version accepts.
@@ -17,7 +17,7 @@ commands the server registers, so it lists exactly what a server of this version
 A player needs two things to run a command, and the table shows both.
 
 The **permission** column is the node in `permissions.json`. A fresh `permissions.json` lets every
-player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact -->, through the `default` group every player
+player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/tps`, `/unlink` and `/version`<!-- /fact -->, through the `default` group every player
 holds, and grants every operator `*` through the `operator` group, which covers every node. To let
 a player run something else, add the node to their user record or to a group they hold; the
 [permissions section of the running guide](running.md#permissions) explains the file. A node
@@ -166,6 +166,7 @@ does the same thing.
 | `/help`, `/?`         | Shows paged command listings and command syntax.                                                          | `minecraft.command.help`          | 0     | Everyone    |
 | `/kick`               | Removes a player from the server.                                                                         | `minecraft.command.kick`          | 2     | Operators   |
 | `/kill`               | Kills entities.                                                                                           | `minecraft.command.kill`          | 1     | Operators   |
+| `/link`               | Links your Java Edition and Bedrock Edition accounts into one player.                                     | `jsprismarine.command.link`       | 0     | Everyone    |
 | `/list`               | Lists the players online.                                                                                 | `minecraft.command.list`          | 0     | Everyone    |
 | `/locate`             | Finds the nearest structure, biome or point of interest.                                                  | `minecraft.command.locate`        | 1     | Operators   |
 | `/loot`               | Runs a loot table.                                                                                        | `minecraft.command.loot`          | 1     | Operators   |
@@ -207,6 +208,7 @@ does the same thing.
 | `/titleraw`           | Controls screen titles with JSON messages.                                                                | `minecraft.command.titleraw`      | 1     | Operators   |
 | `/tps`                | This command will show TPS (ticks per second) averages of your server from the last 1, 5, and 15 minutes. | `jsprismarine.command.tps`        | 0     | Everyone    |
 | `/transfer`           | Sends players to another server.                                                                          | `minecraft.command.transfer`      | 2     | Operators   |
+| `/unlink`             | Undoes the link between your Java Edition and Bedrock Edition accounts.                                   | `jsprismarine.command.unlink`     | 0     | Everyone    |
 | `/version`, `/about`  | Displays general server information.                                                                      | `jsprismarine.command.version`    | 0     | Everyone    |
 | `/weather`            | Changes the weather.                                                                                      | `minecraft.command.weather`       | 1     | Operators   |
 | `/xp`, `/experience`  | Adds, sets or queries experience.                                                                         | `minecraft.command.xp`            | 1     | Operators   |

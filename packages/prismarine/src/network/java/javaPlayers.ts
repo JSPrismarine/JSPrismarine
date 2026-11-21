@@ -31,6 +31,7 @@ import type { InputQueue } from '../InputQueue';
 import type PlayerSession from '../PlayerSession';
 import type { ConnectionId } from '../transport/ConnectionId';
 import { TransportNames } from '../transport/Transport';
+import { accountLinksToken } from '../../modules/tokens';
 import type { TransportConnection } from '../transport/Transport';
 import type { JavaProfile } from './javaAuth';
 import type { JavaSend } from './JavaPresenter';
@@ -117,12 +118,15 @@ export const javaPlayersOf = (server: Server, inputs: InputQueue): JavaPlayers =
             const subject: Subject = verified
                 ? { kind: 'java', uuid: profile.id }
                 : { kind: 'offline', name: profile.name };
-            const identity = { name: profile.name, xuid: '', uuid: profile.id, subject };
+            // A linked account plays as the account it is linked to: the primary's record, key and name.
+            const links = server.getKernel().get(accountLinksToken);
+            const identity = links.resolve({ name: profile.name, xuid: '', uuid: profile.id, subject });
+            if (identity.linkedFrom === undefined) await links.noteLogin(identity);
             const player = new StorePlayer(entityIds.next(), {
                 uuid: UUID.fromString(profile.id),
-                name: profile.name,
-                xuid: '',
-                subject
+                name: identity.name,
+                xuid: identity.xuid,
+                subject: identity.subject
             });
             player.skin = javaPlayerSkin();
             const spawn = await world.getSpawnPosition();

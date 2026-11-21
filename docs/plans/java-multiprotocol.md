@@ -25,10 +25,10 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Started in 9d: movement hands other-edition viewers plain moves their presenter encodes. Spawns go through the presenter's `showEntity`. The rest of replication, metadata and equipment among it, follows with PR 10. |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Done, [#3456](https://github.com/JSPrismarine/JSPrismarine/pull/3456). |
 | 8 | Java login, Mojang session verification, configuration phase, registries and tags | Done: 8a packet ids ([#3458](https://github.com/JSPrismarine/JSPrismarine/pull/3458)), 8b login ([#3467](https://github.com/JSPrismarine/JSPrismarine/pull/3467)), 8c configuration ([#3471](https://github.com/JSPrismarine/JSPrismarine/pull/3471)). |
-| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, done ([#3489](https://github.com/JSPrismarine/JSPrismarine/pull/3489)). 9d, other players and mobs shown to Java players, in review. |
+| 9 | Java play: chunks with light, own movement, chat, keep-alive. The first joinable milestone | In progress. 9a, the HeadlessMC driver and a `join` scenario, done ([#3475](https://github.com/JSPrismarine/JSPrismarine/pull/3475)). 9b, the world around spawn with light, done ([#3480](https://github.com/JSPrismarine/JSPrismarine/pull/3480)). 9c, the Java player joins the world: session, presenter, movement, chat and chunk streaming, done ([#3489](https://github.com/JSPrismarine/JSPrismarine/pull/3489)). 9d, other players and mobs shown to Java players, done ([#3498](https://github.com/JSPrismarine/JSPrismarine/pull/3498)). The first joinable milestone is met. |
 | 10 | Java entities and other players, then inventory, then blocks and incremental light, each its own PR | Not started |
 | 11 | Inverse mapping tables in `@jsprismarine/mapping`, landed when PR 9 needs them | Done. The inverse by name, `bedrockBlockStateToJava`, already existed; 11a added Java's block state ids ([#3473](https://github.com/JSPrismarine/JSPrismarine/pull/3473)). |
-| 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | Not started. Needs PR 9, so a Java player can join to link. |
+| 12 | Account linking: one person on a Java and an Xbox account, behind `account-linking`; see section 8 | In review. Existing `permissions.json` files get the link nodes from the file migrator. |
 
 Issues for the slices after PR 9 are opened when PR 1 merges and linked from this table.
 
@@ -395,6 +395,15 @@ changes when a link is made or undone.
   link shows on both subjects' entries.
 - **Out of scope.** A global link service shared across servers, such as GeyserMC's, is not used:
   links live in the server's own data. An addon can add one later through the link store.
+
+PR 12 keeps the links in `account-links.json`, an `AccountLinks` service the kernel provides,
+rather than in a section of `permissions.json`: the link applies at login, where a linked account's
+identity becomes the primary's name, XUID and subject, so the permissions, the saved record and the
+one-live-session rule all follow without knowing about links. The commands are always registered
+and say so while `account-linking` is off, so turning it on needs no restart. `/perms` linking for
+admins is left for later. A verified Java account is keyed by its UUID (`java:<uuid>`), so it never
+shares a saved record with a Bedrock namesake, and two verified accounts count as one only by
+subject, so namesakes of both editions can play at once.
 
 The link store and the lookup are PR 12. They come after PR 9, since linking needs a Java player
 who can join, and they change no key the earlier PRs write.

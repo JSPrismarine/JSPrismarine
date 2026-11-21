@@ -17,6 +17,7 @@ import { createConnectedPlayer } from './createConnectedPlayer';
 import type { ConnectionContext, JoinPreparation, LoginIdentity, LoginServices } from './handler/ConnectionContext';
 import { accountOf } from './handler/ConnectionContext';
 import { InputQueue } from './InputQueue';
+import { accountLinksToken } from '../modules/tokens';
 import type PlayerSession from './PlayerSession';
 
 /** The login's preparation of a player, over the default world. */
@@ -30,7 +31,10 @@ const joinPreparationOf = (server: Server): JoinPreparation => ({
         // The entity id is drawn here, and the store player enters a store only at
         // `SetLocalPlayerAsInitialized`. Built inert: nothing server-wide hears of it until it is
         // filed below, so a login rejected before then leaves nothing behind.
-        const account = accountOf(identity);
+        // A linked account plays as the account it is linked to: the primary's record, key and name.
+        const links = server.getKernel().get(accountLinksToken);
+        const account = links.resolve(accountOf(identity));
+        if (account.linkedFrom === undefined) await links.noteLogin(account);
         const player = new StorePlayer(entityIds.next(), { ...account, uuid: UUID.fromString(account.uuid) });
         player.skin = identity.skin;
         player.device = identity.device;

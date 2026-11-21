@@ -125,7 +125,7 @@ Two gates apply, and both have to pass.
 The first is this server's named permissions, in `permissions.json`. A vanilla command's node is
 `minecraft.command.<name>`, so `/teleport` needs `minecraft.command.teleport`. `/tps`, `/version`
 and `/debug` keep their `jsprismarine.command.<name>` nodes. A fresh
-`permissions.json` lets every player <!-- fact:commands.defaults -->run `/help`, `/list`, `/me`, `/tps` and `/version`<!-- /fact --> through the `default`
+`permissions.json` lets every player <!-- fact:commands.defaults -->run `/help`, `/link`, `/list`, `/me`, `/tps`, `/unlink` and `/version`<!-- /fact --> through the `default`
 group, and grants every operator `*` through the `operator` group. A node resolves over the
 player's own nodes and then their groups, heaviest first, as
 [the running guide](../guide/running.md#permissions) describes. The command list each player

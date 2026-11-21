@@ -18,6 +18,7 @@
  * operator entries and bans are filed by: the verified XUID, or the name on an offline-mode server.
  */
 import type { Subject } from './identity/Subject';
+import { sameSubject } from './identity/Subject';
 
 /** The three names a login gives a player. */
 export interface PlayerIdentity {
@@ -29,6 +30,11 @@ export interface PlayerIdentity {
     readonly uuid: string;
     /** Who the player is to the permission files: see {@link Subject}. */
     readonly subject: Subject;
+    /**
+     * The account the player logged in with, when a link made them play as another: see
+     * `AccountLinks`. The other fields are then the primary account's.
+     */
+    readonly linkedFrom?: Subject;
 }
 
 /**
@@ -42,12 +48,20 @@ export interface PlayerIdentity {
  * filed under this key since before services existed, and keeping one key for both means a
  * service and the record can never disagree about whose state they hold.
  *
+ * A Java Edition account Mojang vouched for has no XUID, and its name may be a Bedrock player's
+ * too, so it is keyed by its profile UUID, under a `java:` prefix no XUID or name can carry.
+ *
  * Unique among live players because {@link sameAccount} matches on the key as well as the name and
  * the XUID.
- * @param identity - The player's name and XUID.
- * @returns The XUID when there is one, otherwise the name.
+ * @param identity - The player's name, XUID and, where known, subject.
+ * @returns The XUID when there is one, a Java account's UUID, otherwise the name.
  */
-export const playerKeyOf = ({ name, xuid }: Pick<PlayerIdentity, 'name' | 'xuid'>): string => xuid || name;
+export const playerKeyOf = ({
+    name,
+    xuid,
+    subject
+}: Pick<PlayerIdentity, 'name' | 'xuid'> & Partial<Pick<PlayerIdentity, 'subject'>>): string =>
+    xuid || (subject?.kind === 'java' ? `java:${subject.uuid}` : name);
 
 /**
  * Whether two identities belong to the same account, for the purpose of letting only one of them
@@ -62,13 +76,24 @@ export const playerKeyOf = ({ name, xuid }: Pick<PlayerIdentity, 'name' | 'xuid'
  * @param b - The other.
  * @returns True when the two share a name, a non-empty XUID, a UUID or a {@link playerKeyOf} key.
  */
-export const sameAccount = (a: PlayerIdentity, b: PlayerIdentity): boolean =>
-    a.name === b.name || (a.xuid !== '' && a.xuid === b.xuid) || a.uuid === b.uuid || playerKeyOf(a) === playerKeyOf(b);
+export const sameAccount = (a: PlayerIdentity, b: PlayerIdentity): boolean => {
+    // Two accounts a sign-in vouched for are the same only as the same subject: a Java player and a
+    // Bedrock player may share a name and both play. A link makes both logins the primary's subject.
+    if (a.subject.kind !== 'offline' && b.subject.kind !== 'offline') {
+        return sameSubject(a.subject, b.subject) || a.uuid === b.uuid;
+    }
+    return (
+        a.name === b.name ||
+        (a.xuid !== '' && a.xuid === b.xuid) ||
+        a.uuid === b.uuid ||
+        playerKeyOf(a) === playerKeyOf(b)
+    );
+};
 
 /**
  * {@link playerKeyOf} for a player object, whose `getXUID` answers null for no XUID.
  * @param player - The player.
  * @returns The player's key.
  */
-export const keyOfPlayer = (player: { getName(): string; getXUID(): string | null }): string =>
-    playerKeyOf({ name: player.getName(), xuid: player.getXUID() ?? '' });
+export const keyOfPlayer = (player: { getName(): string; getXUID(): string | null; getSubject?(): Subject }): string =>
+    playerKeyOf({ name: player.getName(), xuid: player.getXUID() ?? '', subject: player.getSubject?.() });
