@@ -79,7 +79,8 @@ Six rules. Each phase below applies them to one part of the pipeline.
    into a guarded closure call.
 3. **Corners only under `interpolated`, in Java's fill order.** The 5 by 49 by 5 lattice is
    computed once per interpolated node per chunk, and cells are filled in `fillCell`'s z, x, then
-   incremental y order. Our `lerp3` order must be shown bit-identical first (phase 0).
+   incremental y order, which the terrain cell walk has used since phase 0 (#3474). A sample taken
+   one position at a time keeps the per-block order Java's `sampleValue` uses.
 4. **Keep what we already do better than Java.** `skipProvenCells` and the cell bounds from
    `boundSampler` have no counterpart in Java or Pumpkin; they stay, applied to volumes: bound a
    cell, skip filling it, and skip a `min`/`max` operand for a whole volume when the other side
