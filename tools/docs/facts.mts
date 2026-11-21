@@ -305,6 +305,32 @@ async function commandFacts() {
     };
 }
 
+/**
+ * The Java item slot names `/item`, `/loot replace` and `/replaceitem` read: a numbered range is
+ * shown once as `prefix.N`, the wildcards apart, and each older spelling with the name it reads as.
+ */
+async function slotFacts() {
+    const { currentJavaSlotNames, javaSlotIds, javaSlotNames } =
+        await import('../../packages/prismarine/src/inventory/slotAddress.ts');
+    const current = currentJavaSlotNames();
+    const ranged = (names: readonly string[]) => [
+        ...new Set(names.filter((name) => !name.endsWith('*')).map((name) => name.replace(/\.\d+$/, '.N')))
+    ];
+    const firstId = (name: string) => javaSlotIds(name.replace(/\.N$/, '.0'))?.[0];
+    const names = ranged(current);
+    const legacy = ranged(javaSlotNames().filter((name) => !current.includes(name)));
+    return {
+        'slots.java.names': list(names.map((name) => `\`${name}\``)),
+        'slots.java.wildcards': list(current.filter((name) => name.endsWith('*')).map((name) => `\`${name}\``)),
+        'slots.java.legacy': list(
+            legacy.map((name) => {
+                const same = names.find((other) => firstId(other) === firstId(name));
+                return `\`${name}\` as \`${same ?? name}\``;
+            })
+        )
+    };
+}
+
 /** The counts the Bedrock command table generator measured, from the table it wrote. */
 function bedrockCommandCountsTable() {
     // Parsed JSON written by `generate-bedrock-commands.ts`; `counts` is the one field read.
@@ -1472,6 +1498,7 @@ export async function loadFacts(): Promise<Facts> {
                 Object.entries(brandPurposes).map(([name, purpose]) => [`\`${name}\``, purpose])
             )}\n`,
             ...(await commandFacts()),
+            ...(await slotFacts()),
             ...(await commandReferenceFacts()),
             ...(await errorFacts()),
             ...(await configFacts()),

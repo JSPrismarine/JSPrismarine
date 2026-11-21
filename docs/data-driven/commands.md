@@ -83,15 +83,15 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->58<!-- /fact --> of them:
+`@jsprismarine/commands` implements <!-- fact:commands.implemented -->62<!-- /fact --> commands, and this server registers <!-- fact:commands.registered -->59<!-- /fact --> of them:
 
 <!-- fact:commands.registered.list -->
 ```
 execute summon kill teleport damage effect enchant gamemode give clear xp tag setblock fill clone
 time weather gamerule difficulty setworldspawn spawnpoint locate particle playsound stopsound
-spreadplayers data loot function return schedule scoreboard random say me tell tellraw title op deop
-kick list stop reload transfer tick help recipe testfor testforblock testforblocks daylock titleraw
-tickingarea replaceitem camerashake fog playanimation
+spreadplayers data item loot function return schedule scoreboard random say me tell tellraw title op
+deop kick list stop reload transfer tick help recipe testfor testforblock testforblocks daylock
+titleraw tickingarea replaceitem camerashake fog playanimation
 ```
 <!-- /fact -->
 
@@ -141,7 +141,7 @@ permission node says otherwise. `/op` and `/deop` sit higher still.
 
 ## What the server leaves out, and why
 
-The server deliberately leaves <!-- fact:commands.unwired -->4<!-- /fact --> commands unwired. The rule the project follows is worth stating plainly,
+The server deliberately leaves <!-- fact:commands.unwired -->3<!-- /fact --> commands unwired. The rule the project follows is worth stating plainly,
 because it decides what you see when you type one: an unwired command is **not registered at all**.
 Nothing parses it, no alias is registered for it, and it never reaches your client's command list.
 Type <!-- fact:commands.unwired.example -->`/attribute`<!-- /fact --> and you get `Unknown command. Type "/help" for help.` A
@@ -156,7 +156,6 @@ it, so the gap closes by deleting a row:
 | Command      | What it would need                                                                                    |
 | ------------ | ----------------------------------------------------------------------------------------------------- |
 | `/attribute` | attribute modifiers; this server's `Attribute` holds one value and no modifier stack                  |
-| `/item`      | item modifiers and Java-addressable inventory slots                                                   |
 | `/place`     | feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk |
 | `/ride`      | entity riding outside the data-driven entity runtime                                                  |
 <!-- /fact -->
@@ -277,6 +276,50 @@ execute store result score #blocks totals run fill 0 70 0 7 70 7 minecraft:stone
 The second one captures `/fill`'s return value, which is the number of blocks it changed, so
 `#blocks` ends up holding 64. Every command returns a count rather than a success flag, which is
 what makes `execute store result` useful.
+
+## Item slots
+
+`/replaceitem`, `/item` and `/loot replace` write named item slots on players, on mobs and on
+container blocks. A zombie takes a helmet, a tamed horse a saddle and armor, a llama with a chest
+the stacks in its chest, a villager the items in its pocket, and a chest minecart or a chest the
+stacks in its container:
+
+```
+replaceitem entity @e[type=zombie] slot.armor.head 0 minecraft:iron_helmet
+item replace entity @e[type=horse,limit=1] saddle with minecraft:saddle
+item fill block ~ ~-1 ~ container.* with minecraft:cobblestone 64
+item replace entity @s armor.head from entity @s weapon.mainhand
+loot replace entity @s hotbar.0 3 loot minecraft:chests/simple_dungeon
+```
+
+Both spellings work. Bedrock's `/replaceitem` names a group and an index, `slot.hotbar 3`, and
+refuses an index outside the group with Bedrock's own sentence, such as `Could not replace slot 9,
+must be a value between 0 and 8.`. Java's commands name one string per slot, from the list Java
+<!-- fact:java.version -->26.3<!-- /fact -->'s `SlotRanges` keeps: <!-- fact:slots.java.names -->`contents`, `container.N`, `hotbar.N`, `inventory.N`, `enderchest.N`, `mob.inventory.N`, `horse.N`, `weapon`, `weapon.mainhand`, `weapon.offhand`, `armor.head`, `armor.chest`, `armor.legs`, `armor.feet`, `armor.body`, `saddle`, `horse.chest`, `player.cursor` and `player.crafting.N`<!-- /fact -->, and the wildcards
+<!-- fact:slots.java.wildcards -->`container.*`, `hotbar.*`, `inventory.*`, `enderchest.*`, `mob.inventory.*`, `horse.*`, `weapon.*`, `armor.*` and `player.crafting.*`<!-- /fact --> for a whole group. Spellings older releases had
+still read: <!-- fact:slots.java.legacy -->`villager.N` as `mob.inventory.N` and `horse.saddle` as `saddle`<!-- /fact -->.
+
+A Java name means what Java's entity makes of it. `container.0` is a player's first hotbar slot, a
+chest minecart's first slot, and nothing on a zombie. `horse.N` is a donkey's or a llama's chest,
+there only once it carries a chest. A horse's or a llama's `armor.body` is the armor or carpet slot
+its mount screen shows. A wildcard covers the slots the target has, so `armor.*` leaves out
+`armor.body` on a player, which has no body slot. A target without the slot is skipped, and the line fails with `The target
+does not have slot <name>` only when no target had it.
+
+`/item replace` puts the stack in the first slot a name covers, `/item fill` puts it in every one
+of them, and `/item override` puts it in the first and empties the rest. `/item … from` copies the
+slots of a block or an entity, empty ones included, and `/loot replace` writes one rolled stack
+per slot from the one it names, emptying the slots its count reaches past the roll.
+
+Three slot features are missing:
+
+- `/item modify` and the modifier on `/item … from` refuse with `This server has no item modifiers
+  for /item yet`
+  ([#3607](https://github.com/JSPrismarine/JSPrismarine/issues/3607)).
+- `horse.chest` and `player.crafting.N` refuse with `Slot <name> is not one this server can reach
+  yet` ([#3608](https://github.com/JSPrismarine/JSPrismarine/issues/3608)).
+- `execute if items` reads its slots as an NBT path and refuses
+  ([#3609](https://github.com/JSPrismarine/JSPrismarine/issues/3609)).
 
 ## The mcfunction runtime
 
@@ -525,9 +568,9 @@ relationships, so the host rejects the call.
 **NBT on blocks and entities refuses.** `/data`, `execute if data`, `execute store … <nbt path>`
 and `/function … with` work on [command storage](#command-storage) only. A block or an entity
 target is refused with `This server has no NBT paths for blocks and entities yet`, and so are
-`execute if items`, `execute if slots` and the NBT tag argument on `/summon`
-([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). `/item` stays unregistered
-for the item modifiers and slots it needs.
+`execute if slots` and the NBT tag argument on `/summon`
+([#3575](https://github.com/JSPrismarine/JSPrismarine/issues/3575)). `execute if items` refuses
+the same way ([#3609](https://github.com/JSPrismarine/JSPrismarine/issues/3609)).
 
 **`execute if predicate` refuses.** The datapack predicate evaluator is not wired to the command
 host, even though `@jsprismarine/predicates` compiles predicates for loot and advancements.
@@ -545,11 +588,7 @@ there is no `/trigger` in this set, so recording the grant would set a flag noth
 as long as the process. Everything a running server can observe works, including display slots and
 a score surviving a player relogging.
 
-
-**`/replaceitem` cannot write the slots no entity here holds.** It writes a player's named slots,
-the ender chest, the indexed `slot.armor <n>` spelling, and container blocks through
-`/replaceitem block <pos> slot.container <n>`. It refuses `slot.saddle`, `slot.chest`,
-`slot.equippable` and `slot.armor.body`, because nothing in this server holds them.
+**`/item` cannot run item modifiers or reach two of Java's slots.** See [Item slots](#item-slots).
 
 **`Constraints` is always empty in the command packet.** Mojang's schema names the field without
 defining it, and gophertunnel, Cloudburst and PocketMine disagree about what the indices mean, so
