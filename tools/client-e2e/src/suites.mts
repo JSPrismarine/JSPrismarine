@@ -38,6 +38,7 @@ import { summonEntity } from './scenarios/summon-entity.mts';
 import { summonRefused } from './scenarios/summon-refused.mts';
 import { pistonBedrock } from './scenarios/piston-bedrock.mts';
 import { leverLamp } from './scenarios/lever-lamp.mts';
+import { pressurePlateLamp } from './scenarios/pressure-plate-lamp.mts';
 import { attackEntity } from './scenarios/attack-entity.mts';
 import { movement } from './scenarios/movement.mts';
 import { movementFanout } from './scenarios/movement-fanout.mts';
@@ -86,6 +87,7 @@ export const suites: ScenarioSuite[] = [
             jump,
             attackEntity,
             leverLamp,
+            pressurePlateLamp,
             pistonBedrock,
             summonEntity,
             summonRefused,

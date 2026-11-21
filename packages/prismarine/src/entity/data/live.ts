@@ -42,6 +42,7 @@ import AnimatePacket, { AnimateAction } from '@jsprismarine/protocol/bedrock/pac
 import PlayerStartItemCooldownPacket from '@jsprismarine/protocol/bedrock/packet/PlayerStartItemCooldownPacket';
 import { actorHealthIn, actorMotionIn, dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 import { lookVector } from '../Archery';
+import { dispatchStepOn } from '../../world/blockStepOn';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
 import type { ContentItemDrop, ContentPosition } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
@@ -574,6 +575,21 @@ const liveHost = (
                 .getConnection()
                 .sendDataPacket(new PlayerStartItemCooldownPacket({ itemCategory: category, durationTicks: ticks }))
         );
+    },
+    stepOn: (at, entity) => {
+        const world = options.liveWorld();
+        if (world === undefined) return;
+        dispatchStepOn(options.content(), world, at, {
+            identifier: entity.identifier,
+            entityId: String(entity.id),
+            position: {
+                x: Math.floor(entity.position.x),
+                y: Math.floor(entity.position.y),
+                z: Math.floor(entity.position.z)
+            },
+            yaw: entity.body.yaw,
+            pitch: entity.body.pitch
+        });
     },
     startDeathAnimation: (id) => {
         const world = options.liveWorld();

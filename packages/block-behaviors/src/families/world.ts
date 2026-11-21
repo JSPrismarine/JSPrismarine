@@ -63,12 +63,10 @@ export const liquidFamily = defineFamily(
         onTick: (event, world) => {
             fluidTick(world, event.block);
         },
+        // A stack lying in lava burns in the entity runtime, at Java's cadence and not at all when
+        // it resists fire, so the lava only shows the flame.
         onStepOn: (event, world) => {
             if (!isLava(event.block.identifier)) return;
-            for (const entity of world.entitiesAt(event.block.position)) {
-                if (entity.identifier !== 'minecraft:item') continue;
-                world.removeEntity(entity.id);
-            }
             world.spawnParticle(event.entity.position, 'minecraft:basic_flame_particle');
         }
         // No random tick: Java's `Fluid.isRandomlyTicking` is false for water, and lava's random
@@ -178,12 +176,16 @@ export const sculkFamily = defineFamily(
             if (name !== 'sculk_shrieker' && name !== 'sculk_sensor' && name !== 'calibrated_sculk_sensor') return;
 
             if (name === 'sculk_shrieker') {
+                // `SculkShriekerBlock.stepOn` shrieks for a player alone, `tryGetPlayer`.
+                if (event.entity.identifier !== 'minecraft:player') return;
                 if (event.block.states['active'] === true) return;
                 setStates(world, event.block, { active: true });
                 world.playSound(event.block.position, 'block.sculk_shrieker.shriek');
                 world.scheduleTick(event.block.position, 90);
                 return;
             }
+            // `SculkSensorBlock.stepOn` takes no step from the warden, which it would hunt.
+            if (event.entity.identifier === 'minecraft:warden') return;
             if (stateNumber(event.block, 'sculk_sensor_phase') !== 0) return;
             setStates(world, event.block, { sculk_sensor_phase: 1 });
             world.notifyNeighbors(event.block.position);

@@ -1052,6 +1052,11 @@ export class EntityRuntime implements EntityScene {
     private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
+    /** The block cells each body's box was in after its last update, and the position it read them at. */
+    private readonly touchedBlocks = new Map<
+        number,
+        { readonly position: EntityPosition; readonly cells: Set<string> }
+    >();
     /** The player who put each animal in love, Java's `Animal.loveCause`, until it breeds or the entity goes. */
     private readonly loveCauses = new Map<number, string>();
     /** When each trader last restocked, and how often that day. */
@@ -2207,6 +2212,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.touchedBlocks.delete(id);
         this.loveCauses.delete(id);
         this.restocks.delete(id);
         for (const [key, claimants] of this.poiClaims) {
@@ -2382,8 +2388,11 @@ export class EntityRuntime implements EntityScene {
             // This pass is an entity's last update of the tick, so it alone clears the entity's
             // run of failures: an actor update that finished must not hide an entity pass that
             // throws every tick, or the entity would never reach the limit.
-            if (this.runUpdate(entity, 'update', () => this.updateEntity(entity, tick)))
-                this.store.succeeded(entity.id);
+            const updated = this.runUpdate(entity, 'update', () => {
+                this.updateEntity(entity, tick);
+                if (entity.removed === undefined) this.stepIntoBlocks(entity);
+            });
+            if (updated) this.store.succeeded(entity.id);
         }
         if (this.store.broken !== undefined) return;
         this.tickLeashes();
@@ -2777,6 +2786,28 @@ export class EntityRuntime implements EntityScene {
         if (blockRevision !== undefined) {
             this.mediumByEntity.set(entity, { position, width: box.width, height: box.height, blockRevision });
         }
+    }
+
+    /**
+     * Runs `onStepOn` on each block a body's box has moved into since its last update, as Java's
+     * `Entity.checkInsideBlocks` calls `entityInside` on every block a body overlaps. Moving in
+     * is enough: a pressure plate or a detector rail rechecks on its own scheduled tick for as
+     * long as something stays on it. A body that has not moved touches nothing new.
+     */
+    private stepIntoBlocks(entity: DataEntity): void {
+        if (this.host.stepOn === undefined) return;
+        const before = this.touchedBlocks.get(entity.id);
+        if (before?.position === entity.position) return;
+        const cells = new Set<string>();
+        const entered: EntityPosition[] = [];
+        bodyTouchesBlock(entity.position, entity.facts.box, (cell) => {
+            const key = `${cell.x},${cell.y},${cell.z}`;
+            cells.add(key);
+            if (before?.cells.has(key) !== true) entered.push(cell);
+            return false;
+        });
+        this.touchedBlocks.set(entity.id, { position: entity.position, cells });
+        for (const cell of entered) this.host.stepOn(cell, entity);
     }
 
     /**

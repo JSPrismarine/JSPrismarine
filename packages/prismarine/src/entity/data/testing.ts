@@ -448,6 +448,9 @@ export class TestEntityWorld {
     /** Entities whose death animation the host was asked to announce. */
     public readonly deathAnimations: number[] = [];
 
+    /** Every block a body moved into, with the body, in the order the host heard them. */
+    public readonly stepOns: { at: EntityPosition; entity: number }[] = [];
+
     /** Every item cooldown the host was asked to start on a player's client. */
     public readonly itemCooldowns: { id: number; category: string; ticks: number }[] = [];
 
@@ -638,6 +641,7 @@ export class TestEntityWorld {
             villagerRaidEffect: (id, effect) => this.villagerRaidEffects.push({ id, effect }),
             attackSound: (id) => this.attackSounds.push(id),
             startDeathAnimation: (id) => this.deathAnimations.push(id),
+            stepOn: (at, entity) => this.stepOns.push({ at, entity: entity.id }),
             itemCooldown: (id, category, ticks) => this.itemCooldowns.push({ id, category, ticks }),
             damageCommitted: (commit) => {
                 this.commits.push(commit);

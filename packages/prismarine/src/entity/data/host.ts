@@ -12,7 +12,7 @@
  * is reported as absent rather than guessed, which is the same rule
  * `src/content/world/notWired.ts` applies at the other seam.
  */
-import type { FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type { EntityPosition, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import type { VillagerRaidEffect, VillagerRaidState } from '@jsprismarine/entity-brains';
 import type { StatusEffectInput } from '../StatusEffect';
 import type { DataEntity } from './DataEntity';
@@ -190,6 +190,13 @@ export interface EntityHostFacts {
      * @param id - The data-driven entity's runtime id.
      */
     hurtFeedback?(id: number): void;
+    /**
+     * Runs the `onStepOn` hook of the block at `at`, which a body's box has just moved into, as
+     * Java's `Entity.checkInsideBlocks` calls `entityInside`.
+     * @param at - The block's position.
+     * @param entity - The body that moved into it.
+     */
+    stepOn?(at: EntityPosition, entity: DataEntity): void;
     /**
      * Starts an item cooldown on a player's client, as Java's `ItemCooldowns.addCooldown` reaches
      * it with a cooldown packet. Nothing is sent for a runtime id no client watches as itself.
