@@ -16,6 +16,8 @@
  *
  * Prints `ok` and exits 0 when every chunk matched, or the positions that differed and exits 1.
  */
+import { HostedGenerationPool } from '@jsprismarine/chunkgen';
+
 import { Dimensions } from '../src/world/DimensionType';
 import type { Generator } from '../src/world/Generator';
 import type { PipelineKey } from '../src/world/generators/datadriven/DataDrivenGenerator';
@@ -178,6 +180,16 @@ try {
     localStageDifferences = await compare(localStagePool);
     stageDifferences = await compare(stagePool);
     hostDifferences = await compare(hostStagePool);
+
+    // Counted, not timed: the host keeps every terrain tile it builds, so no feature or merge
+    // task sends one back to it. Each tile here is built by the host, and the run reads fewer
+    // tiles than the host keeps.
+    const hostPool: unknown = Reflect.get(hostStagePool, 'stagePool');
+    if (!(hostPool instanceof HostedGenerationPool)) {
+        blockPassProblems.push('the generation host pool is not a hosted pool');
+    } else if (hostPool.reusableValuesSent !== 0) {
+        blockPassProblems.push(`the generation host pool sent ${hostPool.reusableValuesSent} tiles back to the host`);
+    }
 
     // Counted, not timed: every chunk a stage pool built had its block pass run in a worker, so
     // the server thread walked none of its blocks.

@@ -28,6 +28,7 @@ import Piscina from 'piscina';
 import type { ChunkStatus } from './ChunkStatus';
 import type { GenerationStatsSnapshot, WorkerTaskStats } from './GenerationStats';
 import { GenerationStatsRecorder } from './GenerationStats';
+import type { KeepResult } from './reusableInput';
 import { unwrapReusable } from './reusableInput';
 import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 import { asError } from '@jsprismarine/errors/common';
@@ -142,6 +143,11 @@ export interface GenerationTask {
      * times.
      */
     readonly input?: unknown;
+    /**
+     * Asks a generation host to keep the result for later tasks to name by key. A pool that keeps
+     * nothing between tasks ignores it.
+     */
+    readonly keepResult?: KeepResult;
 }
 
 /** What a status body in a worker hands back. */

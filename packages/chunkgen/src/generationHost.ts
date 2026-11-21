@@ -12,7 +12,7 @@ import { GenerationPool } from './GenerationPool';
 import type { GenerationPriority, GenerationTask } from './GenerationPool';
 import type { HostCommand, HostEvent, HostPoolOptions } from './hostProtocol';
 import { decodeShared } from './hostProtocol';
-import { decodeReusable, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
+import { decodeReusable, keptResultValue, REUSABLE_CAPACITY, ReusableCache } from './reusableInput';
 import type { ReusableSlot } from './reusableInput';
 import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 import { asError } from '@jsprismarine/errors/common';
@@ -65,6 +65,11 @@ const run = (
     taskIds.set(task, id);
     current.run(task, priority).then(
         (result) => {
+            // Kept before the result is posted. The server records the key when the result
+            // arrives, after any task it posted in between, but a key kept this recently is the
+            // last either side would evict, so both records still hold the same keys.
+            if (sent.keepResult !== undefined)
+                kept.put(sent.keepResult.key, keptResultValue(result.payload, sent.keepResult));
             send({
                 type: 'result',
                 id,

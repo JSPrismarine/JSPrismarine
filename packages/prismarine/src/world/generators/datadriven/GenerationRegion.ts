@@ -201,6 +201,15 @@ export interface GenerationRegionPayload {
 }
 
 /**
+ * The fields {@link GenerationRegion.transfer} carries that {@link GenerationRegion.workerInput}
+ * leaves out, so a transferred payload without them is the tile as a task input.
+ */
+export const TRANSFER_ONLY_FIELDS = [
+    'biomeSections',
+    'biomeSectionOffsets'
+] as const satisfies readonly (keyof GenerationRegionPayload)[];
+
+/**
  * The Java biome of every 4 by 4 by 4 cell of a region's center chunk, sampled once with its
  * terrain so the threads that read the tile later need not sample the biome source again.
  */
