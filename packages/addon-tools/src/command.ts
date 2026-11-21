@@ -10,8 +10,9 @@ import { buildAddons, fetchPublishedIndex, releaseDownloadUrl } from './build';
 /** The `jsp-addon` usage text. */
 export const USAGE = `Usage: jsp-addon build [options]
 
-Checks every addon under the addons folder, packs each into <name>-<version>.mcpack, writes its
-listing files (README, icon and screenshots) beside the pack, and writes index.json.
+Compiles each TypeScript addon (one with a tsconfig.json) with tsc-ts, checks every addon under
+the addons folder, packs each into <name>-<version>.mcpack, writes its listing files (README, icon
+and screenshots) beside the pack, and writes index.json.
 
 Options:
   --addons <dir>          The folder of addons (default: addons)

@@ -21,6 +21,11 @@
                 "import": "./dist/build.js",
                 "module": "./dist/build.js"
             },
+            "./compile": {
+                "types": "./dist/compile.d.ts",
+                "import": "./dist/compile.js",
+                "module": "./dist/compile.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -45,6 +50,10 @@
         "./build": {
             "jsprismarine:dist": "./dist/build.js",
             "default": "./src/build.ts"
+        },
+        "./compile": {
+            "jsprismarine:dist": "./dist/compile.js",
+            "default": "./src/compile.ts"
         },
         "./package.json": "./package.json"
     },
@@ -75,7 +84,8 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/addon-tools",
     "dependencies": {
         "@jsprismarine/errors": "workspace:*",
-        "@jsprismarine/packs": "workspace:*"
+        "@jsprismarine/packs": "workspace:*",
+        "tsc-ts": "0.1.5"
     },
     "devDependencies": {
         "@types/node": "26.6.6",

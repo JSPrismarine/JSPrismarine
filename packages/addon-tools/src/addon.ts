@@ -10,6 +10,7 @@ import { writeZip } from '@jsprismarine/packs/zip';
 
 import type { AddonIndexEntry, AddonListing } from './addonIndex';
 import { isAddonInstallId, isAddonName, isAddonVersion, packFileName } from './addonIndex';
+import { ADDON_SOURCE_ENTRIES, ADDON_SOURCE_MAP_EXTENSION, isTypeScriptAddon } from './compile';
 import { isRecord } from './isRecord';
 import { fileUrl } from './url';
 
@@ -100,7 +101,8 @@ export interface Addon extends AddonMetadata {
     readonly title: string;
     /**
      * Every file the pack holds, by its path in the folder with `/` separators, in path order:
-     * every file but those under {@link ADDON_MEDIA_DIRECTORY}.
+     * every file but those under {@link ADDON_MEDIA_DIRECTORY}, and for a TypeScript addon those
+     * that build its scripts.
      */
     readonly files: ReadonlyMap<string, Uint8Array>;
     /** The files under {@link ADDON_MEDIA_DIRECTORY}, by path, in path order. */
@@ -134,14 +136,19 @@ const METADATA_KEYS: readonly string[] = [...ADDON_JSON_REQUIRED_KEYS, ...ADDON_
 const sha256Of = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
 /**
- * Reads every file under a folder, skipping names that start with a dot.
+ * Reads every file under a folder, skipping names that start with a dot. For a TypeScript addon it
+ * also skips the {@link ADDON_SOURCE_ENTRIES} and the source maps, which build the pack's scripts
+ * but are not part of the pack.
  * @throws {InvalidAddonError} `UnsupportedAddonEntry` for a link or another special entry.
  */
 const readFiles = async (addon: string, root: string): Promise<Map<string, Uint8Array>> => {
+    const typescript = isTypeScriptAddon(root);
     const paths: string[] = [];
     const walk = async (relative: string): Promise<void> => {
         for (const entry of await readdir(path.join(root, relative), { withFileTypes: true })) {
             if (entry.name.startsWith('.')) continue;
+            if (typescript && relative === '' && ADDON_SOURCE_ENTRIES.includes(entry.name)) continue;
+            if (typescript && entry.isFile() && entry.name.endsWith(ADDON_SOURCE_MAP_EXTENSION)) continue;
             const child = relative === '' ? entry.name : `${relative}/${entry.name}`;
             if (entry.isDirectory()) await walk(child);
             else if (entry.isFile()) paths.push(child);

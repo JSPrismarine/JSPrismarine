@@ -6,6 +6,7 @@ import { AddonToolsErrors } from '@jsprismarine/errors/addon-tools';
 import type { Addon } from './addon';
 import { addonIndexEntry, addonListingFiles, listingFileList, packAddon, readAddon } from './addon';
 import type { AddonIndex, AddonIndexEntry } from './addonIndex';
+import { compileAddon } from './compile';
 import { fileUrl } from './url';
 import {
     ADDON_INDEX_BACKUP_FILE,
@@ -92,23 +93,38 @@ export interface BuildAddonsResult {
  * @throws {InvalidAddonError} When an addon is invalid.
  */
 export const readAddons = async (addonsDirectory: string): Promise<Addon[]> => {
-    const folders = (await readdir(addonsDirectory, { withFileTypes: true }))
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-        .map((entry) => entry.name)
-        .sort();
     const addons: Addon[] = [];
-    for (const folder of folders) addons.push(await readAddon(path.join(addonsDirectory, folder)));
+    for (const folder of await addonFolders(addonsDirectory)) addons.push(await readAddon(folder));
     return addons;
 };
 
 /**
- * Builds every addon in a folder: reads them with {@link readAddons}, merges their entries into the
- * published index, then writes each pack into the output folder as `<name>-<version>.mcpack`, its
- * listing files beside it, and `index.json`. A build it refuses writes nothing, so the output folder
- * keeps the last good build.
+ * Compiles every TypeScript addon in a folder with `compileAddon`, in name order, so that
+ * {@link readAddons} reads scripts built from the current sources.
  *
- * @throws {InvalidAddonError} When an addon is invalid, or a built version is published with
- * other contents.
+ * @throws {InvalidAddonError} `AddonCompileFailed` when an addon's scripts do not compile.
+ */
+export const compileAddons = async (addonsDirectory: string): Promise<void> => {
+    for (const folder of await addonFolders(addonsDirectory)) await compileAddon(folder);
+};
+
+/** The addons' folders in a folder of addons: each folder whose name starts with no dot, in name order. */
+const addonFolders = async (addonsDirectory: string): Promise<string[]> =>
+    (await readdir(addonsDirectory, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map((entry) => entry.name)
+        .sort()
+        .map((folder) => path.join(addonsDirectory, folder));
+
+/**
+ * Builds every addon in a folder: compiles the TypeScript ones with {@link compileAddons}, reads
+ * them with {@link readAddons}, merges their entries into the published index, then writes each
+ * pack into the output folder as `<name>-<version>.mcpack`, its listing files beside it, and
+ * `index.json`. A build it refuses writes nothing to the output folder, so it keeps the last good
+ * build.
+ *
+ * @throws {InvalidAddonError} When an addon is invalid or does not compile, or a built version is
+ * published with other contents.
  * @throws {TypeError} `InvalidBaseUrl` when the base URL is not an `https:` URL.
  */
 export const buildAddons = async (options: BuildAddonsOptions): Promise<BuildAddonsResult> => {
@@ -116,6 +132,7 @@ export const buildAddons = async (options: BuildAddonsOptions): Promise<BuildAdd
     if (!URL.canParse(baseUrl) || new URL(baseUrl).protocol !== 'https:')
         throw new AddonToolsErrors.InvalidBaseUrl({ url: baseUrl });
 
+    await compileAddons(addonsDirectory);
     const packs = (await readAddons(addonsDirectory)).map((addon) => ({
         addon,
         pack: packAddon(addon),

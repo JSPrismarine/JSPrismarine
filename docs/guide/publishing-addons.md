@@ -37,8 +37,9 @@ with a dot. Every other folder there is an addon, and the build fails if one of 
 ## Build the packs
 
 `@jsprismarine/addon-tools` provides the <!-- fact:addons.cli -->`jsp-addon`<!-- /fact --> command.
-`build` reads every addon in the folder, checks it, packs it into `<name>-<version>.mcpack` and
-writes <!-- fact:addons.indexFile -->`index.json`<!-- /fact --> beside the packs:
+`build` reads every addon in the folder, compiles the ones [written in TypeScript](writing-addons.md#write-it-in-typescript),
+checks each, packs it into `<name>-<version>.mcpack` and writes
+<!-- fact:addons.indexFile -->`index.json`<!-- /fact --> beside the packs:
 
 ```bash
 npx @jsprismarine/addon-tools build --repository owner/repo
@@ -53,8 +54,9 @@ These are its options:
 ```text
 Usage: jsp-addon build [options]
 
-Checks every addon under the addons folder, packs each into <name>-<version>.mcpack, writes its
-listing files (README, icon and screenshots) beside the pack, and writes index.json.
+Compiles each TypeScript addon (one with a tsconfig.json) with tsc-ts, checks every addon under
+the addons folder, packs each into <name>-<version>.mcpack, writes its listing files (README, icon
+and screenshots) beside the pack, and writes index.json.
 
 Options:
   --addons <dir>          The folder of addons (default: addons)
@@ -123,6 +125,9 @@ The workflow takes these inputs:
 Set `tools` to an exact version to keep the build the same from one release to the next; the
 default runs whatever version npm has as latest.
 
+When the repository has a `package-lock.json`, the workflow runs `npm ci` before the build, so a
+TypeScript addon finds the typings its `package.json` names.
+
 The publish job runs only when the build added a pack the release lacks. It creates the release
 the first time, not marked as the repository's latest, uploads each new pack, and then uploads the
 index in place of the old one. The packs go up first, so the index never names a pack the release
@@ -171,7 +176,7 @@ of every addon, sorted by name and then by version, oldest first:
             "name": "tps-bar",
             "version": "1.0.0",
             "description": "Shows TPS, MSPT and ping on a boss bar.",
-            "minServer": "0.23.2",
+            "minServer": "0.24.0",
             "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.0.mcpack",
             "sha256": "<the pack's SHA-256>"
         },
@@ -179,7 +184,7 @@ of every addon, sorted by name and then by version, oldest first:
             "name": "tps-bar",
             "version": "1.1.0",
             "description": "Shows TPS, MSPT and ping on a boss bar.",
-            "minServer": "0.23.2",
+            "minServer": "0.24.0",
             "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.1.0.mcpack",
             "sha256": "<the pack's SHA-256>"
         }

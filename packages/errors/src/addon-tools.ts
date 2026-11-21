@@ -65,6 +65,15 @@ export const AddonToolsErrors = defineErrors('addon-tools', {
         base: InvalidAddonError
     },
     /**
+     * An addon with a `tsconfig.json` writes its scripts in TypeScript, and `tsc-ts` reported an
+     * error while compiling them. Fix what the compiler's output names. A missing module such as
+     * `@minecraft/server` means the addon's dependencies are not installed: install them first.
+     */
+    AddonCompileFailed: {
+        message: "addon {addon}'s scripts did not compile:\n{output}",
+        base: InvalidAddonError
+    },
+    /**
      * An addon's version is already in the published index with other contents. An installed
      * addon is locked to its version's hash, so a published version never changes. Raise the
      * version in the addon's `manifest.json` header.

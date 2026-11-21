@@ -296,6 +296,9 @@ importers:
       '@jsprismarine/packs':
         specifier: workspace:*
         version: link:../packs
+      tsc-ts:
+        specifier: 0.1.5
+        version: 0.1.5(@scriptc/threads@0.4.15)
     devDependencies:
       '@types/node':
         specifier: 26.6.6

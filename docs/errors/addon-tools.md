@@ -19,6 +19,17 @@ Catch one of these classes to handle every error that extends it.
 | `InvalidAddonError`      | Error thrown when an addon's folder does not hold a valid addon. |
 | `InvalidAddonIndexError` | Error thrown when an addon index does not follow its schema.     |
 
+## `ADDON_TOOLS_ADDON_COMPILE_FAILED`
+
+`addon {addon}'s scripts did not compile:
+{output}`
+
+Thrown as `AddonToolsErrors.AddonCompileFailed`, which extends `InvalidAddonError`.
+
+An addon with a `tsconfig.json` writes its scripts in TypeScript, and `tsc-ts` reported an
+error while compiling them. Fix what the compiler's output names. A missing module such as
+`@minecraft/server` means the addon's dependencies are not installed: install them first.
+
 ## `ADDON_TOOLS_INVALID_ADDON_ICON`
 
 `addon {addon}'s pack_icon.png is invalid: {problem}`
