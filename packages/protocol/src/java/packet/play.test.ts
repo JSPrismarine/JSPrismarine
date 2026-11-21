@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { JavaPacketDefinition } from './JavaPacket';
 import { decodeJavaPacket, encodeJavaPacket, readJavaPacketId } from './JavaPacket';
 import {
+    BlockChangedAck,
     BlockUpdate,
     ChunkBatchFinished,
     GameEvent,
+    PlayerAction,
+    PlayerActionStatus,
     PlayLogin,
     SectionBlocksUpdate,
     SetCenterChunk,
@@ -99,5 +102,21 @@ describe('block packets', () => {
         // After the section's long: the count, then 1 << 12 | 15 << 8 | 3 << 4 as a VarLong.
         expect([...body.subarray(8, 11)]).toEqual([0x02, 0xb0, 0x3e]);
         expect(roundTrip(SectionBlocksUpdate, update)).toEqual(update);
+    });
+
+    it('reads a dig as status, position, face byte and sequence, and acknowledges the sequence', () => {
+        // Stop digging at (1, -60, -2) on the top face, prediction 7.
+        const body = Buffer.concat([Buffer.from([0x03]), Buffer.alloc(8), Buffer.from([0x01, 0x07])]);
+        body.writeBigInt64BE((1n << 38n) | (BigInt.asUintN(26, -2n) << 12n) | BigInt.asUintN(12, -60n), 1);
+
+        const frame = Buffer.concat([idOf(PlayerAction), body]);
+
+        expect(decodeJavaPacket(PlayerAction, readJavaPacketId(frame).body)).toEqual({
+            status: PlayerActionStatus.StopDestroyBlock,
+            position: { x: 1, y: -60, z: -2 },
+            face: 1,
+            sequence: 7
+        });
+        expect(roundTrip(BlockChangedAck, { sequence: 300 })).toEqual({ sequence: 300 });
     });
 });

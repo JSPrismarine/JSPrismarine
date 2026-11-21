@@ -324,3 +324,40 @@ export const SectionBlocksUpdate = defineJavaPacket(
     PACKETS.play.clientbound.section_blocks_update,
     { section: sectionPosition, blocks: list(sectionBlock) }
 );
+
+/**
+ * `Player Action` (serverbound) statuses, by the order of vanilla's `ServerboundPlayerActionPacket.Action`.
+ * 26.x put `ChangeDestroyDirection` second, which moved every later one up by one.
+ */
+export enum PlayerActionStatus {
+    StartDestroyBlock = 0,
+    ChangeDestroyDirection = 1,
+    AbortDestroyBlock = 2,
+    StopDestroyBlock = 3,
+    DropAllItems = 4,
+    DropItem = 5,
+    ReleaseUseItem = 6,
+    SwapItemWithOffhand = 7,
+    Stab = 8
+}
+
+/**
+ * `Player Action` (serverbound): mining a block, and the hand's other actions. `face` is the
+ * direction's 3D data value, 0 to 5 for down, up, north, south, west and east, and `sequence` is
+ * what the server's `Block Changed Ack` answers.
+ */
+export const PlayerAction = defineJavaPacket('Player Action', PACKETS.play.serverbound.player_action, {
+    status: varInt,
+    position: blockPosition,
+    face: uint8,
+    sequence: varInt
+});
+
+/** `Acknowledge Block Change` (clientbound): the client's block predictions up to `sequence` are answered. */
+export const BlockChangedAck = defineJavaPacket(
+    'Acknowledge Block Change',
+    PACKETS.play.clientbound.block_changed_ack,
+    {
+        sequence: varInt
+    }
+);
