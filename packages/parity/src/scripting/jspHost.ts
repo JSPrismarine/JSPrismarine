@@ -273,6 +273,8 @@ const runLoadedPacks = async (
             http
         },
         members: SCENARIO_MEMBERS,
+        // A scenario has no config file; the member is there, as on a server, and reads nothing.
+        addonConfig: { read: () => undefined, write: () => {}, watch: () => () => {} },
         maxPlayers: 10,
         seed: 0n,
         watchdog: watchdogOf(scenario.properties),

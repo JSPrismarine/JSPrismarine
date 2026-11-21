@@ -126,6 +126,11 @@
                 "import": "./dist/host/jsprismarineServer.js",
                 "module": "./dist/host/jsprismarineServer.js"
             },
+            "./host/addonConfig": {
+                "types": "./dist/host/addonConfig.d.ts",
+                "import": "./dist/host/addonConfig.js",
+                "module": "./dist/host/addonConfig.js"
+            },
             "./host/jsprismarineMembers": {
                 "types": "./dist/host/jsprismarineMembers.d.ts",
                 "import": "./dist/host/jsprismarineMembers.js",
@@ -240,6 +245,10 @@
         "./host/jsprismarineServer": {
             "jsprismarine:dist": "./dist/host/jsprismarineServer.js",
             "default": "./src/host/jsprismarineServer.ts"
+        },
+        "./host/addonConfig": {
+            "jsprismarine:dist": "./dist/host/addonConfig.js",
+            "default": "./src/host/addonConfig.ts"
         },
         "./host/jsprismarineMembers": {
             "jsprismarine:dist": "./dist/host/jsprismarineMembers.js",
