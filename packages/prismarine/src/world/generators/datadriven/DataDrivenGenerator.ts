@@ -586,6 +586,12 @@ interface SeededPipeline {
      * because releasing needs it and the key is a string.
      */
     readonly retained: Map<string, readonly [number, number]>;
+    /**
+     * The chunks this pipeline has finished, oldest first, so a retained holder can be let go once
+     * every chunk that could read it is among them. Bounded: forgetting one only keeps a holder
+     * until {@link RETAINED_HOLDERS} evicts it.
+     */
+    readonly finished: Map<string, true>;
     /** Each chunk's biome palette, which its eight neighbors read while they decorate. */
     readonly chunkBiomes: Map<string, ReadonlySet<string>>;
     /**
@@ -744,6 +750,12 @@ const DEFAULT_CONCURRENCY = 1;
  * is what makes a walk across a region pay for one noise fill per chunk instead of twenty-five.
  */
 const RETENTION_RADIUS = 2;
+
+/**
+ * How many finished chunks a pipeline remembers for {@link DataDrivenGenerator.releaseSettled}.
+ * Four times the holders, which covers the finished interior of any view the holders can hold.
+ */
+const FINISHED_CHUNKS = 4 * RETAINED_HOLDERS;
 
 /**
  * The nine chunks a feature view reads through, in the order they are supplied to it.
@@ -1506,6 +1518,7 @@ export class DataDrivenGenerator implements Generator {
                 const recorded = completion
                     .then((built) => {
                         staged.recordChunk(built);
+                        this.releaseSettled(pipeline, cx, cz);
                         return built;
                     })
                     .finally(() => pipeline.completions.delete(completionKey));
@@ -2513,6 +2526,49 @@ export class DataDrivenGenerator implements Generator {
             pipeline.retained.delete(oldest[0]);
             pipeline.holders.release(oldest[1][0], oldest[1][1]);
         }
+    }
+
+    /**
+     * Records a finished chunk and lets go of the holders around it that nothing can read any more.
+     *
+     * A holder's terrain tile is read by the chunks within {@link RETENTION_RADIUS} of it and its
+     * feature pass by the chunks within one, so once every chunk within the radius has finished,
+     * the holder only waits for the LRU to evict it. A view requested nearest first finishes its
+     * interior long before its frontier, and the interior held most of the retained tiles. A
+     * chunk asked for again after its holder went is generated afresh, which every status allows
+     * because each is a pure function of the seed and the position.
+     */
+    private releaseSettled(pipeline: SeededPipeline, cx: number, cz: number): void {
+        const finished = pipeline.finished;
+        const key = this.chunkKey(cx, cz);
+        finished.delete(key);
+        finished.set(key, true);
+        while (finished.size > FINISHED_CHUNKS) {
+            const oldest = finished.keys().next().value;
+            if (oldest === undefined) break;
+            finished.delete(oldest);
+        }
+
+        for (let dx = -RETENTION_RADIUS; dx <= RETENTION_RADIUS; dx++) {
+            for (let dz = -RETENTION_RADIUS; dz <= RETENTION_RADIUS; dz++) {
+                const holderX = cx + dx;
+                const holderZ = cz + dz;
+                const holderKey = this.chunkKey(holderX, holderZ);
+                if (!pipeline.retained.has(holderKey) || !this.readersFinished(pipeline, holderX, holderZ)) continue;
+                pipeline.retained.delete(holderKey);
+                pipeline.holders.release(holderX, holderZ);
+            }
+        }
+    }
+
+    /** Whether every chunk that could read a holder's terrain or feature pass has finished. */
+    private readersFinished(pipeline: SeededPipeline, holderX: number, holderZ: number): boolean {
+        for (let dx = -RETENTION_RADIUS; dx <= RETENTION_RADIUS; dx++) {
+            for (let dz = -RETENTION_RADIUS; dz <= RETENTION_RADIUS; dz++) {
+                if (!pipeline.finished.has(this.chunkKey(holderX + dx, holderZ + dz))) return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -3567,6 +3623,7 @@ export class DataDrivenGenerator implements Generator {
                 }
             }),
             retained: new Map(),
+            finished: new Map(),
             chunkBiomes: new Map(),
             completions: new Map(),
             queue: new GenerationQueue(
