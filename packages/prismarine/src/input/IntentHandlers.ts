@@ -1,6 +1,7 @@
 import AnimateHandler from './handlers/AnimateHandler';
 import ChangeGameModeHandler from './handlers/ChangeGameModeHandler';
 import ChatHandler from './handlers/ChatHandler';
+import CloseContainerHandler from './handlers/CloseContainerHandler';
 import EatHandler from './handlers/EatHandler';
 import EmoteHandler from './handlers/EmoteHandler';
 import FinishCreditsHandler from './handlers/FinishCreditsHandler';
@@ -13,6 +14,7 @@ import RequestAbilityHandler from './handlers/RequestAbilityHandler';
 import RespawnHandler from './handlers/RespawnHandler';
 import RunCommandHandler from './handlers/RunCommandHandler';
 import ScriptMessageHandler from './handlers/ScriptMessageHandler';
+import SelectHotbarSlotHandler from './handlers/SelectHotbarSlotHandler';
 import SetDefaultGameModeHandler from './handlers/SetDefaultGameModeHandler';
 import SetPlayerPermissionHandler from './handlers/SetPlayerPermissionHandler';
 import SetViewDistanceHandler from './handlers/SetViewDistanceHandler';
@@ -25,6 +27,7 @@ export {
     AnimateHandler,
     ChangeGameModeHandler,
     ChatHandler,
+    CloseContainerHandler,
     EatHandler,
     EmoteHandler,
     FinishCreditsHandler,
@@ -37,6 +40,7 @@ export {
     RespawnHandler,
     RunCommandHandler,
     ScriptMessageHandler,
+    SelectHotbarSlotHandler,
     SetDefaultGameModeHandler,
     SetPlayerPermissionHandler,
     SetViewDistanceHandler

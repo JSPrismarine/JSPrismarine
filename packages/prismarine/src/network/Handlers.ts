@@ -9,7 +9,6 @@ import ClientMovementPredictionSyncHandler from './handler/ClientMovementPredict
 import ClientToServerHandshakeHandler from './handler/ClientToServerHandshakeHandler';
 import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
-import ContainerCloseHandler from './handler/ContainerCloseHandler';
 import DisconnectHandler from './handler/DisconnectHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
@@ -19,7 +18,6 @@ import LecternUpdateHandler from './handler/LecternUpdateHandler';
 import LoginHandler from './handler/LoginHandler';
 import MapCreateLockedCopyHandler from './handler/MapCreateLockedCopyHandler';
 import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
-import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import MultiplayerSettingsHandler from './handler/MultiplayerSettingsHandler';
@@ -67,7 +65,6 @@ export {
     ClientToServerHandshakeHandler,
     CommandBlockUpdateHandler,
     CommandRequestHandler,
-    ContainerCloseHandler,
     DisconnectHandler,
     EmoteListHandler,
     InventoryTransactionHandler,
@@ -77,7 +74,6 @@ export {
     LoginHandler,
     MapCreateLockedCopyHandler,
     MapInfoRequestHandler,
-    MobEquipmentHandler,
     ModalFormResponseHandler,
     MovePlayerHandler,
     MultiplayerSettingsHandler,

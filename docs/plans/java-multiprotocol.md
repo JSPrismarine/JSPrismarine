@@ -20,7 +20,7 @@ Branch `docs/java-multiprotocol-plan`, 2026-11-21.
 | 1 | This plan, ADR 0026 and ADR 0027 | Done, [#3402](https://github.com/JSPrismarine/JSPrismarine/pull/3402). |
 | 2 | `@jsprismarine/protocol` reshuffle: neutral root, `bedrock/` | Done, [#3408](https://github.com/JSPrismarine/JSPrismarine/pull/3408). |
 | 3 | The intent table, decoder shape and dispatcher, with three Bedrock handlers migrated as proof | In review |
-| 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | In progress. Interaction (actor event, emote, level sound, text) and session settings (chunk radius, game types, abilities, permissions, credits, settings command, script message, respawn, initialized) in review. |
+| 4 | Remaining Bedrock handlers migrated, one PR per area: interaction, session settings, block interfaces, movement and inventory | In progress. Interaction (actor event, emote, level sound, text) session settings (chunk radius, game types, abilities, permissions, credits, settings command, script message, respawn, initialized) and block interfaces (container close, hotbar selection) in review. Movement and inventory wait for their slices. |
 | 5 | The presenter seam: `PlayerSession` edition-neutral, the Bedrock presenter extracted | Not started |
 | 6 | Replicator encoders keyed by edition and codec, Bedrock only | Not started |
 | 7 | TCP transport, Java handshake and status: the server appears in a Java client's server list | Not started |
