@@ -369,8 +369,13 @@ const currentHost = (): HostFlags => ({ execArgv: process.execArgv, nodeOptions:
  * Resolved from beside the module rather than from here, because that package is the one being
  * run from source and its dev dependencies are what say how. This package does not depend on
  * `tsx` and a built install never asks.
+ *
+ * A compiled Bun executable never runs TypeScript from source. Testing the define it sets, rather
+ * than calling `embeddedGenerationWorker`, lets Bun drop the `tsx` lookup at build time; a lookup
+ * it can see makes it compile all of `tsx` and `esbuild` into the binary.
  */
 const typeScriptLoader = (module: string): string | undefined => {
+    if (typeof JSP_EMBEDDED_GENERATION_WORKER !== 'undefined') return undefined;
     try {
         return pathToFileURL(createRequire(pathToFileURL(resolve(module))).resolve('tsx')).href;
     } catch {
