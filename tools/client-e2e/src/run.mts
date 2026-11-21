@@ -423,7 +423,11 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
             ...(suite.scenarios.some((scenario) => scenario.serverOptions?.secondLevel === true)
                 ? { secondLevel: true }
                 : {}),
-            addons: [...new Set(suite.scenarios.flatMap((scenario) => scenario.serverOptions?.addons ?? []))]
+            addons: [...new Set(suite.scenarios.flatMap((scenario) => scenario.serverOptions?.addons ?? []))],
+            addonConfigs: Object.assign(
+                {},
+                ...suite.scenarios.map((scenario) => scenario.serverOptions?.addonConfigs ?? {})
+            )
         });
         const suiteServer = server;
         console.log(`${suite.name}: server listening on 127.0.0.1:${suiteServer.port}`);
