@@ -6,13 +6,14 @@ import { explosionResistanceOf } from '@jsprismarine/engine-systems';
 import { itemTypesTable } from '@jsprismarine/items/tables';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 import { blockFromContent } from '@jsprismarine/prismarine/block/Block';
+import { isJavaLiquidContainer } from '@jsprismarine/prismarine/content/world/fluidReplacement';
 import { flammabilityOf } from '@jsprismarine/prismarine/content/world/views';
 import { Item } from '@jsprismarine/prismarine/item/Item';
 
 import type { BehaviorScenario } from '../behaviorScenarios.ts';
 import type { JavaBlockPropertyRow } from '../goldens.ts';
 import { loadJavaBlockProperties } from '../goldens.ts';
-import { javaBlockHasBlockEntity, javaBlockIsA } from '../javaBlockClasses.ts';
+import { javaBlockBehaviors, javaBlockHasBlockEntity, javaBlockIsA } from '../javaBlockClasses.ts';
 import { pinnedJavaClassFile } from '../javaClassFile.ts';
 import { serverContent } from '../serverStack.ts';
 
@@ -274,6 +275,23 @@ const serverPistonOutcome = (subject: BlockStateSubject): PistonOutcome => {
 
 /** The scenarios over a block's Java properties. */
 export const blockPropertyScenarios: readonly BehaviorScenario<BlockStateSubject>[] = [
+    {
+        name: 'holds-water',
+        java: 'A block whose Java class is a SimpleWaterloggedBlock or a LiquidBlockContainer holds water, so flowing water stops at it rather than washing it away.',
+        reference: 'Java SimpleWaterloggedBlock, LiquidBlockContainer and FlowingFluid.canHoldFluid',
+        aspects: () => ['waterlogging'],
+        subjects: () =>
+            subjectsVarying([], (_, javaId) =>
+                javaBlockBehaviors(javaId).some(({ kind }) => kind.aspect === 'waterlogging')
+            ),
+        idOf: titleOf,
+        covers: (subject) => subject.javaId,
+        run: (subject) =>
+            // The server's Java fluid rule, which decides whether water holds in a block or washes it away.
+            isJavaLiquidContainer({ identifier: subject.bedrock, states: subject.states })
+                ? undefined
+                : "the server's fluid rule does not let it hold water"
+    },
     {
         name: 'mining-time',
         java: "A block takes as many ticks to break as Java's destroy progress needs to reach 1, with a bare hand and with each Java tool.",
