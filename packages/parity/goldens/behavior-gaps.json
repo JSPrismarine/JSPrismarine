@@ -3533,7 +3533,7 @@
         },
         "bds-record:block-members": {
             "kind": "defect",
-            "reason": "getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). setWaterlogged writes nothing, so isWaterlogged stays false (issue #3300). Every neighbor, tag, localization key, item, liquid answer, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
+            "reason": "getMapColor gives one color per type, from the dump world's biome and the default permutation, where BDS tints grass by its biome and colors a log by its axis (issue #3299). Every neighbor, tag, localization key, item, liquid answer, setWaterlogged and isWaterlogged, isSolid, getParts, trySetPermutation, component list, withState error and registry read matches BDS.",
             "reference": "issue #3298"
         },
         "bds-record:block-world-components": {
