@@ -1,9 +1,23 @@
-import { loadProject } from '../../project.mts';
+import { execFileSync } from 'node:child_process';
+import { loadProject, repoRoot } from '../../project.mts';
 import { overviewGroups } from './overviewGroups.mts';
 import { prismSvg, wordmark } from './theme/prism.ts';
 
 /** Text for HTML: VitePress renders the footer message with `v-html`. */
 const escape = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+/** The commit the site is built from, or undefined in a checkout without git. */
+function builtCommit() {
+    try {
+        return execFileSync('git', ['rev-parse', 'HEAD'], {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore']
+        }).trim();
+    } catch {
+        return undefined;
+    }
+}
 
 interface FooterLink {
     href: string;
@@ -11,12 +25,13 @@ interface FooterLink {
 }
 
 /**
- * The site footer as HTML: the mark, wordmark and server version on one side, and the links on the
+ * The site footer as HTML: the mark, wordmark, server version and built commit on one side, and the links on the
  * other, one column per audience from the guide overview plus a Project column. The audiences come
  * from `overviewGroups.mts`, as the menu's and the sidebar's do, so the footer routes the same way.
  */
 export function footerHtml({ base, project }: { base: string; project: FooterLink[] }) {
-    const { version, licenses } = loadProject();
+    const { version, licenses, repositoryUrl } = loadProject();
+    const commit = builtCommit();
     const href = (link: string) => (/^https?:/.test(link) ? link : `${base}${link.replace(/^\//, '')}`);
     const column = (title: string, links: FooterLink[]) =>
         `<div class="site-footer__column"><p class="site-footer__heading">${escape(title)}</p>${links
@@ -32,7 +47,9 @@ export function footerHtml({ base, project }: { base: string; project: FooterLin
         '<div class="site-footer">',
         '<div class="site-footer__identity">',
         `<a class="site-footer__brand" href="${base}">${prismSvg()}<span>${escape(wordmark)}</span></a>`,
-        `<p class="site-footer__version">v${escape(version)} · Released under the ${escape(licenses.join(' or '))} license, at your option.</p>`,
+        `<p class="site-footer__version">v${escape(version)} · ${
+            commit ? `Built from <a href="${repositoryUrl}/commit/${commit}">${commit.slice(0, 7)}</a> · ` : ''
+        }Released under the ${escape(licenses.join(' or '))} license, at your option.</p>`,
         '</div>',
         `<nav class="site-footer__columns" aria-label="Site">${[...audiences, column('Project', project)].join('')}</nav>`,
         '</div>'
