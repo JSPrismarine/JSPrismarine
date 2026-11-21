@@ -55,7 +55,14 @@ if (chosen.length === 0) throw new Error(`no Java scenario named ${positionals.j
 let failed = 0;
 for (const scenario of chosen) {
     const javaPort = await freeTcpPort();
-    const server = await startServer({ javaPort });
+    let server: JspServer;
+    try {
+        server = await startServer({ javaPort });
+    } catch (error) {
+        failed += 1;
+        console.log(`FAIL ${scenario.name}: ${error instanceof Error ? error.message : String(error)}`);
+        continue;
+    }
     let client: JavaClient | undefined;
     // Outside the server's directory, which its stop deletes.
     const clientLog = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-e2e-java-')), 'java-client.log');
