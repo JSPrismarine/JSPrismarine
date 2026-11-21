@@ -141,6 +141,8 @@ describe('the biome a chunk stores', () => {
         chunk.setBlockRuntimeId(at.x, at.y, at.z, stone);
         const firstRevision = blocks.blockChunkRevisionAt?.(at);
         expect(blocks.blockChunkIdentityAt?.(at)).toBe(chunk);
+        expect(blocks.blockChunkAt?.(at)).toBe(chunk);
+        expect(blocks.blockChunkAt?.({ x: 40, y: 64, z: 9 })).toBeUndefined();
         expect(firstRevision).toBe(chunk.getBlockRevision());
         expect(blocks.runtimeIdAt?.(at)).toBe(stone);
 

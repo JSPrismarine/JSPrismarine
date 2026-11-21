@@ -94,6 +94,12 @@ export interface ContentEntity {
  */
 export type ContentItemDrop = ItemDrop;
 
+/** A loaded chunk as a block cache that spans ticks keys it: the object, and its block revision. */
+export interface ContentBlockChunk {
+    /** A number that changes whenever a block in the chunk does. */
+    getBlockRevision(): number;
+}
+
 /** Reads and writes the blocks of one dimension. */
 export interface ContentBlockAccess {
     /** The block at a position, or undefined when its chunk is not loaded. */
@@ -110,6 +116,13 @@ export interface ContentBlockAccess {
     setLiquid?(at: ContentPosition, liquid: ContentBlock | undefined): void;
     /** The dimension's monotonic block-write version, when the host can provide one. */
     blockRevision?(): number;
+    /**
+     * The loaded chunk holding a block, or undefined when it is not loaded: its identity and its
+     * block revision from one lookup, where {@link ContentBlockAccess.blockChunkIdentityAt} and
+     * {@link ContentBlockAccess.blockChunkRevisionAt} take one each. A cache spanning ticks
+     * prefers it.
+     */
+    blockChunkAt?(at: ContentPosition): ContentBlockChunk | undefined;
     /** The loaded chunk object holding a block, for caches that span ticks. */
     blockChunkIdentityAt?(at: ContentPosition): object | undefined;
     /** The loaded chunk's block mutation revision, or undefined when it is not loaded. */
