@@ -2,6 +2,7 @@ import { TRIGGER_COMPONENTS } from '@jsprismarine/entities';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import type { BehaviorAspect } from '../behaviorScenarios.ts';
+import { javaEntityClass, javaGoalsOf } from '../javaGoals.ts';
 import { serverContent } from '../serverStack.ts';
 
 /**
@@ -29,8 +30,8 @@ export const PRESENTATION_COMPONENTS: ReadonlySet<string> = new Set([
  * The behaviors one Java entity has that full parity has to compare with Java: every component
  * its server definition declares, in its base components and its component groups, but the
  * presentation ones and the `minecraft:is_*` state markers, which only record a state another
- * component's behavior sets. An engine entity with no declared components has one aspect, its
- * engine behavior.
+ * component's behavior sets, and every goal the entity's Java class registers. An engine entity
+ * with none of either has one aspect, its engine behavior.
  */
 export const entityAspects = (javaId: string): readonly BehaviorAspect[] => {
     const mapping = javaEntityTypeToBedrock(javaId);
@@ -42,7 +43,13 @@ export const entityAspects = (javaId: string): readonly BehaviorAspect[] => {
             id: component,
             description: `what ${component} does for this entity, against Java`
         }));
-    return aspects.length > 0
-        ? aspects
-        : [{ id: 'engine', description: "this engine entity's behavior, against Java" }];
+    // Each goal the mob's Java class registers is a behavior of its own, whether or not the
+    // server's definition declares a goal that does it.
+    const entityClass = javaEntityClass(javaId);
+    const goals = entityClass === undefined ? [] : [...new Set(javaGoalsOf(entityClass).map((goal) => goal.goal))];
+    const all = [
+        ...aspects,
+        ...goals.map((goal) => ({ id: `java-goal:${goal}`, description: `what Java's ${goal} does for this mob` }))
+    ];
+    return all.length > 0 ? all : [{ id: 'engine', description: "this engine entity's behavior, against Java" }];
 };

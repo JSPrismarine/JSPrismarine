@@ -176,6 +176,7 @@ const GOAL_ISSUES: readonly (readonly [issue: number, matches: RegExp])[] = [
     [3169, /ticks of it two ticks later/],
     [3165, /does not pick up an item it stands on/],
     [3166, /targets wither, which/],
+    [3518, /runs none of /],
     [
         3130,
         /registers no |has no |runs no |but the server runs |a goal no Java class registers|cannot ride a chicken|does not move the chicken|keeps running its own movement|never jumps|not even below|2\.5 blocks away, which Java's leaves|takes no |holds the fish still|walks the fish/
@@ -2308,6 +2309,25 @@ const javaHasBrain = (javaId: string): boolean => {
         );
 };
 
+/**
+ * Bedrock goals that do a compared goal's job under another name, which a vanilla file declares
+ * instead: a polar bear's stomp and a ravager's delayed attack are its melee attack, and a fox
+ * picks its target with the prioritized form.
+ */
+const EQUIVALENT_GOALS: Readonly<Record<string, readonly string[]>> = {
+    melee_box_attack: ['melee_attack', 'stomp_attack', 'delayed_attack'],
+    nearest_attackable_target: ['nearest_prioritized_attackable_target'],
+    random_look_around: ['random_look_around_and_sit'],
+    random_stroll: ['random_fly']
+};
+
+/** The Bedrock goals a comparison pairs with a Java goal, by the Java classes each one names. */
+const pairedComponents = (goal: JavaGoal): readonly string[] =>
+    comparisons
+        .filter((comparison) => comparison.javaClasses.length > 0 && isGoal(goal, comparison.javaClasses))
+        .flatMap((comparison) => [comparison.aspect, ...(EQUIVALENT_GOALS[comparison.aspect] ?? [])])
+        .map((aspect) => `${PREFIX}${aspect}`);
+
 /** The shared-goal scenarios: one per Bedrock goal this theme compares, and the brain mobs' check. */
 export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
     {
@@ -2337,6 +2357,33 @@ export const goalScenarios: readonly BehaviorScenario<EntitySubject>[] = [
                 return `Java's ${subject.javaId} runs ${[...new Set(beside.map((goal) => goal.classes[0]))].join(', ')} beside its brain, which the server leaves out`;
             }
             return brainDifference(subject);
+        }
+    },
+    {
+        name: 'java-goal-runs',
+        java: "Every goal a Java mob's class registers runs on the server, as the Bedrock goal that does what it does.",
+        reference: 'Java Mob.registerGoals, read from the pinned jar',
+        // Only the Java goals a comparison above pairs with a Bedrock goal: the rest have no
+        // Bedrock goal to look for, and stay not measured.
+        subjects: () =>
+            javaEntityIds().flatMap((javaId) => {
+                const subject = mappedEntity(javaId);
+                if (subject === undefined || brainOnly(subject)) return [];
+                const paired = javaGoals(javaId).filter((goal) => pairedComponents(goal).length > 0);
+                return [...new Set(paired.map((goal) => goal.goal))].map((goal) => ({ ...subject, tag: goal }));
+            }),
+        idOf: (subject) => `${subject.javaId}/${subject.tag ?? ''}`,
+        covers: (subject) => subject.javaId,
+        aspects: (subject) => [`java-goal:${subject.tag ?? ''}`],
+        classify: goalGap("Every goal a Java mob's class registers runs on the server."),
+        run: (subject) => {
+            const goal = javaGoals(subject.javaId).find((candidate) => candidate.goal === subject.tag);
+            if (goal === undefined) return `Java's ${subject.javaId} registers no ${subject.tag ?? ''}`;
+            const components = pairedComponents(goal);
+            const declared = serverContent().entities.registry.get(subject.bedrock)?.declaredComponents ?? [];
+            return components.some((component) => declared.includes(component))
+                ? undefined
+                : `the server's ${subject.bedrock} runs none of ${components.join(', ')} for Java's ${goal.goal}`;
         }
     },
     ...comparisons.map(goalScenario),

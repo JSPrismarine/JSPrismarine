@@ -2257,6 +2257,141 @@
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
             "reference": "Java Pig.getRiddenInput and Strider.getRiddenInput (ItemSteerable: the rider holds the steering stick); issue #3131 if it differs"
         },
+        "java-goal-runs:minecraft:blaze/LookAtPlayerGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:blaze runs none of minecraft:behavior.look_at_player for Java's LookAtPlayerGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:blaze/MoveTowardsRestrictionGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:blaze runs none of minecraft:behavior.move_towards_home_restriction for Java's MoveTowardsRestrictionGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:camel_husk/PanicGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:camel_husk runs none of minecraft:behavior.panic for Java's PanicGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:cod/PanicGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:cod runs none of minecraft:behavior.panic for Java's PanicGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:endermite/HurtByTargetGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:endermite runs none of minecraft:behavior.hurt_by_target for Java's HurtByTargetGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:endermite/LookAtPlayerGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:endermite runs none of minecraft:behavior.look_at_player for Java's LookAtPlayerGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:endermite/RandomLookAroundGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:endermite runs none of minecraft:behavior.random_look_around, minecraft:behavior.random_look_around_and_sit for Java's RandomLookAroundGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:fox/FleeSunGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:fox runs none of minecraft:behavior.flee_sun for Java's FleeSunGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:fox/LeapAtTargetGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:fox runs none of minecraft:behavior.leap_at_target for Java's LeapAtTargetGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:mule/BreedGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:mule runs none of minecraft:behavior.breed for Java's BreedGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:pufferfish/PanicGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:pufferfish runs none of minecraft:behavior.panic for Java's PanicGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:rabbit/HurtByTargetGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:rabbit runs none of minecraft:behavior.hurt_by_target for Java's HurtByTargetGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:rabbit/MeleeAttackGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:rabbit runs none of minecraft:behavior.melee_box_attack, minecraft:behavior.melee_attack, minecraft:behavior.stomp_attack, minecraft:behavior.delayed_attack for Java's MeleeAttackGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:rabbit/NearestAttackableTargetGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:rabbit runs none of minecraft:behavior.nearest_attackable_target, minecraft:behavior.nearest_prioritized_attackable_target for Java's NearestAttackableTargetGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:salmon/PanicGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:salmon runs none of minecraft:behavior.panic for Java's PanicGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:silverfish/RandomStrollGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:silverfish runs none of minecraft:behavior.random_stroll, minecraft:behavior.random_fly, minecraft:behavior.random_swim for Java's RandomStrollGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:skeleton_horse/BreedGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:skeleton_horse runs none of minecraft:behavior.breed for Java's BreedGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:skeleton_horse/RunAroundLikeCrazyGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:skeleton_horse runs none of minecraft:behavior.run_around_like_crazy for Java's RunAroundLikeCrazyGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:tropical_fish/PanicGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:tropicalfish runs none of minecraft:behavior.panic for Java's PanicGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:turtle/MoveToBlockGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:turtle runs none of  for Java's MoveToBlockGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:wither_skeleton/AvoidEntityGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:wither_skeleton runs none of minecraft:behavior.avoid_mob_type for Java's AvoidEntityGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:wither_skeleton/FleeSunGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:wither_skeleton runs none of minecraft:behavior.flee_sun for Java's FleeSunGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:wither_skeleton/RangedBowAttackGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:wither_skeleton runs none of minecraft:behavior.ranged_attack for Java's RangedBowAttackGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:wither/RangedAttackGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:wither runs none of minecraft:behavior.ranged_attack for Java's RangedAttackGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:wolf/RandomLookAroundGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:wolf runs none of minecraft:behavior.random_look_around, minecraft:behavior.random_look_around_and_sit for Java's RandomLookAroundGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:zombie_horse/BreedGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:zombie_horse runs none of minecraft:behavior.breed for Java's BreedGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
+        "java-goal-runs:minecraft:zombified_piglin/NearestAttackableTargetGoal": {
+            "kind": "defect",
+            "reason": "Every goal a Java mob's class registers runs on the server. Observed: the server's minecraft:zombie_pigman runs none of minecraft:behavior.nearest_attackable_target, minecraft:behavior.nearest_prioritized_attackable_target for Java's NearestAttackableTargetGoal. Tracked in #3518.",
+            "reference": "Java Mob.registerGoals, read from the pinned jar"
+        },
         "jump-apex:minecraft:dolphin": {
             "kind": "intentional",
             "reason": "Bedrock decides jump strength (ADR 0001): Jump strength is one of the movement attributes `ClientMovementPredictionSyncPacket` carries, so the client predicts a ridden mount with it.",
