@@ -21,14 +21,15 @@ import { loadListingsLock } from './listings.mts';
 import { loadProject } from './project.mts';
 import { writeSearchIndex } from './search-index.mts';
 import {
-    addonPagePath,
     addonReadmePath,
     isUnpublished,
     linkRoute,
     pageSummary,
     pageTitle,
+    publishedPage,
     rootPages,
-    sections
+    sections,
+    toSitePage
 } from './sections.mts';
 import type { TrackerData } from '../../packages/parity/src/dashboard/tracker.ts';
 import { MOVED_ERRORS_FILE, type MovedErrors } from './site/.vitepress/theme/movedErrors.ts';
@@ -111,22 +112,12 @@ function writeTrackerSnapshot(snapshot: TrackerData) {
     writeFileSync(path.join(trackerDir, 'index.json'), JSON.stringify(index));
 }
 
-/** VitePress serves index.md for a directory, where GitHub renders README.md. */
-function toSitePage(source: string) {
-    return source.replace(/(^|[\\/])README\.md$/, '$1index.md');
-}
-
 // The parsed package.json is an untyped boundary; only the repository URL is read.
 const manifest: { repository: { url: string } } = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 const blobUrl = `${manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '')}/blob/master`;
 const docsRoot = path.join(repoRoot, 'docs');
 const sectionDirs = sections.map(({ dir }) => path.join(docsRoot, dir));
 const addons = await loadAddons();
-/** Root documents and addon READMEs, by their file, with the page each becomes. */
-const rootSources = new Map([
-    ...rootPages.map(({ source, page }): [string, string] => [path.join(repoRoot, source), page]),
-    ...addons.map(({ name }): [string, string] => [path.join(repoRoot, addonReadmePath(name)), addonPagePath(name)])
-]);
 
 /** The image files a docs page may show. */
 const IMAGE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
@@ -150,15 +141,11 @@ function rewriteLinks(markdown: string, sourceFile: string) {
 /** Where a relative link from a source file opens on the site; see {@link rewriteLinks}. */
 function linkTarget(target: string, sourceFile: string) {
     const resolved = path.resolve(path.dirname(sourceFile), target);
-    const rootPage = rootSources.get(resolved);
-    // VitePress adds the base to site-absolute links.
-    if (rootPage) return `/${rootPage.replace(/\.md$/, '')}`;
-    const section = sections.find(({ dir }) => resolved.startsWith(path.join(docsRoot, dir) + path.sep));
-    const published =
-        sectionDirs.some((dir) => resolved === dir) ||
-        (section !== undefined && !isUnpublished(section, path.relative(path.join(docsRoot, section.dir), resolved)));
-    if (!published) {
-        const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
+    const repoPath = path.relative(repoRoot, resolved).split(path.sep).join('/');
+    // VitePress adds the base to site-absolute links. A section's folder opens its index.
+    if (sectionDirs.includes(resolved)) return `/${path.relative(docsRoot, resolved).split(path.sep).join('/')}`;
+    const page = publishedPage(repoPath);
+    if (page === undefined) {
         if (IMAGE.test(resolved) && !repoPath.startsWith('../') && existsSync(resolved)) {
             mkdirSync(path.dirname(path.join(repoImageDir, repoPath)), { recursive: true });
             copyFileSync(resolved, path.join(repoImageDir, repoPath));
@@ -166,8 +153,9 @@ function linkTarget(target: string, sourceFile: string) {
         }
         return `${blobUrl}/${repoPath}`;
     }
-    // Site-absolute, so a root page links into a section as reliably as a page inside it.
-    return `/${toSitePage(path.relative(docsRoot, resolved)).split(path.sep).join('/')}`;
+    // Site-absolute, so a root page links into a section as reliably as a page inside it. A section's
+    // page keeps its file name, which VitePress resolves; a root document or an addon's README is linked by route.
+    return repoPath.startsWith('docs/') ? `/${page}` : `/${page.replace(/\.md$/, '')}`;
 }
 
 /** Lists a section's top-level pages, each with its opening sentence, for sections whose source has no README. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isStagedPage, linkRoute, pageSummary } from './sections.mts';
+import { isStagedPage, linkRoute, pageSummary, publishedPage } from './sections.mts';
 
 const page = (...blocks: string[]) => ['# Title', ...blocks, '## Next'].join('\n\n');
 
@@ -81,5 +81,22 @@ describe('linkRoute', () => {
         const github = 'https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/addon-marketplace.md';
         expect(linkRoute(github)).toBe(github);
         expect(linkRoute('/repo/addons/tps-bar/media/bar.png')).toBe('/repo/addons/tps-bar/media/bar.png');
+    });
+});
+
+describe('publishedPage', () => {
+    it('names the page a published repository file becomes', () => {
+        expect(publishedPage('docs/adr/0008-one-entity-model.md')).toBe('adr/0008-one-entity-model.md');
+        expect(publishedPage('docs/research/spikes/native-noise/README.md')).toBe(
+            'research/spikes/native-noise/index.md'
+        );
+        expect(publishedPage('CONTRIBUTING.md')).toBe('contributing.md');
+        expect(publishedPage('addons/tps-bar/README.md')).toBe('addons/tps-bar.md');
+    });
+
+    it('names none for a file the site leaves to GitHub', () => {
+        expect(publishedPage('packages/bedrock-data/src/vendor/README.md')).toBeUndefined();
+        expect(publishedPage('packages/entities/src/javaStats.ts')).toBeUndefined();
+        expect(publishedPage('docs/brand/assets/mark.svg')).toBeUndefined();
     });
 });

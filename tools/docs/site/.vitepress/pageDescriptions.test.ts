@@ -76,11 +76,4 @@ describe('pageDescriptions', () => {
             'The inventory/slotLog module of @jsprismarine/prismarine: PlayerContainer, SlotObserver.'
         );
     });
-
-    it("gives TypeDoc's copy of a page the original's description, and leaves the original its own", () => {
-        const adr = '# One\n\nStatus: accepted\n\nEvery entity lives in one store.\n';
-        const descriptions = describePages({ 'adr/0008-one.md': adr, 'api/_media/0008-one.md': adr });
-        expect(descriptions.get('adr/0008-one.md')).toBe('Every entity lives in one store.');
-        expect(descriptions.get('api/_media/0008-one.md')).toBe('Every entity lives in one store.');
-    });
 });

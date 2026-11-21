@@ -64,13 +64,6 @@ function apiDescription(relativePath: string, markdown: string) {
 }
 
 /**
- * TypeDoc's copies of the Markdown files a doc comment links to, such as an ADR, which the site
- * publishes beside the page they copy until #3586 points those links at the site's own pages. A copy
- * says what its original says, and does not push the original onto a weaker description.
- */
-const isCopy = (relativePath: string) => relativePath.startsWith('api/_media/');
-
-/**
  * Each page's description, for the pages whose front matter gives none, so that no two pages share
  * the site's description or each other's. A page takes the first of these that no other page takes
  * first: its own description or opening sentence, then for an API page the description
@@ -95,16 +88,12 @@ export function pageDescriptions(pages: readonly string[], context: DescriptionC
         })
     );
     const firstChoices = new Map<string, number>();
-    for (const [page, [first]] of candidates)
-        if (first !== undefined && !isCopy(page)) firstChoices.set(first, (firstChoices.get(first) ?? 0) + 1);
+    for (const [first] of candidates.values())
+        if (first !== undefined) firstChoices.set(first, (firstChoices.get(first) ?? 0) + 1);
 
     const descriptions = new Map<string, string>();
     for (const [page, [first, ...rest]] of candidates) {
         if (first === undefined) continue;
-        if (isCopy(page)) {
-            descriptions.set(page, first);
-            continue;
-        }
         const unshared = [first, ...rest].find((text) => (firstChoices.get(text) ?? 0) <= (text === first ? 1 : 0));
         descriptions.set(page, unshared ?? first);
     }

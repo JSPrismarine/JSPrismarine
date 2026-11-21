@@ -83,6 +83,27 @@ export const rootPages = [
     { source: 'CODE_OF_CONDUCT.md', page: 'code-of-conduct.md' }
 ] satisfies RootPage[];
 
+/** A staged file's page under `site/`: a folder's `README.md` becomes its `index.md`. */
+export const toSitePage = (source: string) => source.replace(/(^|[\\/])README\.md$/, '$1index.md');
+
+/**
+ * The page under `site/` that the site publishes a repository file as: `adr/0008-one-entity-model.md`
+ * for `docs/adr/0008-one-entity-model.md`, `contributing.md` for `CONTRIBUTING.md` and an addon's
+ * page for its README. A file the site does not publish has none, and a link to it opens on GitHub.
+ *
+ * @param repoPath - The file's path from the repository root, with `/` separators.
+ */
+export function publishedPage(repoPath: string) {
+    const root = rootPages.find(({ source }) => source === repoPath);
+    if (root) return root.page;
+    const addon = /^addons\/([^/]+)\/README\.md$/.exec(repoPath)?.[1];
+    if (addon !== undefined) return addonPagePath(addon);
+    const docsPath = /^docs\/(.+)$/.exec(repoPath)?.[1];
+    const section = docsPath && sections.find(({ dir }) => docsPath.startsWith(`${dir}/`));
+    if (!docsPath || !section || isUnpublished(section, docsPath.slice(section.dir.length + 1))) return undefined;
+    return toSitePage(docsPath);
+}
+
 /** Whether a site-relative page path was staged from the repository rather than written for the site. */
 export function isStagedPage(relativePath: string) {
     return (
