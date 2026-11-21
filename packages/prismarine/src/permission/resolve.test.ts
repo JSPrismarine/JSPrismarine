@@ -64,6 +64,30 @@ describe('permission resolution', () => {
         const member = view(groups, { groups: [{ group: 'vip' }, { group: 'staff' }] });
         expect(hasPermission(member, 'minecraft.command.kick')).toBe(true);
         expect(directGroupsOf(member)).toEqual(['staff', 'vip', 'default']);
+        // A denial in the lighter group never overrides the heavier group's grant: tiers decide one at a time.
+        expect(
+            hasPermission(view(groups, { groups: [{ group: 'staff' }, { group: 'vip' }] }), 'minecraft.command.kick')
+        ).toBe(true);
+    });
+
+    it('visits groups of equal weight in name order, so a grant and a denial at one weight resolve the same on every run', () => {
+        const tied = {
+            default: group(),
+            alpha: group({ weight: 5, nodes: nodes('minecraft.command.kick') }),
+            beta: group({ weight: 5, nodes: nodes('-minecraft.command.kick') })
+        };
+        const listedBetaFirst = view(tied, { groups: [{ group: 'beta' }, { group: 'alpha' }] });
+        expect(directGroupsOf(listedBetaFirst)).toEqual(['alpha', 'beta', 'default']);
+        expect(hasPermission(listedBetaFirst, 'minecraft.command.kick')).toBe(true);
+        // The same nodes under names in the other order give the denial the first tier.
+        const swapped = {
+            default: group(),
+            alpha: group({ weight: 5, nodes: nodes('-minecraft.command.kick') }),
+            beta: group({ weight: 5, nodes: nodes('minecraft.command.kick') })
+        };
+        expect(
+            hasPermission(view(swapped, { groups: [{ group: 'beta' }, { group: 'alpha' }] }), 'minecraft.command.kick')
+        ).toBe(false);
     });
 
     it("walks a group's parents depth first, behind the group's own nodes", () => {

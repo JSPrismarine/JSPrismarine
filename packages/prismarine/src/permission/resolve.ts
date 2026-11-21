@@ -59,7 +59,7 @@ const decideTier = (nodes: readonly Node[], query: string, now: number): boolean
 /**
  * The groups a subject holds directly, heaviest first: the memberships that have not expired and
  * name a group the file has, `default` for everyone and `operator` for an operator. Two groups of
- * one weight keep the order the memberships list them in, with the built-in groups last.
+ * one weight are visited in name order, so the result is the same on every run.
  */
 export const directGroupsOf = (view: PermissionView): string[] => {
     const names: string[] = [];
@@ -72,11 +72,7 @@ export const directGroupsOf = (view: PermissionView): string[] => {
     if (!names.includes(DEFAULT_GROUP)) names.push(DEFAULT_GROUP);
     if (view.isOp && !names.includes(OPERATOR_GROUP)) names.push(OPERATOR_GROUP);
     const weightOf = (name: string): number => view.groupOf(name)?.weight ?? EMPTY_GROUP.weight;
-    // A stable sort, so equal weights keep their listed order.
-    return names
-        .map((name, index) => ({ name, index }))
-        .sort((a, b) => weightOf(b.name) - weightOf(a.name) || a.index - b.index)
-        .map(({ name }) => name);
+    return names.sort((a, b) => weightOf(b) - weightOf(a) || (a < b ? -1 : a > b ? 1 : 0));
 };
 
 /** The heaviest group the subject holds directly. */
