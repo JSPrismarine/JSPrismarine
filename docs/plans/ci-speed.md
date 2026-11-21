@@ -312,8 +312,9 @@ shard keeps its `junit.xml` for 14 days, and the plan reads the newest successfu
 Done when the shards' recorded totals differ by less than the longest single file, checked in a unit
 test of the assignment script, and the workflow carries no file-count constants.
 
-The same applies to client e2e, whose `--shard` splits suites by scenario count. The runner can
-record each suite's duration on master and assign suites by it instead.
+The same now applies to client e2e: each shard of a full run on master keeps a `suite-times.json`
+for 14 days, the `changes` job reads the newest run's, and `--suite-times` makes `--shard` weigh
+each suite by its seconds, scaled to the scenarios a selection plays, instead of by scenario count.
 
 ### Phase 6: one CI workflow with one planning job
 

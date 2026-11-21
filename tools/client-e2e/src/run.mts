@@ -9,6 +9,7 @@
  * pnpm --filter @jsprismarine/client-e2e run e2e --retry                 # failed scenarios run once more
  * pnpm --filter @jsprismarine/client-e2e run e2e --run-skipped           # also the scenarios pin-skips.mts skips
  * pnpm --filter @jsprismarine/client-e2e run e2e --shard 2/4             # the second of four shares of the suites
+ * pnpm --filter @jsprismarine/client-e2e run e2e --shard 2/4 --suite-times times.json # shares of similar recorded time
  * ```
  *
  * Evidence lands in `--artifacts` (default: a fresh temporary directory, printed at the end).
@@ -37,7 +38,7 @@ import { sleep, standAt, untilPlayersOnline } from './scenario.mts';
 import { pinSkips } from './pin-skips.mts';
 import type { ScenarioWindow } from './scenario-coverage.mts';
 import { buildScenarioCoverageMap } from './scenario-coverage.mts';
-import { parseShard, shardSuites } from './shard.mts';
+import { parseShard, shardSuites, weightByTimes } from './shard.mts';
 import { cachedChunkDelivery } from './scenarios/cached-chunk-delivery.mts';
 import type { ScenarioSuite } from './suites.mts';
 import { suites } from './suites.mts';
@@ -61,7 +62,8 @@ const { values, positionals } = parseArgs({
         'compression-algorithm': { type: 'string', default: 'snappy' },
         'raknet-worker': { type: 'boolean', default: true },
         concurrency: { type: 'string', default: '2' },
-        shard: { type: 'string' }
+        shard: { type: 'string' },
+        'suite-times': { type: 'string' }
     },
     allowPositionals: true,
     allowNegative: true
@@ -111,9 +113,26 @@ const selectedSuitesOfEveryShard = suites
     .filter((suite) => suite.scenarios.length > 0);
 const shard = values.shard === undefined ? undefined : parseShard(values.shard);
 if (typeof shard === 'string') throw new Error(shard);
+/**
+ * Seconds per suite from an earlier run's `suite-times.json`, so the shards come out close in
+ * time rather than in scenario count. Without the file, the split goes by scenario count.
+ */
+const suiteTimes = ((): Map<string, number> => {
+    if (values['suite-times'] === undefined) return new Map();
+    // Parsed JSON boundary: the file is what this runner wrote at the end of an earlier run.
+    const parsed: unknown = JSON.parse(fs.readFileSync(values['suite-times'], 'utf8'));
+    if (typeof parsed !== 'object' || parsed === null) throw new Error('--suite-times must hold a JSON object');
+    return new Map(
+        Object.entries(parsed).flatMap(([name, time]) =>
+            typeof time === 'number' && Number.isFinite(time) && time >= 0 ? [[name, time] as const] : []
+        )
+    );
+})();
 // CI runs a shard per runner; see shard.mts for how the suites are split.
 const requestedSuites =
-    shard === undefined ? selectedSuitesOfEveryShard : shardSuites(selectedSuitesOfEveryShard, shard);
+    shard === undefined
+        ? selectedSuitesOfEveryShard
+        : shardSuites(selectedSuitesOfEveryShard, shard, weightByTimes(suiteTimes, suites));
 if (shard !== undefined) {
     const names = requestedSuites.map((suite) => suite.name).join(', ') || 'no suites';
     console.log(`shard ${shard.index}/${shard.total}: ${names}`);
@@ -685,6 +704,13 @@ const runSuite = async (suite: ScenarioSuite, index: number): Promise<ScenarioRe
     return results;
 };
 
+/**
+ * How long each suite took, boot and join included, in seconds. Written to `suite-times.json` for
+ * the next run's `--suite-times`. A weight for splitting suites across runners, not a measurement
+ * of anything: the same suite takes a different time on every runner.
+ */
+const suiteSeconds = new Map<string, number>();
+
 /** Runs suites `concurrency` at a time. `firstIndex` numbers their server logs after earlier runs'. */
 const runSuites = async (toRun: readonly ScenarioSuite[], firstIndex: number): Promise<ScenarioResult[]> => {
     const resultsBySuite: Array<ScenarioResult[] | undefined> = new Array(toRun.length);
@@ -695,7 +721,10 @@ const runSuites = async (toRun: readonly ScenarioSuite[], firstIndex: number): P
             nextSuiteIndex += 1;
             const suite = toRun[index];
             if (!suite) return;
+            const started = performance.now();
             resultsBySuite[index] = await runSuite(suite, firstIndex + index);
+            // The first run of a suite only: a retry plays a suite's failed scenarios alone.
+            if (!suiteSeconds.has(suite.name)) suiteSeconds.set(suite.name, (performance.now() - started) / 1000);
         }
     };
     await Promise.all(Array.from({ length: Math.min(concurrency, toRun.length) }, worker));
@@ -728,6 +757,10 @@ if (runSkipped) {
     }
 }
 fs.writeFileSync(path.join(artifacts, 'server.log'), serverLogs.filter(Boolean).join('\n'));
+fs.writeFileSync(
+    path.join(artifacts, 'suite-times.json'),
+    `${JSON.stringify(Object.fromEntries([...suiteSeconds].map(([name, seconds]) => [name, Math.round(seconds)])))}\n`
+);
 // Which server functions each scenario ran, so a later change can run only the scenarios it reaches.
 if (process.env.NODE_V8_COVERAGE && coverageWindows.length > 0) {
     const map = buildScenarioCoverageMap(process.env.NODE_V8_COVERAGE, coverageWindows, repoRoot);

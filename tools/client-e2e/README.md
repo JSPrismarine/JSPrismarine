@@ -92,7 +92,9 @@ the `zlib` jobs. A pull request plays only the newest protocol over RakNet; a pu
 manual run play every pin, and a push skips a pin the merged pull request passed in every shard.
 Each pin is played in four shards on runners of their own, or in one when a pull request runs only
 some scenarios. `--shard <index>/<total>` picks the suites one shard plays: whole suites, the
-largest first, each to the shard with the fewest scenarios so far (`src/shard.mts`). Each shard's
+heaviest first, each to the shard with the least so far (`src/shard.mts`). A suite weighs the
+seconds an earlier run recorded for it in its `suite-times.json`, passed with `--suite-times`, and
+its scenario count without one; CI reads the times from the last full run on master. Each shard's
 job uploads evidence and an LCOV report to Codecov.
 
 A run that collects coverage also writes `scenario-coverage.json` to its artifacts: for each server
