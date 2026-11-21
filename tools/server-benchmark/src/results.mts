@@ -194,3 +194,19 @@ export const mergeSettings = (
     }
     return merged;
 };
+
+/**
+ * The {@link ServerDescription.source} of a JSPrismarine build: the commit it was built from, and
+ * whether the packages had changes that commit does not hold.
+ */
+export const commitSource = (sha: string, dirty: boolean): string =>
+    `commit ${sha}${dirty ? ' with uncommitted changes' : ''}`;
+
+/**
+ * Reads back what {@link commitSource} wrote, or null for a source that names no commit, such as
+ * a release asset or a pinned archive.
+ */
+export const parseCommitSource = (source: string): { readonly sha: string; readonly dirty: boolean } | null => {
+    const match = /^commit ([0-9a-f]{7,40})( with uncommitted changes)?$/.exec(source);
+    return match === null ? null : { sha: match[1]!, dirty: match[2] !== undefined };
+};

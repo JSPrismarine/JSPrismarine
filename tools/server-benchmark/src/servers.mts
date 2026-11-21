@@ -28,6 +28,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import { isRecord } from './isRecord.mts';
+import { commitSource } from './results.mts';
 import { ServerProcess } from './serverProcess.mts';
 
 import type { ScenarioId, ServerId, SettingChange, Transport } from './results.mts';
@@ -119,7 +120,7 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
         const version = isRecord(manifest) && typeof manifest.version === 'string' ? manifest.version : 'unknown';
         const sha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO, encoding: 'utf8' }).trim();
         const dirty = execFileSync('git', ['status', '--porcelain', '--', 'packages'], { cwd: REPO, encoding: 'utf8' });
-        return { version, source: `commit ${sha}${dirty.trim() === '' ? '' : ' with uncommitted changes'}` };
+        return { version, source: commitSource(sha, dirty.trim() !== '') };
     },
     world: (scenario) =>
         scenario === 'flat' ? 'minecraft:flat preset' : 'minecraft:normal preset, Java Edition terrain',
