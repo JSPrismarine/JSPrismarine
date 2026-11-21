@@ -52,6 +52,7 @@ import type {
     BiomeSourceDefinition,
     CarverConfig,
     DensityFunctionNode,
+    LocalBiomes,
     MaterialRuleNode,
     NoiseGeneratorSettings,
     SurfacePass
@@ -1646,7 +1647,7 @@ export class DataDrivenGenerator implements Generator {
         // A blended tile already holds its blended biomes, which the sampled cells would contradict.
         // Any other tile carries its cells, so the threads that read it next start with its biomes.
         if (region.biomeSection(0) === undefined) {
-            region.setBiomeCells(this.sampleBiomeCells(cx, cz, pipeline));
+            region.setBiomeCells(region.biomeCells() ?? this.sampleBiomeCells(cx, cz, pipeline));
             region.setBiomeSections(this.packBiomeSections(cx, cz, pipeline));
         }
         return region.transfer();
@@ -1970,6 +1971,28 @@ export class DataDrivenGenerator implements Generator {
             }
         }
         return { palette, indices: indices.buffer };
+    }
+
+    /**
+     * The blocks of a chunk whose biome lookups read only the chunk's own cells.
+     *
+     * Java's `BiomeManager.getBiome` shifts a block by two, takes the cell it lands in and the
+     * next one along each axis, and picks one of those eight after a seeded jitter. A block reads
+     * only its own chunk's cells when both cells along x and z are inside the chunk, which is
+     * local x and z 2 to 13, and both along y are inside the dimension's cells.
+     */
+    private ownCellsReach(cx: number, cz: number, pipeline: SeededPipeline, cells: RegionBiomeCells): LocalBiomes {
+        const bottomQuart = pipeline.dimension.minY >> 2;
+        const topQuart = (pipeline.dimension.minY + pipeline.dimension.height - 1) >> 2;
+        return {
+            biomes: new Set(cells.palette),
+            minX: cx * 16 + 2,
+            maxX: cx * 16 + 13,
+            minZ: cz * 16 + 2,
+            maxZ: cz * 16 + 13,
+            minY: bottomQuart * 4 + 2,
+            maxY: topQuart * 4 + 1
+        };
     }
 
     /** Writes a tile's sampled biome cells into the pipeline's biome memory. */
@@ -2563,13 +2586,22 @@ export class DataDrivenGenerator implements Generator {
         }
 
         region.freezeSurfaceHeights();
+        // The tile carries its cells anyway, and sampled first they also answer the surface pass's
+        // biome conditions for the blocks that read no cell outside them.
+        let localBiomes: LocalBiomes | undefined;
+        if (blendedCells === pipeline.biomeCells) {
+            const cells = region.biomeCells() ?? this.sampleBiomeCells(cx, cz, pipeline);
+            region.setBiomeCells(cells);
+            localBiomes = this.ownCellsReach(cx, cz, pipeline, cells);
+        }
         const surface = pipeline.surface.buildSurface({
             chunk: region.surfaceChunk(),
             rule: pipeline.materialRule,
             biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
             biomeClimate: pipeline.climateOf,
             sampleContext: sampler.context,
-            possibleBiomes: pipeline.possibleBiomes
+            possibleBiomes: pipeline.possibleBiomes,
+            ...(localBiomes === undefined ? {} : { localBiomes })
         });
 
         // Java's `terrain` status runs the fill, the surface materials and the carvers in that

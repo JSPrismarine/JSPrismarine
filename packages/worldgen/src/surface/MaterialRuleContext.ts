@@ -22,6 +22,21 @@ export type RuleEvaluator = (x: number, y: number, z: number) => string | undefi
 /** Returns whether a condition holds at the context's current position. */
 export type ConditionEvaluator = () => boolean;
 
+/**
+ * The biomes the blocks inside a box can resolve to: a box whose blocks look up their biome only
+ * in cells this set was read from.
+ */
+export interface LocalBiomes {
+    /** Every biome of the cells the box's blocks read. */
+    readonly biomes: ReadonlySet<string>;
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minY: number;
+    readonly maxY: number;
+    readonly minZ: number;
+    readonly maxZ: number;
+}
+
 /** What a {@link MaterialRuleContext} needs besides the world seed. */
 export interface MaterialRuleContextOptions {
     /** The surface system that owns the noises and the clay bands. */
@@ -38,6 +53,11 @@ export interface MaterialRuleContextOptions {
     readonly sampleContext?: SampleContext;
     /** Every biome the chunk can hold, which lets a `biome` condition fold to a constant. */
     readonly possibleBiomes?: ReadonlySet<string>;
+    /**
+     * The biomes of a box inside the chunk, which lets a `biome` condition answer without a
+     * lookup for the blocks in the box.
+     */
+    readonly localBiomes?: LocalBiomes;
 }
 
 /**
@@ -76,6 +96,8 @@ export class MaterialRuleContext {
 
     /** Every biome the chunk can hold, or undefined when the caller did not narrow it. */
     public readonly possibleBiomes: ReadonlySet<string> | undefined;
+    /** The biomes of a box inside the chunk, or undefined when the caller has none. */
+    public readonly localBiomes: LocalBiomes | undefined;
     /** The dimension extent a vertical anchor resolves against. */
     public readonly generationContext: WorldGenerationContext;
     /** The memo slots the compiled density functions share. */
@@ -102,6 +124,7 @@ export class MaterialRuleContext {
         this.generationContext = options.generationContext;
         this.sampleContext = options.sampleContext ?? new SampleContext();
         this.possibleBiomes = options.possibleBiomes;
+        this.localBiomes = options.localBiomes;
         this.preliminarySurface = options.randomState.sampler(options.system.preliminarySurface);
     }
 
@@ -205,6 +228,21 @@ export class MaterialRuleContext {
     }
 }
 
+/**
+ * The one answer a `biome` condition has wherever only these biomes occur: false when it names
+ * none of them, true when it names all of them, and undefined when the answer varies.
+ */
+const foldBiomes = (named: ReadonlySet<string>, occurring: ReadonlySet<string> | undefined): boolean | undefined => {
+    if (occurring === undefined) return undefined;
+    let any = false;
+    let all = true;
+    for (const biome of occurring) {
+        if (named.has(biome)) any = true;
+        else all = false;
+    }
+    return !any ? false : all ? true : undefined;
+};
+
 /** Caches a per-column answer against the context's column counter. */
 const lazyXZ = (context: MaterialRuleContext, compute: () => boolean): ConditionEvaluator => {
     let lastUpdate = -1;
@@ -257,18 +295,22 @@ export const compileMaterialCondition = (
     switch (node.type) {
         case 'biome': {
             const biomes = new Set(node.biomes);
-            const possible = context.possibleBiomes;
-            if (possible) {
-                let anyPossible = false;
-                let allPossible = true;
-                for (const biome of possible) {
-                    if (biomes.has(biome)) anyPossible = true;
-                    else allPossible = false;
-                }
-                if (!anyPossible) return () => false;
-                if (allPossible) return () => true;
-            }
-            return lazyY(context, () => biomes.has(context.getBiome()));
+            const possible = foldBiomes(biomes, context.possibleBiomes);
+            if (possible !== undefined) return () => possible;
+            const local = context.localBiomes;
+            const inBox = local === undefined ? undefined : foldBiomes(biomes, local.biomes);
+            if (local === undefined || inBox === undefined) return lazyY(context, () => biomes.has(context.getBiome()));
+            // Inside the box the answer is known; the lookup is left for the blocks outside it.
+            return lazyY(context, () =>
+                context.blockX >= local.minX &&
+                context.blockX <= local.maxX &&
+                context.blockZ >= local.minZ &&
+                context.blockZ <= local.maxZ &&
+                context.blockY >= local.minY &&
+                context.blockY <= local.maxY
+                    ? inBox
+                    : biomes.has(context.getBiome())
+            );
         }
         case 'noise_threshold': {
             const sample = noiseSupplier(context, node.noise, node.is3d);

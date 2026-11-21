@@ -94,7 +94,11 @@ const buildChunk = (settingsId: string, biomeSourceName: string) => {
     return { randomState, settings, grid, biomeSourceName };
 };
 
-const runPass = (built: ReturnType<typeof buildChunk>, rule: ReturnType<MaterialRuleData['parseRule']>) => {
+const runPass = (
+    built: ReturnType<typeof buildChunk>,
+    rule: ReturnType<MaterialRuleData['parseRule']>,
+    withOwnCells = false
+) => {
     const chunk = new BlockArraySurfaceChunk({
         chunkX: columnVectors.chunkX,
         chunkZ: columnVectors.chunkZ,
@@ -104,14 +108,44 @@ const runPass = (built: ReturnType<typeof buildChunk>, rule: ReturnType<Material
     const source = createBiomeSource(built.biomeSourceName);
     const resolver = source.resolver(createClimateSampler(built.randomState, new SampleContext()));
     const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(SEED));
+    let lookups = 0;
     const pass = new SurfaceSystem(built.randomState).buildSurface({
         chunk,
         rule,
-        biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
+        biomeAt: (x, y, z) => {
+            lookups++;
+            return biomes.getBiome(x, y, z);
+        },
         biomeClimate,
-        sampleContext: new SampleContext()
+        sampleContext: new SampleContext(),
+        ...(withOwnCells ? { localBiomes: ownCellsBox(built, resolver) } : {})
     });
-    return { chunk, pass };
+    return { chunk, pass, lookups };
+};
+
+/**
+ * The chunk's own cells and the blocks whose jittered biome lookup reads no other cell: local x
+ * and z 2 to 13, and the y whose two candidate cells both lie inside the dimension's cells.
+ */
+const ownCellsBox = (built: ReturnType<typeof buildChunk>, resolver: (x: number, y: number, z: number) => string) => {
+    const { minY, height } = built.settings.noiseSettings;
+    const bottomQuart = minY >> 2;
+    const topQuart = (minY + height - 1) >> 2;
+    const biomes = new Set<string>();
+    for (let quartX = columnVectors.chunkX * 4; quartX < columnVectors.chunkX * 4 + 4; quartX++) {
+        for (let quartZ = columnVectors.chunkZ * 4; quartZ < columnVectors.chunkZ * 4 + 4; quartZ++) {
+            for (let quartY = bottomQuart; quartY <= topQuart; quartY++) biomes.add(resolver(quartX, quartY, quartZ));
+        }
+    }
+    return {
+        biomes,
+        minX: columnVectors.chunkX * 16 + 2,
+        maxX: columnVectors.chunkX * 16 + 13,
+        minZ: columnVectors.chunkZ * 16 + 2,
+        maxZ: columnVectors.chunkZ * 16 + 13,
+        minY: bottomQuart * 4 + 2,
+        maxY: topQuart * 4 + 1
+    };
 };
 
 const runRule = (
@@ -219,10 +253,24 @@ describe('the surface pass over whole columns', () => {
     for (const dimension of columnVectors.dimensions) {
         describe(`${dimension.settings}`, () => {
             let chunk: BlockArraySurfaceChunk;
+            let lookups: number;
+            let withOwnCells: ReturnType<typeof runPass>;
             beforeAll(() => {
                 const built = buildChunk(dimension.settings, dimension.biomeSource);
-                chunk = runRule(built, materialRuleData.rule(dimension.materialRule));
+                ({ chunk, lookups } = runPass(built, materialRuleData.rule(dimension.materialRule)));
+                withOwnCells = runPass(built, materialRuleData.rule(dimension.materialRule), true);
             }, 120_000);
+
+            it("places the same blocks when its own cells answer the inner blocks' biome conditions", () => {
+                for (const column of dimension.columns.entries) {
+                    expect(runsOf(withOwnCells.chunk, column.x, column.z)).toEqual(column.runs);
+                }
+                // One lookup a column finds the column's surface biome either way. Where the rules
+                // also ask per block, the box answers for 144 of the 256 columns.
+                const columns = 16 * 16;
+                if (lookups > columns) expect(withOwnCells.lookups).toBeLessThan(lookups / 2);
+                else expect(withOwnCells.lookups).toBe(lookups);
+            });
 
             it('places the same block as Java in every column, from bedrock to sky', () => {
                 for (const column of dimension.columns.entries) {
