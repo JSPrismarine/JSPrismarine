@@ -5,7 +5,7 @@ import { ChunkStepBuilder } from './ChunkStep';
 import { ChunkgenErrors } from '@jsprismarine/errors/chunkgen';
 
 /** Declares one rung: the requirements the jar's builder adds, and the block write radius. */
-type StepDeclaration = (builder: ChunkStepBuilder) => ChunkStepBuilder;
+export type StepDeclaration = (builder: ChunkStepBuilder) => ChunkStepBuilder;
 
 /**
  * The `addRequirement` and `blockStateWriteRadius` calls `ChunkPyramid.GENERATION_PYRAMID` makes,

@@ -10,3 +10,4 @@ export * from './numberProvider';
 export * from './projection';
 export * from './schema';
 export * from './tables';
+export { itemFactColumns } from './facts';

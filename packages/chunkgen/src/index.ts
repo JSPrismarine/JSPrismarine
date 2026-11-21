@@ -87,3 +87,6 @@ export {
     parseCpuMax,
     parseCpuStat
 } from './ConcurrencyGovernor';
+export type { KeepResult } from './reusableInput';
+export type { TaskRunner } from './GenerationPool';
+export type { StepDeclaration } from './ChunkPyramid';

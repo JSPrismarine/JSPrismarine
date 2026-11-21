@@ -39,7 +39,7 @@ export const spawnEggInteraction: ComponentFactory<EntityHooks, ComponentRecord>
 };
 
 /** One item transformation written as `item_name:aux_value`. */
-interface TransformedItem {
+export interface TransformedItem {
     readonly identifier: string;
     readonly data?: number;
 }
@@ -65,7 +65,7 @@ const transformedItemOf = (value: string): TransformedItem => {
 };
 
 /** One `minecraft:interact.interactions[]` entry used by a held-item interaction. */
-interface InteractEntry {
+export interface InteractEntry {
     readonly onInteract?: SensorTrigger;
     readonly healthAmount?: number;
     /** Entity types to create when this interaction succeeds. */

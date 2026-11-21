@@ -45,3 +45,4 @@ export * from './surface/SurfaceChunk';
 export * from './surface/SurfaceSystem';
 export * from './surface/VerticalAnchor';
 export * from './WorldgenData';
+export { CacheCell } from './density/SampleContext';

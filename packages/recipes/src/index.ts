@@ -69,3 +69,4 @@ export {
     type StonecuttingRecipe,
     type TransmuteRecipe
 } from './types';
+export type { SingleItemStation } from './match';

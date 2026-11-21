@@ -1,4 +1,5 @@
 import Client, { MINECRAFT_VERSION, PROTOCOL_VERSION } from './Client';
+import Credits from './Credits';
 import DimensionChange from './DimensionChange';
 import Bot, { TICK_INTERVAL_MS } from './bot/Bot';
 import Fleet from './bot/Fleet';
@@ -24,6 +25,7 @@ export {
     Client,
     ClientPacketRegistry,
     ClientSession,
+    Credits,
     DimensionChange,
     Fleet,
     LoginSequence,
@@ -54,3 +56,7 @@ export type { FleetOptions } from './bot/Fleet';
 export type { FleetReport, LatencySummary } from './bot/Metrics';
 export type { Behavior, BehaviorContext } from './bot/behavior/Behavior';
 export type { Walk } from './playerAuthInput';
+export type { ClientPhase } from './net/ClientHandler';
+export type { ClientContext } from './net/ClientHandler';
+export type { ClientPacketHandler } from './net/ClientHandler';
+export type { ClientLog } from './net/ClientHandler';

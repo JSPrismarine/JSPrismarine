@@ -69,7 +69,7 @@ export interface GameTestRegistration<Owner> {
 export type GameTestState = 'waiting' | 'running' | 'done' | 'cleaned';
 
 /** Something due on a later tick of a running test. */
-type Timer =
+export type Timer =
     | { readonly due: number; readonly kind: 'callback'; readonly callback: ScriptHandle }
     | { readonly due: number; readonly kind: 'idle'; readonly resolve: ScriptHandle };
 

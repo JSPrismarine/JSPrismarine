@@ -255,6 +255,1196 @@
                 "import": "./dist/scripting/ScriptHttpInputs.js",
                 "module": "./dist/scripting/ScriptHttpInputs.js"
             },
+            "./network/presenter/SessionPresenter": {
+                "types": "./dist/network/presenter/SessionPresenter.d.ts",
+                "import": "./dist/network/presenter/SessionPresenter.js",
+                "module": "./dist/network/presenter/SessionPresenter.js"
+            },
+            "./utils/Service": {
+                "types": "./dist/utils/Service.d.ts",
+                "import": "./dist/utils/Service.js",
+                "module": "./dist/utils/Service.js"
+            },
+            "./ban/BanManager": {
+                "types": "./dist/ban/BanManager.d.ts",
+                "import": "./dist/ban/BanManager.js",
+                "module": "./dist/ban/BanManager.js"
+            },
+            "./chat/ChatManager": {
+                "types": "./dist/chat/ChatManager.d.ts",
+                "import": "./dist/chat/ChatManager.js",
+                "module": "./dist/chat/ChatManager.js"
+            },
+            "./command/CommandManager": {
+                "types": "./dist/command/CommandManager.d.ts",
+                "import": "./dist/command/CommandManager.js",
+                "module": "./dist/command/CommandManager.js"
+            },
+            "./modules/network": {
+                "types": "./dist/modules/network.d.ts",
+                "import": "./dist/modules/network.js",
+                "module": "./dist/modules/network.js"
+            },
+            "./network/PacketHandlerRegistry": {
+                "types": "./dist/network/PacketHandlerRegistry.d.ts",
+                "import": "./dist/network/PacketHandlerRegistry.js",
+                "module": "./dist/network/PacketHandlerRegistry.js"
+            },
+            "./permission/PermissionManager": {
+                "types": "./dist/permission/PermissionManager.d.ts",
+                "import": "./dist/permission/PermissionManager.js",
+                "module": "./dist/permission/PermissionManager.js"
+            },
+            "./modules/ticker": {
+                "types": "./dist/modules/ticker.d.ts",
+                "import": "./dist/modules/ticker.js",
+                "module": "./dist/modules/ticker.js"
+            },
+            "./world/WorldManager": {
+                "types": "./dist/world/WorldManager.d.ts",
+                "import": "./dist/world/WorldManager.js",
+                "module": "./dist/world/WorldManager.js"
+            },
+            "./world/ShownActor": {
+                "types": "./dist/world/ShownActor.d.ts",
+                "import": "./dist/world/ShownActor.js",
+                "module": "./dist/world/ShownActor.js"
+            },
+            "./world/SpawnPlacement": {
+                "types": "./dist/world/SpawnPlacement.d.ts",
+                "import": "./dist/world/SpawnPlacement.js",
+                "module": "./dist/world/SpawnPlacement.js"
+            },
+            "./world/Generator": {
+                "types": "./dist/world/Generator.d.ts",
+                "import": "./dist/world/Generator.js",
+                "module": "./dist/world/Generator.js"
+            },
+            "./config/JsonConfigTypes": {
+                "types": "./dist/config/JsonConfigTypes.d.ts",
+                "import": "./dist/config/JsonConfigTypes.js",
+                "module": "./dist/config/JsonConfigTypes.js"
+            },
+            "./network/codec/ProtocolPolicy": {
+                "types": "./dist/network/codec/ProtocolPolicy.d.ts",
+                "import": "./dist/network/codec/ProtocolPolicy.js",
+                "module": "./dist/network/codec/ProtocolPolicy.js"
+            },
+            "./events/entity/EntityEffectAddEvent": {
+                "types": "./dist/events/entity/EntityEffectAddEvent.d.ts",
+                "import": "./dist/events/entity/EntityEffectAddEvent.js",
+                "module": "./dist/events/entity/EntityEffectAddEvent.js"
+            },
+            "./events/entity/EntityEffectAddedEvent": {
+                "types": "./dist/events/entity/EntityEffectAddedEvent.d.ts",
+                "import": "./dist/events/entity/EntityEffectAddedEvent.js",
+                "module": "./dist/events/entity/EntityEffectAddedEvent.js"
+            },
+            "./events/entity/EntityHealEvent": {
+                "types": "./dist/events/entity/EntityHealEvent.d.ts",
+                "import": "./dist/events/entity/EntityHealEvent.js",
+                "module": "./dist/events/entity/EntityHealEvent.js"
+            },
+            "./events/entity/EntityHealedEvent": {
+                "types": "./dist/events/entity/EntityHealedEvent.d.ts",
+                "import": "./dist/events/entity/EntityHealedEvent.js",
+                "module": "./dist/events/entity/EntityHealedEvent.js"
+            },
+            "./events/entity/EntityHealthChangedEvent": {
+                "types": "./dist/events/entity/EntityHealthChangedEvent.d.ts",
+                "import": "./dist/events/entity/EntityHealthChangedEvent.js",
+                "module": "./dist/events/entity/EntityHealthChangedEvent.js"
+            },
+            "./events/entity/EntityHitEntityEvent": {
+                "types": "./dist/events/entity/EntityHitEntityEvent.d.ts",
+                "import": "./dist/events/entity/EntityHitEntityEvent.js",
+                "module": "./dist/events/entity/EntityHitEntityEvent.js"
+            },
+            "./events/entity/EntityHurtEvent": {
+                "types": "./dist/events/entity/EntityHurtEvent.d.ts",
+                "import": "./dist/events/entity/EntityHurtEvent.js",
+                "module": "./dist/events/entity/EntityHurtEvent.js"
+            },
+            "./events/entity/EntityItemDropEvent": {
+                "types": "./dist/events/entity/EntityItemDropEvent.d.ts",
+                "import": "./dist/events/entity/EntityItemDropEvent.js",
+                "module": "./dist/events/entity/EntityItemDropEvent.js"
+            },
+            "./events/entity/EntityItemPickedUpEvent": {
+                "types": "./dist/events/entity/EntityItemPickedUpEvent.d.ts",
+                "import": "./dist/events/entity/EntityItemPickedUpEvent.js",
+                "module": "./dist/events/entity/EntityItemPickedUpEvent.js"
+            },
+            "./events/entity/EntityItemPickupEvent": {
+                "types": "./dist/events/entity/EntityItemPickupEvent.d.ts",
+                "import": "./dist/events/entity/EntityItemPickupEvent.js",
+                "module": "./dist/events/entity/EntityItemPickupEvent.js"
+            },
+            "./events/entity/EntityRemoveEvent": {
+                "types": "./dist/events/entity/EntityRemoveEvent.d.ts",
+                "import": "./dist/events/entity/EntityRemoveEvent.js",
+                "module": "./dist/events/entity/EntityRemoveEvent.js"
+            },
+            "./events/entity/EntityRemovedEvent": {
+                "types": "./dist/events/entity/EntityRemovedEvent.d.ts",
+                "import": "./dist/events/entity/EntityRemovedEvent.js",
+                "module": "./dist/events/entity/EntityRemovedEvent.js"
+            },
+            "./events/entity/EntitySpawnEvent": {
+                "types": "./dist/events/entity/EntitySpawnEvent.d.ts",
+                "import": "./dist/events/entity/EntitySpawnEvent.js",
+                "module": "./dist/events/entity/EntitySpawnEvent.js"
+            },
+            "./events/entity/EntityTameEvent": {
+                "types": "./dist/events/entity/EntityTameEvent.d.ts",
+                "import": "./dist/events/entity/EntityTameEvent.js",
+                "module": "./dist/events/entity/EntityTameEvent.js"
+            },
+            "./events/entity/EntityTamedEvent": {
+                "types": "./dist/events/entity/EntityTamedEvent.d.ts",
+                "import": "./dist/events/entity/EntityTamedEvent.js",
+                "module": "./dist/events/entity/EntityTamedEvent.js"
+            },
+            "./events/entity/EntityTriggerEvent": {
+                "types": "./dist/events/entity/EntityTriggerEvent.d.ts",
+                "import": "./dist/events/entity/EntityTriggerEvent.js",
+                "module": "./dist/events/entity/EntityTriggerEvent.js"
+            },
+            "./events/other/ExplodedEvent": {
+                "types": "./dist/events/other/ExplodedEvent.d.ts",
+                "import": "./dist/events/other/ExplodedEvent.js",
+                "module": "./dist/events/other/ExplodedEvent.js"
+            },
+            "./events/other/ExplosionEvent": {
+                "types": "./dist/events/other/ExplosionEvent.d.ts",
+                "import": "./dist/events/other/ExplosionEvent.js",
+                "module": "./dist/events/other/ExplosionEvent.js"
+            },
+            "./events/other/GameRuleChangedEvent": {
+                "types": "./dist/events/other/GameRuleChangedEvent.d.ts",
+                "import": "./dist/events/other/GameRuleChangedEvent.js",
+                "module": "./dist/events/other/GameRuleChangedEvent.js"
+            },
+            "./events/player/PlayerAttackEntityEvent": {
+                "types": "./dist/events/player/PlayerAttackEntityEvent.d.ts",
+                "import": "./dist/events/player/PlayerAttackEntityEvent.js",
+                "module": "./dist/events/player/PlayerAttackEntityEvent.js"
+            },
+            "./events/player/PlayerBlockActionEvent": {
+                "types": "./dist/events/player/PlayerBlockActionEvent.d.ts",
+                "import": "./dist/events/player/PlayerBlockActionEvent.js",
+                "module": "./dist/events/player/PlayerBlockActionEvent.js"
+            },
+            "./events/player/PlayerBlockBrokenEvent": {
+                "types": "./dist/events/player/PlayerBlockBrokenEvent.d.ts",
+                "import": "./dist/events/player/PlayerBlockBrokenEvent.js",
+                "module": "./dist/events/player/PlayerBlockBrokenEvent.js"
+            },
+            "./events/player/PlayerBlockInteractedEvent": {
+                "types": "./dist/events/player/PlayerBlockInteractedEvent.d.ts",
+                "import": "./dist/events/player/PlayerBlockInteractedEvent.js",
+                "module": "./dist/events/player/PlayerBlockInteractedEvent.js"
+            },
+            "./events/player/PlayerBlockPlacedEvent": {
+                "types": "./dist/events/player/PlayerBlockPlacedEvent.d.ts",
+                "import": "./dist/events/player/PlayerBlockPlacedEvent.js",
+                "module": "./dist/events/player/PlayerBlockPlacedEvent.js"
+            },
+            "./events/player/PlayerBreakBlockEvent": {
+                "types": "./dist/events/player/PlayerBreakBlockEvent.d.ts",
+                "import": "./dist/events/player/PlayerBreakBlockEvent.js",
+                "module": "./dist/events/player/PlayerBreakBlockEvent.js"
+            },
+            "./events/player/PlayerButtonInputEvent": {
+                "types": "./dist/events/player/PlayerButtonInputEvent.d.ts",
+                "import": "./dist/events/player/PlayerButtonInputEvent.js",
+                "module": "./dist/events/player/PlayerButtonInputEvent.js"
+            },
+            "./events/player/PlayerContainerEvent": {
+                "types": "./dist/events/player/PlayerContainerEvent.d.ts",
+                "import": "./dist/events/player/PlayerContainerEvent.js",
+                "module": "./dist/events/player/PlayerContainerEvent.js"
+            },
+            "./events/player/PlayerCraftEvent": {
+                "types": "./dist/events/player/PlayerCraftEvent.d.ts",
+                "import": "./dist/events/player/PlayerCraftEvent.js",
+                "module": "./dist/events/player/PlayerCraftEvent.js"
+            },
+            "./events/player/PlayerDimensionChangedEvent": {
+                "types": "./dist/events/player/PlayerDimensionChangedEvent.d.ts",
+                "import": "./dist/events/player/PlayerDimensionChangedEvent.js",
+                "module": "./dist/events/player/PlayerDimensionChangedEvent.js"
+            },
+            "./events/player/PlayerEmoteEvent": {
+                "types": "./dist/events/player/PlayerEmoteEvent.d.ts",
+                "import": "./dist/events/player/PlayerEmoteEvent.js",
+                "module": "./dist/events/player/PlayerEmoteEvent.js"
+            },
+            "./events/player/PlayerEntityInteractedEvent": {
+                "types": "./dist/events/player/PlayerEntityInteractedEvent.d.ts",
+                "import": "./dist/events/player/PlayerEntityInteractedEvent.js",
+                "module": "./dist/events/player/PlayerEntityInteractedEvent.js"
+            },
+            "./events/player/PlayerGamemodeChangedEvent": {
+                "types": "./dist/events/player/PlayerGamemodeChangedEvent.d.ts",
+                "import": "./dist/events/player/PlayerGamemodeChangedEvent.js",
+                "module": "./dist/events/player/PlayerGamemodeChangedEvent.js"
+            },
+            "./events/player/PlayerInputModeChangeEvent": {
+                "types": "./dist/events/player/PlayerInputModeChangeEvent.d.ts",
+                "import": "./dist/events/player/PlayerInputModeChangeEvent.js",
+                "module": "./dist/events/player/PlayerInputModeChangeEvent.js"
+            },
+            "./events/player/PlayerInteractBlockEvent": {
+                "types": "./dist/events/player/PlayerInteractBlockEvent.d.ts",
+                "import": "./dist/events/player/PlayerInteractBlockEvent.js",
+                "module": "./dist/events/player/PlayerInteractBlockEvent.js"
+            },
+            "./events/player/PlayerInteractEntityEvent": {
+                "types": "./dist/events/player/PlayerInteractEntityEvent.d.ts",
+                "import": "./dist/events/player/PlayerInteractEntityEvent.js",
+                "module": "./dist/events/player/PlayerInteractEntityEvent.js"
+            },
+            "./events/player/PlayerItemUsedEvent": {
+                "types": "./dist/events/player/PlayerItemUsedEvent.d.ts",
+                "import": "./dist/events/player/PlayerItemUsedEvent.js",
+                "module": "./dist/events/player/PlayerItemUsedEvent.js"
+            },
+            "./events/player/PlayerItemUseStageEvent": {
+                "types": "./dist/events/player/PlayerItemUseStageEvent.d.ts",
+                "import": "./dist/events/player/PlayerItemUseStageEvent.js",
+                "module": "./dist/events/player/PlayerItemUseStageEvent.js"
+            },
+            "./events/player/PlayerNameEntityEvent": {
+                "types": "./dist/events/player/PlayerNameEntityEvent.d.ts",
+                "import": "./dist/events/player/PlayerNameEntityEvent.js",
+                "module": "./dist/events/player/PlayerNameEntityEvent.js"
+            },
+            "./events/player/PlayerPlaceBlockEvent": {
+                "types": "./dist/events/player/PlayerPlaceBlockEvent.d.ts",
+                "import": "./dist/events/player/PlayerPlaceBlockEvent.js",
+                "module": "./dist/events/player/PlayerPlaceBlockEvent.js"
+            },
+            "./events/player/PlayerScriptMessageEvent": {
+                "types": "./dist/events/player/PlayerScriptMessageEvent.d.ts",
+                "import": "./dist/events/player/PlayerScriptMessageEvent.js",
+                "module": "./dist/events/player/PlayerScriptMessageEvent.js"
+            },
+            "./events/player/PlayerSwingEvent": {
+                "types": "./dist/events/player/PlayerSwingEvent.d.ts",
+                "import": "./dist/events/player/PlayerSwingEvent.js",
+                "module": "./dist/events/player/PlayerSwingEvent.js"
+            },
+            "./events/player/PlayerUseItemEvent": {
+                "types": "./dist/events/player/PlayerUseItemEvent.d.ts",
+                "import": "./dist/events/player/PlayerUseItemEvent.js",
+                "module": "./dist/events/player/PlayerUseItemEvent.js"
+            },
+            "./events/entity/ProjectileHitEvent": {
+                "types": "./dist/events/entity/ProjectileHitEvent.d.ts",
+                "import": "./dist/events/entity/ProjectileHitEvent.js",
+                "module": "./dist/events/entity/ProjectileHitEvent.js"
+            },
+            "./events/other/RedstoneActivatedEvent": {
+                "types": "./dist/events/other/RedstoneActivatedEvent.d.ts",
+                "import": "./dist/events/other/RedstoneActivatedEvent.js",
+                "module": "./dist/events/other/RedstoneActivatedEvent.js"
+            },
+            "./playerIdentity": {
+                "types": "./dist/playerIdentity.d.ts",
+                "import": "./dist/playerIdentity.js",
+                "module": "./dist/playerIdentity.js"
+            },
+            "./item/Item": {
+                "types": "./dist/item/Item.d.ts",
+                "import": "./dist/item/Item.js",
+                "module": "./dist/item/Item.js"
+            },
+            "./scripting/ScriptDebugger": {
+                "types": "./dist/scripting/ScriptDebugger.d.ts",
+                "import": "./dist/scripting/ScriptDebugger.js",
+                "module": "./dist/scripting/ScriptDebugger.js"
+            },
+            "./scripting/scriptPlayerActions": {
+                "types": "./dist/scripting/scriptPlayerActions.d.ts",
+                "import": "./dist/scripting/scriptPlayerActions.js",
+                "module": "./dist/scripting/scriptPlayerActions.js"
+            },
+            "./world/Weather": {
+                "types": "./dist/world/Weather.d.ts",
+                "import": "./dist/world/Weather.js",
+                "module": "./dist/world/Weather.js"
+            },
+            "./scripting/events/worldEvents": {
+                "types": "./dist/scripting/events/worldEvents.d.ts",
+                "import": "./dist/scripting/events/worldEvents.js",
+                "module": "./dist/scripting/events/worldEvents.js"
+            },
+            "./command/host/randomSequences": {
+                "types": "./dist/command/host/randomSequences.d.ts",
+                "import": "./dist/command/host/randomSequences.js",
+                "module": "./dist/command/host/randomSequences.js"
+            },
+            "./SessionManager": {
+                "types": "./dist/SessionManager.d.ts",
+                "import": "./dist/SessionManager.js",
+                "module": "./dist/SessionManager.js"
+            },
+            "./world/ChunkCompletionQueue": {
+                "types": "./dist/world/ChunkCompletionQueue.d.ts",
+                "import": "./dist/world/ChunkCompletionQueue.js",
+                "module": "./dist/world/ChunkCompletionQueue.js"
+            },
+            "./world/DimensionType": {
+                "types": "./dist/world/DimensionType.d.ts",
+                "import": "./dist/world/DimensionType.js",
+                "module": "./dist/world/DimensionType.js"
+            },
+            "./world/BaseGenerator": {
+                "types": "./dist/world/BaseGenerator.d.ts",
+                "import": "./dist/world/BaseGenerator.js",
+                "module": "./dist/world/BaseGenerator.js"
+            },
+            "./world/generators/datadriven/TerrainProtoCache": {
+                "types": "./dist/world/generators/datadriven/TerrainProtoCache.d.ts",
+                "import": "./dist/world/generators/datadriven/TerrainProtoCache.js",
+                "module": "./dist/world/generators/datadriven/TerrainProtoCache.js"
+            },
+            "./world/generators/datadriven/javaWorldgenData": {
+                "types": "./dist/world/generators/datadriven/javaWorldgenData.d.ts",
+                "import": "./dist/world/generators/datadriven/javaWorldgenData.js",
+                "module": "./dist/world/generators/datadriven/javaWorldgenData.js"
+            },
+            "./world/generators/datadriven/javaStructureStarts": {
+                "types": "./dist/world/generators/datadriven/javaStructureStarts.d.ts",
+                "import": "./dist/world/generators/datadriven/javaStructureStarts.js",
+                "module": "./dist/world/generators/datadriven/javaStructureStarts.js"
+            },
+            "./world/generators/datadriven/javaTemplatePlacement": {
+                "types": "./dist/world/generators/datadriven/javaTemplatePlacement.d.ts",
+                "import": "./dist/world/generators/datadriven/javaTemplatePlacement.js",
+                "module": "./dist/world/generators/datadriven/javaTemplatePlacement.js"
+            },
+            "./world/generators/datadriven/javaStructureBeard": {
+                "types": "./dist/world/generators/datadriven/javaStructureBeard.d.ts",
+                "import": "./dist/world/generators/datadriven/javaStructureBeard.js",
+                "module": "./dist/world/generators/datadriven/javaStructureBeard.js"
+            },
+            "./world/generators/datadriven/javaBlending": {
+                "types": "./dist/world/generators/datadriven/javaBlending.d.ts",
+                "import": "./dist/world/generators/datadriven/javaBlending.js",
+                "module": "./dist/world/generators/datadriven/javaBlending.js"
+            },
+            "./world/providers/BaseProvider": {
+                "types": "./dist/world/providers/BaseProvider.d.ts",
+                "import": "./dist/world/providers/BaseProvider.js",
+                "module": "./dist/world/providers/BaseProvider.js"
+            },
+            "./world/redstoneUpdates": {
+                "types": "./dist/world/redstoneUpdates.d.ts",
+                "import": "./dist/world/redstoneUpdates.js",
+                "module": "./dist/world/redstoneUpdates.js"
+            },
+            "./inventory/persistence": {
+                "types": "./dist/inventory/persistence.d.ts",
+                "import": "./dist/inventory/persistence.js",
+                "module": "./dist/inventory/persistence.js"
+            },
+            "./world/RespawnPoint": {
+                "types": "./dist/world/RespawnPoint.d.ts",
+                "import": "./dist/world/RespawnPoint.js",
+                "module": "./dist/world/RespawnPoint.js"
+            },
+            "./command/CommandExecutor": {
+                "types": "./dist/command/CommandExecutor.d.ts",
+                "import": "./dist/command/CommandExecutor.js",
+                "module": "./dist/command/CommandExecutor.js"
+            },
+            "./content/ServerContent": {
+                "types": "./dist/content/ServerContent.d.ts",
+                "import": "./dist/content/ServerContent.js",
+                "module": "./dist/content/ServerContent.js"
+            },
+            "./content/world/fluidReplacement": {
+                "types": "./dist/content/world/fluidReplacement.d.ts",
+                "import": "./dist/content/world/fluidReplacement.js",
+                "module": "./dist/content/world/fluidReplacement.js"
+            },
+            "./entity/data/storeActors": {
+                "types": "./dist/entity/data/storeActors.d.ts",
+                "import": "./dist/entity/data/storeActors.js",
+                "module": "./dist/entity/data/storeActors.js"
+            },
+            "./entity/DamageSource": {
+                "types": "./dist/entity/DamageSource.d.ts",
+                "import": "./dist/entity/DamageSource.js",
+                "module": "./dist/entity/DamageSource.js"
+            },
+            "./world/portal/DimensionTravel": {
+                "types": "./dist/world/portal/DimensionTravel.d.ts",
+                "import": "./dist/world/portal/DimensionTravel.js",
+                "module": "./dist/world/portal/DimensionTravel.js"
+            },
+            "./network/ChunkSender": {
+                "types": "./dist/network/ChunkSender.d.ts",
+                "import": "./dist/network/ChunkSender.js",
+                "module": "./dist/network/ChunkSender.js"
+            },
+            "./entity/data/storePlayers": {
+                "types": "./dist/entity/data/storePlayers.d.ts",
+                "import": "./dist/entity/data/storePlayers.js",
+                "module": "./dist/entity/data/storePlayers.js"
+            },
+            "./entity/data/facts": {
+                "types": "./dist/entity/data/facts.d.ts",
+                "import": "./dist/entity/data/facts.js",
+                "module": "./dist/entity/data/facts.js"
+            },
+            "./network/ClientConnection": {
+                "types": "./dist/network/ClientConnection.d.ts",
+                "import": "./dist/network/ClientConnection.js",
+                "module": "./dist/network/ClientConnection.js"
+            },
+            "./entity/predicateView": {
+                "types": "./dist/entity/predicateView.d.ts",
+                "import": "./dist/entity/predicateView.js",
+                "module": "./dist/entity/predicateView.js"
+            },
+            "./entity/Experience": {
+                "types": "./dist/entity/Experience.d.ts",
+                "import": "./dist/entity/Experience.js",
+                "module": "./dist/entity/Experience.js"
+            },
+            "./inventory/HumanInventory": {
+                "types": "./dist/inventory/HumanInventory.d.ts",
+                "import": "./dist/inventory/HumanInventory.js",
+                "module": "./dist/inventory/HumanInventory.js"
+            },
+            "./entity/storePlayer": {
+                "types": "./dist/entity/storePlayer.d.ts",
+                "import": "./dist/entity/storePlayer.js",
+                "module": "./dist/entity/storePlayer.js"
+            },
+            "./entity/StatusEffect": {
+                "types": "./dist/entity/StatusEffect.d.ts",
+                "import": "./dist/entity/StatusEffect.js",
+                "module": "./dist/entity/StatusEffect.js"
+            },
+            "./entity/data/EntityRuntime": {
+                "types": "./dist/entity/data/EntityRuntime.d.ts",
+                "import": "./dist/entity/data/EntityRuntime.js",
+                "module": "./dist/entity/data/EntityRuntime.js"
+            },
+            "./keyedPlayer": {
+                "types": "./dist/keyedPlayer.d.ts",
+                "import": "./dist/keyedPlayer.js",
+                "module": "./dist/keyedPlayer.js"
+            },
+            "./world/ShownPlayer": {
+                "types": "./dist/world/ShownPlayer.d.ts",
+                "import": "./dist/world/ShownPlayer.js",
+                "module": "./dist/world/ShownPlayer.js"
+            },
+            "./world/ChunkScheduler": {
+                "types": "./dist/world/ChunkScheduler.d.ts",
+                "import": "./dist/world/ChunkScheduler.js",
+                "module": "./dist/world/ChunkScheduler.js"
+            },
+            "./world/providers/Provider": {
+                "types": "./dist/world/providers/Provider.d.ts",
+                "import": "./dist/world/providers/Provider.js",
+                "module": "./dist/world/providers/Provider.js"
+            },
+            "./addons/AddonManager": {
+                "types": "./dist/addons/AddonManager.d.ts",
+                "import": "./dist/addons/AddonManager.js",
+                "module": "./dist/addons/AddonManager.js"
+            },
+            "./Console": {
+                "types": "./dist/Console.d.ts",
+                "import": "./dist/Console.js",
+                "module": "./dist/Console.js"
+            },
+            "./command/ConsoleSender": {
+                "types": "./dist/command/ConsoleSender.d.ts",
+                "import": "./dist/command/ConsoleSender.js",
+                "module": "./dist/command/ConsoleSender.js"
+            },
+            "./content/world/serverSource": {
+                "types": "./dist/content/world/serverSource.d.ts",
+                "import": "./dist/content/world/serverSource.js",
+                "module": "./dist/content/world/serverSource.js"
+            },
+            "./inventory/CreativeInventory": {
+                "types": "./dist/inventory/CreativeInventory.d.ts",
+                "import": "./dist/inventory/CreativeInventory.js",
+                "module": "./dist/inventory/CreativeInventory.js"
+            },
+            "./entity/data/live": {
+                "types": "./dist/entity/data/live.d.ts",
+                "import": "./dist/entity/data/live.js",
+                "module": "./dist/entity/data/live.js"
+            },
+            "./advancement/javaEnglish": {
+                "types": "./dist/advancement/javaEnglish.d.ts",
+                "import": "./dist/advancement/javaEnglish.js",
+                "module": "./dist/advancement/javaEnglish.js"
+            },
+            "./network/PacketLogFilter": {
+                "types": "./dist/network/PacketLogFilter.d.ts",
+                "import": "./dist/network/PacketLogFilter.js",
+                "module": "./dist/network/PacketLogFilter.js"
+            },
+            "./utils/Random": {
+                "types": "./dist/utils/Random.d.ts",
+                "import": "./dist/utils/Random.js",
+                "module": "./dist/utils/Random.js"
+            },
+            "./world/RespawnRequests": {
+                "types": "./dist/world/RespawnRequests.d.ts",
+                "import": "./dist/world/RespawnRequests.js",
+                "module": "./dist/world/RespawnRequests.js"
+            },
+            "./profiling/TickRecorder": {
+                "types": "./dist/profiling/TickRecorder.d.ts",
+                "import": "./dist/profiling/TickRecorder.js",
+                "module": "./dist/profiling/TickRecorder.js"
+            },
+            "./content/withheldContent": {
+                "types": "./dist/content/withheldContent.d.ts",
+                "import": "./dist/content/withheldContent.js",
+                "module": "./dist/content/withheldContent.js"
+            },
+            "./world/WorldMessages": {
+                "types": "./dist/world/WorldMessages.d.ts",
+                "import": "./dist/world/WorldMessages.js",
+                "module": "./dist/world/WorldMessages.js"
+            },
+            "./network/NetworkWorldReplicator": {
+                "types": "./dist/network/NetworkWorldReplicator.d.ts",
+                "import": "./dist/network/NetworkWorldReplicator.js",
+                "module": "./dist/network/NetworkWorldReplicator.js"
+            },
+            "./world/generators/datadriven/GenerationRegion": {
+                "types": "./dist/world/generators/datadriven/GenerationRegion.d.ts",
+                "import": "./dist/world/generators/datadriven/GenerationRegion.js",
+                "module": "./dist/world/generators/datadriven/GenerationRegion.js"
+            },
+            "./world/generators/datadriven/mergedChunk": {
+                "types": "./dist/world/generators/datadriven/mergedChunk.d.ts",
+                "import": "./dist/world/generators/datadriven/mergedChunk.js",
+                "module": "./dist/world/generators/datadriven/mergedChunk.js"
+            },
+            "./world/chunk/Chunk": {
+                "types": "./dist/world/chunk/Chunk.d.ts",
+                "import": "./dist/world/chunk/Chunk.js",
+                "module": "./dist/world/chunk/Chunk.js"
+            },
+            "./world/dynamicProperties": {
+                "types": "./dist/world/dynamicProperties.d.ts",
+                "import": "./dist/world/dynamicProperties.js",
+                "module": "./dist/world/dynamicProperties.js"
+            },
+            "./world/GameRuleManager": {
+                "types": "./dist/world/GameRuleManager.d.ts",
+                "import": "./dist/world/GameRuleManager.js",
+                "module": "./dist/world/GameRuleManager.js"
+            },
+            "./world/PlayerPersistence": {
+                "types": "./dist/world/PlayerPersistence.d.ts",
+                "import": "./dist/world/PlayerPersistence.js",
+                "module": "./dist/world/PlayerPersistence.js"
+            },
+            "./world/RespawnSearch": {
+                "types": "./dist/world/RespawnSearch.d.ts",
+                "import": "./dist/world/RespawnSearch.js",
+                "module": "./dist/world/RespawnSearch.js"
+            },
+            "./world/Scoreboard": {
+                "types": "./dist/world/Scoreboard.d.ts",
+                "import": "./dist/world/Scoreboard.js",
+                "module": "./dist/world/Scoreboard.js"
+            },
+            "./world/WorldPersistence": {
+                "types": "./dist/world/WorldPersistence.d.ts",
+                "import": "./dist/world/WorldPersistence.js",
+                "module": "./dist/world/WorldPersistence.js"
+            },
+            "./world/raid/RaidManager": {
+                "types": "./dist/world/raid/RaidManager.d.ts",
+                "import": "./dist/world/raid/RaidManager.js",
+                "module": "./dist/world/raid/RaidManager.js"
+            },
+            "./world/ChunkTickets": {
+                "types": "./dist/world/ChunkTickets.d.ts",
+                "import": "./dist/world/ChunkTickets.js",
+                "module": "./dist/world/ChunkTickets.js"
+            },
+            "./block/Block": {
+                "types": "./dist/block/Block.d.ts",
+                "import": "./dist/block/Block.js",
+                "module": "./dist/block/Block.js"
+            },
+            "./block/state/BlockState": {
+                "types": "./dist/block/state/BlockState.d.ts",
+                "import": "./dist/block/state/BlockState.js",
+                "module": "./dist/block/state/BlockState.js"
+            },
+            "./world/BlockUpdateScheduler": {
+                "types": "./dist/world/BlockUpdateScheduler.d.ts",
+                "import": "./dist/world/BlockUpdateScheduler.js",
+                "module": "./dist/world/BlockUpdateScheduler.js"
+            },
+            "./world/end/DragonFight": {
+                "types": "./dist/world/end/DragonFight.d.ts",
+                "import": "./dist/world/end/DragonFight.js",
+                "module": "./dist/world/end/DragonFight.js"
+            },
+            "./entity/data/entityIndex": {
+                "types": "./dist/entity/data/entityIndex.d.ts",
+                "import": "./dist/entity/data/entityIndex.js",
+                "module": "./dist/entity/data/entityIndex.js"
+            },
+            "./entity/data/EntityStore": {
+                "types": "./dist/entity/data/EntityStore.d.ts",
+                "import": "./dist/entity/data/EntityStore.js",
+                "module": "./dist/entity/data/EntityStore.js"
+            },
+            "./world/portal/PortalIndex": {
+                "types": "./dist/world/portal/PortalIndex.d.ts",
+                "import": "./dist/world/portal/PortalIndex.js",
+                "module": "./dist/world/portal/PortalIndex.js"
+            },
+            "./world/WorldSystems": {
+                "types": "./dist/world/WorldSystems.d.ts",
+                "import": "./dist/world/WorldSystems.js",
+                "module": "./dist/world/WorldSystems.js"
+            },
+            "./world/changelog/ChangeLog": {
+                "types": "./dist/world/changelog/ChangeLog.d.ts",
+                "import": "./dist/world/changelog/ChangeLog.js",
+                "module": "./dist/world/changelog/ChangeLog.js"
+            },
+            "./world/BlockMining": {
+                "types": "./dist/world/BlockMining.d.ts",
+                "import": "./dist/world/BlockMining.js",
+                "module": "./dist/world/BlockMining.js"
+            },
+            "./network/sessionPlayers": {
+                "types": "./dist/network/sessionPlayers.d.ts",
+                "import": "./dist/network/sessionPlayers.js",
+                "module": "./dist/network/sessionPlayers.js"
+            },
+            "./inventory/ContainerEntry": {
+                "types": "./dist/inventory/ContainerEntry.d.ts",
+                "import": "./dist/inventory/ContainerEntry.js",
+                "module": "./dist/inventory/ContainerEntry.js"
+            },
+            "./entity/DeathMessages": {
+                "types": "./dist/entity/DeathMessages.d.ts",
+                "import": "./dist/entity/DeathMessages.js",
+                "module": "./dist/entity/DeathMessages.js"
+            },
+            "./world/generators/datadriven/chunkPipeline": {
+                "types": "./dist/world/generators/datadriven/chunkPipeline.d.ts",
+                "import": "./dist/world/generators/datadriven/chunkPipeline.js",
+                "module": "./dist/world/generators/datadriven/chunkPipeline.js"
+            },
+            "./world/GameEventListenerRegistry": {
+                "types": "./dist/world/GameEventListenerRegistry.d.ts",
+                "import": "./dist/world/GameEventListenerRegistry.js",
+                "module": "./dist/world/GameEventListenerRegistry.js"
+            },
+            "./world/WorldChangeSink": {
+                "types": "./dist/world/WorldChangeSink.d.ts",
+                "import": "./dist/world/WorldChangeSink.js",
+                "module": "./dist/world/WorldChangeSink.js"
+            },
+            "./content/world/adapter": {
+                "types": "./dist/content/world/adapter.d.ts",
+                "import": "./dist/content/world/adapter.js",
+                "module": "./dist/content/world/adapter.js"
+            },
+            "./world/playerRecord": {
+                "types": "./dist/world/playerRecord.d.ts",
+                "import": "./dist/world/playerRecord.js",
+                "module": "./dist/world/playerRecord.js"
+            },
+            "./network/transport/Transport": {
+                "types": "./dist/network/transport/Transport.d.ts",
+                "import": "./dist/network/transport/Transport.js",
+                "module": "./dist/network/transport/Transport.js"
+            },
+            "./scripting/scriptEntityEvents": {
+                "types": "./dist/scripting/scriptEntityEvents.d.ts",
+                "import": "./dist/scripting/scriptEntityEvents.js",
+                "module": "./dist/scripting/scriptEntityEvents.js"
+            },
+            "./world/changelog/changeLogCost": {
+                "types": "./dist/world/changelog/changeLogCost.d.ts",
+                "import": "./dist/world/changelog/changeLogCost.js",
+                "module": "./dist/world/changelog/changeLogCost.js"
+            },
+            "./entity/data/scene": {
+                "types": "./dist/entity/data/scene.d.ts",
+                "import": "./dist/entity/data/scene.js",
+                "module": "./dist/entity/data/scene.js"
+            },
+            "./network/handler/ConnectionContext": {
+                "types": "./dist/network/handler/ConnectionContext.d.ts",
+                "import": "./dist/network/handler/ConnectionContext.js",
+                "module": "./dist/network/handler/ConnectionContext.js"
+            },
+            "./network/handler/SessionHandler": {
+                "types": "./dist/network/handler/SessionHandler.d.ts",
+                "import": "./dist/network/handler/SessionHandler.js",
+                "module": "./dist/network/handler/SessionHandler.js"
+            },
+            "./addons/addonFiles": {
+                "types": "./dist/addons/addonFiles.d.ts",
+                "import": "./dist/addons/addonFiles.js",
+                "module": "./dist/addons/addonFiles.js"
+            },
+            "./identity/Subject": {
+                "types": "./dist/identity/Subject.d.ts",
+                "import": "./dist/identity/Subject.js",
+                "module": "./dist/identity/Subject.js"
+            },
+            "./item/blockTransformers": {
+                "types": "./dist/item/blockTransformers.d.ts",
+                "import": "./dist/item/blockTransformers.js",
+                "module": "./dist/item/blockTransformers.js"
+            },
+            "./entity/regionalDifficulty": {
+                "types": "./dist/entity/regionalDifficulty.d.ts",
+                "import": "./dist/entity/regionalDifficulty.js",
+                "module": "./dist/entity/regionalDifficulty.js"
+            },
+            "./scripting/scriptComponents": {
+                "types": "./dist/scripting/scriptComponents.d.ts",
+                "import": "./dist/scripting/scriptComponents.js",
+                "module": "./dist/scripting/scriptComponents.js"
+            },
+            "./content/tags": {
+                "types": "./dist/content/tags.d.ts",
+                "import": "./dist/content/tags.js",
+                "module": "./dist/content/tags.js"
+            },
+            "./content/world/views": {
+                "types": "./dist/content/world/views.d.ts",
+                "import": "./dist/content/world/views.js",
+                "module": "./dist/content/world/views.js"
+            },
+            "./entity/DamageCause": {
+                "types": "./dist/entity/DamageCause.d.ts",
+                "import": "./dist/entity/DamageCause.js",
+                "module": "./dist/entity/DamageCause.js"
+            },
+            "./entity/data/areaEffectCloud": {
+                "types": "./dist/entity/data/areaEffectCloud.d.ts",
+                "import": "./dist/entity/data/areaEffectCloud.js",
+                "module": "./dist/entity/data/areaEffectCloud.js"
+            },
+            "./entity/data/damagePipeline": {
+                "types": "./dist/entity/data/damagePipeline.d.ts",
+                "import": "./dist/entity/data/damagePipeline.js",
+                "module": "./dist/entity/data/damagePipeline.js"
+            },
+            "./entity/data/droppedItems": {
+                "types": "./dist/entity/data/droppedItems.d.ts",
+                "import": "./dist/entity/data/droppedItems.js",
+                "module": "./dist/entity/data/droppedItems.js"
+            },
+            "./entity/data/evokerFangs": {
+                "types": "./dist/entity/data/evokerFangs.d.ts",
+                "import": "./dist/entity/data/evokerFangs.js",
+                "module": "./dist/entity/data/evokerFangs.js"
+            },
+            "./entity/data/eyeOfEnderSignals": {
+                "types": "./dist/entity/data/eyeOfEnderSignals.d.ts",
+                "import": "./dist/entity/data/eyeOfEnderSignals.js",
+                "module": "./dist/entity/data/eyeOfEnderSignals.js"
+            },
+            "./entity/data/hangingEntities": {
+                "types": "./dist/entity/data/hangingEntities.d.ts",
+                "import": "./dist/entity/data/hangingEntities.js",
+                "module": "./dist/entity/data/hangingEntities.js"
+            },
+            "./entity/data/ominousItemSpawner": {
+                "types": "./dist/entity/data/ominousItemSpawner.d.ts",
+                "import": "./dist/entity/data/ominousItemSpawner.js",
+                "module": "./dist/entity/data/ominousItemSpawner.js"
+            },
+            "./entity/data/playerSystems": {
+                "types": "./dist/entity/data/playerSystems.d.ts",
+                "import": "./dist/entity/data/playerSystems.js",
+                "module": "./dist/entity/data/playerSystems.js"
+            },
+            "./entity/data/host": {
+                "types": "./dist/entity/data/host.d.ts",
+                "import": "./dist/entity/data/host.js",
+                "module": "./dist/entity/data/host.js"
+            },
+            "./entity/data/DataEntity": {
+                "types": "./dist/entity/data/DataEntity.d.ts",
+                "import": "./dist/entity/data/DataEntity.js",
+                "module": "./dist/entity/data/DataEntity.js"
+            },
+            "./utils/Device": {
+                "types": "./dist/utils/Device.d.ts",
+                "import": "./dist/utils/Device.js",
+                "module": "./dist/utils/Device.js"
+            },
+            "./entity/data/persistence": {
+                "types": "./dist/entity/data/persistence.d.ts",
+                "import": "./dist/entity/data/persistence.js",
+                "module": "./dist/entity/data/persistence.js"
+            },
+            "./network/SessionPhase": {
+                "types": "./dist/network/SessionPhase.d.ts",
+                "import": "./dist/network/SessionPhase.js",
+                "module": "./dist/network/SessionPhase.js"
+            },
+            "./entity/playerComponents": {
+                "types": "./dist/entity/playerComponents.d.ts",
+                "import": "./dist/entity/playerComponents.js",
+                "module": "./dist/entity/playerComponents.js"
+            },
+            "./world/changelog/ChangeEntry": {
+                "types": "./dist/world/changelog/ChangeEntry.d.ts",
+                "import": "./dist/world/changelog/ChangeEntry.js",
+                "module": "./dist/world/changelog/ChangeEntry.js"
+            },
+            "./world/changelog/TickHeader": {
+                "types": "./dist/world/changelog/TickHeader.d.ts",
+                "import": "./dist/world/changelog/TickHeader.js",
+                "module": "./dist/world/changelog/TickHeader.js"
+            },
+            "./world/chunk/SubChunk": {
+                "types": "./dist/world/chunk/SubChunk.d.ts",
+                "import": "./dist/world/chunk/SubChunk.js",
+                "module": "./dist/world/chunk/SubChunk.js"
+            },
+            "./world/ChunkAdmissions": {
+                "types": "./dist/world/ChunkAdmissions.d.ts",
+                "import": "./dist/world/ChunkAdmissions.js",
+                "module": "./dist/world/ChunkAdmissions.js"
+            },
+            "./world/generators/datadriven/featurePatchWire": {
+                "types": "./dist/world/generators/datadriven/featurePatchWire.d.ts",
+                "import": "./dist/world/generators/datadriven/featurePatchWire.js",
+                "module": "./dist/world/generators/datadriven/featurePatchWire.js"
+            },
+            "./world/generators/datadriven/javaStructureWorld": {
+                "types": "./dist/world/generators/datadriven/javaStructureWorld.d.ts",
+                "import": "./dist/world/generators/datadriven/javaStructureWorld.js",
+                "module": "./dist/world/generators/datadriven/javaStructureWorld.js"
+            },
+            "./world/generators/datadriven/javaStructureTemplatePiece": {
+                "types": "./dist/world/generators/datadriven/javaStructureTemplatePiece.d.ts",
+                "import": "./dist/world/generators/datadriven/javaStructureTemplatePiece.js",
+                "module": "./dist/world/generators/datadriven/javaStructureTemplatePiece.js"
+            },
+            "./world/generators/datadriven/javaWorldgenSources": {
+                "types": "./dist/world/generators/datadriven/javaWorldgenSources.d.ts",
+                "import": "./dist/world/generators/datadriven/javaWorldgenSources.js",
+                "module": "./dist/world/generators/datadriven/javaWorldgenSources.js"
+            },
+            "./world/generators/datadriven/bedrockSections": {
+                "types": "./dist/world/generators/datadriven/bedrockSections.d.ts",
+                "import": "./dist/world/generators/datadriven/bedrockSections.js",
+                "module": "./dist/world/generators/datadriven/bedrockSections.js"
+            },
+            "./command/function/runtime": {
+                "types": "./dist/command/function/runtime.d.ts",
+                "import": "./dist/command/function/runtime.js",
+                "module": "./dist/command/function/runtime.js"
+            },
+            "./content/ContentOptions": {
+                "types": "./dist/content/ContentOptions.d.ts",
+                "import": "./dist/content/ContentOptions.js",
+                "module": "./dist/content/ContentOptions.js"
+            },
+            "./item/actorPort": {
+                "types": "./dist/item/actorPort.d.ts",
+                "import": "./dist/item/actorPort.js",
+                "module": "./dist/item/actorPort.js"
+            },
+            "./entity/data/itemInteraction": {
+                "types": "./dist/entity/data/itemInteraction.d.ts",
+                "import": "./dist/entity/data/itemInteraction.js",
+                "module": "./dist/entity/data/itemInteraction.js"
+            },
+            "./entity/data/navigationView": {
+                "types": "./dist/entity/data/navigationView.d.ts",
+                "import": "./dist/entity/data/navigationView.js",
+                "module": "./dist/entity/data/navigationView.js"
+            },
+            "./world/changelog/PlainData": {
+                "types": "./dist/world/changelog/PlainData.d.ts",
+                "import": "./dist/world/changelog/PlainData.js",
+                "module": "./dist/world/changelog/PlainData.js"
+            },
+            "./entity/data/itemSteering": {
+                "types": "./dist/entity/data/itemSteering.d.ts",
+                "import": "./dist/entity/data/itemSteering.js",
+                "module": "./dist/entity/data/itemSteering.js"
+            },
+            "./entity/PortalContact": {
+                "types": "./dist/entity/PortalContact.d.ts",
+                "import": "./dist/entity/PortalContact.js",
+                "module": "./dist/entity/PortalContact.js"
+            },
+            "./entity/data/actorMetadata": {
+                "types": "./dist/entity/data/actorMetadata.d.ts",
+                "import": "./dist/entity/data/actorMetadata.js",
+                "module": "./dist/entity/data/actorMetadata.js"
+            },
+            "./crafting/CraftingInput": {
+                "types": "./dist/crafting/CraftingInput.d.ts",
+                "import": "./dist/crafting/CraftingInput.js",
+                "module": "./dist/crafting/CraftingInput.js"
+            },
+            "./inventory/Inventory": {
+                "types": "./dist/inventory/Inventory.d.ts",
+                "import": "./dist/inventory/Inventory.js",
+                "module": "./dist/inventory/Inventory.js"
+            },
+            "./inventory/slotLog": {
+                "types": "./dist/inventory/slotLog.d.ts",
+                "import": "./dist/inventory/slotLog.js",
+                "module": "./dist/inventory/slotLog.js"
+            },
+            "./network/replica/BlockReplica": {
+                "types": "./dist/network/replica/BlockReplica.d.ts",
+                "import": "./dist/network/replica/BlockReplica.js",
+                "module": "./dist/network/replica/BlockReplica.js"
+            },
+            "./network/replica/EntityReplica": {
+                "types": "./dist/network/replica/EntityReplica.d.ts",
+                "import": "./dist/network/replica/EntityReplica.js",
+                "module": "./dist/network/replica/EntityReplica.js"
+            },
+            "./network/replica/EntityReplication": {
+                "types": "./dist/network/replica/EntityReplication.d.ts",
+                "import": "./dist/network/replica/EntityReplication.js",
+                "module": "./dist/network/replica/EntityReplication.js"
+            },
+            "./entity/data/actorView": {
+                "types": "./dist/entity/data/actorView.d.ts",
+                "import": "./dist/entity/data/actorView.js",
+                "module": "./dist/entity/data/actorView.js"
+            },
+            "./input/IntentHandlerRegistry": {
+                "types": "./dist/input/IntentHandlerRegistry.d.ts",
+                "import": "./dist/input/IntentHandlerRegistry.js",
+                "module": "./dist/input/IntentHandlerRegistry.js"
+            },
+            "./permission/model": {
+                "types": "./dist/permission/model.d.ts",
+                "import": "./dist/permission/model.js",
+                "module": "./dist/permission/model.js"
+            },
+            "./network/playerListEntry": {
+                "types": "./dist/network/playerListEntry.d.ts",
+                "import": "./dist/network/playerListEntry.js",
+                "module": "./dist/network/playerListEntry.js"
+            },
+            "./world/chunk/ChunkBiomes": {
+                "types": "./dist/world/chunk/ChunkBiomes.d.ts",
+                "import": "./dist/world/chunk/ChunkBiomes.js",
+                "module": "./dist/world/chunk/ChunkBiomes.js"
+            },
+            "./blockentity/BlockEntity": {
+                "types": "./dist/blockentity/BlockEntity.d.ts",
+                "import": "./dist/blockentity/BlockEntity.js",
+                "module": "./dist/blockentity/BlockEntity.js"
+            },
+            "./world/EntitySpawn": {
+                "types": "./dist/world/EntitySpawn.d.ts",
+                "import": "./dist/world/EntitySpawn.js",
+                "module": "./dist/world/EntitySpawn.js"
+            },
+            "./blockentity/BlockEntities": {
+                "types": "./dist/blockentity/BlockEntities.d.ts",
+                "import": "./dist/blockentity/BlockEntities.js",
+                "module": "./dist/blockentity/BlockEntities.js"
+            },
+            "./world/chunk/ChunkGeneration": {
+                "types": "./dist/world/chunk/ChunkGeneration.d.ts",
+                "import": "./dist/world/chunk/ChunkGeneration.js",
+                "module": "./dist/world/chunk/ChunkGeneration.js"
+            },
+            "./world/generators/datadriven/javaStructurePlacement": {
+                "types": "./dist/world/generators/datadriven/javaStructurePlacement.d.ts",
+                "import": "./dist/world/generators/datadriven/javaStructurePlacement.js",
+                "module": "./dist/world/generators/datadriven/javaStructurePlacement.js"
+            },
+            "./world/providers/SavePass": {
+                "types": "./dist/world/providers/SavePass.d.ts",
+                "import": "./dist/world/providers/SavePass.js",
+                "module": "./dist/world/providers/SavePass.js"
+            },
+            "./world/Proximity": {
+                "types": "./dist/world/Proximity.d.ts",
+                "import": "./dist/world/Proximity.js",
+                "module": "./dist/world/Proximity.js"
+            },
+            "./command/function/load": {
+                "types": "./dist/command/function/load.d.ts",
+                "import": "./dist/command/function/load.js",
+                "module": "./dist/command/function/load.js"
+            },
+            "./entity/data/itemActor": {
+                "types": "./dist/entity/data/itemActor.d.ts",
+                "import": "./dist/entity/data/itemActor.js",
+                "module": "./dist/entity/data/itemActor.js"
+            },
+            "./entity/EntitySerializer": {
+                "types": "./dist/entity/EntitySerializer.d.ts",
+                "import": "./dist/entity/EntitySerializer.js",
+                "module": "./dist/entity/EntitySerializer.js"
+            },
+            "./world/portal/rules": {
+                "types": "./dist/world/portal/rules.d.ts",
+                "import": "./dist/world/portal/rules.js",
+                "module": "./dist/world/portal/rules.js"
+            },
+            "./network/MinecraftSession": {
+                "types": "./dist/network/MinecraftSession.d.ts",
+                "import": "./dist/network/MinecraftSession.js",
+                "module": "./dist/network/MinecraftSession.js"
+            },
+            "./network/encodePacketBatch": {
+                "types": "./dist/network/encodePacketBatch.d.ts",
+                "import": "./dist/network/encodePacketBatch.js",
+                "module": "./dist/network/encodePacketBatch.js"
+            },
+            "./network/decoder/PacketDecoder": {
+                "types": "./dist/network/decoder/PacketDecoder.d.ts",
+                "import": "./dist/network/decoder/PacketDecoder.js",
+                "module": "./dist/network/decoder/PacketDecoder.js"
+            },
+            "./input/Intent": {
+                "types": "./dist/input/Intent.d.ts",
+                "import": "./dist/input/Intent.js",
+                "module": "./dist/input/Intent.js"
+            },
+            "./network/replica/firstSight": {
+                "types": "./dist/network/replica/firstSight.d.ts",
+                "import": "./dist/network/replica/firstSight.js",
+                "module": "./dist/network/replica/firstSight.js"
+            },
+            "./network/contentAdapter": {
+                "types": "./dist/network/contentAdapter.d.ts",
+                "import": "./dist/network/contentAdapter.js",
+                "module": "./dist/network/contentAdapter.js"
+            },
+            "./world/providers/ChunkSaveContext": {
+                "types": "./dist/world/providers/ChunkSaveContext.d.ts",
+                "import": "./dist/world/providers/ChunkSaveContext.js",
+                "module": "./dist/world/providers/ChunkSaveContext.js"
+            },
+            "./world/lootLevel": {
+                "types": "./dist/world/lootLevel.d.ts",
+                "import": "./dist/world/lootLevel.js",
+                "module": "./dist/world/lootLevel.js"
+            },
+            "./command/host/support": {
+                "types": "./dist/command/host/support.d.ts",
+                "import": "./dist/command/host/support.js",
+                "module": "./dist/command/host/support.js"
+            },
+            "./network/LoginIdentity": {
+                "types": "./dist/network/LoginIdentity.d.ts",
+                "import": "./dist/network/LoginIdentity.js",
+                "module": "./dist/network/LoginIdentity.js"
+            },
+            "./entity/equipment": {
+                "types": "./dist/entity/equipment.d.ts",
+                "import": "./dist/entity/equipment.js",
+                "module": "./dist/entity/equipment.js"
+            },
+            "./entity/data/observedCollections": {
+                "types": "./dist/entity/data/observedCollections.d.ts",
+                "import": "./dist/entity/data/observedCollections.js",
+                "module": "./dist/entity/data/observedCollections.js"
+            },
+            "./entity/data/damageLog": {
+                "types": "./dist/entity/data/damageLog.d.ts",
+                "import": "./dist/entity/data/damageLog.js",
+                "module": "./dist/entity/data/damageLog.js"
+            },
+            "./network/handler/HandlerContext": {
+                "types": "./dist/network/handler/HandlerContext.d.ts",
+                "import": "./dist/network/handler/HandlerContext.js",
+                "module": "./dist/network/handler/HandlerContext.js"
+            },
+            "./world/positionKeys": {
+                "types": "./dist/world/positionKeys.d.ts",
+                "import": "./dist/world/positionKeys.js",
+                "module": "./dist/world/positionKeys.js"
+            },
+            "./crafting/CraftingGrid": {
+                "types": "./dist/crafting/CraftingGrid.d.ts",
+                "import": "./dist/crafting/CraftingGrid.js",
+                "module": "./dist/crafting/CraftingGrid.js"
+            },
+            "./entity/data/damageStages": {
+                "types": "./dist/entity/data/damageStages.d.ts",
+                "import": "./dist/entity/data/damageStages.js",
+                "module": "./dist/entity/data/damageStages.js"
+            },
+            "./entity/playerShown": {
+                "types": "./dist/entity/playerShown.d.ts",
+                "import": "./dist/entity/playerShown.js",
+                "module": "./dist/entity/playerShown.js"
+            },
+            "./advancement/raise": {
+                "types": "./dist/advancement/raise.d.ts",
+                "import": "./dist/advancement/raise.js",
+                "module": "./dist/advancement/raise.js"
+            },
+            "./world/chunk/biomePalette": {
+                "types": "./dist/world/chunk/biomePalette.d.ts",
+                "import": "./dist/world/chunk/biomePalette.js",
+                "module": "./dist/world/chunk/biomePalette.js"
+            },
+            "./world/chunk/BlockStorage": {
+                "types": "./dist/world/chunk/BlockStorage.d.ts",
+                "import": "./dist/world/chunk/BlockStorage.js",
+                "module": "./dist/world/chunk/BlockStorage.js"
+            },
+            "./command/function/schedule": {
+                "types": "./dist/command/function/schedule.d.ts",
+                "import": "./dist/command/function/schedule.js",
+                "module": "./dist/command/function/schedule.js"
+            },
+            "./entity/data/paintings": {
+                "types": "./dist/entity/data/paintings.d.ts",
+                "import": "./dist/entity/data/paintings.js",
+                "module": "./dist/entity/data/paintings.js"
+            },
+            "./input/IntentHandler": {
+                "types": "./dist/input/IntentHandler.d.ts",
+                "import": "./dist/input/IntentHandler.js",
+                "module": "./dist/input/IntentHandler.js"
+            },
+            "./item/contentAdapter": {
+                "types": "./dist/item/contentAdapter.d.ts",
+                "import": "./dist/item/contentAdapter.js",
+                "module": "./dist/item/contentAdapter.js"
+            },
+            "./network/decoder/DecodeView": {
+                "types": "./dist/network/decoder/DecodeView.d.ts",
+                "import": "./dist/network/decoder/DecodeView.js",
+                "module": "./dist/network/decoder/DecodeView.js"
+            },
+            "./block/contentAdapter": {
+                "types": "./dist/block/contentAdapter.d.ts",
+                "import": "./dist/block/contentAdapter.js",
+                "module": "./dist/block/contentAdapter.js"
+            },
             "./package.json": "./package.json"
         }
     },
@@ -846,6 +2036,806 @@
         "./scripting/ScriptHttpInputs": {
             "jsprismarine:dist": "./dist/scripting/ScriptHttpInputs.js",
             "default": "./src/scripting/ScriptHttpInputs.ts"
+        },
+        "./network/presenter/SessionPresenter": {
+            "jsprismarine:dist": "./dist/network/presenter/SessionPresenter.js",
+            "default": "./src/network/presenter/SessionPresenter.ts"
+        },
+        "./utils/Service": {
+            "jsprismarine:dist": "./dist/utils/Service.js",
+            "default": "./src/utils/Service.ts"
+        },
+        "./ban/BanManager": {
+            "jsprismarine:dist": "./dist/ban/BanManager.js",
+            "default": "./src/ban/BanManager.ts"
+        },
+        "./chat/ChatManager": {
+            "jsprismarine:dist": "./dist/chat/ChatManager.js",
+            "default": "./src/chat/ChatManager.ts"
+        },
+        "./command/CommandManager": {
+            "jsprismarine:dist": "./dist/command/CommandManager.js",
+            "default": "./src/command/CommandManager.ts"
+        },
+        "./modules/network": {
+            "jsprismarine:dist": "./dist/modules/network.js",
+            "default": "./src/modules/network.ts"
+        },
+        "./network/PacketHandlerRegistry": {
+            "jsprismarine:dist": "./dist/network/PacketHandlerRegistry.js",
+            "default": "./src/network/PacketHandlerRegistry.ts"
+        },
+        "./permission/PermissionManager": {
+            "jsprismarine:dist": "./dist/permission/PermissionManager.js",
+            "default": "./src/permission/PermissionManager.ts"
+        },
+        "./modules/ticker": {
+            "jsprismarine:dist": "./dist/modules/ticker.js",
+            "default": "./src/modules/ticker.ts"
+        },
+        "./world/WorldManager": {
+            "jsprismarine:dist": "./dist/world/WorldManager.js",
+            "default": "./src/world/WorldManager.ts"
+        },
+        "./world/SpawnPlacement": {
+            "jsprismarine:dist": "./dist/world/SpawnPlacement.js",
+            "default": "./src/world/SpawnPlacement.ts"
+        },
+        "./config/JsonConfigTypes": {
+            "jsprismarine:dist": "./dist/config/JsonConfigTypes.js",
+            "default": "./src/config/JsonConfigTypes.ts"
+        },
+        "./events/entity/EntityEffectAddEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityEffectAddEvent.js",
+            "default": "./src/events/entity/EntityEffectAddEvent.ts"
+        },
+        "./events/entity/EntityEffectAddedEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityEffectAddedEvent.js",
+            "default": "./src/events/entity/EntityEffectAddedEvent.ts"
+        },
+        "./events/entity/EntityHealEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityHealEvent.js",
+            "default": "./src/events/entity/EntityHealEvent.ts"
+        },
+        "./events/entity/EntityHealedEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityHealedEvent.js",
+            "default": "./src/events/entity/EntityHealedEvent.ts"
+        },
+        "./events/entity/EntityHealthChangedEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityHealthChangedEvent.js",
+            "default": "./src/events/entity/EntityHealthChangedEvent.ts"
+        },
+        "./events/entity/EntityHitEntityEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityHitEntityEvent.js",
+            "default": "./src/events/entity/EntityHitEntityEvent.ts"
+        },
+        "./events/entity/EntityHurtEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityHurtEvent.js",
+            "default": "./src/events/entity/EntityHurtEvent.ts"
+        },
+        "./events/entity/EntityItemDropEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityItemDropEvent.js",
+            "default": "./src/events/entity/EntityItemDropEvent.ts"
+        },
+        "./events/entity/EntityItemPickedUpEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityItemPickedUpEvent.js",
+            "default": "./src/events/entity/EntityItemPickedUpEvent.ts"
+        },
+        "./events/entity/EntityItemPickupEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityItemPickupEvent.js",
+            "default": "./src/events/entity/EntityItemPickupEvent.ts"
+        },
+        "./events/entity/EntityRemoveEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityRemoveEvent.js",
+            "default": "./src/events/entity/EntityRemoveEvent.ts"
+        },
+        "./events/entity/EntityRemovedEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityRemovedEvent.js",
+            "default": "./src/events/entity/EntityRemovedEvent.ts"
+        },
+        "./events/entity/EntitySpawnEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntitySpawnEvent.js",
+            "default": "./src/events/entity/EntitySpawnEvent.ts"
+        },
+        "./events/entity/EntityTameEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityTameEvent.js",
+            "default": "./src/events/entity/EntityTameEvent.ts"
+        },
+        "./events/entity/EntityTamedEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityTamedEvent.js",
+            "default": "./src/events/entity/EntityTamedEvent.ts"
+        },
+        "./events/entity/EntityTriggerEvent": {
+            "jsprismarine:dist": "./dist/events/entity/EntityTriggerEvent.js",
+            "default": "./src/events/entity/EntityTriggerEvent.ts"
+        },
+        "./events/other/ExplodedEvent": {
+            "jsprismarine:dist": "./dist/events/other/ExplodedEvent.js",
+            "default": "./src/events/other/ExplodedEvent.ts"
+        },
+        "./events/other/ExplosionEvent": {
+            "jsprismarine:dist": "./dist/events/other/ExplosionEvent.js",
+            "default": "./src/events/other/ExplosionEvent.ts"
+        },
+        "./events/other/GameRuleChangedEvent": {
+            "jsprismarine:dist": "./dist/events/other/GameRuleChangedEvent.js",
+            "default": "./src/events/other/GameRuleChangedEvent.ts"
+        },
+        "./events/player/PlayerAttackEntityEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerAttackEntityEvent.js",
+            "default": "./src/events/player/PlayerAttackEntityEvent.ts"
+        },
+        "./events/player/PlayerBlockActionEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerBlockActionEvent.js",
+            "default": "./src/events/player/PlayerBlockActionEvent.ts"
+        },
+        "./events/player/PlayerBlockBrokenEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerBlockBrokenEvent.js",
+            "default": "./src/events/player/PlayerBlockBrokenEvent.ts"
+        },
+        "./events/player/PlayerBlockInteractedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerBlockInteractedEvent.js",
+            "default": "./src/events/player/PlayerBlockInteractedEvent.ts"
+        },
+        "./events/player/PlayerBlockPlacedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerBlockPlacedEvent.js",
+            "default": "./src/events/player/PlayerBlockPlacedEvent.ts"
+        },
+        "./events/player/PlayerBreakBlockEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerBreakBlockEvent.js",
+            "default": "./src/events/player/PlayerBreakBlockEvent.ts"
+        },
+        "./events/player/PlayerButtonInputEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerButtonInputEvent.js",
+            "default": "./src/events/player/PlayerButtonInputEvent.ts"
+        },
+        "./events/player/PlayerContainerEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerContainerEvent.js",
+            "default": "./src/events/player/PlayerContainerEvent.ts"
+        },
+        "./events/player/PlayerCraftEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerCraftEvent.js",
+            "default": "./src/events/player/PlayerCraftEvent.ts"
+        },
+        "./events/player/PlayerDimensionChangedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerDimensionChangedEvent.js",
+            "default": "./src/events/player/PlayerDimensionChangedEvent.ts"
+        },
+        "./events/player/PlayerEmoteEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerEmoteEvent.js",
+            "default": "./src/events/player/PlayerEmoteEvent.ts"
+        },
+        "./events/player/PlayerEntityInteractedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerEntityInteractedEvent.js",
+            "default": "./src/events/player/PlayerEntityInteractedEvent.ts"
+        },
+        "./events/player/PlayerGamemodeChangedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerGamemodeChangedEvent.js",
+            "default": "./src/events/player/PlayerGamemodeChangedEvent.ts"
+        },
+        "./events/player/PlayerInputModeChangeEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerInputModeChangeEvent.js",
+            "default": "./src/events/player/PlayerInputModeChangeEvent.ts"
+        },
+        "./events/player/PlayerInteractBlockEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerInteractBlockEvent.js",
+            "default": "./src/events/player/PlayerInteractBlockEvent.ts"
+        },
+        "./events/player/PlayerInteractEntityEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerInteractEntityEvent.js",
+            "default": "./src/events/player/PlayerInteractEntityEvent.ts"
+        },
+        "./events/player/PlayerItemUsedEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerItemUsedEvent.js",
+            "default": "./src/events/player/PlayerItemUsedEvent.ts"
+        },
+        "./events/player/PlayerItemUseStageEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerItemUseStageEvent.js",
+            "default": "./src/events/player/PlayerItemUseStageEvent.ts"
+        },
+        "./events/player/PlayerNameEntityEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerNameEntityEvent.js",
+            "default": "./src/events/player/PlayerNameEntityEvent.ts"
+        },
+        "./events/player/PlayerPlaceBlockEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerPlaceBlockEvent.js",
+            "default": "./src/events/player/PlayerPlaceBlockEvent.ts"
+        },
+        "./events/player/PlayerScriptMessageEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerScriptMessageEvent.js",
+            "default": "./src/events/player/PlayerScriptMessageEvent.ts"
+        },
+        "./events/player/PlayerSwingEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerSwingEvent.js",
+            "default": "./src/events/player/PlayerSwingEvent.ts"
+        },
+        "./events/player/PlayerUseItemEvent": {
+            "jsprismarine:dist": "./dist/events/player/PlayerUseItemEvent.js",
+            "default": "./src/events/player/PlayerUseItemEvent.ts"
+        },
+        "./events/entity/ProjectileHitEvent": {
+            "jsprismarine:dist": "./dist/events/entity/ProjectileHitEvent.js",
+            "default": "./src/events/entity/ProjectileHitEvent.ts"
+        },
+        "./events/other/RedstoneActivatedEvent": {
+            "jsprismarine:dist": "./dist/events/other/RedstoneActivatedEvent.js",
+            "default": "./src/events/other/RedstoneActivatedEvent.ts"
+        },
+        "./playerIdentity": {
+            "jsprismarine:dist": "./dist/playerIdentity.js",
+            "default": "./src/playerIdentity.ts"
+        },
+        "./scripting/ScriptDebugger": {
+            "jsprismarine:dist": "./dist/scripting/ScriptDebugger.js",
+            "default": "./src/scripting/ScriptDebugger.ts"
+        },
+        "./scripting/scriptPlayerActions": {
+            "jsprismarine:dist": "./dist/scripting/scriptPlayerActions.js",
+            "default": "./src/scripting/scriptPlayerActions.ts"
+        },
+        "./world/Weather": {
+            "jsprismarine:dist": "./dist/world/Weather.js",
+            "default": "./src/world/Weather.ts"
+        },
+        "./scripting/events/worldEvents": {
+            "jsprismarine:dist": "./dist/scripting/events/worldEvents.js",
+            "default": "./src/scripting/events/worldEvents.ts"
+        },
+        "./command/host/randomSequences": {
+            "jsprismarine:dist": "./dist/command/host/randomSequences.js",
+            "default": "./src/command/host/randomSequences.ts"
+        },
+        "./SessionManager": {
+            "jsprismarine:dist": "./dist/SessionManager.js",
+            "default": "./src/SessionManager.ts"
+        },
+        "./world/ChunkCompletionQueue": {
+            "jsprismarine:dist": "./dist/world/ChunkCompletionQueue.js",
+            "default": "./src/world/ChunkCompletionQueue.ts"
+        },
+        "./world/BaseGenerator": {
+            "jsprismarine:dist": "./dist/world/BaseGenerator.js",
+            "default": "./src/world/BaseGenerator.ts"
+        },
+        "./world/generators/datadriven/javaStructureStarts": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureStarts.js",
+            "default": "./src/world/generators/datadriven/javaStructureStarts.ts"
+        },
+        "./world/generators/datadriven/javaTemplatePlacement": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaTemplatePlacement.js",
+            "default": "./src/world/generators/datadriven/javaTemplatePlacement.ts"
+        },
+        "./world/generators/datadriven/javaStructureBeard": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureBeard.js",
+            "default": "./src/world/generators/datadriven/javaStructureBeard.ts"
+        },
+        "./world/generators/datadriven/javaBlending": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaBlending.js",
+            "default": "./src/world/generators/datadriven/javaBlending.ts"
+        },
+        "./world/redstoneUpdates": {
+            "jsprismarine:dist": "./dist/world/redstoneUpdates.js",
+            "default": "./src/world/redstoneUpdates.ts"
+        },
+        "./inventory/persistence": {
+            "jsprismarine:dist": "./dist/inventory/persistence.js",
+            "default": "./src/inventory/persistence.ts"
+        },
+        "./world/RespawnPoint": {
+            "jsprismarine:dist": "./dist/world/RespawnPoint.js",
+            "default": "./src/world/RespawnPoint.ts"
+        },
+        "./command/CommandExecutor": {
+            "jsprismarine:dist": "./dist/command/CommandExecutor.js",
+            "default": "./src/command/CommandExecutor.ts"
+        },
+        "./entity/DamageSource": {
+            "jsprismarine:dist": "./dist/entity/DamageSource.js",
+            "default": "./src/entity/DamageSource.ts"
+        },
+        "./world/portal/DimensionTravel": {
+            "jsprismarine:dist": "./dist/world/portal/DimensionTravel.js",
+            "default": "./src/world/portal/DimensionTravel.ts"
+        },
+        "./network/ChunkSender": {
+            "jsprismarine:dist": "./dist/network/ChunkSender.js",
+            "default": "./src/network/ChunkSender.ts"
+        },
+        "./entity/data/storePlayers": {
+            "jsprismarine:dist": "./dist/entity/data/storePlayers.js",
+            "default": "./src/entity/data/storePlayers.ts"
+        },
+        "./entity/data/facts": {
+            "jsprismarine:dist": "./dist/entity/data/facts.js",
+            "default": "./src/entity/data/facts.ts"
+        },
+        "./entity/predicateView": {
+            "jsprismarine:dist": "./dist/entity/predicateView.js",
+            "default": "./src/entity/predicateView.ts"
+        },
+        "./inventory/HumanInventory": {
+            "jsprismarine:dist": "./dist/inventory/HumanInventory.js",
+            "default": "./src/inventory/HumanInventory.ts"
+        },
+        "./entity/storePlayer": {
+            "jsprismarine:dist": "./dist/entity/storePlayer.js",
+            "default": "./src/entity/storePlayer.ts"
+        },
+        "./entity/StatusEffect": {
+            "jsprismarine:dist": "./dist/entity/StatusEffect.js",
+            "default": "./src/entity/StatusEffect.ts"
+        },
+        "./keyedPlayer": {
+            "jsprismarine:dist": "./dist/keyedPlayer.js",
+            "default": "./src/keyedPlayer.ts"
+        },
+        "./world/ShownPlayer": {
+            "jsprismarine:dist": "./dist/world/ShownPlayer.js",
+            "default": "./src/world/ShownPlayer.ts"
+        },
+        "./world/ChunkScheduler": {
+            "jsprismarine:dist": "./dist/world/ChunkScheduler.js",
+            "default": "./src/world/ChunkScheduler.ts"
+        },
+        "./addons/AddonManager": {
+            "jsprismarine:dist": "./dist/addons/AddonManager.js",
+            "default": "./src/addons/AddonManager.ts"
+        },
+        "./Console": {
+            "jsprismarine:dist": "./dist/Console.js",
+            "default": "./src/Console.ts"
+        },
+        "./command/ConsoleSender": {
+            "jsprismarine:dist": "./dist/command/ConsoleSender.js",
+            "default": "./src/command/ConsoleSender.ts"
+        },
+        "./content/world/serverSource": {
+            "jsprismarine:dist": "./dist/content/world/serverSource.js",
+            "default": "./src/content/world/serverSource.ts"
+        },
+        "./inventory/CreativeInventory": {
+            "jsprismarine:dist": "./dist/inventory/CreativeInventory.js",
+            "default": "./src/inventory/CreativeInventory.ts"
+        },
+        "./entity/data/live": {
+            "jsprismarine:dist": "./dist/entity/data/live.js",
+            "default": "./src/entity/data/live.ts"
+        },
+        "./advancement/javaEnglish": {
+            "jsprismarine:dist": "./dist/advancement/javaEnglish.js",
+            "default": "./src/advancement/javaEnglish.ts"
+        },
+        "./network/PacketLogFilter": {
+            "jsprismarine:dist": "./dist/network/PacketLogFilter.js",
+            "default": "./src/network/PacketLogFilter.ts"
+        },
+        "./utils/Random": {
+            "jsprismarine:dist": "./dist/utils/Random.js",
+            "default": "./src/utils/Random.ts"
+        },
+        "./world/RespawnRequests": {
+            "jsprismarine:dist": "./dist/world/RespawnRequests.js",
+            "default": "./src/world/RespawnRequests.ts"
+        },
+        "./content/withheldContent": {
+            "jsprismarine:dist": "./dist/content/withheldContent.js",
+            "default": "./src/content/withheldContent.ts"
+        },
+        "./world/WorldMessages": {
+            "jsprismarine:dist": "./dist/world/WorldMessages.js",
+            "default": "./src/world/WorldMessages.ts"
+        },
+        "./network/NetworkWorldReplicator": {
+            "jsprismarine:dist": "./dist/network/NetworkWorldReplicator.js",
+            "default": "./src/network/NetworkWorldReplicator.ts"
+        },
+        "./world/generators/datadriven/GenerationRegion": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/GenerationRegion.js",
+            "default": "./src/world/generators/datadriven/GenerationRegion.ts"
+        },
+        "./world/generators/datadriven/mergedChunk": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/mergedChunk.js",
+            "default": "./src/world/generators/datadriven/mergedChunk.ts"
+        },
+        "./world/dynamicProperties": {
+            "jsprismarine:dist": "./dist/world/dynamicProperties.js",
+            "default": "./src/world/dynamicProperties.ts"
+        },
+        "./world/PlayerPersistence": {
+            "jsprismarine:dist": "./dist/world/PlayerPersistence.js",
+            "default": "./src/world/PlayerPersistence.ts"
+        },
+        "./world/RespawnSearch": {
+            "jsprismarine:dist": "./dist/world/RespawnSearch.js",
+            "default": "./src/world/RespawnSearch.ts"
+        },
+        "./world/Scoreboard": {
+            "jsprismarine:dist": "./dist/world/Scoreboard.js",
+            "default": "./src/world/Scoreboard.ts"
+        },
+        "./world/WorldPersistence": {
+            "jsprismarine:dist": "./dist/world/WorldPersistence.js",
+            "default": "./src/world/WorldPersistence.ts"
+        },
+        "./world/ChunkTickets": {
+            "jsprismarine:dist": "./dist/world/ChunkTickets.js",
+            "default": "./src/world/ChunkTickets.ts"
+        },
+        "./block/state/BlockState": {
+            "jsprismarine:dist": "./dist/block/state/BlockState.js",
+            "default": "./src/block/state/BlockState.ts"
+        },
+        "./world/BlockUpdateScheduler": {
+            "jsprismarine:dist": "./dist/world/BlockUpdateScheduler.js",
+            "default": "./src/world/BlockUpdateScheduler.ts"
+        },
+        "./entity/data/entityIndex": {
+            "jsprismarine:dist": "./dist/entity/data/entityIndex.js",
+            "default": "./src/entity/data/entityIndex.ts"
+        },
+        "./entity/data/EntityStore": {
+            "jsprismarine:dist": "./dist/entity/data/EntityStore.js",
+            "default": "./src/entity/data/EntityStore.ts"
+        },
+        "./world/portal/PortalIndex": {
+            "jsprismarine:dist": "./dist/world/portal/PortalIndex.js",
+            "default": "./src/world/portal/PortalIndex.ts"
+        },
+        "./world/WorldSystems": {
+            "jsprismarine:dist": "./dist/world/WorldSystems.js",
+            "default": "./src/world/WorldSystems.ts"
+        },
+        "./world/changelog/ChangeLog": {
+            "jsprismarine:dist": "./dist/world/changelog/ChangeLog.js",
+            "default": "./src/world/changelog/ChangeLog.ts"
+        },
+        "./world/BlockMining": {
+            "jsprismarine:dist": "./dist/world/BlockMining.js",
+            "default": "./src/world/BlockMining.ts"
+        },
+        "./network/sessionPlayers": {
+            "jsprismarine:dist": "./dist/network/sessionPlayers.js",
+            "default": "./src/network/sessionPlayers.ts"
+        },
+        "./inventory/ContainerEntry": {
+            "jsprismarine:dist": "./dist/inventory/ContainerEntry.js",
+            "default": "./src/inventory/ContainerEntry.ts"
+        },
+        "./entity/DeathMessages": {
+            "jsprismarine:dist": "./dist/entity/DeathMessages.js",
+            "default": "./src/entity/DeathMessages.ts"
+        },
+        "./world/generators/datadriven/chunkPipeline": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/chunkPipeline.js",
+            "default": "./src/world/generators/datadriven/chunkPipeline.ts"
+        },
+        "./world/WorldChangeSink": {
+            "jsprismarine:dist": "./dist/world/WorldChangeSink.js",
+            "default": "./src/world/WorldChangeSink.ts"
+        },
+        "./world/playerRecord": {
+            "jsprismarine:dist": "./dist/world/playerRecord.js",
+            "default": "./src/world/playerRecord.ts"
+        },
+        "./scripting/scriptEntityEvents": {
+            "jsprismarine:dist": "./dist/scripting/scriptEntityEvents.js",
+            "default": "./src/scripting/scriptEntityEvents.ts"
+        },
+        "./world/changelog/changeLogCost": {
+            "jsprismarine:dist": "./dist/world/changelog/changeLogCost.js",
+            "default": "./src/world/changelog/changeLogCost.ts"
+        },
+        "./entity/data/scene": {
+            "jsprismarine:dist": "./dist/entity/data/scene.js",
+            "default": "./src/entity/data/scene.ts"
+        },
+        "./network/handler/ConnectionContext": {
+            "jsprismarine:dist": "./dist/network/handler/ConnectionContext.js",
+            "default": "./src/network/handler/ConnectionContext.ts"
+        },
+        "./network/handler/SessionHandler": {
+            "jsprismarine:dist": "./dist/network/handler/SessionHandler.js",
+            "default": "./src/network/handler/SessionHandler.ts"
+        },
+        "./addons/addonFiles": {
+            "jsprismarine:dist": "./dist/addons/addonFiles.js",
+            "default": "./src/addons/addonFiles.ts"
+        },
+        "./identity/Subject": {
+            "jsprismarine:dist": "./dist/identity/Subject.js",
+            "default": "./src/identity/Subject.ts"
+        },
+        "./entity/regionalDifficulty": {
+            "jsprismarine:dist": "./dist/entity/regionalDifficulty.js",
+            "default": "./src/entity/regionalDifficulty.ts"
+        },
+        "./scripting/scriptComponents": {
+            "jsprismarine:dist": "./dist/scripting/scriptComponents.js",
+            "default": "./src/scripting/scriptComponents.ts"
+        },
+        "./content/world/views": {
+            "jsprismarine:dist": "./dist/content/world/views.js",
+            "default": "./src/content/world/views.ts"
+        },
+        "./entity/DamageCause": {
+            "jsprismarine:dist": "./dist/entity/DamageCause.js",
+            "default": "./src/entity/DamageCause.ts"
+        },
+        "./entity/data/areaEffectCloud": {
+            "jsprismarine:dist": "./dist/entity/data/areaEffectCloud.js",
+            "default": "./src/entity/data/areaEffectCloud.ts"
+        },
+        "./entity/data/droppedItems": {
+            "jsprismarine:dist": "./dist/entity/data/droppedItems.js",
+            "default": "./src/entity/data/droppedItems.ts"
+        },
+        "./entity/data/evokerFangs": {
+            "jsprismarine:dist": "./dist/entity/data/evokerFangs.js",
+            "default": "./src/entity/data/evokerFangs.ts"
+        },
+        "./entity/data/eyeOfEnderSignals": {
+            "jsprismarine:dist": "./dist/entity/data/eyeOfEnderSignals.js",
+            "default": "./src/entity/data/eyeOfEnderSignals.ts"
+        },
+        "./entity/data/ominousItemSpawner": {
+            "jsprismarine:dist": "./dist/entity/data/ominousItemSpawner.js",
+            "default": "./src/entity/data/ominousItemSpawner.ts"
+        },
+        "./entity/data/playerSystems": {
+            "jsprismarine:dist": "./dist/entity/data/playerSystems.js",
+            "default": "./src/entity/data/playerSystems.ts"
+        },
+        "./entity/data/DataEntity": {
+            "jsprismarine:dist": "./dist/entity/data/DataEntity.js",
+            "default": "./src/entity/data/DataEntity.ts"
+        },
+        "./utils/Device": {
+            "jsprismarine:dist": "./dist/utils/Device.js",
+            "default": "./src/utils/Device.ts"
+        },
+        "./entity/data/persistence": {
+            "jsprismarine:dist": "./dist/entity/data/persistence.js",
+            "default": "./src/entity/data/persistence.ts"
+        },
+        "./network/SessionPhase": {
+            "jsprismarine:dist": "./dist/network/SessionPhase.js",
+            "default": "./src/network/SessionPhase.ts"
+        },
+        "./world/changelog/ChangeEntry": {
+            "jsprismarine:dist": "./dist/world/changelog/ChangeEntry.js",
+            "default": "./src/world/changelog/ChangeEntry.ts"
+        },
+        "./world/changelog/TickHeader": {
+            "jsprismarine:dist": "./dist/world/changelog/TickHeader.js",
+            "default": "./src/world/changelog/TickHeader.ts"
+        },
+        "./world/chunk/SubChunk": {
+            "jsprismarine:dist": "./dist/world/chunk/SubChunk.js",
+            "default": "./src/world/chunk/SubChunk.ts"
+        },
+        "./world/generators/datadriven/featurePatchWire": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/featurePatchWire.js",
+            "default": "./src/world/generators/datadriven/featurePatchWire.ts"
+        },
+        "./world/generators/datadriven/javaStructureWorld": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureWorld.js",
+            "default": "./src/world/generators/datadriven/javaStructureWorld.ts"
+        },
+        "./world/generators/datadriven/javaStructureTemplatePiece": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructureTemplatePiece.js",
+            "default": "./src/world/generators/datadriven/javaStructureTemplatePiece.ts"
+        },
+        "./world/generators/datadriven/bedrockSections": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/bedrockSections.js",
+            "default": "./src/world/generators/datadriven/bedrockSections.ts"
+        },
+        "./command/function/runtime": {
+            "jsprismarine:dist": "./dist/command/function/runtime.js",
+            "default": "./src/command/function/runtime.ts"
+        },
+        "./content/ContentOptions": {
+            "jsprismarine:dist": "./dist/content/ContentOptions.js",
+            "default": "./src/content/ContentOptions.ts"
+        },
+        "./item/actorPort": {
+            "jsprismarine:dist": "./dist/item/actorPort.js",
+            "default": "./src/item/actorPort.ts"
+        },
+        "./entity/data/itemInteraction": {
+            "jsprismarine:dist": "./dist/entity/data/itemInteraction.js",
+            "default": "./src/entity/data/itemInteraction.ts"
+        },
+        "./entity/data/navigationView": {
+            "jsprismarine:dist": "./dist/entity/data/navigationView.js",
+            "default": "./src/entity/data/navigationView.ts"
+        },
+        "./world/changelog/PlainData": {
+            "jsprismarine:dist": "./dist/world/changelog/PlainData.js",
+            "default": "./src/world/changelog/PlainData.ts"
+        },
+        "./entity/data/itemSteering": {
+            "jsprismarine:dist": "./dist/entity/data/itemSteering.js",
+            "default": "./src/entity/data/itemSteering.ts"
+        },
+        "./entity/data/actorMetadata": {
+            "jsprismarine:dist": "./dist/entity/data/actorMetadata.js",
+            "default": "./src/entity/data/actorMetadata.ts"
+        },
+        "./crafting/CraftingInput": {
+            "jsprismarine:dist": "./dist/crafting/CraftingInput.js",
+            "default": "./src/crafting/CraftingInput.ts"
+        },
+        "./inventory/Inventory": {
+            "jsprismarine:dist": "./dist/inventory/Inventory.js",
+            "default": "./src/inventory/Inventory.ts"
+        },
+        "./inventory/slotLog": {
+            "jsprismarine:dist": "./dist/inventory/slotLog.js",
+            "default": "./src/inventory/slotLog.ts"
+        },
+        "./network/replica/BlockReplica": {
+            "jsprismarine:dist": "./dist/network/replica/BlockReplica.js",
+            "default": "./src/network/replica/BlockReplica.ts"
+        },
+        "./network/replica/EntityReplica": {
+            "jsprismarine:dist": "./dist/network/replica/EntityReplica.js",
+            "default": "./src/network/replica/EntityReplica.ts"
+        },
+        "./network/replica/EntityReplication": {
+            "jsprismarine:dist": "./dist/network/replica/EntityReplication.js",
+            "default": "./src/network/replica/EntityReplication.ts"
+        },
+        "./input/IntentHandlerRegistry": {
+            "jsprismarine:dist": "./dist/input/IntentHandlerRegistry.js",
+            "default": "./src/input/IntentHandlerRegistry.ts"
+        },
+        "./permission/model": {
+            "jsprismarine:dist": "./dist/permission/model.js",
+            "default": "./src/permission/model.ts"
+        },
+        "./network/playerListEntry": {
+            "jsprismarine:dist": "./dist/network/playerListEntry.js",
+            "default": "./src/network/playerListEntry.ts"
+        },
+        "./world/chunk/ChunkBiomes": {
+            "jsprismarine:dist": "./dist/world/chunk/ChunkBiomes.js",
+            "default": "./src/world/chunk/ChunkBiomes.ts"
+        },
+        "./blockentity/BlockEntity": {
+            "jsprismarine:dist": "./dist/blockentity/BlockEntity.js",
+            "default": "./src/blockentity/BlockEntity.ts"
+        },
+        "./world/EntitySpawn": {
+            "jsprismarine:dist": "./dist/world/EntitySpawn.js",
+            "default": "./src/world/EntitySpawn.ts"
+        },
+        "./blockentity/BlockEntities": {
+            "jsprismarine:dist": "./dist/blockentity/BlockEntities.js",
+            "default": "./src/blockentity/BlockEntities.ts"
+        },
+        "./world/generators/datadriven/javaStructurePlacement": {
+            "jsprismarine:dist": "./dist/world/generators/datadriven/javaStructurePlacement.js",
+            "default": "./src/world/generators/datadriven/javaStructurePlacement.ts"
+        },
+        "./world/providers/SavePass": {
+            "jsprismarine:dist": "./dist/world/providers/SavePass.js",
+            "default": "./src/world/providers/SavePass.ts"
+        },
+        "./world/Proximity": {
+            "jsprismarine:dist": "./dist/world/Proximity.js",
+            "default": "./src/world/Proximity.ts"
+        },
+        "./command/function/load": {
+            "jsprismarine:dist": "./dist/command/function/load.js",
+            "default": "./src/command/function/load.ts"
+        },
+        "./entity/data/itemActor": {
+            "jsprismarine:dist": "./dist/entity/data/itemActor.js",
+            "default": "./src/entity/data/itemActor.ts"
+        },
+        "./entity/EntitySerializer": {
+            "jsprismarine:dist": "./dist/entity/EntitySerializer.js",
+            "default": "./src/entity/EntitySerializer.ts"
+        },
+        "./network/MinecraftSession": {
+            "jsprismarine:dist": "./dist/network/MinecraftSession.js",
+            "default": "./src/network/MinecraftSession.ts"
+        },
+        "./network/encodePacketBatch": {
+            "jsprismarine:dist": "./dist/network/encodePacketBatch.js",
+            "default": "./src/network/encodePacketBatch.ts"
+        },
+        "./network/decoder/PacketDecoder": {
+            "jsprismarine:dist": "./dist/network/decoder/PacketDecoder.js",
+            "default": "./src/network/decoder/PacketDecoder.ts"
+        },
+        "./input/Intent": {
+            "jsprismarine:dist": "./dist/input/Intent.js",
+            "default": "./src/input/Intent.ts"
+        },
+        "./network/replica/firstSight": {
+            "jsprismarine:dist": "./dist/network/replica/firstSight.js",
+            "default": "./src/network/replica/firstSight.ts"
+        },
+        "./network/contentAdapter": {
+            "jsprismarine:dist": "./dist/network/contentAdapter.js",
+            "default": "./src/network/contentAdapter.ts"
+        },
+        "./world/providers/ChunkSaveContext": {
+            "jsprismarine:dist": "./dist/world/providers/ChunkSaveContext.js",
+            "default": "./src/world/providers/ChunkSaveContext.ts"
+        },
+        "./world/lootLevel": {
+            "jsprismarine:dist": "./dist/world/lootLevel.js",
+            "default": "./src/world/lootLevel.ts"
+        },
+        "./command/host/support": {
+            "jsprismarine:dist": "./dist/command/host/support.js",
+            "default": "./src/command/host/support.ts"
+        },
+        "./network/LoginIdentity": {
+            "jsprismarine:dist": "./dist/network/LoginIdentity.js",
+            "default": "./src/network/LoginIdentity.ts"
+        },
+        "./entity/equipment": {
+            "jsprismarine:dist": "./dist/entity/equipment.js",
+            "default": "./src/entity/equipment.ts"
+        },
+        "./entity/data/observedCollections": {
+            "jsprismarine:dist": "./dist/entity/data/observedCollections.js",
+            "default": "./src/entity/data/observedCollections.ts"
+        },
+        "./entity/data/damageLog": {
+            "jsprismarine:dist": "./dist/entity/data/damageLog.js",
+            "default": "./src/entity/data/damageLog.ts"
+        },
+        "./world/positionKeys": {
+            "jsprismarine:dist": "./dist/world/positionKeys.js",
+            "default": "./src/world/positionKeys.ts"
+        },
+        "./crafting/CraftingGrid": {
+            "jsprismarine:dist": "./dist/crafting/CraftingGrid.js",
+            "default": "./src/crafting/CraftingGrid.ts"
+        },
+        "./entity/data/damageStages": {
+            "jsprismarine:dist": "./dist/entity/data/damageStages.js",
+            "default": "./src/entity/data/damageStages.ts"
+        },
+        "./entity/playerShown": {
+            "jsprismarine:dist": "./dist/entity/playerShown.js",
+            "default": "./src/entity/playerShown.ts"
+        },
+        "./advancement/raise": {
+            "jsprismarine:dist": "./dist/advancement/raise.js",
+            "default": "./src/advancement/raise.ts"
+        },
+        "./world/chunk/biomePalette": {
+            "jsprismarine:dist": "./dist/world/chunk/biomePalette.js",
+            "default": "./src/world/chunk/biomePalette.ts"
+        },
+        "./world/chunk/BlockStorage": {
+            "jsprismarine:dist": "./dist/world/chunk/BlockStorage.js",
+            "default": "./src/world/chunk/BlockStorage.ts"
+        },
+        "./command/function/schedule": {
+            "jsprismarine:dist": "./dist/command/function/schedule.js",
+            "default": "./src/command/function/schedule.ts"
+        },
+        "./input/IntentHandler": {
+            "jsprismarine:dist": "./dist/input/IntentHandler.js",
+            "default": "./src/input/IntentHandler.ts"
+        },
+        "./item/contentAdapter": {
+            "jsprismarine:dist": "./dist/item/contentAdapter.js",
+            "default": "./src/item/contentAdapter.ts"
+        },
+        "./network/decoder/DecodeView": {
+            "jsprismarine:dist": "./dist/network/decoder/DecodeView.js",
+            "default": "./src/network/decoder/DecodeView.ts"
+        },
+        "./block/contentAdapter": {
+            "jsprismarine:dist": "./dist/block/contentAdapter.js",
+            "default": "./src/block/contentAdapter.ts"
         },
         "./package.json": "./package.json"
     },

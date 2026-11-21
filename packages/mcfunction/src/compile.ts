@@ -32,7 +32,7 @@ export type InstantiationResult =
     { ok: true; commands: readonly InstantiatedCommand[] } | { ok: false; message: string; line?: number };
 
 /** One compiled line: fixed text, or a template waiting for arguments. */
-type CompiledLine = { line: number; command: string } | { line: number; template: MacroTemplate };
+export type CompiledLine = { line: number; command: string } | { line: number; template: MacroTemplate };
 
 /**
  * A function file ready to run. Instances come from {@link compileFunction}

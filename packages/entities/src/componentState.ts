@@ -31,7 +31,7 @@ export type ComponentStateRecord = { readonly [field: string]: ComponentStateDat
 export type ComponentStateGuard<T extends ComponentStateData> = (value: unknown) => value is T;
 
 /** The type a {@link ComponentStateGuard} narrows to. */
-type Guarded<G> = G extends ComponentStateGuard<infer T> ? T : never;
+export type Guarded<G> = G extends ComponentStateGuard<infer T> ? T : never;
 
 /** The state shape that a map of field guards describes. */
 export type ComponentStateShape<F extends Readonly<Record<string, ComponentStateGuard<ComponentStateData>>>> = {

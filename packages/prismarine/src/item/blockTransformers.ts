@@ -51,13 +51,13 @@ export interface BlockTransformerRegistry {
 }
 
 /** One entry of a transformer file: one tool pass over the clicked block. */
-interface TransformerEntry {
+export interface TransformerEntry {
     readonly rules: readonly TransformerRule[];
     readonly disallowedFaces: readonly string[];
 }
 
 /** One rule: a predicate over the clicked block, and the state it becomes. */
-interface TransformerRule {
+export interface TransformerRule {
     readonly ifTrue: unknown;
     readonly then: unknown;
 }
@@ -100,7 +100,7 @@ const namesOf = (identifier: string, states: Readonly<Record<string, BlockStateV
 };
 
 /** What the resolver reads of the world and the content. */
-interface ResolveContext {
+export interface ResolveContext {
     readonly tags: Pick<ContentTags, 'includes'>;
     readonly blockAt: TransformBlockAt;
 }

@@ -24,7 +24,7 @@ import type { JavaEnglish } from './javaEnglish';
 import type { MessageKind } from '../network/presenter/SessionPresenter';
 
 /** A player who hears an announcement: its session. */
-interface AnnouncementRecipient {
+export interface AnnouncementRecipient {
     sendMessage(delivery: {
         message: string;
         kind: MessageKind;

@@ -1,7 +1,7 @@
 import type { PlainRecord } from './PlainData';
 
 /** A shape checked to be plain data where it is declared. */
-type Plain<Shape extends PlainRecord> = Shape;
+export type Plain<Shape extends PlainRecord> = Shape;
 
 /**
  * What a world's own clocks and the work it has in flight were as a tick sealed: the part of the

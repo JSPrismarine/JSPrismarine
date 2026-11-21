@@ -79,3 +79,5 @@ export {
     type IdentifierMappingResult,
     type MappedRegistry
 } from './registryMapping';
+export type { Conflict } from './blockProperties';
+export type { StateValue } from './blockProperties';
