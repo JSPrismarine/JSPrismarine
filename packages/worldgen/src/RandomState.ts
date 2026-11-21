@@ -17,7 +17,7 @@ import type { PositionalRandomFactory, RandomSource } from './random/RandomSourc
 import { XoroshiroRandomSource } from './random/XoroshiroRandomSource';
 import type { NoiseGeneratorSettings } from './settings/NoiseGeneratorSettings';
 import type { WorldgenData } from './WorldgenData';
-import type { NativeWorldgen } from '@jsprismarine/native-worldgen';
+import type { NativeDensityProgram, NativeWorldgen } from '@jsprismarine/native-worldgen';
 
 /** The two nether noises Java still instantiates through the pre-1.18 octave chain. */
 const LEGACY_NETHER_NOISES: ReadonlyMap<string, bigint> = new Map([
@@ -51,6 +51,11 @@ export class RandomState {
     private readonly positionalRandoms = new Map<string, PositionalRandomFactory>();
     /** The native library the noises run in, or undefined for TypeScript only. */
     private readonly nativeLibrary: NativeWorldgen | undefined;
+    /** The library program behind each evaluator the compiler was handed. */
+    private readonly nativeProgramsByEvaluator = new WeakMap<
+        (x: number, y: number, z: number) => number,
+        NativeDensityProgram
+    >();
 
     public constructor(
         private readonly data: WorldgenData,
@@ -80,7 +85,9 @@ export class RandomState {
                 const program = library === undefined ? undefined : encode();
                 if (library === undefined || program === undefined) return undefined;
                 const native = library.createProgram(program);
-                return (x, y, z) => native.eval(x, y, z);
+                const evaluate = (x: number, y: number, z: number): number => native.eval(x, y, z);
+                this.nativeProgramsByEvaluator.set(evaluate, native);
+                return evaluate;
             },
             cellProgram: (records) => {
                 const native = this.nativeLibrary?.createCellProgram(records);
@@ -144,6 +151,22 @@ export class RandomState {
      */
     public nativeSampler(node: DensityFunctionNode): ((x: number, y: number, z: number) => number) | undefined {
         return this.compiler.nativeSampler(node);
+    }
+
+    /**
+     * A tree's program in the native library, for native code that runs it without TypeScript; or
+     * undefined when the library does not load here or the tree has a node it has no operation for.
+     * The program answers structure and blending hooks neutrally, so run it only where the context
+     * sets none.
+     */
+    public nativeProgram(node: DensityFunctionNode): NativeDensityProgram | undefined {
+        const evaluate = this.compiler.nativeSampler(node);
+        return evaluate === undefined ? undefined : this.nativeProgramsByEvaluator.get(evaluate);
+    }
+
+    /** The native library this state's programs live in, or undefined when it does not load here. */
+    public get native(): NativeWorldgen | undefined {
+        return this.nativeLibrary;
     }
 
     /**

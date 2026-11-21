@@ -55,5 +55,11 @@ export const NativeWorldgenErrors = defineErrors('native-worldgen', {
      * values, or memory ran out. The worldgen package only hands over programs that fit, so this
      * is a bug; report it.
      */
-    CellProgramNotCreated: 'The native worldgen library could not create a cell program of {nodes} nodes'
+    CellProgramNotCreated: 'The native worldgen library could not create a cell program of {nodes} nodes',
+    /**
+     * The native library refused an aquifer: one of its programs was destroyed, its extent is
+     * empty, its default fluid is not a fluid code, or memory ran out. The worldgen package only
+     * hands over live programs and real extents, so this is a bug; report it.
+     */
+    AquiferNotCreated: 'The native worldgen library could not create an aquifer'
 });

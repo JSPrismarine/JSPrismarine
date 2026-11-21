@@ -6,7 +6,10 @@ import type { RandomState } from '../RandomState';
 import type { Aquifer, AquiferVolume } from './Aquifer';
 import { createDisabledAquifer, createNoiseAquifer, NoiseBasedAquifer } from './Aquifer';
 import type { FluidPicker } from './FluidPicker';
-import { AIR, createGlobalFluidPicker } from './FluidPicker';
+import { AIR, createGlobalFluidPicker, LAVA, WATER } from './FluidPicker';
+import { XoroshiroPositionalRandomFactory } from '../random/XoroshiroRandomSource';
+import { NativeFluid } from '@jsprismarine/native-worldgen';
+import type { NativeAquifer } from '@jsprismarine/native-worldgen';
 import { WorldgenErrors } from '@jsprismarine/errors/worldgen';
 
 /** The registry name the aquifer random factory is keyed by. */
@@ -103,6 +106,17 @@ export class ChunkSampler {
     private densityCallsSkipped = 0;
     private aquiferCallsSkipped = 0;
     private noiseAquifer: Aquifer | undefined;
+    /** Whether the caller passed its own fluid picker, which only the TypeScript aquifer reads. */
+    private readonly customFluidPicker: boolean;
+    /** The aquifer in the native library, null where it cannot run there, undefined until asked. */
+    private nativeAquiferState: NativeAquifer | null | undefined;
+    /** The cell bounds and strides {@link NativeAquifer.fill} reads. */
+    private readonly cellBounds = new Int32Array(8);
+    /** The fluid codes {@link NativeAquifer.fill} writes, one per block of a cell. */
+    private fluidCodes: Uint8Array | undefined;
+    /** The block each {@link NativeFluid} code but `none` stands for. */
+    private readonly fluidNames: readonly string[];
+    private nativeAquiferCells = 0;
     private walkingCell = false;
     /** Final density over one whole cell at a time, when the cell is the interpolation cell. */
     private readonly cellProgram: CellProgram | undefined;
@@ -143,6 +157,8 @@ export class ChunkSampler {
             this.interpolatedDensityProof !== undefined;
 
         this.fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
+        this.customFluidPicker = options.fluidPicker !== undefined;
+        this.fluidNames = [AIR, WATER, LAVA, settings.defaultFluid];
 
         // Taken from final density alone. The shared compiler also holds the surface pass's
         // `chunk_surface_level`, whose cell is 16 by 1, and once that compiles the compiler's
@@ -333,6 +349,12 @@ export class ChunkSampler {
         try {
             const densities = this.fillCellDensities(firstX, lastX, firstY, lastY, firstZ, lastZ);
             const strideX = this.cellSizeXz * this.cellSizeY;
+            if (
+                densities !== undefined &&
+                this.visitNativeAquiferCell(densities, firstX, lastX, firstY, lastY, firstZ, lastZ, strideX, visit)
+            ) {
+                return;
+            }
             for (let x = firstX; x <= lastX; x++) {
                 for (let z = firstZ; z <= lastZ; z++) {
                     for (let y = lastY; y >= firstY; y--) {
@@ -395,6 +417,131 @@ export class ChunkSampler {
             this.context.interpolationBuffersEnabled = bufferingBeforeFill;
         }
         return densities;
+    }
+
+    /** How many cells the native aquifer decided, of those the walk filled. */
+    public get nativeAquiferCellCount(): number {
+        return this.nativeAquiferCells;
+    }
+
+    /**
+     * Decides a whole cell's fluids in the native library and visits its blocks, in the walk's
+     * order. Returns false, having visited nothing, where the native aquifer does not run.
+     */
+    private visitNativeAquiferCell(
+        densities: Float64Array,
+        firstX: number,
+        lastX: number,
+        firstY: number,
+        lastY: number,
+        firstZ: number,
+        lastZ: number,
+        strideX: number,
+        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void
+    ): boolean {
+        // Its programs answer structure and blending hooks neutrally, which a set hook would not.
+        const context = this.context;
+        if (
+            context.beardifier !== undefined ||
+            context.blendAlpha !== undefined ||
+            context.blendOffset !== undefined ||
+            context.blendDensity !== undefined
+        ) {
+            return false;
+        }
+        const aquifer = this.nativeAquifer();
+        if (aquifer === null) return false;
+        const bounds = this.cellBounds;
+        bounds[0] = firstX;
+        bounds[1] = firstY;
+        bounds[2] = firstZ;
+        bounds[3] = lastX;
+        bounds[4] = lastY;
+        bounds[5] = lastZ;
+        bounds[6] = strideX;
+        bounds[7] = this.cellSizeY;
+        const codes = (this.fluidCodes ??= new Uint8Array(densities.length));
+        if (!aquifer.fill(densities, bounds, codes)) return false;
+        this.nativeAquiferCells++;
+
+        const names = this.fluidNames;
+        for (let x = firstX; x <= lastX; x++) {
+            for (let z = firstZ; z <= lastZ; z++) {
+                for (let y = lastY; y >= firstY; y--) {
+                    const code = codes[(x - firstX) * strideX + (z - firstZ) * this.cellSizeY + (y - firstY)]!;
+                    const fluid = code & ~NativeFluid.schedule;
+                    visit(
+                        x,
+                        y,
+                        z,
+                        fluid === NativeFluid.none ? this.defaultBlock : names[fluid]!,
+                        (code & NativeFluid.schedule) !== 0
+                    );
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * The noise aquifer in the native library: built on first use, null where the library does not
+     * load, the dimension has no noise aquifer, a caller's fluid picker replaces the global one, or
+     * one of its density functions has no native program.
+     */
+    private nativeAquifer(): NativeAquifer | null {
+        if (this.nativeAquiferState === undefined) this.nativeAquiferState = this.createNativeAquifer() ?? null;
+        return this.nativeAquiferState;
+    }
+
+    private createNativeAquifer(): NativeAquifer | undefined {
+        const randomState = this.randomState;
+        const config = randomState.settings.aquifers;
+        const library = randomState.native;
+        const aquifer = this.aquifer;
+        if (config === undefined || library === undefined || this.customFluidPicker) return undefined;
+        if (!(aquifer instanceof NoiseBasedAquifer)) return undefined;
+        const factory = randomState.randomFactory(AQUIFER_SEED);
+        if (!(factory instanceof XoroshiroPositionalRandomFactory)) return undefined;
+        const barrier = randomState.nativeProgram(config.barrierNoise);
+        const floodedness = randomState.nativeProgram(config.fluidLevelFloodednessNoise);
+        const spread = randomState.nativeProgram(config.fluidLevelSpreadNoise);
+        const lava = randomState.nativeProgram(config.lavaNoise);
+        const exclusion = randomState.nativeProgram(config.exclusion);
+        const surfaceLevel = randomState.nativeProgram(config.surfaceLevel);
+        if (
+            barrier === undefined ||
+            floodedness === undefined ||
+            spread === undefined ||
+            lava === undefined ||
+            exclusion === undefined ||
+            surfaceLevel === undefined
+        ) {
+            return undefined;
+        }
+        const fluid = randomState.settings.defaultFluid;
+        const volume = this.volume;
+        return library.createAquifer({
+            programs: [barrier, floodedness, spread, lava, exclusion, surfaceLevel],
+            seedLanes: factory.seedLanes,
+            extent: [
+                volume.minBlockX,
+                volume.minBlockY,
+                volume.minBlockZ,
+                volume.maxBlockX,
+                volume.maxBlockY,
+                volume.maxBlockZ
+            ],
+            seaLevel: randomState.settings.seaLevel,
+            defaultFluid:
+                fluid === AIR
+                    ? NativeFluid.air
+                    : fluid === WATER
+                      ? NativeFluid.water
+                      : fluid === LAVA
+                        ? NativeFluid.lava
+                        : NativeFluid.other,
+            skipSamplingAboveY: aquifer.skipSamplingAboveY
+        });
     }
 
     private isGlobalFluidOnlyCell(aquifer: Aquifer, firstY: number): boolean {

@@ -125,7 +125,8 @@ export class NoiseBasedAquifer implements Aquifer {
     private readonly minGridZ: number;
     private readonly gridSizeX: number;
     private readonly gridSizeZ: number;
-    private readonly skipSamplingAboveY: number;
+    /** The highest y the aquifer samples cells for; above it every position takes the global fluid. */
+    public readonly skipSamplingAboveY: number;
     private scheduleFluidUpdate = false;
     /**
      * The barrier noise at the position being computed, or NaN before the first draw. Java

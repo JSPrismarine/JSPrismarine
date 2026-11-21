@@ -10,6 +10,16 @@ category: Errors
 These are the errors `@jsprismarine/native-worldgen` throws. [The error reference](README.md) explains how to read an entry.
 
 <!-- fact:errors.page.native-worldgen -->
+## `NATIVE_WORLDGEN_AQUIFER_NOT_CREATED`
+
+`The native worldgen library could not create an aquifer`
+
+Thrown as `NativeWorldgenErrors.AquiferNotCreated`, which extends `Error`.
+
+The native library refused an aquifer: one of its programs was destroyed, its extent is
+empty, its default fluid is not a fluid code, or memory ran out. The worldgen package only
+hands over live programs and real extents, so this is a bug; report it.
+
 ## `NATIVE_WORLDGEN_CELL_BUFFER_TOO_SMALL`
 
 `A cell program fill needs {cornerCount} corners and {size} outputs; it was given {corners} and {out}`
