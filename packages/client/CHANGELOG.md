@@ -1,5 +1,19 @@
 # @jsprismarine/client
 
+## 0.24.0
+
+### Patch Changes
+
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`fe04e1c`](https://github.com/JSPrismarine/JSPrismarine/commit/fe04e1cfd7e4a730b40314b74fd27715b6777901), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`4217ca0`](https://github.com/JSPrismarine/JSPrismarine/commit/4217ca0439a40e20de7616bb1415205f60b7ee1c), [`f9d1f33`](https://github.com/JSPrismarine/JSPrismarine/commit/f9d1f3339168960f7c5f9c276035dd79f90aa824), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`f021344`](https://github.com/JSPrismarine/JSPrismarine/commit/f021344888b4127ed32d701d4646c90b2d5d5fb1), [`33f8188`](https://github.com/JSPrismarine/JSPrismarine/commit/33f8188ef5816664e754da4eab524732bff2de68), [`0e03436`](https://github.com/JSPrismarine/JSPrismarine/commit/0e03436fdb9afb2bf90a35885a45f7ac79605087), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`bcb6f22`](https://github.com/JSPrismarine/JSPrismarine/commit/bcb6f224d2c9063b19c0c08be23f00354f258ded), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/protocol@0.24.0
+  - @jsprismarine/auth@0.24.0
+  - @jsprismarine/raknet@0.24.0
+  - @jsprismarine/logger@0.24.0
+  - @jsprismarine/minecraft@0.24.0
+  - @jsprismarine/nethernet@0.24.0
+  - @jsprismarine/math@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

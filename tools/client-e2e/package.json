@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/client-e2e",
-    "version": "0.23.2",
+    "version": "0.24.0",
     "private": true,
     "license": "(MIT OR MPL-2.0)",
     "description": "Drives the cinnabar Bedrock client against a local JSPrismarine server for end-to-end verification",

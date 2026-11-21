@@ -1,5 +1,26 @@
 # @jsprismarine/blocks
 
+## 0.24.0
+
+### Patch Changes
+
+- [`f60848b`](https://github.com/JSPrismarine/JSPrismarine/commit/f60848bcfa396c2070d18a7f9324e08b92b909e5) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop candles and candle cakes with nothing underneath, as Java's `CandleBlock` and `CandleCakeBlock` do, and give copper torches and copper lanterns the torch and lantern families, so they need the block they stand or hang on like any torch or lantern while the lantern family still weathers, waxes and scrapes them.
+
+- [#3554](https://github.com/JSPrismarine/JSPrismarine/pull/3554) [`f601458`](https://github.com/JSPrismarine/JSPrismarine/commit/f601458356766013707b4b0253ff534d73c8ce68) Thanks [@filiphsps](https://github.com/filiphsps)! - Dampen light by each block state as Java does. The vanilla overlay wrote per-state light emission but one light dampening per block, so a full snow layer let light through, and a live sea pickle and a resin clump or sculk vein with no faces did not dampen it at all. Those states now carry their own `minecraft:light_dampening` permutation.
+
+- [`9c4bd38`](https://github.com/JSPrismarine/JSPrismarine/commit/9c4bd38bc8532b277ae4eea0b75923ad81993c05) Thanks [@filiphsps](https://github.com/filiphsps)! - Pop a lily pad or frogspawn off anything but water (a lily pad also stays on ice), and a comparator without a block below it, as Java's `WaterlilyBlock`, `FrogspawnBlock` and `DiodeBlock` need. Bedrock's `waterlily` and `frog_spawn` now take the flora family.
+
+- [`8a41ef4`](https://github.com/JSPrismarine/JSPrismarine/commit/8a41ef432e4274717875eb8bf010cff00ef435ea) Thanks [@filiphsps](https://github.com/filiphsps)! - Follow Java's piston on two rules: a retracted piston or sticky piston is pushed like any block, and a block that never breaks (an end portal frame, a light block, a command block) cannot be moved, which the vanilla overlay now marks immovable from its hardness rather than for bedrock alone.
+
+- [`e515b52`](https://github.com/JSPrismarine/JSPrismarine/commit/e515b52206a0e9ce6223c860ab6bcb0da6483643) Thanks [@filiphsps](https://github.com/filiphsps)! - Light each block state at its own Java level. `@jsprismarine/mapping` exports `bedrockBlockStateOverridesOf`, the per-state overrides of a block's Java properties, and the vanilla overlay writes each override that changes light as a permutation, so a lit candle, an unlit campfire, a charged respawn anchor or a lit copper bulb emits what it does in Java rather than its block's one level.
+- Updated dependencies [[`54ae4dd`](https://github.com/JSPrismarine/JSPrismarine/commit/54ae4dd998002a49935182a1c32a301a9c9a1c3a), [`1f3b347`](https://github.com/JSPrismarine/JSPrismarine/commit/1f3b347d94e934767993eb3506a412b01d334a0b), [`3c19f11`](https://github.com/JSPrismarine/JSPrismarine/commit/3c19f11b712b228563d7af7fc5f6df6995726fe3), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`05f03f7`](https://github.com/JSPrismarine/JSPrismarine/commit/05f03f78e186000a5e76cc34894a61a384ca5333), [`02d9cb6`](https://github.com/JSPrismarine/JSPrismarine/commit/02d9cb69d53cf22a406dd86e95f08b2bbc48eb5c), [`a29ff83`](https://github.com/JSPrismarine/JSPrismarine/commit/a29ff83b2e5fb9d3cedabc980c4001c5baba4bb5), [`2272a78`](https://github.com/JSPrismarine/JSPrismarine/commit/2272a78ffd0754e8efff802bc7040cb17c7bdf7a), [`b30a127`](https://github.com/JSPrismarine/JSPrismarine/commit/b30a1272d2d0ebee7e6c73c69d6b2c87ba06e9fa), [`64126de`](https://github.com/JSPrismarine/JSPrismarine/commit/64126de681d7b3cfad3f415a3dfa3e5e50afa6ca), [`cce50d8`](https://github.com/JSPrismarine/JSPrismarine/commit/cce50d8d16917a3ad6843be08c35e15af5aab7c4), [`e515b52`](https://github.com/JSPrismarine/JSPrismarine/commit/e515b52206a0e9ce6223c860ab6bcb0da6483643)]:
+  - @jsprismarine/errors@0.24.0
+  - @jsprismarine/mapping@0.24.0
+  - @jsprismarine/content@0.24.0
+  - @jsprismarine/minecraft@0.24.0
+  - @jsprismarine/molang@0.24.0
+  - @jsprismarine/packs@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

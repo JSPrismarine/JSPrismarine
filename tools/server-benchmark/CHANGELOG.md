@@ -1,5 +1,16 @@
 # @jsprismarine/server-benchmark
 
+## 0.24.0
+
+### Patch Changes
+
+- Updated dependencies [[`fe04e1c`](https://github.com/JSPrismarine/JSPrismarine/commit/fe04e1cfd7e4a730b40314b74fd27715b6777901), [`f4eb592`](https://github.com/JSPrismarine/JSPrismarine/commit/f4eb5921862accbb5e07749c38bd1c63495587a0), [`a19ba96`](https://github.com/JSPrismarine/JSPrismarine/commit/a19ba968ae53bd5c34c9515227a9d08ff7c69e33), [`4217ca0`](https://github.com/JSPrismarine/JSPrismarine/commit/4217ca0439a40e20de7616bb1415205f60b7ee1c), [`f9d1f33`](https://github.com/JSPrismarine/JSPrismarine/commit/f9d1f3339168960f7c5f9c276035dd79f90aa824), [`a64ab41`](https://github.com/JSPrismarine/JSPrismarine/commit/a64ab41bf639ffb0144117810600a4abf306a850), [`f021344`](https://github.com/JSPrismarine/JSPrismarine/commit/f021344888b4127ed32d701d4646c90b2d5d5fb1), [`33f8188`](https://github.com/JSPrismarine/JSPrismarine/commit/33f8188ef5816664e754da4eab524732bff2de68), [`0e03436`](https://github.com/JSPrismarine/JSPrismarine/commit/0e03436fdb9afb2bf90a35885a45f7ac79605087), [`bcb6f22`](https://github.com/JSPrismarine/JSPrismarine/commit/bcb6f224d2c9063b19c0c08be23f00354f258ded)]:
+  - @jsprismarine/protocol@0.24.0
+  - @jsprismarine/client@0.24.0
+  - @jsprismarine/binaryutils@0.24.0
+  - @jsprismarine/logger@0.24.0
+  - @jsprismarine/nbt@0.24.0
+
 ## 0.23.2
 
 ### Patch Changes

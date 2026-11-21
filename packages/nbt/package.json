@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/nbt",
-    "version": "0.23.2",
+    "version": "0.24.0",
     "description": "NBT reader and writer for Minecraft: Bedrock Edition",
     "sideEffects": false,
     "publishConfig": {
