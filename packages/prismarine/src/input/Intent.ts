@@ -75,6 +75,35 @@ export interface IntentPayloads {
     };
     /** The player typed a chat message, already cut to what a chat box could have produced. */
     readonly chat: { readonly message: string };
+    /**
+     * The player asked for a view distance in chunks. `maxRadius` is the most its client can
+     * render, or zero when it stated none.
+     */
+    readonly setViewDistance: { readonly radius: number; readonly maxRadius: number };
+    /** The player picked a game mode for itself, as a `Gametype` id or any number a client sent. */
+    readonly changeGameMode: { readonly gamemode: number };
+    /**
+     * The player asked to change one of its own abilities, by the ability's name and the value
+     * it sent: a boolean, a number, or null when the request carried none.
+     */
+    readonly requestAbility: { readonly ability: string; readonly value: boolean | number | null };
+    /** The player reported the end credits finished. */
+    readonly finishCredits: Record<never, never>;
+    /** The player picked a default game mode for the server, as a `Gametype` id or any number a client sent. */
+    readonly setDefaultGameMode: { readonly gamemode: number };
+    /**
+     * The player asked to set another player's permission level. `level` is a
+     * `PlayerPermissionLevel`, and `customFlags` the flag set a custom level carries.
+     */
+    readonly setPlayerPermission: { readonly target: bigint; readonly level: number; readonly customFlags: number };
+    /** The player issued a command line, with or without its leading slash. */
+    readonly runCommand: { readonly command: string };
+    /** The client's scripts sent the server's scripts a message. */
+    readonly scriptMessage: { readonly id: string; readonly value: string };
+    /** The player pressed the respawn button. */
+    readonly respawn: Record<never, never>;
+    /** The client finished spawning and has a player to show. */
+    readonly playerInitialized: Record<never, never>;
 }
 
 /** What the table declares about one intent. */
@@ -102,7 +131,21 @@ export const Intents = {
     // Logs an occurrence that replication relays to the players near the sound.
     playSound: { lane: 'input' },
     // The chat event calls the plugins' listeners in the input's unit.
-    chat: { lane: 'input' }
+    chat: { lane: 'input' },
+    // Sets the player's view distance, which decides the chunks the world keeps loaded.
+    setViewDistance: { lane: 'input' },
+    changeGameMode: { lane: 'input' },
+    requestAbility: { lane: 'input' },
+    // Completes a held world change.
+    finishCredits: { lane: 'input' },
+    setDefaultGameMode: { lane: 'input' },
+    setPlayerPermission: { lane: 'input' },
+    runCommand: { lane: 'input' },
+    // Raised on the input lane so the scripts hear it in the tick it arrived in.
+    scriptMessage: { lane: 'input' },
+    respawn: { lane: 'input' },
+    // Puts the player into its world.
+    playerInitialized: { lane: 'input' }
 } as const satisfies { readonly [K in keyof IntentPayloads]: IntentDefinition };
 
 /** The name of an intent, as its `kind` field carries it. */

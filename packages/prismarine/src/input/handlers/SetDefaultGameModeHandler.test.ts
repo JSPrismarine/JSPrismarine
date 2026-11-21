@@ -1,24 +1,23 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Gametype, getGametypeName } from '@jsprismarine/minecraft';
+import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
+import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import { describe, expect, it } from 'vitest';
 
+import { subjectId } from '../../identity/Subject';
+import type ClientConnection from '../../network/ClientConnection';
+import type { HandlerServices } from '../../network/handler/HandlerContext';
+import type PlayerSession from '../../network/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type ClientConnection from '../ClientConnection';
-import { latestCodec } from '../codec/CodecRegistry';
-import type PlayerSession from '../PlayerSession';
-import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
-import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
-import type { HandlerServices } from './HandlerContext';
-import { subjectId } from '../../identity/Subject';
 import type { World } from '../../world/World';
 import { WorldMessages } from '../../world/WorldMessages';
-import SetDefaultGameTypeHandler from './SetDefaultGameTypeHandler';
+import SetDefaultGameModeHandler from './SetDefaultGameModeHandler';
 
 /**
  * A server holding Survival as its default, with the requesting player in the Overworld and one
- * other in the Nether. Everything a packet handler may send is captured per player.
+ * other in the Nether. Everything a handler may send is captured per player.
  */
 const fakeServer = ({
     op,
@@ -67,7 +66,7 @@ const fakeServer = ({
         const moveTo = (next: World) => {
             where.world = next;
         };
-        return { player: session, session, moveTo };
+        return { session, moveTo };
     };
 
     const requester = fakePlayer('Steve', '00000000-0000-0000-0000-000000000001', op, overworld);
@@ -95,9 +94,9 @@ const fakeServer = ({
     };
 
     /** Runs one request as the input step would, and returns what the handler handed the step. */
-    const handle = async (packet: SetDefaultGameTypePacket, from = requester.session) => {
+    const handle = async (gamemode: number, from = requester.session) => {
         const { context, outputs, settled } = inputContext(from, parts);
-        const returned = new SetDefaultGameTypeHandler().handle(packet, context);
+        const returned = new SetDefaultGameModeHandler().handle({ kind: 'setDefaultGameMode', gamemode }, context);
         const handed = { returned, outputs: outputs.length, applied: applied.length };
         await settled();
         return handed;
@@ -106,20 +105,17 @@ const fakeServer = ({
     return { logged, applied, committed, sent, handle, messages, inputs, other, overworld };
 };
 
-const request = (gamemode: Gametype): SetDefaultGameTypePacket =>
-    Object.assign(new SetDefaultGameTypePacket(), { gamemode });
-
 const defaults = (packets: NetworkPacket[] | undefined): Gametype[] =>
     (packets ?? []).map((packet) => {
         expect(packet).toBeInstanceOf(SetDefaultGameTypePacket);
         return packet instanceof SetDefaultGameTypePacket ? packet.gamemode : Gametype.UNDEFINED;
     });
 
-describe('SetDefaultGameTypeHandler', () => {
+describe('SetDefaultGameModeHandler', () => {
     it('applies an operator request to the config and every player, then tells every client', async () => {
         const { applied, committed, sent, handle, messages } = fakeServer({ op: true });
 
-        await handle(request(Gametype.CREATIVE));
+        await handle(Gametype.CREATIVE);
         messages.admit();
 
         expect(committed).toEqual([[Gametype.CREATIVE, true]]);
@@ -134,7 +130,7 @@ describe('SetDefaultGameTypeHandler', () => {
     it("moves the sender's world in the handler and sends every other world a message for its input step", async () => {
         const { applied, committed, sent, handle, messages, inputs } = fakeServer({ op: true });
 
-        const handed = await handle(request(Gametype.CREATIVE));
+        const handed = await handle(Gametype.CREATIVE);
 
         // Steve's world changes in the handler's unit, with the sends handed
         // to the step, and Alex in the Nether is untouched until a message is applied there.
@@ -158,8 +154,8 @@ describe('SetDefaultGameTypeHandler', () => {
 
         // Steve asks for Creative from the Overworld, then Alex for Survival from the Nether, both
         // before the step applies the messages: the Creative one for Alex is older than Alex's own.
-        await handle(request(Gametype.CREATIVE));
-        await handle(request(Gametype.SURVIVAL), other.session);
+        await handle(Gametype.CREATIVE);
+        await handle(Gametype.SURVIVAL, other.session);
         messages.admit();
         await Promise.resolve();
 
@@ -171,7 +167,7 @@ describe('SetDefaultGameTypeHandler', () => {
     it('moves a player who changed world before the message was applied in the world they are in', async () => {
         const { applied, handle, messages, inputs, other, overworld } = fakeServer({ op: true });
 
-        await handle(request(Gametype.CREATIVE));
+        await handle(Gametype.CREATIVE);
         other.moveTo(overworld);
 
         // The Nether's unit cannot undo a write in the Overworld, so nothing is written there.
@@ -190,7 +186,7 @@ describe('SetDefaultGameTypeHandler', () => {
     it('logs a default it could not save and still moves the players onto it', async () => {
         const { applied, logged, handle, messages } = fakeServer({ op: true, saveFails: true });
 
-        await handle(request(Gametype.CREATIVE));
+        await handle(Gametype.CREATIVE);
         messages.admit();
 
         expect(logged).toEqual([`Could not save the default game type ${Gametype.CREATIVE}: Error: disk full`]);
@@ -200,17 +196,13 @@ describe('SetDefaultGameTypeHandler', () => {
     it('hands the reply to a refused request to the step', async () => {
         const { handle } = fakeServer({ op: false });
 
-        expect(await handle(request(Gametype.CREATIVE))).toEqual({
-            returned: undefined,
-            outputs: 1,
-            applied: 0
-        });
+        expect(await handle(Gametype.CREATIVE)).toEqual({ returned: undefined, outputs: 1, applied: 0 });
     });
 
     it('refuses a player who is not an operator and sends the current default back', async () => {
         const { applied, committed, logged, sent, handle } = fakeServer({ op: false });
 
-        await handle(request(Gametype.CREATIVE));
+        await handle(Gametype.CREATIVE);
 
         expect(committed).toEqual([]);
         expect(applied).toEqual([]);
@@ -222,11 +214,7 @@ describe('SetDefaultGameTypeHandler', () => {
     it('refuses a value the config cannot hold without throwing', async () => {
         const { applied, committed, logged, sent, handle } = fakeServer({ op: true });
 
-        // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
-        const packet = new SetDefaultGameTypePacket(Buffer.from([latestCodec.ids.SetDefaultGameTypePacket!, 0x54]));
-        packet.decode();
-
-        await handle(packet);
+        await handle(42);
 
         expect(committed).toEqual([]);
         expect(applied).toEqual([]);
@@ -237,8 +225,8 @@ describe('SetDefaultGameTypeHandler', () => {
     it('refuses the docs values a config has no name for', async () => {
         const { committed, handle } = fakeServer({ op: true });
 
-        await handle(request(Gametype.DEFAULT));
-        await handle(request(Gametype.UNDEFINED));
+        await handle(Gametype.DEFAULT);
+        await handle(Gametype.UNDEFINED);
 
         expect(committed).toEqual([]);
     });

@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import type { HandlerServices } from '../../network/handler/HandlerContext';
+import type PlayerSession from '../../network/PlayerSession';
 import { inputContext } from '../../testing/handlerContext.test.helper';
 import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../PlayerSession';
-import SettingsCommandPacket from '@jsprismarine/protocol/bedrock/packet/SettingsCommandPacket';
-import type { HandlerServices } from './HandlerContext';
-import SettingsCommandHandler from './SettingsCommandHandler';
+import RunCommandHandler from './RunCommandHandler';
 
-describe('SettingsCommandHandler', () => {
+describe('RunCommandHandler', () => {
     it('dispatches the command line with the player as both sender and target', async () => {
         const dispatched: string[] = [];
         const senders: unknown[] = [];
@@ -23,12 +22,10 @@ describe('SettingsCommandHandler', () => {
                 })
             }
         });
-        const packet = new SettingsCommandPacket({
-            command: '/gamerule showcoordinates true',
-            suppressOutput: true
-        });
 
-        expect(new SettingsCommandHandler().handle(packet, context)).toBeUndefined();
+        expect(
+            new RunCommandHandler().handle({ kind: 'runCommand', command: '/gamerule showcoordinates true' }, context)
+        ).toBeUndefined();
         // The command runs in the handler, which hands the step what it started.
         expect(outputs).toHaveLength(1);
         await settled();

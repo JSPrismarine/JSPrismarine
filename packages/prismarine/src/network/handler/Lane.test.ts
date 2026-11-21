@@ -257,7 +257,7 @@ describe('network/handler/Lane', () => {
             return existsSync(file) && writes.test(readFileSync(file, 'utf8'));
         });
 
-        expect(movers).toEqual(expect.arrayContaining(['PlayerAuthInputHandler', 'RespawnHandler']));
+        expect(movers).toEqual(expect.arrayContaining(['PlayerAuthInputHandler']));
         for (const mover of movers) expect(lanes.get(mover), mover).toBe('input');
     });
 
@@ -285,7 +285,7 @@ describe('network/handler/Lane', () => {
     });
 
     it('flags the world access it guards against', () => {
-        expect(worldAccess(`${here}SetPlayerGameTypeHandler.ts`)).toContain('calls session.sendGamemode');
+        expect(worldAccess(`${here}InventoryTransactionHandler.ts`)).toContain('calls session.getWorld');
         expect(worldAccess(`${here}ContainerCloseHandler.ts`).some((use) => use.includes('getWorld'))).toBe(true);
     });
 

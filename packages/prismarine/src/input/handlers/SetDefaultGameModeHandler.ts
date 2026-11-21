@@ -1,10 +1,11 @@
 import type { Gametype, GametypeName } from '@jsprismarine/minecraft';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-
-import type PlayerSession from '../PlayerSession';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
-import type { HandlerConfig, HandlerServices, InputContext } from './HandlerContext';
-import type { InputLaneHandler } from './SessionHandler';
+
+import type { HandlerConfig, HandlerServices, InputContext } from '../../network/handler/HandlerContext';
+import type PlayerSession from '../../network/PlayerSession';
+import type { Intent } from '../Intent';
+import type { IntentHandler } from '../IntentHandler';
 
 /**
  * The name the config stores for a default, or null when it has none for the value.
@@ -50,7 +51,12 @@ const fileDefault = (
     });
 };
 
-/** Tells one client the default the server holds. */
+/**
+ * Tells one client the default the server holds.
+ *
+ * The one Bedrock packet this handler builds. It moves to the Bedrock presenter when the
+ * session's outbound contract is split by edition.
+ */
 const sendDefault = async (config: Pick<HandlerConfig, 'getGamemode'>, session: PlayerSession): Promise<void> => {
     const reply = new SetDefaultGameTypePacket();
     reply.gamemode = getGametypeId(config.getGamemode());
@@ -58,40 +64,39 @@ const sendDefault = async (config: Pick<HandlerConfig, 'getGamemode'>, session: 
 };
 
 /**
- * Applies the default game type a client picked from the world settings screen.
+ * Applies the default game mode a player picked for the server.
  *
- * Only an operator gets the change, and only for a value the config can hold. A refused
- * request is answered with the default the server has, because the client has already moved
- * its screen to the value it asked for. An accepted one is written to the config, applied to
- * every player, and then sent to every client, which is what the docs describe.
+ * Only an operator gets the change, and only for a value the config can hold. A refused request
+ * is answered with the default the server has, because the client has already moved its screen to
+ * the value it asked for. An accepted one is written to the config, applied to every player, and
+ * then sent to every client, which is what the docs describe.
  */
-export default class SetDefaultGameTypeHandler implements InputLaneHandler<SetDefaultGameTypePacket> {
-    public static PacketName = 'SetDefaultGameTypePacket';
-    public readonly phases = ['play'] as const;
-    public readonly lane = 'input';
+export default class SetDefaultGameModeHandler implements IntentHandler<'setDefaultGameMode'> {
+    public static readonly Kind = 'setDefaultGameMode';
 
     /**
      * Sets the configured default and moves every player onto it, when the sender may.
      *
      * The default changes in memory at once, and the config file is written off the tick.
      */
-    public handle(packet: SetDefaultGameTypePacket, { session, log, config, services, step }: InputContext): undefined {
+    public handle(
+        { gamemode }: Intent<'setDefaultGameMode'>,
+        { session, log, config, services, step }: InputContext
+    ): undefined {
         if (!services.permissions.isOp(session.identity.subject)) {
             log.warn(`Player ${session.identity.name} tried to change default gamemode without proper permissions.`);
             step.output(sendDefault(config, session));
             return;
         }
 
-        if (nameOfDefault(packet.gamemode) === null) {
-            log.debug(
-                `${session.identity.name} asked for default game type ${packet.gamemode}, which a server cannot hold`
-            );
+        if (nameOfDefault(gamemode) === null) {
+            log.debug(`${session.identity.name} asked for default game type ${gamemode}, which a server cannot hold`);
             step.output(sendDefault(config, session));
             return;
         }
 
-        services.defaults.setGamemode(packet.gamemode, true).catch((error: unknown) => {
-            log.error(`Could not save the default game type ${packet.gamemode}: ${error}`);
+        services.defaults.setGamemode(gamemode, true).catch((error: unknown) => {
+            log.error(`Could not save the default game type ${gamemode}: ${error}`);
         });
         // Each player's game mode is written in the world the player stands in: at once for the
         // sender's world, whose input step this is, and as a message for any other world, which
