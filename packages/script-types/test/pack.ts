@@ -115,16 +115,18 @@ if (jsp !== undefined && 'permissions' in jsp) {
     const primary: string = permissions.primaryGroupOf(player);
     const prefix: string | undefined = permissions.metaOf(player, 'prefix');
     permissions.grant(player, 'minecraft.command.me', '2030-01-01T00:00:00Z');
-    permissions.grant('vip', 'minecraft.command.*');
-    permissions.revoke('vip', 'minecraft.command.*');
+    permissions.revoke(player, 'minecraft.command.me');
+    permissions.grantToGroup('vip', 'minecraft.command.*');
+    permissions.revokeFromGroup('vip', 'minecraft.command.*');
     permissions.addToGroup(player, 'vip', '30d');
     permissions.removeFromGroup(player, 'vip');
-    const callback = permissions.afterEvents.permissionsChange.subscribe((event) => {
-        const changed: string | undefined = event.player?.id ?? event.group;
+    const callback = permissions.afterEvents.permissionsChange.subscribe(({ target }) => {
+        const changed: string | undefined =
+            target === undefined ? undefined : 'group' in target ? target.group : (target.player?.id ?? target.name);
         void changed;
     });
     permissions.afterEvents.permissionsChange.unsubscribe(callback);
-    // @ts-expect-error A group is named by a string, not a number.
-    permissions.grant(7, 'a.b');
+    // @ts-expect-error A user write takes a Player, not a group name.
+    permissions.grant('vip', 'a.b');
     void [allowed, groups, primary, prefix];
 }

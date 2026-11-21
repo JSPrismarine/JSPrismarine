@@ -8,8 +8,7 @@ import { BossBarColor } from '@jsprismarine/protocol/bedrock/packet/BossEventPac
 import type {
     JsprismarineServerMembers,
     ScriptBossBarState,
-    ScriptPermissionMembers,
-    ScriptPermissionSubject
+    ScriptPermissionMembers
 } from '@jsprismarine/script-host/host/jsprismarineMembers';
 import type { JsprismarineBossBarColor } from '@jsprismarine/script-host/host/jsprismarineServer';
 
@@ -226,15 +225,16 @@ export const scriptPermissionMembers = (
         primaryGroupOf: (player) => permissions.primaryGroupOf(identityOf(player)),
         metaOf: (player, key) => permissions.metaOf(identityOf(player), key),
         weightOf: (player) => permissions.groupOf(permissions.primaryGroupOf(identityOf(player)))?.weight ?? 0,
-        grant: (subject: ScriptPermissionSubject, node, expires) => {
-            const until = checked(node, expires);
-            if ('group' in subject) queued(permissions.grantGroup(checkGroup(subject.group), node, until));
-            else queued(permissions.grantUser(identityOf(subject.player), node, until));
+        grant: (player, node, expires) => {
+            const identity = identityOf(player);
+            queued(permissions.grantUser(identity, node, checked(node, expires)));
         },
-        revoke: (subject: ScriptPermissionSubject, node) => {
-            if ('group' in subject) queued(permissions.revokeGroup(checkGroup(subject.group), node));
-            else queued(permissions.revokeUser(identityOf(subject.player), node));
+        revoke: (player, node) => queued(permissions.revokeUser(identityOf(player), node)),
+        grantToGroup: (group, node, expires) => {
+            checkGroup(group);
+            queued(permissions.grantGroup(group, node, checked(node, expires)));
         },
+        revokeFromGroup: (group, node) => queued(permissions.revokeGroup(checkGroup(group), node)),
         addToGroup: (player, group, expires) => {
             const identity = identityOf(player);
             checkGroup(group);
@@ -243,14 +243,21 @@ export const scriptPermissionMembers = (
         },
         removeFromGroup: (player, group) => queued(permissions.removeFromGroup(identityOf(player), group)),
         onChange: (listener) =>
-            permissions.onChange(({ subject, group }) => {
-                const session =
-                    subject === undefined
-                        ? undefined
-                        : sessions().find((candidate) => sameSubject(candidate.identity.subject, subject));
+            permissions.onChange(({ subject, name, group }) => {
+                if (group !== undefined) {
+                    listener({ target: { group } });
+                    return;
+                }
+                if (subject === undefined) {
+                    listener({});
+                    return;
+                }
+                const session = sessions().find((candidate) => sameSubject(candidate.identity.subject, subject));
                 listener({
-                    ...(session === undefined ? {} : { player: String(session.getRuntimeId()) }),
-                    ...(group === undefined ? {} : { group })
+                    target: {
+                        name: name ?? permissions.userOf(subject)?.name ?? session?.identity.name ?? '',
+                        ...(session === undefined ? {} : { player: String(session.getRuntimeId()) })
+                    }
                 });
             })
     };

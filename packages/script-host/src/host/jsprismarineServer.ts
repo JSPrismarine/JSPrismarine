@@ -231,14 +231,24 @@ export const JSPRISMARINE_SERVER = {
             },
             grant: {
                 summary:
-                    'Adds a node to a player, or to a group named by its name. Throws a `RangeError` for a node not spelled as `scope.name`, `scope.*` or `*` with at most one leading `-`, or for an expiry that is not an ISO 8601 instant in the future, and an `Error` for a group the file does not have.',
-                parameters: 'subject: Player | string, node: string, expires?: string',
+                    'Adds a node to the player. Throws a `RangeError` for a node not spelled as `scope.name`, `scope.*` or `*` with at most one leading `-`, or for an expiry that is not an ISO 8601 instant with a time zone in the future.',
+                parameters: 'player: Player, node: string, expires?: string',
                 returns: 'void'
             },
             revoke: {
+                summary: 'Removes a node from the player. Does nothing when they do not have it.',
+                parameters: 'player: Player, node: string',
+                returns: 'void'
+            },
+            grantToGroup: {
                 summary:
-                    'Removes a node from a player, or from a group named by its name. Does nothing when they do not have it.',
-                parameters: 'subject: Player | string, node: string',
+                    'Adds a node to the group named. Throws as `grant` does for the node and the expiry, and an `Error` for a group the file does not have.',
+                parameters: 'group: string, node: string, expires?: string',
+                returns: 'void'
+            },
+            revokeFromGroup: {
+                summary: 'Removes a node from the group named. Does nothing when it does not have it.',
+                parameters: 'group: string, node: string',
                 returns: 'void'
             },
             addToGroup: {
@@ -514,15 +524,21 @@ export const JSPRISMARINE_PLACEHOLDER_TYPES = {
     },
     PermissionsChangeEvent: {
         kind: 'interface',
-        summary: 'What a permission change touched. Both are absent after a reload, which may have changed anything.',
+        summary: 'What a permission change touched.',
         properties: {
-            player: {
-                type: 'Player',
+            target: {
+                type: 'PermissionsChangeTarget',
                 optional: true,
-                summary: 'The player whose own record or operator status changed, when they are online.'
-            },
-            group: { type: 'string', optional: true, summary: 'The group that changed.' }
+                summary:
+                    'The group or the user the write touched. Absent after the files were read again on `/reload` or a change on disk, which may have changed anything.'
+            }
         }
+    },
+    PermissionsChangeTarget: {
+        kind: 'alias',
+        summary:
+            'The group a group write touched, by name, or the user a user write touched, by the name their record shows, with their `Player` while they are online.',
+        type: '{ readonly group: string } | { readonly name: string; readonly player?: Player }'
     }
 } as const satisfies Readonly<Record<string, TypeDefinition>>;
 
@@ -569,6 +585,8 @@ export const JSPRISMARINE_HOST_FUNCTIONS = [
     'metaOf',
     'grant',
     'revoke',
+    'grantToGroup',
+    'revokeFromGroup',
     'addToGroup',
     'removeFromGroup',
     'onPermissionsChange'
@@ -605,8 +623,8 @@ export const JSPRISMARINE_CONFIG_FUNCTIONS = [
  * The script of each member that calls the host, as an expression over `host` and `freeze`:
  * `host.read(name, index)` answers a property of `performance`, one entry of a list at a time,
  * `host.groupsOf(player)` answers a player's groups as JSON, `host.onPermissionsChange(dispatch)` keeps
- * the function the host calls with each change's player and group, and the others are named for
- * what they do.
+ * the function the host calls with each change's group, or user name and player, and the others are
+ * named for what they do.
  */
 const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, string>> = {
     getPing: 'freeze((player) => host.ping(player))',
@@ -646,8 +664,10 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
     permissions: [
         '(() => {',
         '    const subscribers = new Set();',
-        '    host.onPermissionsChange((player, group) => {',
-        '        const event = freeze({ player, group });',
+        '    host.onPermissionsChange((group, name, player) => {',
+        '        const target =',
+        '            group !== undefined ? freeze({ group }) : name !== undefined ? freeze({ name, player }) : undefined;',
+        '        const event = freeze(target === undefined ? {} : { target });',
         '        for (const callback of [...subscribers]) callback(event);',
         '    });',
         '    const permissionsChange = freeze({',
@@ -659,8 +679,10 @@ const CALLABLE_SOURCES: Readonly<Record<Exclude<LiveMember, 'performance'>, stri
         '        groupsOf: (player) => freeze(JSON.parse(host.groupsOf(player))),',
         '        primaryGroupOf: (player) => host.primaryGroupOf(player),',
         '        metaOf: (player, key) => host.metaOf(player, key),',
-        '        grant: (subject, node, expires) => host.grant(subject, node, expires),',
-        '        revoke: (subject, node) => host.revoke(subject, node),',
+        '        grant: (player, node, expires) => host.grant(player, node, expires),',
+        '        revoke: (player, node) => host.revoke(player, node),',
+        '        grantToGroup: (group, node, expires) => host.grantToGroup(group, node, expires),',
+        '        revokeFromGroup: (group, node) => host.revokeFromGroup(group, node),',
         '        addToGroup: (player, group, expires) => host.addToGroup(player, group, expires),',
         '        removeFromGroup: (player, group) => host.removeFromGroup(player, group),',
         '        afterEvents: freeze({ permissionsChange })',
@@ -677,6 +699,8 @@ export const PERMISSION_HOST_FUNCTIONS = [
     'metaOf',
     'grant',
     'revoke',
+    'grantToGroup',
+    'revokeFromGroup',
     'addToGroup',
     'removeFromGroup',
     'onPermissionsChange'
@@ -830,7 +854,7 @@ const typeLines = (name: string, type: TypeDefinition): string[] => {
     if (type.kind === 'union') {
         return [comment, `    export type ${name} = ${type.values.map((value) => JSON.stringify(value)).join(' | ')};`];
     }
-    if (type.kind === 'alias') return [comment, `    export type ${name} =${type.type};`];
+    if (type.kind === 'alias') return [comment, `    export type ${name} =${type.type.startsWith('\n') ? '' : ' '}${type.type};`];
     return [
         comment,
         `    export interface ${name} {`,

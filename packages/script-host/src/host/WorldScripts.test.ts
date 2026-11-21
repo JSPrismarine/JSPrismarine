@@ -18,8 +18,7 @@ import type {
     ScriptBossBarState,
     ScriptPerformance,
     ScriptPermissionMembers,
-    ScriptPermissionsChange,
-    ScriptPermissionSubject
+    ScriptPermissionsChange
 } from './jsprismarineMembers';
 import type { AddonConfigStore } from './addonConfig';
 
@@ -717,18 +716,25 @@ system.run(() => {
             public weightOf(player: string): number {
                 return this.primaryGroupOf(player) === 'vip' ? 10 : 0;
             }
-            public grant(subject: ScriptPermissionSubject, node: string, expires?: string): void {
+            public grant(player: string, node: string, expires?: string): void {
                 if (node.includes(' ')) throw new RangeError(`Permission node "${node}" is not spelled as scope.name`);
-                this.writes.push(`grant ${JSON.stringify(subject)} ${node} ${expires ?? ''}`.trimEnd());
+                this.writes.push(`grant ${player} ${node} ${expires ?? ''}`.trimEnd());
             }
-            public revoke(subject: ScriptPermissionSubject, node: string): void {
-                this.writes.push(`revoke ${JSON.stringify(subject)} ${node}`);
+            public revoke(player: string, node: string): void {
+                this.writes.push(`revoke ${player} ${node}`);
+            }
+            public grantToGroup(group: string, node: string, expires?: string): void {
+                if (group === 'nobody') throw new Error(`No permission group named "${group}"`);
+                this.writes.push(`grantToGroup ${group} ${node} ${expires ?? ''}`.trimEnd());
+            }
+            public revokeFromGroup(group: string, node: string): void {
+                this.writes.push(`revokeFromGroup ${group} ${node}`);
             }
             public addToGroup(player: string, group: string, expires?: string): void {
                 if (group === 'nobody') throw new Error(`No permission group named "${group}"`);
                 this.groups.set(player, [group, ...(this.groups.get(player) ?? [])]);
                 this.writes.push(`addToGroup ${player} ${group} ${expires ?? ''}`.trimEnd());
-                this.changed({ player, group: undefined });
+                this.changed({ target: { name: 'Steve', player } });
             }
             public removeFromGroup(player: string, group: string): void {
                 this.writes.push(`removeFromGroup ${player} ${group}`);
@@ -1243,13 +1249,14 @@ system.run(() => {
                     show('after', () => [jsp.permissions.has(steve, 'minecraft.command.me'), jsp.permissions.groupsOf(steve), jsp.permissions.primaryGroupOf(steve), jsp.permissions.metaOf(steve, 'prefix')]);
                     show('frozen', () => Object.isFrozen(jsp.permissions.groupsOf(steve)));
                     jsp.permissions.grant(steve, 'minecraft.command.kick', '2030-01-01T00:00:00Z');
-                    jsp.permissions.grant('vip', 'minecraft.command.*');
-                    jsp.permissions.revoke('vip', 'minecraft.command.*');
+                    jsp.permissions.grantToGroup('vip', 'minecraft.command.*');
+                    jsp.permissions.revokeFromGroup('vip', 'minecraft.command.*');
                     jsp.permissions.revoke(steve, 'minecraft.command.kick');
                     jsp.permissions.removeFromGroup(steve, 'vip');
                     show('bad node', () => jsp.permissions.grant(steve, 'bad node'));
-                    show('bad group', () => jsp.permissions.addToGroup(steve, 'nobody'));
-                    show('subject', () => jsp.permissions.grant(7, 'a.b'));
+                    show('bad group', () => jsp.permissions.grantToGroup('nobody', 'a.b'));
+                    show('subject', () => jsp.permissions.grant('vip', 'a.b'));
+                    show('group', () => jsp.permissions.grantToGroup(steve, 'a.b'));
                     show('node', () => jsp.permissions.has(steve, 7));
                     show('player', () => jsp.permissions.has({ id: '1' }, 'a.b'));
                     show('perms', () => jsp.placeholders.resolve('{perms:primary_group} {perms:groups} {perms:prefix}{perms:suffix} {perms:weight}', steve));
@@ -1447,7 +1454,8 @@ system.run(() => {
                 'frozen true',
                 'bad node RangeError: Permission node "bad node" is not spelled as scope.name',
                 'bad group Error: No permission group named "nobody"',
-                'subject TypeError: permissions.grant takes a Player or a group name as its subject',
+                'subject TypeError: permissions.grant takes a Player as its player',
+                'group TypeError: permissions.grantToGroup takes a string as its group',
                 'node TypeError: permissions.has takes a string as its node',
                 'player TypeError: permissions.has takes a Player as its player',
                 'perms "vip vip, default [VIP]  10"',
@@ -1455,10 +1463,10 @@ system.run(() => {
             ]);
             expect(permissions.writes).toEqual([
                 `addToGroup ${steve} vip 30d`,
-                `grant {"player":"${steve}"} minecraft.command.kick 2030-01-01T00:00:00Z`,
-                'grant {"group":"vip"} minecraft.command.*',
-                'revoke {"group":"vip"} minecraft.command.*',
-                `revoke {"player":"${steve}"} minecraft.command.kick`,
+                `grant ${steve} minecraft.command.kick 2030-01-01T00:00:00Z`,
+                'grantToGroup vip minecraft.command.*',
+                'revokeFromGroup vip minecraft.command.*',
+                `revoke ${steve} minecraft.command.kick`,
                 `removeFromGroup ${steve} vip`
             ]);
         });
@@ -1471,7 +1479,9 @@ system.run(() => {
                     const steve = world.getAllPlayers()[0];
                     const subscribed = jsp.permissions.afterEvents.permissionsChange.subscribe((event) => {
                         seen += 1;
-                        show('change ' + seen, () => [event.player === steve ? 'own object' : event.player === undefined ? 'nobody' : 'copy', event.group, Object.isFrozen(event)]);
+                        const target = event.target;
+                        const who = target === undefined ? 'reload' : 'group' in target ? 'group ' + target.group : target.name + ' ' + (target.player === steve ? 'own object' : target.player === undefined ? 'offline' : 'copy');
+                        show('change ' + seen, () => [who, Object.isFrozen(event), target === undefined || Object.isFrozen(target)]);
                         if (seen === 3) jsp.permissions.afterEvents.permissionsChange.unsubscribe(subscribed);
                     });
                 }, 1);`
@@ -1479,21 +1489,22 @@ system.run(() => {
             const steve = world.join('Steve');
             scripts.flush();
             scripts.flush();
-            permissions.changed({ player: steve, group: undefined });
-            permissions.changed({ player: undefined, group: 'vip' });
-            permissions.changed({ player: '999', group: 'vip' });
-            permissions.changed({ player: steve, group: undefined });
+            permissions.changed({ target: { name: 'Steve', player: steve } });
+            permissions.changed({ target: { group: 'vip' } });
+            permissions.changed({ target: { name: 'Alex', player: '999' } });
+            permissions.changed({});
+            permissions.changed({ target: { name: 'Steve', player: steve } });
             scripts.reload();
             scripts.flush();
             scripts.flush();
-            permissions.changed({ player: steve, group: undefined });
+            permissions.changed({ target: { name: 'Steve', player: steve } });
 
             // The reloaded pack subscribes again at its first tick and hears the last change.
             expect(log.printed()).toEqual([
-                'change 1 ["own object",null,true]',
-                'change 2 ["nobody","vip",true]',
-                'change 3 ["nobody","vip",true]',
-                'change 1 ["own object",null,true]'
+                'change 1 ["Steve own object",true,true]',
+                'change 2 ["group vip",true,true]',
+                'change 3 ["Alex offline",true,true]',
+                'change 1 ["Steve own object",true,true]'
             ]);
             expect(permissions.listeners.size).toBe(1);
             scripts.shutdown();
