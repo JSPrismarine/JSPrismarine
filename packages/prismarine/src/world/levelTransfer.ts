@@ -23,7 +23,8 @@ import type Server from '../Server';
 import { toNetworkGameRule } from './GameRuleManager';
 import type { Level } from './Level';
 import { lastPlayerRecord } from './PlayerRecords';
-import { applyPlayerRecord, recordedPosition } from './playerRecord';
+import { sharedParts, withSharedParts } from './playerDataGroups';
+import { applyPlayerRecord, playerRecordOf, recordedPosition } from './playerRecord';
 import type { MoveTarget } from './portal/DimensionTravel';
 import { spawnTarget } from './portal/DimensionTravel';
 
@@ -74,7 +75,9 @@ const sendLevelState = (session: PlayerSession, level: Level): void => {
 
 /**
  * Moves a player to another level: to the place they last were there, or to its spawn when they
- * have never been in it or `toSpawn` asks for it. Their record in the level they leave is saved
+ * have never been in it or `toSpawn` asks for it. Between two levels of a `player-data-groups`
+ * group, the parts the group shares come along from the player as they are, the position too
+ * when it is shared. Their record in the level they leave is saved
  * as they leave, and their record in the level they arrive in, or a fresh one, is put on them as
  * they arrive. A move within the player's own level goes to its spawn.
  *
@@ -101,14 +104,23 @@ export const transferToLevel = async (
     const record = await lastPlayerRecord(player, overworld, level);
     // A record with no position is the one a level answers for a player it has never seen.
     const fresh = record.data.position === undefined;
-    const data = fresh ? freshPlayerRecord(defaultGamemode) : record.data;
-    const recorded = fresh || options.toSpawn === true ? undefined : recordedPosition(data);
+    // The parts a group of levels shares come along from the player as they are now.
+    const from = session.getWorld();
+    const carried = playerRecordOf(player, { key: keyOfPlayer(player), server }, from.getDimension());
+    const parts = sharedParts(server.getConfig().getPlayerDataGroups(), from.getLevel().name, level.name);
+    const data = withSharedParts(carried, fresh ? freshPlayerRecord(defaultGamemode) : record.data, parts);
+    const recorded = options.toSpawn === true ? undefined : recordedPosition(data);
+    // The world the arrival's dimension names, the record's or the shared one, or the Overworld.
+    const arrival =
+        data.dimension !== undefined && level.getStems().has(data.dimension)
+            ? await level.world(data.dimension)
+            : overworld;
     const target: MoveTarget =
         recorded === undefined
-            ? spawnTarget(fresh ? overworld : record.world, facing)
+            ? spawnTarget(overworld, facing)
             : {
                   ready: () => ({
-                      world: record.world,
+                      world: arrival,
                       position: new Vector3(recorded.x, recorded.y - EYE_HEIGHT, recorded.z),
                       yaw: recorded.yaw,
                       pitch: recorded.pitch

@@ -45,6 +45,7 @@ import {
     ADDON_TAGS
 } from '../../packages/addon-tools/src/addon.ts';
 import { releaseDownloadUrl } from '../../packages/addon-tools/src/build.ts';
+import { PLAYER_DATA_PARTS } from '../../packages/prismarine/src/world/playerDataGroups.ts';
 import {
     ADDON_SOURCE_ENTRIES,
     ADDON_SOURCE_MAP_EXTENSION,
@@ -1265,6 +1266,7 @@ async function addonFacts() {
         'addons.listingKeys': list(ADDON_JSON_OPTIONAL_KEYS.map(inlineCode)),
         'addons.tags': list(ADDON_TAGS.map(inlineCode)),
         'addons.mediaDirectory': inlineCode(`${ADDON_MEDIA_DIRECTORY}/`),
+        'world.playerDataParts': list(PLAYER_DATA_PARTS.map(inlineCode)),
         'addons.tsconfigFile': inlineCode(ADDON_TSCONFIG_FILE),
         'addons.sourceEntries': list(ADDON_SOURCE_ENTRIES.map(inlineCode)),
         'addons.sourceMapExtension': inlineCode(ADDON_SOURCE_MAP_EXTENSION),

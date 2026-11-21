@@ -3,6 +3,7 @@ import type { LogLevel } from '@jsprismarine/logger';
 import type { SubjectKind } from '../identity/Subject';
 import type { StoredInventory } from '../inventory/persistence';
 import type { StoredSpawnPoint } from '../world/RespawnPoint';
+import type { PlayerDataPart } from '../world/playerDataGroups';
 import type { WorldExperiment } from '../world/WorldExperiments';
 
 /** One layer of a `minecraft:flat` generator's `settings.layers`, bottom first, in Java's spelling. */
@@ -63,6 +64,14 @@ export interface DimensionConfig {
     generator?: GeneratorDefinitionJson;
     /** `eager` builds the dimension's world at startup; `lazy`, the default, on first entry. */
     load?: 'eager' | 'lazy';
+}
+
+/** One group of `player-data-groups`: its levels, and the parts of a player's record they share. */
+export interface PlayerDataGroupConfig {
+    /** The levels in the group, by name. */
+    levels: string[];
+    /** The parts their players share; every other part stays per level. */
+    share: PlayerDataPart[];
 }
 
 /** The configuration saved for one world. */
@@ -138,6 +147,8 @@ export interface ConfigFile {
     'level-name'?: string;
     /** Every world the server loads, keyed by its name. @propertyNames {"type":"string","minLength":1} */
     worlds?: Record<string, WorldData>;
+    /** Groups of levels whose players share parts of their record, by group name. */
+    'player-data-groups'?: Record<string, PlayerDataGroupConfig>;
     /** How many players may be online at once. @asType integer @minimum 0 */
     'max-players'?: number;
     /** The default game mode for new players. */
@@ -279,6 +290,7 @@ export const CONFIG_KEY_ORDER = [
     'server-ip',
     'level-name',
     'worlds',
+    'player-data-groups',
     'max-players',
     'gamemode',
     'difficulty',
