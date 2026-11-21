@@ -16,6 +16,7 @@ import { identityNamed } from '../../testing/sessionIdentity.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { BedrockPresenter } from '../../network/presenter/BedrockPresenter';
 import CloseContainerHandler from './CloseContainerHandler';
 
 const planks = (count: number) => new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count });
@@ -59,7 +60,9 @@ const run = async ({
 
     const session = stub<PlayerSession>({
         identity: identityNamed('Steve'),
-        getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) }),
+        presenter: new BedrockPresenter(
+            stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) })
+        ),
         getWorld: () => world,
         getPlayer: () =>
             stubPlayerPort({

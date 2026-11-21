@@ -16,6 +16,7 @@ import UpdateAdventureSettingsPacket from '@jsprismarine/protocol/bedrock/packet
 import type Server from '../Server';
 import type SessionManager from '../SessionManager';
 import PlayerSession from './PlayerSession';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 /**
@@ -38,6 +39,7 @@ const sessionFor = (player: ShownPlayer) => {
     });
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
         connection,
+        presenter: new BedrockPresenter(connection),
         ...sessionPlayerFields(stubPlayerPort({ gamemode: player.gamemode }), player.getRuntimeId()),
         shown: () => player
     });
