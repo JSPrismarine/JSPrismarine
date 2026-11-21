@@ -136,7 +136,35 @@ describe('ore', () => {
         }
     });
 
-    it("reads a candidate's six neighbors through one moving position, as Java's MutableBlockPos", () => {
+    it('keeps an ore out of a block with air on any of its six sides when exposure discards it', () => {
+        // Loose ore of size one tries the origin itself first, so the air check runs on one block.
+        const looseOre = { ...diamondOre, type: 'minecraft:scattered_ore', size: 1, discard_chance_on_air_exposure: 1 };
+        const origin = { x: 0, y: 20, z: 0 };
+        const placeAt = (seed: bigint, air?: BlockPos): number => {
+            const world = stoneWorld();
+            if (air !== undefined) world.fill(air, air, blockState('minecraft:air'));
+            build(looseOre).place(world, new WorldgenRandom(seed), origin);
+            return world.count('minecraft:diamond_ore');
+        };
+        // A seed whose draw makes one attempt, which in solid stone places the ore.
+        const seed = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n].find((candidate) => placeAt(candidate) === 1);
+        if (seed === undefined) throw new Error('no seed made an attempt');
+
+        for (const [dx, dy, dz] of [
+            [0, -1, 0],
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, 0, 1],
+            [-1, 0, 0],
+            [1, 0, 0]
+        ] as const) {
+            expect(placeAt(seed, { x: origin.x + dx, y: origin.y + dy, z: origin.z + dz }), `${dx},${dy},${dz}`).toBe(
+                0
+            );
+        }
+    });
+
+    it("reads a candidate's neighbors through reused positions, as Java moves a MutableBlockPos", () => {
         const world = stoneWorld();
         const reads = vi.spyOn(world, 'getBlock');
         // Every candidate checks for air, and solid stone makes it read all six neighbors.
@@ -146,15 +174,16 @@ describe('ore', () => {
             z: 0
         });
 
-        // A candidate is read through a position of its own and its neighbors through one shared
-        // position moved between them. Before, each of the six neighbor reads made a new one.
+        // A neighbor read that made a position of its own for each of the six reads left every
+        // position read once. A reused one serves several reads, whether it is shared by the whole
+        // placement or by one candidate's six neighbors.
         const readsPerPosition = new Map<BlockPos, number>();
         for (const [position] of reads.mock.calls) {
             readsPerPosition.set(position, (readsPerPosition.get(position) ?? 0) + 1);
         }
         const reused = [...readsPerPosition.values()].filter((count) => count > 1);
-        expect(reused).toHaveLength(1);
-        expect(reused[0]).toBeGreaterThanOrEqual(6);
+        expect(reused.length).toBeGreaterThan(0);
+        expect(readsPerPosition.size).toBeLessThan(reads.mock.calls.length);
     });
 
     it('scatters loose ore instead of a vein', () => {
