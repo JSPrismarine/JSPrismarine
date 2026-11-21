@@ -1,48 +1,48 @@
 {
     "$comment": "Written by the publish job of the package's native library workflow (scripts/native/write-manifest.mts). `build` is the hash of the native sources the builds were made from (src/nativeHash.ts), and `baseUrl` the GitHub release that holds them.",
-    "build": "100be10f4d4fce40",
-    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-worldgen-build-100be10f4d4fce40",
+    "build": "406bf9a083c8b800",
+    "baseUrl": "https://github.com/JSPrismarine/JSPrismarine/releases/download/native-worldgen-build-406bf9a083c8b800",
     "platforms": {
         "darwin-arm64": {
             "shared": {
                 "file": "darwin-arm64-libjsp_native_worldgen.dylib",
-                "bytes": 51136,
-                "sha256": "c3d3247ccb2979f3dab3c8cf66ac7ed636b907a16ee6994e498a26f707ce63fb"
+                "bytes": 51312,
+                "sha256": "bcb64e83ee053b4f6bbf46da0f4716b88447e2c3af60741254afdeb84904d931"
             }
         },
         "linux-arm64-gnu": {
             "shared": {
                 "file": "linux-arm64-gnu-libjsp_native_worldgen.so",
                 "bytes": 67336,
-                "sha256": "84ba629997fa0a1ec18d334b2cfffc4c03039052cc8fb65fa043d571dcabfc76"
+                "sha256": "bc188d47f3ace1758983b205f548ff1cf107b46fa5d4cb4f6dc2cc4293403e6b"
             }
         },
         "linux-arm64-musl": {
             "shared": {
                 "file": "linux-arm64-musl-libjsp_native_worldgen.so",
                 "bytes": 67168,
-                "sha256": "179e7a7e0db9d6e96218fb4e8f1c48ab7685e28c643b80d2157b4ce2b70e29a5"
+                "sha256": "8a73b2ad93a2a1bb01c5fbc25d2ca27a60f55fe9ba350e7dfa5fb9a5f3c00a56"
             }
         },
         "linux-x64-gnu": {
             "shared": {
                 "file": "linux-x64-gnu-libjsp_native_worldgen.so",
-                "bytes": 42824,
-                "sha256": "26d4d4e7beb3a61274d6659e1bf72ec4acc15a468a2e052be9d450b2db9ee9b0"
+                "bytes": 51016,
+                "sha256": "565d3c25fcd49c760ec2ccc0fc650504dcc4f43ce2011ebc2e934c2d9fcff554"
             }
         },
         "linux-x64-musl": {
             "shared": {
                 "file": "linux-x64-musl-libjsp_native_worldgen.so",
-                "bytes": 46768,
-                "sha256": "f82a8e2e7a2d0e13c2ecadf31ca9cd66ab0460b5110bf1102507eff693471da5"
+                "bytes": 54960,
+                "sha256": "948967bfddcddf8e2a7a0e5f36af9b97bcf2b5a4a8d2cfba01e085a66dca0b89"
             }
         },
         "win32-x64": {
             "shared": {
                 "file": "win32-x64-libjsp_native_worldgen.dll",
-                "bytes": 43008,
-                "sha256": "9f7e590948a417fad94ee6d2fb6ceddccd126b8c1d2184e4cba74d1425ff28a2"
+                "bytes": 50176,
+                "sha256": "55e55489bee8c867cf89d985e67f27840bead0bdcb55b20c8664fd7658e8b816"
             }
         }
     }
