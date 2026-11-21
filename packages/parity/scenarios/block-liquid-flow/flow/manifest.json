@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine scenario block-liquid-flow flow",
+        "description": "Asks blocks of many shapes whether water and lava flow into them from each direction. Written for packages/parity.",
+        "uuid": "548f3337-9edd-4775-8f2f-6620968f23e0",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "19cc1cd7-d24b-4f6e-94d9-ae61eb8e94ab",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.12.0-beta"
+        }
+    ]
+}

@@ -1,0 +1,1150 @@
+{
+    "$comment": [
+        "What the scripts of scenario `block-liquid-flow` recorded on the pinned Bedrock Dedicated Server.",
+        "Written by `pnpm --filter @jsprismarine/parity run capture:scripting`; never edit by hand.",
+        "The format is described in packages/parity/README.md under \"Scripting scenarios\"."
+    ],
+    "format": 1,
+    "family": "scripting.blocks",
+    "scenario": "block-liquid-flow",
+    "server": {
+        "protocolVersion": 2225,
+        "serverVersion": "1.26.60.6"
+    },
+    "observations": [
+        {
+            "pack": "flow",
+            "seq": 1,
+            "tick": 0,
+            "event": "air",
+            "value": {
+                "typeId": "minecraft:air",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 2,
+            "tick": 0,
+            "event": "stone",
+            "value": {
+                "typeId": "minecraft:stone",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 3,
+            "tick": 0,
+            "event": "glass",
+            "value": {
+                "typeId": "minecraft:glass",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 4,
+            "tick": 0,
+            "event": "leaves",
+            "value": {
+                "typeId": "minecraft:oak_leaves",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 5,
+            "tick": 0,
+            "event": "fence",
+            "value": {
+                "typeId": "minecraft:oak_fence",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 6,
+            "tick": 0,
+            "event": "wall",
+            "value": {
+                "typeId": "minecraft:cobblestone_wall",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 7,
+            "tick": 0,
+            "event": "glass pane",
+            "value": {
+                "typeId": "minecraft:glass_pane",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 8,
+            "tick": 0,
+            "event": "iron bars",
+            "value": {
+                "typeId": "minecraft:iron_bars",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 9,
+            "tick": 0,
+            "event": "bottom slab",
+            "value": {
+                "typeId": "minecraft:oak_slab",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 10,
+            "tick": 0,
+            "event": "top slab",
+            "value": {
+                "typeId": "minecraft:oak_slab",
+                "contain": true,
+                "water": [
+                    false,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 11,
+            "tick": 0,
+            "event": "double slab",
+            "value": {
+                "typeId": "minecraft:oak_double_slab",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 12,
+            "tick": 0,
+            "event": "stairs facing east",
+            "value": {
+                "typeId": "minecraft:oak_stairs",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    false,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 13,
+            "tick": 0,
+            "event": "stairs facing north",
+            "value": {
+                "typeId": "minecraft:oak_stairs",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    false,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 14,
+            "tick": 0,
+            "event": "upside-down stairs",
+            "value": {
+                "typeId": "minecraft:oak_stairs",
+                "contain": true,
+                "water": [
+                    false,
+                    true,
+                    true,
+                    true,
+                    false,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 15,
+            "tick": 0,
+            "event": "stone stairs",
+            "value": {
+                "typeId": "minecraft:stone_stairs",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    false
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 16,
+            "tick": 0,
+            "event": "stone slab",
+            "value": {
+                "typeId": "minecraft:smooth_stone_slab",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 17,
+            "tick": 0,
+            "event": "closed bottom trapdoor",
+            "value": {
+                "typeId": "minecraft:trapdoor",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 18,
+            "tick": 0,
+            "event": "closed top trapdoor",
+            "value": {
+                "typeId": "minecraft:trapdoor",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 19,
+            "tick": 0,
+            "event": "open trapdoor",
+            "value": {
+                "typeId": "minecraft:trapdoor",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 20,
+            "tick": 0,
+            "event": "door",
+            "value": {
+                "typeId": "minecraft:wooden_door",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 21,
+            "tick": 0,
+            "event": "ladder",
+            "value": {
+                "typeId": "minecraft:ladder",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 22,
+            "tick": 0,
+            "event": "chest",
+            "value": {
+                "typeId": "minecraft:chest",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 23,
+            "tick": 0,
+            "event": "lantern",
+            "value": {
+                "typeId": "minecraft:lantern",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 24,
+            "tick": 0,
+            "event": "chain",
+            "value": {
+                "typeId": "minecraft:iron_chain",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 25,
+            "tick": 0,
+            "event": "scaffolding",
+            "value": {
+                "typeId": "minecraft:scaffolding",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 26,
+            "tick": 0,
+            "event": "snow layer",
+            "value": {
+                "typeId": "minecraft:snow_layer",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 27,
+            "tick": 0,
+            "event": "carpet",
+            "value": {
+                "typeId": "minecraft:white_carpet",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 28,
+            "tick": 0,
+            "event": "torch",
+            "value": {
+                "typeId": "minecraft:torch",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 29,
+            "tick": 0,
+            "event": "farmland",
+            "value": {
+                "typeId": "minecraft:farmland",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 30,
+            "tick": 0,
+            "event": "soul sand",
+            "value": {
+                "typeId": "minecraft:soul_sand",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 31,
+            "tick": 0,
+            "event": "hopper",
+            "value": {
+                "typeId": "minecraft:hopper",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 32,
+            "tick": 0,
+            "event": "campfire",
+            "value": {
+                "typeId": "minecraft:campfire",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 33,
+            "tick": 0,
+            "event": "standing sign",
+            "value": {
+                "typeId": "minecraft:standing_sign",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 34,
+            "tick": 0,
+            "event": "mangrove roots",
+            "value": {
+                "typeId": "minecraft:mangrove_roots",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 35,
+            "tick": 0,
+            "event": "copper grate",
+            "value": {
+                "typeId": "minecraft:copper_grate",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 36,
+            "tick": 0,
+            "event": "seagrass",
+            "value": {
+                "typeId": "minecraft:seagrass",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 37,
+            "tick": 0,
+            "event": "full snow layer",
+            "value": {
+                "typeId": "minecraft:snow_layer",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 38,
+            "tick": 0,
+            "event": "cauldron",
+            "value": {
+                "typeId": "minecraft:cauldron",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 39,
+            "tick": 0,
+            "event": "composter",
+            "value": {
+                "typeId": "minecraft:composter",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 40,
+            "tick": 0,
+            "event": "bed",
+            "value": {
+                "typeId": "minecraft:bed",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 41,
+            "tick": 0,
+            "event": "cake",
+            "value": {
+                "typeId": "minecraft:cake",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 42,
+            "tick": 0,
+            "event": "daylight detector",
+            "value": {
+                "typeId": "minecraft:daylight_detector",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 43,
+            "tick": 0,
+            "event": "enchanting table",
+            "value": {
+                "typeId": "minecraft:enchanting_table",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 44,
+            "tick": 0,
+            "event": "stonecutter",
+            "value": {
+                "typeId": "minecraft:stonecutter_block",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 45,
+            "tick": 0,
+            "event": "end portal frame",
+            "value": {
+                "typeId": "minecraft:end_portal_frame",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 46,
+            "tick": 0,
+            "event": "lectern",
+            "value": {
+                "typeId": "minecraft:lectern",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 47,
+            "tick": 0,
+            "event": "anvil",
+            "value": {
+                "typeId": "minecraft:anvil",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 48,
+            "tick": 0,
+            "event": "brewing stand",
+            "value": {
+                "typeId": "minecraft:brewing_stand",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 49,
+            "tick": 0,
+            "event": "bell",
+            "value": {
+                "typeId": "minecraft:bell",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 50,
+            "tick": 0,
+            "event": "piston",
+            "value": {
+                "typeId": "minecraft:piston",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 51,
+            "tick": 0,
+            "event": "sculk sensor",
+            "value": {
+                "typeId": "minecraft:sculk_sensor",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 52,
+            "tick": 0,
+            "event": "big dripleaf",
+            "value": {
+                "typeId": "minecraft:big_dripleaf",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 53,
+            "tick": 0,
+            "event": "pointed dripstone",
+            "value": {
+                "typeId": "minecraft:pointed_dripstone",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 54,
+            "tick": 0,
+            "event": "lightning rod",
+            "value": {
+                "typeId": "minecraft:lightning_rod",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 55,
+            "tick": 0,
+            "event": "candle",
+            "value": {
+                "typeId": "minecraft:candle",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 56,
+            "tick": 0,
+            "event": "sea pickle",
+            "value": {
+                "typeId": "minecraft:sea_pickle",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 57,
+            "tick": 0,
+            "event": "conduit",
+            "value": {
+                "typeId": "minecraft:conduit",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 58,
+            "tick": 0,
+            "event": "decorated pot",
+            "value": {
+                "typeId": "minecraft:decorated_pot",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 59,
+            "tick": 0,
+            "event": "copper bulb",
+            "value": {
+                "typeId": "minecraft:copper_bulb",
+                "contain": false,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 60,
+            "tick": 0,
+            "event": "heavy core",
+            "value": {
+                "typeId": "minecraft:heavy_core",
+                "contain": true,
+                "water": [
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 61,
+            "tick": 0,
+            "event": "grindstone",
+            "value": {
+                "typeId": "minecraft:grindstone",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 62,
+            "tick": 0,
+            "event": "azalea",
+            "value": {
+                "typeId": "minecraft:azalea",
+                "contain": true,
+                "water": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        },
+        {
+            "pack": "flow",
+            "seq": 63,
+            "tick": 0,
+            "event": "shelf",
+            "value": {
+                "typeId": "minecraft:oak_shelf",
+                "contain": true,
+                "water": [
+                    false,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ]
+            }
+        }
+    ]
+}

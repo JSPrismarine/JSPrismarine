@@ -3043,7 +3043,7 @@
         },
         "bds-record:block-world-components": {
             "kind": "defect",
-            "reason": "The sign, piston, jukebox and cauldron components (issue #3302), the redstone producer and note block instrument components (issue #3303), liquidCanFlowFromDirection (issue #3304) and a bundle's item container (issue #3305) throw NotImplementedError on JSPrismarine, which gives the script host no seam to those systems yet. canPlace matches BDS.",
+            "reason": "The sign, piston, jukebox and cauldron components (issue #3302), the redstone producer and note block instrument components (issue #3303) and a bundle's item container (issue #3305) throw NotImplementedError on JSPrismarine, which gives the script host no seam to those systems yet. canPlace and liquidCanFlowFromDirection match BDS.",
             "reference": "issue #3302"
         },
         "bds-record:dimension-blocks": {
