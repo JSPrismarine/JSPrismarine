@@ -59,13 +59,7 @@ import {
     placeholdersModuleSource
 } from './jsprismarineServer';
 import type { JsprismarineServerMembers, ScriptPermissionsChange } from './jsprismarineMembers';
-import {
-    bossBarOptions,
-    permissionSubjectOf,
-    ScriptBossBars,
-    ScriptPlayerListNames,
-    SERVER_PLACEHOLDER_OWNER
-} from './jsprismarineMembers';
+import { bossBarOptions, ScriptBossBars, ScriptPlayerListNames, SERVER_PLACEHOLDER_OWNER } from './jsprismarineMembers';
 import { ScriptPlaceholders } from './placeholders';
 import type { TemplateHost } from './templates';
 import { parseShorthand, renderTemplate, templateOf } from './templates';
@@ -1346,8 +1340,6 @@ export class WorldScripts {
                 });
             return player.id;
         };
-        const subject = (value: ScriptValue, member: string) =>
-            permissionSubjectOf(value, (player) => presentPlayer(player, member), member);
         return {
             hasPermission: (player, node) =>
                 permissions().has(presentPlayer(player, 'permissions.has'), text(node, 'permissions.has', 'node')),
@@ -1359,14 +1351,28 @@ export class WorldScripts {
                     presentPlayer(player, 'permissions.metaOf'),
                     text(key, 'permissions.metaOf', 'key')
                 ),
-            grant: (who, node, expires) => {
+            grant: (player, node, expires) => {
                 const member = 'permissions.grant';
-                permissions().grant(subject(who, member), text(node, member, 'node'), expiry(expires, member));
+                permissions().grant(presentPlayer(player, member), text(node, member, 'node'), expiry(expires, member));
                 return undefined;
             },
-            revoke: (who, node) => {
+            revoke: (player, node) => {
                 const member = 'permissions.revoke';
-                permissions().revoke(subject(who, member), text(node, member, 'node'));
+                permissions().revoke(presentPlayer(player, member), text(node, member, 'node'));
+                return undefined;
+            },
+            grantToGroup: (group, node, expires) => {
+                const member = 'permissions.grantToGroup';
+                permissions().grantToGroup(
+                    text(group, member, 'group'),
+                    text(node, member, 'node'),
+                    expiry(expires, member)
+                );
+                return undefined;
+            },
+            revokeFromGroup: (group, node) => {
+                const member = 'permissions.revokeFromGroup';
+                permissions().revokeFromGroup(text(group, member, 'group'), text(node, member, 'node'));
                 return undefined;
             },
             addToGroup: (player, group, expires) => {
@@ -1393,19 +1399,26 @@ export class WorldScripts {
     }
 
     /**
-     * Tells every pack's `permissions.afterEvents.permissionsChange` subscribers of a change, each
-     * with the pack's own object for the player when they are online.
+     * Tells every pack's `permissions.afterEvents.permissionsChange` subscribers of a change: the
+     * group it touched, or the user's name with the pack's own object for them while they are online.
      */
     private permissionsChanged(change: ScriptPermissionsChange): void {
         if (this.stopped) return;
+        const target = change.target;
         for (const loaded of [...this.loaded]) {
             const dispatch = loaded.permissionsChange;
             if (dispatch === undefined) continue;
-            const player =
-                change.player !== undefined && this.options.world.players().includes(change.player)
-                    ? this.entityObject(loaded, { id: change.player, typeId: PLAYER })
-                    : undefined;
-            this.invoke(loaded, dispatch, 'default', [player, change.group]);
+            if (target === undefined) {
+                this.invoke(loaded, dispatch, 'default', [undefined, undefined, undefined]);
+            } else if ('group' in target) {
+                this.invoke(loaded, dispatch, 'default', [target.group, undefined, undefined]);
+            } else {
+                const player =
+                    target.player !== undefined && this.options.world.players().includes(target.player)
+                        ? this.entityObject(loaded, { id: target.player, typeId: PLAYER })
+                        : undefined;
+                this.invoke(loaded, dispatch, 'default', [undefined, target.name, player]);
+            }
         }
     }
 

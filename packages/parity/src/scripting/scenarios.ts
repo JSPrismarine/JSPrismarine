@@ -282,12 +282,14 @@ export const SCRIPT_SCENARIOS: readonly ScriptScenario[] = [
                             addToGroup: 'function',
                             afterEvents: 'object',
                             grant: 'function',
+                            grantToGroup: 'function',
                             groupsOf: 'function',
                             has: 'function',
                             metaOf: 'function',
                             primaryGroupOf: 'function',
                             removeFromGroup: 'function',
-                            revoke: 'function'
+                            revoke: 'function',
+                            revokeFromGroup: 'function'
                         },
                         allFrozen: true
                     }

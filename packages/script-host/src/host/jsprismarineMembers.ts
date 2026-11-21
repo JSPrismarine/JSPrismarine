@@ -29,19 +29,18 @@ export interface ScriptBossBarState {
     readonly color: JsprismarineBossBarColor;
 }
 
-/** Whose node a permission write is about: an online player by entity id, or a group by name. */
-export type ScriptPermissionSubject = { readonly player: string } | { readonly group: string };
+/** What a permission change touched: a group by name, or a user by the name their record shows and their entity id while online. */
+export type ScriptPermissionsTarget = { readonly group: string } | { readonly name: string; readonly player?: string };
 
-/** What a permission change touched: the player by entity id when they are online, and the group. */
+/** A permission change. `target` is absent after the files were read again, which may have changed anything. */
 export interface ScriptPermissionsChange {
-    readonly player?: string;
-    readonly group?: string;
+    readonly target?: ScriptPermissionsTarget;
 }
 
 /**
  * What `permissions` in `@jsprismarine/server` reads and writes of the server's permission files.
- * Players are named by their entity ids. A write persists on the server's own schedule; a bad
- * argument throws before anything is written.
+ * Players are named by their entity ids and groups by their names. A write persists on the
+ * server's own schedule; a bad argument throws before anything is written.
  */
 export interface ScriptPermissionMembers {
     has(player: string, node: string): boolean;
@@ -51,9 +50,12 @@ export interface ScriptPermissionMembers {
     metaOf(player: string, key: string): string | undefined;
     /** The weight of the player's primary group. */
     weightOf(player: string): number;
-    /** @throws For a malformed node or expiry, a group the file lacks, or a player who left. */
-    grant(subject: ScriptPermissionSubject, node: string, expires?: string): void;
-    revoke(subject: ScriptPermissionSubject, node: string): void;
+    /** @throws For a malformed node or expiry, or a player who left. */
+    grant(player: string, node: string, expires?: string): void;
+    revoke(player: string, node: string): void;
+    /** @throws For a malformed node or expiry, or a group the file lacks. */
+    grantToGroup(group: string, node: string, expires?: string): void;
+    revokeFromGroup(group: string, node: string): void;
     /** @throws For a malformed expiry, a group the file lacks, or a player who left. */
     addToGroup(player: string, group: string, expires?: string): void;
     removeFromGroup(player: string, group: string): void;
@@ -87,21 +89,6 @@ export interface JsprismarineServerMembers {
 
 /** The owner of the namespaces the server registers, such as `perms`, which outlive a reload. */
 export const SERVER_PLACEHOLDER_OWNER = { name: 'JSPrismarine' };
-
-/**
- * The subject a pack passed to `permissions.grant` or `revoke`: a group by its name, or a player.
- * @param player - Resolves a player value to the entity id, or throws naming the member.
- * @throws {TypeError} When the value is neither.
- */
-export const permissionSubjectOf = (
-    value: ScriptValue,
-    player: (value: ScriptValue) => string,
-    member: string
-): ScriptPermissionSubject => {
-    if (typeof value === 'string') return { group: value };
-    if (value instanceof ScriptHandle) return { player: player(value) };
-    throw new ScriptHostErrors.JspModuleArgument({ member, expected: 'a Player or a group name', argument: 'subject' });
-};
 
 /** What a bar shows when the pack shows it without a property. */
 const DEFAULT_BAR: ScriptBossBarState = { text: '', progress: 1, color: 'pink' };

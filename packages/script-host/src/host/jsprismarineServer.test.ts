@@ -47,6 +47,8 @@ const recordingHost = () => {
         metaOf: record('metaOf', (_player, key) => (key === 'prefix' ? '[VIP] ' : undefined)),
         grant: record('grant', () => undefined),
         revoke: record('revoke', () => undefined),
+        grantToGroup: record('grantToGroup', () => undefined),
+        revokeFromGroup: record('revokeFromGroup', () => undefined),
         addToGroup: record('addToGroup', () => undefined),
         removeFromGroup: record('removeFromGroup', () => undefined),
         onPermissionsChange: record('onPermissionsChange', () => undefined)
@@ -98,7 +100,7 @@ describe('@jsprismarine/server', () => {
 
         const has = at(permissions, 'has');
         const groupsOf = at(permissions, 'groupsOf');
-        const grant = at(permissions, 'grant');
+        const grant = at(permissions, 'grantToGroup');
         const signal = at(at(permissions, 'afterEvents'), 'permissionsChange');
         const subscribe = at(signal, 'subscribe');
         const unsubscribe = at(signal, 'unsubscribe');
@@ -117,13 +119,18 @@ describe('@jsprismarine/server', () => {
         expect(Object.isFrozen(groupsOf(player))).toBe(true);
         grant('vip', 'a.b', '2030-01-01T00:00:00Z');
         expect(subscribe(callback)).toBe(callback);
-        dispatch(player, 'vip');
+        dispatch('vip', undefined, undefined);
+        dispatch(undefined, 'Steve', player);
+        dispatch(undefined, undefined, undefined);
         unsubscribe(callback);
-        dispatch(undefined, undefined);
+        dispatch('vip', undefined, undefined);
 
-        expect(seen).toEqual([{ player, group: 'vip' }]);
-        expect(Object.isFrozen(seen[0])).toBe(true);
-        expect(calls.filter(([name]) => name === 'grant')).toEqual([['grant', 'vip', 'a.b', '2030-01-01T00:00:00Z']]);
+        expect(seen).toEqual([{ target: { group: 'vip' } }, { target: { name: 'Steve', player } }, {}]);
+        expect(seen.every((event) => Object.isFrozen(event))).toBe(true);
+        expect(Object.isFrozen(at(seen[0], 'target'))).toBe(true);
+        expect(calls.filter(([name]) => name === 'grantToGroup')).toEqual([
+            ['grantToGroup', 'vip', 'a.b', '2030-01-01T00:00:00Z']
+        ]);
         expect(Object.isFrozen(permissions)).toBe(true);
         expect(Object.isFrozen(signal)).toBe(true);
     });
@@ -217,7 +224,7 @@ describe('@jsprismarine/server', () => {
         setDisplayName(player, '§aSteve');
         reset(player);
 
-        expect(calls).toEqual([
+        expect(calls.filter(([name]) => name !== 'onPermissionsChange')).toEqual([
             // Making the namespace registers the config event maker before any call of the test's.
             ['setConfigEventMaker', expect.any(Function)],
             ['setListName', player, '§aSteve'],

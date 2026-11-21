@@ -258,8 +258,8 @@ describe('scriptPermissionMembers', () => {
 
         expect(scripts.has('7', 'minecraft.command.ban')).toBe(false);
         scripts.addToGroup('7', 'vip', '2030-01-01T00:00:00Z');
-        scripts.grant({ player: '7' }, 'minecraft.command.kick');
-        scripts.grant({ group: 'vip' }, 'minecraft.command.ban');
+        scripts.grant('7', 'minecraft.command.kick');
+        scripts.grantToGroup('vip', 'minecraft.command.ban');
         await permissions['writes'];
 
         expect(scripts.has('7', 'minecraft.command.ban')).toBe(true);
@@ -272,8 +272,8 @@ describe('scriptPermissionMembers', () => {
             { group: 'vip', expires: '2030-01-01T00:00:00.000Z' }
         ]);
 
-        scripts.revoke({ group: 'vip' }, 'minecraft.command.ban');
-        scripts.revoke({ player: '7' }, 'minecraft.command.kick');
+        scripts.revokeFromGroup('vip', 'minecraft.command.ban');
+        scripts.revoke('7', 'minecraft.command.kick');
         scripts.removeFromGroup('7', 'vip');
         await permissions['writes'];
         expect(scripts.has('7', 'minecraft.command.ban')).toBe(false);
@@ -284,16 +284,16 @@ describe('scriptPermissionMembers', () => {
     it('throws at the call for a bad node, a bad expiry, a missing group or a player who left', () => {
         const scripts = members();
 
-        expect(() => scripts.grant({ player: '7' }, 'bad node')).toThrow('not spelled');
-        expect(() => scripts.grant({ player: '7' }, 'a.b', 'yesterday')).toThrow('ISO 8601');
-        expect(() => scripts.grant({ group: 'nobody' }, 'a.b')).toThrow('No permission group named "nobody"');
+        expect(() => scripts.grant('7', 'bad node')).toThrow('not spelled');
+        expect(() => scripts.grant('7', 'a.b', 'yesterday')).toThrow('ISO 8601');
+        expect(() => scripts.grantToGroup('nobody', 'a.b')).toThrow('No permission group named "nobody"');
         expect(() => scripts.addToGroup('7', 'nobody')).toThrow('No permission group named "nobody"');
         expect(() => scripts.has('8', 'a.b')).toThrow('not found');
-        expect(() => scripts.grant({ player: '8' }, 'a.b')).toThrow('not found');
+        expect(() => scripts.grant('8', 'a.b')).toThrow('not found');
         expect(permissions.userOf(steve.subject)).toBeUndefined();
     });
 
-    it('names the online player a change touched, and the group, and nothing after a reload', async () => {
+    it('names the user a change touched with their player while online, or the group, and nothing after a reload', async () => {
         const scripts = members();
         const changes: unknown[] = [];
         const stop = scripts.onChange((change) => void changes.push(change));
@@ -305,6 +305,11 @@ describe('scriptPermissionMembers', () => {
         stop();
         await permissions.createGroup('other');
 
-        expect(changes).toEqual([{ player: '7' }, {}, { group: 'vip' }, {}]);
+        expect(changes).toEqual([
+            { target: { name: 'Steve', player: '7' } },
+            { target: { name: 'Alex' } },
+            { target: { group: 'vip' } },
+            {}
+        ]);
     });
 });

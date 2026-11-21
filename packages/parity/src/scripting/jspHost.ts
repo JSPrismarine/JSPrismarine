@@ -215,6 +215,8 @@ const SCENARIO_MEMBERS: JsprismarineServerMembers = {
         weightOf: () => 0,
         grant: () => {},
         revoke: () => {},
+        grantToGroup: () => {},
+        revokeFromGroup: () => {},
         addToGroup: () => {},
         removeFromGroup: () => {},
         onChange: () => () => {}
