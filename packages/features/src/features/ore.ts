@@ -1,15 +1,22 @@
 import type { RandomSource } from '@jsprismarine/worldgen';
 
 import { asInteger, asNumber } from '../json';
-import { ALL_DIRECTIONS } from '../world/BlockState';
+import { ALL_DIRECTIONS, DIRECTION_STEPS } from '../world/BlockState';
 import type { BlockPos, FeatureWorld } from '../world/FeatureWorld';
 import type { ConfiguredFeature } from './Feature';
 import { feature } from './Feature';
 import type { BlockReplacement } from './ruleTest';
 import { parseBlockReplacements } from './ruleTest';
-import { mthSin, outsideBuildHeight, relative } from './support';
+import { mthSin, outsideBuildHeight } from './support';
 
 const f32 = Math.fround;
+
+/** A position the placement code moves between reads, as Java's `MutableBlockPos`. */
+interface MutablePos {
+    x: number;
+    y: number;
+    z: number;
+}
 
 /**
  * Decides whether an ore block may go here: the rule test has to match, and unless the air check
@@ -26,21 +33,25 @@ const canPlaceOre = (
     random: RandomSource,
     replacement: BlockReplacement,
     discardChanceOnAirExposure: number,
-    read: (position: BlockPos) => ReturnType<FeatureWorld['getBlock']>
+    neighbor: MutablePos
 ): boolean => {
     if (!replacement.target(world.blocks, state, position, random)) return false;
     if (discardChanceOnAirExposure <= 0) return true;
-    if (discardChanceOnAirExposure >= 1) return !isAdjacentToAir(world, position, read);
-    return random.nextFloat() >= discardChanceOnAirExposure ? true : !isAdjacentToAir(world, position, read);
+    if (discardChanceOnAirExposure >= 1) return !isAdjacentToAir(world, position, neighbor);
+    return random.nextFloat() >= discardChanceOnAirExposure ? true : !isAdjacentToAir(world, position, neighbor);
 };
 
-const isAdjacentToAir = (
-    world: FeatureWorld,
-    position: BlockPos,
-    read: (position: BlockPos) => ReturnType<FeatureWorld['getBlock']>
-): boolean => {
+/**
+ * Whether any of the six neighbors is air, read through one position moved to each in turn, as
+ * Java's `isAdjacentToAir` moves a `MutableBlockPos`. A vein asks this for every candidate.
+ */
+const isAdjacentToAir = (world: FeatureWorld, position: BlockPos, neighbor: MutablePos): boolean => {
     for (const direction of ALL_DIRECTIONS) {
-        if (world.blocks.isAir(read(relative(position, direction)))) return true;
+        const [dx, dy, dz] = DIRECTION_STEPS[direction];
+        neighbor.x = position.x + dx;
+        neighbor.y = position.y + dy;
+        neighbor.z = position.z + dz;
+        if (world.blocks.isAir(world.getBlock(neighbor))) return true;
     }
     return false;
 };
@@ -111,8 +122,11 @@ export const ore = (
             }
         }
 
-        const tested = new Set<number>();
-        const read = (position: BlockPos) => world.getBlock(position);
+        // Java's `BitSet`, over the same key. Every sphere lies inside the vein's bounding box, so a
+        // key stays below this length; one past it would still be remembered, in the set.
+        const tested = new Uint8Array(sizeXZ + sizeY * sizeXZ + sizeXZ * sizeXZ * sizeY + 1);
+        let testedBeyond: Set<number> | undefined;
+        const neighbor: MutablePos = { x: 0, y: 0, z: 0 };
         let placed = 0;
 
         for (let index = 0; index < size; index++) {
@@ -140,8 +154,14 @@ export const ore = (
                         if (outsideBuildHeight(world, y)) continue;
 
                         const key = x - xStart + (y - yStart) * sizeXZ + (z - zStart) * sizeXZ * sizeY;
-                        if (tested.has(key)) continue;
-                        tested.add(key);
+                        if (key < tested.length) {
+                            if (tested[key] === 1) continue;
+                            tested[key] = 1;
+                        } else {
+                            testedBeyond ??= new Set();
+                            if (testedBeyond.has(key)) continue;
+                            testedBeyond.add(key);
+                        }
 
                         const position = { x, y, z };
                         const existing = world.getBlock(position);
@@ -154,7 +174,7 @@ export const ore = (
                                     random,
                                     target,
                                     discardChanceOnAirExposure,
-                                    read
+                                    neighbor
                                 )
                             ) {
                                 continue;
@@ -187,7 +207,7 @@ export const scatteredOre = (
 ): ConfiguredFeature =>
     feature('scattered_ore', (world, random, origin) => {
         const tries = random.nextIntBounded(size + 1);
-        const read = (position: BlockPos) => world.getBlock(position);
+        const neighbor: MutablePos = { x: 0, y: 0, z: 0 };
 
         for (let attempt = 0; attempt < tries; attempt++) {
             const spread = Math.min(attempt, 7);
@@ -195,7 +215,9 @@ export const scatteredOre = (
             const position = { x: origin.x + axis(), y: origin.y + axis(), z: origin.z + axis() };
             const existing = world.getBlock(position);
             for (const target of targets) {
-                if (!canPlaceOre(world, existing, position, random, target, discardChanceOnAirExposure, read)) continue;
+                if (!canPlaceOre(world, existing, position, random, target, discardChanceOnAirExposure, neighbor)) {
+                    continue;
+                }
                 world.setBlock(position, target.state);
                 break;
             }
