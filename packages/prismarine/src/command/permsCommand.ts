@@ -162,7 +162,11 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
      */
     const targetOf = (current: CommandSource, raw: string): NamedSubject => {
         if (raw.startsWith('@')) {
-            const refs = select(current, parseSelector(raw, 'bedrock').selector);
+            const parsed = parseSelector(raw, 'bedrock');
+            // The parser stops at the first character it cannot read, so `@a[name=A][name=B]` would
+            // read as `@a[name=A]`; a target is a selector only when the selector is all of it.
+            if (parsed.length !== raw.trimEnd().length) return refuse(`${raw} is not a selector`);
+            const refs = select(current, parsed.selector);
             if (refs.length !== 1) return refuse(`${raw} must name exactly one player, and named ${refs.length}`);
             const session = playerSessionOf(server, refs[0]!);
             if (session === undefined) return refuse(`${raw} did not name a player`);

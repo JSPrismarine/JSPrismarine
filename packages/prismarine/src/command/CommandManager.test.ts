@@ -535,7 +535,7 @@ describe('command', () => {
                 return { commandManager, permissionManager, filfat, owner, sessionManager, logger };
             };
 
-            it('lets the default UUID owner run /op and persists the target UUID', async () => {
+            it('lets a player holding `*` run /op, and saves the target under their subject', async () => {
                 const { commandManager, permissionManager, owner, sessionManager, logger } = await integration();
 
                 await expect(commandManager.dispatchCommand(owner, owner, '/op Target')).resolves.toBe(true);
