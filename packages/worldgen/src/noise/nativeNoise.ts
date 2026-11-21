@@ -34,7 +34,8 @@ export const nativeWorldgen = (): NativeWorldgen | undefined => {
  * samples stay on the TypeScript stack, which nothing on the hot path calls.
  */
 export class NativeStackNoise implements Noise {
-    private readonly native: NativeNoiseStack;
+    /** The stack in the native library. */
+    public readonly native: NativeNoiseStack;
     /** The TypeScript stack it mirrors, with the same bits. */
     public readonly stack: NoiseStack;
 

@@ -28,6 +28,12 @@ export const NativeWorldgenErrors = defineErrors('native-worldgen', {
     StackNotCreated: 'The native worldgen library could not create a noise stack of {layers} layers',
     /** A noise layer's permutation table must hold exactly 256 entries, as Java's does. */
     InvalidPermutationTable: 'Layer {layer} has a permutation table of {length} entries; a layer needs 256',
-    /** A noise stack was sampled after `destroy()` freed it. */
-    StackDestroyed: 'The noise stack was destroyed'
+    /** A noise stack or density program was used after `destroy()` freed it. */
+    StackDestroyed: 'The noise stack or density program was destroyed',
+    /**
+     * The native library refused a density program: a record names a node, constant, link, stack
+     * or cache slot that does not exist, or memory ran out. A program the worldgen package
+     * encoded is never malformed, so this is a bug; report it.
+     */
+    ProgramNotCreated: 'The native worldgen library could not create a density program of {nodes} nodes'
 });

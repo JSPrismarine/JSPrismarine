@@ -212,6 +212,13 @@ three stacks of smeared Perlin noise. When
 C does each `f32()` as one float operation and is built without fused multiply-adds. A chunk's
 terrain fill then runs no octave in TypeScript, in every vanilla noise setting.
 
+The trees under `final_density`'s `interpolated` nodes, which run at each cell's corners, run in
+the library too. `DensityFunctionCompiler` lays each one out as a point program that the C
+evaluates one corner at a time, with the closures' bits. A cell whose context has a structure or
+blending hook set keeps its closures, since those hooks live in TypeScript, and so does a tree that
+reaches `pow`, `log` or the end islands' noise. `RandomState.nativeSampler` gives a tree's native
+evaluator.
+
 Without a build for the machine, or under a runtime without an FFI, every noise stays in
 TypeScript. `new RandomState(data, seed, settings, { nativeNoise: false })` keeps it there on
 purpose, which the `worldgen.terrain` parity family does to hold both paths to Java's vectors. The

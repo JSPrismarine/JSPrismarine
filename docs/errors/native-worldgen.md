@@ -38,13 +38,23 @@ The native worldgen library was built for a different version of this package. R
 package so the two match, or in a checkout, rebuild the library with `pnpm run build:native`
 in `packages/native-worldgen`.
 
+## `NATIVE_WORLDGEN_PROGRAM_NOT_CREATED`
+
+`The native worldgen library could not create a density program of {nodes} nodes`
+
+Thrown as `NativeWorldgenErrors.ProgramNotCreated`, which extends `Error`.
+
+The native library refused a density program: a record names a node, constant, link, stack
+or cache slot that does not exist, or memory ran out. A program the worldgen package
+encoded is never malformed, so this is a bug; report it.
+
 ## `NATIVE_WORLDGEN_STACK_DESTROYED`
 
-`The noise stack was destroyed`
+`The noise stack or density program was destroyed`
 
 Thrown as `NativeWorldgenErrors.StackDestroyed`, which extends `Error`.
 
-A noise stack was sampled after `destroy()` freed it.
+A noise stack or density program was used after `destroy()` freed it.
 
 ## `NATIVE_WORLDGEN_STACK_NOT_CREATED`
 
