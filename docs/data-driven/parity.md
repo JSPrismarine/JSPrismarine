@@ -176,9 +176,11 @@ script prints the table to stdout, writes it to `packages/parity/dist/dashboard.
 it to `$GITHUB_STEP_SUMMARY` when CI provides one. It exits 0 even when tests fail, because its
 job is to report the failures; the test run gates CI separately. The parity dashboard job in
 `.github/workflows/ci.yml` is where CI publishes it, because that job has the fetched sources
-the measured rows need. For same-repository pull requests, CI also runs the dashboard at the
-exact base commit and compares the current dashboard with it in one comment. Later runs update
-that comment while keeping the base commit as the comparison point.
+the measured rows need. For same-repository pull requests, CI compares the current dashboard
+with the base commit's report in one comment. It downloads that report from the base commit's
+master run, or, while that run is still going, from the newest earlier master commit whose run
+kept one, and the comment then names that commit; only when no commit within twenty is found
+does it build the base and run the dashboard there. Later runs update the comment.
 
 ### Keeping the claim honest
 

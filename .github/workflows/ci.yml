@@ -142,7 +142,10 @@ jobs:
                       exit 0
                   fi
                   echo "Running the suites the changes since ${sha} reach."
-                  echo "sha=$sha" >> "$GITHUB_OUTPUT"
+                  {
+                      echo "sha=$sha"
+                      echo "commits=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${sha}...${GITHUB_SHA}" --jq .ahead_by)"
+                  } >> "$GITHUB_OUTPUT"
 
             # Which parts of the repository the changes reach. A merge group, the nightly and a
             # manual run reach everything, so the filter does not run and the step after it says so.
@@ -202,6 +205,11 @@ jobs:
             # without the release pull request, `host` runs the Windows and macOS jobs, and `e2e`
             # is whether the client e2e scenarios are considered at all; the selection below can
             # still find none to play.
+            #
+            # A push compares its paths with the commit before it, which may have failed or run
+            # nothing, so when more than one commit landed since the last passing one, or there is
+            # none, the push runs everything the last passing one did not. A push whose merge group
+            # or pull request run passed `✅ CI` on the same tree runs nothing again.
             - name: Decide what runs
               id: filter
               env:
@@ -210,12 +218,25 @@ jobs:
                   CODE: ${{ steps.paths.outputs.code }}
                   HOST: ${{ steps.paths.outputs.host }}
                   E2E: ${{ steps.paths.outputs.e2e }}
-                  RELEASE: ${{ github.head_ref == 'changeset-release/master' }}
+                  # The release pull request is the repository's own; a fork may reuse its branch name.
+                  RELEASE: ${{ github.head_ref == 'changeset-release/master' && github.event.pull_request.head.repo.full_name == github.repository }}
+                  SINCE: ${{ steps.since.outputs.sha }}
+                  COMMITS: ${{ steps.since.outputs.commits || '0' }}
+                  REUSED_ALL: ${{ contains(fromJSON(steps.reuse.outputs.passed || '[]'), '✅ CI') }}
               run: |
+                  if [ "$GITHUB_EVENT_NAME" = push ]; then
+                      if [ "$REUSED_ALL" = true ]; then
+                          echo 'A run passed ✅ CI on this tree; nothing runs again.'
+                          CODE=false; HOST=false; E2E=false
+                      elif [ -z "$SINCE" ] || [ "$COMMITS" -gt 1 ]; then
+                          echo "The commits since the last passing one go beyond this push; running what they reach."
+                          CODE=true; E2E=true
+                      fi
+                  fi
                   code=false; tests=false; host=false; e2e=false
                   if [ "$FULL" = true ] || [ "$CODE" = true ]; then code=true; fi
                   if [ "$code" = true ] && [ "$RELEASE" != true ]; then tests=true; fi
-                  if [ "$GITHUB_EVENT_NAME" != pull_request ] || [ "$HOST" = true ]; then host=true; fi
+                  if { [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$HOST" != false ]; } || [ "$HOST" = true ]; then host=true; fi
                   # The scheduled run tests every suite but plays no scenario.
                   if [ "$PLAYS" = true ] || { [ "$E2E" = true ] && [ "$RELEASE" != true ]; }; then e2e=true; fi
                   {
@@ -553,21 +574,31 @@ jobs:
                   RAKNET_ONLY: ${{ github.event_name == 'pull_request' }}
                   SCENARIOS: ${{ inputs.scenarios || steps.select.outputs.scenarios || '' }}
                   PASSED: ${{ steps.reuse.outputs.passed || '[]' }}
+                  RUN_ID: ${{ steps.reuse.outputs.run-id }}
+                  GH_TOKEN: ${{ github.token }}
               run: |
                   latest=()
                   if [ "$LATEST_ONLY" = true ]; then latest=(--latest-only); fi
                   pins="$(node tools/client-e2e/src/pin-matrix.mts "${latest[@]}")"
+                  # The pins the reused run played in full. A selection of more than 15 scenarios also
+                  # plays in four shards under the same job names, but keeps no coverage map.
+                  full='[]'
+                  if [ -n "$RUN_ID" ]; then
+                      full="$(for name in $(jq -r '.[].name' <<< "$pins"); do
+                          if [ "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts?name=scenario-coverage-${name}-shard-1" --jq .total_count)" != 0 ]; then echo "$name"; fi
+                      done | jq -R . | jq -sc .)"
+                  fi
                   if [ "$RAKNET_ONLY" = true ]; then pins="$(jq -c 'map(select(.transport == "raknet"))' <<< "$pins")"; fi
                   # Four shards for a full run, or for a selection too large for one runner.
                   total=4
                   if [ -n "$SCENARIOS" ] && [ "$(wc -w <<< "$SCENARIOS")" -le 15 ]; then total=1; fi
                   # The pins still to play: a pin is left out when the merged pull request passed
                   # every one of its shards under the names client-e2e gives them.
-                  remaining="$(jq -c --argjson passed "$PASSED" --argjson total "$total" '
+                  remaining="$(jq -c --argjson passed "$PASSED" --argjson full "$full" --argjson total "$total" '
                       map(. as $pin
                           | [range(1; $total + 1)
                               | "🎮 Client E2E (protocol \($pin.protocol)\(if $pin.transport == "nethernet" then ", NetherNet" else "" end), shard \(.)/\($total))"]
-                          | select(all(.[]; . as $name | $passed | index($name)) | not)
+                          | select((($full | index($pin.name)) != null and all(.[]; . as $name | $passed | index($name))) | not)
                           | $pin)' <<< "$pins")"
                   {
                       echo "all-pins=$pins"
@@ -728,9 +759,10 @@ jobs:
                   disable_search: true
                   flags: ${{ needs.plan.outputs.since != '' && 'unit-changed' || 'unit' }}
 
-            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts. A
+            # merge group's run keeps them too, since the push that lands it reuses its results.
             - name: 📤 Keep the test times
-              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              if: ${{ !cancelled() && (github.ref == 'refs/heads/master' || github.event_name == 'merge_group') }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: vitest-junit-unit-${{ matrix.shard }}
@@ -856,9 +888,10 @@ jobs:
                   disable_search: true
                   flags: ${{ needs.plan.outputs.since != '' && 'real-data-changed' || 'real-data' }}
 
-            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts.
+            # The per-file times the next plan splits shards by; see scripts/vitest-shards.mts. A
+            # merge group's run keeps them too, since the push that lands it reuses its results.
             - name: 📤 Keep the test times
-              if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+              if: ${{ !cancelled() && (github.ref == 'refs/heads/master' || github.event_name == 'merge_group') }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: vitest-junit-real-data-${{ matrix.shard }}
@@ -948,7 +981,7 @@ jobs:
 
             # Kept for the pull requests based on this commit, as long as one could still be open.
             - name: 📤 Keep this commit's parity report
-              if: ${{ steps.parity_dashboard.outcome == 'success' && github.event_name == 'push' }}
+              if: ${{ steps.parity_dashboard.outcome == 'success' && (github.event_name == 'push' || github.event_name == 'merge_group') }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: parity-report
@@ -1241,11 +1274,12 @@ jobs:
                   DEPS_KEY: ${{ matrix.pin.build == needs.plan.outputs.latest && steps.pin.outputs.deps-key || 'none' }}
                   PINNED_KEYS: ${{ needs.plan.outputs.pinned-keys }}
               run: |
+                  set -o pipefail
                   delete() { while read -r id; do gh cache delete "$id" --repo "$GITHUB_REPOSITORY"; done; }
                   prefix="${RUNNER_OS}-cinnabar-build-"
                   gh cache list --repo "$GITHUB_REPOSITORY" --key "$prefix" --limit 100 --json id,key |
                       jq -r --arg os "$RUNNER_OS-" --argjson pinned "$PINNED_KEYS" \
-                          '.[] | select($pinned | index(.key | ltrimstr($os)) | not) | .id' |
+                          '.[] | .key as $key | select(($pinned | index($key | ltrimstr($os))) | not) | .id' |
                       delete
                   # Only a key that is the prefix and a commit belongs to this protocol.
                   prefix="${RUNNER_OS}-cinnabar-deps-v${PROTOCOL}-"
@@ -1428,7 +1462,7 @@ jobs:
             # Only a full run on master: a selection plays some of a suite, and times from a pull
             # request's branch are not what master's lookup reads.
             - name: 📤 Keep the suite times
-              if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.plan.outputs.scenarios == '' }}
+              if: ${{ !cancelled() && ((github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'merge_group') && needs.plan.outputs.scenarios == '' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: e2e-suite-times-${{ matrix.pin.name }}-shard-${{ matrix.shard }}

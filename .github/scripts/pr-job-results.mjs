@@ -51,8 +51,9 @@ const findMergeGroupRun = async (tree) => {
     );
     for (const run of runs) {
         if (run.head_sha === sha) return run;
-        const head = await api(`git/commits/${run.head_sha}`);
-        if (head.tree.sha === tree) return run;
+        // A head that cannot be read is no match, and the search goes on.
+        const head = await api(`git/commits/${run.head_sha}`).catch(() => undefined);
+        if (head?.tree.sha === tree) return run;
     }
     return undefined;
 };
