@@ -78,6 +78,26 @@ export const createBlendedNoiseFbmSet = (
     };
 };
 
+/** The coordinate factors `old_blended_noise` samples its limit and selector stacks at. */
+export interface BlendedNoiseMultipliers {
+    readonly xzMultiplier: number;
+    readonly yMultiplier: number;
+    readonly mainXzMultiplier: number;
+    readonly mainYMultiplier: number;
+}
+
+/** The coordinate factors for one set of `old_blended_noise` parameters, in double precision. */
+export const blendedNoiseMultipliers = (parameters: BlendedNoiseParameters): BlendedNoiseMultipliers => {
+    const xzMultiplier = BASE_SCALE * parameters.xzScale;
+    const yMultiplier = BASE_SCALE * parameters.yScale;
+    return {
+        xzMultiplier,
+        yMultiplier,
+        mainXzMultiplier: xzMultiplier / parameters.xzFactor,
+        mainYMultiplier: yMultiplier / parameters.yFactor
+    };
+};
+
 /**
  * Compiles an `old_blended_noise` density function into a position sampler.
  *
@@ -95,10 +115,7 @@ export const createBlendedNoiseSampler = (
     const minLimitNoise = stack(fbm.minLimitNoise);
     const maxLimitNoise = stack(fbm.maxLimitNoise);
     const mainNoise = stack(fbm.mainNoise);
-    const xzMultiplier = BASE_SCALE * parameters.xzScale;
-    const yMultiplier = BASE_SCALE * parameters.yScale;
-    const mainXzMultiplier = xzMultiplier / parameters.xzFactor;
-    const mainYMultiplier = yMultiplier / parameters.yFactor;
+    const { xzMultiplier, yMultiplier, mainXzMultiplier, mainYMultiplier } = blendedNoiseMultipliers(parameters);
 
     return (x, y, z) => {
         const selector = clamp(

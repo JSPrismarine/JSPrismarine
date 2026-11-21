@@ -74,7 +74,14 @@ export class RandomState {
                     ? new LegacyRandomSource(seed)
                     : this.random.fromHashOf(id),
             endIslandRandom: () => new LegacyRandomSource(seed),
-            stack: (noise) => (this.nativeLibrary === undefined ? noise : withNativeStack(this.nativeLibrary, noise))
+            stack: (noise) => (this.nativeLibrary === undefined ? noise : withNativeStack(this.nativeLibrary, noise)),
+            pointProgram: (encode) => {
+                const library = this.nativeLibrary;
+                const program = library === undefined ? undefined : encode();
+                if (library === undefined || program === undefined) return undefined;
+                const native = library.createProgram(program);
+                return (x, y, z) => native.eval(x, y, z);
+            }
         };
         this.compiler = new DensityFunctionCompiler(environment, options);
     }
@@ -114,6 +121,15 @@ export class RandomState {
     /** Compiles a density function tree against this seed, reusing earlier compilations. */
     public sampler(node: DensityFunctionNode): DensitySampler {
         return this.compiler.compile(node);
+    }
+
+    /**
+     * A tree's evaluator in the native library, with the same bits as {@link sampler}'s closure but
+     * no structure or blending hooks; undefined when the library does not load here or the tree has
+     * a node it has no operation for.
+     */
+    public nativeSampler(node: DensityFunctionNode): ((x: number, y: number, z: number) => number) | undefined {
+        return this.compiler.nativeSampler(node);
     }
 
     /**

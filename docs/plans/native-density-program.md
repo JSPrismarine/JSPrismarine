@@ -29,23 +29,18 @@ Both interpreters reproduce the closures' arithmetic step by step: each `f32()` 
 ## What stays in TypeScript, and how it crosses
 
 - **Hooks.** `beardifier`, `blend_alpha`, `blend_offset` and `blend_density` read structure and world-blender state that lives in TypeScript. They are neutral in most chunks. A cell where a hook is set runs on the TypeScript interpreter, and a counter records how often that happens.
-- **`find_top_surface`** probes a column downwards. It is per-column work over its own density tree, and it moves in its own step.
 
 ## Order of landing
 
 Each step is its own pull request, proven by the bit comparison against the closures, the `density-volume.json` vectors and the `worldgen.terrain` parity family on both paths, and measured by counts rather than timings.
 
-1. **The flat program and its TypeScript interpreter**, with `CellProgram` replaced by it.
-   - Bits: equal to the closures at every position of every cell of every vanilla setting, as `cellProgram.test.ts` checks now.
-   - Counts: closure calls per filled cell outside `interpolated` nodes go to 0.
-2. **The C interpreter for arithmetic and noise nodes.** The values of `interpolated`, `spline`, `cache` and hook nodes are computed in TypeScript and passed in as input buffers.
-   - Counts: per filled cell, at most one library call, and 0 TypeScript arithmetic node evaluations.
-3. **Splines in C**, from the constant table.
-   - Counts: 0 TypeScript spline evaluations per chunk.
-4. **`interpolated` corner lattices in C.** The corner values of each `interpolated` node are filled per chunk in Java's `fillCell` order, so the trees under them stop running as closures.
-   - Counts: 0 closure calls per chunk outside the hook cells.
-5. **`find_top_surface` and the `cache` kinds that hold one value per column.**
-6. **The aquifer**, about as large in that profile as the closures, on the same program form.
+1. **Done (#3565): the flat cell program.** `CellProgram` lays `final_density`'s per-block tree out as typed-array records run by one interpreter.
+   - Building it showed that this tree holds no noise in vanilla: it is arithmetic over the `interpolated` cells and the hooks, about 3% of the profile. The cost is in the trees under the `interpolated` nodes, which run at cell corners. The steps below were reordered to go there first.
+2. **Done: the corner trees in C.** Each tree under an `interpolated` node is laid out as a point program, one record per node with every vanilla operation: noise, shifts, blended noise, splines, per-position and per-column caches, `find_top_surface`, `interval_select`, `lerp` and the rest. The C interpreter evaluates one corner per call, and each call takes four double arguments, the shape `node:ffi` called fastest. A cell whose context has a structure or blending hook set keeps its closures. A tree that reaches `pow`, `log`, `end_outer_islands` or a nested `interpolated` node stays in TypeScript whole: V8 and libm do not always round `pow` and `log` alike.
+   - Bits: every `interpolated` tree of every vanilla setting matches its closures, and so does a tree per operation.
+   - Counts: per overworld chunk, TypeScript noise calls go from 15,683 to 1,079, all of them the aquifer's. A chunk of the nether, caves or floating islands, which have no aquifer, makes none.
+3. **The aquifer**, the TypeScript noise calls left, on the same point program form.
+4. **The per-block cell program in C**, from step 1's records, once the work above it has moved.
 
 ## Risks
 

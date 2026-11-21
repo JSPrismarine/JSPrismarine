@@ -1,7 +1,14 @@
 import { clamp, f32, floor, floorDiv, floorMod, lerpF } from '../math';
-import { BLENDED_NOISE_SEED, createBlendedNoiseSampler } from '../noise/BlendedNoise';
+import {
+    BLENDED_NOISE_SEED,
+    blendedNoiseMultipliers,
+    createBlendedNoiseFbmSet,
+    createBlendedNoiseSampler
+} from '../noise/BlendedNoise';
 import type { Noise } from '../noise/GradientNoise';
 import type { NoiseStack } from '../noise/NoiseStack';
+import type { PointProgram } from './pointProgram';
+import { encodePointProgram } from './pointProgram';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
@@ -103,6 +110,12 @@ export interface CompileEnvironment {
      * stacks are sampled as they are.
      */
     stack?(noise: NoiseStack): Noise;
+    /**
+     * Returns an evaluator with the same bits as a tree's closures, such as the native library
+     * running its point program, or undefined to keep the closures. `encode` lays the tree out and
+     * answers undefined when it has a node with no native operation.
+     */
+    pointProgram?(encode: () => PointProgram | undefined): ((x: number, y: number, z: number) => number) | undefined;
 }
 
 /** Options for comparing the scalar interpolation path with reusable cell buffers. */
@@ -746,7 +759,7 @@ export class DensityFunctionCompiler {
 
             case 'interpolated': {
                 const id = this.cacheId(node);
-                const input = this.compile(node.input);
+                const input = this.cornerSampler(node.input, this.compile(node.input));
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
                 this.cellSizeXz = gcd(this.cellSizeXz, cellSizeXz);
@@ -990,6 +1003,46 @@ export class DensityFunctionCompiler {
         }
 
         throw new WorldgenErrors.UncompilableDensityFunction({ node: JSON.stringify(node) });
+    }
+
+    /**
+     * A tree's point program, run by the environment, with the same bits as its closures; or
+     * undefined when the environment runs none or the tree has a node with no native operation.
+     * The evaluator ignores structure and blending hooks, so call it only where none is set.
+     */
+    public nativeSampler(node: DensityFunctionNode): ((x: number, y: number, z: number) => number) | undefined {
+        const environment = this.environment;
+        return environment.pointProgram?.(() =>
+            encodePointProgram(node, {
+                noise: (id) => environment.noise(id),
+                blendedNoise: (blended) => {
+                    const fbm = createBlendedNoiseFbmSet(environment.random(BLENDED_NOISE_SEED), blended);
+                    const stack = (noise: NoiseStack): Noise => environment.stack?.(noise) ?? noise;
+                    return {
+                        stacks: [stack(fbm.minLimitNoise), stack(fbm.maxLimitNoise), stack(fbm.mainNoise)],
+                        multipliers: blendedNoiseMultipliers(blended)
+                    };
+                },
+                ignoresY: (input) => (this.domainAxes(input) & Y_AXIS) === 0
+            })
+        );
+    }
+
+    /**
+     * The sampler an `interpolated` node reads its cell corners through: the tree's point program
+     * when the environment runs one, else its closure. A context with a structure or blending hook
+     * set takes the closure, since those hooks live in TypeScript.
+     */
+    private cornerSampler(node: DensityFunctionNode, closure: DensitySampler): DensitySampler {
+        const evaluate = this.nativeSampler(node);
+        if (evaluate === undefined) return closure;
+        return (context, x, y, z) =>
+            context.beardifier === undefined &&
+            context.blendAlpha === undefined &&
+            context.blendOffset === undefined &&
+            context.blendDensity === undefined
+                ? evaluate(x, y, z)
+                : closure(context, x, y, z);
     }
 
     private cacheId(node: DensityFunctionNode): number {
@@ -1334,7 +1387,7 @@ export class DensityFunctionCompiler {
 
             case 'interpolated': {
                 const id = this.cacheId(node);
-                const input = this.compile(node.input);
+                const input = this.cornerSampler(node.input, this.compile(node.input));
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
                 return (context, box, out) => {

@@ -18,6 +18,19 @@ interface NativeSymbols {
     jwg_stack_destroy(handle: number): void;
     jwg_stack_get3(handle: number, x: number, y: number, z: number): number;
     jwg_stack_fill(handle: number, xyz: Float64Array, out: Float64Array, count: number): void;
+    jwg_program_create(
+        nodes: Int32Array,
+        nodeCount: number,
+        constants: Float64Array,
+        constantCount: number,
+        links: Int32Array,
+        linkCount: number,
+        stacks: Float64Array,
+        stackCount: number,
+        cacheSlots: number
+    ): number;
+    jwg_program_destroy(handle: number): void;
+    jwg_program_eval(handle: number, x: number, y: number, z: number): number;
 }
 
 const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
@@ -25,8 +38,28 @@ const signatures: { readonly [Name in keyof NativeSymbols]: FfiSignature } = {
     jwg_stack_create: ['f64', ['buffer', 'buffer', 'i32']],
     jwg_stack_destroy: ['void', ['f64']],
     jwg_stack_get3: ['f64', ['f64', 'f64', 'f64', 'f64']],
-    jwg_stack_fill: ['void', ['f64', 'buffer', 'buffer', 'i32']]
+    jwg_stack_fill: ['void', ['f64', 'buffer', 'buffer', 'i32']],
+    jwg_program_create: ['f64', ['buffer', 'i32', 'buffer', 'i32', 'buffer', 'i32', 'buffer', 'i32', 'i32']],
+    jwg_program_destroy: ['void', ['f64']],
+    jwg_program_eval: ['f64', ['f64', 'f64', 'f64', 'f64']]
 };
+
+/** The 32-bit words of one density program record, `JWG_PROGRAM_WORDS` in the C. */
+export const PROGRAM_WORDS = 6;
+
+/**
+ * A density program, as `@jsprismarine/worldgen` encodes a density function tree: records of
+ * {@link PROGRAM_WORDS} words, root first, with the constants, link lists and noise stacks they
+ * name, and the number of memo slots its caches use.
+ */
+export interface NativeProgramSource {
+    readonly nodes: Int32Array;
+    readonly constants: Float64Array;
+    readonly links: Int32Array;
+    /** The stacks its noise records sample; they have to outlive the program. */
+    readonly stacks: readonly NativeNoiseStack[];
+    readonly cacheSlots: number;
+}
 
 /**
  * One octave of a noise stack, as `@jsprismarine/worldgen`'s `NoiseStack` holds it: a Perlin
@@ -59,7 +92,10 @@ export class NativeWorldgen {
 
     private constructor(bound: BoundNative<NativeSymbols>) {
         this.bound = bound;
-        this.finalizer = new FinalizationRegistry((handle) => bound.symbols.jwg_stack_destroy(handle));
+        // A program's handle is registered negated, so one registry frees both kinds.
+        this.finalizer = new FinalizationRegistry((handle) =>
+            handle < 0 ? bound.symbols.jwg_program_destroy(-handle) : bound.symbols.jwg_stack_destroy(handle)
+        );
     }
 
     /**
@@ -125,6 +161,37 @@ export class NativeWorldgen {
         return stack;
     }
 
+    /**
+     * Registers a density program, which evaluates its tree in C one position at a time with the
+     * same bits as the closures it was encoded from.
+     * @param source - The encoded program.
+     * @returns The program.
+     * @throws {NativeWorldgenErrors.ProgramNotCreated} When a record names something out of
+     *   range, or memory runs out.
+     */
+    public createProgram(source: NativeProgramSource): NativeDensityProgram {
+        const stacks = Float64Array.from(source.stacks, (stack) => stack.nativeHandle);
+        const symbols = this.bound.symbols;
+        const handle = symbols.jwg_program_create(
+            source.nodes,
+            source.nodes.length / PROGRAM_WORDS,
+            source.constants,
+            source.constants.length,
+            source.links,
+            source.links.length,
+            stacks,
+            stacks.length,
+            source.cacheSlots
+        );
+        if (handle === 0)
+            throw new NativeWorldgenErrors.ProgramNotCreated({ nodes: source.nodes.length / PROGRAM_WORDS });
+        const program = new NativeDensityProgram(symbols, handle, source.stacks, () =>
+            this.finalizer.unregister(program)
+        );
+        this.finalizer.register(program, -handle, program);
+        return program;
+    }
+
     /** Unloads the library. Destroy its stacks first. */
     public close(): void {
         this.bound.close();
@@ -181,11 +248,61 @@ export class NativeNoiseStack {
         this.symbols.jwg_stack_fill(this.handle, positions, out, count);
     }
 
+    /**
+     * The stack's handle, for a native program that samples it. It stays valid until
+     * {@link destroy}, so keep this stack alive while a program names it.
+     */
+    public get nativeHandle(): number {
+        return this.handle;
+    }
+
     /** Frees the stack's native memory. Later calls throw. */
     public destroy(): void {
         if (this.handle === 0) return;
         this.forget();
         this.symbols.jwg_stack_destroy(this.handle);
+        this.handle = 0;
+    }
+}
+
+/** A density program in native memory, made by {@link NativeWorldgen.createProgram}. */
+export class NativeDensityProgram {
+    private readonly symbols: NativeSymbols;
+    private readonly forget: () => void;
+    /** The stacks the program samples, held so they live as long as it does. */
+    public readonly stacks: readonly NativeNoiseStack[];
+    private handle: number;
+
+    /**
+     * Use {@link NativeWorldgen.createProgram}.
+     * @internal
+     */
+    public constructor(
+        symbols: NativeSymbols,
+        handle: number,
+        stacks: readonly NativeNoiseStack[],
+        forget: () => void
+    ) {
+        this.symbols = symbols;
+        this.handle = handle;
+        this.stacks = stacks;
+        this.forget = forget;
+    }
+
+    /**
+     * The program's value at one position.
+     * @throws {NativeWorldgenErrors.StackDestroyed} After {@link destroy}.
+     */
+    public eval(x: number, y: number, z: number): number {
+        if (this.handle === 0) throw new NativeWorldgenErrors.StackDestroyed();
+        return this.symbols.jwg_program_eval(this.handle, x, y, z);
+    }
+
+    /** Frees the program's native memory. Later calls throw. Its stacks stay alive. */
+    public destroy(): void {
+        if (this.handle === 0) return;
+        this.forget();
+        this.symbols.jwg_program_destroy(this.handle);
         this.handle = 0;
     }
 }

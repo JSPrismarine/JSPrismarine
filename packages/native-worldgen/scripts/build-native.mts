@@ -83,6 +83,7 @@ run(compiler, [
     '-o',
     shared,
     join(nativeDir, 'src', 'noise.c'),
+    join(nativeDir, 'src', 'density.c'),
     '-lm'
 ]);
 if (!values.debug && process.platform === 'darwin') run('strip', ['-x', shared]);

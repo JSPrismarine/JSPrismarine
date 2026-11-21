@@ -26,6 +26,10 @@ stack.fill(positions, values); // a buffer of positions in one call
 stack.destroy();
 ```
 
+`native.createProgram(program)` registers a density function tree that `@jsprismarine/worldgen` has
+laid out as records, and `eval(x, y, z)` runs it one position at a time with the same bits as the
+worldgen package's closures.
+
 `NativeWorldgen.load()` throws a `NativeLibraryError` when there is no build for the machine.
 The library is optional: a caller keeps its TypeScript noise wherever `load()` throws.
 
