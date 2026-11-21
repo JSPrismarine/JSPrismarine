@@ -87,14 +87,15 @@ describe('liquidFamily', () => {
         expect(beside.dimension.identifierAt(origin)).toBe('minecraft:cobblestone');
     });
 
-    it('burns an item that falls into lava', () => {
+    it('leaves an item in lava to the entity runtime, which burns it as Java does', () => {
         const harness = bindFamily(liquidFamily, 'minecraft:lava');
         harness.dimension.set(origin, 'minecraft:lava', { liquid_depth: 0 });
         harness.dimension.addEntity('minecraft:item', origin);
 
-        harness.stepOn(origin);
+        harness.stepOn(origin, { identifier: 'minecraft:item', position: origin });
 
-        expect(harness.dimension.entitiesAt(origin)).toEqual([]);
+        // A netherite stack resists the lava, so the block must not take every stack at once.
+        expect(harness.dimension.entitiesAt(origin)).toHaveLength(1);
     });
 });
 
@@ -260,6 +261,18 @@ describe('sculkFamily', () => {
         harness.tick(origin);
 
         expect(harness.dimension.stateAt(origin, 'active')).toBe(false);
+    });
+
+    it('shrieks for a player alone, and a sensor takes no step from the warden, as Java does', () => {
+        const shrieker = bindFamily(sculkFamily, 'minecraft:sculk_shrieker');
+        shrieker.dimension.set(origin, 'minecraft:sculk_shrieker', { active: false, can_summon: true });
+        shrieker.stepOn(origin, { identifier: 'minecraft:zombie', position: origin });
+        expect(shrieker.dimension.stateAt(origin, 'active')).toBe(false);
+
+        const sensor = bindFamily(sculkFamily, 'minecraft:sculk_sensor');
+        sensor.dimension.set(origin, 'minecraft:sculk_sensor', { sculk_sensor_phase: 0 });
+        sensor.stepOn(origin, { identifier: 'minecraft:warden', position: origin });
+        expect(sensor.dimension.stateAt(origin, 'sculk_sensor_phase')).toBe(0);
     });
 
     it('gives experience for breaking sculk', () => {
