@@ -1,7 +1,9 @@
 import { Gametype } from '@jsprismarine/minecraft';
-import { SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
+import { Vector3 } from '@jsprismarine/math';
+import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
@@ -124,6 +126,30 @@ describe('BedrockPresenter', () => {
             worldImmutable: false,
             noAttackingPlayers: false,
             noAttackingMobs: false
+        });
+    });
+
+    it('turns only the head of a player in a vehicle, with no teleport data', async () => {
+        const { sent, presenter: bedrock } = presenter();
+
+        await bedrock.sendMove({
+            runtimeId: 4n,
+            position: new Vector3(1, 65.62, 1),
+            pitch: 0,
+            yaw: 90,
+            headYaw: 90,
+            onGround: false,
+            mode: 'headRotation',
+            inputTick: 0n
+        });
+
+        const [packet] = sent;
+        if (!(packet instanceof MovePlayerPacket)) throw new Error('expected MovePlayerPacket');
+        expect(packet.getPacketData()).toMatchObject({
+            runtimeEntityId: 4n,
+            mode: PositionMode.OnlyHeadRot,
+            teleportData: null,
+            tick: 0n
         });
     });
 });

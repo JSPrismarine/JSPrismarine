@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
-import { PositionMode } from '@jsprismarine/protocol';
 import type Server from '../Server';
 import type { Config } from '../config/Config';
 import { sessionFor } from '../testing/playerSession.test.helper';
@@ -52,7 +51,7 @@ describe('PlayerSession after a teleport', () => {
         const teleport = async (x: number, z: number) => {
             at.x = x;
             at.z = z;
-            await session.sendMove(mover, PositionMode.Teleport);
+            await session.sendMove(mover, 'teleport');
         };
         return { session, mover, teleport, advance: (ticks: number) => void (tick += ticks) };
     };
@@ -103,7 +102,7 @@ describe('PlayerSession after a teleport', () => {
 
     it('holds nothing after a move that is not a teleport', async () => {
         const { session, mover } = arrange();
-        await session.sendMove(mover, PositionMode.Normal);
+        await session.sendMove(mover, 'normal');
 
         expect(session.holdsMovementForTeleport(new Vector3(9, 64, 9), false)).toBe(false);
     });

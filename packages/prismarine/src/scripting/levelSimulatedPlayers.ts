@@ -14,7 +14,6 @@
 import { createHash } from 'node:crypto';
 
 import { Vector3 } from '@jsprismarine/math';
-import { PositionMode } from '@jsprismarine/protocol';
 import UUID from '@jsprismarine/protocol/bedrock/wire/structures/UUID';
 import { InetAddress } from '@jsprismarine/raknet';
 import type {
@@ -121,7 +120,7 @@ export const levelSimulatedPlayers = (server: Server, level: Level): ScriptSimul
         session.released(
             session.setPlayerPosition({
                 position: eyes,
-                type: PositionMode.Normal,
+                type: 'normal',
                 yaw: look.yaw,
                 pitch: look.pitch,
                 headYaw: look.yaw

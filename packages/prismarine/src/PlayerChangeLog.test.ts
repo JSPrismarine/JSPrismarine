@@ -113,7 +113,7 @@ describe("a player's movement belongs to its client", () => {
     it("moves a player the server moves as a teleport, and drops the client's stale reports", async () => {
         const { session, sent } = await loggedPlayer();
 
-        await session.setPlayerPosition({ position: new Vector3(20, 70, 0), type: PositionMode.Teleport });
+        await session.setPlayerPosition({ position: new Vector3(20, 70, 0), type: 'teleport' });
 
         const moves = sent.filter((packet) => packet instanceof MovePlayerPacket);
         expect(moves.map((packet) => packet.getPacketData()?.mode)).toEqual([PositionMode.Teleport]);

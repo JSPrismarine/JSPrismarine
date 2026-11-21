@@ -17,7 +17,7 @@
  */
 import { duringItemInteraction } from './interactionContext';
 import { Vector3 } from '@jsprismarine/math';
-import { PositionMode } from '@jsprismarine/protocol';
+import type { MoveMode } from '../network/presenter/SessionPresenter';
 import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
@@ -60,7 +60,7 @@ export interface ItemPlayer extends AdvancementPlayer {
     addFood(food: number, saturation?: number): void;
     isOnGround(): boolean;
     getFallDistance(): number;
-    setPlayerPosition(options: { position: Vector3; type?: PositionMode }): Promise<void>;
+    setPlayerPosition(options: { position: Vector3; type?: MoveMode }): Promise<void>;
 }
 
 /** The live world whose entities and players this port acts on. */
@@ -554,7 +554,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const player = playerOf(source);
         if (player !== undefined) {
             void player
-                .setPlayerPosition({ position: eyePositionAt(feet), type: PositionMode.Teleport })
+                .setPlayerPosition({ position: eyePositionAt(feet), type: 'teleport' })
                 .catch((error: unknown) => loaded.getServer().getLogger().error(error));
             return;
         }

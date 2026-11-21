@@ -11,7 +11,6 @@ import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } f
 import { matchSelector } from '@jsprismarine/commands';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-import { PositionMode } from '@jsprismarine/protocol';
 
 import type Server from '../../Server';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -314,7 +313,7 @@ export const entityCommandHost = (server: Server, scoreboard: () => Scoreboard):
                 if (player !== undefined) {
                     return player.setPlayerPosition({
                         position: eyePositionAt(vectorOf(position)),
-                        type: PositionMode.Teleport,
+                        type: 'teleport',
                         yaw: rotation.yaw,
                         pitch: rotation.pitch,
                         headYaw: rotation.yaw

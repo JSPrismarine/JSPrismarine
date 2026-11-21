@@ -21,7 +21,7 @@
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { EntityRef, Vector3 as HostVector } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
-import type { PositionMode } from '@jsprismarine/protocol';
+import type { MoveMode } from '../../network/presenter/SessionPresenter';
 
 import type Server from '../../Server';
 import type { ExperienceHolder } from '../../entity/Experience';
@@ -197,7 +197,7 @@ export interface CommandPlayer {
     setSpawnPoint(spawn: StoredSpawnPoint | undefined): void;
     setPlayerPosition(move: {
         position: Vector3;
-        type?: PositionMode;
+        type?: MoveMode;
         pitch?: number;
         yaw?: number;
         headYaw?: number;

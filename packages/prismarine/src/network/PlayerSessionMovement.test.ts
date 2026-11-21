@@ -10,6 +10,7 @@ import type { World } from '../world/World';
 import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
+import { BedrockPresenter } from './presenter/BedrockPresenter';
 import { sessionPlayerFields } from '../testing/playerSession.test.helper';
 
 import type { MovePlayer } from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
@@ -39,10 +40,12 @@ const playerAt = (runtimeId: bigint) =>
 const movementSession = () => {
     const sent: Array<MovePlayerPacket | SetActorMotionPacket> = [];
     const player = playerAt(1n);
+    const connection = {
+        sendDataPacket: async (packet: MovePlayerPacket | SetActorMotionPacket) => void sent.push(packet)
+    };
     const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), {
-        connection: {
-            sendDataPacket: async (packet: MovePlayerPacket | SetActorMotionPacket) => void sent.push(packet)
-        },
+        connection,
+        presenter: new BedrockPresenter(connection),
         ...sessionPlayerFields(stubPlayerPort({}), 1n),
         // A teleport notes the server tick it went out on.
         server: { getTick: () => 0 },
@@ -62,7 +65,7 @@ describe('network', () => {
         it('sends a zero tick before the client has sent any input', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player, PositionMode.Teleport);
+            await session.sendMove(player, 'teleport');
 
             expect(moveData(sent)?.tick).toBe(0n);
         });
@@ -71,7 +74,7 @@ describe('network', () => {
             const { session, sent, player } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(player, PositionMode.Respawn);
+            await session.sendMove(player, 'respawn');
 
             expect(moveData(sent)?.runtimeEntityId).toBe(1n);
             expect(moveData(sent)?.tick).toBe(42n);
@@ -81,7 +84,7 @@ describe('network', () => {
             const { session, sent } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(playerAt(2n), PositionMode.Normal);
+            await session.sendMove(playerAt(2n), 'normal');
 
             expect(moveData(sent)?.runtimeEntityId).toBe(2n);
             expect(moveData(sent)?.tick).toBe(0n);
@@ -90,7 +93,7 @@ describe('network', () => {
         it('fills a teleport with an unknown cause and leaves the riding id at zero', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player, PositionMode.Teleport);
+            await session.sendMove(player, 'teleport');
 
             expect(moveData(sent)).toMatchObject({
                 mode: PositionMode.Teleport,

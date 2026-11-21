@@ -1,6 +1,6 @@
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
-import { CraftingDataPacket, CreativeContentPacket, PlayerActionType, PositionMode } from '@jsprismarine/protocol';
+import { CraftingDataPacket, CreativeContentPacket, PlayerActionType } from '@jsprismarine/protocol';
 import type NetworkPacket from '@jsprismarine/protocol/NetworkPacket';
 import type { Gametype } from '@jsprismarine/minecraft';
 import { CommandPermissionLevel, ContainerUiId, Dimension, DisconnectReason } from '@jsprismarine/minecraft';
@@ -120,7 +120,6 @@ import SubChunkHeightmapData from '@jsprismarine/protocol/bedrock/structure/SubC
 import type ClientCacheBlobStatusPacket from '@jsprismarine/protocol/bedrock/packet/ClientCacheBlobStatusPacket';
 import MobEquipmentPacket from '@jsprismarine/protocol/bedrock/packet/MobEquipmentPacket';
 import MoveActorAbsolutePacket from '@jsprismarine/protocol/bedrock/packet/MoveActorAbsolutePacket';
-import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import type { ChunkCoord } from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from '@jsprismarine/protocol/bedrock/packet/NetworkChunkPublisherUpdatePacket';
 import { PlayStatus, PlayStatusPacket } from '@jsprismarine/protocol';
@@ -138,7 +137,7 @@ import SetActorMotionPacket from '@jsprismarine/protocol/bedrock/packet/SetActor
 import StopSoundPacket from '@jsprismarine/protocol/bedrock/packet/StopSoundPacket';
 import { SetHealthPacket } from '@jsprismarine/protocol';
 import { BedrockPresenter } from './presenter/BedrockPresenter';
-import type { SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
+import type { MoveMode, SessionPresenter, ShownMessage } from './presenter/SessionPresenter';
 import type { GameRule } from '@jsprismarine/protocol/bedrock/wire/structures/GameRule';
 import GameRulesChangedPacket from '@jsprismarine/protocol/bedrock/packet/GameRulesChangedPacket';
 import UpdateAttributesPacket from '@jsprismarine/protocol/bedrock/packet/UpdateAttributesPacket';
@@ -744,7 +743,7 @@ export default class PlayerSession {
                 pitch: recorded?.pitch ?? 0,
                 yaw: recorded?.yaw ?? 0,
                 headYaw: recorded?.headYaw ?? 0,
-                type: PositionMode.Respawn
+                type: 'respawn'
             },
             false
         );
@@ -2703,7 +2702,7 @@ export default class PlayerSession {
             this.setPlayerPosition(
                 {
                     position: Position.fromVector3(eyes, world),
-                    type: PositionMode.Teleport,
+                    type: 'teleport',
                     pitch: arrival.pitch,
                     yaw: arrival.yaw,
                     headYaw: arrival.yaw
@@ -2941,7 +2940,7 @@ export default class PlayerSession {
         this.pendingChange = undefined;
 
         const { world } = pending.arrival;
-        const sends = [this.sendMove(this.shown(), PositionMode.Teleport), this.sendAttributes(), this.sendInventory()];
+        const sends = [this.sendMove(this.shown(), 'teleport'), this.sendAttributes(), this.sendInventory()];
         // The compass and the map point at the spawn across dimensions, so the client needs
         // the spawn's dimension again now that its own has changed. The level knows its spawn
         // once anybody has joined it; before that it is searched outside the tick, and the
@@ -3112,31 +3111,26 @@ export default class PlayerSession {
      * there. For any other player the packet is what this client sees of them, and the tick is
      * zero because it relates to none of this client's inputs.
      * @param player - The player that moved.
-     * @param {PositionMode} [mode=PositionMode.Normal] - What produced the movement.
+     * @param {MoveMode} [mode='normal'] - What produced the movement.
      */
-    public async sendMove(player: ShownActor, mode = PositionMode.Normal): Promise<void> {
+    public async sendMove(player: ShownActor, mode: MoveMode = 'normal'): Promise<void> {
         const position = player.getPosition();
-        const packet = new MovePlayerPacket({
-            runtimeEntityId: player.getRuntimeId(),
+        const own = player.getRuntimeId() === this.runtimeId;
+        // From here until the client says it handled the teleport, its inputs still name where
+        // it was; see holdsMovementForTeleport.
+        if (own && mode === 'teleport') {
+            this.teleportAwaitingAck = { x: position.getX(), z: position.getZ(), sentAtTick: this.server.getTick() };
+        }
+        await this.presenter.sendMove({
+            runtimeId: player.getRuntimeId(),
             position,
             pitch: player.pitch,
             yaw: player.yaw,
             headYaw: player.headYaw,
-            mode,
             onGround: player.isOnGround(),
-            // "If client bound this has no meaning", so it is always zero here.
-            ridingEntityRuntimeId: 0n,
-            // The server does not model why a teleport happened, so the cause is Unknown (0)
-            // and the source actor type is 0.
-            teleportData: mode === PositionMode.Teleport ? { cause: 0, sourceActorType: 0 } : null,
-            tick: player.getRuntimeId() === this.runtimeId ? this.lastInputTick : 0n
+            mode,
+            inputTick: own ? this.lastInputTick : 0n
         });
-        // From here until the client says it handled the teleport, its inputs still name where
-        // it was; see holdsMovementForTeleport.
-        if (player.getRuntimeId() === this.runtimeId && mode === PositionMode.Teleport) {
-            this.teleportAwaitingAck = { x: position.getX(), z: position.getZ(), sentAtTick: this.server.getTick() };
-        }
-        await this.send(packet);
     }
 
     /**
@@ -4045,7 +4039,7 @@ export default class PlayerSession {
             // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
             // Dedicated Server sends none here, and the client is already there.
             const { eyes } = this.destinationOf(answer);
-            this.released(this.setPlayerPosition({ position: eyes, type: PositionMode.Respawn }, false));
+            this.released(this.setPlayerPosition({ position: eyes, type: 'respawn' }, false));
         }
 
         this.released(this.sendRespawned());
@@ -4089,13 +4083,13 @@ export default class PlayerSession {
     public setPlayerPosition(
         {
             position,
-            type = PositionMode.Normal,
+            type = 'normal',
             pitch,
             yaw,
             headYaw
         }: {
             position: Vector3;
-            type?: PositionMode;
+            type?: MoveMode;
             pitch?: number;
             yaw?: number;
             headYaw?: number;
@@ -4113,7 +4107,7 @@ export default class PlayerSession {
             // world it enters next, as a dimension change places it before its arrival.
             if (position instanceof Position) this.world = position.getWorld();
             player.placeAt({ x: feet.x, y: position.getY(), z: feet.z, yaw, pitch, headYaw });
-        } else if (type === PositionMode.Normal) {
+        } else if (type === 'normal') {
             // The client's own move, which the store charges for and adds to the fall in progress.
             moveStorePlayer(placed.live.runtime, player, {
                 position: feet,
@@ -4136,9 +4130,7 @@ export default class PlayerSession {
         // actor's own pose comparison leaves out.
         const actor = this.getActor();
         const sends =
-            actor === undefined
-                ? []
-                : [this.world.broadcastMove(actor, type === PositionMode.Teleport || type === PositionMode.Respawn)];
+            actor === undefined ? [] : [this.world.broadcastMove(actor, type === 'teleport' || type === 'respawn')];
 
         if (broadcast) sends.push(this.sendMove(this.shown(), type));
         return allSent(sends);

@@ -1,6 +1,7 @@
 import { Gametype } from '@jsprismarine/minecraft';
-import { SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
+import { PositionMode, SetTimePacket, TextPacketType } from '@jsprismarine/protocol';
 import ContainerClosePacket from '@jsprismarine/protocol/bedrock/packet/ContainerClosePacket';
+import MovePlayerPacket from '@jsprismarine/protocol/bedrock/packet/MovePlayerPacket';
 import SetDefaultGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetDefaultGameTypePacket';
 import SetPlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/SetPlayerGameTypePacket';
 import TextPacket from '@jsprismarine/protocol/bedrock/packet/TextPacket';
@@ -10,7 +11,7 @@ import UpdatePlayerGameTypePacket from '@jsprismarine/protocol/bedrock/packet/Up
 import type ClientConnection from '../ClientConnection';
 import type { AbilityTarget } from '../replica/firstSight';
 import { abilitiesPacket } from '../replica/firstSight';
-import type { MessageKind, SessionPresenter, ShownMessage } from './SessionPresenter';
+import type { MessageKind, MoveMode, SessionPresenter, ShownMessage, ShownMove } from './SessionPresenter';
 
 /**
  * The `Text` type that shows each kind of message. `rawText` is `TextObject`, the one type whose
@@ -24,6 +25,14 @@ const TEXT_TYPE: Readonly<Record<MessageKind, TextPacketType>> = {
     announcement: TextPacketType.Announcement,
     whisper: TextPacketType.Whisper,
     rawText: TextPacketType.TextObject
+};
+
+/** The `MovePlayer` mode for each kind of movement. */
+const POSITION_MODE: Readonly<Record<MoveMode, PositionMode>> = {
+    normal: PositionMode.Normal,
+    respawn: PositionMode.Respawn,
+    teleport: PositionMode.Teleport,
+    headRotation: PositionMode.OnlyHeadRot
 };
 
 /** The part of a connection a presenter sends through. */
@@ -89,6 +98,36 @@ export class BedrockPresenter implements SessionPresenter {
     /** Sends `UpdateAbilities` (`abilitiesPacket`). */
     public async sendAbilities(target: AbilityTarget): Promise<void> {
         await this.connection.sendDataPacket(abilitiesPacket(target));
+    }
+
+    /** Sends `MovePlayer`. */
+    public async sendMove({
+        runtimeId,
+        position,
+        pitch,
+        yaw,
+        headYaw,
+        onGround,
+        mode,
+        inputTick
+    }: ShownMove): Promise<void> {
+        await this.connection.sendDataPacket(
+            new MovePlayerPacket({
+                runtimeEntityId: runtimeId,
+                position,
+                pitch,
+                yaw,
+                headYaw,
+                mode: POSITION_MODE[mode],
+                onGround,
+                // "If client bound this has no meaning", so it is always zero here.
+                ridingEntityRuntimeId: 0n,
+                // The server does not model why a teleport happened, so the cause is Unknown (0)
+                // and the source actor type is 0.
+                teleportData: mode === 'teleport' ? { cause: 0, sourceActorType: 0 } : null,
+                tick: inputTick
+            })
+        );
     }
 
     /**

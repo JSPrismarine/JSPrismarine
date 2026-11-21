@@ -12,6 +12,7 @@
  * the transport has taken them, the way `PlayerSession`'s sends always have, so a caller in the
  * input step can hand that promise to the step's outputs.
  */
+import type { Vector3 } from '@jsprismarine/math';
 import type { Gametype } from '@jsprismarine/minecraft';
 
 import type { AbilityTarget } from '../replica/firstSight';
@@ -24,6 +25,29 @@ import type { AbilityTarget } from '../replica/firstSight';
  * the client renders itself, the one `/tellraw` takes.
  */
 export type MessageKind = 'raw' | 'chat' | 'translation' | 'system' | 'announcement' | 'whisper' | 'rawText';
+
+/**
+ * What produced a player's movement: `normal` movement, a `respawn`, a `teleport`, or a turn of the
+ * head alone (`headRotation`), which a client in a vehicle reports.
+ */
+export type MoveMode = 'normal' | 'respawn' | 'teleport' | 'headRotation';
+
+/** One player's place and facing, as a session's client is told it. */
+export interface ShownMove {
+    readonly runtimeId: bigint;
+    /** Where the player's eyes are. */
+    readonly position: Vector3;
+    readonly pitch: number;
+    readonly yaw: number;
+    readonly headYaw: number;
+    readonly onGround: boolean;
+    readonly mode: MoveMode;
+    /**
+     * The client's last input tick when the player is its own, so the client rewinds to it and
+     * replays its predictions from there, and zero for anyone else.
+     */
+    readonly inputTick: bigint;
+}
 
 /** One message for a session's client. */
 export interface ShownMessage {
@@ -98,6 +122,13 @@ export interface SessionPresenter {
      *   edition that echoes it puts in the answer.
      */
     containerClosed(window: number, clientContainerType: number): Promise<void>;
+
+    /**
+     * Moves a player on the client, the client's own one included.
+     *
+     * @param move - The player's place and facing, and what moved it.
+     */
+    sendMove(move: ShownMove): Promise<void>;
 
     /**
      * Shows the client a chat line or a system message.

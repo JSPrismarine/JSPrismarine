@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { ArmorSlot, Gametype } from '@jsprismarine/minecraft';
-import { PositionMode } from '@jsprismarine/protocol';
+import type { MoveMode } from '../network/presenter/SessionPresenter';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -40,7 +40,7 @@ interface Recorded {
     /** Every eye of ender the store was asked to throw. */
     readonly eyes: { from: EntityPosition; target: EntityPosition; stack: StoredItemStack }[];
     /** Every position the player's session was asked to move the player to. */
-    readonly moved: { position: Vector3; type?: PositionMode }[];
+    readonly moved: { position: Vector3; type?: MoveMode }[];
 }
 
 const recording = (): Recorded => ({
@@ -78,7 +78,7 @@ const playerDouble = (recorded: Recorded): PlayerSession => {
             // is nothing listening, which is what `enabled` checks first.
             getInventory: () => new HumanInventory(),
             getServer: () => stub<Server>({ getContent: () => testContent() }),
-            setPlayerPosition: async (options: { position: Vector3; type?: PositionMode }) =>
+            setPlayerPosition: async (options: { position: Vector3; type?: MoveMode }) =>
                 void recorded.moved.push(options)
         },
         { runtimeId: 7n, actor: entity }
@@ -176,7 +176,7 @@ describe('the item actor port', () => {
 
         // The random source answers 0.5, which lands on the column the player stands in.
         expect(recorded.moved).toHaveLength(1);
-        expect(recorded.moved[0]?.type).toBe(PositionMode.Teleport);
+        expect(recorded.moved[0]?.type).toBe('teleport');
         expect(recorded.moved[0]?.position.getY()).toBeCloseTo(71 + 1.62);
     });
 

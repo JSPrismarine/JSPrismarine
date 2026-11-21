@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
-import { PositionMode } from '@jsprismarine/protocol';
+import type { MoveMode } from './presenter/SessionPresenter';
 import { describe, expect, it, vi } from 'vitest';
 import type PlayerSession from './PlayerSession';
 import { AttributeIds } from '@jsprismarine/protocol/bedrock/wire/structures/Attribute';
@@ -55,7 +55,7 @@ const replicatedTicks = async (fake: ReturnType<typeof fakePlayer>, n: number) =
 };
 
 /** Walks the player `blocks` meters east, one meter at a time, as movement packets do. */
-const move = async (session: PlayerSession, blocks: number, type = PositionMode.Normal) => {
+const move = async (session: PlayerSession, blocks: number, type: MoveMode = 'normal') => {
     for (let i = 0; i < blocks; i++) {
         const position = session.getViewPosition();
         await session.setPlayerPosition({ position: new Vector3(position.getX() + 1, 64, 0), type }, false);
@@ -87,8 +87,8 @@ describe("PlayerSession's player", () => {
             });
 
             await session.setPlayerPosition({ position: new Vector3(1, 64, 0) }, false);
-            await session.setPlayerPosition({ position: new Vector3(90, 64, 0), type: PositionMode.Teleport }, false);
-            await session.setPlayerPosition({ position: new Vector3(0, 64, 0), type: PositionMode.Respawn }, false);
+            await session.setPlayerPosition({ position: new Vector3(90, 64, 0), type: 'teleport' }, false);
+            await session.setPlayerPosition({ position: new Vector3(0, 64, 0), type: 'respawn' }, false);
 
             expect(snaps).toStrictEqual([false, true, true]);
         });
@@ -101,10 +101,10 @@ describe("PlayerSession's player", () => {
             });
             const sendMove = vi.spyOn(session, 'sendMove').mockResolvedValue();
 
-            await session.setPlayerPosition({ position: new Vector3(90, 64, 0), type: PositionMode.Teleport });
+            await session.setPlayerPosition({ position: new Vector3(90, 64, 0), type: 'teleport' });
 
             expect(snaps).toStrictEqual([true]);
-            expect(sendMove).toHaveBeenCalledWith(session.shown(), PositionMode.Teleport);
+            expect(sendMove).toHaveBeenCalledWith(session.shown(), 'teleport');
         });
     });
 
@@ -313,7 +313,7 @@ describe("PlayerSession's player", () => {
             const { session, player } = fakePlayer();
             await session.setSprinting(true);
 
-            await move(session, 40, PositionMode.Teleport);
+            await move(session, 40, 'teleport');
 
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });
@@ -1073,7 +1073,7 @@ describe("PlayerSession's player", () => {
             // destination of its own, such as a teleport, moves the player again afterwards.
             const { session, player, sent, travel } = fakePlayer();
             await session.setPlayerPosition(
-                { position: player.getPosition(), yaw: 45, pitch: -10, type: PositionMode.Teleport },
+                { position: player.getPosition(), yaw: 45, pitch: -10, type: 'teleport' },
                 false
             );
 
@@ -1096,7 +1096,7 @@ describe("PlayerSession's player", () => {
     describe('the void', () => {
         /** Puts the player's eyes at `y`; their feet are `EYE_HEIGHT` lower. */
         const fallTo = async (session: PlayerSession, y: number) =>
-            session.setPlayerPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
+            session.setPlayerPosition({ position: new Vector3(0, y, 0), type: 'normal' }, false);
 
         it('hurts a player four half-hearts every half second once 64 blocks under the floor', async () => {
             const { session, player } = fakePlayer();

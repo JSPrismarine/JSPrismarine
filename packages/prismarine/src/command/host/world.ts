@@ -16,7 +16,6 @@ import type {
 } from '@jsprismarine/commands';
 import { gameRule } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
-import { PositionMode } from '@jsprismarine/protocol';
 
 import { bedrockBiomeToJava } from '@jsprismarine/mapping';
 
@@ -448,7 +447,7 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
                 const surface = chunk?.getHighestBlockAt(Math.floor(spot.x), Math.floor(spot.z));
                 const y = (surface ?? world.getDimension().minY) + 1;
                 carryOut(
-                    player.setPlayerPosition({ position: new Vector3(spot.x, y, spot.z), type: PositionMode.Teleport }),
+                    player.setPlayerPosition({ position: new Vector3(spot.x, y, spot.z), type: 'teleport' }),
                     undefined
                 );
                 moved += 1;

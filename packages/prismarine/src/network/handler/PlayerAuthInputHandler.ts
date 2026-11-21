@@ -6,7 +6,6 @@ import {
     NewInteractionModel,
     PlayerActionType,
     PlayerAuthInputData,
-    PositionMode,
     TransactionType
 } from '@jsprismarine/protocol';
 import InventoryTransactionPacket from '@jsprismarine/protocol/bedrock/packet/InventoryTransactionPacket';
@@ -173,11 +172,11 @@ export const applyClientMovement = (
     }
 
     // Keep the per-input plugin event cadence stable; unchanged poses only skip state and network work.
-    const event = new PlayerMoveEvent(session, movement.position, PositionMode.Normal);
+    const event = new PlayerMoveEvent(session, movement.position, 'normal');
     services.events.post('playerMove', event);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        step.output(session.sendMove(session.shown(), PositionMode.Respawn));
+        step.output(session.sendMove(session.shown(), 'respawn'));
         return;
     }
 
