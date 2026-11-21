@@ -15,7 +15,6 @@ import {
     HttpSignaling,
     joinStatusJson,
     loadNativeDriver,
-    lookupPublicIp,
     NETHERNET_LAN_PORT,
     NetherNetIdentity,
     NetherNetServer,
@@ -36,6 +35,7 @@ import { QuerySocket } from '../network/query/QuerySocket';
 import { advertiseOnLan } from '../network/nethernet/advertiseOnLan';
 import { NETHERNET_IDENTITY_FILE } from '../network/nethernet/NetherNetDefaults';
 import { netherNetStatusOf } from '../network/nethernet/netherNetStatusOf';
+import { publicIpFallback } from '../network/nethernet/publicIpFallback';
 import type { ConnectionId, ConnectionIds } from '../network/transport/ConnectionId';
 import MultiTransport from '../network/transport/MultiTransport';
 import NetherNetTransport from '../network/transport/NetherNetTransport';
@@ -137,7 +137,7 @@ export class ServerNetworking implements Networking {
     private stopLanAdvertisement: (() => void) | undefined;
     /** NetherNet's HTTP signaling on the game port's TCP side; set while NetherNet is on. */
     private signaling: HttpSignaling | undefined;
-    /** Stops the public address lookup; set while NetherNet looks one up. */
+    /** Stops the public address lookup; set while NetherNet may look one up. */
     private publicIpLookup: AbortController | undefined;
     /** The Java Edition listener and what answers on it; set while `java-enabled` is on. */
     private java: { readonly transport: TcpTransport; readonly connections: JavaConnections } | undefined;
@@ -652,8 +652,18 @@ export class ServerNetworking implements Networking {
             status: () => joinStatusJson(netherNetStatusOf(serverName.getSnapshot())),
             // After the configured addresses, the one this client dialed: behind NAT or in a
             // container it reaches the server where the interface addresses do not. The looked-up
-            // address only goes into an answer that would otherwise reach nobody outside.
-            sign: (answer, dialed) => identity.sign(withAdvertisedCandidates(answer, udpPorts, dialed, lookedUp())),
+            // address goes beside them only for a client the last answer did not reach.
+            sign: async (answer, dialed, unreachedBefore) =>
+                identity.sign(
+                    withAdvertisedCandidates(
+                        answer,
+                        udpPorts,
+                        dialed,
+                        unreachedBefore === true ? await lookedUp?.() : undefined
+                    )
+                ),
+            // Started at the first failure, so it has usually answered by the player's next try.
+            onUnreached: () => void lookedUp?.(),
             logger
         });
         listening.push(
@@ -685,34 +695,15 @@ export class ServerNetworking implements Networking {
     }
 
     /**
-     * Starts looking up the server's public address when `server-public-ip` names none and
-     * `enable-server-public-ip-lookup` is on, logging what it finds and warning when it finds
-     * nothing. A server bound to loopback looks up nothing: no player outside reaches it.
-     * @returns The address once found, else undefined.
+     * The looked-up public address a client gets when it reached no address in its last answer.
+     * @returns Undefined when `enable-server-public-ip-lookup` is off or the server binds
+     *   loopback, which no player outside reaches.
      */
-    private lookUpPublicIp(udpPorts: UdpPorts, address: string): () => string | undefined {
-        const config = this.server.getConfig();
-        if (udpPorts.publicIp !== undefined || isLoopback(address) || !config.getEnableServerPublicIpLookup()) {
-            return () => undefined;
-        }
-        const logger = this.server.getLogger();
+    private lookUpPublicIp(udpPorts: UdpPorts, address: string): (() => Promise<string | undefined>) | undefined {
+        if (isLoopback(address) || !this.server.getConfig().getEnableServerPublicIpLookup()) return undefined;
         const stop = new AbortController();
         this.publicIpLookup = stop;
-        let found: string | undefined;
-        void lookupPublicIp({ signal: stop.signal }).then((result) => {
-            if (stop.signal.aborted) return;
-            if ('address' in result) {
-                found = result.address;
-                logger.info(
-                    `NetherNet offers ${found}, the public address ${result.service} reported, to players whose join would carry no public address. Set server-public-ip to choose the address.`
-                );
-                return;
-            }
-            logger.warn(
-                `NetherNet could not look up this server's public address (${result.failures.join('; ')}). Set server-public-ip to the address players reach this server at, or enable-server-public-ip-lookup to false to stop looking it up.`
-            );
-        });
-        return () => found;
+        return publicIpFallback(udpPorts.publicIp, this.server.getLogger(), { signal: stop.signal });
     }
 
     /**
