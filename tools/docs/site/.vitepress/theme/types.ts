@@ -21,6 +21,11 @@ export interface MenuSection {
 
 /** A top-level navigation entry that is either a direct link or a panel of sections. */
 export interface MegaMenu {
+    /**
+     * Whether the menu claims the pages it lists, and every page under its featured link when that is
+     * a folder, from the menus before it. Otherwise a page two menus list belongs to the first.
+     */
+    claimsPages?: boolean;
     description: string;
     featured?: MenuFeatured;
     link?: string;

@@ -5,7 +5,6 @@ import { computed, onMounted, ref } from 'vue';
 import AddonIcon from '../AddonIcon.vue';
 import type { Market, MarketAddon } from '../addonMarket';
 import { tagLabel } from '../addonMarket';
-import { useSiteMenu } from '../site-menu/state';
 import BrandButton from './BrandButton.vue';
 import PrismMark from './PrismMark.vue';
 
@@ -15,7 +14,6 @@ import PrismMark from './PrismMark.vue';
  * Enter copies the command.
  */
 const props = defineProps<{ market: Market }>();
-const { currentMenu } = useSiteMenu();
 
 type Publisher = 'everyone' | 'first-party' | 'community';
 const query = ref('');
@@ -119,8 +117,9 @@ const idParts = (id: string) => id.split('/');
         <div class="addon-market__column">
             <nav class="site-crumb" aria-label="Breadcrumb">
                 <ol>
-                    <li v-if="currentMenu">{{ currentMenu }}</li>
-                    <li aria-current="page">Addons</li>
+                    <!-- The Addons menu's own overview, which the site's breadcrumb reads as "Addons / Overview". -->
+                    <li>Addons</li>
+                    <li aria-current="page">Overview</li>
                 </ol>
             </nav>
             <div class="addon-market__head">

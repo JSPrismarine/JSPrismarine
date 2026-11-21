@@ -46,27 +46,6 @@ export const megaMenus = [
                 ]
             },
             {
-                text: 'Addons',
-                items: [
-                    { text: 'Addons', description: 'Find an addon and copy its install command.', link: '/addons/' },
-                    {
-                        text: 'Writing an addon',
-                        description: 'A script pack owners install from the console.',
-                        link: '/guide/writing-addons'
-                    },
-                    {
-                        text: 'Publishing addons',
-                        description: 'Release from a repository of your own.',
-                        link: '/guide/publishing-addons'
-                    },
-                    {
-                        text: 'Listing an addon',
-                        description: 'A page in the marketplace for your addon.',
-                        link: '/guide/listing-addons'
-                    }
-                ]
-            },
-            {
                 text: 'Reference',
                 items: [
                     { text: 'API reference', description: 'Generated from the published packages.', link: '/api/' },
@@ -86,6 +65,49 @@ export const megaMenus = [
                         text: 'Commands',
                         description: 'Commands, functions and datapacks.',
                         link: '/data-driven/commands'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        text: 'Addons',
+        description: 'Optional packs a server installs from its console.',
+        // The addon guides sit in the guide overview too, but a reader on one is in Addons.
+        claimsPages: true,
+        featured: {
+            text: 'Marketplace',
+            description: 'Find an addon and copy its install command.',
+            link: '/addons/'
+        },
+        sections: [
+            {
+                text: 'Install',
+                items: [
+                    {
+                        text: 'Installing addons',
+                        description: 'Add, update and remove them from the console.',
+                        link: '/guide/installing-addons'
+                    }
+                ]
+            },
+            {
+                text: 'Make',
+                items: [
+                    {
+                        text: 'Writing an addon',
+                        description: 'A script pack owners install from the console.',
+                        link: '/guide/writing-addons'
+                    },
+                    {
+                        text: 'Publishing addons',
+                        description: 'Release from a repository of your own.',
+                        link: '/guide/publishing-addons'
+                    },
+                    {
+                        text: 'Listing an addon',
+                        description: 'A page in the marketplace for your addon.',
+                        link: '/guide/listing-addons'
                     }
                 ]
             }

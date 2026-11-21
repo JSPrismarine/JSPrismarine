@@ -2,6 +2,7 @@
 import { useData, withBase } from 'vitepress';
 import { computed } from 'vue';
 
+import { menuOverview } from '../menuClaims.ts';
 import { normalizeRoute, useSiteMenu } from './state.ts';
 
 /**
@@ -9,7 +10,7 @@ import { normalizeRoute, useSiteMenu } from './state.ts';
  * menu that lists the page, else the docs section its folder belongs to.
  */
 const { page, theme } = useData();
-const { currentMenu, current } = useSiteMenu();
+const { menus, currentMenu, current } = useSiteMenu();
 
 /** The sidebar group a page sits in, for pages no menu lists, with its overview link. */
 const sidebarSection = computed(() => {
@@ -21,7 +22,9 @@ const sidebarSection = computed(() => {
 
 const crumbs = computed(() => {
     const section = currentMenu.value ? { text: currentMenu.value, link: undefined } : sidebarSection.value;
-    const overview = sidebarSection.value?.link;
+    // A menu with an overview of its own, such as the marketplace, links there from its guides too.
+    const overview =
+        menuOverview(menus.value.find(({ text }) => text === currentMenu.value)) ?? sidebarSection.value?.link;
     const isOverview = overview !== undefined && normalizeRoute(withBase(overview)) === current.value;
     return { section, overview: isOverview ? undefined : overview, title: page.value.title };
 });

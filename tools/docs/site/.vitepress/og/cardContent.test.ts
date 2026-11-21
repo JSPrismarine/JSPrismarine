@@ -21,13 +21,23 @@ const menus: MegaMenu[] = [
     {
         text: 'Guides',
         description: '',
-        sections: [{ text: 'Run a server', items: [{ text: 'Joining', link: '/guide/joining' }] }]
+        sections: [
+            { text: 'Run a server', items: [{ text: 'Joining', link: '/guide/joining' }] },
+            { text: 'Build add-ons', items: [{ text: 'Writing an addon', link: '/guide/writing-addons' }] }
+        ]
     },
     {
         text: 'Build',
         description: '',
         featured: { text: 'Packages', description: '', link: '/packages' },
         sections: [{ text: 'Reference', items: [{ text: 'API reference', link: '/api/' }] }]
+    },
+    {
+        text: 'Addons',
+        description: '',
+        claimsPages: true,
+        featured: { text: 'Marketplace', description: '', link: '/addons/' },
+        sections: [{ text: 'Make', items: [{ text: 'Writing an addon', link: '/guide/writing-addons' }] }]
     },
     {
         text: 'Project',
@@ -86,6 +96,15 @@ describe('pageSection', () => {
 
     it('gives the error reference the signal tile, whatever menu links it', () => {
         expect(pageSection('errors/commands.md', menus).tone).toBe('signal');
+    });
+
+    it('puts a page the Addons menu claims in Addons, though the Guides menu lists it first', () => {
+        expect(pageSection('guide/writing-addons.md', menus).tone).toBe(menuTones.Addons);
+        expect(pageSection('addons/acme/addons/warps.md', menus)).toEqual({
+            section: 'Addons',
+            tone: menuTones.Addons
+        });
+        expect(pageEyebrow('guide/writing-addons.md', 'Writing an addon', menus)).toBe('Make');
     });
 
     it('fails the build when a menu has no tile color', () => {

@@ -145,8 +145,11 @@
     transition: border-color 0.12s;
 }
 
-/* Where the bar is tight, Search is its icon alone; the button keeps its name for screen readers. */
-@media (max-width: 1023px) {
+/*
+ * Where the bar is tight, Search is its icon alone; the button keeps its name for screen readers. The
+ * five sections and the labeled button need about 1124px.
+ */
+@media (max-width: 1149px) {
     .site-nav__search {
         width: 36px;
         padding: 0;
@@ -164,6 +167,25 @@
 
     .site-nav__search kbd {
         display: none;
+    }
+}
+
+/*
+ * Five sections fill a tablet's bar, so there the triggers sit closer and the GitHub and Discord icons
+ * give way; the footer's Project column links both at every width.
+ */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .VPNavBar .VPNavBarSocialLinks {
+        display: none;
+    }
+
+    .site-nav__trigger {
+        padding: 0 8px;
+    }
+
+    .site-nav__trigger.is-current::after {
+        right: 8px;
+        left: 8px;
     }
 }
 

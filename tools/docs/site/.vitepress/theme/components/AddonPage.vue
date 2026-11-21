@@ -5,7 +5,6 @@ import { computed, ref } from 'vue';
 import AddonIcon from '../AddonIcon.vue';
 import type { MarketAddonPage } from '../addonMarket';
 import { releaseLabel, tagLabel } from '../addonMarket';
-import { useSiteMenu } from '../site-menu/state';
 import BrandButton from './BrandButton.vue';
 import PrismMark from './PrismMark.vue';
 
@@ -15,7 +14,6 @@ import PrismMark from './PrismMark.vue';
  * deprecated addon's page opens with why.
  */
 const props = defineProps<{ addon: MarketAddonPage }>();
-const { currentMenu } = useSiteMenu();
 const copied = ref(false);
 let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -50,7 +48,6 @@ async function copy() {
         <div class="addon-page__column">
             <nav class="site-crumb" aria-label="Breadcrumb">
                 <ol>
-                    <li v-if="currentMenu">{{ currentMenu }}</li>
                     <li><a :href="withBase('/addons/')">Addons</a></li>
                     <li aria-current="page">{{ addon.title }}</li>
                 </ol>

@@ -17,6 +17,7 @@ import { loadCommands, loadSettings, type CommandData, type SettingData } from '
 import { loadProject } from './project.mts';
 import { sections } from './sections.mts';
 import type { megaMenus } from './site/.vitepress/menus.mts';
+import { claimingMenu } from './site/.vitepress/theme/menuClaims.ts';
 
 /** One heading inside a page, with the start of the text under it. */
 export interface HeadingEntry {
@@ -93,8 +94,10 @@ function routeOf(file: string) {
     return `/${file.split(path.sep).join('/')}`.replace(/(^|\/)index\.md$/, '$1').replace(/\.md$/, '');
 }
 
-/** The menu that links a page, else the docs section it sits in, for grouping results. */
+/** The menu that claims or links a page, else the docs section it sits in, for grouping results. */
 function sectionOf(route: string, menus: typeof megaMenus) {
+    const claimed = claimingMenu(route, menus);
+    if (claimed) return claimed.text;
     for (const menu of menus) {
         const links = [
             menu.link,
