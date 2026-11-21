@@ -178,10 +178,12 @@ jobs:
                   node .github/scripts/build-aot.mjs bun-linux-x64 "$RUNNER_TEMP/prismarine"
 
             # Outside the checkout, so an upload never picks up a results file already in the repository.
+            # JSPrismarine runs over NetherNet only: one process serves both transports, and a RakNet
+            # run would add a third to every round for figures the NetherNet run already gives.
             - name: ⏱️ Run the benchmark
               id: bench
               if: steps.inputs.outputs.measure == 'true'
-              run: pnpm run bench:servers --rounds "$ROUNDS" --jsp-executable "$RUNNER_TEMP/prismarine" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
+              run: pnpm run bench:servers --rounds "$ROUNDS" --servers jsprismarine-nethernet,bds,pumpkin --jsp-executable "$RUNNER_TEMP/prismarine" --work "$RUNNER_TEMP/benchmark" --out "$RUNNER_TEMP/results/results.json"
 
             # Only a run whose benchmark step started uploads the artifact the run limit counts, so a
             # failed install or build does not hold the next run back.

@@ -10,7 +10,7 @@
  * Counted figures, which no machine moves, are drawn as measured. Wall clock figures move with the
  * machine's load as well, which no ratio cancels, so the history leaves them out.
  */
-import { BASELINE, METRICS, summarize } from './summary.mts';
+import { BASELINE, METRICS, baselinesOf, summarize } from './summary.mts';
 import { SCENARIO_IDS, SERVER_IDS, parseCommitSource } from './results.mts';
 
 import type { BenchmarkResults, ScenarioId, ServerId } from './results.mts';
@@ -114,14 +114,6 @@ const inputsOf = ({ file, results }: ResultsFile): string => {
     return `sources:${SERVER_IDS.map((server) => results.servers[server]?.source ?? '').join('\n')}`;
 };
 
-/** The JSPrismarine run over a server's transport, or null when the server is JSPrismarine or that run is missing. */
-const baselineOf = (results: BenchmarkResults, server: ServerId): ServerId | null => {
-    const transport = results.servers[server]?.transport;
-    if (transport === undefined) return null;
-    const baseline = BASELINE[transport];
-    return baseline === server || results.servers[baseline] === undefined ? null : baseline;
-};
-
 /**
  * Builds the history from results files in any order. Runs are ordered by the time they started,
  * and a stretch of runs that measured the same inputs keeps only its first quiet run, or its first
@@ -210,9 +202,11 @@ export const buildHistory = (files: readonly ResultsFile[]): BenchmarkHistory =>
                     }
                     // A ratio line is JSPrismarine over a pinned server, so each pinned server gives
                     // one, divided into the JSPrismarine run over its own transport.
-                    const baseline = baselineOf(results, server);
-                    const ours = baseline === null ? null : median(baseline);
-                    if (baseline === null || ours === null || value === 0) continue;
+                    const baseline = baselinesOf(results.servers, server).find(
+                        (candidate) => median(candidate) !== null
+                    );
+                    const ours = baseline === undefined ? null : median(baseline);
+                    if (baseline === undefined || ours === null || value === 0) continue;
                     add(baseline, server, run, ours / value);
                 }
             });

@@ -11,7 +11,7 @@ import type {
 } from '../../../../server-benchmark/src/results.mts';
 import type { CellSummary, MetricId, MetricKind, MetricSummary } from '../../../../server-benchmark/src/summary.mts';
 import { SERVER_IDS } from '../../../../server-benchmark/src/results.mts';
-import { BASELINE, METRICS } from '../../../../server-benchmark/src/summary.mts';
+import { METRICS, baselinesOf } from '../../../../server-benchmark/src/summary.mts';
 import type { BenchmarkPageData } from '../../benchmarks.data.mts';
 import BenchmarkHistoryChart from './BenchmarkHistoryChart.vue';
 import type { ChartLine, ChartRule } from './BenchmarkHistoryChart.vue';
@@ -130,12 +130,10 @@ const kind = (id: MetricId) => METRICS.find((metric) => metric.id === id)?.kind 
 const serverName = (id: ServerId) => results.value?.servers[id]?.name ?? id;
 const servers = computed(() => SERVER_IDS.filter((id) => results.value?.servers[id] !== undefined));
 
-/** The JSPrismarine run a server is compared with: the one over the same transport, or none for itself. */
+/** The JSPrismarine run a server is compared with, or none for JSPrismarine itself. */
 const baselineOf = (server: ServerId): ServerId | null => {
-    const transport = results.value?.servers[server]?.transport;
-    if (transport === undefined) return null;
-    const baseline = BASELINE[transport];
-    return baseline === server || results.value?.servers[baseline] === undefined ? null : baseline;
+    const all = results.value?.servers ?? {};
+    return baselinesOf(all, server).find((baseline) => all[baseline] !== undefined) ?? null;
 };
 const TRANSPORT_NAME = { nethernet: 'NetherNet', raknet: 'RakNet' } as const;
 
@@ -203,7 +201,8 @@ const date = computed(() => results.value?.startedAt.slice(0, 10) ?? '');
  * `--jsp-executable`, rather than its build on Node.js. The command line it recorded says which.
  */
 const jspExecutable = computed(() => {
-    const command = results.value?.servers['jsprismarine-raknet']?.command ?? '';
+    const servers = results.value?.servers;
+    const command = servers?.['jsprismarine-nethernet']?.command ?? servers?.['jsprismarine-raknet']?.command ?? '';
     return command !== '' && !/(^|\s)node\s/.test(command);
 });
 const fileUrl = computed(() => (props.data ? `${repository}/blob/master/${props.data.file}` : repository));

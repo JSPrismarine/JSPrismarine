@@ -14,9 +14,11 @@ tick and ask for sub chunks when a server streams terrain on request, as a retai
 No one transport reaches all three servers. Pumpkin has no RakNet listener, so its bots join over
 NetherNet. Bedrock Dedicated Server defaults to NetherNet, but the bots' NetherNet connections to it
 fail within seconds ([#3437](https://github.com/JSPrismarine/JSPrismarine/issues/3437)), so it runs
-with `transport=raknet`. JSPrismarine listens on both, so the harness runs it twice, once over each
-transport, and the page compares each of the other two with the JSPrismarine run over its own
-transport.
+with `transport=raknet`. JSPrismarine listens on both, so the harness can run it once over each
+transport. CI runs only the NetherNet one: one JSPrismarine process serves both transports, and a
+second JSPrismarine run would make each round a third longer. The page compares Pumpkin with the
+NetherNet run, and Bedrock Dedicated Server with the RakNet run when there is one and the NetherNet
+run otherwise.
 
 A run has four phases:
 
@@ -98,8 +100,8 @@ Below the newest run, the benchmark page draws every results file as a history, 
   off the charts, since other work on the runner can move its figures with no server changing.
 - **CPU against a pinned server.** GitHub's runners differ in CPU from day to day, so a CPU figure
   from one run does not compare with another's. The history divides JSPrismarine's CPU figures by
-  those of the pinned server that ran the same workload on the same runner in the same run: Pumpkin
-  over NetherNet, Bedrock Dedicated Server over RakNet. The runner's speed divides out. A line breaks
+  those of the pinned server that ran the same workload on the same runner in the same run, against
+  the JSPrismarine run the page compares that server with. The runner's speed divides out. A line breaks
   where the pinned server's version changed, and a rule marks each change of CPU model.
 - **Counts as measured.** Memory and bytes per chunk are the same on any machine, so they are drawn
   as they were measured. Wall clock figures move with the runner's load, which no ratio cancels, so
