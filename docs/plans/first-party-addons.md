@@ -28,7 +28,7 @@ What done looks like:
 - With the TPS bar installed, an operator runs `/tpsbar` and sees the bar in the image below; it
   stays on for them across restarts until they run `/tpsbar` again.
 
-![TPS bar at three loads](first-party-addons-tps-bar.png)
+![The TPS bar at three loads, on a JSPrismarine server](../../addons/tps-bar/media/bar.png)
 
 Out of scope for now:
 
