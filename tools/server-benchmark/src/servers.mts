@@ -103,6 +103,58 @@ const REASONS = {
 
 const JSP_ENTRY = path.join(REPO, 'packages', 'server', 'dist', 'Server.js');
 
+const JSP_READY = /JSPrismarine is now listening on port/;
+
+/**
+ * The packaged executable to benchmark in place of `node packages/server/dist/Server.js`, such as
+ * the Bun AOT build `.github/scripts/build-aot.mjs` writes. Users run the executable, so CI
+ * measures it; without one the harness runs the built entry, which is quicker to iterate on.
+ */
+let jspExecutable: string | undefined;
+
+/** Benchmarks this executable for both JSPrismarine variants. */
+export const useJspExecutable = (file: string): void => {
+    jspExecutable = path.resolve(file);
+};
+
+/** The Bedrock vanilla behavior packs the checkout fetched, which an executable would download. */
+const fetchedBehaviorPacks = (): string => path.join(bdsDir(), 'behavior_packs');
+
+/**
+ * The directory an executable runs from, once per benchmark. Its first start unpacks the data it
+ * carries under `node_modules` there and writes its native libraries to the cache beside them, so
+ * that start runs here, on a flat world of its own, before any measured run. Every measured start
+ * then finds the directory warm, as a server that has run before does.
+ */
+const executableHome = async (executable: string, request: WorldRequest): Promise<string> => {
+    const home = path.join(request.stageDir, 'jsprismarine-home');
+    const warmed = path.join(home, 'warmed');
+    if (existsSync(warmed)) return home;
+    const data = path.join(home, 'warmup-data');
+    mkdirSync(data, { recursive: true });
+    writeFileSync(
+        path.join(data, 'config.json'),
+        `${JSON.stringify({ 'server-port': request.port, 'server-portv6': request.port, 'online-mode': false, 'enable-server-public-ip-lookup': false, stats: { bstats: { enabled: false } }, worlds: { world: { preset: 'minecraft:flat' } } }, null, 4)}\n`
+    );
+    const server = new ServerProcess(
+        {
+            command: executable,
+            args: ['--no-tui'],
+            cwd: home,
+            env: { JSP_DIR: data, JSP_VANILLA_BEHAVIOR_PACK: fetchedBehaviorPacks() },
+            ready: JSP_READY
+        },
+        path.join(home, 'warmup.log')
+    );
+    try {
+        await server.waitReady(600_000);
+    } finally {
+        await server.stop(60_000);
+    }
+    writeFileSync(warmed, '');
+    return home;
+};
+
 /**
  * JSPrismarine listens on RakNet and NetherNet at once by default, so both variants run the same
  * server with the same settings; only the bots' transport differs.
@@ -111,8 +163,10 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
     id: `jsprismarine-${transport}`,
     name: `JSPrismarine over ${transport === 'raknet' ? 'RakNet' : 'NetherNet'}`,
     transport,
-    unavailable: () =>
-        existsSync(JSP_ENTRY) ? null : `${path.relative(REPO, JSP_ENTRY)} is missing; run pnpm run build first`,
+    unavailable: () => {
+        if (jspExecutable !== undefined) return existsSync(jspExecutable) ? null : `${jspExecutable} is missing`;
+        return existsSync(JSP_ENTRY) ? null : `${path.relative(REPO, JSP_ENTRY)} is missing; run pnpm run build first`;
+    },
     describe: async () => {
         const manifest: unknown = JSON.parse(
             readFileSync(path.join(REPO, 'packages', 'server', 'package.json'), 'utf8')
@@ -137,14 +191,24 @@ const jsprismarine = (transport: Transport): ServerDefinition => ({
             worlds: { world: { preset, seed: request.seed } }
         };
         writeFileSync(path.join(dir, 'config.json'), `${JSON.stringify(config, null, 4)}\n`);
+        const launch: LaunchSpec =
+            jspExecutable === undefined
+                ? {
+                      command: process.execPath,
+                      args: ['--conditions=jsprismarine:dist', '--unhandled-rejections=strict', JSP_ENTRY, '--no-tui'],
+                      cwd: path.dirname(path.dirname(JSP_ENTRY)),
+                      env: { JSP_DIR: dir, NODE_ENV: 'production' },
+                      ready: JSP_READY
+                  }
+                : {
+                      command: jspExecutable,
+                      args: ['--no-tui'],
+                      cwd: await executableHome(jspExecutable, request),
+                      env: { JSP_DIR: dir, JSP_VANILLA_BEHAVIOR_PACK: fetchedBehaviorPacks() },
+                      ready: JSP_READY
+                  };
         return {
-            launch: {
-                command: process.execPath,
-                args: ['--conditions=jsprismarine:dist', '--unhandled-rejections=strict', JSP_ENTRY, '--no-tui'],
-                cwd: path.dirname(path.dirname(JSP_ENTRY)),
-                env: { JSP_DIR: dir, NODE_ENV: 'production' },
-                ready: /JSPrismarine is now listening on port/
-            },
+            launch,
             settings: [
                 ...change('server-port', request.port, DEFAULT_PORT, REASONS.port),
                 ...change('online-mode', false, true, REASONS.offline),

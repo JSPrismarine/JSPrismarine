@@ -49,6 +49,12 @@ pnpm exec turbo run build --filter=@jsprismarine/server --filter=@jsprismarine/c
 pnpm run bench:servers
 ```
 
+JSPrismarine runs from that build on Node.js unless `--jsp-executable <file>` names a packaged
+executable. CI passes the Bun AOT build of the measured commit, which
+`.github/scripts/build-aot.mjs` compiles, because that is what users run. The harness starts the
+executable once on a flat world of its own before the first measured run, so the data it carries is
+unpacked and every measured start finds the directory warm.
+
 `pnpm run bench:servers --help` lists the options: the rounds, servers and scenarios to run, the
 bot counts, the view distance, the steps and the idle time. The harness downloads the pinned Pumpkin
 release into `node_modules/.cache/jsprismarine/pumpkin/` and checks its SHA-256 before every run.
