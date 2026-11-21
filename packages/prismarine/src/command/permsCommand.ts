@@ -28,7 +28,7 @@ import type { Subject, SubjectKind } from '../identity/Subject';
 import { isSubjectKind, parseSubject, sameSubject, subjectKey } from '../identity/Subject';
 import type { NamedSubject } from '../permission/PermissionManager';
 import type { Group, Membership, Node, User } from '../permission/model';
-import { isExpired } from '../permission/model';
+import { isExpired, parseInstant } from '../permission/model';
 import { deferCommandWork } from './deferred';
 import { playerSessionOf, refuse } from './host/support';
 
@@ -81,12 +81,13 @@ const DURATION_UNITS: Readonly<Record<string, number>> = {
  * The expiry a command names: an ISO 8601 instant as the file holds it, or a duration from now
  * such as `30d`, `12h`, `45m`, `90s` or `2w`, which the file holds as the instant it ends at.
  */
-export const expiryOf = (raw: string, now: number): string => {
+const expiryOf = (raw: string, now: number): string => {
     const duration = /^(\d+)([smhdw])$/.exec(raw);
     if (duration === null) {
-        // An instant is shown as the file spells it; one that does not parse is left for the check to refuse.
-        const at = Date.parse(raw);
-        return Number.isNaN(at) ? raw : new Date(at).toISOString();
+        // An instant is shown as the file spells it; one that is not an instant with a time zone is
+        // left as written for the check to refuse.
+        const at = parseInstant(raw);
+        return at === undefined ? raw : new Date(at).toISOString();
     }
     const [, amount = '0', unit = 's'] = duration;
     return new Date(now + Number(amount) * (DURATION_UNITS[unit] ?? 0)).toISOString();
@@ -174,8 +175,17 @@ export const registerPermsCommand = (registry: CommandRegistry<CommandSource>, s
         const name = split?.name ?? raw;
         // `xbox:2535428842768200`: the key itself, for two stored users of one kind that share a name.
         const keyed = split === undefined ? undefined : parseSubject(split.kind, split.name);
-        const stored = keyed === undefined ? undefined : permissions().userOf(keyed);
-        if (keyed !== undefined && stored !== undefined) return { subject: keyed, name: stored.name };
+        if (keyed !== undefined) {
+            // A qualified value is a key first: an online player's, or a stored user's. It reads as a
+            // name only when it is nobody's key.
+            const session = server
+                .getSessionManager()
+                .getSessions()
+                .find(({ identity }) => sameSubject(identity.subject, keyed));
+            if (session !== undefined) return session.identity;
+            const stored = permissions().userOf(keyed);
+            if (stored !== undefined) return { subject: keyed, name: stored.name };
+        }
         const online = server
             .getSessionManager()
             .getSessions()

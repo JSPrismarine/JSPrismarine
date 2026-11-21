@@ -550,6 +550,18 @@ export class WorldScripts {
         if (this.stopped) return;
         this.engine.beginTick();
         this.tickEntries = 0;
+        this.flushing = true;
+        try {
+            this.flushBody();
+        } finally {
+            this.flushing = false;
+        }
+    }
+
+    /** Whether a flush is running, so a notification from outside one knows to start a tick budget of its own. */
+    private flushing = false;
+
+    private flushBody(): void {
         this.refreshClock();
         this.settleForms();
         this.settleRequests();
@@ -1404,6 +1416,9 @@ export class WorldScripts {
      */
     private permissionsChanged(change: ScriptPermissionsChange): void {
         if (this.stopped) return;
+        // A change that arrives between flushes runs on a budget of its own, not on what the last
+        // flush left; one that a script's own write raised inside a flush stays on that flush's.
+        if (!this.flushing) this.engine.beginTick();
         const target = change.target;
         for (const loaded of [...this.loaded]) {
             const dispatch = loaded.permissionsChange;

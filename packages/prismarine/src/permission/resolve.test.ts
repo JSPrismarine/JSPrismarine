@@ -88,6 +88,14 @@ describe('permission resolution', () => {
         expect(
             hasPermission(view(swapped, { groups: [{ group: 'beta' }, { group: 'alpha' }] }), 'minecraft.command.kick')
         ).toBe(false);
+        // Within one tier the negation rule decides before any name: a group that grants a node and
+        // inherits a parent that denies it is denied, whatever the two are called.
+        const inherited = {
+            default: group(),
+            alpha: group({ weight: 5, parents: ['zulu'], nodes: nodes('minecraft.command.kick') }),
+            zulu: group({ nodes: nodes('-minecraft.command.kick') })
+        };
+        expect(hasPermission(view(inherited, { groups: [{ group: 'alpha' }] }), 'minecraft.command.kick')).toBe(false);
     });
 
     it("walks a group's parents depth first, behind the group's own nodes", () => {

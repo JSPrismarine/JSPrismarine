@@ -144,6 +144,37 @@ describe('@jsprismarine/server', () => {
         expect(Object.isFrozen(signal)).toBe(true);
     });
 
+    it('rethrows the first value a subscriber threw, `undefined` and `null` included, after the others heard the change', () => {
+        for (const value of [undefined, null]) {
+            const { host, calls } = recordingHost();
+            const namespace = namespaceOf(host);
+            const dispatch = calls.find(([name]) => name === 'onPermissionsChange')?.[1];
+            const subscribe = at(at(at(namespace.permissions, 'afterEvents'), 'permissionsChange'), 'subscribe');
+            if (typeof dispatch !== 'function' || typeof subscribe !== 'function') throw new TypeError('no dispatcher');
+            const heard: unknown[] = [];
+            subscribe(() => {
+                throw value;
+            });
+            subscribe(() => {
+                throw new Error('second');
+            });
+            subscribe((event: unknown) => void heard.push(event));
+
+            let threw = false;
+            let thrown: unknown = 'nothing';
+            try {
+                dispatch('vip', undefined, undefined);
+            } catch (error) {
+                threw = true;
+                thrown = error;
+            }
+
+            expect(threw).toBe(true);
+            expect(thrown).toBe(value);
+            expect(heard).toEqual([{ target: { group: 'vip' } }]);
+        }
+    });
+
     it('leaves permissions out of a namespace whose host has no permission functions', () => {
         const { host } = recordingHost();
         const { hasPermission: _hasPermission, ...without } = host;

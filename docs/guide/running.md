@@ -654,8 +654,10 @@ A check walks the player's own nodes, then one tier per group they hold directly
 heaviest down, groups of equal weight in name order. A group's tier is its own nodes followed by
 its parents' depth first, so an inherited node decides with the weight of the group that inherits
 it. The first tier that names the query decides it; in one tier a specific node beats a wildcard
-and a negation beats a grant of the same specificity, so a denial in a lighter group never
-overrides a grant in a heavier one. `prefix`, `suffix` and any other meta resolve in the same order. A group
+and a negation beats a grant of the same specificity, whatever the groups in the tier are called,
+so a group that grants a node and inherits a parent that denies it is denied. A denial in a lighter
+group never overrides a grant in a heavier one, and name order only orders separate tiers of equal
+weight. `prefix`, `suffix` and any other meta resolve in the same order. A group
 cannot be its own ancestor: `/perms group <group> parent add` refuses the parent that would close
 the cycle, and the server drops such a parent from a hand-edited file with a log line.
 

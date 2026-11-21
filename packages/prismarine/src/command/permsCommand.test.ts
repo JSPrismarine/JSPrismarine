@@ -22,7 +22,7 @@ import type { StoreActor } from '../entity/data/storeActors';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { collectAsyncCommands } from './deferred';
-import { expiryOf, PERMS_SUBCOMMANDS, permsSubcommandNode, registerPermsCommand } from './permsCommand';
+import { PERMS_SUBCOMMANDS, permsSubcommandNode, registerPermsCommand } from './permsCommand';
 
 const NOON = Date.parse('2026-11-21T12:00:00Z');
 
@@ -307,6 +307,23 @@ describe('/perms', () => {
             expect(feedback.filter((line) => line.startsWith('§e'))).toEqual(['§eAlex§r (xbox 222)']);
             expect(feedback).toContain('  c.d');
         });
+
+        it("reads a qualified value as a key first, an online player's included, and as a name only when it is nobody's key", async () => {
+            // A stored user whose name is another player's key: the key wins.
+            await permissions.grantUser({ subject: { kind: 'offline', name: '7' }, name: 'Seven' }, 'a.b');
+            await permissions.grantUser({ subject: { kind: 'offline', name: 'Steve' }, name: 'Steve' }, 'c.d');
+
+            await run('perms user offline:Steve info');
+            await run('perms user offline:7 info');
+            await run('perms user offline:Seven info');
+
+            expect(errors).toEqual([]);
+            expect(feedback.filter((line) => line.startsWith('§e'))).toEqual([
+                '§eSteve§r (offline Steve)',
+                '§eSeven§r (offline 7)',
+                '§eSeven§r (offline 7)'
+            ]);
+        });
     });
 
     describe('gates', () => {
@@ -384,11 +401,16 @@ describe('/perms', () => {
         });
     });
 
-    it('reads an expiry as an instant, or as a duration from now', () => {
-        expect(expiryOf('2030-01-01T00:00:00Z', NOON)).toBe('2030-01-01T00:00:00.000Z');
-        expect(expiryOf('90s', NOON)).toBe('2026-11-21T12:01:30.000Z');
-        expect(expiryOf('45m', NOON)).toBe('2026-11-21T12:45:00.000Z');
-        expect(expiryOf('2w', NOON)).toBe('2026-12-05T12:00:00.000Z');
-        expect(expiryOf('soon', NOON)).toBe('soon');
+    it('takes an expiry as an instant with a time zone, and stores it as the file spells one', async () => {
+        await run('perms user Steve permission set a.b 2030-01-01T00:00:00Z');
+        await run('perms user Steve permission set c.d 2030-01-01T02:00:00+02:00');
+        await run('perms user Steve permission set e.f 2030-01-01T00:00:00');
+        await run('perms user Steve permission set g.h soon');
+
+        expect(permissions.userOf(steve.subject)?.nodes).toEqual([
+            { node: 'a.b', expires: '2030-01-01T00:00:00.000Z' },
+            { node: 'c.d', expires: '2030-01-01T00:00:00.000Z' }
+        ]);
+        expect(errors).toEqual([expect.stringContaining('ISO 8601'), expect.stringContaining('ISO 8601')]);
     });
 });

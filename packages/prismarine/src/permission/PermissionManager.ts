@@ -151,14 +151,17 @@ const withNode = (nodes: readonly Node[], added: Node, now: number): Node[] => [
     added
 ];
 
-/** The merge of two lists of nodes or memberships, each spelling once, the later list's entry kept. */
+/**
+ * The merge of two lists of nodes or memberships, each spelling once: what the subject already
+ * holds stays as it is, and a claimed entry joins only when its spelling is absent.
+ */
 const merged = <T extends { readonly node: string } | { readonly group: string }>(
-    first: readonly T[],
-    second: readonly T[]
+    existing: readonly T[],
+    claimed: readonly T[]
 ): T[] => {
     const key = (entry: T): string => ('node' in entry ? entry.node : entry.group);
-    const seen = new Map(first.map((entry) => [key(entry), entry]));
-    for (const entry of second) seen.set(key(entry), entry);
+    const seen = new Map(existing.map((entry) => [key(entry), entry]));
+    for (const entry of claimed) if (!seen.has(key(entry))) seen.set(key(entry), entry);
     return [...seen.values()];
 };
 
@@ -197,6 +200,13 @@ export class PermissionManager implements Service {
     private reloadTimer: NodeJS.Timeout | undefined;
     /** Set by {@link PermissionManager.disable}, so a reload that was in flight publishes nothing. */
     private disabled = false;
+    /**
+     * The operator changes made while a load was reading the files, by {@link subjectId}, so the
+     * loaded set does not undo them when it is published. Absent outside a load.
+     */
+    private opChangesDuringLoad: Map<string, boolean> | undefined;
+    /** How many reloads are queued or running, so the map above lives while any is. */
+    private pendingReloads = 0;
 
     /**
      * Create a new permission manager.
@@ -250,8 +260,16 @@ export class PermissionManager implements Service {
      * @throws InvalidPermissionsEntry when a file does not parse.
      */
     public reload(): Promise<void> {
+        // From here until the reload has published, an operator change is kept to be applied over
+        // what the files say, since the files are read behind whatever is queued now.
+        this.pendingReloads++;
+        this.opChangesDuringLoad ??= new Map();
         return this.queue(async () => {
-            await this.load(false);
+            try {
+                await this.load(false);
+            } finally {
+                if (--this.pendingReloads === 0) this.opChangesDuringLoad = undefined;
+            }
             this.notify({});
             await this.refreshClients({});
         });
@@ -608,6 +626,12 @@ export class PermissionManager implements Service {
         if (this.disabled) return;
         this.ops.clear();
         for (const id of ops.ops) this.ops.add(id);
+        // An operator made or unmade since the reload was queued keeps that change; its write is
+        // queued behind this load, so the file agrees once it runs.
+        for (const [id, op] of this.opChangesDuringLoad ?? []) {
+            if (op) this.ops.add(id);
+            else this.ops.delete(id);
+        }
         this.pendingOps.clear();
         for (const [uuid, name] of ops.pendingOps) this.pendingOps.set(uuid, name);
         this.groups = permissions.groups;
@@ -836,7 +860,10 @@ export class PermissionManager implements Service {
                 );
             this.edit({ subject, name: identity.name }, (document) => {
                 removePendingEntries(document, uuid);
-                document.set(userPath(subject), userJson(user, this.now()));
+                // The record as it stands when the write runs, so an edit queued before the claim
+                // and already applied is written too, not the record the claim started from.
+                const current = this.userOf(subject) ?? user;
+                document.set(userPath(subject), userJson(current, this.now()));
                 return { result: true, apply: () => void this.pending.delete(uuid) };
             })
                 .catch(() => {})
@@ -860,6 +887,7 @@ export class PermissionManager implements Service {
         const id = subjectId(target.identity.subject);
         if (op) this.ops.add(id);
         else this.ops.delete(id);
+        this.opChangesDuringLoad?.set(id, op);
         this.notify({ subject: target.identity.subject, name: target.identity.name });
         return true;
     }

@@ -645,6 +645,8 @@ export interface CommandSource {
 export interface CommandSourceInput {
     readonly host: CommandHost;
     readonly entity?: EntityRef;
+    /** The entity that issued the command, when it is not `entity`; see `CommandSource.caller`. */
+    readonly caller?: EntityRef;
     readonly position?: Vector3;
     readonly rotation?: Rotation;
     readonly dimension?: string;
@@ -777,7 +779,8 @@ class StackCommandSource implements CommandSource {
 export const createCommandSource = (input: CommandSourceInput): CommandSource =>
     new StackCommandSource({
         host: input.host,
-        ...(input.entity === undefined ? {} : { entity: input.entity, caller: input.entity }),
+        ...(input.entity === undefined ? {} : { entity: input.entity }),
+        ...((input.caller ?? input.entity) === undefined ? {} : { caller: input.caller ?? input.entity }),
         position: input.position ?? input.entity?.position ?? ORIGIN,
         rotation: input.rotation ?? input.entity?.rotation ?? FORWARD,
         dimension: input.dimension ?? input.entity?.dimension ?? 'minecraft:overworld',
