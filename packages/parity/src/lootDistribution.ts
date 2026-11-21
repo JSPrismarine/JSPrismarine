@@ -28,7 +28,8 @@ const isObject = (value: unknown): value is JsonObject =>
  * durability or a component does not disturb it. The list is an allow list rather than a deny
  * list: a modifier nobody here has checked disqualifies the table instead of being assumed
  * harmless. `minecraft:furnace_smelt` replaces the item and `minecraft:explosion_decay` deletes
- * stacks, and both are absent for that reason.
+ * stacks, and both are absent for that reason. The two enchanting modifiers turn a book into an
+ * enchanted book, which {@link itemOfEntry} predicts.
  */
 const HARMLESS_MODIFIERS: ReadonlySet<string> = new Set([
     'minecraft:apply_bonus',
@@ -50,6 +51,26 @@ const HARMLESS_MODIFIERS: ReadonlySet<string> = new Set([
     'minecraft:set_potion',
     'minecraft:set_stew_effect'
 ]);
+
+const ENCHANTING_MODIFIERS: ReadonlySet<string> = new Set([
+    'minecraft:enchant_randomly',
+    'minecraft:enchant_with_levels'
+]);
+
+/**
+ * The item an entry's stack comes out as: its `name`, except a book an enchanting modifier turns
+ * into an enchanted book, as Java's `ItemStack.enchant` does.
+ */
+const itemOfEntry = (entry: JsonObject, name: string): string => {
+    if (name !== 'minecraft:book') return name;
+    const declared = entry['modifier'] ?? entry['functions'];
+    const modifiers = Array.isArray(declared) ? declared : [declared];
+    const enchants = modifiers.some(
+        (modifier) =>
+            isObject(modifier) && ENCHANTING_MODIFIERS.has(String(modifier['type'] ?? modifier['function'] ?? ''))
+    );
+    return enchants ? 'minecraft:enchanted_book' : name;
+};
 
 /** How many stacks a pool's `rolls` field produces, as a mean and a variance. */
 interface RollCount {
@@ -162,7 +183,8 @@ export const declaredDistribution = (json: unknown): DeclaredDistribution | unde
             if (typeof name !== 'string' || typeof weight !== 'number' || !Number.isInteger(weight)) return undefined;
             if (weight <= 0) return undefined;
 
-            weights.set(name, (weights.get(name) ?? 0) + weight);
+            const item = itemOfEntry(entry, name);
+            weights.set(item, (weights.get(item) ?? 0) + weight);
             total += weight;
         }
 

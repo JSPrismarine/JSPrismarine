@@ -129,6 +129,38 @@ const parseTarget = (value: unknown, context: ParseContext, fallback: string): E
     return target;
 };
 
+/** The component a villager trade adds to its price, Java's `DataComponents.ADDITIONAL_TRADE_COST`. */
+const ADDITIONAL_TRADE_COST = 'minecraft:additional_trade_cost';
+
+/**
+ * Whether the context lets an enchanting function write {@link ADDITIONAL_TRADE_COST}, as Java's
+ * `LootContext.hasParameter(ADDITIONAL_COST_COMPONENT_ALLOWED)` asks; a villager trade's does.
+ */
+const costAllowed = (evaluation: PredicateContext): boolean =>
+    evaluation.parameters.additional_cost_component_allowed === true;
+
+/**
+ * Adds enchantments to a stack as Java's `ItemStack.enchant` does: a book becomes an enchanted
+ * book first, an enchanted book keeps them as `minecraft:stored_enchantments`, and an enchantment
+ * the stack already has keeps the higher level (`ItemEnchantments.Mutable.upgrade`).
+ */
+const enchantedWith = (
+    stack: ItemStack,
+    added: Readonly<Record<string, number>>,
+    evaluation: PredicateContext
+): ItemStack => {
+    const target = stack.id === BOOK ? evaluation.items.withId(stack, ENCHANTED_BOOK) : stack;
+    // Java calls `enchant` once per drawn enchantment, so an empty draw writes no component.
+    if (Object.keys(added).length === 0) return target;
+    const type = target.id === ENCHANTED_BOOK ? 'minecraft:stored_enchantments' : 'minecraft:enchantments';
+    const levels = enchantmentLevels(target, type);
+    for (const [id, level] of Object.entries(added)) levels[id] = Math.max(levels[id] ?? 0, level);
+    return evaluation.items.withComponent(target, type, { levels });
+};
+
+const BOOK = 'minecraft:book';
+const ENCHANTED_BOOK = 'minecraft:enchanted_book';
+
 const enchantmentLevels = (stack: ItemStack, type: string): Record<string, number> => {
     const held = componentOf(stack, type);
     const nested = held['levels'];
@@ -198,6 +230,7 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
             member(value, 'options') === undefined
                 ? undefined
                 : [...resolveMembers(member(value, 'options'), 'enchantment', context.at('options')).ids];
+        const withCost = asBoolean(member(value, 'include_additional_cost_component')) ?? false;
         const path = context.path;
         return (stack, evaluation) => {
             const select = requireHost(
@@ -206,11 +239,15 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
                 path,
                 'enchant_with_levels'
             );
-            const drawn = select?.(stack, levels(evaluation), options);
-            if (!drawn) return stack;
-            return evaluation.items.withComponent(stack, 'minecraft:enchantments', {
-                levels: Object.fromEntries(drawn)
-            });
+            const drawnLevels = levels(evaluation);
+            // `EnchantmentHelper.enchantItem` makes a book an enchanted book whatever the draw
+            // finds, an empty draw included, and a host with no draw to run finds nothing.
+            const drawn = select?.(stack, drawnLevels, options) ?? new Map<string, number>();
+            const enchanted = enchantedWith(stack, Object.fromEntries(drawn), evaluation);
+            // `EnchantWithLevelsFunction.run`: a trade pays the levels it drew on top of its price.
+            return withCost && costAllowed(evaluation)
+                ? evaluation.items.withComponent(enchanted, ADDITIONAL_TRADE_COST, drawnLevels)
+                : enchanted;
         };
     },
     enchant_randomly: (value, context) => {
@@ -218,6 +255,7 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
             member(value, 'options') === undefined
                 ? undefined
                 : [...resolveMembers(member(value, 'options'), 'enchantment', context.at('options')).ids];
+        const withCost = asBoolean(member(value, 'include_additional_cost_component')) ?? false;
         const path = context.path;
         return (stack, evaluation) => {
             const choices = options ?? evaluation.enchantments.applicableTo?.(stack);
@@ -228,9 +266,15 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
             const chosen = choices[evaluation.random.nextInt(choices.length)]!;
             const max = evaluation.enchantments.maxLevel?.(chosen) ?? 1;
             const level = 1 + evaluation.random.nextInt(Math.max(1, max));
-            const levels = enchantmentLevels(stack, 'minecraft:enchantments');
-            levels[chosen] = level;
-            return evaluation.items.withComponent(stack, 'minecraft:enchantments', { levels });
+            const enchanted = enchantedWith(stack, { [chosen]: level }, evaluation);
+            // `EnchantRandomlyFunction.enchantItem`: what a traded book costs on top of its price.
+            return withCost && costAllowed(evaluation)
+                ? evaluation.items.withComponent(
+                      enchanted,
+                      ADDITIONAL_TRADE_COST,
+                      2 + evaluation.random.nextInt(5 + level * 10) + 3 * level
+                  )
+                : enchanted;
         };
     },
     set_enchantments: (value, context) => {

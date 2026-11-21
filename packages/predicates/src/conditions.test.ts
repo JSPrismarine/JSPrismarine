@@ -154,6 +154,30 @@ describe('context conditions', () => {
         ).toBe(false);
     });
 
+    it("matches a villager's biome type, as a trade's merchant_predicate reads it", () => {
+        const condition = {
+            type: 'minecraft:entity_properties',
+            entity: 'this',
+            predicate: {
+                'minecraft:predicates': { 'minecraft:villager/variant': ['minecraft:taiga', 'minecraft:snow'] }
+            }
+        };
+        const villager = (variant: string) => ({
+            parameterSet: 'villager_trade' as const,
+            parameters: {
+                origin: { x: 0, y: 0, z: 0 },
+                additional_cost_component_allowed: true,
+                this_entity: {
+                    type: 'minecraft:villager',
+                    components: new Map([['minecraft:villager/variant', variant]])
+                }
+            }
+        });
+
+        expect(check(condition, villager('minecraft:snow'))).toBe(true);
+        expect(check(condition, villager('minecraft:desert'))).toBe(false);
+    });
+
     it('reads entity_scores from the entity view', () => {
         const condition = {
             type: 'minecraft:entity_scores',

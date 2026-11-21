@@ -559,11 +559,58 @@ describe('host-backed modifiers', () => {
     });
 
     it('enchants through the enchantment view', () => {
-        const result = apply({ type: 'minecraft:enchant_with_levels', levels: 30 }, stack('minecraft:book'), {
+        const result = apply({ type: 'minecraft:enchant_with_levels', levels: 30 }, stack('minecraft:iron_sword'), {
             enchantments: { selectRandomEnchantments: () => new Map([['minecraft:sharpness', 3]]) }
         });
 
         expect(componentOf(result, 'minecraft:enchantments')).toEqual({ levels: { 'minecraft:sharpness': 3 } });
+    });
+
+    it('turns a book into an enchanted book that stores what it drew, as ItemStack.enchant does', () => {
+        const result = apply({ type: 'minecraft:enchant_with_levels', levels: 30 }, stack('minecraft:book'), {
+            enchantments: { selectRandomEnchantments: () => new Map([['minecraft:sharpness', 3]]) }
+        });
+
+        expect(result?.id).toBe('minecraft:enchanted_book');
+        expect(componentOf(result, 'minecraft:stored_enchantments')).toEqual({
+            levels: { 'minecraft:sharpness': 3 }
+        });
+        expect(componentOf(result, 'minecraft:enchantments')).toBeUndefined();
+    });
+
+    it('adds a trade cost only where the context allows one, as a villager trade does', () => {
+        const json = {
+            type: 'minecraft:enchant_randomly',
+            options: 'minecraft:soul_speed',
+            include_additional_cost_component: true
+        };
+        const draws = () => scriptedRandom([0, 0.5, 0.5]);
+        const traded = apply(json, stack('minecraft:book'), {
+            enchantments: { maxLevel: () => 3 },
+            random: draws(),
+            parameterSet: 'villager_trade',
+            parameters: { additional_cost_component_allowed: true }
+        });
+        const looted = apply(json, stack('minecraft:book'), { enchantments: { maxLevel: () => 3 }, random: draws() });
+
+        // Level 1 + nextInt(3) at 0.5 is 2; EnchantRandomlyFunction: 2 + nextInt(5 + 2 * 10) + 3 * 2.
+        expect(componentOf(traded, 'minecraft:stored_enchantments')).toEqual({ levels: { 'minecraft:soul_speed': 2 } });
+        expect(componentOf(traded, 'minecraft:additional_trade_cost')).toBe(2 + 12 + 6);
+        expect(componentOf(looted, 'minecraft:additional_trade_cost')).toBeUndefined();
+    });
+
+    it('adds the levels it drew as the trade cost of an enchant_with_levels trade', () => {
+        const result = apply(
+            { type: 'minecraft:enchant_with_levels', levels: 17, include_additional_cost_component: true },
+            stack('minecraft:iron_sword'),
+            {
+                enchantments: { selectRandomEnchantments: () => new Map([['minecraft:sharpness', 3]]) },
+                parameterSet: 'villager_trade',
+                parameters: { additional_cost_component_allowed: true }
+            }
+        );
+
+        expect(componentOf(result, 'minecraft:additional_trade_cost')).toBe(17);
     });
 
     it('picks a random enchantment from the declared options', () => {

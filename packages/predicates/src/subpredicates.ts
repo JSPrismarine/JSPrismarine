@@ -190,6 +190,15 @@ const BUILT_IN_DATA_COMPONENT_PREDICATES: Readonly<Record<string, SubPredicatePa
             return damage(dealt, evaluation) && durability(max - dealt, evaluation);
         };
     },
+    // `VillagerTypePredicate`: the villager's biome type is one the holder set names, which is how
+    // a villager trade's `merchant_predicate` picks the offers of a desert or a taiga villager.
+    'minecraft:villager/variant': (value, context) => {
+        const types = memberTest(value, 'villager_type', context);
+        return (stack) => {
+            const held = stack.components.get('minecraft:villager/variant');
+            return typeof held === 'string' && types(namespaced(held));
+        };
+    },
     'minecraft:jukebox_playable': (value, context) => {
         const song =
             'song' in (isJsonObject(value) ? value : {})

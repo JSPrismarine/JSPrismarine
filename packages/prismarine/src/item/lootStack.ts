@@ -27,7 +27,11 @@ import type { ContentItemDrop } from '../content/world/adapter';
  */
 export const rolledStackOfDrop = (drop: ContentItemDrop): PredicateItemStack => {
     const components = new Map<string, unknown>();
-    if (drop.enchantments !== undefined) components.set('minecraft:enchantments', { levels: drop.enchantments });
+    if (drop.enchantments !== undefined)
+        components.set(
+            drop.identifier === 'minecraft:enchanted_book' ? 'minecraft:stored_enchantments' : 'minecraft:enchantments',
+            { levels: drop.enchantments }
+        );
     if (drop.damage !== undefined && drop.damage > 0) components.set('minecraft:damage', drop.damage);
     if (drop.customName !== undefined) components.set('minecraft:custom_name', drop.customName);
     if (drop.lore !== undefined && drop.lore.length > 0) components.set('minecraft:lore', [...drop.lore]);
@@ -144,7 +148,11 @@ const contentsOf = (value: unknown): readonly (ContentItemDrop | undefined)[] | 
  */
 export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop => {
     const components = stack.components;
-    const enchantments = enchantmentsOf(components.get('minecraft:enchantments'));
+    // An enchanted book keeps its enchantments as `stored_enchantments`, which a Bedrock book
+    // carries the same way as any other item's.
+    const enchantments =
+        enchantmentsOf(components.get('minecraft:enchantments')) ??
+        enchantmentsOf(components.get('minecraft:stored_enchantments'));
     const damage = components.get('minecraft:damage');
     const customName = plainText(components.get('minecraft:custom_name'));
     const lore = components.get('minecraft:lore');

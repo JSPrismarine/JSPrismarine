@@ -33,7 +33,8 @@ export const ID_REGISTRIES = [
     'damage_type',
     'mob_effect',
     'worldgen/biome',
-    'worldgen/structure'
+    'worldgen/structure',
+    'villager_type'
 ] as const;
 
 /** One of {@link ID_REGISTRIES}. */

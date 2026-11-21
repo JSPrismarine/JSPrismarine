@@ -218,6 +218,20 @@ describe('an item stack on the wire', () => {
         expect(tag?.getNumber('Damage', 0)).toBe(11);
     });
 
+    it("draws a looted enchanted book's stored enchantments, where Java keeps a book's", () => {
+        const rolled = {
+            id: 'minecraft:enchanted_book',
+            count: 1,
+            components: new Map<string, unknown>([
+                ['minecraft:stored_enchantments', { levels: { 'minecraft:sharpness': 4 } }]
+            ])
+        };
+
+        const tag = userDataOf(itemOfDrop(dropOfRolledStack(rolled))!).userDataTag;
+
+        expect(enchantmentsIn(tag)).toEqual([{ id: 9, level: 4 }]);
+    });
+
     it('writes a bare zero length for an empty slot', () => {
         const written = new NetworkBinaryStream();
         Item.air().networkSerialize(written);

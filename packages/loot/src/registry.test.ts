@@ -269,7 +269,7 @@ describe('rolling through the registry', () => {
         const levelsFor = (worldSeed: bigint): unknown =>
             new LootRegistry(stackOf(table), { worldSeed, enchantments })
                 .roll('minecraft:chests/igloo', { parameters: ORIGIN })
-                .map((stack) => stack.components.get('minecraft:enchantments'));
+                .map((stack) => stack.components.get('minecraft:stored_enchantments'));
 
         expect(levelsFor(1234n)).toEqual(levelsFor(1234n));
         expect(levelsFor(1234n)).not.toEqual(levelsFor(4321n));
