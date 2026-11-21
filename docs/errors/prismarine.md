@@ -2615,12 +2615,12 @@ A group's parent must be another group; a group cannot inherit itself.
 
 ### `PRISMARINE_PERMISSIONS_FILE_NOT_LOADED`
 
-`{permissionFileName} is missing or not a version {supported} file, so the edit was not saved`
+`{permissionFileName} is not a version {supported} file, so the edit was not saved`
 
 Thrown as `PrismarineServerErrors.PermissionsFileNotLoaded`, which extends `Error`.
 
-`permissions.json` is gone or no longer a version 2 file while the server runs, so an edit
-cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
+`permissions.json` is no longer a version 2 file while the server runs, so an edit cannot
+be saved into it. Restore the file, or run `/perms reload` after fixing it.
 
 ### `PRISMARINE_PERMISSIONS_NOT_OBJECT`
 

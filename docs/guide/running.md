@@ -642,9 +642,10 @@ the migration succeeds.
 `meta`; a user has `groups` (memberships), `nodes` and `meta` of their own. The built-in groups,
 <!-- fact:permissions.builtInGroups -->`default` and `operator`<!-- /fact -->, are always present: every player holds the first and every
 operator the second, which a fresh file gives <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->. A node is
-`scope.name`, `scope.*` for a whole scope or `*` for everything, and a leading `-` takes it away.
-A node or a membership may carry an `expires` instant in ISO 8601 with a time zone, after which
-the server skips it and drops it at the next write. The <!-- fact:permissions.levelMeta -->`level`<!-- /fact --> meta, from
+`scope.name`, `scope.*` for a whole scope, the scope itself included, or `*` for everything, and a
+leading `-` takes it away. A node or a membership may carry an `expires` instant in ISO 8601 with a
+time zone. From that instant the server skips it and sends every connected player their command
+list and abilities again, and the next write that touches the same record drops it from the file. The <!-- fact:permissions.levelMeta -->`level`<!-- /fact --> meta, from
 <!-- fact:permissions.levelRange -->0 to 4<!-- /fact -->, sets a player's command level; an operator runs at
 <!-- fact:permissions.operatorLevel -->4<!-- /fact --> whatever their groups say. Users are filed under one section per platform,
 <!-- fact:permissions.kinds -->`xbox`, `java` and `offline`<!-- /fact -->: `xbox` by XUID, `java` by UUID and `offline` by name, the same keys as

@@ -11,7 +11,17 @@ import { SUBJECT_KINDS, parseSubject, subjectId, subjectKey } from '../identity/
 import { isRecord } from '../utils/isRecord';
 import { isStringList } from '../utils/isStringList';
 import type { Group, User } from './model';
-import { DEFAULT_GROUP, EVERY_NODE, groupJson, OPERATOR_GROUP, readGroup, readUser, userJson } from './model';
+import {
+    DEFAULT_GROUP,
+    EVERY_NODE,
+    groupJson,
+    longerLived,
+    mergeEntries,
+    OPERATOR_GROUP,
+    readGroup,
+    readUser,
+    userJson
+} from './model';
 import { wouldCycle } from './resolve';
 
 /** The layout this server reads and writes. */
@@ -98,30 +108,39 @@ export interface LegacyPlayer {
     readonly permissions: readonly string[];
 }
 
-/** The `players` entries of a version 1 file that have a name, a UUID and a permission list. */
-export const legacyPlayersOf = (root: Record<string, unknown>): LegacyPlayer[] =>
-    Array.isArray(root.players)
-        ? root.players.flatMap((player: unknown): LegacyPlayer[] =>
-              isRecord(player) &&
-              typeof player.name === 'string' &&
-              typeof player.uuid === 'string' &&
-              isStringList(player.permissions)
-                  ? [{ name: player.name, uuid: player.uuid, permissions: player.permissions }]
-                  : []
-          )
-        : [];
+/**
+ * The `players` entries of a version 1 file that have a name, a UUID and a permission list, one
+ * per UUID: the last valid entry, which is the one the version 1 loader read, so a grant an
+ * earlier entry held and a later one dropped does not come back.
+ */
+export const legacyPlayersOf = (root: Record<string, unknown>): LegacyPlayer[] => {
+    const byUuid = new Map<string, LegacyPlayer>();
+    for (const player of Array.isArray(root.players) ? root.players : []) {
+        if (
+            isRecord(player) &&
+            typeof player.name === 'string' &&
+            typeof player.uuid === 'string' &&
+            isStringList(player.permissions)
+        ) {
+            byUuid.set(player.uuid, { name: player.name, uuid: player.uuid, permissions: player.permissions });
+        }
+    }
+    return [...byUuid.values()];
+};
 
 /**
  * The version 2 document a version 1 file becomes: `defaultPermissions` as the `default` group's
  * nodes, `defaultOperatorPermissions` as `operator`'s, and each `players` entry under `pending`
- * with its UUID as `legacyUuid`, until a login with that UUID claims it.
+ * with its UUID as `legacyUuid`, until a login with that UUID claims it. A `defaultPermissions`
+ * that is missing or not a list of strings read as no permissions before, and still does; a
+ * `defaultOperatorPermissions` that is gives `operator` `*`, as a fresh file does.
  */
 export const migrateLegacyPermissions = (root: Record<string, unknown>): ConfigDocument => {
     const document = parseConfigDocument('{}');
     writeLayout(
         document,
         builtInGroups(
-            isStringList(root.defaultPermissions) ? root.defaultPermissions : undefined,
+            isStringList(root.defaultPermissions) ? root.defaultPermissions : [],
             isStringList(root.defaultOperatorPermissions) ? root.defaultOperatorPermissions : undefined
         )
     );
@@ -231,7 +250,9 @@ export const readPermissions = (root: Record<string, unknown>): LoadedPermission
         for (const value of root.pending) {
             const user = readUser(value);
             if (user === undefined || !isRecord(value) || typeof value.legacyUuid !== 'string') continue;
-            // Two entries under one UUID are one user: a claim files everything both hold.
+            // Two entries under one UUID are one user: a claim files everything both hold, and of
+            // a node or a membership both hold, the one that applies longer, so an expired copy in
+            // one entry does not take a grant the other still has.
             const earlier = pending.get(value.legacyUuid);
             pending.set(
                 value.legacyUuid,
@@ -239,14 +260,8 @@ export const readPermissions = (root: Record<string, unknown>): LoadedPermission
                     ? user
                     : {
                           name: user.name,
-                          groups: [
-                              ...earlier.groups,
-                              ...user.groups.filter((m) => !earlier.groups.some((e) => e.group === m.group))
-                          ],
-                          nodes: [
-                              ...earlier.nodes,
-                              ...user.nodes.filter((n) => !earlier.nodes.some((e) => e.node === n.node))
-                          ],
+                          groups: mergeEntries(earlier.groups, user.groups, longerLived),
+                          nodes: mergeEntries(earlier.nodes, user.nodes, longerLived),
                           meta: { ...earlier.meta, ...user.meta }
                       }
             );

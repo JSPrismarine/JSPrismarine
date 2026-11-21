@@ -78,15 +78,27 @@ export const readJsonFile = async (filePath: string, empty: '[]' | '{}'): Promis
     return parseConfigDocument(text.trim() === '' ? empty : text);
 };
 
+/** Where {@link writeJsonFile} stages a file before it is renamed into place. */
+export const temporaryPathOf = (filePath: string): string => `${filePath}.tmp`;
+
 /**
  * Writes a document back to its file, adding its versioned schema reference when it is a
- * runtime-owned JSON file. The file is flushed so a crash right after does not lose it.
+ * runtime-owned JSON file. The text goes to a temporary file beside it, flushed, and is renamed
+ * over the file only then, so a crash or a full disk mid-write leaves the file as it was and a
+ * reader never sees half of the new text.
  */
 export const writeJsonFile = async (filePath: string, document: ConfigDocument): Promise<void> => {
-    await fs.promises.writeFile(filePath, toJsonFileContents(filePath, document), {
-        encoding: 'utf8',
-        flush: true
-    });
+    const temporary = temporaryPathOf(filePath);
+    try {
+        await fs.promises.writeFile(temporary, toJsonFileContents(filePath, document), {
+            encoding: 'utf8',
+            flush: true
+        });
+        await fs.promises.rename(temporary, filePath);
+    } catch (error: unknown) {
+        await fs.promises.rm(temporary, { force: true }).catch(() => {});
+        throw error;
+    }
 };
 
 /** The list a document holds at its root, or none when the root is something else. */

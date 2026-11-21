@@ -32,14 +32,17 @@ const meaningOf = (node: Node): { readonly name: string; readonly negated: boole
 
 /**
  * How specifically a node names a query, or undefined when it does not match: an exact match
- * ranks above every scope, and a longer scope above a shorter one. `*` is the shortest scope, and
- * a bare `scope.name` covers `scope.name.*` as the checks always have.
+ * ranks above every scope, and a longer scope above a shorter one. `*` is the shortest scope, a
+ * bare `scope.name` covers `scope.name.*` as the checks always have, and `scope.*` covers `scope`
+ * itself as well as everything under it.
  */
 const specificity = (name: string, query: string): number | undefined => {
     if (name === query) return Number.POSITIVE_INFINITY;
     if (name === '*') return 0;
-    const scope = name.endsWith('.*') ? name.slice(0, -2) : name;
-    return query.startsWith(`${scope}.`) ? scope.split('.').length : undefined;
+    const wildcard = name.endsWith('.*');
+    const scope = wildcard ? name.slice(0, -2) : name;
+    if (!(wildcard && query === scope) && !query.startsWith(`${scope}.`)) return undefined;
+    return scope.split('.').length;
 };
 
 /** What one tier says about a query, or undefined when none of its nodes names it. */
