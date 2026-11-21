@@ -28,11 +28,39 @@ plus the pack's `scripts/` and any other pack files.
   }
   ```
 
-  `minServer` is the oldest JSPrismarine version the addon runs on. The file takes no other keys,
-  so a version written here by mistake fails the build instead of disagreeing with the manifest.
+  `minServer` is the oldest JSPrismarine version the addon runs on. Beside those three keys the
+  file takes only the listing keys below, so a version written here by mistake fails the build
+  instead of disagreeing with the manifest.
 
-The pack holds every file in the folder except those whose names start with a dot. A symbolic link
-fails the build.
+The pack holds every file in the folder except those whose names start with a dot and those under
+<!-- fact:addons.mediaDirectory -->`media/`<!-- /fact -->. A symbolic link fails the build.
+
+### The listing
+
+The marketplace on jsprismarine.dev shows each addon from its listing: the README, the pack's icon
+and the optional keys <!-- fact:addons.listingKeys -->`title`, `tags`, `authors`, `screenshots`, `deprecated` and `replacedBy`<!-- /fact --> in `addon.json`:
+
+```json
+{
+    "description": "Shows TPS, MSPT and ping on a boss bar.",
+    "minServer": "0.23.0",
+    "license": "MIT",
+    "title": "TPS Bar",
+    "tags": ["performance"],
+    "authors": ["JSPrismarine"],
+    "screenshots": [{ "file": "media/bar.png", "alt": "The bar at an idle server, all green." }]
+}
+```
+
+- `title` is the addon's name for people. Without it the build takes the README's first heading,
+  then the manifest header's `name`.
+- `tags` come from a fixed list: <!-- fact:addons.tags -->`admin`, `chat`, `gameplay`, `performance` and `world`<!-- /fact -->.
+- `screenshots` are files under `media/`, each a <!-- fact:addons.screenshotTypes -->`.png`, `.jpg`, `.jpeg` or `.webp`<!-- /fact --> with alt text that says
+  what it shows. The pack leaves `media/` out, so servers never download images they cannot show.
+- <!-- fact:addons.iconFile -->`pack_icon.png`<!-- /fact -->, when the pack has one, is the addon's icon. It has to be a square PNG.
+- `deprecated` says why owners should stop installing the addon, and `replacedBy` names the
+  addon that replaces it by its install id, such as `warps-plus` or `owner/repo/warps-plus`.
+  Servers warn with both when an owner installs or updates the addon.
 
 ## Building
 
@@ -40,14 +68,18 @@ fails the build.
 npx @jsprismarine/addon-tools build --addons addons --out dist/addons --repository owner/repo
 ```
 
-The build downloads the index the repository has already published and merges the new packs into
-it. Every published version stays in the index, since an installed addon is locked to its version's
-URL and hash. A pack whose version is published with other contents fails the build: raise the
-version in the manifest header instead. `--offline` skips the download.
+The build writes each pack beside its listing files: `<name>-<version>.md` for the README,
+`<name>-<version>.png` for the icon, and `<name>-<version>-1.png` and on for the screenshots, each
+keeping its file type. It downloads the index the repository has already published and merges the
+new packs into it. Every published version stays in the index, since an installed addon is locked
+to its version's URL and hash. A pack or listing file whose version is published with other
+contents fails the build: raise the version in the manifest header instead. `--offline` skips the
+download.
 
 The index's URLs point at the repository's <!-- fact:addons.releaseTag -->`addons`<!-- /fact --> release. `--base-url` points them
 somewhere else. In GitHub Actions, `--repository` defaults to the repository the workflow runs in,
-and `--github-output "$GITHUB_OUTPUT"` gives the release's tag and the new packs to later steps.
+and `--github-output "$GITHUB_OUTPUT"` gives the release's tag, the new packs (`added`) and their
+listing files (`listing`) to later steps.
 `jsp-addon --help` lists every option.
 
 ## Publishing from GitHub Actions
@@ -96,11 +128,26 @@ published version of every addon, sorted by name and then version:
             "description": "Shows TPS, MSPT and ping on a boss bar.",
             "minServer": "0.23.0",
             "url": "https://github.com/JSPrismarine/JSPrismarine/releases/download/addons/tps-bar-1.0.0.mcpack",
-            "sha256": "<the pack's SHA-256>"
+            "sha256": "<the pack's SHA-256>",
+            "listing": {
+                "title": "TPS Bar",
+                "license": "MIT",
+                "tags": ["performance"],
+                "authors": ["JSPrismarine"],
+                "readme": { "url": "<…>/tps-bar-1.0.0.md", "sha256": "<the README's SHA-256>" },
+                "icon": { "url": "<…>/tps-bar-1.0.0.png", "sha256": "<the icon's SHA-256>" },
+                "screenshots": [
+                    { "url": "<…>/tps-bar-1.0.0-1.png", "sha256": "<…>", "alt": "<…>", "file": "media/bar.png" }
+                ]
+            }
         }
     ]
 }
 ```
+
+`listing` carries what the marketplace shows for that version, with `deprecated` and `replacedBy`
+when `addon.json` has them. Versions built before listings existed have none. Adding it kept the
+schema at version 1, because a reader drops keys it does not know.
 
 `@jsprismarine/addon-tools/addonIndex` reads and writes it:
 
@@ -115,6 +162,7 @@ an index that breaks the schema, and drops keys an entry has beyond it. `addonVe
 lists one addon's versions that match a range such as `^1.0.0`, `~1.2.0`, `1.2.3` or `*`, newest
 first, the way npm reads those ranges, and `satisfiesAddonRange` tests one version. `mergeAddonIndex`,
 `createAddonIndex` and `serializeAddonIndex` build one. `@jsprismarine/addon-tools/addon` reads
-and packs one addon, and `@jsprismarine/addon-tools/build` builds a folder of them.
+and packs one addon and gives its listing files with `addonListingFiles`, and
+`@jsprismarine/addon-tools/build` builds a folder of them.
 `fetchPublishedIndex` from `@jsprismarine/addon-tools/build` downloads a release's index, through
 the `fetch` you pass it or the global one.

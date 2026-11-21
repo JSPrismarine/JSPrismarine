@@ -4,7 +4,7 @@ import path from 'node:path';
 import { AddonToolsErrors } from '@jsprismarine/errors/addon-tools';
 
 import type { Addon } from './addon';
-import { addonIndexEntry, packAddon, readAddon } from './addon';
+import { addonIndexEntry, addonListingFiles, listingFileList, packAddon, readAddon } from './addon';
 import type { AddonIndex, AddonIndexEntry } from './addonIndex';
 import { fileUrl } from './url';
 import {
@@ -80,6 +80,8 @@ export interface BuildAddonsResult {
     readonly built: readonly AddonIndexEntry[];
     /** The built entries the published index lacks: the packs a release has to upload. */
     readonly added: readonly AddonIndexEntry[];
+    /** The listing files of the added entries, in index order: what a release uploads beside their packs. */
+    readonly addedListingFiles: readonly string[];
 }
 
 /**
@@ -101,9 +103,9 @@ export const readAddons = async (addonsDirectory: string): Promise<Addon[]> => {
 
 /**
  * Builds every addon in a folder: reads them with {@link readAddons}, merges their entries into the
- * published index, then writes each pack into the output folder as `<name>-<version>.mcpack` and
- * `index.json` beside the packs. A build it refuses writes nothing, so the output folder keeps the
- * last good build.
+ * published index, then writes each pack into the output folder as `<name>-<version>.mcpack`, its
+ * listing files beside it, and `index.json`. A build it refuses writes nothing, so the output folder
+ * keeps the last good build.
  *
  * @throws {InvalidAddonError} When an addon is invalid, or a built version is published with
  * other contents.
@@ -114,12 +116,24 @@ export const buildAddons = async (options: BuildAddonsOptions): Promise<BuildAdd
     if (!URL.canParse(baseUrl) || new URL(baseUrl).protocol !== 'https:')
         throw new AddonToolsErrors.InvalidBaseUrl({ url: baseUrl });
 
-    const packs = (await readAddons(addonsDirectory)).map((addon) => ({ addon, pack: packAddon(addon) }));
+    const packs = (await readAddons(addonsDirectory)).map((addon) => ({
+        addon,
+        pack: packAddon(addon),
+        listing: listingFileList(addonListingFiles(addon))
+    }));
     const built = packs.map(({ addon, pack }) => addonIndexEntry(addon, pack, baseUrl));
     const { index, added } = mergeAddonIndex(published, built);
 
     await mkdir(outDirectory, { recursive: true });
-    for (const { pack } of packs) await writeFile(path.join(outDirectory, pack.fileName), pack.bytes);
+    for (const { pack, listing } of packs) {
+        await writeFile(path.join(outDirectory, pack.fileName), pack.bytes);
+        for (const file of listing) await writeFile(path.join(outDirectory, file.fileName), file.bytes);
+    }
     await writeFile(path.join(outDirectory, ADDON_INDEX_FILE), serializeAddonIndex(index));
-    return { index, built, added };
+
+    const addedKeys = new Set(added.map(({ name, version }) => `${name}@${version}`));
+    const addedListingFiles = packs
+        .filter(({ addon }) => addedKeys.has(`${addon.name}@${addon.version}`))
+        .flatMap(({ listing }) => listing.map((file) => file.fileName));
+    return { index, built, added, addedListingFiles };
 };

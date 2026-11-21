@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -48,4 +48,36 @@ export const editJson = async (
 export const setHelloVersion = async (addon: string, version: readonly [number, number, number]): Promise<void> => {
     const file = path.join(addon, 'manifest.json');
     await writeFile(file, (await readFile(file, 'utf8')).replaceAll('[1, 2, 3]', JSON.stringify(version)));
+};
+
+/**
+ * The start of a PNG file: its signature and an `IHDR` chunk with a width and a height, which is
+ * all the build reads of a pack icon.
+ */
+export const pngHeader = (width: number, height: number): Uint8Array => {
+    const bytes = new Uint8Array(33);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(8, 13);
+    bytes.set(new TextEncoder().encode('IHDR'), 12);
+    view.setUint32(16, width);
+    view.setUint32(20, height);
+    return bytes;
+};
+
+/**
+ * Gives a copy of the `hello` fixture a listing: a title, tags, authors, an icon and one
+ * screenshot under `media/`.
+ */
+export const listHello = async (addon: string): Promise<void> => {
+    await mkdir(path.join(addon, 'media'));
+    await writeFile(path.join(addon, 'media', 'wave.png'), pngHeader(640, 360));
+    await writeFile(path.join(addon, 'pack_icon.png'), pngHeader(256, 256));
+    await editJson(path.join(addon, 'addon.json'), (value) => ({
+        ...value,
+        title: 'Hello There',
+        tags: ['chat'],
+        authors: ['Ada'],
+        screenshots: [{ file: 'media/wave.png', alt: 'A player waving.' }]
+    }));
 };
