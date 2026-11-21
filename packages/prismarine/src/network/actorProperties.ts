@@ -2,7 +2,9 @@
  * The Bedrock actor-property definitions and values carried beside actor data.
  *
  * Definitions tell a client which client-synced properties exist for each actor type. Values
- * then travel with actor spawns and metadata updates, indexed in that same definition order.
+ * then travel with actor spawns and metadata updates, indexed in that same definition order,
+ * which is the properties' names sorted, as BDS 1.26.60.6 sends them, whatever order the entity's
+ * file declares them in.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { PropertyDefinition, PropertyType, PropertyValues } from '@jsprismarine/entities';
@@ -23,17 +25,24 @@ const propertyTypeIds = {
 } satisfies Record<PropertyType, number>;
 
 /**
+ * BDS's property order: by name, compared code unit by code unit as its `std::string` keys are,
+ * so `minecraft:creaking_state` comes before `minecraft:creaking_swaying_ticks`.
+ */
+const byName = (left: { readonly name: string }, right: { readonly name: string }): number =>
+    left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
+
+/**
  * Builds the schema packet for an actor type, or returns undefined when the type has no
  * client-synced properties.
  *
  * @param identifier - The actor's namespaced identifier.
- * @param definitions - Its parsed properties, in declaration order.
+ * @param definitions - Its parsed properties, in any order.
  */
 export const syncActorPropertyPacket = (
     identifier: string,
     definitions: ReadonlyMap<string, PropertyDefinition>
 ): SyncActorPropertyPacket | undefined => {
-    const synced = [...definitions.values()].filter((definition) => definition.clientSync);
+    const synced = [...definitions.values()].filter((definition) => definition.clientSync).sort(byName);
     if (synced.length === 0) return undefined;
 
     const propertyData = new NBTTagCompound('');
@@ -98,7 +107,7 @@ export const syncedPropertiesOf = (
 };
 
 /**
- * An entity's client-synced properties with the index each travels under, in the order its
+ * An entity's client-synced properties with the index each travels under, in the name order its
  * synced definition packet declares them. Every packet that names a property by index reads it here.
  */
 const syncedDefinitionsOf = (
@@ -110,6 +119,7 @@ const syncedDefinitionsOf = (
             const definition = properties.definition(name);
             return definition === undefined || !definition.clientSync ? [] : [{ name, definition }];
         })
+        .sort(byName)
         .map((each, index) => ({ ...each, index }));
 
 /** What a player's client overrides of one entity's properties: one property's value, its removal, or all of them. */
