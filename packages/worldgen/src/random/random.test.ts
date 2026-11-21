@@ -422,4 +422,10 @@ describe('the lane implementation against the BigInt oracle', () => {
         const substituted = new XoroshiroRandomSource(0n, 0n);
         expect(fromLanes.nextLong()).toBe(substituted.nextLong());
     });
+
+    it('reads the seed of a source constructed after one built from lanes', () => {
+        const expected = new Xoroshiro128PlusPlus(5n, 7n).nextLong();
+        XoroshiroRandomSource.fromLanes(1, 2, 3, 4);
+        expect(new XoroshiroRandomSource(5n, 7n).nextLong()).toBe(expected);
+    });
 });

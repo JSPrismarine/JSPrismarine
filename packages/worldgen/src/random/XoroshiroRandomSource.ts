@@ -36,7 +36,8 @@ export class Xoroshiro128PlusPlus {
 
     public constructor(seedLo: bigint, seedHi: bigint) {
         // An all-zero state is a fixed point of the recurrence, so Java substitutes a constant.
-        if ((asLong(seedLo) | asLong(seedHi)) === 0n) {
+        // `fromLanes` starts from that constant and replaces it when its lanes are not all zero.
+        if (constructingFromLanes || (asLong(seedLo) | asLong(seedHi)) === 0n) {
             this.seedLo = GOLDEN_RATIO_64;
             this.seedHi = SILVER_RATIO_64;
         } else {
@@ -112,6 +113,12 @@ const positionalSeedLanes = (x: number, y: number, z: number): void => {
 };
 
 /**
+ * Set while {@link XoroshiroRandomSource.fromLanes} constructs a source whose lanes it writes
+ * itself, so the constructor skips the BigInt reads of its seed arguments.
+ */
+let constructingFromLanes = false;
+
+/**
  * A {@link RandomSource} running Xoroshiro128++ over 32-bit lanes.
  *
  * Bit-for-bit equal to {@link Xoroshiro128PlusPlus}, which stays the slow reference this is
@@ -139,7 +146,15 @@ export class XoroshiroRandomSource implements RandomSource {
 
     /** Builds a source from a 128-bit state given as four unsigned 32-bit lanes. */
     public static fromLanes(loHi: number, loLo: number, hiHi: number, hiLo: number): XoroshiroRandomSource {
-        const source = new XoroshiroRandomSource(0n, 0n);
+        // Every positional draw builds one of these, and the BigInt seed checks in the constructor
+        // cost more than the draw itself.
+        constructingFromLanes = true;
+        let source: XoroshiroRandomSource;
+        try {
+            source = new XoroshiroRandomSource(0n, 0n);
+        } finally {
+            constructingFromLanes = false;
+        }
         if ((loHi | loLo | hiHi | hiLo) === 0) return source;
         source.loHi = loHi >>> 0;
         source.loLo = loLo >>> 0;
@@ -150,7 +165,8 @@ export class XoroshiroRandomSource implements RandomSource {
 
     public constructor(seedLo: bigint, seedHi: bigint) {
         // An all-zero state is a fixed point of the recurrence, so Java substitutes a constant.
-        if ((asLong(seedLo) | asLong(seedHi)) === 0n) {
+        // `fromLanes` starts from that constant and replaces it when its lanes are not all zero.
+        if (constructingFromLanes || (asLong(seedLo) | asLong(seedHi)) === 0n) {
             this.loHi = GOLDEN_HI;
             this.loLo = GOLDEN_LO;
             this.hiHi = SILVER_HI;
