@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import type { NativeWorldgen } from '@jsprismarine/native-worldgen';
+
+import { nativeWorldgen } from '../noise/nativeNoise';
 import { asLong } from '../random/randomSupport';
 import { mulLow64 } from '../random/longLanes';
 import type { BiomeResolver } from './BiomeSource';
@@ -38,8 +41,11 @@ const lcgNext = (
     result.lo = sum >>> 0;
 };
 
+/** Turns ten bits, bits 24 through 33 of a generator step, into the jitter Java adds to a distance. */
+const fiddleOf = (bits: number): number => (bits / 1024 - 0.5) * 0.9;
+
 /** Turns bits 24 through 33 into the jitter Java adds to a cell's distance. */
-const fiddle = (hi: number, lo: number): number => ((((lo >>> 24) | (hi << 8)) & 1023) / 1024 - 0.5) * 0.9;
+const fiddle = (hi: number, lo: number): number => fiddleOf(((lo >>> 24) | (hi << 8)) & 1023);
 
 /** Writes one lattice point's three jitter offsets into `target` at `offset`. */
 const fiddleOffsets = (
@@ -81,6 +87,16 @@ const JITTER_POINTS_Y = 128;
 /** The number of lattice points the jitter cache holds. */
 const JITTER_SLOTS = JITTER_POINTS_XZ * JITTER_POINTS_XZ * JITTER_POINTS_Y;
 
+/** How a {@link BiomeManager} derives its jitter. */
+export interface BiomeManagerOptions {
+    /**
+     * Whether a lattice point's jitter is derived in `@jsprismarine/native-worldgen`, which gives
+     * the same bits. On by default whenever the library loads on the thread; false keeps the
+     * TypeScript generator steps.
+     */
+    readonly native?: boolean;
+}
+
 /**
  * The per-block biome getter the surface pass reads.
  *
@@ -107,15 +123,19 @@ export class BiomeManager {
     private hasCachedParentCell = false;
     private readonly zoomSeedHi: number;
     private readonly zoomSeedLo: number;
+    /** The library, looked up on the first jitter miss; null keeps the TypeScript steps. */
+    private native: NativeWorldgen | null | undefined;
 
     public constructor(
         private readonly resolver: BiomeResolver,
         /** The jitter seed, which Java derives from the world seed with {@link obfuscateSeed}. */
-        public readonly zoomSeed: bigint
+        public readonly zoomSeed: bigint,
+        private readonly options: BiomeManagerOptions = {}
     ) {
         const unsignedSeed = BigInt.asUintN(64, zoomSeed);
         this.zoomSeedHi = Number(unsignedSeed >> 32n);
         this.zoomSeedLo = Number(unsignedSeed & UINT32_MASK);
+        if (options.native === false) this.native = null;
     }
 
     /**
@@ -132,7 +152,7 @@ export class BiomeManager {
 
     /** Returns a source with the same jitter seed but a different biome layout. */
     public withResolver(resolver: BiomeResolver): BiomeManager {
-        return new BiomeManager(resolver, this.zoomSeed);
+        return new BiomeManager(resolver, this.zoomSeed, this.options);
     }
 
     /** Returns the biome identifier at one block position. */
@@ -235,17 +255,26 @@ export class BiomeManager {
             return offset;
         }
 
-        fiddleOffsets(
-            this.zoomSeedHi,
-            this.zoomSeedLo,
-            pointX,
-            pointY,
-            pointZ,
-            this.jitter,
-            offset,
-            this.jitterValue,
-            this.jitterProduct
-        );
+        if (this.native === undefined) this.native = nativeWorldgen() ?? null;
+        if (this.native === null) {
+            fiddleOffsets(
+                this.zoomSeedHi,
+                this.zoomSeedLo,
+                pointX,
+                pointY,
+                pointZ,
+                this.jitter,
+                offset,
+                this.jitterValue,
+                this.jitterProduct
+            );
+        } else {
+            // One call instead of nine generator steps, each three 64-bit multiplies on 32-bit lanes.
+            const bits = this.native.biomeJitter(this.zoomSeedHi, this.zoomSeedLo, pointX, pointY, pointZ);
+            this.jitter[offset] = fiddleOf(bits & 1023);
+            this.jitter[offset + 1] = fiddleOf((bits >>> 10) & 1023);
+            this.jitter[offset + 2] = fiddleOf((bits >>> 20) & 1023);
+        }
         this.jitterKeyX[slot] = pointX;
         this.jitterKeyY[slot] = pointY;
         this.jitterKeyZ[slot] = pointZ;

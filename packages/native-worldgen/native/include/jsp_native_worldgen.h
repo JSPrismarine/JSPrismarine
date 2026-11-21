@@ -178,4 +178,12 @@ JWG_EXPORT double jwg_climate_find(
     double weirdness
 );
 
+/*
+ * The three jitter offsets of one biome lattice point, as Java's BiomeManager derives them from the
+ * zoom seed (given as its unsigned high and low 32 bits) and the point's coordinates. Each offset
+ * is bits 24 to 33 of one step of Java's linear congruential generator; the result packs the x, y
+ * and z offsets' bits as x | y << 10 | z << 20.
+ */
+JWG_EXPORT double jwg_biome_jitter(double seed_hi, double seed_lo, double x, double y, double z);
+
 #endif
