@@ -1267,6 +1267,11 @@
             "reason": "Spawn and cap model (category 7 of docs/data-driven/parity.md): the server despawns this mob by Bedrock's own minecraft:despawn distances, which every Bedrock mob farm is built around. it despawned with a player 48 blocks away, where Java keeps it (as Bedrock's minecraft:despawn declares, past 40 blocks)",
             "reference": "Java Mob.checkDespawn (MobCategory.getDespawnDistance, getNoDespawnDistance 32, noActionTime > 600 before the 1 in 800 roll), the removeWhenFarAway overrides of Animal, AbstractGolem, AbstractFish, Raider, PatrollingMonster and the rest, and the categories EntityTypes registers"
         },
+        "entity-item-slot:chested llama/horse.chest": {
+            "kind": "deferred",
+            "reason": "A mount's chest is the minecraft:is_chested component group, which a slot write does not switch yet.",
+            "reference": "https://github.com/JSPrismarine/JSPrismarine/issues/3608"
+        },
         "goal-controlled_by_player:minecraft:pig": {
             "kind": "intentional",
             "reason": "A ridden pig or strider is a driven vehicle: the Bedrock client simulates the steering and reports the movement, which docs/data-driven/parity.md excludes as client-predicted simulation (category 3), so the server's goal does not move it.",
