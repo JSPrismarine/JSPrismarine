@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +7,8 @@ import { Difficulty, Gametype, PacketCompressionAlgorithm } from '@jsprismarine/
 import { DEFAULT_DEBUGGER_PORT } from '@jsprismarine/script-host/debugger/protocol';
 import { DEFAULT_LISTEN_ADDRESS } from '@jsprismarine/script-host/debugger/transport';
 import pkg from '../../package.json' with { type: 'json' };
-import { Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
+import { PrismarineServerErrors } from '@jsprismarine/errors/prismarine/server';
+import { CONFIG_SCHEMA_VERSION, Config, toPacketCompressionLevel, toPacketCompressionThreshold } from './Config';
 import { parseConfigDocument } from './ConfigDocument';
 import { normalizeWorldData, worldDataOf } from './normalizeWorldData';
 import { chunkWorkerCount } from '../world/generators/chunkConcurrency';
@@ -53,21 +54,43 @@ describe('config', () => {
 
         it("renames an older file's port to server-port, keeping its value and comments", async () => {
             const file = path.join(configDirectory, 'config.json');
-            writeFileSync(file, '{\n  // My server.\n  "port": 25565, // forwarded\n  "motd": "Hi there"\n}\n');
+            const original = '{\n  // My server.\n  "port": 25565, // forwarded\n  "motd": "Hi there"\n}\n';
+            writeFileSync(file, original);
+            const heard: string[] = [];
 
             const reread = new Config();
-            await reread.enable();
+            await reread.enable({ info: (message) => void heard.push(message) });
 
             const text = readFileSync(file, 'utf8');
             expect(reread.getServerPort()).toBe(25565);
             expect(text).toContain('  // My server.\n  "server-port": 25565, // forwarded');
             expect(text).not.toContain('"port"');
+            expect(parseConfigDocument(text).get(['schemaVersion'])).toBe(CONFIG_SCHEMA_VERSION);
+            expect(readFileSync(`${file}.v0.bak`, 'utf8')).toBe(original);
+            expect(heard).toHaveLength(1);
         });
 
-        it('refuses a file that has both port and server-port', async () => {
-            writeFileSync(path.join(configDirectory, 'config.json'), '{ "port": 19132, "server-port": 19200 }\n');
+        it('refuses a file that has both port and server-port, and leaves it as it was', async () => {
+            const file = path.join(configDirectory, 'config.json');
+            const original = '{ "port": 19132, "server-port": 19200 }\n';
+            writeFileSync(file, original);
 
-            await expect(new Config().enable()).rejects.toThrow('has both port and server-port');
+            await expect(new Config().enable({ info: () => {} })).rejects.toBeInstanceOf(
+                PrismarineServerErrors.PortAndServerPortBothSet
+            );
+            expect(readFileSync(file, 'utf8')).toBe(original);
+            expect(readdirSync(configDirectory).filter((name) => name.endsWith('.bak'))).toEqual([]);
+        });
+
+        it('writes a fresh file at the current version, so no later start migrates or backs it up', async () => {
+            const heard: string[] = [];
+
+            await new Config().enable({ info: (message) => void heard.push(message) });
+
+            const file = path.join(configDirectory, 'config.json');
+            expect(parseConfigDocument(readFileSync(file, 'utf8')).get(['schemaVersion'])).toBe(CONFIG_SCHEMA_VERSION);
+            expect(readdirSync(configDirectory).filter((name) => name.endsWith('.bak'))).toEqual([]);
+            expect(heard).toEqual([]);
         });
 
         it('should have the default server IP', () => {

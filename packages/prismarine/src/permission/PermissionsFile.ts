@@ -1,10 +1,11 @@
 /**
- * `permissions.json` on disk: how the version 2 layout is read, how a file written before it
- * migrates, and the paths each write edits in place so comments survive
+ * `permissions.json` on disk: how the current layout is read, the steps that bring an older file
+ * to it, and the paths each write edits in place so comments survive
  * ([the permissions plan](../../../../docs/plans/permissions.md)).
  */
 import type { ConfigDocument, ConfigPath } from '../config/ConfigDocument';
 import { parseConfigDocument } from '../config/ConfigDocument';
+import type { FileMigrations } from '../config/FileMigrations';
 import type { PermissionGroupJson, PermissionsFile } from '../config/JsonConfigTypes';
 import type { Subject } from '../identity/Subject';
 import { SUBJECT_KINDS, parseSubject, subjectId, subjectKey } from '../identity/Subject';
@@ -25,7 +26,10 @@ import {
 import { wouldCycle } from './resolve';
 
 /** The layout this server reads and writes. */
-export const PERMISSIONS_SCHEMA_VERSION = 2 as const;
+export const PERMISSIONS_SCHEMA_VERSION = 3 as const;
+
+/** The nodes version 3 adds to the `default` group, of a fresh file and of an existing one alike. */
+export const VERSION_3_DEFAULT_PERMISSIONS = ['jsprismarine.command.link', 'jsprismarine.command.unlink'] as const;
 
 /** The permissions a fresh `permissions.json` grants every player, as the `default` group's nodes. */
 export const DEFAULT_PLAYER_PERMISSIONS: readonly string[] = [
@@ -35,8 +39,7 @@ export const DEFAULT_PLAYER_PERMISSIONS: readonly string[] = [
     'jsprismarine.command.plugins',
     'jsprismarine.command.version',
     'jsprismarine.command.tps',
-    'jsprismarine.command.link',
-    'jsprismarine.command.unlink'
+    ...VERSION_3_DEFAULT_PERMISSIONS
 ];
 
 /** A user the file knows, with the subject it is filed under. */
@@ -69,7 +72,7 @@ const builtInGroups = (
     [OPERATOR_GROUP]: { weight: 100, parents: [], nodes: operator.map((node) => ({ node })), meta: {} }
 });
 
-/** Writes the version 2 keys into an empty document, each explained. */
+/** Writes the current layout's keys into an empty document, each explained. */
 const writeLayout = (document: ConfigDocument, groups: Record<string, PermissionGroupJson>): void => {
     document.set(
         ['schemaVersion'],
@@ -135,7 +138,8 @@ export const legacyPlayersOf = (root: Record<string, unknown>): LegacyPlayer[] =
  * nodes, `defaultOperatorPermissions` as `operator`'s, and each `players` entry under `pending`
  * with its UUID as `legacyUuid`, until a login with that UUID claims it. A `defaultPermissions`
  * that is missing or not a list of strings read as no permissions before, and still does; a
- * `defaultOperatorPermissions` that is gives `operator` `*`, as a fresh file does.
+ * `defaultOperatorPermissions` that is gives `operator` `*`, as a fresh file does. The migration
+ * runner sets `schemaVersion` to 2 afterwards, and the later steps run on the result.
  */
 export const migrateLegacyPermissions = (root: Record<string, unknown>): ConfigDocument => {
     const document = parseConfigDocument('{}');
@@ -167,27 +171,69 @@ export const migrateLegacyPermissions = (root: Record<string, unknown>): ConfigD
 };
 
 /**
- * Which layout a file declares: `absent` for a file written before `schemaVersion` existed, which
- * migrates; `current` for the layout this server reads; `other` for anything else, which is
- * refused without a rewrite, since a `"2"` or a `3` is not a file of the old shape.
+ * Gives the `default` group of an existing file each of these nodes it does not name yet, after
+ * the nodes it has. A node the group already names, granted or negated, stays as the owner wrote
+ * it, and no other group changes. A file without `default`, or with a `nodes` that is not a list,
+ * is left alone: the loader reads the first as a fresh file's group, which holds them already, and
+ * skips the second.
  */
-export const layoutOf = (root: Record<string, unknown>): 'absent' | 'current' | 'other' => {
-    if (!('schemaVersion' in root)) return 'absent';
-    return root.schemaVersion === PERMISSIONS_SCHEMA_VERSION ? 'current' : 'other';
+export const grantDefaultNodes = (document: ConfigDocument, nodes: readonly string[]): void => {
+    const at = [...groupPath(DEFAULT_GROUP), 'nodes'];
+    const held = document.get(at);
+    if (!Array.isArray(held)) return;
+    const named = new Set(
+        held.flatMap((entry) =>
+            isRecord(entry) && typeof entry.node === 'string' ? [entry.node.replace(/^-/, '')] : []
+        )
+    );
+    let index = held.length;
+    for (const node of nodes) {
+        if (!named.has(node)) document.set([...at, index++], { node });
+    }
 };
 
 /** The name of the file. */
 export const PERMISSIONS_FILE_NAME = 'permissions.json';
-/** The name of the copy a migration keeps beside the file. */
-export const PERMISSIONS_BACKUP_NAME = `${PERMISSIONS_FILE_NAME}.bak`;
+
+/**
+ * How `permissions.json` upgrades. A file without `schemaVersion` is the version 1 layout, with
+ * `defaultPermissions`, `defaultOperatorPermissions` and `players`.
+ */
+export const PERMISSIONS_MIGRATIONS: FileMigrations = {
+    fileName: PERMISSIONS_FILE_NAME,
+    unversioned: 1,
+    current: PERMISSIONS_SCHEMA_VERSION,
+    steps: [
+        {
+            // Groups and users filed by platform, with the old players pending under their UUID.
+            to: 2,
+            migrate: (document) => {
+                const root = document.get([]);
+                return migrateLegacyPermissions(isRecord(root) ? root : {});
+            }
+        },
+        {
+            // `/link` and `/unlink` are for every player.
+            to: 3,
+            migrate: (document) => {
+                grantDefaultNodes(document, VERSION_3_DEFAULT_PERMISSIONS);
+                return undefined;
+            }
+        }
+    ]
+};
+
+/** Whether a parsed file is at the layout this server reads, the one {@link readPermissions} takes. */
+export const isCurrentLayout = (root: Record<string, unknown>): boolean =>
+    root.schemaVersion === PERMISSIONS_SCHEMA_VERSION;
 
 /** A built-in group as a fresh file writes it, for a file that lacks one. */
 export const builtInGroup = (name: typeof DEFAULT_GROUP | typeof OPERATOR_GROUP): Group =>
     readGroup(builtInGroups()[name]);
 
 /**
- * A version 2 document holding this state, for an edit when the file on disk is gone or no longer
- * a version 2 file.
+ * A current document holding this state, for an edit when the file on disk is gone or no longer
+ * at the current layout.
  */
 export const documentOf = (loaded: LoadedPermissions, now: number): ConfigDocument => {
     const document = parseConfigDocument('{}');
@@ -227,7 +273,7 @@ export const dropParentCycles = (groups: Map<string, Group>): DroppedParent[] =>
 };
 
 /**
- * Reads a version 2 document into memory. A section or an entry that does not have the shape the
+ * Reads a current document into memory. A section or an entry that does not have the shape the
  * file declares is skipped, so one bad line does not refuse the file.
  */
 export const readPermissions = (root: Record<string, unknown>): LoadedPermissions => {

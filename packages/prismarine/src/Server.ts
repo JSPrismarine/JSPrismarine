@@ -489,7 +489,7 @@ export default class Server {
      * @internal
      */
     private async enable(): Promise<void> {
-        await this.config.enable();
+        await this.config.enable(this.logger);
         // Output needs only stdout, so attach it before anything logs.
         this.logger.setConsole(this.console);
         await this.logger.enable();

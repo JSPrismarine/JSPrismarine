@@ -378,6 +378,21 @@ are. When a new version adds a setting, the server adds that key and its
 comment to the end of your file and leaves the rest alone, so there is no
 need to regenerate the file after an upgrade.
 
+`config.json` and `permissions.json` also name their layout in `schemaVersion`,
+<!-- fact:config.schemaVersion -->1<!-- /fact --> and <!-- fact:permissions.schemaVersion -->3<!-- /fact --> in this release. When a release changes the shape or the
+defaults of one of them, the server upgrades the file when it starts. It runs
+each change between the file's version and the current one in order, so a file
+from any older release is brought up to date in one start. Before it writes
+the result, it keeps the original beside the file under its old version, such
+as <!-- fact:config.backupFile -->`config.json.v0.bak`<!-- /fact -->, and logs one line naming both versions. It never
+overwrites an earlier backup: a second one of the same version is named
+<!-- fact:config.secondBackupFile -->`config.json.v0-2.bak`<!-- /fact -->. A file already at the current version is not
+rewritten. A change that cannot be made, such as a file that sets both `port`
+and `server-port`, stops the server with an error and leaves the file as it
+was. So does a file whose `schemaVersion` is not a whole number, or is newer
+than the server knows, which means a newer server wrote it: update the server,
+or restore a backup.
+
 Older servers kept their settings in `config.yml` or `config.yaml`. The server
 does not read those files and ignores them if they exist. Move any settings you
 still need into `config.json` (where `//` comments are allowed).
@@ -387,12 +402,13 @@ the server has been checked with retail Bedrock clients on Windows and Android.
 
 ### Every setting
 
-A fresh server writes these <!-- fact:config.count -->46<!-- /fact --> settings, each with the comment below
+A fresh server writes these <!-- fact:config.count -->47<!-- /fact --> settings, each with the comment below
 above it. The list comes from the code that writes the file, so it matches what your version writes.
 
 <!-- fact:config.table -->
 | Setting                               | What it does                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`                       | The layout of this file. The server upgrades a file an older version wrote and keeps the original beside it.                                                                                                                                                                                                                                        |
 | `log-level`                           | How much the console and the log file say: error, warn, info, verbose, debug or silly.                                                                                                                                                                                                                                                              |
 | `server-port`                         | The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132. |
 | `server-portv6`                       | The UDP port RakNet listens on for IPv6 clients when server-ip is 0.0.0.0. Bedrock clients look for 19133. It may equal server-port.                                                                                                                                                                                                                |
@@ -570,8 +586,9 @@ Only accounts a sign-in vouched for can link, so linking needs `online-mode` on.
 in `account-links.json` beside the ban list. With `account-linking` off, `/link` and `/unlink` say
 so, each account is its own player, and the links already made are kept but ignored.
 
-A fresh `permissions.json` grants `jsprismarine.command.link` and `jsprismarine.command.unlink` to
-every player.
+`permissions.json` grants `jsprismarine.command.link` and `jsprismarine.command.unlink` to every
+player: a fresh file has them, and an existing one gains them when it is upgraded to version 3, as
+[Permissions](#permissions) describes.
 
 Players of both editions may share a name without linking: a Java Edition player and a Bedrock
 player called Steve can both play, and each keeps a record of their own.
@@ -705,7 +722,7 @@ operators <!-- fact:permissions.operatorNode -->`*`<!-- /fact -->, which is ever
 <!-- fact:permissions.example -->
 ```jsonc
 {
-    "schemaVersion": 2,
+    "schemaVersion": 3,
     "groups": {
         "default": { "weight": 0, "parents": [], "nodes": [{ "node": "minecraft.command.help" }], "meta": {} },
         "vip": {
@@ -797,17 +814,20 @@ record at a time so your comments stay. A write goes to a temporary file that re
 a write that fails leaves both as they were. A write that succeeds sends every player it reaches
 their command list and abilities again.
 
-**Migration.** A file written before `schemaVersion` existed, with `defaultPermissions`,
-`defaultOperatorPermissions` and `players`, migrates at the next start: the first list becomes the
+**Migration.** A file is upgraded at start as [Configuration](#configuration) describes. A file
+written before `schemaVersion` existed, with `defaultPermissions`, `defaultOperatorPermissions`
+and `players`, is version <!-- fact:permissions.unversioned -->1<!-- /fact -->, and migrates at the next start: the first list becomes the
 `default` group's nodes, the second the `operator` group's, and each `players` entry waits under
 `pending` with its UUID as `legacyUuid` until a login with that UUID claims it, which files the
 user under their platform and drops the UUID. An old file without a valid `defaultPermissions`
 list gives `default` nothing, as the old server read it; one without valid operator defaults gives
 `operator` `*`. The old file stays beside the new one as
-<!-- fact:permissions.backupFile -->`permissions.json.bak`<!-- /fact -->, a backup already there is kept, and the server logs each
-waiting entry at startup so you see who has not returned. A file whose `schemaVersion` is anything
-but <!-- fact:permissions.schemaVersion -->2<!-- /fact --> stops the server with an error and is left as it is, since a newer server
-wrote it; one that appears while the server runs refuses every write and is reported the same way.
+<!-- fact:permissions.backupFile -->`permissions.json.v1.bak`<!-- /fact -->, and the server logs each waiting entry at startup so you
+see who has not returned. Version 3 gives the `default` group of an existing file
+<!-- fact:permissions.version3Nodes -->`jsprismarine.command.link` and `jsprismarine.command.unlink`<!-- /fact -->, after its own nodes, unless the group already names
+them, granted or negated; no other group changes, and a fresh file has them already. A file the
+server cannot upgrade stops the server with an error and is left as it is; one that appears while
+the server runs refuses every write and is reported the same way.
 
 ### Operators and bans
 

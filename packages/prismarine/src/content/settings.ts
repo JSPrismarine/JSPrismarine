@@ -7,13 +7,11 @@
  *
  * Read through a `ConfigBuilder` of its own rather than through `Config`,
  * because `Config` reads every key it knows at `enable` time and the content
- * build happens before that. Both builders open the same `config.json` with
- * the same key order, so the file stays ordered whichever one writes first.
+ * build happens before that. Both builders open the same `config.json` through
+ * `openConfigFile`, so the file stays ordered whichever one writes first.
  * These keys used to live in a separate `config.yaml`.
  */
-import { configFilePath } from '../config/Config';
-import { ConfigBuilder } from '../config/ConfigBuilder';
-import { CONFIG_KEY_ORDER } from '../config/JsonConfigTypes';
+import { openConfigFile } from '../config/Config';
 import type { ContentConfigKey } from '../config/JsonConfigTypes';
 import { DEFAULT_PROTOCOL_SETTINGS } from '../network/codec/ProtocolPolicy';
 import type { ProtocolSettings } from '../network/codec/ProtocolPolicy';
@@ -47,7 +45,7 @@ export interface ContentSettings {
 
 /** Reads the content settings, writing any key the file lacks. */
 export const readContentSettings = (): ContentSettings => {
-    const config = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
+    const config = openConfigFile();
     const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
     // A number such as `26.3` written without quotes still names a release, so the value is read

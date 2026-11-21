@@ -155,17 +155,6 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
     FileMigrationsMisdeclared:
         'The migrations of {fileName} must step one version at a time from {oldest} to {current}; step {index} ends at {to}',
     /**
-     * `permissions.json` is not a JSON object. Fix it, or delete it to have the server write a
-     * fresh one.
-     */
-    PermissionsNotObject: '{permissionFileName} must hold an object',
-    /**
-     * `permissions.json` names a `schemaVersion` this server does not read, so it was written by
-     * a newer server. Update the server, or restore the file an older one wrote.
-     */
-    PermissionsSchemaUnsupported:
-        '{permissionFileName} has schemaVersion {schemaVersion}, and this server reads up to {supported}',
-    /**
      * A permission node is not spelled as `scope.name`, `scope.*` or `*`, with at most one leading
      * `-`. Dots separate non-empty segments, and `*` can only be the last one.
      */
@@ -202,8 +191,8 @@ export const PrismarineServerErrors = defineErrors('prismarine/server', {
      */
     PermissionGroupCycle: 'Making {parent} a parent of {group} would make {group} its own ancestor',
     /**
-     * `permissions.json` is no longer a version 2 file while the server runs, so an edit cannot
-     * be saved into it. Restore the file, or run `/perms reload` after fixing it.
+     * `permissions.json` is no longer at the version this server writes while the server runs, so
+     * an edit cannot be saved into it. Restore the file, or run `/perms reload` after fixing it.
      */
     PermissionsFileNotLoaded: '{permissionFileName} is not a version {supported} file, so the edit was not saved',
     /**

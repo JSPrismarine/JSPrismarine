@@ -94,7 +94,7 @@ describe('JSON schemas', () => {
             file: 'permissions.schema.json',
             valid: {
                 $schema: `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/permissions.schema.json`,
-                schemaVersion: 2,
+                schemaVersion: 3,
                 groups: {
                     default: { weight: 0, parents: [], nodes: [{ node: 'minecraft.command.help' }], meta: {} },
                     vip: {
@@ -119,7 +119,7 @@ describe('JSON schemas', () => {
                 ]
             },
             invalid: {
-                schemaVersion: 2,
+                schemaVersion: 3,
                 groups: { vip: { weight: 'heavy', parents: [], nodes: [], meta: {} } },
                 users: {}
             }

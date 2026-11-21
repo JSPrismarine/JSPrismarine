@@ -124,6 +124,8 @@ export interface StatsConfig {
  * @title JSPrismarine server configuration
  */
 export interface ConfigFile {
+    /** The layout of this file. The server upgrades a file with an older one, or without one. @asType integer */
+    schemaVersion?: 1;
     /** How much the console and the log file say. */
     'log-level'?: LogLevel;
     /** The port the server listens on, as Bedrock Dedicated Server's `server-port`: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. @asType integer @minimum 0 @maximum 65535 */
@@ -268,6 +270,7 @@ export type ContentConfigKey =
  */
 export const CONFIG_KEY_ORDER = [
     '$schema',
+    'schemaVersion',
     'log-level',
     'server-port',
     'server-portv6',
@@ -384,8 +387,8 @@ export interface PendingPermissionUserJson extends PermissionUserJson {
  * @title JSPrismarine permissions
  */
 export interface PermissionsFile {
-    /** The layout of this file. The server migrates a file without it. @asType integer */
-    schemaVersion: 2;
+    /** The layout of this file. The server upgrades a file with an older one, or without one. @asType integer */
+    schemaVersion: 3;
     /** Every group by name. A fresh or migrated file writes `default` and `operator`; a file without one reads as if it had a fresh file's. */
     groups: Record<string, PermissionGroupJson>;
     /** Users by platform: `xbox` by XUID, `java` by Mojang profile UUID, `offline` by name. */

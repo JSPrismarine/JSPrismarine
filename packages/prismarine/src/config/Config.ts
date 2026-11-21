@@ -1,10 +1,13 @@
 import type { LogLevel } from '@jsprismarine/logger';
+import { isLogLevel } from '@jsprismarine/logger/levels';
 
 import { isRecord } from '../utils/isRecord';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
+import type { FileMigrations, MigrationLogger } from './FileMigrations';
+import { migrateFile } from './FileMigrations';
 import { CONFIG_KEY_ORDER } from './JsonConfigTypes';
 import { BSTATS_ENDPOINT } from '../stats/bstats/service';
 import type { BStatsConfig, ConfigDifficulty, ConfigFile, ContentConfigKey } from './JsonConfigTypes';
@@ -63,6 +66,9 @@ export const SCRIPT_DEBUGGER_AUTO_ATTACH_MODES = ['disabled', 'connect', 'listen
 /** One of {@link SCRIPT_DEBUGGER_AUTO_ATTACH_MODES}. */
 export type ScriptDebuggerAutoAttach = (typeof SCRIPT_DEBUGGER_AUTO_ATTACH_MODES)[number];
 
+/** The layout of `config.json` this server reads and writes. */
+export const CONFIG_SCHEMA_VERSION = 1 as const;
+
 /**
  * What each key means, written above it the first time the server adds it to the file.
  *
@@ -71,6 +77,8 @@ export type ScriptDebuggerAutoAttach = (typeof SCRIPT_DEBUGGER_AUTO_ATTACH_MODES
  * code that reads them.
  */
 const COMMENTS = {
+    schemaVersion:
+        'The layout of this file. The server upgrades a file an older version wrote and keeps the original beside it.',
     'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
     'server-port':
         "The port the server listens on, as Bedrock Dedicated Server's server-port: TCP for NetherNet signaling, and UDP for RakNet and NetherNet. Unless server-udp-ports or query-port is set, RakNet's IPv4 listener, NetherNet's players and query all use this one UDP port; RakNet's IPv6 listener uses server-portv6. Bedrock clients look for 19132.",
@@ -246,6 +254,7 @@ export const optionalSettings = (): readonly { key: OptionalSetting; comment: st
  * {@link defaultWorlds}.
  */
 const DEFAULTS = {
+    schemaVersion: CONFIG_SCHEMA_VERSION,
     'log-level': isDev ? 'verbose' : 'info',
     'server-port': 19132,
     // Bedrock clients look for a server's IPv6 listener on 19133.
@@ -315,6 +324,41 @@ const DEFAULTS = {
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'> & {
     stats: { bstats: Required<BStatsConfig> };
 };
+
+/**
+ * How `config.json` upgrades. A file without `schemaVersion` is version 0, every file before the
+ * key existed.
+ */
+export const CONFIG_MIGRATIONS: FileMigrations = {
+    fileName: FILE_NAME,
+    unversioned: 0,
+    current: CONFIG_SCHEMA_VERSION,
+    versionComment: COMMENTS.schemaVersion,
+    keyOrder: CONFIG_KEY_ORDER,
+    steps: [
+        {
+            // `port` was server-port's name before it took Bedrock Dedicated Server's.
+            to: 1,
+            migrate: (document) => {
+                if (!document.has(['port'])) return undefined;
+                if (document.has(['server-port'])) {
+                    throw new PrismarineServerErrors.PortAndServerPortBothSet({ configFilePath: configFilePath() });
+                }
+                document.rename('port', 'server-port');
+                return undefined;
+            }
+        }
+    ]
+};
+
+/**
+ * Opens `config.json` for reading and writing one key at a time, creating it at the current
+ * version when there is none, so a fresh file is not taken for one written before versions.
+ */
+export const openConfigFile = (): ConfigBuilder =>
+    new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER, (document) =>
+        document.set(['schemaVersion'], CONFIG_SCHEMA_VERSION, COMMENTS.schemaVersion)
+    );
 
 /**
  * The `stats.bstats` settings as the server reads them: the keys of {@link BStatsConfig}.
@@ -508,8 +552,11 @@ export class Config {
      */
     public constructor({ serverPort }: ConfigOptions = {}) {
         this.serverPortOverride = serverPort;
-        this.configBuilder = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
-        this.logLevel = this.configBuilder.get('log-level', DEFAULTS['log-level'], COMMENTS['log-level']);
+        this.configBuilder = openConfigFile();
+        // Read without writing the default: `enable` migrates the file first, and its backup should
+        // hold the file as the owner left it.
+        const logLevel = this.configBuilder.get('log-level');
+        this.logLevel = isLogLevel(logLevel) ? logLevel : DEFAULTS['log-level'];
     }
 
     /**
@@ -517,11 +564,16 @@ export class Config {
      *
      * Reads every setting, writing the default and its comment into the file for any key the
      * file does not have yet. A file from an older version therefore gains the new keys,
-     * explained, without losing anything a person wrote in it.
+     * explained, without losing anything a person wrote in it. Before that, a file at an older
+     * {@link CONFIG_SCHEMA_VERSION} runs the {@link CONFIG_MIGRATIONS} steps up to the current one.
+     * @param logger - Told which versions a migrated file went from and to. Defaults to the console.
+     * @throws PortAndServerPortBothSet, and the other errors a migration throws, when the file
+     *   cannot be upgraded; it is left as it was.
      * @group Lifecycle
      */
-    public async enable(): Promise<void> {
-        const config = new ConfigBuilder(configFilePath(), CONFIG_KEY_ORDER);
+    public async enable(logger: MigrationLogger = console): Promise<void> {
+        await migrateFile(configFilePath(), CONFIG_MIGRATIONS, logger);
+        const config = openConfigFile();
         this.configBuilder = config;
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
         // For a key a fresh config leaves out: absent means its default, and reading it writes nothing.
@@ -540,13 +592,6 @@ export class Config {
         };
 
         this.logLevel = read('log-level', DEFAULTS['log-level']);
-        // `port` was this setting's name before it took Bedrock Dedicated Server's.
-        if (config.has('port')) {
-            if (config.has('server-port')) {
-                throw new PrismarineServerErrors.PortAndServerPortBothSet({ configFilePath: configFilePath() });
-            }
-            config.rename('port', 'server-port');
-        }
         const filePort = read('server-port', DEFAULTS['server-port']);
         this.port = this.serverPortOverride ?? filePort;
         this.portV6 = read('server-portv6', DEFAULTS['server-portv6']);
