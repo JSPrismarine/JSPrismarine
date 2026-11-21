@@ -151,8 +151,14 @@ interface JavaConnectionState {
     verified?: boolean;
     /** The player's session, once they are in the world. */
     session?: PlayerSession;
-    /** The facing and footing the last move reported, for the moves that leave either out. */
-    pose?: { yaw: number; pitch: number; onGround: boolean };
+    /**
+     * Where the last move put the player's feet, and its facing and footing, for the moves that
+     * leave some of it out. Kept here rather than read off the player, whose earlier moves may
+     * still wait in the input queue.
+     */
+    pose?: { x: number; y: number; z: number; yaw: number; pitch: number; onGround: boolean };
+    /** The chunk sends queued for the connection, one after another, which its packets do not wait on. */
+    streaming?: Promise<void>;
     /** Whether the client confirmed a teleport since its last move, as Bedrock's `HandledTeleport` says. */
     teleportHandled?: boolean;
     /** The chunk the client's view centers on, and every chunk it has been sent. */
@@ -408,7 +414,7 @@ export class JavaConnections {
         );
         state.session = session;
         const player = session.getPlayer();
-        state.pose = { yaw: player.yaw, pitch: player.pitch, onGround: true };
+        state.pose = { ...feet, yaw: player.yaw, pitch: player.pitch, onGround: true };
         const radius = world.viewDistance();
         this.send(state, PlayLogin, {
             entityId: Number(session.runtimeId),
@@ -447,7 +453,7 @@ export class JavaConnections {
         });
         this.send(state, GameEvent, { event: START_WAITING_FOR_LEVEL_CHUNKS, value: 0 });
         state.view = { x: Math.floor(feet.x) >> 4, z: Math.floor(feet.z) >> 4, sent: new Set() };
-        await this.sendChunksAround(state, world);
+        this.streamChunks(state, world);
 
         const keepAlive = {
             awaiting: undefined as bigint | undefined,
@@ -506,14 +512,18 @@ export class JavaConnections {
             throw new PrismarineNetworkErrors.UnexpectedJavaPacket({ packetId, phase: state.phase });
         }
         const { players } = world;
+        // Each input is queued for the input step and the next packet is read at once, as a
+        // Bedrock client's are: waiting a tick on each one let a lagging server fall further
+        // behind the client with every packet.
+        const queue = (applied: Promise<void>) => void applied.catch((error: unknown) => this.failed(state, error));
         switch (packetId) {
             case PlayerLoaded.id:
                 expect(PlayerLoaded);
-                return players.intent(session, { kind: 'playerInitialized' });
+                return queue(players.intent(session, { kind: 'playerInitialized' }));
             case ChatMessage.id:
-                return players.intent(session, { kind: 'chat', message: expect(ChatMessage).message });
+                return queue(players.intent(session, { kind: 'chat', message: expect(ChatMessage).message }));
             case ChatCommand.id:
-                return players.intent(session, { kind: 'runCommand', command: expect(ChatCommand).command });
+                return queue(players.intent(session, { kind: 'runCommand', command: expect(ChatCommand).command }));
             case MovePlayerPos.id:
             case MovePlayerPosRot.id:
             case MovePlayerRot.id:
@@ -534,9 +544,7 @@ export class JavaConnections {
         expect: <T>(definition: JavaPacketDefinition<T>) => T
     ): Promise<void> {
         const pose = state.pose!;
-        const feet = session.getPlayer().getPosition();
-        let { x, z } = { x: feet.getX(), z: feet.getZ() };
-        let y = feet.getY() - EYE_HEIGHT;
+        let { x, y, z } = pose;
         let flags: number;
         if (packetId === MovePlayerPos.id) {
             ({ x, y, z, flags } = expect(MovePlayerPos));
@@ -552,9 +560,12 @@ export class JavaConnections {
             pose.pitch = move.pitch;
         } else flags = expect(MovePlayerStatusOnly).flags;
         pose.onGround = (flags & MOVE_ON_GROUND) !== 0;
+        pose.x = x;
+        pose.y = y;
+        pose.z = z;
         const handledTeleport = state.teleportHandled === true;
         state.teleportHandled = false;
-        await world.players.move(session, {
+        const applied = world.players.move(session, {
             position: new Vector3(x, y + EYE_HEIGHT, z),
             pitch: pose.pitch,
             yaw: pose.yaw,
@@ -562,6 +573,7 @@ export class JavaConnections {
             onGround: pose.onGround,
             handledTeleport
         });
+        void applied.catch((error: unknown) => this.failed(state, error));
 
         const view = state.view!;
         const chunkX = Math.floor(x) >> 4;
@@ -569,8 +581,25 @@ export class JavaConnections {
         if (chunkX !== view.x || chunkZ !== view.z) {
             view.x = chunkX;
             view.z = chunkZ;
-            await this.sendChunksAround(state, world);
+            this.streamChunks(state, world);
         }
+    }
+
+    /**
+     * Sends the chunks the view lacks after any sends already queued, without holding up the
+     * connection's packets: a join's first batch takes as long as the world takes to load it,
+     * and the client keeps moving, answering keep-alives and loading in meanwhile.
+     */
+    private streamChunks(state: JavaConnectionState, world: JavaWorldHost): void {
+        state.streaming = (state.streaming ?? Promise.resolve())
+            .then(() => this.sendChunksAround(state, world))
+            .catch((error: unknown) => this.failed(state, error));
+    }
+
+    /** Closes a connection whose queued work failed, as a packet it could not read closes it. */
+    private async failed(state: JavaConnectionState, error: unknown): Promise<void> {
+        this.options.log.debug(`Java connection ${state.connection.id} failed in play: ${errorMessage(error)}`);
+        await state.connection.close();
     }
 
     /** Ends a login with a reason the client shows. */

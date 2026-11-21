@@ -286,6 +286,67 @@ describe('JavaConnections', () => {
         );
     });
 
+    it('reads the next packet while an input waits for its step', async () => {
+        transport = new TcpTransport(new ConnectionIds(), quiet);
+        const queued: string[] = [];
+        const apply: (() => void)[] = [];
+        const session = stub<PlayerSession>({
+            runtimeId: 7n,
+            getPlayer: () =>
+                stub<SessionPlayer>({
+                    yaw: 0,
+                    pitch: 0,
+                    gamemode: Gametype.CREATIVE,
+                    getPosition: () => new Vector3(8.5, -60 + EYE_HEIGHT, 8.5)
+                })
+        });
+        // Inputs wait for an input step that only the test runs.
+        const held = (what: string) => {
+            queued.push(what);
+            return new Promise<void>((resolve) => apply.push(resolve));
+        };
+        new JavaConnections(transport, {
+            status,
+            brand: 'JSPrismarine',
+            onlineMode: () => false,
+            log: quiet,
+            world: {
+                players: {
+                    join: async () => ({ session, feet: { x: 8.5, y: -60, z: 8.5 } }),
+                    move: async () => held('move'),
+                    intent: async (_session, intent) => held(intent.kind),
+                    leave: async () => {}
+                },
+                chunk: async (x, z) => new Chunk(x, z),
+                light: () => ({ sky: () => 15, block: () => 0 }),
+                viewDistance: () => 0,
+                maxPlayers: () => 20
+            }
+        });
+        await transport.listen('127.0.0.1', 0);
+        const java = await configuring(transport.port()!);
+        await java.receive(ClientboundPluginMessage);
+        await java.receive(FeatureFlags);
+        java.send(ServerboundKnownPacks, await java.receive(ClientboundKnownPacks));
+        for (const _ of CONFIGURATION.registries) await java.receive(RegistryData);
+        await java.receive(UpdateTags);
+        await java.receive(FinishConfiguration);
+        java.send(AcknowledgeFinishConfiguration, {});
+        for (const opening of [PlayLogin, SynchronizePlayerPosition, GameEvent, SetCenterChunk, ChunkBatchStart]) {
+            await java.receive(opening);
+        }
+        await java.receive(LevelChunkWithLight);
+        await java.receive(ChunkBatchFinished);
+
+        java.send(PlayerLoaded, {});
+        java.send(MovePlayerPos, { x: 8.5, y: -60, z: 9.5, flags: MOVE_ON_GROUND });
+        // The move behind the load was read without waiting for the load to apply.
+        await expect.poll(() => queued).toEqual(['playerInitialized', 'move']);
+
+        for (const step of apply) step();
+        java.destroy();
+    });
+
     it('ends the join of a client without the pack the registries come from', async () => {
         const port = await listen();
         const java = await configuring(port);
